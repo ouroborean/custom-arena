@@ -101,6 +101,7 @@ export function Inspector({ view, content, availability }: { view: PlayerView; c
     const u = view.units.find((x) => x.id === inspect.unit);
     if (u) {
       const cls = u.kind === 'character' ? content.classes[u.defId]?.name : 'Minion';
+      const effects = view.effects.filter((e) => e.bearer === u.id);
       body = (
         <>
           <h4>{u.name}</h4>
@@ -122,6 +123,18 @@ export function Inspector({ view, content, availability }: { view: PlayerView; c
               );
             })}
           </div>
+          {effects.length > 0 && (
+            <div className="meta" style={{ marginTop: 8 }}>
+              Effects:{' '}
+              {effects.map((e) => (
+                <span key={e.id} className="tag-pill">
+                  {effectName(content, e.defId)}
+                  {e.stacks > 1 ? ` ×${e.stacks}` : ''}
+                  {e.duration !== null ? ` [${e.duration}]` : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </>
       );
     }
@@ -271,18 +284,15 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
                 {energy[c] - reserved[c]}
               </span>
             ))}
-            {reserved.r > 0 && (
-              <span className="energy-cell" title="Random costs you've promised to pay">
-                <span className="pip lg r" />
-                {reserved.r}
-              </span>
-            )}
+            <span className={`energy-cell promised${reserved.r > 0 ? '' : ' zero'}`} title="Random costs you've promised to pay">
+              <span className="pip lg r" />
+              {reserved.r}
+            </span>
           </div>
         )}
         {mode.kind !== 'watch' && (
           <div className="energy-meta">
-            <b>{free}</b> free of {total}
-            {reserved.r > 0 ? ` · ${reserved.r} random promised` : ''}
+            <b>{free}</b> free of {total} · {reserved.r} random promised
           </div>
         )}
       </div>

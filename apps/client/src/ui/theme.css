@@ -388,10 +388,15 @@ h3,
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 44px;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 19px;
   font-variant-numeric: tabular-nums;
+}
+
+.energy-cell.zero {
+  opacity: 0.3;
 }
 
 .energy-meta {
@@ -474,6 +479,7 @@ h3,
 }
 
 .stage-turn {
+  font-variant-numeric: tabular-nums;
   font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(64px, 8vw, 128px);
@@ -513,11 +519,14 @@ h3,
 .stage-feed {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 3px;
-  max-width: 300px;
+  width: 300px;
+  max-width: 100%;
+  height: 118px;
+  overflow: hidden;
   font-size: 12.5px;
   font-weight: 600;
-  min-height: 80px;
 }
 
 .stage-feed .k-skill {
@@ -708,17 +717,38 @@ button.portrait.targetable {
   align-content: flex-start;
 }
 
-.statuses.col {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  width: 30px;
+/* Fixed-size status grid: rows never change height as effects come and go. */
+.statuses.box {
+  --chip: 26px;
+  --cols: 3;
+  --rows: 5;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--chip));
+  grid-auto-rows: var(--chip);
+  gap: 3px;
+  align-content: start;
   flex: none;
+  width: calc(var(--cols) * var(--chip) + (var(--cols) - 1) * 3px);
+  height: calc(var(--rows) * var(--chip) + (var(--rows) - 1) * 3px);
+  overflow: hidden;
+}
+
+.unit-row.minion .statuses.box {
+  --rows: 2;
+}
+
+.unit-row.enemy .statuses.box {
+  direction: rtl;
+}
+
+.unit-row.enemy .statuses.box > * {
+  direction: ltr;
 }
 
 .chip {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 100%;
+  height: 100%;
   border: 2px solid var(--neutral);
   background: var(--ink);
   display: grid;
@@ -743,6 +773,12 @@ button.portrait.targetable {
 
 .chip.hidden {
   border-style: dashed;
+}
+
+.chip.more {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--void);
 }
 
 .chip .n,
@@ -919,6 +955,11 @@ button.portrait.targetable {
 }
 
 .queued-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
   font-size: 10.5px;
   font-weight: 800;
   text-transform: uppercase;
@@ -938,10 +979,17 @@ button.portrait.targetable {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  align-items: flex-end;
+  align-items: stretch;
+  width: 104px;
+  flex: none;
 }
 
 .enemy-skills .mini {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1022,6 +1070,12 @@ button.portrait.targetable {
   padding: 10px 12px;
   box-shadow: var(--shadow);
   min-width: 0;
+}
+
+/* Bottom panels have a fixed height and scroll inside, so changing content never moves the page. */
+.bottombar > .panel {
+  height: 168px;
+  overflow-y: auto;
 }
 
 .panel-title {
@@ -1667,8 +1721,10 @@ select:focus {
   }
   .roster.enemy .rows {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 16px) / 3);
     gap: 8px;
+    overflow-x: auto;
   }
   .roster.enemy .unit-row {
     flex-direction: column;
@@ -1677,10 +1733,10 @@ select:focus {
   .roster.enemy .fighter {
     width: 100%;
   }
-  .roster.enemy .statuses.col {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: auto;
+  .roster.enemy .statuses.box {
+    --cols: 4;
+    --rows: 1;
+    --chip: 24px;
   }
   .roster.enemy .enemy-skills {
     display: none;
@@ -1714,6 +1770,9 @@ select:focus {
   }
   .bottombar {
     grid-template-columns: 1fr;
+  }
+  .bottombar > .panel {
+    height: 132px;
   }
   .teams {
     grid-template-columns: 1fr;
@@ -1763,15 +1822,12 @@ select:focus {
   .tile.queued::after {
     font-size: 7px;
   }
-  .unit-row:not(.enemy) .statuses.col {
-    width: 22px;
-  }
-  .statuses.col:empty {
-    display: none;
+  .unit-row:not(.enemy) .statuses.box {
+    --chip: 22px;
+    --cols: 2;
+    --rows: 4;
   }
   .unit-row:not(.enemy) .chip {
-    width: 22px;
-    height: 22px;
     font-size: 10px;
   }
   .energy-panel {

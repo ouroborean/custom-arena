@@ -1,4 +1,4 @@
-import { useId, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
 
 export function Tooltip({ content, children, block }: { content: ReactNode; children: ReactNode; block?: boolean }) {
@@ -36,6 +36,18 @@ export function CostPips({ cost, large }: { cost: Cost; large?: boolean }) {
       ))}
     </span>
   );
+}
+
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => typeof matchMedia !== 'undefined' && matchMedia(query).matches);
+  useEffect(() => {
+    const mq = matchMedia(query);
+    const on = () => setMatches(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, [query]);
+  return matches;
 }
 
 // ---------------------------------------------------------------- identity: codes, colors, portraits

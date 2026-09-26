@@ -9,7 +9,7 @@ import {
   type Unit,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { CostPips, portraitStyle, skillCategory, skillCode, statusCode, unitCode } from './common.js';
+import { CostPips, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useMediaQuery } from './common.js';
 
 function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle }) {
   const setInspect = useStore((s) => s.setInspect);
@@ -125,6 +125,10 @@ export function UnitRow({
   const queuedDef = queued ? content.skills[unit.skills[queued.slot]!.defId] : undefined;
   const queuedTarget = queued?.targets[0] ? view.units.find((u) => u.id === queued.targets[0])?.name : undefined;
   const inspectUnit = () => setInspect({ kind: 'unit', unit: unit.id });
+  // The status grid has a fixed size so rows never grow; extra effects collapse into "+N".
+  const narrow = useMediaQuery('(max-width: 900px)');
+  const phone = useMediaQuery('(max-width: 600px)');
+  const statusLimit = !mine && narrow ? 4 : unit.kind === 'minion' ? 6 : phone ? 8 : 15;
 
   const rowClass = ['unit-row', mine ? '' : 'enemy', unit.kind === 'minion' ? 'minion' : '', alive ? '' : 'dead', hit ? 'hit' : '']
     .filter(Boolean)
@@ -134,6 +138,12 @@ export function UnitRow({
     <>
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
+      {queued && queuedDef && !playing && (
+        <span className="queued-slot" title={`Queued: ${queuedDef.name}${queuedTarget ? ` → ${queuedTarget}` : ''}`}>
+          {queuedDef.name}
+          {queuedTarget ? ` → ${queuedTarget}` : ''}
+        </span>
+      )}
       <span className="floats" aria-hidden>
         {floats.map((f) => (
           <span key={f.id} className={`float ${f.kind}`} onAnimationEnd={() => removeFloat(f.id)}>
@@ -180,20 +190,27 @@ export function UnitRow({
           {alive ? `${hp} / ${unit.maxHp}` : 'KO'}
           {shield > 0 && <span className="sh"> +{shield}</span>}
         </div>
-        {queued && queuedDef && !playing && (
-          <div className="queued-slot" title={`Queued: ${queuedDef.name}${queuedTarget ? ` → ${queuedTarget}` : ''}`}>
-            {queuedTarget ? `→ ${queuedTarget}` : queuedDef.name}
-          </div>
+      </div>
+
+      <div className="statuses box" aria-label={`${unit.name} effects`}>
+        {(effects.length > statusLimit ? effects.slice(0, statusLimit - 1) : effects).map((e) => (
+          <StatusChip key={e.id} e={e} content={content} />
+        ))}
+        {effects.length > statusLimit && (
+          <button
+            type="button"
+            className="chip more"
+            aria-label={`${effects.length - statusLimit + 1} more effects`}
+            onMouseEnter={inspectUnit}
+            onFocus={inspectUnit}
+            onClick={inspectUnit}
+          >
+            +{effects.length - statusLimit + 1}
+          </button>
         )}
       </div>
 
-      <div className="statuses col" aria-label={`${unit.name} effects`}>
-        {effects.map((e) => (
-          <StatusChip key={e.id} e={e} content={content} />
-        ))}
-      </div>
-
-      {mine && alive && unit.skills.length > 0 && (
+      {mine && unit.skills.length > 0 && (
         <div className="strip">
           {unit.skills.map((_, i) => (
             <SkillTile
@@ -204,20 +221,20 @@ export function UnitRow({
               availability={availability.find((a) => a.actor === unit.id && a.slot === i)}
               queued={queued?.slot === i}
               queueIndex={queueIndex}
-              locked={playing}
+              locked={playing || !alive}
             />
           ))}
         </div>
       )}
 
-      {!mine && alive && unit.skills.length > 0 && (
+      {!mine && unit.skills.length > 0 && (
         <div className="enemy-skills" aria-label={`${unit.name} skills`}>
           {unit.skills.map((slot, i) => {
             const d = content.skills[slot.defId]!;
             return (
               <span key={i} className="mini" onMouseEnter={inspectUnit}>
-                {d.name}
-                {slot.cooldown > 0 && <span className="cdn"> {slot.cooldown}</span>}
+                <span>{d.name}</span>
+                <span className="cdn">{slot.cooldown > 0 ? slot.cooldown : ''}</span>
               </span>
             );
           })}
