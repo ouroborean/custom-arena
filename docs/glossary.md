@@ -30,12 +30,14 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Normal** | The default damage type. Reduced by Armor, absorbed by Shield. |
 | **Once per round** | Once per **match**. |
 | **Piercing** | Damage type that ignores Armor but is absorbed by Shield. |
+| **Prey** | Poison: a unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 HP, or marked as Prey. Computed, not applied. |
 | **Reflect** | A counter that also applies the skill to its user (or the user's team, for AoE skills). |
 | **Shattered** | Gets no benefit from Armor or Shield. |
 | **Strategic** | Skill class for skills that aren't explicitly directly damaging. Tagged per skill. Some stuns only affect Strategic or non-Strategic skills. |
 | **Stunned** | Can't use skills (optionally only Strategic or only non-Strategic ones). |
 | **Taunted** | Enemy single-target skills must target the taunter. |
 | **Tick / ticking effect** | An effect with an end-of-turn payload (DoT, HoT, Renew, channel, minion attack). Fires at the end of its applier's turn, in the order that player chooses. |
+| **Toxin** | Poison: 5 Affliction damage per stack at the end of the applier's turn. Stacks merge per applying side. |
 | **Trap** | A hidden effect on an enemy that fires when they use (typically Harmful) skills. |
 | **Untargetable** | Can't be targeted by enemy skills, but still takes indirect damage. Bypass does not ignore it. |
 | **Uncounterable** | Skill tag: can't be countered or reflected. |

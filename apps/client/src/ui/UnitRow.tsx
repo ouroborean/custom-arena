@@ -1,6 +1,7 @@
 import {
   effectDefinition,
   effectName,
+  evaluateNamedCondition,
   type ContentBundle,
   type EffectInstance,
   type PlayerId,
@@ -188,10 +189,18 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
   const queuedDef = st.queued ? content.skills[unit.skills[st.queued.slot]!.defId] : undefined;
   const queuedTarget = st.queued?.targets[0] ? view.units.find((u) => u.id === st.queued!.targets[0])?.name : undefined;
 
+  // Named conditions from content that deserve a visible badge (derived, so they have no status chip).
+  const prey = unit.alive && !!content.conditions.prey && evaluateNamedCondition(content, view, 'prey', unit.id);
+
   const inner = (
     <>
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
+      {prey && (
+        <span className="state-tag" title="Prey: more than 2 debuff stacks, under 20 HP, or marked">
+          PREY
+        </span>
+      )}
       {queuedDef && !st.playing && (
         <span className="queued-slot" title={`Queued: ${queuedDef.name}${queuedTarget ? ` → ${queuedTarget}` : ''}`}>
           {queuedDef.name}

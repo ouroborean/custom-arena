@@ -11,6 +11,7 @@ export type QueueCommand = Extract<Command, { t: 'queue' }>;
 function targetOptions(state: GameState, player: PlayerId, def: SkillDef): UnitId[][] {
   if (def.target === 'enemy') return state.units.filter((t) => t.alive && t.owner !== player).map((t) => [t.id]);
   if (def.target === 'ally') return state.units.filter((t) => t.alive && t.owner === player).map((t) => [t.id]);
+  if (def.target === 'any') return state.units.filter((t) => t.alive).map((t) => [t.id]);
   return [[]];
 }
 

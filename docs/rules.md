@@ -179,3 +179,46 @@ Content: `packages/content/data/fire/`. Statuses: **Ignite**, **Scorched**, **Fl
 - Fire characters win about 51% of games, and characters with no element about 49%.
 - **Flickerflare** won about 76% of the games it appeared in, the clear outlier. For 1 random energy with no cooldown, it added Ignite to Shot's damage and spread Ignite on re-cast. Giving Ignite a 3-turn duration barely changed this (about 75%).
 - **Change (2026-09-26):** Flickerflare's cooldown went from 0 to 1. Re-simulated over 2,000 matches, it wins about 71%. That's still the top Fire skill, so it's worth revisiting (cost color, or spreading only onto un-Ignited enemies).
+
+---
+
+## 12. Poison
+
+Content: `packages/content/data/poison/`. Statuses: **Toxin**, **Prey (marked)**. Condition: **prey**.
+
+### 12.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Toxin** | 5 Affliction damage per stack at the end of the applier's turn. Toxin from the same side merges into one stack count on the bearer. It's permanent until removed (Q16). |
+| **Prey** | A **derived** state, not a status. A unit is Prey if it has more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, **or** is below 20 HP, **or** is marked as Prey (Lunge, Mesmerizing Glare). It's defined once in `conditions.poison.yaml`, and the client shows a PREY tag on the portrait. |
+| **Stances** (Viper, Cobra, Constrictor) | Convert **every** instance in the battle, including the user's own team's. Each converted effect keeps its stacks and remaining duration. The new debuff counts as applied by the user, so Immune blocks it. |
+
+### 12.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Lunge | All enemies are marked Prey through the user's next turn. |
+| Shed Skin | Triggers on the first direct hit only. The 3 Renew then decays normally. |
+| Sting | The Toxin, Weakness or Vulnerable is picked uniformly at random. |
+| Snake Pit | Triggers on **every** Strategic skill the target uses during the 3 turns. |
+| Slither | Unstunnable. Its Focus has no stated duration, so it's **permanent** (Q16). |
+| Unstated durations | Also permanent: Sting's debuff, Acid Orb's Mark and Vulnerable, Swamp Toxins' Confusion, Numbing Needle's debuffs, and Coil's Shield and Armor. |
+| Devour | Kills characters at 14 HP or less and minions at 29 or less (the sheet says "less than 15", doubled for minions). Tagged Strategic, since it deals no damage. |
+| Emerald Asp | Its skills are Serpent Fang (r, no cooldown) and Constrict (rr, no cooldown). The sheet gives no cooldowns. |
+| Spriggan Harasser | Its Sting costs W, with a cooldown of 1 (Sting's own). |
+| Nine Plagues | Channels for 9 of the user's turns. Using another skill with that character ends it. |
+| Pounce | The random energy is added immediately, so it's usable next turn. |
+| Envenom | Bypasses Invulnerable. The Prey / Invulnerable check happens before the hit. |
+| Preymark | Triggers on direct damage from the applier's side, including the user. |
+| Tail Lash | Its cooldown resets if any enemy it hit is Prey after the hit. |
+| Moonglove Mixture | Targets **any** unit. It's tagged Helpful, so counters don't catch it even when used on an enemy. |
+| Bad Stomach, Stances | Have no target, and are tagged Harmful/Strategic. |
+
+### 12.3 Balance notes (greedy-bot simulation, 3,000 matches, elements None/Fire/Poison)
+
+- By character element: Fire 50.0%, None 49.9%, Poison 49.5%.
+- Highest Poison skills: Plague Stomp about 66%, Viper Strike about 63% (Flickerflare, after its cooldown change, about 67%).
+- Lowest Poison skills: Pounce, Slither, Mesmerizing Glare, Tail Lash, Lacerate, Shed Skin and Coil, at 43–45%.
+- **Watch:** Slither's permanent Focus, and permanent Weakness/Vulnerable from Sting and Numbing Needle. These stack up over long matches; permanent debuffs also make Prey easy to trigger.
+

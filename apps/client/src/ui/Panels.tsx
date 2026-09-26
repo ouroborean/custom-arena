@@ -17,6 +17,7 @@ const TARGET_TEXT: Record<string, string> = {
   self: 'Self',
   enemy: 'One enemy',
   ally: 'One ally',
+  any: 'Any unit',
   allEnemies: 'All enemies',
   allAllies: 'All allies',
   none: 'No target',

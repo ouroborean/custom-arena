@@ -1,0 +1,21 @@
+# Poison statuses, from "Custom Arena - Poison".
+
+toxin:
+  name: Toxin
+  kind: Debuff
+  element: Poison
+  stacking: merge
+  description: Takes 5 Affliction damage per stack at the end of the applier's turn. Stacks.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
+
+# Explicit "considered Prey" (Lunge, Mesmerizing Glare). Units can also be Prey without it —
+# see the "prey" condition.
+prey:
+  name: Prey (marked)
+  kind: Debuff
+  element: Poison
+  stacking: unique
+  description: This unit is considered Prey.

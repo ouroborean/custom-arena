@@ -38,6 +38,7 @@
 
   /* elements (per the design sheets' color key) */
   --el-fire: #ff6a00;
+  --el-poison: #8be03c;
 
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
@@ -863,6 +864,24 @@ button.portrait.targetable {
 /* Element accents: a hard corner notch in the element color. */
 .el-fire {
   --el: var(--el-fire);
+}
+
+.el-poison {
+  --el: var(--el-poison);
+}
+
+/* Derived-state badges (e.g. Poison's Prey), bottom-left of the portrait above the name. */
+.portrait .state-tag {
+  position: absolute;
+  left: 0;
+  bottom: 17px;
+  z-index: 1;
+  background: var(--el-poison);
+  color: var(--void);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 0 4px;
 }
 
 .tile.has-el {

@@ -45,6 +45,21 @@ export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: U
       if (!canTarget(ctx, actor, t, bypass)) return { ok: false, reason: 'target cannot be targeted' };
       return { ok: true, targets: [t.id] };
     }
+    case 'any': {
+      const id = declared[0];
+      const t = id === undefined ? undefined : findUnit(ctx.s, id);
+      if (!t || !t.alive) return { ok: false, reason: 'target is not alive' };
+      if (!canTarget(ctx, actor, t, bypass)) return { ok: false, reason: 'target cannot be targeted' };
+      if (isEnemy(actor, t)) {
+        const forced = forcedTargets(ctx, actor);
+        if (forced.length > 0 && !forced.includes(t.id)) {
+          if (strict) return { ok: false, reason: 'taunted' };
+          const f = findUnit(ctx.s, forced[0]!);
+          if (f?.alive && canTarget(ctx, actor, f, bypass)) return { ok: true, targets: [f.id] };
+        }
+      }
+      return { ok: true, targets: [t.id] };
+    }
     case 'ally': {
       const id = declared[0];
       const t = id === undefined ? undefined : findUnit(ctx.s, id);
@@ -142,16 +157,21 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
       !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')),
   );
   try {
-    resolveUse(ctx, actor, def, targets, harmful);
+    resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
     for (const e of ending) removeEffect(ctx, e, 'consumed');
   }
 }
 
-function resolveUse(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], harmful: boolean): void {
+function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[], harmful: boolean): void {
 
   // 4a. Traps and other on-use triggers fire whether or not the skill is countered.
-  enqueueTriggers(ctx, actor.id, 'skillUsed', { harmful, eventSource: actor.id, eventTarget: actor.id });
+  enqueueTriggers(ctx, actor.id, 'skillUsed', {
+    harmful,
+    strategic: def.tags.includes('Strategic'),
+    eventSource: actor.id,
+    eventTarget: actor.id,
+  });
   flushTriggers(ctx);
   if (!actor.alive || ctx.s.phase === 'finished') return;
 
@@ -182,11 +202,12 @@ function resolveUse(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], har
   }
 
   // 5. Execute the skill's ops.
-  runSkillOps(ctx, actor, def, targets);
+  runSkillOps(ctx, actor, def, targets, slotIndex);
 }
 
-function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): void {
+function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], slot?: number): void {
   const sc: Scope = {
+    ...(slot !== undefined ? { slot } : {}),
     actor: actor.id,
     targets,
     vars: {},

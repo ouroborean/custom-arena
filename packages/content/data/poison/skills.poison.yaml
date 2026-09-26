@@ -1,0 +1,547 @@
+# The 30 Poison variants, from "Custom Arena - Poison". Ids are "<base>.poison".
+# Themes: Affliction, Debilitation, Patience. Stack Toxin and debuffs until the target is Prey.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.poison:
+  archetype: Strike
+  element: Poison
+  name: Viper Strike
+  description: Deals 20 damage to target enemy and gives them 1 Toxin.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: toxin }
+
+smash.poison:
+  archetype: Smash
+  element: Poison
+  name: Plague Stomp
+  description: Deals 25 damage to target enemy and gives their allies 1 Toxin.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primaryAllies, effect: toxin }
+
+charge.poison:
+  archetype: Charge
+  element: Poison
+  name: Lunge
+  description: Deals 10 damage to target enemy. Through the user's next turn, all enemies are considered Prey.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: allEnemies, effect: prey, duration: { ownTurns: 1 } }
+
+riposte.poison:
+  archetype: Riposte
+  element: Poison
+  name: Shed Skin
+  description: For 1 turn, if the user receives direct damage, they heal 15 HP and gain 3 Renew. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shed_skin
+        name: Shed Skin
+        kind: Buff
+        element: Poison
+        visibility: hidden
+        description: The next time the bearer takes direct damage, they heal 15 and gain 3 Renew.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            consume: true
+            do:
+              - { op: heal, to: bearer, amount: 15 }
+              - { op: apply, to: bearer, effect: renew, stacks: 3 }
+
+rage.poison:
+  archetype: Rage
+  element: Poison
+  name: Viper Stance
+  description: All stacks of Might in the battle turn into stacks of Weakness.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: none
+  ops:
+    - { op: convertEffects, from: might, to: weakness }
+
+shot.poison:
+  archetype: Shot
+  element: Poison
+  name: Sting
+  description: Deals 5 Piercing damage to target enemy and gives them 1 Toxin, 1 Weakness, or 1 Vulnerable, chosen at random.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - op: random
+      options:
+        - [{ op: apply, to: primary, effect: toxin }]
+        - [{ op: apply, to: primary, effect: weakness }]
+        - [{ op: apply, to: primary, effect: vulnerable }]
+
+snipe.poison:
+  archetype: Snipe
+  element: Poison
+  name: Banewood Javelin
+  description: >-
+    The user deals 25 Affliction damage to target enemy on the following turn. The target of this
+    skill is invisible. Channeled. Uncounterable.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: banewood_javelin
+        name: Banewood Javelin (aiming)
+        kind: Neutral
+        element: Poison
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 25, type: Affliction }
+
+trap.poison:
+  archetype: Trap
+  element: Poison
+  name: Snake Pit
+  description: For 3 turns, if target enemy uses a Strategic skill, they gain 1 Toxin. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: snake_pit
+        name: Snake Pit
+        kind: Debuff
+        element: Poison
+        visibility: hidden
+        description: Each Strategic skill the bearer uses gives them 1 Toxin.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true }
+            do:
+              - { op: apply, to: bearer, effect: toxin }
+
+maneuver.poison:
+  archetype: Maneuver
+  element: Poison
+  name: Slither
+  description: The user becomes Invulnerable for 1 turn and gains Focus. Unstunnable.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Unstunnable]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: focus }
+
+companion.poison:
+  archetype: Companion
+  element: Poison
+  name: Emerald Asp
+  description: >-
+    Summons an Emerald Asp minion (25 HP). Serpent Fang: 5 Piercing damage and 1 Toxin.
+    Constrict: 2 Weakness and 2 Vulnerable for 2 turns.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: emerald_asp }
+
+bolt.poison:
+  archetype: Bolt
+  element: Poison
+  name: Acid Orb
+  description: Deals 20 damage to target enemy. If the target is Prey, they are Marked and gain 1 Vulnerable.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { check: { cond: prey, unit: primary } }
+      then:
+        - { op: apply, to: primary, effect: mark }
+        - { op: apply, to: primary, effect: vulnerable }
+
+blast.poison:
+  archetype: Blast
+  element: Poison
+  name: Acid Wash
+  description: Deals 15 damage to all enemies and gives them all 1 Vulnerable for 2 turns.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: vulnerable, duration: { enemyTurns: 2 } }
+
+consume.poison:
+  archetype: Consume
+  element: Poison
+  name: Devour
+  description: Executes target enemy with less than 15 HP. This range is doubled for minions.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: if
+      cond:
+        or:
+          - and: [{ kind: { unit: primary, is: character } }, { hpAtMost: { unit: primary, value: 14 } }]
+          - and: [{ kind: { unit: primary, is: minion } }, { hpAtMost: { unit: primary, value: 29 } }]
+      then:
+        - { op: kill, to: primary }
+
+summon.poison:
+  archetype: Summon
+  element: Poison
+  name: Spriggan Harasser
+  description: 'Summons a Spriggan Harasser minion (15 HP) for 3 turns. Its Sting (W) uses Sting on target enemy.'
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: spriggan_harasser, duration: { enemyTurns: 3 } }
+
+channel.poison:
+  archetype: Channel
+  element: Poison
+  name: Nine Plagues
+  description: >-
+    Deals 5 Affliction damage to all enemies for 9 turns. Each turn this skill is channeled, a
+    random enemy receives 1 Toxin. Channeled.
+  cost: Wrr
+  cooldown: 9
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 9 }
+      effect:
+        id: nine_plagues
+        name: Nine Plagues
+        kind: Neutral
+        element: Poison
+        interruptible: true
+        description: At the end of each of the user's turns, 5 Affliction damage to all enemies and 1 Toxin to a random enemy.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5, type: Affliction }
+              - { op: apply, to: { randomEnemy: 1 }, effect: toxin }
+
+stab.poison:
+  archetype: Stab
+  element: Poison
+  name: Pounce
+  description: Deals 5 Piercing damage to target enemy. If that enemy is Prey, the user generates a random energy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - op: if
+      cond: { check: { cond: prey, unit: primary } }
+      then: [{ op: gainEnergy, amount: 1 }]
+
+ravage.poison:
+  archetype: Ravage
+  element: Poison
+  name: Envenom
+  description: >-
+    Deals 25 Piercing damage to target enemy, Bypassing Invulnerability. If used against Prey or
+    Invulnerable targets, applies 2 Toxin.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Bypass]
+  target: enemy
+  ops:
+    - { op: set, var: special, value: { if: { or: [{ check: { cond: prey, unit: primary } }, { has: { unit: primary, effect: invulnerable } }] }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: if, cond: { varTrue: special }, then: [{ op: apply, to: primary, effect: toxin, stacks: 2 }] }
+
+mislead.poison:
+  archetype: Mislead
+  element: Poison
+  name: Numbing Needle
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, they will be countered and will gain 1 Toxin,
+    1 Weakness, and 1 Vulnerable. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: numbing_needle
+        name: Numbing Needle
+        kind: Debuff
+        element: Poison
+        visibility: hidden
+        description: The bearer's Harmful skills are countered; each counter gives them 1 Toxin, 1 Weakness and 1 Vulnerable.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: toxin }
+              - { op: apply, to: bearer, effect: weakness }
+              - { op: apply, to: bearer, effect: vulnerable }
+
+stun.poison:
+  archetype: Stun
+  element: Poison
+  name: Lacerate
+  description: Target enemy is Stunned for 1 turn. If they are Prey, they are Stunned for 2 turns instead.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { check: { cond: prey, unit: primary } }
+      then: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }]
+      else: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }]
+
+dance.poison:
+  archetype: Dance
+  element: Poison
+  name: Cobra Stance
+  description: All stacks of Armor in the battle turn into stacks of Vulnerable.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: none
+  ops:
+    - { op: convertEffects, from: armor, to: vulnerable }
+
+heal.poison:
+  archetype: Heal
+  element: Poison
+  name: Moonglove Mixture
+  description: Target unit (ally or enemy) is healed for 30 HP and gains 2 Toxin.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: any
+  ops:
+    - { op: heal, to: primary, amount: 30 }
+    - { op: apply, to: primary, effect: toxin, stacks: 2 }
+
+bless.poison:
+  archetype: Bless
+  element: Poison
+  name: Viper's Crest
+  description: Gives target ally 1 Might and 1 Swiftness for 3 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: swiftness, duration: { enemyTurns: 3 } }
+
+curse.poison:
+  archetype: Curse
+  element: Poison
+  name: Swamp Toxins
+  description: Target enemy gains 1 Confusion and 1 Toxin.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion }
+    - { op: apply, to: primary, effect: toxin }
+
+smite.poison:
+  archetype: Smite
+  element: Poison
+  name: Preymark
+  description: Deals 15 damage to target enemy. For 1 turn, if an ally damages them, they receive 1 Vulnerable.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: preymark
+        name: Preymark
+        kind: Debuff
+        element: Poison
+        description: Each time the applier's side deals direct damage to the bearer, they gain 1 Vulnerable.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: apply, to: bearer, effect: vulnerable }
+
+prayer.poison:
+  archetype: Prayer
+  element: Poison
+  name: Serpentsong
+  description: All allies gain 2 Renew and all enemies gain 1 Toxin.
+  cost: Wr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: apply, to: targets, effect: renew, stacks: 2 }
+    - { op: apply, to: allEnemies, effect: toxin }
+
+cleave.poison:
+  archetype: Cleave
+  element: Poison
+  name: Tail Lash
+  description: Deals 15 damage to all enemies. If this strikes any Prey, its cooldown is reset.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - op: if
+      cond: { any: { in: lastDamaged, cond: { check: { cond: prey, unit: it } } } }
+      then: [{ op: resetCooldown }]
+
+shout.poison:
+  archetype: Shout
+  element: Poison
+  name: Bad Stomach
+  description: If the user has no Toxin, this skill gives them 1 Toxin. Otherwise, it gives all enemies 1 Toxin.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: none
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: toxin } }
+      then: [{ op: apply, to: allEnemies, effect: toxin }]
+      else: [{ op: apply, to: actor, effect: toxin }]
+
+withstand.poison:
+  archetype: Withstand
+  element: Poison
+  name: Coil
+  description: The user gains 5 Shield and 1 Armor.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 5 }
+    - { op: apply, to: actor, effect: armor }
+
+taunt.poison:
+  archetype: Taunt
+  element: Poison
+  name: Mesmerizing Glare
+  description: Target enemy is Taunted and is considered Prey for 3 turns.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: prey, duration: { enemyTurns: 3 } }
+
+titan.poison:
+  archetype: Titan
+  element: Poison
+  name: Constrictor Stance
+  description: All stacks of Focus in the battle turn into stacks of Confusion.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: none
+  ops:
+    - { op: convertEffects, from: focus, to: confusion }
+
+# ---------------------------------------------------------------- minion skills
+
+asp_fang:
+  archetype: Minion
+  element: Poison
+  name: Serpent Fang
+  description: Target enemy receives 5 Piercing damage and 1 Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }
+
+asp_constrict:
+  archetype: Minion
+  element: Poison
+  name: Constrict
+  description: Target enemy receives 2 Weakness and 2 Vulnerable for 2 turns.
+  cost: rr
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: weakness, stacks: 2, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: vulnerable, stacks: 2, duration: { enemyTurns: 2 } }
+
+spriggan_sting:
+  archetype: Minion
+  element: Poison
+  name: Sting
+  description: Deals 5 Piercing damage to target enemy and gives them 1 Toxin, 1 Weakness, or 1 Vulnerable, chosen at random.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - op: random
+      options:
+        - [{ op: apply, to: primary, effect: toxin }]
+        - [{ op: apply, to: primary, effect: weakness }]
+        - [{ op: apply, to: primary, effect: vulnerable }]
