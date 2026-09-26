@@ -1,0 +1,462 @@
+# The 30 base (non-elemental) skills, from "Custom Arena - Skills".
+# Keyed by id. Elemental variants will live in their own files as "<archetype>.<element>".
+#
+# Duration convention for "for N turns" (docs/rules.md §Durations):
+#   - enemyTurns: N  → present for the rest of this turn and N of the opponent's turns.
+#   - Effects with no stated duration are permanent until something ends them (Q16).
+
+strike:
+  archetype: Strike
+  element: None
+  name: Strike
+  description: Deals 20 damage to target enemy and gains 1 Might.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: actor, effect: might }
+
+smash:
+  archetype: Smash
+  element: None
+  name: Smash
+  description: Deals 25 damage to target enemy and 15 damage to their allies.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+
+charge:
+  archetype: Charge
+  element: None
+  name: Charge
+  description: Deals 15 damage to target enemy and gives the user 1 Focus for their next skill.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    # Design note on the sheet: "next action buff" — the Focus ends when the user next uses a skill.
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+
+riposte:
+  archetype: Riposte
+  element: None
+  name: Riposte
+  description: >-
+    For 1 turn, the user will counter any Harmful skill used on them, dealing 15 damage to its
+    user. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: riposte
+        name: Riposte
+        kind: Buff
+        visibility: hidden
+        description: Counters any Harmful skill used on the bearer, dealing 15 damage to its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: damage, to: eventSource, amount: 15 }
+
+rage:
+  archetype: Rage
+  element: None
+  name: Rage
+  description: For 3 turns, the user gains 2 Might and Immune.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+
+shot:
+  archetype: Shot
+  element: None
+  name: Shot
+  description: Deals 15 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+
+snipe:
+  archetype: Snipe
+  element: None
+  name: Snipe
+  description: >-
+    The user deals 50 damage to target enemy on the following turn. The target of this skill is
+    invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: snipe
+        name: Snipe (aiming)
+        kind: Neutral
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50 }
+
+trap:
+  archetype: Trap
+  element: None
+  name: Trap
+  description: For 3 turns, target enemy gains Trap 15. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: trap, value: 15, duration: { enemyTurns: 3 } }
+
+maneuver:
+  archetype: Maneuver
+  element: None
+  name: Maneuver
+  description: The user becomes Invulnerable for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+companion:
+  archetype: Companion
+  element: None
+  name: Companion
+  description: Summons a Wolf minion permanently. It deals 10 damage to a random enemy each turn.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: wolf }
+
+bolt:
+  archetype: Bolt
+  element: None
+  name: Bolt
+  description: Deals 25 damage to target enemy and Marks them for 1 turn.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+
+blast:
+  archetype: Blast
+  element: None
+  name: Blast
+  description: Deals 35 damage to all enemies.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 35 }
+
+consume:
+  archetype: Consume
+  element: None
+  name: Consume
+  description: >-
+    Deals 5 damage to target enemy, restoring health equal to the damage dealt. If the target is
+    Marked or affected by a Curse skill, this skill heals an additional 10 HP.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    # Check before damaging: the damage consumes the Mark.
+    - op: set
+      var: bonus
+      value:
+        if:
+          or:
+            - { has: { unit: primary, effect: mark } }
+            - { hasFromArchetype: { unit: primary, archetype: Curse } }
+        then: 10
+        else: 0
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { sum: [{ lastDamage: true }, { var: bonus }] } }
+
+summon:
+  archetype: Summon
+  element: None
+  name: Summon
+  description: Summons an Arcane Familiar for 3 turns that deals 15 damage to a random enemy each turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: arcane_familiar, duration: { enemyTurns: 3 } }
+
+channel:
+  archetype: Channel
+  element: None
+  name: Channel
+  description: >-
+    Deals 10 damage to all enemies for 2 turns. If any target damaged by this skill is Marked, an
+    additional turn is added to the duration. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: channel
+        name: Channel
+        kind: Neutral
+        interruptible: true
+        description: Deals 10 damage to all enemies at the end of each of the user's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: if
+                cond:
+                  and:
+                    - { not: { flag: extended } }
+                    - { any: { in: lastDamaged, cond: { has: { unit: it, effect: mark } } } }
+                then:
+                  - { op: extendSelf, by: 2 }
+                  - { op: setFlag, flag: extended }
+
+stab:
+  archetype: Stab
+  element: None
+  name: Stab
+  description: Deals 10 damage to target enemy, increased to 20 against targets at or below 60 health.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+
+ravage:
+  archetype: Ravage
+  element: None
+  name: Ravage
+  description: Deals 25 Piercing damage to target enemy. Against Stunned targets, deals 15 additional damage.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { if: { has: { unit: it, effect: stun } }, then: 40, else: 25 }
+
+mislead:
+  archetype: Mislead
+  element: None
+  name: Mislead
+  description: For 1 turn, if target enemy uses a Harmful skill, they will be countered. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mislead
+        name: Mislead
+        kind: Debuff
+        visibility: hidden
+        description: Harmful skills used by the bearer are countered.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+
+stun:
+  archetype: Stun
+  element: None
+  name: Stun
+  description: Deals 15 damage to target enemy and Stuns them for 1 turn.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance:
+  archetype: Dance
+  element: None
+  name: Dance
+  description: The user gains 1 Might, 2 Swiftness, and 1 Focus for 4 turns.
+  cost: AI
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 4 } }
+
+heal:
+  archetype: Heal
+  element: None
+  name: Heal
+  description: Heals target ally 25 HP.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+
+bless:
+  archetype: Bless
+  element: None
+  name: Bless
+  description: For 3 turns, target ally gains 1 Might and 1 Renew.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: renew, duration: { enemyTurns: 3 } }
+
+curse:
+  archetype: Curse
+  element: None
+  name: Curse
+  description: Target enemy is Confused for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+
+smite:
+  archetype: Smite
+  element: None
+  name: Smite
+  description: Deals 20 damage to target enemy and Sanctifies them for 1 turn.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+
+prayer:
+  archetype: Prayer
+  element: None
+  name: Prayer
+  description: Heals all allies for 30 health and grants them 10 Shield.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 30 }
+    - { op: apply, to: targets, effect: shield, value: 10 }
+
+cleave:
+  archetype: Cleave
+  element: None
+  name: Cleave
+  description: Deals 25 damage to target enemy and 15 damage to a second random enemy.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+shout:
+  archetype: Shout
+  element: None
+  name: Shout
+  description: All enemies are Intimidated for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+
+withstand:
+  archetype: Withstand
+  element: None
+  name: Withstand
+  description: The user gains 25 Shield for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
+
+taunt:
+  archetype: Taunt
+  element: None
+  name: Taunt
+  description: Taunts target enemy for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+
+titan:
+  archetype: Titan
+  element: None
+  name: Titan
+  description: For 3 turns, the user gains 3 Armor and Immune.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }

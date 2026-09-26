@@ -1,0 +1,52 @@
+# Classes and their 6-skill pools (GDD §6.2). Every skill is a signature for exactly one class and
+# an affinity skill for exactly one other; validation enforces that invariant.
+
+warrior:
+  name: Warrior
+  signatures: [strike, smash, titan]
+  affinity: [charge, shout, rage]
+
+knight:
+  name: Knight
+  signatures: [charge, riposte, shout]
+  affinity: [strike, cleave, stun]
+
+druid:
+  name: Druid
+  signatures: [rage, companion, ravage]
+  affinity: [smash, trap, blast]
+
+ranger:
+  name: Ranger
+  signatures: [shot, snipe, trap]
+  affinity: [companion, maneuver, stab]
+
+monk:
+  name: Monk
+  signatures: [maneuver, dance, smite]
+  affinity: [riposte, bless, prayer]
+
+mage:
+  name: Mage
+  signatures: [bolt, blast, channel]
+  affinity: [summon, consume, mislead]
+
+warlock:
+  name: Warlock
+  signatures: [consume, summon, curse]
+  affinity: [bolt, withstand, taunt]
+
+rogue:
+  name: Rogue
+  signatures: [stab, mislead, stun]
+  affinity: [ravage, snipe, dance]
+
+priest:
+  name: Priest
+  signatures: [heal, bless, prayer]
+  affinity: [channel, curse, shot]
+
+paladin:
+  name: Paladin
+  signatures: [cleave, withstand, taunt]
+  affinity: [titan, smite, heal]

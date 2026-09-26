@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (incl. engine determinism rules)
+        run: npm run lint
+      - name: Validate content
+        run: npm run content:validate
+      - name: Tests (rules, 30 base skills, bot simulations, replay determinism)
+        run: npm test
+      - name: Smoke-run a simulated match with replay check
+        run: npm run sim -- --seed 1

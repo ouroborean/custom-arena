@@ -1,0 +1,27 @@
+# Base minions. The sheet gives no HP for these two; values are placeholders (see docs/rules.md).
+
+wolf:
+  name: Wolf
+  hp: 30
+  passives:
+    - id: wolf_bite
+      name: Wolf Bite
+      kind: Neutral
+      description: Deals 10 damage to a random enemy at the end of its owner's turn.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+
+arcane_familiar:
+  name: Arcane Familiar
+  hp: 20
+  passives:
+    - id: arcane_bolt
+      name: Arcane Bolt
+      kind: Neutral
+      description: Deals 15 damage to a random enemy at the end of its owner's turn.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 15 }

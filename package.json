@@ -1,0 +1,31 @@
+{
+  "name": "custom-arena",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "content:validate": "npm run validate -w @arena/content",
+    "content:build": "npm run build -w @arena/content",
+    "sim": "npm run sim -w @arena/cli --",
+    "play": "npm run play -w @arena/cli --",
+    "ci": "npm run typecheck && npm run lint && npm run content:validate && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.2"
+  }
+}

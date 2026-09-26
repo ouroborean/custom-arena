@@ -1,0 +1,160 @@
+# Core (element-neutral) statuses. GDD §5.1.
+# Keyed by id. Stacks from separate applications are separate instances; queries sum them.
+
+might:
+  name: Might
+  kind: Buff
+  description: +5 direct damage dealt per stack.
+  modifiers:
+    - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true } }
+
+weakness:
+  name: Weakness
+  kind: Debuff
+  description: −5 direct damage dealt per stack.
+  modifiers:
+    - { mod: damageDealt, amount: -5, perStack: true, when: { direct: true } }
+
+vulnerable:
+  name: Vulnerable
+  kind: Debuff
+  description: +5 direct damage taken per stack.
+  modifiers:
+    - { mod: damageTaken, amount: 5, perStack: true, when: { direct: true } }
+
+armor:
+  name: Armor
+  kind: Buff
+  description: −5 Normal damage taken per stack.
+  modifiers:
+    - { mod: damageTaken, amount: -5, perStack: true, armor: true, when: { types: [Normal] } }
+
+shield:
+  name: Shield
+  kind: Buff
+  description: Absorbs Normal and Piercing damage until depleted.
+  shield: true
+
+stun:
+  name: Stunned
+  kind: Debuff
+  description: Cannot use skills.
+  modifiers:
+    - { mod: cannotUseSkills }
+
+invulnerable:
+  name: Invulnerable
+  kind: Buff
+  description: >-
+    Cannot be targeted by enemy skills, and takes no damage from enemy triggered or ticking effects
+    unless that damage is Affliction or Bypassing.
+  modifiers:
+    - { mod: untargetable, by: enemies, bypassable: true }
+    - { mod: blockIndirectDamage }
+
+untargetable:
+  name: Untargetable
+  kind: Buff
+  description: Cannot be targeted by enemy skills, but still takes triggered and ticking damage.
+  modifiers:
+    - { mod: untargetable, by: enemies, bypassable: false }
+
+isolated:
+  name: Isolated
+  kind: Debuff
+  description: Cannot be targeted by allied skills.
+  modifiers:
+    - { mod: untargetable, by: allies, bypassable: true }
+
+shattered:
+  name: Shattered
+  kind: Debuff
+  description: Gets no benefit from Armor or Shield.
+  modifiers:
+    - { mod: noArmorOrShield }
+
+swiftness:
+  name: Swiftness
+  kind: Buff
+  description: Ignores the next Stun effect applied (consumes one stack).
+  modifiers:
+    - { mod: negateNext, effect: stun }
+
+intimidated:
+  name: Intimidated
+  kind: Debuff
+  description: Cooldowns increased by 1 per stack.
+  modifiers:
+    - { mod: cooldownOnUse, amount: 1, perStack: true }
+
+focus:
+  name: Focus
+  kind: Buff
+  description: Reduces skill costs by 1 GEN per stack.
+  modifiers:
+    - { mod: costGeneric, amount: -1, perStack: true }
+
+confusion:
+  name: Confusion
+  kind: Debuff
+  description: Increases skill costs by 1 GEN per stack.
+  modifiers:
+    - { mod: costGeneric, amount: 1, perStack: true }
+
+mark:
+  name: Mark
+  kind: Debuff
+  stacking: unique
+  description: When the bearer takes direct damage, they take 10 more damage and the Mark is consumed.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      consume: true
+      do:
+        - { op: damage, to: bearer, amount: 10 }
+
+taunt:
+  name: Taunted
+  kind: Debuff
+  description: Can only target the source of the Taunt.
+  modifiers:
+    - { mod: forceTarget }
+
+immune:
+  name: Immune
+  kind: Buff
+  description: Cannot have Debuffs applied.
+  modifiers:
+    - { mod: immuneTo, kind: Debuff }
+
+trap:
+  name: Trap
+  kind: Debuff
+  visibility: hidden
+  description: The bearer takes X damage the next time they use a Harmful skill.
+  triggers:
+    - on: skillUsed
+      when: { harmful: true }
+      consume: true
+      do:
+        - { op: damage, to: bearer, amount: { effectValue: true } }
+
+sanctify:
+  name: Sanctify
+  kind: Debuff
+  description: When the bearer takes direct damage, the damager heals 15 HP.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - { op: heal, to: eventSource, amount: 15 }
+
+renew:
+  name: Renew
+  kind: Buff
+  description: At the end of the applier's turn, heals 5 HP per stack, then loses 1 stack.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: heal, to: bearer, amount: { mul: [5, { effectStacks: true }] } }
+        - { op: addStacksSelf, amount: -1 }

@@ -1,0 +1,8 @@
+{
+  "name": "@arena/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "description": "Pure, deterministic Custom Arena rules engine. No runtime dependencies."
+}

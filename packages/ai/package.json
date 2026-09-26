@@ -1,0 +1,15 @@
+{
+  "name": "@arena/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@arena/engine": "0.1.0"
+  },
+  "devDependencies": {
+    "@arena/content": "0.1.0"
+  }
+}

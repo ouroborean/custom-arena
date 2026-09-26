@@ -1,0 +1,366 @@
+// The skill DSL interpreter (GDD §11.5) and the trigger queue (GDD §11.4).
+
+import {
+  effectDef,
+  effectsOn,
+  emit,
+  findUnit,
+  hasEffect,
+  isEnemy,
+  livingUnits,
+  MAX_TRIGGER_CHAIN,
+  nextId,
+  resolveEffectDef,
+  stacksOf,
+  unit,
+  type Ctx,
+  type PendingTrigger,
+} from './ctx.js';
+import { dealDamage, heal, killUnit } from './damage.js';
+import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, Selector, SkillDef, Value } from './defs.js';
+import { applyEffect, removeEffect, revealEffect } from './effects.js';
+import { canTarget } from './queries.js';
+import { sample } from './rng.js';
+import type { EffectInstance, Unit, UnitId } from './types.js';
+
+export interface Scope {
+  actor: UnitId;
+  targets: UnitId[];
+  bearer?: UnitId;
+  /** The effect whose trigger / expiry is executing. */
+  self?: EffectInstance;
+  eventSource?: UnitId;
+  eventTarget?: UnitId;
+  it?: UnitId;
+  vars: Record<string, number | boolean>;
+  lastDamage: number;
+  lastDamaged: UnitId[];
+  /** Default for damage ops: true for a skill's own ops, false for triggers and ticks. */
+  direct: boolean;
+  bypass: boolean;
+  skill?: SkillDef | undefined;
+}
+
+export type ScriptFn = (ctx: Ctx, scope: Scope, params: Record<string, unknown>) => void;
+
+/** Registered escape-hatch scripts (GDD §11.6). Keep this list short and generic. */
+export const scripts: Record<string, ScriptFn> = {};
+
+// ---------------------------------------------------------------- selectors
+
+function one(ctx: Ctx, id: UnitId | undefined): Unit[] {
+  if (id === undefined) return [];
+  const u = findUnit(ctx.s, id);
+  return u ? [u] : [];
+}
+
+function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
+  const actor = unit(ctx, sc.actor);
+  switch (sel) {
+    case 'actor':
+      return [actor];
+    case 'targets':
+      return sc.targets.map((id) => unit(ctx, id)).filter((u) => u.alive);
+    case 'primary':
+      return one(ctx, sc.targets[0]).filter((u) => u.alive);
+    case 'primaryAllies': {
+      const p = one(ctx, sc.targets[0])[0];
+      if (!p) return [];
+      return livingUnits(ctx.s, p.owner).filter((u) => u.id !== p.id && canTarget(ctx, actor, u, sc.bypass));
+    }
+    case 'allEnemies':
+      return ctx.s.units.filter((u) => u.alive && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass));
+    case 'allAllies':
+      return livingUnits(ctx.s, actor.owner).filter((u) => canTarget(ctx, actor, u, sc.bypass));
+    case 'bearer':
+      return one(ctx, sc.bearer);
+    case 'eventSource':
+      return one(ctx, sc.eventSource);
+    case 'eventTarget':
+      return one(ctx, sc.eventTarget);
+    case 'effectTargets':
+      return (sc.self?.targets ?? []).flatMap((id) => one(ctx, id));
+    case 'it':
+      return one(ctx, sc.it);
+    case 'lastDamaged':
+      return sc.lastDamaged.flatMap((id) => one(ctx, id));
+  }
+}
+
+export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
+  if (typeof sel === 'string') return selectNamed(ctx, sel, sc);
+  const excluded = new Set(sel.exclude ? selectNamed(ctx, sel.exclude, sc).map((u) => u.id) : []);
+  const pool = selectNamed(ctx, 'allEnemies', sc).filter((u) => !excluded.has(u.id));
+  return sample(ctx.s.rng, pool, sel.randomEnemy);
+}
+
+// ---------------------------------------------------------------- values & conditions
+
+function withIt<T>(sc: Scope, id: UnitId, fn: () => T): T {
+  const prev = sc.it;
+  sc.it = id;
+  try {
+    return fn();
+  } finally {
+    sc.it = prev;
+  }
+}
+
+export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
+  if (typeof v === 'number') return v;
+  if ('var' in v) {
+    const x = sc.vars[v.var];
+    return typeof x === 'boolean' ? (x ? 1 : 0) : (x ?? 0);
+  }
+  if ('lastDamage' in v) return sc.lastDamage;
+  if ('effectValue' in v) return sc.self?.value ?? 0;
+  if ('effectStacks' in v) return sc.self?.stacks ?? 0;
+  if ('stacks' in v) {
+    const u = select(ctx, v.stacks.unit, sc)[0];
+    return u ? stacksOf(ctx.s, u.id, v.stacks.effect) : 0;
+  }
+  if ('sum' in v) return v.sum.reduce<number>((n, x) => n + evalValue(ctx, x, sc), 0);
+  if ('mul' in v) return v.mul.reduce<number>((n, x) => n * evalValue(ctx, x, sc), 1);
+  return evalCond(ctx, v.if, sc) ? evalValue(ctx, v.then, sc) : evalValue(ctx, v.else, sc);
+}
+
+export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
+  if ('has' in c) {
+    const u = select(ctx, c.has.unit, sc)[0];
+    return !!u && hasEffect(ctx.s, u.id, c.has.effect);
+  }
+  if ('hasFromArchetype' in c) {
+    const u = select(ctx, c.hasFromArchetype.unit, sc)[0];
+    return !!u && effectsOn(ctx.s, u.id).some((e) => e.sourceArchetype === c.hasFromArchetype.archetype);
+  }
+  if ('hpAtMost' in c) {
+    const u = select(ctx, c.hpAtMost.unit, sc)[0];
+    return !!u && u.hp <= c.hpAtMost.value;
+  }
+  if ('hpAbove' in c) {
+    const u = select(ctx, c.hpAbove.unit, sc)[0];
+    return !!u && u.hp > c.hpAbove.value;
+  }
+  if ('any' in c) return select(ctx, c.any.in, sc).some((u) => withIt(sc, u.id, () => evalCond(ctx, c.any.cond, sc)));
+  if ('all' in c) return select(ctx, c.all.in, sc).every((u) => withIt(sc, u.id, () => evalCond(ctx, c.all.cond, sc)));
+  if ('and' in c) return c.and.every((x) => evalCond(ctx, x, sc));
+  if ('or' in c) return c.or.some((x) => evalCond(ctx, x, sc));
+  if ('not' in c) return !evalCond(ctx, c.not, sc);
+  if ('flag' in c) return !!sc.self?.data[c.flag];
+  return !!sc.vars[c.varTrue];
+}
+
+// ---------------------------------------------------------------- ops
+
+export function runOps(ctx: Ctx, ops: readonly Op[], sc: Scope): void {
+  for (const op of ops) {
+    runOp(ctx, op, sc);
+    flushTriggers(ctx);
+    if (ctx.s.phase === 'finished') return;
+  }
+}
+
+function runOp(ctx: Ctx, op: Op, sc: Scope): void {
+  const actor = unit(ctx, sc.actor);
+  switch (op.op) {
+    case 'damage': {
+      sc.lastDamage = 0;
+      sc.lastDamaged = [];
+      const respectsInvulnerable = sc.self ? effectDef(ctx.c, sc.self).respectsInvulnerable : undefined;
+      for (const t of select(ctx, op.to, sc)) {
+        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const dealt = dealDamage(ctx, {
+          source: actor,
+          target: t,
+          amount,
+          type: op.type ?? 'Normal',
+          direct: op.direct ?? sc.direct,
+          bypass: op.bypass ?? sc.bypass,
+          ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
+        });
+        sc.lastDamage += dealt;
+        if (dealt > 0) sc.lastDamaged.push(t.id);
+      }
+      return;
+    }
+    case 'heal':
+      for (const t of select(ctx, op.to, sc)) heal(ctx, actor, t, withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)));
+      return;
+    case 'apply': {
+      const def = resolveEffectDef(ctx.c, op.effect);
+      const remembered = op.remember ? select(ctx, op.remember, sc).map((u) => u.id) : [];
+      for (const t of select(ctx, op.to, sc)) {
+        withIt(sc, t.id, () =>
+          applyEffect(ctx, {
+            def,
+            inline: typeof op.effect !== 'string',
+            bearer: t,
+            source: actor,
+            sourceSkill: sc.skill,
+            stacks: op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc),
+            value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
+            duration: op.duration,
+            targets: remembered,
+            until: op.until,
+          }),
+        );
+      }
+      return;
+    }
+    case 'summon':
+      for (let i = 0; i < (op.count ?? 1); i++) summonMinion(ctx, actor, op.minion, op.duration, sc.skill);
+      return;
+    case 'kill':
+      for (const t of select(ctx, op.to, sc)) killUnit(ctx, t);
+      return;
+    case 'if':
+      runOps(ctx, evalCond(ctx, op.cond, sc) ? op.then : (op.else ?? []), sc);
+      return;
+    case 'set':
+      sc.vars[op.var] = typeof op.value === 'boolean' ? op.value : evalValue(ctx, op.value, sc);
+      return;
+    case 'forEach':
+      for (const t of select(ctx, op.in, sc)) withIt(sc, t.id, () => runOps(ctx, op.do, sc));
+      return;
+    case 'extendSelf':
+      if (sc.self && sc.self.duration !== null) sc.self.duration += op.by;
+      return;
+    case 'setFlag':
+      if (sc.self) sc.self.data[op.flag] = true;
+      return;
+    case 'addStacksSelf':
+      if (sc.self) {
+        sc.self.stacks += op.amount;
+        if (sc.self.stacks <= 0) removeEffect(ctx, sc.self, 'consumed');
+      }
+      return;
+    case 'removeSelf':
+      if (sc.self) removeEffect(ctx, sc.self, 'consumed');
+      return;
+    case 'script': {
+      const fn = scripts[op.id];
+      if (!fn) throw new Error(`Unknown script ${op.id}`);
+      fn(ctx, sc, op.params ?? {});
+      return;
+    }
+  }
+}
+
+const LIFETIME: EffectDef = {
+  id: 'lifetime',
+  name: 'Summoned',
+  kind: 'Neutral',
+  description: 'This minion leaves the battle when the duration ends.',
+  onExpire: [{ op: 'kill', to: 'bearer' }],
+};
+
+function summonMinion(
+  ctx: Ctx,
+  summoner: Unit,
+  minionId: string,
+  duration: DurationSpec | undefined,
+  skill: SkillDef | undefined,
+): void {
+  const def = ctx.c.minions[minionId];
+  if (!def) throw new Error(`Unknown minion ${minionId}`);
+  const living = ctx.s.units.filter((u) => u.alive && u.owner === summoner.owner && u.kind === 'minion').length;
+  if (living >= ctx.s.settings.minionCap) {
+    emit(ctx, { t: 'effectBlocked', defId: minionId, bearer: summoner.id, reason: 'minion cap reached' });
+    return;
+  }
+  const m: Unit = {
+    id: nextId(ctx, 'm'),
+    owner: summoner.owner,
+    kind: 'minion',
+    defId: def.id,
+    name: def.name,
+    hp: def.hp,
+    maxHp: def.hp,
+    alive: true,
+    skills: def.skills.map((defId) => ({ defId, cooldown: 0 })),
+    summonedBy: summoner.id,
+    counters: {},
+  };
+  ctx.s.units.push(m);
+  emit(ctx, { t: 'summoned', unit: m.id, defId: def.id, by: summoner.id });
+  for (const p of def.passives) {
+    applyEffect(ctx, { def: resolveEffectDef(ctx.c, p), inline: typeof p !== 'string', bearer: m, source: m, sourceSkill: skill });
+  }
+  if (duration !== undefined && duration !== 'permanent') {
+    applyEffect(ctx, { def: LIFETIME, inline: true, bearer: m, source: summoner, sourceSkill: skill, duration });
+  }
+}
+
+// ---------------------------------------------------------------- triggers
+
+/** Runs queued triggers FIFO. Nested calls return immediately; the outermost loop drains the queue. */
+export function flushTriggers(ctx: Ctx): void {
+  if (ctx.flushing) return;
+  ctx.flushing = true;
+  try {
+    let n = 0;
+    while (ctx.triggerQueue.length > 0) {
+      if (++n > MAX_TRIGGER_CHAIN) throw new Error('Trigger chain limit exceeded');
+      const p = ctx.triggerQueue.shift() as PendingTrigger;
+      // A trigger queued before its bearer died still resolves (e.g. Sanctify on a killing blow).
+      const e =
+        ctx.s.effects.find((x) => x.id === p.effect) ?? (p.inst?.data.removedReason === 'died' ? p.inst : undefined);
+      if (!e) continue;
+      runTrigger(ctx, e, p);
+      if (ctx.s.phase === 'finished') {
+        ctx.triggerQueue.length = 0;
+        return;
+      }
+    }
+  } finally {
+    ctx.flushing = false;
+  }
+}
+
+export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void {
+  revealEffect(ctx, e);
+  const sc: Scope = {
+    actor: e.source,
+    targets: e.targets,
+    bearer: e.bearer,
+    self: e,
+    vars: {},
+    lastDamage: 0,
+    lastDamaged: [],
+    direct: false,
+    bypass: false,
+    ...(p.eventSource !== undefined ? { eventSource: p.eventSource } : {}),
+    ...(p.eventTarget !== undefined ? { eventTarget: p.eventTarget } : {}),
+  };
+  // Run nested so triggers caused by this payload queue behind it.
+  const wasFlushing = ctx.flushing;
+  ctx.flushing = true;
+  try {
+    for (const op of p.spec.do ?? []) runOp(ctx, op, sc);
+  } finally {
+    ctx.flushing = wasFlushing;
+  }
+  if (p.spec.consume) removeEffect(ctx, e, 'consumed');
+}
+
+/** Enqueues matching triggers of `event` on every effect borne by `bearer`. */
+export function enqueueTriggers(
+  ctx: Ctx,
+  bearer: UnitId,
+  event: 'skillUsed' | 'turnStart' | 'turnEnd',
+  filter: { harmful?: boolean; eventSource?: UnitId; eventTarget?: UnitId } = {},
+): void {
+  for (const e of effectsOn(ctx.s, bearer)) {
+    for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+      if (spec.on !== event || spec.intercept) continue;
+      if (spec.when?.harmful !== undefined && spec.when.harmful !== filter.harmful) continue;
+      ctx.triggerQueue.push({
+        effect: e.id,
+        spec,
+        ...(filter.eventSource !== undefined ? { eventSource: filter.eventSource } : {}),
+        ...(filter.eventTarget !== undefined ? { eventTarget: filter.eventTarget } : {}),
+      });
+    }
+  }
+}
+
