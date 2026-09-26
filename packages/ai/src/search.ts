@@ -241,28 +241,34 @@ export function hardBot(seed: number, opts: { candidates?: number; samples?: num
   };
 }
 
+/** Easy's choices from a planning state: weighted-random options until it stops. */
+function easyPlan(content: ContentBundle, start: GameState, me: PlayerId, rng: RngState): QueueCommand[] {
+  let s = start;
+  const out: QueueCommand[] = [];
+  for (let guard = 0; guard < 8; guard++) {
+    const options = legalQueueCommands(content, s, me);
+    if (options.length === 0 || nextInt(rng, 5) === 0) break;
+    const weights = options.map((o) => Math.max(1, Math.round(scoreOption(content, s, me, o))));
+    let roll = nextInt(rng, weights.reduce((a, b) => a + b, 0));
+    const pick = options.find((_, i) => (roll -= weights[i]!) < 0)!;
+    s = applyCommand(content, s, me, pick).state;
+    out.push(pick);
+  }
+  return out;
+}
+
 /** Easy: random legal actions, weighted towards damaging ones, and it sometimes stops early. */
 export function easyBot(seed: number): Bot {
   const rng = seedRng(seed);
   return {
     name: 'easy',
-    planTurn(content, view) {
-      const me = view.viewer;
-      let s = planningState(view);
-      const out: Command[] = [];
-      for (let guard = 0; guard < 8; guard++) {
-        const options = legalQueueCommands(content, s, me);
-        if (options.length === 0 || nextInt(rng, 5) === 0) break;
-        const weights = options.map((o) => Math.max(1, Math.round(scoreOption(content, s, me, o))));
-        let roll = nextInt(rng, weights.reduce((a, b) => a + b, 0));
-        const pick = options.find((_, i) => (roll -= weights[i]!) < 0)!;
-        s = applyCommand(content, s, me, pick).state;
-        out.push(pick);
-      }
-      out.push({ t: 'endTurn' });
-      return out;
-    },
+    planTurn: (content, view): Command[] => [...easyPlan(content, planningState(view), view.viewer, rng), { t: 'endTurn' }],
   };
+}
+
+/** Finishes a partly built queue at a tier's strength (scripted encounters); Hard continues like Normal. */
+export function continuePlan(content: ContentBundle, s: GameState, me: PlayerId, tier: Difficulty, rng: RngState): QueueCommand[] {
+  return tier === 'easy' ? easyPlan(content, s, me, rng) : planGreedily(content, s, me).queue;
 }
 
 /** Difficulty tiers by name (the client's and the story's `ai` field). */

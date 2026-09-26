@@ -5,13 +5,14 @@
 //   npm run sim -- --games 2000          aggregate results + per-skill win rates
 //   npm run sim -- --bots normal,hard    choose bots (easy | normal | hard | greedy | random)
 //   npm run sim -- --games 2000 --equip  rolled characters in random legal loadouts, + item win rates
+//   npm run sim -- --story --games 20    story difficulty curve: a Normal bot's win rate per encounter
 //   npm run sim -- --replay replays/match-7.json   re-run a saved match and verify it
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { formatEvent, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
-import { botFor, greedyBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
-import { equippedItems, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
+import { botFor, encounterBot, greedyBot, normalBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
+import { encounterConfig, equippedItems, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
 import { num, parseArgs } from './args.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -49,6 +50,26 @@ function matchSetup(seed: number): { config: MatchConfig; items: [string[], stri
       return { ...spec, name: `${p === 0 ? 'Blue' : 'Red'} ${content.classes[character.classId]!.name} ${i + 1}` };
     });
   return { config: { seed, teams: [team(0), team(1)] }, items };
+}
+
+if (args.story) {
+  // A Normal bot with random (unequipped) teams stands in for a decent player (docs/single-player.md).
+  const n = num(args.games, 20);
+  for (const c of Object.values(content.chapters)) {
+    const row: string[] = [];
+    for (const id of c.encounters) {
+      const enc = content.encounters[id]!;
+      let won = 0;
+      for (let s = 1; s <= n; s++) {
+        const config = encounterConfig(content, enc, s * 7, randomConfig(content, s * 13).teams[0]);
+        const { state } = playMatch(content, config, [normalBot(s), encounterBot(enc, s + 99)]);
+        if (state.result!.winner === 0) won++;
+      }
+      row.push(`${id} ${Math.round((100 * won) / n)}%`);
+    }
+    console.log(`${c.name.padEnd(26)} ${row.join('  ')}`);
+  }
+  process.exit(0);
 }
 
 const [k0, k1] = (typeof args.bots === 'string' ? args.bots : 'greedy,greedy').split(',');

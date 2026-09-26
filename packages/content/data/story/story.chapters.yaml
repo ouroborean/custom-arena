@@ -1,0 +1,81 @@
+# Story chapters, in play order (GDD §2.2): one per element. Each chapter's encounters unlock in
+# order; a chapter opens when the previous one is complete.
+
+embers:
+  name: "Chapter 1: Embers"
+  element: Fire
+  description: "Raiders from the ash wastes are burning the border towns."
+  encounters: [embers_1, embers_2, embers_3]
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_inferno] }
+
+mire:
+  name: "Chapter 2: The Mire"
+  element: Poison
+  description: "Something in the swamp is poisoning the wells."
+  encounters: [mire_1, mire_2, mire_3]
+  requires: embers
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_serpent] }
+
+zealots:
+  name: "Chapter 3: The Zealots"
+  element: Holy
+  description: "An inquisition marches on anyone it calls unclean."
+  encounters: [zealots_1, zealots_2, zealots_3]
+  requires: mire
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_sun] }
+
+frostreach:
+  name: "Chapter 4: Frostreach"
+  element: Ice
+  description: "The northern pass has frozen shut, and its wardens let no one through."
+  encounters: [frostreach_1, frostreach_2, frostreach_3]
+  requires: zealots
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_glacier] }
+
+tides:
+  name: "Chapter 5: Turning Tides"
+  element: Water
+  description: "Pirates rule the archipelago and the sea seems to heal them."
+  encounters: [tides_1, tides_2, tides_3]
+  requires: frostreach
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_tide] }
+
+barrow:
+  name: "Chapter 6: The Barrow"
+  element: Unholy
+  description: "The dead walk out of the old barrows at night."
+  encounters: [barrow_1, barrow_2, barrow_3]
+  requires: tides
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_grave] }
+
+stormfront:
+  name: "Chapter 7: Stormfront"
+  element: Lightning
+  description: "A storm cult is drawing lightning down on the plains."
+  encounters: [stormfront_1, stormfront_2, stormfront_3]
+  requires: barrow
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_tempest] }
+
+skyreach:
+  name: "Chapter 8: Skyreach"
+  element: Wind
+  description: "The monks of the high peaks are testing everyone who climbs."
+  encounters: [skyreach_1, skyreach_2, skyreach_3]
+  requires: stormfront
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_gale] }
+
+nightfall:
+  name: "Chapter 9: Nightfall"
+  element: Shadow
+  description: "Assassins are thinning the council one shadow at a time."
+  encounters: [nightfall_1, nightfall_2, nightfall_3]
+  requires: skyreach
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_void] }
+
+heartstone:
+  name: "Chapter 10: Heartstone"
+  element: Earth
+  description: "The mountain itself has woken, and its guardians with it."
+  encounters: [heartstone_1, heartstone_2, heartstone_3]
+  requires: nightfall
+  reward: { currency: { gold: 100 }, items: [emblem_of_the_mountain] }

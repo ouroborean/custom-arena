@@ -3,7 +3,10 @@
 
 import {
   parseCost,
+  type AchievementDef,
+  type ChapterDef,
   type ClassDef,
+  type EncounterDef,
   type ItemDef,
   type Cond,
   type Cost,
@@ -497,9 +500,75 @@ export const economySchema = z.strictObject({
   salvage: z.partialRecord(itemType, amounts),
 });
 
+const grantSpec = z.strictObject({ currency: amounts.optional(), items: z.array(z.string()).optional() });
+
+const encounterUnit = z.strictObject({
+  name: z.string().min(1),
+  classId: z.string(),
+  element: z.string().optional(),
+  skills: z.array(z.string()).min(1).max(5).optional(),
+  skillCount: z.number().int().min(1).max(5).optional(),
+  hp: z.number().int().min(1).optional(),
+  passives: z.array(z.string()).optional(),
+});
+
+const scriptRule = z.strictObject({
+  when: z
+    .strictObject({
+      turn: z.number().int().min(1).optional(),
+      every: z.number().int().min(1).optional(),
+      from: z.number().int().min(1).optional(),
+      hpAtMost: z.strictObject({ unit: z.number().int().min(0), value: z.number().int().min(1) }).optional(),
+    })
+    .optional(),
+  unit: z.number().int().min(0),
+  skill: z.string(),
+  target: z.union([z.enum(['lowestHp', 'highestHp', 'self', 'weakestAlly']), z.number().int().min(0)]).optional(),
+});
+
+export const encounterFileEntry = z.strictObject({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  enemies: z.array(encounterUnit).min(1).max(3),
+  ai: z.strictObject({ tier: z.enum(['easy', 'normal', 'hard']), script: z.array(scriptRule).optional() }),
+  playerTeam: z.array(encounterUnit).min(1).max(3).optional(),
+  first: z.enum(['player', 'enemy']).optional(),
+  settings: z.strictObject({ turnLimitPerPlayer: z.number().int().min(1).optional(), minionCap: z.number().int().min(0).optional() }).optional(),
+  rewards: z.strictObject({ first: grantSpec.optional(), repeat: grantSpec.optional() }).optional(),
+});
+
+export const chapterFileEntry = z.strictObject({
+  name: z.string().min(1),
+  element: z.string().optional(),
+  description: z.string().min(1),
+  encounters: z.array(z.string()).min(1),
+  requires: z.string().optional(),
+  reward: grantSpec.optional(),
+});
+
+export const achievementFileEntry = z.strictObject({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  when: z.strictObject({
+    outcome: z.enum(['win', 'loss', 'draw']).optional(),
+    modes: z.array(z.string()).optional(),
+    withClass: z.string().optional(),
+    withElement: z.string().optional(),
+    encounter: z.string().optional(),
+    chapter: z.string().optional(),
+    maxTurns: z.number().int().min(1).optional(),
+  }),
+  count: z.number().int().min(1),
+  streak: z.boolean().optional(),
+  reward: grantSpec.optional(),
+});
+
 // Compile-time checks that file entries + injected id produce the engine's types.
 type Assert<T extends true> = T;
 export type _SkillOk = Assert<z.output<typeof skillFileEntry> & { id: string } extends SkillDef ? true : false>;
 export type _MinionOk = Assert<z.output<typeof minionFileEntry> & { id: string } extends MinionDef ? true : false>;
 export type _ClassOk = Assert<z.output<typeof classFileEntry> & { id: string } extends ClassDef ? true : false>;
 export type _ItemOk = Assert<z.output<typeof itemFileEntry> & { id: string } extends ItemDef ? true : false>;
+export type _EncounterOk = Assert<z.output<typeof encounterFileEntry> & { id: string } extends EncounterDef ? true : false>;
+export type _ChapterOk = Assert<z.output<typeof chapterFileEntry> & { id: string } extends ChapterDef ? true : false>;
+export type _AchievementOk = Assert<z.output<typeof achievementFileEntry> & { id: string } extends AchievementDef ? true : false>;
