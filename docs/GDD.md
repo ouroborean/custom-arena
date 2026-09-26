@@ -990,7 +990,7 @@ Each phase ends in something playable or testable. Estimates assume one experien
 - Headless CLI to play a match in the terminal. Unit and scenario tests for all 30 base skills.
 - **Exit criterion:** a full bot-vs-bot match with base skills runs deterministically, and replay matches byte-for-byte.
 
-### Phase 2: Battle client prototype (3–4 weeks)
+### Phase 2: Battle client prototype (3–4 weeks) — ✅ built 2026-09-25 (apps/client), awaiting playtests
 - React battle screen: units, statuses, skill bars, energy pool with reservation, queue tray with reorder, random-energy allocation, and playback from the event log.
 - Local hotseat mode and local vs Easy bot.
 - Tooltips with modifier breakdowns.

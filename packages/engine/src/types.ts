@@ -180,6 +180,10 @@ export type EventBody =
       type: DamageType;
       direct: boolean;
       hp: number;
+      /** Breakdown for tooltips: base + bonus (Might/Weakness/Vulnerable…) + armor (≤ 0), floored at 0. */
+      base: number;
+      bonus: number;
+      armor: number;
     }
   | { t: 'damageBlocked'; source: UnitId; target: UnitId; reason: string }
   | { t: 'heal'; source: UnitId; target: UnitId; amount: number; hp: number }

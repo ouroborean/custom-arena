@@ -49,9 +49,10 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
 
   const shattered = hasNoArmorOrShield(ctx, target);
   const taken = damageTakenBonus(ctx, target, a.type, a.direct);
-  let amount = a.amount + damageDealtBonus(ctx, source, a.type, a.direct) + taken.other;
-  if (!shattered) amount += taken.armor;
-  amount = Math.max(0, amount);
+  const bonus = damageDealtBonus(ctx, source, a.type, a.direct) + taken.other;
+  const armor = shattered ? 0 : taken.armor;
+  const amount = Math.max(0, a.amount + bonus + armor);
+  const breakdown = { base: a.amount, bonus, armor };
   if (amount === 0) {
     emit(ctx, {
       t: 'damage',
@@ -62,6 +63,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
       type: a.type,
       direct: a.direct,
       hp: target.hp,
+      ...breakdown,
     });
     return 0;
   }
@@ -89,6 +91,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     type: a.type,
     direct: a.direct,
     hp: Math.max(0, target.hp),
+    ...breakdown,
   });
 
   enqueueDamagedTriggers(ctx, source, target, a.direct);

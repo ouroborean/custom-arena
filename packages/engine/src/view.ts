@@ -16,6 +16,11 @@ export interface OpponentState {
   turnsTaken: number;
 }
 
+/** The definition behind an effect instance (inline or named status), or undefined if unknown. */
+export function effectDefinition(content: ContentBundle, e: EffectInstance): import('./defs.js').EffectDef | undefined {
+  return e.inline ?? content.statuses[e.defId];
+}
+
 function effectVisibility(content: ContentBundle, e: EffectInstance): 'public' | 'hidden' | 'hiddenTarget' {
   const def = e.inline ?? content.statuses[e.defId];
   return def?.visibility ?? 'public';
