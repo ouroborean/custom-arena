@@ -1,0 +1,11 @@
+# Water minions (HP from the sheet).
+
+rainbow_scale_fish:
+  name: Rainbow Scale Fish
+  hp: 35
+  skills: [fish_shimmer]
+
+water_elemental:
+  name: Water Elemental
+  hp: 15
+  skills: [elemental_lashing_water]

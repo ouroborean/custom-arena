@@ -1,0 +1,552 @@
+# The 30 Water variants, from "Custom Arena - Water". Ids are "<base>.water".
+# Themes: Healing, Disruption, Tempo. Renew heals over time; Flow ignores counters.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.water:
+  archetype: Strike
+  element: Water
+  name: Flowing Fist
+  description: Deals 20 damage to target enemy and gives the user 2 Renew.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: actor, effect: renew, stacks: 2 }
+
+smash.water:
+  archetype: Smash
+  element: Water
+  name: Waterfall
+  description: >-
+    Deals 30 damage to target enemy and 10 damage to the others. Reduces the remaining cooldown of
+    all the user's other skills by 1.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: adjustCooldowns, to: actor, by: -1, exceptCurrent: true }
+
+charge.water:
+  archetype: Charge
+  element: Water
+  name: Surge
+  description: Gives target ally 2 Renew, and the next time the user applies Renew, they apply 2 more.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: renew, stacks: 2 }
+    - op: apply
+      to: actor
+      effect:
+        id: surge
+        name: Surge
+        kind: Buff
+        element: Water
+        description: The bearer's next Renew applies 2 extra stacks.
+        modifiers:
+          - { mod: bonusStacksOnApply, effect: renew, amount: 2 }
+
+riposte.water:
+  archetype: Riposte
+  element: Water
+  name: Riverbend
+  description: For 1 turn, the user will counter any Strategic skill used on them. If triggered, the user gains Flow. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: riverbend
+        name: Riverbend
+        kind: Buff
+        element: Water
+        visibility: hidden
+        description: Counters Strategic skills used on the bearer; each counter grants Flow.
+        triggers:
+          - on: skillTargeted
+            when: { strategic: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: flow }
+
+rage.water:
+  archetype: Rage
+  element: Water
+  name: Quiet Fury
+  description: For 3 turns, the user gains Flow, 1 Might, and 1 Focus.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: flow, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+
+shot.water:
+  archetype: Shot
+  element: Water
+  name: Coordinated Shot
+  description: Deals 10 damage to target enemy. If that enemy was Marked, the user gains Flow.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: marked, value: { if: { has: { unit: primary, effect: mark } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: if, cond: { varTrue: marked }, then: [{ op: apply, to: actor, effect: flow }] }
+
+snipe.water:
+  archetype: Snipe
+  element: Water
+  name: Tidal Arrow
+  description: >-
+    The user deals 40 damage to target enemy on the following turn. The target of this skill is
+    invisible. Channeled. Requires Flow.
+  cost: Ir
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  requires: { has: { unit: actor, effect: flow } }
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tidal_arrow
+        name: Tidal Arrow (aiming)
+        kind: Neutral
+        element: Water
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+
+trap.water:
+  archetype: Trap
+  element: Water
+  name: Whirlpool Trap
+  description: For 2 turns, each time target enemy uses a Strategic skill, they gain 1 Confusion.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: whirlpool
+        name: Whirlpool Trap
+        kind: Debuff
+        element: Water
+        description: Each Strategic skill the bearer uses gives them 1 Confusion.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true }
+            do:
+              - { op: apply, to: bearer, effect: confusion }
+
+maneuver.water:
+  archetype: Maneuver
+  element: Water
+  name: Dive
+  description: The user becomes Invulnerable for 1 turn and gains 2 Renew.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: renew, stacks: 2 }
+
+companion.water:
+  archetype: Companion
+  element: Water
+  name: Rainbow Scale Fish
+  description: >-
+    Summons a Rainbow Scale Fish minion (35 HP). Shimmer (r): target ally gains 2 Renew; then, if
+    they have 3 or more Renew, they gain Flow for 3 turns.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: rainbow_scale_fish }
+
+bolt.water:
+  archetype: Bolt
+  element: Water
+  name: Splash
+  description: Deals 20 damage to target enemy and gives a random ally 2 Renew.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: { randomAlly: 1 }, effect: renew, stacks: 2 }
+
+blast.water:
+  archetype: Blast
+  element: Water
+  name: Deluge
+  description: Deals 15 damage to all enemies and stuns their non-Strategic skills for 1 turn. Requires Flow.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  requires: { has: { unit: actor, effect: flow } }
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: stun_ns, duration: { enemyTurns: 1 } }
+
+consume.water:
+  archetype: Consume
+  element: Water
+  name: Drink Deeply
+  description: Removes all Renew from allied units to heal target ally 5 HP for each stack removed.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: set, var: drunk, value: { totalStacks: { in: allAllies, effect: renew } } }
+    - { op: removeEffect, from: allAllies, effect: renew }
+    - { op: heal, to: primary, amount: { mul: [5, { var: drunk }] } }
+
+summon.water:
+  archetype: Summon
+  element: Water
+  name: Water Elemental
+  description: 'Summons a Water Elemental minion (15 HP) for 3 turns. Lashing Water (no cost): 10 damage to target enemy, Uncounterable.'
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: water_elemental, duration: { enemyTurns: 3 } }
+
+channel.water:
+  archetype: Channel
+  element: Water
+  name: Call Rain
+  description: >-
+    The user channels for up to 4 turns. Each turn, they deal 5 damage to all enemies and give all
+    allies 1 Renew.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: call_rain
+        name: Call Rain
+        kind: Neutral
+        element: Water
+        interruptible: true
+        description: Each end of the user's turn, 5 damage to all enemies and 1 Renew to all allies.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5 }
+              - { op: apply, to: allAllies, effect: renew }
+
+stab.water:
+  archetype: Stab
+  element: Water
+  name: Shell Knife
+  description: Deals 10 damage to target enemy, increased to 25 if the user has at least 3 stacks of Renew.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }, then: 25, else: 10 }
+
+ravage.water:
+  archetype: Ravage
+  element: Water
+  name: Drown
+  description: Deals 25 Piercing damage to target enemy. Against Stunned targets, extends their active Stuns by 1 turn.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: extendEffects, on: primary, effects: [stun, stun_ns], by: 2 }
+
+mislead.water:
+  archetype: Mislead
+  element: Water
+  name: Dunk
+  description: For 1 turn, if target enemy attempts to use a Helpful skill, they will be countered and gain 1 Confusion. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dunk
+        name: Dunk
+        kind: Debuff
+        element: Water
+        visibility: hidden
+        description: The bearer's Helpful skills are countered; each counter gives them 1 Confusion.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: confusion }
+
+stun.water:
+  archetype: Stun
+  element: Water
+  name: Undertow
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn. If the target is already Stunned,
+    instead extends the duration of those Stuns by 1 turn.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: stunned, value: { if: { or: [{ has: { unit: primary, effect: stun } }, { has: { unit: primary, effect: stun_ns } }] }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { varTrue: stunned }
+      then: [{ op: extendEffects, on: primary, effects: [stun, stun_ns], by: 2 }]
+      else: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }]
+
+dance.water:
+  archetype: Dance
+  element: Water
+  name: Pull of the River
+  description: The user gains Flow for 4 turns, 3 Renew, and 1 Swiftness.
+  cost: Ir
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: flow, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: renew, stacks: 3 }
+    - { op: apply, to: actor, effect: swiftness }
+
+heal.water:
+  archetype: Heal
+  element: Water
+  name: Renewing Spring
+  description: Target ally gains 4 Renew.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: renew, stacks: 4 }
+
+bless.water:
+  archetype: Bless
+  element: Water
+  name: Touch of Grace
+  description: Target ally gains Flow for 3 turns.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: flow, duration: { enemyTurns: 3 } }
+
+curse.water:
+  archetype: Curse
+  element: Water
+  name: Airless Helm
+  description: Target enemy receives 10 Affliction damage and 3 Weakness for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }
+    - { op: apply, to: primary, effect: weakness, stacks: 3, duration: { enemyTurns: 1 } }
+
+smite.water:
+  archetype: Smite
+  element: Water
+  name: Aqua Ring
+  description: Deals 15 damage to target enemy. For 2 turns, allies that damage that enemy gain Flow for 3 turns.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: aqua_ring
+        name: Aqua Ring
+        kind: Debuff
+        element: Water
+        description: Units on the applier's side that deal direct damage to the bearer gain Flow for 3 turns.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: apply, to: eventSource, effect: flow, duration: { enemyTurns: 3 } }
+
+prayer.water:
+  archetype: Prayer
+  element: Water
+  name: Rainsong
+  description: Heals all allies for 15 health and grants them 3 Renew.
+  cost: Irr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: renew, stacks: 3 }
+
+cleave.water:
+  archetype: Cleave
+  element: Water
+  name: Water Lash
+  description: Deals 10 damage to all enemies. If the user has Flow, damaged targets receive 1 Weakness.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+    - { op: if, cond: { has: { unit: actor, effect: flow } }, then: [{ op: apply, to: lastDamaged, effect: weakness }] }
+
+shout.water:
+  archetype: Shout
+  element: Water
+  name: Whale Call
+  description: All enemies gain 1 Vulnerable. Stunned or Taunted enemies also take 15 Affliction damage.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: vulnerable }
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond:
+            or:
+              - { has: { unit: it, effect: stun } }
+              - { has: { unit: it, effect: stun_ns } }
+              - { has: { unit: it, effect: taunt } }
+          then: [{ op: damage, to: it, amount: 15, type: Affliction }]
+
+withstand.water:
+  archetype: Withstand
+  element: Water
+  name: Aqua Veil
+  description: The user gains 10 Shield for 1 turn and 2 Renew.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: renew, stacks: 2 }
+
+taunt.water:
+  archetype: Taunt
+  element: Water
+  name: Tidal Pull
+  description: >-
+    Taunts target enemy for 3 turns. The cooldown of this skill resets if the user gains Flow while
+    it is on cooldown.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      effect:
+        id: tidal_pull_reset
+        name: Tidal Pull (reset on Flow)
+        kind: Neutral
+        element: Water
+        stacking: unique
+        description: When the bearer gains Flow, Tidal Pull comes off cooldown.
+        triggers:
+          - on: effectGained
+            effect: flow
+            do:
+              - { op: resetCooldown, skill: taunt.water }
+
+titan.water:
+  archetype: Titan
+  element: Water
+  name: Naiad Form
+  description: For 4 turns, the user gains 2 Armor, 2 Renew, and 1 Might.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: renew, stacks: 2, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
+
+# ---------------------------------------------------------------- minion skills
+
+fish_shimmer:
+  archetype: Minion
+  element: Water
+  name: Shimmer
+  description: Target ally gains 2 Renew. Then, if they have 3 or more Renew, they gain Flow for 3 turns.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: renew, stacks: 2 }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: primary, effect: renew } }, atLeast: 3 } }
+      then: [{ op: apply, to: primary, effect: flow, duration: { enemyTurns: 3 } }]
+
+elemental_lashing_water:
+  archetype: Minion
+  element: Water
+  name: Lashing Water
+  description: Deals 10 damage to target enemy. Uncounterable.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Uncounterable]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

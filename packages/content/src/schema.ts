@@ -71,6 +71,7 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
   z.union([
     namedSelector,
     z.strictObject({ randomEnemy: z.number().int().min(1), exclude: namedSelector.optional(), where: condSchema.optional() }),
+    z.strictObject({ randomAlly: z.number().int().min(1), exclude: namedSelector.optional(), where: condSchema.optional() }),
   ]),
 ) as z.ZodType<Selector>;
 
@@ -110,6 +111,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ countOf: selectorSchema }),
     z.strictObject({ missingHp: selectorSchema }),
+    z.strictObject({ totalStacks: z.strictObject({ in: selectorSchema, effect: z.string() }) }),
     z.strictObject({ div: z.tuple([valueSchema, valueSchema]) }),
     z.strictObject({ sum: z.array(valueSchema) }),
     z.strictObject({ mul: z.array(valueSchema) }),
@@ -138,6 +140,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('cannotApplyBuffs') }),
   z.strictObject({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),
   z.strictObject({ mod: z.literal('invulnerableTo'), sourceHas: z.array(z.string()).min(1) }),
+  z.strictObject({ mod: z.literal('ignoreCounters') }),
+  z.strictObject({ mod: z.literal('bonusStacksOnApply'), effect: z.string(), amount: z.number().int() }),
   z.strictObject({ mod: z.literal('immuneTo'), kind: effectKind }),
   z.strictObject({ mod: z.literal('negateNext'), effect: z.string() }),
   z.strictObject({ mod: z.literal('forceTarget') }),
@@ -186,7 +190,9 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
     z.strictObject({ op: z.literal('convertEffects'), from: z.string(), to: z.string() }),
     z.strictObject({ op: z.literal('gainEnergy'), amount: z.number().int().min(1) }),
-    z.strictObject({ op: z.literal('resetCooldown') }),
+    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional() }),
+    z.strictObject({ op: z.literal('adjustCooldowns'), to: selectorSchema, by: z.number().int(), exceptCurrent: z.boolean().optional() }),
+    z.strictObject({ op: z.literal('extendEffects'), on: selectorSchema, effects: z.array(z.string()).min(1), by: z.number().int() }),
     z.strictObject({ op: z.literal('if'), cond: condSchema, then: z.array(opSchema), else: z.array(opSchema).optional() }),
     z.strictObject({ op: z.literal('set'), var: z.string(), value: z.union([valueSchema, z.boolean()]) }),
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
@@ -200,8 +206,9 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal']),
+    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained']),
     signal: z.string().optional(),
+    effect: z.string().optional(),
     when: z
       .strictObject({
         direct: z.boolean().optional(),
@@ -262,6 +269,7 @@ export const skillFileEntry = z.strictObject({
   tags: z.array(skillTag),
   target: z.enum(['self', 'enemy', 'ally', 'any', 'allEnemies', 'allAllies', 'none']),
   targetFilter: condSchema.optional(),
+  requires: condSchema.optional(),
   ops: z.array(opSchema),
 });
 

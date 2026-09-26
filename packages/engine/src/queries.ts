@@ -99,6 +99,11 @@ export function forcedTargets(ctx: Ctx, u: Unit): string[] {
   return modsOn(ctx.s, ctx.c, u.id, 'forceTarget').map(({ effect }) => effect.source);
 }
 
+/** Flow: the unit's skills ignore counters and reflects. */
+export function ignoresCounters(ctx: Ctx, u: Unit): boolean {
+  return modsOn(ctx.s, ctx.c, u.id, 'ignoreCounters').length > 0;
+}
+
 /** Ghosted: the unit's skills Bypass. */
 export function hasGrantBypass(ctx: Ctx, u: Unit): boolean {
   return modsOn(ctx.s, ctx.c, u.id, 'grantBypass').length > 0;

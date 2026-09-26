@@ -193,6 +193,16 @@ const STATUS_CODES: Record<string, string> = {
   comet_shard: 'AIM',
   frost_snare: 'SNR',
   blizzard: 'CHN',
+  // Water
+  flow: 'FLW',
+  surge: 'SRG',
+  riverbend: 'RIP',
+  tidal_arrow: 'AIM',
+  whirlpool: 'WHP',
+  dunk: 'DNK',
+  call_rain: 'CHN',
+  aqua_ring: 'RNG',
+  tidal_pull_reset: 'TPL',
 };
 
 function consonantCode(name: string): string {

@@ -50,7 +50,8 @@ export type NamedSelector =
 export type Selector =
   | NamedSelector
   /** `where` filters candidates (evaluated with `it` = each candidate). */
-  | { randomEnemy: number; exclude?: NamedSelector; where?: Cond };
+  | { randomEnemy: number; exclude?: NamedSelector; where?: Cond }
+  | { randomAlly: number; exclude?: NamedSelector; where?: Cond };
 
 export type Value =
   | number
@@ -65,6 +66,8 @@ export type Value =
   | { countOf: Selector }
   /** Max HP minus current HP of the (first) selected unit. */
   | { missingHp: Selector }
+  /** Total stacks of an effect across the selected units. */
+  | { totalStacks: { in: Selector; effect: string } }
   /** Integer division, rounded down. */
   | { div: [Value, Value] }
   | { sum: Value[] }
@@ -137,8 +140,12 @@ export type Op =
   | { op: 'convertEffects'; from: string; to: string }
   /** The actor's player gains random-colored energy. */
   | { op: 'gainEnergy'; amount: number }
-  /** The skill being used comes off cooldown. */
-  | { op: 'resetCooldown' }
+  /** A skill comes off cooldown: the skill being used, or the actor's skill with this id. */
+  | { op: 'resetCooldown'; skill?: string }
+  /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
+  | { op: 'adjustCooldowns'; to: Selector; by: number; exceptCurrent?: boolean }
+  /** Adds `by` turn-ends to the remaining duration of these effects on the selected units. */
+  | { op: 'extendEffects'; on: Selector; effects: string[]; by: number }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
@@ -182,6 +189,10 @@ export type ModifierSpec =
   | { mod: 'immuneToDebuffsFrom'; sourceHas: string[] }
   /** Units carrying any of these effects can't target or damage the bearer (Frostborn); Bypass ignores it. */
   | { mod: 'invulnerableTo'; sourceHas: string[] }
+  /** The bearer's skills ignore counters and reflects (Water Flow). */
+  | { mod: 'ignoreCounters' }
+  /** The next time the bearer applies `effect`, it applies `amount` extra stacks; then this effect ends (Surge). */
+  | { mod: 'bonusStacksOnApply'; effect: string; amount: number }
   | { mod: 'immuneTo'; kind: EffectKind }
   | { mod: 'negateNext'; effect: string }
   | { mod: 'forceTarget' }
@@ -194,13 +205,26 @@ export type ModifierSpec =
   /** The bearer's skills Bypass (ignore Invulnerable and Isolated) — Ghosted. */
   | { mod: 'grantBypass' };
 
-/** skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets. */
-export type TriggerEvent = 'damaged' | 'skillUsed' | 'skillResolved' | 'skillTargeted' | 'turnEnd' | 'turnStart' | 'signal';
+/**
+ * - skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets.
+ * - effectGained: the bearer gains the effect named in `effect` (applied or refreshed).
+ */
+export type TriggerEvent =
+  | 'damaged'
+  | 'skillUsed'
+  | 'skillResolved'
+  | 'skillTargeted'
+  | 'turnEnd'
+  | 'turnStart'
+  | 'signal'
+  | 'effectGained';
 
 export interface TriggerSpec {
   on: TriggerEvent;
   /** For `on: signal`: which signal. */
   signal?: string;
+  /** For `on: effectGained`: which effect (key). */
+  effect?: string;
   /**
    * - side: for signals, whose side sent it relative to the bearer.
    * - fromSide: for damaged, the damager's side relative to the effect's applier.
@@ -279,6 +303,8 @@ export interface SkillDef {
   target: TargetKind;
   /** Extra requirement on a single target (evaluated with `it` = the target), e.g. "target Condemned enemy". */
   targetFilter?: Cond;
+  /** Requirement on the user to use this skill (evaluated with actor = the user), e.g. "Requires Flow". */
+  requires?: Cond;
   ops: Op[];
 }
 

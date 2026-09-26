@@ -304,3 +304,48 @@ Content: `packages/content/data/ice/`. Statuses: **Frostbitten**, **Chilled**, *
 
 When a match ended partway through the end-of-turn expiry pass, the remaining expired effects were left on the board with 0 turns remaining. Expired effects are now always cleared; once the match is over, no further expiry payloads run.
 
+## 15. Water
+
+Content: `packages/content/data/water/`. Themes are Healing (Renew), Disruption (Confusion, stun extension) and Tempo (cooldown cuts). Water adds one status, **Flow**, and uses the base **Renew**.
+
+### 15.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Flow** | The bearer's skills ignore counters and reflects, the same as if every skill were Uncounterable. It's unique (it doesn't stack), and permanent unless the skill gives a duration. Implemented as the `ignoreCounters` modifier. |
+| **Renew** | A base status: at the end of the applier's turn it heals 5 per stack, then loses 1 stack. Several Water skills read or strip Renew stacks. |
+| **"Requires Flow"** | The skill can't be queued unless the user has Flow, and it fails (no cooldown, no refund) if the user lost Flow before it resolves. This uses the new generic `requires` condition on skills. |
+| **Extending Stuns** | "Extends Stuns by 1 turn" adds 2 internal ticks (one full round) to every Stun effect on the target, including non-Strategic stuns. This uses the new `extendEffects` op. |
+
+### 15.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Waterfall | Reduces every **other** skill of the user by 1 remaining cooldown; Waterfall's own new cooldown is untouched. |
+| Surge | The user gets a one-shot Buff: the **next** Renew they apply (to anyone) gets +2 stacks. The Buff is then used up. Surge's own 2 Renew is applied before the Buff exists. |
+| Riverbend | Counters Harmful **Strategic** skills used on the user for 1 turn. Every counter grants Flow. Non-Strategic attacks go through. |
+| Coordinated Shot | Checks Mark **before** the hit. |
+| Tidal Arrow | Works like Snipe (delayed, interruptible, hidden target), but only with Flow. |
+| Whirlpool Trap | For 2 turns, every Strategic skill the target uses (Harmful or Helpful) gives them 1 Confusion. It's visible. |
+| Rainbow Scale Fish | Shimmer has no cooldown. It checks the ally's Renew after adding its own 2, so an ally with 1 or more Renew gets Flow. |
+| Drink Deeply | Removes Renew from **every** allied unit, including minions and the target, then heals the target 5 per stack removed. |
+| Water Elemental | Lasts 3 turns. Lashing Water is free and Uncounterable. |
+| Call Rain | The channel ticks at the end of the user's turns. Ticks are indirect. |
+| Drown / Undertow | Undertow checks for a Stun before the hit: if there is one, it extends it; otherwise it applies a 1-turn Stun. Drown always extends any Stun present. |
+| Dunk | Invisible. Counters the target's **Helpful** skills for 1 turn and gives 1 Confusion per counter. It's our first Harmful counter that matches Helpful skills (interceptors now filter by `harmful` and `strategic`). |
+| Aqua Ring | For 2 turns, any unit on the user's side that directly damages the ringed enemy gains Flow for 3 turns. Aqua Ring's own hit comes before the ring, so it doesn't count. |
+| Whale Call | Tagged Strategic on the sheet. Its conditional Affliction damage is direct, so it triggers the "Strategic but deals direct damage" lint warning. That's intentional. The fresh Vulnerable is applied first, so Stunned or Taunted enemies take 20. |
+| Tidal Pull | Also leaves a permanent, unique watcher on the user: whenever the user **gains** Flow, Tidal Pull's cooldown resets. Refreshing a Flow the user already has also counts. |
+
+### 15.3 Balance notes (greedy-bot simulation, 3,000 matches, six element pools)
+
+- By character element: Poison 51.2%, Fire 51.0%, None 49.8%, Holy 48.8%, **Water 48.8%**, Ice 47.9%.
+- The strongest Water skills are **Whale Call** (about 61%) and **Flowing Fist** (about 61%, a cd-0 20-damage hit plus Renew that beats base Strike). Waterfall and Undertow are both about 58%.
+- The weakest: Drink Deeply (about 39%), Deluge (about 40%; Flow is rarely up when the bot wants it), Shell Knife, Water Elemental and Dive (about 44%).
+- Flickerflare (about 72%) and Glacial Burst (about 68%) remain the top outliers overall.
+
+### 15.4 Engine additions for Water
+
+- Generic primitives: the `ignoreCounters` and `bonusStacksOnApply` modifiers; the skill-level `requires` condition; and the `adjustCooldowns` (with `exceptCurrent`), `extendEffects` and `resetCooldown {skill}` ops.
+- Also new: the `randomAlly` selector, the `totalStacks` value, and the `effectGained` trigger with an `effect` filter.
+- Counter and reflect interceptors now match by `when.harmful` (default: Harmful only) and `when.strategic`.

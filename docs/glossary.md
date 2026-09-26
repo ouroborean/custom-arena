@@ -21,6 +21,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
 | **Duration** | Internal count of turns; drops by 1 at the end of every turn. See rules.md §8. |
 | **Explode / Explosion** | Fire: 10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets. |
+| **Flow** | Water: the bearer's skills ignore counters and reflects. |
 | **Frost debuff** | Ice: Frostbitten, Chilled or Numb. |
 | **Frostbitten** | Ice: can't use Harmful Strategic skills. |
 | **Frostborn** | Ice: immune to Debuffs from Numb or Chilled units; Frostbitten units can't target or damage it. |
@@ -39,6 +40,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Once per round** | Once per **match**. |
 | **Piercing** | Damage type that ignores Armor but is absorbed by Shield. |
 | **Prey** | Poison: a unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 HP, or marked as Prey. Computed, not applied. |
+| **Renew** | Heals 5 HP per stack at the end of the applier's turn, then loses 1 stack. |
 | **Reflect** | A counter that also applies the skill to its user (or the user's team, for AoE skills). |
 | **Shattered** | Gets no benefit from Armor or Shield. |
 | **Strategic** | Skill class for skills that aren't explicitly directly damaging. Tagged per skill. Some stuns only affect Strategic or non-Strategic skills. |
