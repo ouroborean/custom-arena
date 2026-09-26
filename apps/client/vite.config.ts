@@ -3,5 +3,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, strictPort: true },
+  // The API server (npm run server) is proxied so cookies stay same-origin in development.
+  server: { port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:8787' } },
 });

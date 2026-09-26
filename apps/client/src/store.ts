@@ -35,8 +35,14 @@ export interface CommitPlan {
   allocation?: Energy;
 }
 
+export type Screen = 'home' | 'sandbox' | 'character' | 'battle';
+
 interface StoreState {
-  screen: 'setup' | 'battle';
+  screen: Screen;
+  /** The character open on the character screen. */
+  characterId: string | null;
+  /** Where leaving a match goes back to. */
+  returnTo: 'home' | 'sandbox';
   match: LocalMatch | null;
   /** Bumped on every match change so components re-read views. */
   version: number;
@@ -59,9 +65,11 @@ interface StoreState {
   anchor: Anchor | null;
   logOpen: boolean;
 
-  newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode): void;
+  newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode, returnTo?: 'home' | 'sandbox'): void;
   rematch(): void;
+  /** Leaves the match, back to the screen it was started from. */
   toSetup(): void;
+  go(screen: Exclude<Screen, 'battle'>, characterId?: string): void;
   selectSkill(actor: string, slot: number): void;
   chooseTarget(unitId: string): void;
   cancelTargeting(): void;
@@ -129,7 +137,9 @@ export const useStore = create<StoreState>((set, get) => {
   }
 
   return {
-    screen: 'setup',
+    screen: 'home',
+    characterId: null,
+    returnTo: 'sandbox',
     match: null,
     version: 0,
     viewer: 0,
@@ -148,11 +158,12 @@ export const useStore = create<StoreState>((set, get) => {
     anchor: null,
     logOpen: false,
 
-    newMatch(content, config, mode) {
+    newMatch(content, config, mode, returnTo = 'sandbox') {
       const match = new LocalMatch(content, config, mode);
       const viewer = initialViewer(mode);
       set({
         screen: 'battle',
+        returnTo,
         match,
         viewer,
         targeting: null,
@@ -174,11 +185,15 @@ export const useStore = create<StoreState>((set, get) => {
 
     rematch() {
       const m = get().match;
-      if (m) get().newMatch(m.content, m.config, m.mode);
+      if (m) get().newMatch(m.content, m.config, m.mode, get().returnTo);
     },
 
     toSetup() {
-      set({ screen: 'setup', match: null, pending: [], displayView: null, commitOpen: false, handoff: null });
+      set({ screen: get().returnTo, match: null, pending: [], displayView: null, commitOpen: false, handoff: null });
+    },
+
+    go(screen, characterId) {
+      set({ screen, characterId: characterId ?? null });
     },
 
     selectSkill(actor, slot) {
