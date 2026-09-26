@@ -177,4 +177,5 @@ Content: `packages/content/data/fire/`. Statuses: **Ignite**, **Scorched**, **Fl
 ### 11.3 Balance notes (greedy-bot simulation, 3,000 matches)
 
 - Fire characters win about 51% of games, and characters with no element about 49%.
-- **Flickerflare** wins about 76% of the games it appears in, the clear outlier. For 1 random energy with no cooldown, it adds Ignite to Shot's damage and spreads Ignite on re-cast. Giving Ignite a 3-turn duration barely changes this (about 75%), so the lever is Flickerflare's cost or cooldown, not Ignite's duration.
+- **Flickerflare** won about 76% of the games it appeared in, the clear outlier. For 1 random energy with no cooldown, it added Ignite to Shot's damage and spread Ignite on re-cast. Giving Ignite a 3-turn duration barely changed this (about 75%).
+- **Change (2026-09-26):** Flickerflare's cooldown went from 0 to 1. Re-simulated over 2,000 matches, it wins about 71%. That's still the top Fire skill, so it's worth revisiting (cost color, or spreading only onto un-Ignited enemies).

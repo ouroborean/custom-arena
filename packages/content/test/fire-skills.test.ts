@@ -99,7 +99,8 @@ describe('Fire skills', () => {
     const a = arena({ p0: [['shot.fire']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shot.fire', B1).end();
     expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, false]);
-    a.pass().use(A1, 'shot.fire', B1).end();
+    expect(a.reject(() => a.pass().use(A1, 'shot.fire', B1))).toBe('on_cooldown'); // CD 1 (balance change)
+    a.pass(2).use(A1, 'shot.fire', B1).end();
     expect(a.has(B2, 'ignite')).toBe(true);
   });
 
