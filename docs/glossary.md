@@ -13,9 +13,11 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Buff / Debuff** | Effect kinds. Immune blocks Debuffs. |
 | **Bypass** | Ignores Invulnerable and Isolated. |
 | **Channeled** | An ongoing skill effect on its user. It ends if the user is stunned (for that skill's class), dies, or uses another skill. |
+| **Charge / Charged** | Lightning: stacks of Charged, max 3. At 3, the owner generates 1 extra energy on their next turn and the Charge is spent. "Charged" means at least 1. |
 | **Chilled** | Ice: skill costs can't be reduced. |
 | **Character** | A player's hero unit. Generates energy; its death counts toward elimination. |
 | **Condemned** | Holy: the next skill the bearer uses gives them a random Weakness, Vulnerable or Confusion, then it ends. |
+| **Conduit** | Lightning: steals all Charge from enemies it damages; Charged allies that use Helpful skills on it give it their Charge. |
 | **Cooldown (CD)** | Number of the owner's own turns a skill stays locked after use. |
 | **Counter** | Negates a skill as it's used. Cost stays paid, and the cooldown starts. |
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
@@ -46,8 +48,10 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Prey** | Poison: a unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 HP, or marked as Prey. Computed, not applied. |
 | **Renew** | Heals 5 HP per stack at the end of the applier's turn, then loses 1 stack. |
 | **Reflect** | A counter that also applies the skill to its user (or the user's team, for AoE skills). |
+| **Sapped** | Lightning: max 3 stacks. At 3, the owner generates 1 less energy on their next turn and Sapped is removed. |
 | **Shattered** | Gets no benefit from Armor or Shield. |
 | **Soul Fragment** | Unholy: a permanent stacking Buff; each stack is 1 Might. Consumed by several Unholy skills. |
+| **Stormborn** | Lightning: gains 1 Charge whenever it deals or receives damage. |
 | **Strategic** | Skill class for skills that aren't explicitly directly damaging. Tagged per skill. Some stuns only affect Strategic or non-Strategic skills. |
 | **Stunned** | Can't use skills (optionally only Strategic or only non-Strategic ones). |
 | **Taunted** | Enemy single-target skills must target the taunter. |

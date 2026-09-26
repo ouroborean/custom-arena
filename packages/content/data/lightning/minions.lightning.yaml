@@ -1,0 +1,18 @@
+# Lightning minions (HP from the sheet).
+
+storm_hawk:
+  name: Storm Hawk
+  hp: 25
+  skills: [hawk_stormfeather, hawk_glowing_down]
+
+static_elemental:
+  name: Static Elemental
+  hp: 15
+  skills: [static_zap]
+  # "If the user has Charge, one Charge is consumed to grant the Static Elemental 1 Might."
+  onSummon:
+    - op: if
+      cond: { has: { unit: summoner, effect: charged } }
+      then:
+        - { op: removeStacks, from: summoner, effect: charged, amount: 1 }
+        - { op: apply, to: actor, effect: might }

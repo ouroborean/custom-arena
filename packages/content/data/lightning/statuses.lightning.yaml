@@ -1,0 +1,59 @@
+# Lightning statuses, from "Custom Arena - Lightning". Themes: Resource management, Target-chaining,
+# Consistency. "Charge" on the sheet = stacks of Charged. Charged and Sapped cap at 3 and fire once
+# at 3 on the owner's next energy generation, then are removed (GDD §14).
+
+charged:
+  name: Charged
+  kind: Buff
+  element: Lightning
+  stacking: merge
+  maxStacks: 3
+  description: Charge (max 3). At 3, the owner generates 1 extra energy next turn and the Charge is spent.
+  modifiers:
+    - { mod: energyGain, amount: 1, atStacks: 3 }
+
+sapped:
+  name: Sapped
+  kind: Debuff
+  element: Lightning
+  stacking: merge
+  maxStacks: 3
+  description: Max 3. At 3, the owner generates 1 less energy next turn and Sapped is removed.
+  modifiers:
+    - { mod: energyGain, amount: -1, atStacks: 3 }
+
+stormborn:
+  name: Stormborn
+  kind: Buff
+  element: Lightning
+  stacking: unique
+  description: Gains 1 Charge whenever it deals or receives damage (Charge caps at 3).
+  triggers:
+    - on: damaged
+      do:
+        - { op: apply, to: bearer, effect: charged }
+    - on: dealtDamage
+      do:
+        - { op: apply, to: bearer, effect: charged }
+
+conduit:
+  name: Conduit
+  kind: Buff
+  element: Lightning
+  stacking: unique
+  description: >-
+    Steals all Charge from enemies it damages. Allies with Charge that use Helpful skills on it
+    transfer their Charge to it.
+  triggers:
+    - on: dealtDamage
+      when: { byEnemy: true }
+      do:
+        - { op: set, var: stolen, value: { stacks: { unit: eventTarget, effect: charged } } }
+        - { op: removeEffect, from: eventTarget, effect: charged }
+        - { op: apply, to: bearer, effect: charged, stacks: { var: stolen } }
+    - on: skillTargeted
+      when: { harmful: false, side: ally }
+      do:
+        - { op: set, var: given, value: { stacks: { unit: eventSource, effect: charged } } }
+        - { op: removeEffect, from: eventSource, effect: charged }
+        - { op: apply, to: bearer, effect: charged, stacks: { var: given } }

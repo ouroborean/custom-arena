@@ -16,7 +16,7 @@ import {
   modifiedHealing,
   modsOn,
 } from './queries.js';
-import type { DamageType, Unit } from './types.js';
+import type { DamageType, EffectInstance, Unit } from './types.js';
 
 export interface DamageArgs {
   source: Unit;
@@ -84,6 +84,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
 
   let remaining = amount;
   let absorbed = 0;
+  const hitShields: EffectInstance[] = [];
   if (a.type !== 'Affliction' && !shattered) {
     for (const e of effectsOn(ctx.s, target.id)) {
       if (remaining === 0) break;
@@ -92,6 +93,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
       e.value -= take;
       remaining -= take;
       absorbed += take;
+      if (take > 0) hitShields.push(e);
       if (e.value <= 0) removeEffect(ctx, e, 'depleted');
     }
   }
@@ -117,6 +119,10 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   }
 
   enqueueDamagedTriggers(ctx, source, target, a.direct);
+  for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct);
+  if (source !== target) {
+    for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct);
+  }
   if (target.hp <= 0) killUnit(ctx, target);
   return amount;
 }
@@ -138,6 +144,23 @@ function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: bo
       const p: PendingTrigger = { effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id };
       ctx.triggerQueue.push(p);
     }
+  }
+}
+
+/** Queues `e`'s triggers for a damage-related event (the damager is always the event source). */
+function enqueueOn(
+  ctx: Ctx,
+  e: EffectInstance,
+  on: 'shieldDamaged' | 'dealtDamage',
+  source: Unit,
+  target: Unit,
+  direct: boolean,
+): void {
+  for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+    if (spec.on !== on) continue;
+    if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
+    if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
+    ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id });
   }
 }
 

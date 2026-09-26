@@ -218,6 +218,19 @@ const STATUS_CODES: Record<string, string> = {
   mirage_of_nightmares: 'MIR',
   soul_sickness: 'SIK',
   jaws_of_hell: 'CHN',
+  // Lightning
+  charged: 'CHG',
+  sapped: 'SAP',
+  stormborn: 'STB',
+  conduit: 'CND',
+  feedback_loop: 'RIP',
+  particle_beam: 'AIM',
+  tesla_coil: 'TSL',
+  lightningrod: 'CHN',
+  hologram: 'HLO',
+  polarity: 'POL',
+  lightning_cage: 'CGE',
+  aggro_signal: 'AGR',
 };
 
 function consonantCode(name: string): string {

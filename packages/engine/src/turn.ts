@@ -32,11 +32,13 @@ export function startTurn(ctx: Ctx): void {
   // Energy: 1 on the very first turn of the match, otherwise 1 per living character (not minions).
   const chars = livingCharacters(ctx.s, p);
   let count = ctx.s.turn === 1 ? 1 : chars.length;
-  for (const u of chars) count += energyGainBonus(ctx, u);
+  const spent: EffectInstance[] = [];
+  for (const u of chars) count += energyGainBonus(ctx, u, spent);
   const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
   for (let i = 0; i < Math.max(0, count); i++) gained[pick(ctx.s.rng, COLORS)] += 1;
   for (const c of COLORS) ctx.s.players[p].energy[c] += gained[c];
   emit(ctx, { t: 'energyGained', player: p, gained }, p);
+  for (const e of spent) removeEffect(ctx, e, 'consumed'); // Charged / Sapped fire once at 3 stacks
 
   for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);

@@ -73,6 +73,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
     stacks += bonus.spec.amount;
     removeEffect(ctx, bonus.effect, 'consumed');
   }
+  if (def.maxStacks !== undefined) stacks = Math.min(stacks, def.maxStacks);
   const value = a.value ?? 0;
 
   if (def.stacking === 'unique' || def.stacking === 'merge') {
@@ -84,6 +85,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
       existing.duration =
         existing.duration === null || duration === null ? null : Math.max(existing.duration, duration);
       existing.stacks = merge ? existing.stacks + stacks : Math.max(existing.stacks, stacks);
+      if (def.maxStacks !== undefined) existing.stacks = Math.min(existing.stacks, def.maxStacks);
       existing.value = Math.max(existing.value, value);
       existing.source = source.id;
       existing.sourceOwner = source.owner;

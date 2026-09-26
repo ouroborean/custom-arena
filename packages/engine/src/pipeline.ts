@@ -247,6 +247,23 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
   // 5. Execute the skill's ops.
   runSkillOps(ctx, actor, def, targets, slotIndex);
 
+  // 5b. "When targeted" reactions on the targets (Conduit), for effects that predate this use.
+  if (ctx.s.result === null) {
+    for (const id of targets) {
+      const t = unit(ctx, id);
+      if (!t.alive) continue;
+      enqueueTriggers(ctx, id, 'skillTargeted', {
+        harmful,
+        strategic: def.tags.includes('Strategic'),
+        side: t.owner === actor.owner ? 'ally' : 'enemy',
+        eventSource: actor.id,
+        eventTarget: id,
+        maxSeq: startSeq,
+      });
+    }
+    flushTriggers(ctx);
+  }
+
   // 6. After-resolution triggers on the user (only effects that existed before this use).
   if (actor.alive && ctx.s.result === null) {
     enqueueTriggers(ctx, actor.id, 'skillResolved', {
