@@ -13,6 +13,7 @@ import {
   damageTakenBonus,
   hasNoArmorOrShield,
   modifiedHealing,
+  modsOn,
 } from './queries.js';
 import type { DamageType, Unit } from './types.js';
 
@@ -48,12 +49,19 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     return 0;
   }
 
+  // Retribution: direct damage from enemies heals instead (after all damage modifiers).
+  const heals = enemy && a.direct && modsOn(ctx.s, ctx.c, target.id, 'healFromDirectDamage').length > 0;
+
   const shattered = hasNoArmorOrShield(ctx, target);
   const taken = damageTakenBonus(ctx, target, a.type, a.direct);
   const bonus = damageDealtBonus(ctx, source, a.type, a.direct) + taken.other;
   const armor = shattered ? 0 : taken.armor;
   const amount = Math.max(0, a.amount + bonus + armor);
   const breakdown = { base: a.amount, bonus, armor };
+  if (heals) {
+    heal(ctx, source, target, amount);
+    return 0;
+  }
   if (amount === 0) {
     emit(ctx, {
       t: 'damage',

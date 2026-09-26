@@ -31,6 +31,7 @@ export interface Scope {
   self?: EffectInstance;
   eventSource?: UnitId;
   eventTarget?: UnitId;
+  eventTargets?: UnitId[];
   it?: UnitId;
   vars: Record<string, number | boolean>;
   lastDamage: number;
@@ -88,13 +89,18 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return sc.lastDamaged.flatMap((id) => one(ctx, id));
     case 'summoner':
       return one(ctx, actor.summonedBy);
+    case 'eventTargets':
+      return (sc.eventTargets ?? []).flatMap((id) => one(ctx, id)).filter((u) => u.alive);
   }
 }
 
 export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
   if (typeof sel === 'string') return selectNamed(ctx, sel, sc);
   const excluded = new Set(sel.exclude ? selectNamed(ctx, sel.exclude, sc).map((u) => u.id) : []);
-  const pool = selectNamed(ctx, 'allEnemies', sc).filter((u) => !excluded.has(u.id));
+  const where = sel.where;
+  const pool = selectNamed(ctx, 'allEnemies', sc).filter(
+    (u) => !excluded.has(u.id) && (!where || withIt(sc, u.id, () => evalCond(ctx, where, sc))),
+  );
   return sample(ctx.s.rng, pool, sel.randomEnemy);
 }
 
@@ -128,6 +134,7 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     const where = v.count.in ? new Set(select(ctx, v.count.in, sc).map((u) => u.id)) : null;
     return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
   }
+  if ('countOf' in v) return select(ctx, v.countOf, sc).length;
   if ('sum' in v) return v.sum.reduce<number>((n, x) => n + evalValue(ctx, x, sc), 0);
   if ('mul' in v) return v.mul.reduce<number>((n, x) => n * evalValue(ctx, x, sc), 1);
   return evalCond(ctx, v.if, sc) ? evalValue(ctx, v.then, sc) : evalValue(ctx, v.else, sc);
@@ -440,6 +447,7 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
     bypass: false,
     ...(p.eventSource !== undefined ? { eventSource: p.eventSource } : {}),
     ...(p.eventTarget !== undefined ? { eventTarget: p.eventTarget } : {}),
+    ...(p.eventTargets !== undefined ? { eventTargets: p.eventTargets } : {}),
   };
   // Run nested so triggers caused by this payload queue behind it.
   const wasFlushing = ctx.flushing;
@@ -456,10 +464,19 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
 export function enqueueTriggers(
   ctx: Ctx,
   bearer: UnitId,
-  event: 'skillUsed' | 'turnStart' | 'turnEnd',
-  filter: { harmful?: boolean; strategic?: boolean; eventSource?: UnitId; eventTarget?: UnitId } = {},
+  event: 'skillUsed' | 'skillResolved' | 'turnStart' | 'turnEnd',
+  filter: {
+    harmful?: boolean;
+    strategic?: boolean;
+    eventSource?: UnitId;
+    eventTarget?: UnitId;
+    eventTargets?: UnitId[];
+    /** Only effects that existed before this seq (so a skill's own new effects don't react to it). */
+    maxSeq?: number;
+  } = {},
 ): void {
   for (const e of effectsOn(ctx.s, bearer)) {
+    if (filter.maxSeq !== undefined && e.seq > filter.maxSeq) continue;
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
       if (spec.on !== event || spec.intercept) continue;
       if (spec.when?.harmful !== undefined && spec.when.harmful !== filter.harmful) continue;
@@ -469,6 +486,7 @@ export function enqueueTriggers(
         spec,
         ...(filter.eventSource !== undefined ? { eventSource: filter.eventSource } : {}),
         ...(filter.eventTarget !== undefined ? { eventTarget: filter.eventTarget } : {}),
+        ...(filter.eventTargets !== undefined ? { eventTargets: filter.eventTargets } : {}),
       });
     }
   }

@@ -39,6 +39,7 @@
   /* elements (per the design sheets' color key) */
   --el-fire: #ff6a00;
   --el-poison: #8be03c;
+  --el-holy: #ffe98a;
 
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
@@ -868,6 +869,10 @@ button.portrait.targetable {
 
 .el-poison {
   --el: var(--el-poison);
+}
+
+.el-holy {
+  --el: var(--el-holy);
 }
 
 /* Derived-state badges (e.g. Poison's Prey), bottom-left of the portrait above the name. */

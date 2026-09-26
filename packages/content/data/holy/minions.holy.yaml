@@ -1,0 +1,11 @@
+# Holy minions (HP from the sheet).
+
+sacred_lion:
+  name: Sacred Lion
+  hp: 45
+  skills: [lion_roar, lion_claws]
+
+divine_blessing:
+  name: Divine Blessing
+  hp: 10
+  skills: [blessing_from_above]

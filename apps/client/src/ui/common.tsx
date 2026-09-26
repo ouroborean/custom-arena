@@ -173,6 +173,17 @@ const STATUS_CODES: Record<string, string> = {
   nine_plagues: 'CHN',
   numbing_needle: 'NDL',
   preymark: 'PMK',
+  ghosted: 'GHO',
+  // Holy
+  anointed: 'ANT',
+  condemned: 'CDM',
+  zealous_rush: 'ZEL',
+  retribution: 'RTB',
+  spear_of_light: 'AIM',
+  holy_nova: 'NOV',
+  consecration: 'CHN',
+  martyrdom: 'MTR',
+  saving_grace: 'SVG',
 };
 
 function consonantCode(name: string): string {

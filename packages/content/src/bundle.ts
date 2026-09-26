@@ -207,7 +207,15 @@ export function checkElements(b: ContentBundle): ContentIssue[] {
 
 // ---------------------------------------------------------------- lint
 
-const TYPO_WORDS = ['Rarvage', 'Mirslead', 'Nurmb', 'Bolster', 'Guardian'];
+// Misspellings from the sheets, and retired names ("Bolster" → Bless, "Guardian" class → Paladin).
+// "Guardian Strike" is a real Holy skill name, so it's allowed.
+const RETIRED: { word: string; pattern: RegExp }[] = [
+  { word: 'Rarvage', pattern: /\bRarvage\b/ },
+  { word: 'Mirslead', pattern: /\bMirslead\b/ },
+  { word: 'Nurmb', pattern: /\bNurmb\b/ },
+  { word: 'Bolster', pattern: /\bBolster\b/ },
+  { word: 'Guardian', pattern: /\bGuardian\b(?! Strike)/ },
+];
 
 export function lintSkills(b: ContentBundle): ContentIssue[] {
   const issues: ContentIssue[] = [];
@@ -240,7 +248,9 @@ export function lintSkills(b: ContentBundle): ContentIssue[] {
     if (strat && direct) warn(where, 'tagged Strategic but deals direct damage');
     if (!strat && !direct && !s.tags.includes('Channeled')) warn(where, 'tagged NonStrategic but deals no direct damage');
 
-    for (const w of TYPO_WORDS) if (s.description.includes(w) || s.name.includes(w)) err(where, `contains retired/misspelled word "${w}"`);
+    for (const { word, pattern } of RETIRED) {
+      if (pattern.test(s.description) || pattern.test(s.name)) err(where, `contains retired/misspelled word "${word}"`);
+    }
   }
   return issues;
 }

@@ -1,0 +1,27 @@
+# Holy statuses, from "Custom Arena - Holy". Sanctify is a base status (statuses.yaml).
+# Chastise (listed on the sheet as identical to Sleep) arrives with Shadow's Sleep.
+
+anointed:
+  name: Anointed
+  kind: Buff
+  element: Holy
+  stacking: unique
+  description: A mark that empowers Holy skills.
+
+condemned:
+  name: Condemned
+  kind: Debuff
+  element: Holy
+  stacking: unique
+  description: >-
+    The next time the bearer uses a skill, they randomly receive 1 Weakness, 1 Vulnerable or 1
+    Confusion, and Condemn is removed.
+  triggers:
+    - on: skillUsed
+      consume: true
+      do:
+        - op: random
+          options:
+            - [{ op: apply, to: bearer, effect: weakness }]
+            - [{ op: apply, to: bearer, effect: vulnerable }]
+            - [{ op: apply, to: bearer, effect: confusion }]

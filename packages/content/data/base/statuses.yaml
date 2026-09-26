@@ -59,6 +59,13 @@ invulnerable:
     - { mod: untargetable, by: enemies, bypassable: true }
     - { mod: blockIndirectDamage }
 
+ghosted:
+  name: Ghosted
+  kind: Buff
+  description: The bearer's skills Bypass (ignore Invulnerable and Isolated).
+  modifiers:
+    - { mod: grantBypass }
+
 untargetable:
   name: Untargetable
   kind: Buff
