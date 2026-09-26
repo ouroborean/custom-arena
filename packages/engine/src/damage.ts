@@ -95,6 +95,9 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
       if (e.value <= 0) removeEffect(ctx, e, 'depleted');
     }
   }
+  // Immortal: HP can't be pushed below the floor (HP already under it doesn't drop further).
+  const floors = modsOn(ctx.s, ctx.c, target.id, 'hpFloor').map(({ spec }) => spec.amount);
+  if (floors.length > 0) remaining = Math.min(remaining, Math.max(0, target.hp - Math.max(...floors)));
   target.hp -= remaining;
   emit(ctx, {
     t: 'damage',
@@ -107,6 +110,11 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     hp: Math.max(0, target.hp),
     ...breakdown,
   });
+
+  // Lifesteal: heal for the Health removed from another character (not Shield, not minions).
+  if (remaining > 0 && source !== target && target.kind === 'character' && source.alive) {
+    if (modsOn(ctx.s, ctx.c, source.id, 'lifesteal').length > 0) heal(ctx, source, source, remaining);
+  }
 
   enqueueDamagedTriggers(ctx, source, target, a.direct);
   if (target.hp <= 0) killUnit(ctx, target);

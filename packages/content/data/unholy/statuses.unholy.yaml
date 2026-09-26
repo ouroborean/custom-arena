@@ -1,0 +1,37 @@
+# Unholy statuses, from "Custom Arena - Unholy". Themes: Kiss/Kill, Health manipulation, Debuffs.
+
+horrified:
+  name: Horrified
+  kind: Debuff
+  element: Unholy
+  stacking: unique
+  description: Can't gain Buffs.
+  modifiers:
+    - { mod: immuneTo, kind: Buff }
+
+immortal:
+  name: Immortal
+  kind: Buff
+  element: Unholy
+  stacking: unique
+  description: Health can't fall below 5.
+  modifiers:
+    - { mod: hpFloor, amount: 5 }
+
+soul_fragment:
+  name: Soul Fragment
+  kind: Buff
+  element: Unholy
+  stacking: merge
+  description: +5 direct damage dealt per stack (1 Might each). Permanent until consumed.
+  modifiers:
+    - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true } }
+
+lifesteal:
+  name: Lifesteal
+  kind: Buff
+  element: Unholy
+  stacking: unique
+  description: Heals for the Health it removes from other characters.
+  modifiers:
+    - { mod: lifesteal }

@@ -86,6 +86,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     }),
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
+    z.strictObject({ isActor: selectorSchema }),
     z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
     z.strictObject({
       compare: z.strictObject({ value: valueSchema, atLeast: z.number().optional(), atMost: z.number().optional() }),
@@ -149,6 +150,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('energyGain'), amount: z.number().int() }),
   z.strictObject({ mod: z.literal('healingReceived'), mul: z.number().min(0), roundUpTo: z.number().int().min(1).optional() }),
   z.strictObject({ mod: z.literal('healFromDirectDamage') }),
+  z.strictObject({ mod: z.literal('hpFloor'), amount: z.number().int() }),
+  z.strictObject({ mod: z.literal('lifesteal') }),
   z.strictObject({ mod: z.literal('grantBypass') }),
 ]) as z.ZodType<ModifierSpec>;
 
@@ -176,6 +179,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
         .strictObject({ skillUsed: z.strictObject({ harmful: z.boolean().optional(), nonStrategic: z.boolean().optional() }) })
         .optional(),
       bindTo: selectorSchema.optional(),
+      linkTo: z.string().optional(),
     }),
     z.strictObject({
       op: z.literal('summon'),
@@ -185,6 +189,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
+    z.strictObject({ op: z.literal('removeStacks'), from: selectorSchema, effect: z.string(), amount: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('macro'), id: z.string() }),
     z.strictObject({ op: z.literal('signal'), name: z.string() }),
     z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
@@ -196,6 +201,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('if'), cond: condSchema, then: z.array(opSchema), else: z.array(opSchema).optional() }),
     z.strictObject({ op: z.literal('set'), var: z.string(), value: z.union([valueSchema, z.boolean()]) }),
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
+    z.strictObject({ op: z.literal('repeat'), times: valueSchema, do: z.array(opSchema) }),
     z.strictObject({ op: z.literal('extendSelf'), by: z.number().int() }),
     z.strictObject({ op: z.literal('setFlag'), flag: z.string() }),
     z.strictObject({ op: z.literal('addStacksSelf'), amount: z.number().int() }),
