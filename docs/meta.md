@@ -116,6 +116,10 @@ Passwords: Argon2id.
 | GET | `/api/wallet` | Currency balances (docs/equipment.md §4) |
 | POST | `/api/craft` | Craft with a recipe from unequipped items |
 | POST | `/api/inventory/:id/salvage` | Salvage an unequipped item for Gold |
+| GET | `/api/story` | Story and tutorial chapters: unlocks and clears (docs/single-player.md) |
+| POST | `/api/story/:id/start` | A verified attempt: teams and seed |
+| POST | `/api/story/attempts/:id/finish` | Submit the commands; the server replays them and pays out |
+| GET | `/api/achievements` | Achievement progress |
 | POST | `/api/dev/grant` | Development only: add an item to the inventory |
 | GET | `/api/matches`, `/api/matches/:id/replay` | Match history; replay records (see docs/multiplayer.md) |
 | GET | `/api/ratings` | Ranked season rating and casual record |

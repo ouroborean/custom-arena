@@ -1023,7 +1023,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 - Matchmaking (Redis queue, rating bands widening over time), Glicko-2, match history, and replay viewer.
 - Anti-abuse: rate limits, server-side validation only, and audit logs.
 
-### Phase 6: Single-player (4–6 weeks)
+### Phase 6: Single-player (4–6 weeks) — in progress: Easy/Normal/Hard bots, scripted encounters, 10-chapter story with server-verified rewards, achievements, 3-lesson tutorial with forced energy and a coach ✅ (2026-09-26); Hard ≈ Normal head to head, story tuning deferred; see docs/single-player.md
 - Normal/Hard AI and the scripted-encounter framework.
 - Tutorial (step-scripted using engine hooks: "force this hand", "highlight this skill").
 - Story chapters, rewards, and the achievement/unlock predicate system (§8.4).
