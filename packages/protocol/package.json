@@ -1,0 +1,17 @@
+{
+  "name": "@arena/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@arena/engine": "0.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@arena/ai": "0.1.0",
+    "@arena/content": "0.1.0"
+  }
+}

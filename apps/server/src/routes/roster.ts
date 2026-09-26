@@ -2,13 +2,30 @@
 // arrive with the economy (Phase 7).
 
 import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter } from '@arena/meta';
-import { seedRng } from '@arena/engine';
+import { seedRng, type CharacterSpec } from '@arena/engine';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { characters, teams, users } from '../db/schema.js';
 import { recordOf, resolveStored } from './equipment.js';
+
+/**
+ * The user's active team as engine input, equipment included. Loadouts are re-validated here
+ * (GDD §7.3): 404 without a team, 409 listing problems if a loadout became invalid.
+ */
+export async function activeTeamSpecs(ctx: AppContext, userId: string): Promise<CharacterSpec[]> {
+  const team = await activeTeam(ctx, userId);
+  if (!team) throw new HttpError(404, 'No active team');
+  const specs: CharacterSpec[] = [];
+  for (const id of team.characterIds) {
+    const c = await ownedCharacter(ctx, userId, id);
+    const resolved = resolveStored(ctx, c);
+    if (resolved.problems.length) throw new HttpError(409, `${c.name}'s loadout needs fixing`, { problems: resolved.problems });
+    specs.push(toCharacterSpec(recordOf(c), resolved));
+  }
+  return specs;
+}
 
 /** Upper bound on roster size while rolling is free. */
 export const MAX_ROSTER = 60;
@@ -138,17 +155,6 @@ export function rosterRoutes(ctx: AppContext) {
     });
 
     /** The active team as engine input, equipment included; loadouts are re-validated (GDD §7.3). */
-    app.get('/api/teams/active/specs', async (req) => {
-      const team = await activeTeam(ctx, req.user!.id);
-      if (!team) throw new HttpError(404, 'No active team');
-      const specs = [];
-      for (const id of team.characterIds) {
-        const c = await ownedCharacter(ctx, req.user!.id, id);
-        const resolved = resolveStored(ctx, c);
-        if (resolved.problems.length) throw new HttpError(409, `${c.name}'s loadout needs fixing`, { problems: resolved.problems });
-        specs.push(toCharacterSpec(recordOf(c), resolved));
-      }
-      return { specs };
-    });
+    app.get('/api/teams/active/specs', async (req) => ({ specs: await activeTeamSpecs(ctx, req.user!.id) }));
   };
 }

@@ -3,7 +3,8 @@
 
 import { CommandError, redactEvents, type Energy, type GameEvent, type MatchConfig, type PlayerId, type PlayerView } from '@arena/engine';
 import { create } from 'zustand';
-import { LocalMatch, type MatchMode } from './match/LocalMatch.js';
+import { LocalMatch } from './match/LocalMatch.js';
+import type { MatchMode, MatchSession } from './match/session.js';
 import { isLogged, toFloat, toLogLine, type FloatText, type LogLine } from './match/playback.js';
 import type { ContentBundle } from '@arena/engine';
 
@@ -35,15 +36,17 @@ export interface CommitPlan {
   allocation?: Energy;
 }
 
-export type Screen = 'home' | 'sandbox' | 'character' | 'battle';
+/** Screens a match can return to. */
+export type ReturnScreen = 'home' | 'sandbox' | 'history';
+export type Screen = ReturnScreen | 'character' | 'battle';
 
 interface StoreState {
   screen: Screen;
   /** The character open on the character screen. */
   characterId: string | null;
   /** Where leaving a match goes back to. */
-  returnTo: 'home' | 'sandbox';
-  match: LocalMatch | null;
+  returnTo: ReturnScreen;
+  match: MatchSession | null;
   /** Bumped on every match change so components re-read views. */
   version: number;
   viewer: PlayerId;
@@ -65,7 +68,9 @@ interface StoreState {
   anchor: Anchor | null;
   logOpen: boolean;
 
-  newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode, returnTo?: 'home' | 'sandbox'): void;
+  newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode, returnTo?: ReturnScreen): void;
+  /** Shows any session (online, replay, local) on the battle screen. */
+  newSession(session: MatchSession, returnTo?: ReturnScreen): void;
   rematch(): void;
   /** Leaves the match, back to the screen it was started from. */
   toSetup(): void;
@@ -91,7 +96,10 @@ interface StoreState {
 }
 
 function initialViewer(mode: MatchMode): PlayerId {
-  return mode.kind === 'vsBot' ? mode.human : 0;
+  if (mode.kind === 'vsBot') return mode.human;
+  if (mode.kind === 'online') return mode.you;
+  if (mode.kind === 'replay') return mode.seat;
+  return 0;
 }
 
 export const useStore = create<StoreState>((set, get) => {
@@ -121,7 +129,7 @@ export const useStore = create<StoreState>((set, get) => {
     if (get().speed === 0) get().flush();
   }
 
-  function run(fn: (m: LocalMatch) => GameEvent[]): void {
+  function run(fn: (m: MatchSession) => GameEvent[]): void {
     const { match, viewer } = get();
     if (!match) return;
     const before = match.view(viewer);
@@ -159,8 +167,22 @@ export const useStore = create<StoreState>((set, get) => {
     logOpen: false,
 
     newMatch(content, config, mode, returnTo = 'sandbox') {
-      const match = new LocalMatch(content, config, mode);
+      get().newSession(new LocalMatch(content, config, mode), returnTo);
+    },
+
+    newSession(match, returnTo = 'sandbox') {
+      const mode = match.mode;
       const viewer = initialViewer(mode);
+      // Remote sessions push server events; they play back like local ones.
+      match.onUpdate = (events, before, instant) => {
+        if (get().match !== match) return;
+        publish(events, before);
+        if (instant) get().flush();
+      };
+      match.onChange = (toast) => {
+        if (get().match !== match) return;
+        set({ version: get().version + 1, ...(toast ? { toast } : {}) });
+      };
       set({
         screen: 'battle',
         returnTo,
@@ -180,12 +202,16 @@ export const useStore = create<StoreState>((set, get) => {
         version: get().version + 1,
       });
       publish(match.initialEvents, null);
+      // Joining or resuming an online match: show where it stands rather than replaying history.
+      if (mode.kind === 'online') get().flush();
       if (mode.kind === 'vsBot' && !match.isHuman(match.active)) run((m) => m.runBots());
     },
 
     rematch() {
       const m = get().match;
-      if (m) get().newMatch(m.content, m.config, m.mode, get().returnTo);
+      if (m?.config && (m.mode.kind === 'vsBot' || m.mode.kind === 'hotseat' || m.mode.kind === 'watch')) {
+        get().newMatch(m.content, m.config, m.mode, get().returnTo);
+      }
     },
 
     toSetup() {
@@ -298,8 +324,8 @@ export const useStore = create<StoreState>((set, get) => {
       set({ displayView: null, displayHp: {}, version: get().version + 1 });
       if (!match || match.finished) return;
       if (match.mode.kind === 'hotseat' && match.active !== viewer) set({ handoff: match.active });
-      if (match.mode.kind === 'watch') {
-        // Watching: play the next bot turn once this one has been shown.
+      if (match.mode.kind === 'watch' || match.mode.kind === 'replay') {
+        // Watching or replaying: play the next turn once this one has been shown.
         setTimeout(() => {
           const s = get();
           if (s.match === match && s.pending.length === 0 && !match.finished) run((m) => m.runBotTurn());

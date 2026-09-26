@@ -105,6 +105,9 @@ Passwords: Argon2id.
 | GET, POST | `/api/characters/:id/presets` | Loadout presets |
 | POST, DELETE | `/api/characters/:id/presets/:presetId(/apply)` | Apply or delete a preset |
 | POST | `/api/dev/grant` | Development only: add an item to the inventory |
+| GET | `/api/matches`, `/api/matches/:id/replay` | Match history; replay records (see docs/multiplayer.md) |
+| GET | `/api/ratings` | Ranked season rating and casual record |
+| GET (WebSocket) | `/api/ws` | The match service (docs/multiplayer.md) |
 
 Schema: `apps/server/src/db/schema.ts`; migrations in `src/db/migrations`
 (`npm run db:generate -w @arena/server` after schema changes).

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { api, ApiError, type Character, type InventoryItem, type User } from './api.js';
 import { content } from './content.js';
+import { online } from './match/online.js';
 
 export type MetaStatus = 'loading' | 'signedOut' | 'signedIn' | 'offline';
 
@@ -90,6 +91,7 @@ export const useMeta = create<MetaState>((set, get) => {
     },
 
     async signOut() {
+      online.disconnect();
       await act(() => api.logout());
       set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [] });
     },

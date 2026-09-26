@@ -1,7 +1,7 @@
 // Typed client for the API server (apps/server). Requests are same-origin (/api, proxied by Vite in
 // development) so the httpOnly session cookie rides along automatically.
 
-import type { CharacterSpec } from '@arena/engine';
+import type { CharacterSpec, MatchRecord, PlayerId } from '@arena/engine';
 import type { CharacterSkill, Loadout, RarityId, ResolvedLoadout } from '@arena/meta';
 
 export interface User {
@@ -35,6 +35,26 @@ export interface Preset {
   id: string;
   name: string;
   loadout: Loadout;
+}
+
+export interface MatchSummary {
+  id: string;
+  kind: 'casual' | 'ranked' | 'private';
+  status: 'active' | 'finished' | 'aborted';
+  seat: PlayerId;
+  opponent: string;
+  outcome: 'win' | 'loss' | 'draw' | null;
+  endReason: string | null;
+  turns: number;
+  startedAt: string;
+  endedAt: string | null;
+  rating: { before: number; after: number } | null;
+}
+
+export interface Ratings {
+  season: string;
+  ranked: { rating: number; rd: number; display: number; games: number; wins: number };
+  casual: { games: number; wins: number };
 }
 
 export class ApiError extends Error {
@@ -91,4 +111,8 @@ export const api = {
   applyPreset: (id: string, presetId: string) =>
     call<{ loadout: Loadout }>('POST', `/characters/${id}/presets/${presetId}/apply`),
   deletePreset: (id: string, presetId: string) => call<void>('DELETE', `/characters/${id}/presets/${presetId}`),
+
+  matches: () => call<{ matches: MatchSummary[] }>('GET', '/matches'),
+  replay: (id: string) => call<{ record: MatchRecord; seat: PlayerId; playable: boolean }>('GET', `/matches/${id}/replay`),
+  ratings: () => call<Ratings>('GET', '/ratings'),
 };

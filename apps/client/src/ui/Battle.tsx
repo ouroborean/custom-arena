@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { PlayerId } from '@arena/engine';
-import type { LocalMatch } from '../match/LocalMatch.js';
+import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
@@ -39,7 +39,7 @@ export function Battle() {
   const toast = useStore((s) => s.toast);
   const dismissToast = useStore((s) => s.dismissToast);
   // Stable minion bench slots per side, remembered across renders for this match.
-  const bench = useRef<{ match: LocalMatch | null; slots: [(string | null)[], (string | null)[]] }>({ match: null, slots: [[], []] });
+  const bench = useRef<{ match: MatchSession | null; slots: [(string | null)[], (string | null)[]] }>({ match: null, slots: [[], []] });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,11 +66,27 @@ export function Battle() {
   const view = displayView ?? liveView;
   const content = match.content;
   const other: PlayerId = viewer === 0 ? 1 : 0;
-  const myTurn = !match.finished && match.active === viewer && match.isHuman(viewer) && handoff === null;
+  const myTurn = match.canAct(viewer) && handoff === null;
   const hitUnits = new Set(floats.filter((f) => f.kind === 'damage').map((f) => f.unit));
-  const watch = match.mode.kind === 'watch';
+  const kind = match.mode.kind;
+  const watch = kind === 'watch' || kind === 'replay';
+  const awaiting = kind === 'online' && (match as MatchSession & OnlineInfo).awaiting;
 
-  const status = match.finished ? 'Match over' : playing ? 'Resolving' : myTurn ? 'Your move' : watch ? `Bot ${match.active + 1}` : 'Enemy move';
+  const status = match.finished
+    ? 'Match over'
+    : playing
+      ? 'Resolving'
+      : myTurn
+        ? 'Your move'
+        : awaiting
+          ? 'Sending turn'
+          : kind === 'replay'
+            ? 'Replay'
+            : kind === 'watch'
+              ? `Bot ${match.active + 1}`
+              : kind === 'online'
+                ? "Opponent's move"
+                : 'Enemy move';
   const tone = playing ? 'busy' : myTurn ? 'mine' : 'idle';
 
   if (bench.current.match !== match) bench.current = { match, slots: [[], []] };

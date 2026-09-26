@@ -1,3 +1,4 @@
+import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
 
 export function HandoffOverlay() {
@@ -27,39 +28,76 @@ export function GameOverOverlay() {
   useStore((s) => s.version);
   if (!match || !match.finished || playing) return null;
   const r = match.result!;
-  const vsBot = match.mode.kind === 'vsBot';
+  const kind = match.mode.kind;
+  const personal = kind === 'vsBot' || kind === 'online' || kind === 'replay';
+  const online = kind === 'online' ? (match as MatchSession & OnlineInfo) : null;
   const headline =
-    r.winner === null ? 'Draw' : vsBot ? (r.winner === viewer ? 'Victory' : 'Defeat') : `Player ${r.winner + 1} wins`;
-  const reason = { elimination: 'All enemy characters defeated', draw: 'Both teams fell together', surrender: 'Surrender', turnLimit: 'Turn limit reached' }[r.reason];
+    online?.endReason === 'ended while you were away'
+      ? 'Match over'
+      : r.winner === null
+        ? 'Draw'
+        : personal
+          ? r.winner === viewer
+            ? 'Victory'
+            : 'Defeat'
+          : `Player ${r.winner + 1} wins`;
+  const serverReason = online?.endReason ?? (match.mode.kind === 'replay' ? match.mode.endReason : undefined);
+  const reason =
+    serverReason === 'disconnect'
+      ? r.winner === viewer
+        ? 'Your opponent disconnected'
+        : 'You were disconnected too long'
+      : serverReason === 'afk'
+        ? r.winner === viewer
+          ? 'Your opponent stopped playing'
+          : 'Too many turns timed out'
+        : serverReason === 'ended while you were away'
+          ? 'It ended while you were away; see Match history'
+          : { elimination: 'All enemy characters defeated', draw: 'Both teams fell together', surrender: 'Surrender', turnLimit: 'Turn limit reached' }[r.reason];
+  const record = match.record;
+  const seed = match.config?.seed ?? 0;
+  const rating = online?.rating;
 
   const download = () => {
-    const blob = new Blob([JSON.stringify(match.record, null, 2)], { type: 'application/json' });
+    if (!record) return;
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `custom-arena-replay-${match.config.seed}.json`;
+    a.download = `custom-arena-replay-${seed}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
+  const local = kind === 'vsBot' || kind === 'hotseat' || kind === 'watch';
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="over-title">
       <div className="dialog" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <div className={`banner${r.winner === null ? '' : vsBot ? (r.winner === viewer ? ' win' : ' lose') : ' win'}`} id="over-title">
+        <div className={`banner${r.winner === null ? '' : personal ? (r.winner === viewer ? ' win' : ' lose') : ' win'}`} id="over-title">
           {headline}
         </div>
         <p className="muted">
           {reason} · turn {match.turn}
         </p>
+        {rating && (
+          <p className="rating-change">
+            Rating {rating.before} → <b>{rating.after}</b> ({rating.after >= rating.before ? '+' : ''}
+            {rating.after - rating.before})
+          </p>
+        )}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button type="button" className="btn" onClick={download}>
-            Download replay
+          {record && kind !== 'replay' && (
+            <button type="button" className="btn" onClick={download}>
+              Download replay
+            </button>
+          )}
+          <button type="button" className={`btn${local ? '' : ' primary'}`} autoFocus={!local} onClick={toSetup}>
+            {{ home: 'Home', history: 'Back to history', sandbox: 'New match' }[returnTo]}
           </button>
-          <button type="button" className="btn" onClick={toSetup}>
-            {returnTo === 'home' ? 'Home' : 'New match'}
-          </button>
-          <button type="button" className="btn primary" autoFocus onClick={rematch}>
-            Rematch
-          </button>
+          {local && (
+            <button type="button" className="btn primary" autoFocus onClick={rematch}>
+              Rematch
+            </button>
+          )}
         </div>
       </div>
     </div>

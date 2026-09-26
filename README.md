@@ -2,7 +2,8 @@
 
 A 3v3 turn-based arena strategy game. See [docs/GDD.md](docs/GDD.md) for the design,
 [docs/rules.md](docs/rules.md) for the formal ruleset, [docs/meta.md](docs/meta.md) for characters,
-equipment and the API, and [docs/glossary.md](docs/glossary.md) for keywords.
+equipment and the API, [docs/multiplayer.md](docs/multiplayer.md) for online play, and
+[docs/glossary.md](docs/glossary.md) for keywords.
 
 ## Layout
 
@@ -11,10 +12,11 @@ packages/
   engine/    Pure, deterministic rules engine (no runtime deps). State + command → state + events.
   content/   YAML game data (skills, statuses, minions, classes, items) + Zod schemas, loader, validation.
   ai/        Bots (random, greedy) and a match runner that records replays.
-  meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts.
+  meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts, Glicko-2.
+  protocol/  WebSocket messages and turn bundles shared by server and client.
 apps/
   client/    React client (Vite): account, roster, loadouts, practice vs bot, and a sandbox.
-  server/    API server (Fastify + Drizzle): auth, content, roster, teams, inventory, loadouts.
+  server/    API + match service (Fastify + Drizzle + WebSockets): auth, roster, equipment, matchmaking, rooms.
   cli/       Headless simulator and a terminal game against a bot.
 docs/        GDD, rules, glossary.
 ```
@@ -34,7 +36,8 @@ npm run sim -- --seed 7 --save         # save replays/match-7.json
 npm run sim -- --replay replays/match-7.json
 npm run play               # play in the terminal against the greedy bot
 npm run server             # API server at http://127.0.0.1:8787 (PGlite data in apps/server/.data)
-npm run dev                # client at http://localhost:5173, proxying /api to the server
+npm run dev                # client at http://localhost:5173, proxying /api (and the WebSocket) to the server
+npm run bot -w @arena/server -- --mode casual   # a bot that plays online, for testing alone
 npm run build              # production build of the client (apps/client/dist)
 ```
 

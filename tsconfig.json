@@ -27,6 +27,7 @@
     "apps/cli/src",
     "apps/server/src",
     "apps/server/test",
+    "apps/server/scripts",
     "apps/server/drizzle.config.ts"
   ]
 }

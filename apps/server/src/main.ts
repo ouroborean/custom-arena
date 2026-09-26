@@ -5,6 +5,7 @@ import { loadContentOrThrow } from '@arena/content';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { openDb } from './db/client.js';
+import { abortStaleMatches } from './match/store.js';
 
 const config = loadConfig();
 const memory = config.pgliteDir === ':memory:';
@@ -14,6 +15,7 @@ const { db, close } = await openDb(
   config.databaseUrl ? { url: config.databaseUrl } : memory ? {} : { dataDir: config.pgliteDir },
 );
 const content = loadContentOrThrow();
+const aborted = await abortStaleMatches(db);
 const app = await buildApp({
   db,
   content,
@@ -31,4 +33,5 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+if (aborted) app.log.warn(`${aborted} match(es) from a previous run were aborted`);
 await app.listen({ port: config.port, host: config.host });

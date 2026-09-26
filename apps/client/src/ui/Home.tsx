@@ -9,6 +9,7 @@ import type { BotKind } from '../match/LocalMatch.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
+import { OnlinePanel } from './OnlinePanel.js';
 import { CharacterCard, Portrait } from './Roster.js';
 
 export function Home() {
@@ -54,13 +55,13 @@ export function Home() {
       </div>
 
       {contentMismatch && (
-        <p className="banner warn" role="status">
+        <p className="notice warn" role="status">
           The server runs content {contentMismatch.slice(0, 8)} but this client has {content.version.slice(0, 8)}. Restart both from the same
           checkout.
         </p>
       )}
       {error && (
-        <p className="banner error" role="alert">
+        <p className="notice error" role="alert">
           {error}{' '}
           <button type="button" className="btn small" onClick={clearError}>
             OK
@@ -109,7 +110,7 @@ export function Home() {
               </button>
             </div>
           </div>
-          <button type="button" className="end-turn-btn" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
+          <button type="button" className="btn primary" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
             Practice vs bot
           </button>
           <button type="button" className="btn" onClick={() => go('sandbox')}>
@@ -117,7 +118,7 @@ export function Home() {
           </button>
         </div>
         {problem && (
-          <div className="banner error" role="alert">
+          <div className="notice error" role="alert">
             {problem.message}
             {problem.problems.length > 0 && (
               <ul>
@@ -129,6 +130,8 @@ export function Home() {
           </div>
         )}
       </section>
+
+      <OnlinePanel teamReady={teamChars.length === 3} />
 
       <section aria-label="Roster">
         <div className="section-head">
