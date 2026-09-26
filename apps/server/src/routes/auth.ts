@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
+import { audit } from '../audit.js';
 import { SESSION_COOKIE, createSession, deleteSession, hashPassword, verifyPassword } from '../auth.js';
 import { teams, users } from '../db/schema.js';
 import { grantStarterKit } from './equipment.js';
@@ -28,8 +29,19 @@ export function authRoutes(ctx: AppContext) {
     });
   };
 
+  // Brute-force protection on credential endpoints (GDD Phase 5 anti-abuse).
+  const limited = {
+    config: {
+      rateLimit: {
+        max: ctx.authRateLimit,
+        timeWindow: '1 minute',
+        onExceeded: (req: { ip: string; url: string }) => audit(ctx.db, 'rate_limited', { ip: req.ip, detail: { path: req.url } }),
+      },
+    },
+  };
+
   return async (app: FastifyInstance) => {
-    app.post('/api/auth/register', async (req, reply) => {
+    app.post('/api/auth/register', limited, async (req, reply) => {
       const body = parse(Registration, req.body);
       const email = body.email.toLowerCase();
       const taken = await ctx.db.select({ id: users.id }).from(users).where(eq(sql`lower(${users.email})`, email)).limit(1);
@@ -46,10 +58,11 @@ export function authRoutes(ctx: AppContext) {
       await grantStarterKit(ctx, user.id);
 
       await setSession(reply, user.id);
+      audit(ctx.db, 'register', { userId: user.id, ip: req.ip });
       return reply.status(201).send({ user });
     });
 
-    app.post('/api/auth/login', async (req, reply) => {
+    app.post('/api/auth/login', limited, async (req, reply) => {
       const body = parse(Credentials, req.body);
       const [row] = await ctx.db
         .select()
@@ -57,8 +70,12 @@ export function authRoutes(ctx: AppContext) {
         .where(eq(sql`lower(${users.email})`, body.email.toLowerCase()))
         .limit(1);
       // Same message either way, so login doesn't reveal which emails exist.
-      if (!row || !(await verifyPassword(row.passwordHash, body.password))) throw new HttpError(401, 'Wrong email or password');
+      if (!row || !(await verifyPassword(row.passwordHash, body.password))) {
+        audit(ctx.db, 'login_failed', { userId: row?.id ?? null, ip: req.ip, detail: { email: body.email.toLowerCase() } });
+        throw new HttpError(401, 'Wrong email or password');
+      }
       await setSession(reply, row.id);
+      audit(ctx.db, 'login', { userId: row.id, ip: req.ip });
       return { user: { id: row.id, email: row.email, displayName: row.displayName } };
     });
 

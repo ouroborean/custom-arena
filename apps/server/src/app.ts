@@ -3,18 +3,26 @@
 
 import { randomInt } from 'node:crypto';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import { ENGINE_VERSION, type ContentBundle } from '@arena/engine';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { SESSION_COOKIE, userForSession, type SessionUser } from './auth.js';
 import type { Db } from './db/client.js';
+import { realClock, type Clock } from './match/clock.js';
+import { MatchHub } from './match/hub.js';
 import { authRoutes } from './routes/auth.js';
 import { equipmentRoutes } from './routes/equipment.js';
+import { matchRoutes } from './routes/matches.js';
 import { rosterRoutes } from './routes/roster.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
     user: SessionUser | null;
+  }
+  interface FastifyInstance {
+    hub: MatchHub;
   }
 }
 
@@ -27,6 +35,10 @@ export interface AppOptions {
   rollSeed?: () => number;
   /** Enable POST /api/dev/grant (development only). */
   devGrants?: boolean;
+  /** Time source for match timers and matchmaking (tests pass a FakeClock). */
+  clock?: Clock;
+  /** Login/register attempts per IP per minute. */
+  authRateLimit?: number;
   logger?: boolean;
 }
 
@@ -37,6 +49,7 @@ export interface AppContext {
   secureCookies: boolean;
   rollSeed: () => number;
   devGrants: boolean;
+  authRateLimit: number;
 }
 
 export class HttpError extends Error {
@@ -69,9 +82,13 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     secureCookies: opts.secureCookies ?? false,
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
     devGrants: opts.devGrants ?? false,
+    authRateLimit: opts.authRateLimit ?? 20,
   };
   const app = Fastify({ logger: opts.logger ?? false });
   await app.register(cookie);
+  // Opt-in per route (auth endpoints); in-memory store, so per process.
+  await app.register(rateLimit, { global: false });
+  await app.register(websocket, { options: { maxPayload: 32 * 1024 } });
 
   app.decorateRequest('user', null);
   app.addHook('onRequest', async (req) => {
@@ -100,5 +117,15 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(authRoutes(ctx));
   await app.register(rosterRoutes(ctx));
   await app.register(equipmentRoutes(ctx));
+  await app.register(matchRoutes(ctx));
+
+  // The match service (GDD §10.4): one WebSocket per signed-in user.
+  const hub = new MatchHub(ctx, opts.clock ?? realClock, (msg, err) => app.log.error({ err }, msg));
+  app.decorate('hub', hub);
+  app.get('/api/ws', { websocket: true }, (socket, req) => {
+    if (!req.user) return socket.close(4401, 'Sign in first');
+    hub.handle(socket, req.user, req.ip);
+  });
+  app.addHook('onClose', async () => hub.stop());
   return app;
 }
