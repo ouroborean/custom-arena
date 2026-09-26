@@ -13,10 +13,11 @@ export {
   emptyEnergy,
   ZERO_COST,
 } from './energy.js';
+export { checkQueue } from './commands.js';
 export { createMatch, ENGINE_VERSION, DEFAULT_SETTINGS, DEFAULT_HP, MAX_SKILLS } from './match.js';
 export { applyCommand, CommandError } from './commands.js';
-export { legalQueueCommands, type QueueCommand } from './legal.js';
-export { viewFor, redactEvents, type PlayerView, type OpponentState } from './view.js';
+export { legalQueueCommands, skillAvailability, type QueueCommand, type SkillAvailability } from './legal.js';
+export { viewFor, redactEvents, effectDefinition, type PlayerView, type OpponentState } from './view.js';
 export { replay, stateFingerprint } from './replay.js';
 export { formatEvent, effectName } from './log.js';
 export { scripts, type ScriptFn, type Scope } from './ops.js';

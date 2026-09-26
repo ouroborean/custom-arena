@@ -11,6 +11,7 @@ packages/
   content/   YAML game data (skills, statuses, minions, classes) + Zod schemas, loader, validation.
   ai/        Bots (random, greedy) and a match runner that records replays.
 apps/
+  client/    React battle client (Vite): vs bot, hotseat, and watch-bots modes.
   cli/       Headless simulator and a terminal game against a bot.
 docs/        GDD, rules, glossary.
 ```
@@ -29,6 +30,8 @@ npm run sim -- --games 2000            # aggregate results + per-skill win rates
 npm run sim -- --seed 7 --save         # save replays/match-7.json
 npm run sim -- --replay replays/match-7.json
 npm run play               # play in the terminal against the greedy bot
+npm run dev                # battle client at http://localhost:5173 (content YAML hot-reloads)
+npm run build              # production build of the client (apps/client/dist)
 ```
 
 ## Adding content

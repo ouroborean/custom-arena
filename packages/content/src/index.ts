@@ -1,3 +1,4 @@
 export * from './bundle.js';
 export * from './schema.js';
-export { loadContent, loadContentOrThrow, readRawContent, DATA_DIR } from './load.js';
+export * from './parse.js';
+export { loadContent, loadContentOrThrow, readContentFiles, DATA_DIR } from './load.js';

@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,7 +15,9 @@
     "content:build": "npm run build -w @arena/content",
     "sim": "npm run sim -w @arena/cli --",
     "play": "npm run play -w @arena/cli --",
-    "ci": "npm run typecheck && npm run lint && npm run content:validate && npm test"
+    "ci": "npm run typecheck && npm run lint && npm run content:validate && npm test",
+    "dev": "npm run dev -w @arena/client",
+    "build": "npm run build -w @arena/client"
   },
   "engines": {
     "node": ">=22"
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^26.6.3",
     "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",

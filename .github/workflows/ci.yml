@@ -24,3 +24,5 @@ jobs:
         run: npm test
       - name: Smoke-run a simulated match with replay check
         run: npm run sim -- --seed 1
+      - name: Build the web client
+        run: npm run build
