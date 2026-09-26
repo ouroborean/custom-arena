@@ -69,6 +69,8 @@ export type Value =
   | { countOf: Selector }
   /** Max HP minus current HP of the (first) selected unit. */
   | { missingHp: Selector }
+  /** Current HP of the (first) selected unit. */
+  | { hp: Selector }
   /** Total stacks of an effect across the selected units. */
   | { totalStacks: { in: Selector; effect: string } }
   /** Integer division, rounded down. */
@@ -92,6 +94,12 @@ export type Cond =
   | { hasKind: { unit: Selector; kind: EffectKind } }
   /** The selected unit is the actor (e.g. a targetFilter excluding the user). */
   | { isActor: Selector }
+  /** The selected unit is an enemy of the actor. */
+  | { isEnemy: Selector }
+  /** The unit is a minion, optionally of one of these types (minion id or tag). */
+  | { minion: { unit: Selector; types?: string[] } }
+  /** The unit carries any Shield effect with value left. */
+  | { hasShield: Selector }
   /** The unit has a skill of one of these archetypes (Wind: mobility skills). */
   | { hasSkill: { unit: Selector; archetypes: string[] } }
   /** A numeric comparison. */
@@ -119,6 +127,8 @@ export type Op =
       respectsInvulnerable?: boolean;
       /** `false`: doesn't end Sleep (Shadow Dream Seeker). Damage wakes by default. */
       wakes?: boolean;
+      /** Deal the damage as this unit instead of the actor (a launched Boulder). */
+      from?: Selector;
     }
   | { op: 'heal'; to: Selector; amount: Value }
   | {
@@ -145,6 +155,10 @@ export type Op =
   | { op: 'removeEffect'; from: Selector; effect: string }
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
   | { op: 'removeKind'; from: Selector; kind: EffectKind }
+  /** Raises max HP (current HP is unchanged). */
+  | { op: 'addMaxHp'; to: Selector; amount: number }
+  /** Multiplies the value of every Shield effect on the selected units (Earth Rampart). */
+  | { op: 'scaleShields'; on: Selector; factor: number }
   /** Removes up to `amount` stacks of an effect (by key) from each selected unit. */
   | { op: 'removeStacks'; from: Selector; effect: string; amount: number }
   /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
@@ -248,7 +262,8 @@ export type TriggerEvent =
   | 'signal'
   | 'effectGained'
   | 'dealtDamage'
-  | 'shieldDamaged';
+  | 'shieldDamaged'
+  | 'summoned';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -351,6 +366,8 @@ export interface SkillDef {
   onCountered?: Op[];
   /** A different base cost while `when` holds for the user (Lightning Zap: I, or r when Charged). */
   altCost?: { when: Cond; cost: Cost };
+  /** Added to the GEN (r) cost like Focus/Confusion, evaluated for the user (Earth Worldquake: −1 per minion). */
+  costAdjust?: Value;
   ops: Op[];
 }
 
@@ -363,6 +380,8 @@ export interface MinionDef {
   passives: (string | EffectDef)[];
   /** Ops run once when summoned, with the minion as the actor (e.g. grant its owner an aura). */
   onSummon?: Op[];
+  /** Extra minion types it counts as (Earth: Forest Stalker counts as a Seedling). */
+  tags?: string[];
 }
 
 export interface ClassDef {

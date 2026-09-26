@@ -1,0 +1,16 @@
+# Reusable Earth actions.
+
+# Channel Growth: every allied Seedling (incl. Forest Stalkers) gets +10 max HP, then heals 10.
+channel_growth:
+  - op: forEach
+    in: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
+    do:
+      - { op: addMaxHp, to: it, amount: 10 }
+      - { op: heal, to: it, amount: 10 }
+
+# Launch Stone on the Boulder `it`: it hits a random enemy for its remaining HP (as the Boulder,
+# so "damage from a Boulder" effects see it), then is destroyed. Use inside forEach.
+launch_boulder:
+  - { op: set, var: boulderHp, value: { hp: it } }
+  - { op: damage, to: { randomEnemy: 1 }, from: it, amount: { var: boulderHp } }
+  - { op: kill, to: it }

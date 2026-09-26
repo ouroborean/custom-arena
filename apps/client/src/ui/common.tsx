@@ -250,6 +250,15 @@ const STATUS_CODES: Record<string, string> = {
   dream_chains: 'DRM',
   nightsong: 'CHN',
   illusory_lure: 'LUR',
+  // Earth
+  shale_guard: 'RIP',
+  tunnelmaker: 'AIM',
+  boulder_trap: 'BTR',
+  worldcaller: 'CHN',
+  pitfall: 'PFL',
+  landslide: 'LND',
+  earth_pillar: 'PIL',
+  ancient_grudge: 'GRD',
 };
 
 function consonantCode(name: string): string {

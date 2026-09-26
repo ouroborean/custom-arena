@@ -5,7 +5,7 @@
 import { effectDef, effectsOn, isEnemy, type Ctx } from './ctx.js';
 import type { DamageWhen, ModifierSpec, SkillClass, SkillDef } from './defs.js';
 import { applyGenericModifier } from './energy.js';
-import { evalCond } from './ops.js';
+import { evalCond, evalValue } from './ops.js';
 import type { Cost, DamageType, EffectInstance, GameState, Unit } from './types.js';
 import type { ContentBundle } from './defs.js';
 
@@ -46,7 +46,7 @@ export function skillClass(def: SkillDef): SkillClass {
 export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
   const scope = { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: true, bypass: false };
   const base = def.altCost && evalCond(ctx, def.altCost.when, scope) ? def.altCost.cost : def.cost;
-  let delta = 0;
+  let delta = def.costAdjust === undefined ? 0 : evalValue(ctx, def.costAdjust, scope);
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'costGeneric')) delta += scaled(spec.amount, spec.perStack, effect);
   // Chilled: costs can't go down.
   if (delta < 0 && modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0) delta = 0;
