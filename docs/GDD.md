@@ -1017,7 +1017,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 - Inventory, equipment, the loadout validator (budgets, slots, skill cap), and presets.
 - Content-delivery endpoint (client fetches the content bundle by version).
 
-### Phase 5: Multiplayer (3–5 weeks)
+### Phase 5: Multiplayer (3–5 weeks) — in progress: protocol, match rooms, timers, reconnection, matchmaking, private matches, Glicko-2, history/replays, rate limits and audit log, client online play ✅ (2026-09-26); see docs/multiplayer.md
 - WebSocket protocol (versioned), match rooms, turn timers, and redacted views.
 - Reconnection (resend the view + events since the last ack), disconnect/forfeit rules.
 - Matchmaking (Redis queue, rating bands widening over time), Glicko-2, match history, and replay viewer.
