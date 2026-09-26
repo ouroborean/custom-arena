@@ -251,120 +251,140 @@ soldier_spear:
   type: B
   skills: [charge, riposte]
   passive: "After using a Charge skill, your next Riposte costs no energy."
+  passiveEffect: eq_soldier_spear
 
 soldier_greataxe:
   name: "Soldier Greataxe"
   type: B
   skills: [charge, rage]
   passive: "You will automatically use Charge on the first enemy to damage you when you Rage."
+  passiveEffect: eq_soldier_greataxe
 
 kusurigama:
   name: "Kusurigama"
   type: B
   skills: [stun, dance]
   passive: "Gain 1 Swiftness when you Stun an enemy."
+  passiveEffect: eq_kusurigama
 
 dual_blackjacks:
   name: "Dual Blackjacks"
   type: B
   skills: [stun, mislead]
   passive: "Successfully Countering an enemy with Mislead resets the cooldown of your Stun ability."
+  passiveEffect: eq_dual_blackjacks
 
 ancient_longbow:
   name: "Ancient Longbow"
   type: B
   skills: [maneuver, snipe]
   passive: "After using a Maneuver, your Snipe skills will hit instantly for 1 turn."
+  passiveEffect: eq_ancient_longbow
 
 trackers_whistle:
   name: "Tracker's Whistle"
   type: B
   skills: [maneuver, companion]
   passive: "Maneuvers that only target the user are also used on every Companion."
+  passiveEffect: eq_trackers_whistle
 
 warlock_staff:
   name: "Warlock Staff"
   type: B
   skills: [consume, channel]
   passive: "Consumes no longer interrupt Channeled skills."
+  passiveEffect: eq_warlock_staff
 
 summoners_scrollstaff:
   name: "Summoner's Scrollstaff"
   type: B
   skills: [summon, channel]
   passive: "When you start Channeling, your Summons' skills have no cost on the following turn."
+  passiveEffect: eq_summoners_scrollstaff
 
 staff_and_shield:
   name: "Staff and Shield"
   type: B
   skills: [bless, withstand]
   passive: "Using Withstand while below 40 Health will also activate Bless."
+  passiveEffect: eq_staff_and_shield
 
 high_priest_staff:
   name: "High Priest Staff"
   type: B
   skills: [bless, prayer]
   passive: "If any target affected by your Prayer is also affected by your Bless, the Bless will also be applied to all allies."
+  passiveEffect: eq_high_priest_staff
 
 dual_claws:
   name: "Dual Claws"
   type: B
   skills: [companion, rage]
   passive: "Your Rage costs an additional Generic, but also casts your Companion when used."
+  passiveEffect: eq_dual_claws
 
 tree_club:
   name: "Tree Club"
   type: B
   skills: [companion, titan]
   passive: "During Titan, your Companion gains 20 HP, 1 Might and 1 Armor."
+  passiveEffect: eq_tree_club
 
 spear_and_shield:
   name: "Spear and Shield"
   type: B
   skills: [withstand, charge]
   passive: "Charge deals double damage if Withstand was not broken."
+  passiveEffect: eq_spear_and_shield
 
 sword_and_shield:
   name: "Sword and Shield"
   type: B
   skills: [withstand, taunt]
   passive: "Taunted targets receive 1 Weakness, and the user gains 1 Might during their Withstand."
+  passiveEffect: eq_sword_and_shield
 
 dagger_and_orb:
   name: "Dagger and Orb"
   type: B
   skills: [consume, curse]
   passive: "Killing an enemy with Consume makes your next Curse cost no energy."
+  passiveEffect: eq_dagger_and_orb
 
 cultist_scythe:
   name: "Cultist Scythe"
   type: B
   skills: [consume, stun]
   passive: "Consume deals 10 affliction damage when used on a Stun target. This damage is not affected by other modifiers."
+  passiveEffect: eq_cultist_scythe
 
 staff_and_beads:
   name: "Staff and Beads"
   type: B
   skills: [withstand, prayer]
   passive: "If your Withstand's Shield is broken, your Prayer costs 1 less Specific energy for 1 turn."
+  passiveEffect: eq_staff_and_beads
 
 dual_tonfa:
   name: "Dual Tonfa"
   type: B
   skills: [withstand, dance]
   passive: "Gain 1 Swiftness when you Withstand, and 1 Armor while Dance is active."
+  passiveEffect: eq_dual_tonfa
 
 mace_and_greatshield:
   name: "Mace and Greatshield"
   type: B
   skills: [withstand, titan]
   passive: "At the start of battle, the user permanently gains 2 Armor and 1 Weakness"
+  passiveEffect: eq_mace_and_greatshield
 
 paladins_greatsword:
   name: "Paladin's Greatsword"
   type: B
   skills: [bless, titan]
   passive: "Gain 1 Might when you buff an ally, up to 1 per ally. Gain 1 Armor when you buff yourself, up to 2."
+  passiveEffect: eq_paladins_greatsword
 
 hexblade:
   name: "Hexblade"
@@ -1079,6 +1099,7 @@ barbarian_greatclub:
   classId: warrior
   skills: [smash]
   passive: "Whenever you damage all living enemies, deal 5 additional Piercing damage to all enemies."
+  passiveEffect: eq_barbarian_greatclub
 
 helmet_of_the_ancestors:
   name: "Helmet of the Ancestors"
@@ -1086,6 +1107,7 @@ helmet_of_the_ancestors:
   classId: warrior
   skills: [titan]
   passive: "Once per turn if you would take 30 or more damage from a single ability, first lower that damage by 10"
+  passiveEffect: eq_helmet_of_the_ancestors
 
 shadowrune_bolas:
   name: "Shadowrune Bolas"
@@ -1093,6 +1115,7 @@ shadowrune_bolas:
   classId: rogue
   skills: [stun]
   passive: "Stunning a target affected by Swiftness applies Confusion for the same duration."
+  passiveEffect: eq_shadowrune_bolas
 
 mask_of_many_faces:
   name: "Mask of Many Faces"
@@ -1100,6 +1123,7 @@ mask_of_many_faces:
   classId: rogue
   skills: [mislead]
   passive: "You gain 5 Shield whenever a skill is Countered or Reflected, increased to 10 for enemy skills."
+  passiveEffect: eq_mask_of_many_faces
 
 boomerang_blade:
   name: "Boomerang Blade"
@@ -1107,6 +1131,7 @@ boomerang_blade:
   classId: ranger
   skills: [trap]
   passive: "For 1 turn after a Trap is triggered, your skills Bypass against the triggerer."
+  passiveEffect: eq_boomerang_blade
 
 ricochet_rifle:
   name: "Ricochet Rifle"
@@ -1114,6 +1139,7 @@ ricochet_rifle:
   classId: ranger
   skills: [snipe]
   passive: "Deal 10 damage to a random enemy whenever one of your Harmful skills is Countered."
+  passiveEffect: eq_ricochet_rifle
 
 explosive_relic:
   name: "Explosive Relic"
@@ -1121,6 +1147,7 @@ explosive_relic:
   classId: mage
   skills: [blast]
   passive: "Using a skill that costs 2 or more total energy grants the user Focus until the end of their next turn."
+  passiveEffect: eq_explosive_relic
 
 high_wizards_hat:
   name: "High Wizard's Hat"
@@ -1128,6 +1155,7 @@ high_wizards_hat:
   classId: mage
   skills: [channel]
   passive: "If you are Stunned while Channeling a skill, you gain Immune until the end of your next turn."
+  passiveEffect: eq_high_wizards_hat
 
 hand_of_blessing:
   name: "Hand of Blessing"
@@ -1135,6 +1163,7 @@ hand_of_blessing:
   classId: priest
   skills: [bless]
   passive: "The first Buff you apply to an ally each turn is also applied to you."
+  passiveEffect: eq_hand_of_blessing
 
 robe_of_the_song:
   name: "Robe of the Song"
@@ -1142,6 +1171,7 @@ robe_of_the_song:
   classId: priest
   skills: [prayer]
   passive: "While your health is 60 or below, your Helpful skills cannot be Stunned."
+  passiveEffect: eq_robe_of_the_song
 
 totem_of_the_fallen:
   name: "Totem of the Fallen"
@@ -1149,6 +1179,7 @@ totem_of_the_fallen:
   classId: druid
   skills: [companion]
   passive: "Gain 1 Might for 1 turn whenever an allied Minion is killed by an enemy."
+  passiveEffect: eq_totem_of_the_fallen
 
 cloak_of_ancient_leaves:
   name: "Cloak of Ancient Leaves"
@@ -1156,6 +1187,7 @@ cloak_of_ancient_leaves:
   classId: druid
   skills: [rage]
   passive: "Gain 1 Might and 1 Vulnerable while at or above 80 Health."
+  passiveEffect: eq_cloak_of_ancient_leaves
 
 banner_of_glory:
   name: "Banner of Glory"
@@ -1163,6 +1195,7 @@ banner_of_glory:
   classId: knight
   skills: [shout]
   passive: "Remove a random Debuff from all allies when you Shout"
+  passiveEffect: eq_banner_of_glory
 
 knights_buckler:
   name: "Knight's Buckler"
@@ -1170,6 +1203,7 @@ knights_buckler:
   classId: knight
   skills: [riposte]
   passive: "Countering or Reflecting a skill applies 1 Weakness and 1 Vulnerable to the target for 2 turns"
+  passiveEffect: eq_knights_buckler
 
 rod_of_domination:
   name: "Rod of Domination"
@@ -1177,6 +1211,7 @@ rod_of_domination:
   classId: warlock
   skills: [summon]
   passive: "Damage that would be dealt to you is instead dealt to one of your Minions at random. You take double damage while you have no Minions."
+  passiveEffect: eq_rod_of_domination
 
 blood_chalice:
   name: "Blood Chalice"
@@ -1184,6 +1219,7 @@ blood_chalice:
   classId: warlock
   skills: [consume]
   passive: "Automatically kill Minions that fall to 10 or lower health, gaining a random Buff."
+  passiveEffect: eq_blood_chalice
 
 visor_of_the_restful_spirit:
   name: "Visor of the Restful Spirit"
@@ -1191,6 +1227,7 @@ visor_of_the_restful_spirit:
   classId: monk
   skills: [maneuver]
   passive: "At the start of your turn, gain 2 Might if you weren't damaged last turn."
+  passiveEffect: eq_visor_of_the_restful_spirit
 
 footwraps_of_the_long_path:
   name: "Footwraps of the Long Path"
@@ -1198,6 +1235,7 @@ footwraps_of_the_long_path:
   classId: monk
   skills: [dance]
   passive: "Using a Harmful skill makes your Helpful skills Unstunnable for 1 turn."
+  passiveEffect: eq_footwraps_of_the_long_path
 
 hand_of_healing:
   name: "Hand of Healing"
@@ -1205,6 +1243,7 @@ hand_of_healing:
   classId: paladin
   skills: [heal]
   passive: "Using Heal on an ally also heals you for 10 Health, but you may no longer Heal yourself."
+  passiveEffect: eq_hand_of_healing
 
 golden_plate:
   name: "Golden Plate"
@@ -1212,6 +1251,7 @@ golden_plate:
   classId: paladin
   skills: [withstand]
   passive: "Gain 1 Armor per 35 missing Health."
+  passiveEffect: eq_golden_plate
 
 crown_of_flames:
   name: "Crown of Flames"

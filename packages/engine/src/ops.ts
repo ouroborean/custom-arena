@@ -21,7 +21,7 @@ import { dealDamage, heal, killUnit } from './damage.js';
 import { costTotal } from './energy.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
 import { applyEffect, removeEffect, revealEffect } from './effects.js';
-import { canTarget } from './queries.js';
+import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
 import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
 
@@ -52,6 +52,8 @@ export interface Scope {
   eventAmount?: number;
   /** Effects the event's unit carried at the time (deaths). */
   snapshot?: EffectInstance[];
+  /** Duration of the event's effect when it has no instance (a negated Stun). */
+  eventDuration?: number | null;
 }
 
 export type ScriptFn = (ctx: Ctx, scope: Scope, params: Record<string, unknown>) => void;
@@ -204,7 +206,8 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   }
   if ('hasFromArchetype' in c) {
     const u = select(ctx, c.hasFromArchetype.unit, sc)[0];
-    return !!u && effectsOn(ctx.s, u.id).some((e) => e.sourceArchetype === c.hasFromArchetype.archetype);
+    const { archetype, mine } = c.hasFromArchetype;
+    return !!u && effectsOn(ctx.s, u.id).some((e) => e.sourceArchetype === archetype && (!mine || e.source === sc.actor));
   }
   if ('hpAtMost' in c) {
     const u = select(ctx, c.hpAtMost.unit, sc)[0];
@@ -283,7 +286,17 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (!d) return false;
     if (c.eventSkill.archetypes && !c.eventSkill.archetypes.includes(d.archetype)) return false;
     if (c.eventSkill.costAtLeast !== undefined && costTotal(d.cost) < c.eventSkill.costAtLeast) return false;
+    if (c.eventSkill.tags && !c.eventSkill.tags.some((t) => d.tags.includes(t))) return false;
     return true;
+  }
+  if ('channeling' in c) {
+    const u = select(ctx, c.channeling, sc)[0];
+    return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).interruptible);
+  }
+  if ('stunned' in c) {
+    const u = select(ctx, c.stunned, sc)[0];
+    // Blocks limited to certain skills (an Ice Hammer's Taunt lock) don't count.
+    return !!u && modsOn(ctx.s, ctx.c, u.id, 'cannotUseSkills').some(({ spec }) => !spec.archetypes && !spec.skillsWith);
   }
   return !!sc.vars[c.varTrue];
 }
@@ -295,8 +308,9 @@ function resolveDuration(ctx: Ctx, d: DurationSpec | undefined, sc: Scope): Reso
   if (d === undefined || d === 'permanent' || 'thisTurn' in d) return d;
   if ('sameAsEvent' in d) {
     const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
-    if (!e) return null;
-    return e.duration === null ? 'permanent' : e.duration > 0 ? { raw: e.duration } : null;
+    const left = e ? e.duration : sc.eventDuration;
+    if (left === undefined) return null;
+    return left === null ? 'permanent' : left > 0 ? { raw: left } : null;
   }
   if ('raw' in d) {
     const n = typeof d.raw === 'number' ? d.raw : evalValue(ctx, d.raw, sc);
@@ -341,6 +355,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
           ...(op.wakes === false ? { wakes: false } : {}),
           ...(damageSkill ? { skill: damageSkill } : {}),
+          ...(op.raw ? { raw: true } : {}),
         });
         sc.lastDamage += dealt;
         if (dealt > 0) sc.lastDamaged.push(t.id);
@@ -358,8 +373,12 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (!src) return; // e.g. the minion it should come from wasn't summoned
       const linkedTo = op.linkTo
         ? effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id
-        : undefined;
-      if (op.linkTo && !linkedTo) return; // the channel it belongs to isn't running
+        : op.linkToEvent
+          ? ctx.s.effects.find((e) => e.id === sc.eventEffect)?.id
+          : undefined;
+      if ((op.linkTo || op.linkToEvent) && !linkedTo) return; // what it belongs to isn't there
+      // "During Titan": nothing to attach to if the actor carries no Titan effect.
+      if (op.whileActorHas && !effectsOn(ctx.s, actor.id).some((e) => e.sourceArchetype === op.whileActorHas)) return;
       const duration = resolveDuration(ctx, op.duration, sc);
       if (duration === null) return; // e.g. "1 turn per 15 missing health" with too little missing
       for (const t of select(ctx, op.to, sc)) {
@@ -379,6 +398,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             until: op.until,
             boundTo,
             linkedTo,
+            ...(op.quiet ? { quiet: true } : {}),
+            ...(op.whileActorHas ? { whileActorHas: { unit: actor.id, archetype: op.whileActorHas } } : {}),
           });
         });
       }
@@ -410,9 +431,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       }
       return;
     case 'castSkill': {
-      const def = op.skill
-        ? ctx.c.skills[op.skill]
-        : actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype);
+      const own = op.archetype ? actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype) : undefined;
+      const def = op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
       if (!def) return;
       for (const t of select(ctx, op.on, sc)) {
         const caster = op.as === 'it' ? t : actor;
@@ -446,8 +466,33 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (!e) return;
       if (op.permanent) e.duration = null;
       if (op.extendBy && e.duration !== null) e.duration += op.extendBy;
+      if (op.expireNow && effectDef(ctx.c, e).onExpire) expireEffect(ctx, e);
       return;
     }
+    case 'copyEventEffect': {
+      const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+      if (!e) return;
+      for (const t of select(ctx, op.to, sc)) {
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: t,
+          source: actor,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+          quiet: true,
+        });
+      }
+      return;
+    }
+    case 'removeRandom':
+      for (const t of select(ctx, op.from, sc)) {
+        const pool = effectsOn(ctx.s, t.id).filter((e) => effectDef(ctx.c, e).kind === op.kind);
+        for (const e of sample(ctx.s.rng, pool, op.count ?? 1)) removeEffect(ctx, e, 'removed');
+      }
+      return;
     case 'removeKind':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).kind === op.kind) removeEffect(ctx, e, 'removed');
@@ -571,6 +616,29 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
   }
 }
 
+/** Ends an effect as if its time ran out: removed as 'expired', then its onExpire payload runs. */
+export function expireEffect(ctx: Ctx, e: EffectInstance): void {
+  if (!ctx.s.effects.includes(e)) return;
+  const onExpire = effectDef(ctx.c, e).onExpire;
+  removeEffect(ctx, e, 'expired');
+  // Once the match is over, no more payloads run.
+  if (!onExpire || !unit(ctx, e.bearer).alive || ctx.s.phase === 'finished') return;
+  const sc: Scope = {
+    actor: e.source,
+    targets: e.targets,
+    bearer: e.bearer,
+    self: e,
+    vars: {},
+    lastDamage: 0,
+    lastDamaged: [],
+    // Delayed payloads (Snipe) are the skill's own effect, so their damage is direct.
+    direct: true,
+    bypass: false,
+  };
+  if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
+  runOps(ctx, onExpire, sc);
+}
+
 const LIFETIME: EffectDef = {
   id: 'lifetime',
   name: 'Summoned',
@@ -680,6 +748,9 @@ export interface EventInfo {
   counter?: boolean;
   reason?: string;
   untriggered?: boolean;
+  harmful?: boolean;
+  reflected?: boolean;
+  eventDuration?: number | null;
 }
 
 /** Queues a unit's triggers for one of the equipment-era events (ownEffect*, effectApplied, healed). */
@@ -695,6 +766,8 @@ export function enqueueFor(ctx: Ctx, unitId: UnitId, on: TriggerSpec['on'], info
       if (w?.effects && !w.effects.includes(info.effectKey ?? '')) continue;
       if (w?.kind && w.kind !== info.effectKind) continue;
       if (w?.toEnemy !== undefined && w.toEnemy !== info.toEnemy) continue;
+      if (w?.harmful !== undefined && w.harmful !== info.harmful) continue;
+      if (w?.reflected !== undefined && w.reflected !== !!info.reflected) continue;
       ctx.triggerQueue.push({
         effect: e.id,
         inst: e,
@@ -705,6 +778,7 @@ export function enqueueFor(ctx: Ctx, unitId: UnitId, on: TriggerSpec['on'], info
         ...(info.eventSkill !== undefined ? { eventSkill: info.eventSkill } : {}),
         ...(info.eventEffect !== undefined ? { eventEffect: info.eventEffect } : {}),
         ...(info.eventAmount !== undefined ? { eventAmount: info.eventAmount } : {}),
+        ...(info.eventDuration !== undefined ? { eventDuration: info.eventDuration } : {}),
       });
     }
   }
@@ -717,7 +791,18 @@ function effectKeyOf(e: EffectInstance): string {
 // ---------------------------------------------------------------- triggers
 
 /** Trigger kinds that aren't reactions (they don't count as an effect "triggering"). */
-const PERIODIC = new Set(['turnEnd', 'turnStart', 'ownEffectTriggered', 'ownEffectEnded', 'effectApplied', 'healed', 'effectGained']);
+const PERIODIC = new Set([
+  'turnEnd',
+  'turnStart',
+  'ownEffectTriggered',
+  'ownEffectEnded',
+  'effectApplied',
+  'healed',
+  'effectGained',
+  'battleStart',
+  'countered',
+  'effectNegated',
+]);
 
 /** Runs queued triggers FIFO. Nested calls return immediately; the outermost loop drains the queue. */
 export function flushTriggers(ctx: Ctx): void {
@@ -764,6 +849,7 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
     ...(p.eventEffect !== undefined ? { eventEffect: p.eventEffect } : {}),
     ...(p.eventAmount !== undefined ? { eventAmount: p.eventAmount } : {}),
     ...(p.snapshot !== undefined ? { snapshot: p.snapshot } : {}),
+    ...(p.eventDuration !== undefined ? { eventDuration: p.eventDuration } : {}),
   };
   // A skill's effect reacting to something counts as "triggered" (Traps, Counters, Misleads);
   // equipment can respond to that on the effect's source.
@@ -794,7 +880,7 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
 export function enqueueTriggers(
   ctx: Ctx,
   bearer: UnitId,
-  event: 'skillUsed' | 'skillResolved' | 'skillTargeted' | 'turnStart' | 'turnEnd',
+  event: 'skillUsed' | 'skillResolved' | 'skillTargeted' | 'turnStart' | 'turnEnd' | 'battleStart',
   filter: {
     harmful?: boolean;
     strategic?: boolean;

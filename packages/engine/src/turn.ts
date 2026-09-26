@@ -1,9 +1,9 @@
 // Turn structure (GDD §3.3): start-of-turn energy, end-of-turn ticks, duration countdown,
 // cooldowns, win checks.
 
-import { effectDef, emit, livingCharacters, other, unit, type Ctx } from './ctx.js';
+import { effectDef, emit, livingCharacters, other, type Ctx } from './ctx.js';
 import { removeEffect } from './effects.js';
-import { enqueueTriggers, flushTriggers, runOps, type Scope } from './ops.js';
+import { enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
 import { energyGainBonus } from './queries.js';
 import { pick } from './rng.js';
 import { COLORS, type EffectInstance, type Energy } from './types.js';
@@ -85,25 +85,7 @@ export function endTurn(ctx: Ctx): void {
   }
   for (const e of expired) {
     if (!s.effects.includes(e)) continue;
-    const onExpire = effectDef(ctx.c, e).onExpire;
-    removeEffect(ctx, e, 'expired');
-    // Once the match is over, finish clearing expired effects but run no more payloads.
-    if (onExpire && unit(ctx, e.bearer).alive && s.phase !== 'finished') {
-      const sc: Scope = {
-        actor: e.source,
-        targets: e.targets,
-        bearer: e.bearer,
-        self: e,
-        vars: {},
-        lastDamage: 0,
-        lastDamaged: [],
-        // Delayed payloads (Snipe) are the skill's own effect, so their damage is direct.
-        direct: true,
-        bypass: false,
-      };
-      if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
-      runOps(ctx, onExpire, sc);
-    }
+    expireEffect(ctx, e);
     checkGameOver(ctx);
   }
   if (s.phase === 'finished') return;

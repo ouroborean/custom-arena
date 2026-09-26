@@ -94,7 +94,8 @@ export type Value =
 
 export type Cond =
   | { has: { unit: Selector; effect: string } }
-  | { hasFromArchetype: { unit: Selector; archetype: string } }
+  /** `mine`: only effects the actor applied. */
+  | { hasFromArchetype: { unit: Selector; archetype: string; mine?: boolean } }
   | { hpAtMost: { unit: Selector; value: number } }
   | { hpAbove: { unit: Selector; value: number } }
   /** Total stacks of the listed effects on the unit is more than `moreThan`. */
@@ -124,7 +125,11 @@ export type Cond =
   /** At the time of the event, its unit carried an effect the actor applied from one of these archetypes. */
   | { eventTargetHad: { archetypes: string[] } }
   /** The skill behind the event (or in scope) matches. */
-  | { eventSkill: { archetypes?: string[]; costAtLeast?: number } }
+  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[] } }
+  /** The unit is channeling (carries an interruptible effect). */
+  | { channeling: Selector }
+  /** The unit can't use at least some skills (Stun, Sleep, …). */
+  | { stunned: Selector }
   | { any: { in: Selector; cond: Cond } }
   | { all: { in: Selector; cond: Cond } }
   | { and: Cond[] }
@@ -150,6 +155,8 @@ export type Op =
       wakes?: boolean;
       /** Deal the damage as this unit instead of the actor (a launched Boulder). */
       from?: Selector;
+      /** Ignore every damage modifier (Might, Armor, Vulnerable, …). */
+      raw?: boolean;
     }
   | { op: 'heal'; to: Selector; amount: Value }
   | {
@@ -169,6 +176,12 @@ export type Op =
       linkTo?: string;
       /** Apply as if from this unit instead of the actor (a taunt "by that minion"). */
       from?: Selector;
+      /** Don't tell the applier's equipment (passives reacting to applications use this). */
+      quiet?: boolean;
+      /** End the effect once the actor carries no effect from its skills of this archetype ("during Titan"). */
+      whileActorHas?: string;
+      /** End the effect when the event's effect ends ("for as long as the Taunt lasts"). */
+      linkToEvent?: boolean;
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
@@ -199,9 +212,14 @@ export type Op =
    * own skill of an archetype. Single-target skills hit each unit of `on`; self and AoE skills
    * resolve their own targets. `as: 'it'` casts it as each unit of `on` instead (e.g. on a minion).
    */
-  | { op: 'castSkill'; skill?: string; archetype?: string; on: Selector; as?: 'actor' | 'it' }
-  /** Changes the effect the event is about (the one just applied). */
-  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number }
+  /** `archetype` falls back to `skill` when the actor has no skill of it; `eventSkill` casts the event's skill. */
+  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; on: Selector; as?: 'actor' | 'it' }
+  /** Changes the effect the event is about (the one just applied). `expireNow` ends it as if its time ran out. */
+  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean }
+  /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
+  | { op: 'copyEventEffect'; to: Selector }
+  /** Removes `count` (default 1) random effects of a kind from each selected unit. */
+  | { op: 'removeRandom'; from: Selector; kind: EffectKind; count?: number }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
   | {
       op: 'adjustCooldowns';
@@ -239,7 +257,8 @@ export type SkillClass = 'Strategic' | 'NonStrategic';
 
 /** Ends an effect on the bearer's next skill use, optionally only for Harmful or damaging ones. */
 export interface UntilSpec {
-  skillUsed: { harmful?: boolean; nonStrategic?: boolean };
+  /** `archetypes`: only skills of these archetypes (a free next Riposte). */
+  skillUsed: { harmful?: boolean; nonStrategic?: boolean; archetypes?: string[] };
 }
 
 /** Fields every modifier may carry (equipment passives rely on them). */
@@ -248,6 +267,8 @@ export interface ModifierBase {
   if?: Cond;
   /** Only for skills of these archetypes (the skill being used, or the one dealing the damage). */
   archetypes?: string[];
+  /** Only for skills with one of these tags (e.g. Helpful). */
+  skillsWith?: SkillTag[];
 }
 
 export type ModifierSpec = ModifierBase &
@@ -257,8 +278,22 @@ export type ModifierSpec = ModifierBase &
    * limits it to matching targets; `mul` multiplies the final damage (0 = no damage).
    */
   | { mod: 'damageDealt'; amount: number; perStack?: boolean; when?: DamageWhen; value?: Value; target?: Cond; mul?: number }
-  /** Bearer is the damage target. `armor: true` marks Armor-style reduction (disabled by Shattered). */
-  | { mod: 'damageTaken'; amount: number; perStack?: boolean; when?: DamageWhen; armor?: boolean; value?: Value }
+  /**
+   * Bearer is the damage target. `armor: true` marks Armor-style reduction (disabled by Shattered).
+   * `atLeast`: only against hits of at least this much (before Armor), applied first; `oncePerTurn`
+   * limits that to one hit per turn. `mul` multiplies the damage taken.
+   */
+  | {
+      mod: 'damageTaken';
+      amount: number;
+      perStack?: boolean;
+      when?: DamageWhen;
+      armor?: boolean;
+      value?: Value;
+      atLeast?: number;
+      oncePerTurn?: boolean;
+      mul?: number;
+    }
   /** +n adds r cost, −n reduces r cost only (GDD §3.4). */
   | { mod: 'costGeneric'; amount: number; perStack?: boolean }
   | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean }
@@ -300,6 +335,20 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'randomPrimaryTarget' }
   /** The bearer's skill costs become all random (r) energy. */
   | { mod: 'costToRandom' }
+  /** The bearer's skills cost nothing. */
+  | { mod: 'freeSkills' }
+  /** −n removes n specific-color pips from the cost (the most common color first). */
+  | { mod: 'costSpecific'; amount: number }
+  /** Using these skills doesn't end the bearer's channels. */
+  | { mod: 'keepChannels' }
+  /** The bearer's skills can't pick targets matching `where` (it = candidate). */
+  | { mod: 'targetExclude'; where: Cond }
+  /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
+  | { mod: 'redirectDamage' }
+  /** Skills of this effect's source Bypass against the bearer. */
+  | { mod: 'exposed' }
+  /** Raises the bearer's max (and current) Health while the effect lasts. */
+  | { mod: 'maxHp'; amount: number }
   /** Adds or removes skill tags (e.g. Snipes gain Bypass and Uncounterable). */
   | { mod: 'skillTags'; add?: SkillTag[]; remove?: SkillTag[] }
   /**
@@ -332,7 +381,13 @@ export type TriggerEvent =
   /** This bearer applied an effect to someone (eventTarget); eventEffect = that effect. */
   | 'effectApplied'
   /** This bearer was healed; eventAmount = HP restored. */
-  | 'healed';
+  | 'healed'
+  /** Once, when the match starts (equipment). */
+  | 'battleStart'
+  /** One of this bearer's skills was countered or reflected; eventSource = the unit that stopped it. */
+  | 'countered'
+  /** An effect this bearer tried to apply was negated (Swiftness); eventTarget = who negated it. */
+  | 'effectNegated';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -370,6 +425,8 @@ export interface TriggerSpec {
     toEnemy?: boolean;
     /** effectApplied: only effects of this kind. */
     kind?: EffectKind;
+    /** countered: only reflects (true) or only counters (false). */
+    reflected?: boolean;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';

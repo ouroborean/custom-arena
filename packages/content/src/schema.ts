@@ -82,7 +82,7 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
 export const condSchema: z.ZodType<Cond> = z.lazy(() =>
   z.union([
     z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
-    z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string() }) }),
+    z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string(), mine: z.boolean().optional() }) }),
     z.strictObject({ hpAtMost: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({ hpAbove: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({
@@ -98,7 +98,15 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ isEventTarget: selectorSchema }),
     z.strictObject({ appliedFromArchetype: z.string() }),
     z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1) }) }),
-    z.strictObject({ eventSkill: z.strictObject({ archetypes: z.array(z.string()).optional(), costAtLeast: z.number().optional() }) }),
+    z.strictObject({
+      eventSkill: z.strictObject({
+        archetypes: z.array(z.string()).optional(),
+        costAtLeast: z.number().optional(),
+        tags: z.array(z.string()).optional(),
+      }),
+    }),
+    z.strictObject({ channeling: selectorSchema }),
+    z.strictObject({ stunned: selectorSchema }),
     z.strictObject({ hasShield: selectorSchema }),
     z.strictObject({ hasSkill: z.strictObject({ unit: selectorSchema, archetypes: z.array(z.string()).min(1) }) }),
     z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
@@ -143,10 +151,11 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
 const damageWhen = z.strictObject({ direct: z.boolean().optional(), types: z.array(damageType).optional() });
 const skillClass = z.enum(['Strategic', 'NonStrategic']);
 
-/** Fields every modifier may carry: an `if` condition and an archetype filter (equipment). */
+/** Fields every modifier may carry: an `if` condition and archetype / tag filters (equipment). */
 const modBase = {
   if: z.lazy(() => condSchema).optional(),
   archetypes: z.array(z.string()).optional(),
+  skillsWith: z.array(z.string()).optional(),
 };
 const mod = <T extends z.ZodRawShape>(shape: T) => z.strictObject({ ...shape, ...modBase });
 
@@ -167,6 +176,9 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
     when: damageWhen.optional(),
     armor: z.boolean().optional(),
     value: z.lazy(() => valueSchema).optional(),
+    atLeast: z.number().optional(),
+    oncePerTurn: z.boolean().optional(),
+    mul: z.number().min(0).optional(),
   }),
   mod({ mod: z.literal('costGeneric'), amount: z.number().int(), perStack: z.boolean().optional() }),
   mod({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional() }),
@@ -191,6 +203,13 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('nextSkillStealthy') }),
   mod({ mod: z.literal('randomPrimaryTarget') }),
   mod({ mod: z.literal('costToRandom') }),
+  mod({ mod: z.literal('freeSkills') }),
+  mod({ mod: z.literal('costSpecific'), amount: z.number().int().max(-1) }),
+  mod({ mod: z.literal('keepChannels') }),
+  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
+  mod({ mod: z.literal('redirectDamage') }),
+  mod({ mod: z.literal('exposed') }),
+  mod({ mod: z.literal('maxHp'), amount: z.number().int() }),
   mod({ mod: z.literal('skillTags'), add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() }),
   mod({
     mod: z.literal('extraTargets'),
@@ -213,6 +232,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       respectsInvulnerable: z.boolean().optional(),
       wakes: z.boolean().optional(),
       from: selectorSchema.optional(),
+      raw: z.boolean().optional(),
     }),
     z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({
@@ -224,11 +244,20 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
       remember: selectorSchema.optional(),
       until: z
-        .strictObject({ skillUsed: z.strictObject({ harmful: z.boolean().optional(), nonStrategic: z.boolean().optional() }) })
+        .strictObject({
+          skillUsed: z.strictObject({
+            harmful: z.boolean().optional(),
+            nonStrategic: z.boolean().optional(),
+            archetypes: z.array(z.string()).optional(),
+          }),
+        })
         .optional(),
       bindTo: selectorSchema.optional(),
       linkTo: z.string().optional(),
       from: selectorSchema.optional(),
+      quiet: z.boolean().optional(),
+      whileActorHas: z.string().optional(),
+      linkToEvent: z.boolean().optional(),
     }),
     z.strictObject({
       op: z.literal('summon'),
@@ -252,10 +281,23 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       op: z.literal('castSkill'),
       skill: z.string().optional(),
       archetype: z.string().optional(),
+      eventSkill: z.boolean().optional(),
       on: selectorSchema,
       as: z.enum(['actor', 'it']).optional(),
     }),
-    z.strictObject({ op: z.literal('eventEffect'), permanent: z.boolean().optional(), extendBy: z.number().int().optional() }),
+    z.strictObject({
+      op: z.literal('eventEffect'),
+      permanent: z.boolean().optional(),
+      extendBy: z.number().int().optional(),
+      expireNow: z.boolean().optional(),
+    }),
+    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema }),
+    z.strictObject({
+      op: z.literal('removeRandom'),
+      from: selectorSchema,
+      kind: z.enum(['Buff', 'Debuff', 'Neutral']),
+      count: z.number().int().min(1).optional(),
+    }),
     z.strictObject({
       op: z.literal('adjustCooldowns'),
       to: selectorSchema,
@@ -280,7 +322,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged', 'summoned', 'ownEffectTriggered', 'ownEffectEnded', 'effectApplied', 'healed']),
+    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged', 'summoned', 'ownEffectTriggered', 'ownEffectEnded', 'effectApplied', 'healed', 'battleStart', 'countered', 'effectNegated']),
     signal: z.string().optional(),
     effect: z.string().optional(),
     when: z
@@ -299,6 +341,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         effects: z.array(z.string()).optional(),
         toEnemy: z.boolean().optional(),
         kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(),
+        reflected: z.boolean().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),

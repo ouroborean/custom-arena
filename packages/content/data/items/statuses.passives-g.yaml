@@ -1,0 +1,290 @@
+# Type G (Class Armor) passives — one per base skill (GDD §8, docs/equipment.md). Same conventions
+# as type A: a permanent Neutral status `eq_<item id>` on the wearer.
+
+eq_barbarian_greatclub:
+  name: Barbarian Greatclub
+  kind: Neutral
+  description: Whenever one of your skills damages every living enemy, it also deals 5 Piercing damage to all enemies.
+  triggers:
+    # Mark what this skill hits, then check once it has resolved.
+    - on: skillUsed
+      do:
+        - { op: removeEffect, from: allUnits, effect: greatclub_hit }
+    - on: dealtDamage
+      when: { direct: true, byEnemy: true }
+      do:
+        - { op: apply, to: eventTarget, effect: greatclub_hit, duration: { thisTurn: true }, quiet: true }
+    - on: skillResolved
+      do:
+        - op: if
+          cond: { all: { in: allEnemies, cond: { has: { unit: it, effect: greatclub_hit } } } }
+          then: [{ op: damage, to: allEnemies, amount: 5, type: Piercing }]
+        - { op: removeEffect, from: allUnits, effect: greatclub_hit }
+
+greatclub_hit:
+  name: Barbarian Greatclub (hit)
+  kind: Neutral
+  stacking: unique
+  description: Already hit by this skill.
+
+eq_helmet_of_the_ancestors:
+  name: Helmet of the Ancestors
+  kind: Neutral
+  description: Once per turn, a skill hit of 30 or more damage against you is first lowered by 10.
+  modifiers:
+    - { mod: damageTaken, amount: -10, atLeast: 30, oncePerTurn: true, when: { direct: true } }
+
+eq_shadowrune_bolas:
+  name: Shadowrune Bolas
+  kind: Neutral
+  description: When an enemy's Swiftness stops your Stun, they're Confused for as long as the Stun would have lasted.
+  triggers:
+    - on: effectNegated
+      when: { effects: [stun, stun_ns, stun_s], toEnemy: true }
+      do:
+        - { op: apply, to: eventTarget, effect: confusion, duration: { sameAsEvent: true } }
+
+eq_mask_of_many_faces:
+  name: Mask of Many Faces
+  kind: Neutral
+  description: Whenever any skill is countered or reflected, you gain 5 Shield, or 10 if it was an enemy's skill.
+  triggers:
+    - on: signal
+      signal: countered
+      when: { side: ally }
+      do:
+        - { op: apply, to: bearer, effect: shield, value: 5 }
+    - on: signal
+      signal: countered
+      when: { side: enemy }
+      do:
+        - { op: apply, to: bearer, effect: shield, value: 10 }
+
+eq_boomerang_blade:
+  name: Boomerang Blade
+  kind: Neutral
+  description: After one of your Traps goes off, your skills Bypass against whoever set it off, until the end of your next turn.
+  triggers:
+    - on: ownEffectTriggered
+      when: { archetypes: [Trap] }
+      do:
+        - op: apply
+          to: eventSource
+          duration: { ownTurns: 1 }
+          quiet: true
+          effect:
+            id: boomerang_exposed
+            name: Boomerang Blade
+            kind: Neutral
+            stacking: unique
+            description: The Boomerang Blade wearer's skills Bypass against this unit.
+            modifiers:
+              - { mod: exposed }
+
+eq_ricochet_rifle:
+  name: Ricochet Rifle
+  kind: Neutral
+  description: Whenever one of your Harmful skills is countered, you deal 10 damage to a random enemy.
+  triggers:
+    - on: countered
+      when: { harmful: true, reflected: false }
+      do:
+        - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+
+eq_explosive_relic:
+  name: Explosive Relic
+  kind: Neutral
+  description: Using a skill that costs 2 or more energy gives you Focus until the end of your next turn.
+  triggers:
+    - on: skillUsed
+      do:
+        - op: if
+          cond: { eventSkill: { costAtLeast: 2 } }
+          then: [{ op: apply, to: bearer, effect: focus, duration: { ownTurns: 1 } }]
+
+eq_high_wizards_hat:
+  name: High Wizard's Hat
+  kind: Neutral
+  description: If you're Stunned while channeling, you become Immune until the end of your next turn.
+  triggers:
+    # A Stun that leaves a channel running…
+    - on: effectGained
+      when: { effects: [stun, stun_ns, stun_s, sleep] }
+      do:
+        - op: if
+          cond: { channeling: bearer }
+          then: [{ op: apply, to: bearer, effect: immune, duration: { ownTurns: 1 } }]
+    # …or one that interrupts it.
+    - on: ownEffectEnded
+      when: { reason: [interrupted] }
+      do:
+        - op: if
+          cond: { and: [{ isActor: eventTarget }, { stunned: bearer }] }
+          then: [{ op: apply, to: bearer, effect: immune, duration: { ownTurns: 1 } }]
+
+eq_hand_of_blessing:
+  name: Hand of Blessing
+  kind: Neutral
+  description: The first Buff you give an ally each turn is also given to you.
+  triggers:
+    - on: effectApplied
+      when: { kind: Buff, toEnemy: false }
+      do:
+        - op: if
+          cond: { and: [{ not: { isActor: eventTarget } }, { not: { has: { unit: bearer, effect: blessing_shared } } }] }
+          then:
+            - { op: copyEventEffect, to: bearer }
+            - { op: apply, to: bearer, effect: blessing_shared, duration: { thisTurn: true }, quiet: true }
+
+blessing_shared:
+  name: Hand of Blessing (used this turn)
+  kind: Neutral
+  stacking: unique
+  description: The Hand of Blessing has already shared a Buff this turn.
+
+eq_robe_of_the_song:
+  name: Robe of the Song
+  kind: Neutral
+  description: While you're at 60 Health or less, Stuns can't stop your Helpful skills.
+  modifiers:
+    - mod: skillTags
+      skillsWith: [Helpful]
+      add: [Unstunnable]
+      if: { hpAtMost: { unit: bearer, value: 60 } }
+
+eq_totem_of_the_fallen:
+  name: Totem of the Fallen
+  kind: Neutral
+  description: Whenever an enemy kills one of your minions, you gain 1 Might for 1 turn.
+  triggers:
+    - on: signal
+      signal: died
+      when: { side: enemy }
+      do:
+        - op: if
+          cond: { and: [{ kind: { unit: eventTarget, is: minion } }, { not: { isEnemy: eventTarget } }] }
+          then: [{ op: apply, to: bearer, effect: might, duration: { enemyTurns: 1 } }]
+
+eq_cloak_of_ancient_leaves:
+  name: Cloak of Ancient Leaves
+  kind: Neutral
+  description: While you're at 80 Health or more, you have 1 Might and 1 Vulnerable.
+  modifiers:
+    - { mod: damageDealt, amount: 5, when: { direct: true }, if: { hpAbove: { unit: bearer, value: 79 } } }
+    - { mod: damageTaken, amount: 5, when: { direct: true }, if: { hpAbove: { unit: bearer, value: 79 } } }
+
+eq_banner_of_glory:
+  name: Banner of Glory
+  kind: Neutral
+  description: When you use a Shout skill, each ally loses a random Debuff.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Shout] }
+      do:
+        - { op: removeRandom, from: allAllies, kind: Debuff }
+
+eq_knights_buckler:
+  name: Knight's Buckler
+  kind: Neutral
+  description: When one of your effects counters or reflects a skill, its user gets 1 Weakness and 1 Vulnerable for 2 turns.
+  triggers:
+    - on: ownEffectTriggered
+      when: { counter: true }
+      do:
+        - { op: apply, to: eventSource, effect: weakness, duration: { enemyTurns: 2 } }
+        - { op: apply, to: eventSource, effect: vulnerable, duration: { enemyTurns: 2 } }
+
+eq_rod_of_domination:
+  name: Rod of Domination
+  kind: Neutral
+  description: Damage others would deal to you hits one of your minions at random instead; with no minions, you take double damage.
+  modifiers:
+    - { mod: redirectDamage }
+    - mod: damageTaken
+      amount: 0
+      mul: 2
+      if: { not: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } } }
+
+eq_blood_chalice:
+  name: Blood Chalice
+  kind: Neutral
+  description: Any minion damaged down to 10 Health or less dies, and you gain a random Buff (Might, Armor or Swiftness).
+  triggers:
+    - on: signal
+      signal: unitDamaged
+      do:
+        - op: if
+          cond:
+            and:
+              - { kind: { unit: eventTarget, is: minion } }
+              - { hpAbove: { unit: eventTarget, value: 0 } }
+              - { hpAtMost: { unit: eventTarget, value: 10 } }
+          then:
+            - { op: kill, to: eventTarget }
+            - op: random
+              options:
+                - [{ op: apply, to: bearer, effect: might }]
+                - [{ op: apply, to: bearer, effect: armor }]
+                - [{ op: apply, to: bearer, effect: swiftness }]
+
+eq_visor_of_the_restful_spirit:
+  name: Visor of the Restful Spirit
+  kind: Neutral
+  description: At the start of your turn, if you weren't damaged since your last turn ended, you gain 2 Might for this turn.
+  triggers:
+    - on: damaged
+      do:
+        - { op: setFlag, flag: hurt }
+    - on: turnStart
+      do:
+        - op: if
+          cond: { not: { flag: hurt } }
+          then: [{ op: apply, to: bearer, effect: might, stacks: 2, duration: { thisTurn: true } }]
+    - on: turnEnd
+      do:
+        - { op: setFlag, flag: hurt, value: false }
+
+eq_footwraps_of_the_long_path:
+  name: Footwraps of the Long Path
+  kind: Neutral
+  description: Using a Harmful skill makes Stuns unable to stop your Helpful skills until the end of your next turn.
+  triggers:
+    - on: skillUsed
+      when: { harmful: true }
+      do:
+        - op: apply
+          to: bearer
+          duration: { ownTurns: 1 }
+          effect:
+            id: footwraps_poise
+            name: Footwraps of the Long Path
+            kind: Buff
+            stacking: unique
+            description: Stuns can't stop Helpful skills.
+            modifiers:
+              - { mod: skillTags, skillsWith: [Helpful], add: [Unstunnable] }
+
+eq_hand_of_healing:
+  name: Hand of Healing
+  kind: Neutral
+  description: Your Heal skills can't target you, but using one on an ally also heals you 10.
+  modifiers:
+    - { mod: targetExclude, archetypes: [Heal], where: { isActor: it } }
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Heal] }
+      do:
+        - op: if
+          cond: { any: { in: eventTargets, cond: { and: [{ not: { isActor: it } }, { not: { isEnemy: it } }] } } }
+          then: [{ op: heal, to: bearer, amount: 10 }]
+
+eq_golden_plate:
+  name: Golden Plate
+  kind: Neutral
+  description: You have 1 Armor for every 35 Health you're missing.
+  modifiers:
+    - mod: damageTaken
+      amount: 0
+      armor: true
+      when: { types: [Normal] }
+      value: { mul: [-5, { div: [{ missingHp: bearer }, 35] }] }

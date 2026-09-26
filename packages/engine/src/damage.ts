@@ -16,7 +16,9 @@ import {
   invulnerableToSource,
   modifiedHealing,
   modsOn,
+  thresholdReduction,
 } from './queries.js';
+import { nextInt } from './rng.js';
 import type { DamageType, EffectInstance, Unit } from './types.js';
 
 export interface DamageArgs {
@@ -32,6 +34,8 @@ export interface DamageArgs {
   wakes?: boolean;
   /** Skill (def id) dealing the damage, for equipment that cares ("your Strike skills"). */
   skill?: string;
+  /** Not affected by any damage modifier (Cultist Scythe). */
+  raw?: boolean;
 }
 
 /** Returns the damage actually dealt (absorbed by Shield + lost HP). */
@@ -59,15 +63,25 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     return 0;
   }
 
+  // Rod of Domination: damage from others lands on a random allied minion instead.
+  if (source !== target && modsOn(ctx.s, ctx.c, target.id, 'redirectDamage').length > 0) {
+    const minions = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && u.kind === 'minion');
+    if (minions.length > 0) return dealDamage(ctx, { ...a, target: minions[nextInt(ctx.s.rng, minions.length)]! });
+  }
+
   // Retribution: direct damage from enemies heals instead (after all damage modifiers).
   const heals = enemy && a.direct && modsOn(ctx.s, ctx.c, target.id, 'healFromDirectDamage').length > 0;
 
   const shattered = hasNoArmorOrShield(ctx, target);
-  const taken = damageTakenBonus(ctx, target, a.type, a.direct);
-  const dealt = damageDealtBonus(ctx, source, a.type, a.direct, a.skill ? ctx.c.skills[a.skill] : undefined, target);
-  const bonus = dealt.bonus + taken.other;
+  const taken = a.raw ? { other: 0, armor: 0, mul: 1 } : damageTakenBonus(ctx, target, a.type, a.direct);
+  const dealt = a.raw
+    ? { bonus: 0, mul: 1 }
+    : damageDealtBonus(ctx, source, a.type, a.direct, a.skill ? ctx.c.skills[a.skill] : undefined, target);
+  let bonus = dealt.bonus + taken.other;
+  // Big-hit reductions apply first, measured before Armor (Helmet of the Ancestors).
+  if (!a.raw) bonus += thresholdReduction(ctx, target, a.type, a.direct, a.amount + bonus);
   const armor = shattered ? 0 : taken.armor;
-  const amount = Math.max(0, Math.round((a.amount + bonus + armor) * dealt.mul));
+  const amount = Math.max(0, Math.round((a.amount + bonus + armor) * dealt.mul * taken.mul));
   const breakdown = { base: a.amount, bonus, armor };
   if (heals) {
     heal(ctx, source, target, amount);
@@ -125,6 +139,8 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   }
 
   enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true, a.skill);
+  // Anyone can listen for damage anywhere (Blood Chalice).
+  broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
   for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill);
   if (source !== target) {
     for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);

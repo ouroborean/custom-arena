@@ -4,7 +4,7 @@ import { effectDef, effectsOn, emit, findUnit, isEnemy, livingUnits, skillDef, u
 import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
-import { enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
+import { broadcastSignal, enqueueFor, enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
 import {
   canTarget,
   cannotUseReason,
@@ -14,7 +14,9 @@ import {
   forcedTargets,
   hasGrantBypass,
   ignoresCounters,
+  isExcludedTarget,
   modifiedCost,
+  modsFor,
   modsOn,
 } from './queries.js';
 import { nextInt } from './rng.js';
@@ -27,6 +29,16 @@ export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason
  * at resolution time the target is redirected to the taunter instead.
  */
 export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
+  const r = resolveTargetsWithExtras(ctx, actor, def, declared, strict);
+  // Equipment can also rule targets out (Hand of Healing: never yourself).
+  if (!r.ok) return r;
+  const kept = r.targets.filter((id) => !isExcludedTarget(ctx, actor, def, unit(ctx, id)));
+  if (kept.length === r.targets.length) return r;
+  if (kept.length === 0) return { ok: false, reason: 'target not allowed' };
+  return { ok: true, targets: kept };
+}
+
+function resolveTargetsWithExtras(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
   // Equipment can open extra targets (a Maneuver on an ally, a Consume on an allied minion).
   const first = declared[0] === undefined ? undefined : findUnit(ctx.s, declared[0]);
   if (first?.alive && extraTargetFor(ctx, actor, def, first) && !naturalTarget(ctx, actor, def, first)) {
@@ -205,10 +217,10 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   // "Allies that acted before you this turn" (equipment).
   actor.counters.actedTurn = ctx.s.turn;
 
-  // 3. Cooldown starts, and using a skill ends the user's other channels (Q6).
+  // 3. Cooldown starts, and using a skill ends the user's other channels (Q6), unless equipment says otherwise.
   const slot = actor.skills[slotIndex];
   if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
-  interruptChannels(ctx, actor, 'skillUse');
+  if (modsFor(ctx, actor.id, 'keepChannels', def).length === 0) interruptChannels(ctx, actor, 'skillUse');
 
   const secret = tags.includes('HiddenTarget');
   const privateTo = tags.includes('Invisible') ? actor.owner : undefined;
@@ -235,7 +247,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     (e) =>
       e.until &&
       !(e.until.skillUsed.harmful && !harmful) &&
-      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')),
+      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')) &&
+      !(e.until.skillUsed.archetypes && !e.until.skillUsed.archetypes.includes(def.archetype)),
   );
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
@@ -280,6 +293,14 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
         reflected: spec.intercept === 'reflect',
       });
       runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
+      // The user's equipment hears its skill was stopped; so does everyone else's (Mask of Many Faces).
+      enqueueFor(ctx, actor.id, 'countered', {
+        eventSource: reflector.id,
+        eventSkill: def.id,
+        harmful,
+        reflected: spec.intercept === 'reflect',
+      });
+      broadcastSignal(ctx, 'countered', actor, { target: reflector, eventSkill: def.id });
       flushTriggers(ctx);
       if (def.onCountered?.length && ctx.s.result === null) {
         runOps(ctx, def.onCountered, {

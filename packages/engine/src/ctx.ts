@@ -19,6 +19,8 @@ export interface PendingTrigger {
   eventAmount?: number;
   /** Effects the event's unit carried at the time (deaths). */
   snapshot?: EffectInstance[];
+  /** Internal duration of the effect the event is about, when there's no instance (negated effects). */
+  eventDuration?: number | null;
 }
 
 export interface Ctx {
