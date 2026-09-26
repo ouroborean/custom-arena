@@ -294,7 +294,7 @@ ravage.water:
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 25, type: Piercing }
-    - { op: extendEffects, on: primary, effects: [stun, stun_ns], by: 2 }
+    - { op: extendEffects, on: primary, effects: [stun, stun_ns, stun_s], by: 2 }
 
 mislead.water:
   archetype: Mislead
@@ -335,11 +335,11 @@ stun.water:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: stunned, value: { if: { or: [{ has: { unit: primary, effect: stun } }, { has: { unit: primary, effect: stun_ns } }] }, then: 1, else: 0 } }
+    - { op: set, var: stunned, value: { if: { or: [{ has: { unit: primary, effect: stun } }, { has: { unit: primary, effect: stun_ns } }, { has: { unit: primary, effect: stun_s } }] }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 15 }
     - op: if
       cond: { varTrue: stunned }
-      then: [{ op: extendEffects, on: primary, effects: [stun, stun_ns], by: 2 }]
+      then: [{ op: extendEffects, on: primary, effects: [stun, stun_ns, stun_s], by: 2 }]
       else: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }]
 
 dance.water:
@@ -464,6 +464,7 @@ shout.water:
             or:
               - { has: { unit: it, effect: stun } }
               - { has: { unit: it, effect: stun_ns } }
+              - { has: { unit: it, effect: stun_s } }
               - { has: { unit: it, effect: taunt } }
           then: [{ op: damage, to: it, amount: 15, type: Affliction }]
 

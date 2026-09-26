@@ -1,0 +1,11 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# Immobile: a character with no mobility skills (Charge, Maneuver, Mislead, Dance) and no mobility
+# buffs (Swiftness, Rushing, Leaping). Computed, never applied.
+immobile:
+  and:
+    - { kind: { unit: it, is: character } }
+    - { not: { hasSkill: { unit: it, archetypes: [Charge, Maneuver, Mislead, Dance] } } }
+    - { not: { has: { unit: it, effect: swiftness } } }
+    - { not: { has: { unit: it, effect: rushing } } }
+    - { not: { has: { unit: it, effect: leaping } } }

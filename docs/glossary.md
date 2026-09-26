@@ -33,10 +33,12 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Harmful / Helpful** | Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful. |
 | **Horrified** | Unholy: can't gain Buffs (including from itself). |
 | **HiddenTarget** | Skill tag: the opponent sees the skill but not its target (Snipe). |
+| **Immobile** | Wind: a character with no mobility skills (Charge, Maneuver, Mislead, Dance) and no mobility buffs (Swiftness, Rushing, Leaping). Computed, not applied. |
 | **Indirect damage** | Damage from triggered or ticking effects. |
 | **Immortal** | Unholy: Health can't fall below 5. "Undying" on the sheet means the same thing. |
 | **Invisible** | Skill tag and effect visibility: hidden from the opponent until triggered or expired. |
 | **Invulnerable** | Can't be targeted by enemy skills, and takes no indirect enemy damage unless it's Affliction or Bypassing. |
+| **Leap / Leaping** | Wind: Invulnerable for 1 turn, plus Leaping: +5 direct damage until one of the bearer's skills has dealt direct damage. |
 | **Lifesteal** | Unholy: heals for the Health the bearer removes from other characters. Shield-absorbed damage and damage to minions don't count. |
 | **Isolated** | Can't be targeted by allied skills (Bypass ignores it). |
 | **Minion** | A summoned unit. Has HP and possibly skills, generates no energy, and pays skill costs from its owner's pool. |
@@ -48,6 +50,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Prey** | Poison: a unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 HP, or marked as Prey. Computed, not applied. |
 | **Renew** | Heals 5 HP per stack at the end of the applier's turn, then loses 1 stack. |
 | **Reflect** | A counter that also applies the skill to its user (or the user's team, for AoE skills). |
+| **Rushing** | Wind: 1 Swiftness and 1 Focus each turn if missing. Ends after a turn in which the bearer used no skill. |
 | **Sapped** | Lightning: max 3 stacks. At 3, the owner generates 1 less energy on their next turn and Sapped is removed. |
 | **Shattered** | Gets no benefit from Armor or Shield. |
 | **Soul Fragment** | Unholy: a permanent stacking Buff; each stack is 1 Might. Consumed by several Unholy skills. |
