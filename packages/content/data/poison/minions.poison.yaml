@@ -1,0 +1,11 @@
+# Poison minions. Emerald Asp's HP is from the sheet; the Spriggan Harasser's is too.
+
+emerald_asp:
+  name: Emerald Asp
+  hp: 25
+  skills: [asp_fang, asp_constrict]
+
+spriggan_harasser:
+  name: Spriggan Harasser
+  hp: 15
+  skills: [spriggan_sting]

@@ -74,6 +74,11 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string() }) }),
     z.strictObject({ hpAtMost: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({ hpAbove: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
+    z.strictObject({
+      stackTotal: z.strictObject({ unit: selectorSchema, effects: z.array(z.string()).min(1), moreThan: z.number().int() }),
+    }),
+    z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
+    z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ any: z.strictObject({ in: selectorSchema, cond: condSchema }) }),
     z.strictObject({ all: z.strictObject({ in: selectorSchema, cond: condSchema }) }),
     z.strictObject({ and: z.array(condSchema) }),
@@ -159,6 +164,10 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
     z.strictObject({ op: z.literal('macro'), id: z.string() }),
     z.strictObject({ op: z.literal('signal'), name: z.string() }),
+    z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
+    z.strictObject({ op: z.literal('convertEffects'), from: z.string(), to: z.string() }),
+    z.strictObject({ op: z.literal('gainEnergy'), amount: z.number().int().min(1) }),
+    z.strictObject({ op: z.literal('resetCooldown') }),
     z.strictObject({ op: z.literal('if'), cond: condSchema, then: z.array(opSchema), else: z.array(opSchema).optional() }),
     z.strictObject({ op: z.literal('set'), var: z.string(), value: z.union([valueSchema, z.boolean()]) }),
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
@@ -180,6 +189,8 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         harmful: z.boolean().optional(),
         byEnemy: z.boolean().optional(),
         side: z.enum(['ally', 'enemy']).optional(),
+        fromSide: z.enum(['ally', 'enemy']).optional(),
+        strategic: z.boolean().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
@@ -195,7 +206,7 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     kind: effectKind,
     element: z.string().optional(),
     description: z.string().optional(),
-    stacking: z.enum(['independent', 'unique']).optional(),
+    stacking: z.enum(['independent', 'unique', 'merge']).optional(),
     visibility: z.enum(['public', 'hidden', 'hiddenTarget']).optional(),
     shield: z.boolean().optional(),
     interruptible: z.boolean().optional(),
@@ -230,7 +241,7 @@ export const skillFileEntry = z.strictObject({
   cost: costSchema,
   cooldown: z.number().int().min(0),
   tags: z.array(skillTag),
-  target: z.enum(['self', 'enemy', 'ally', 'allEnemies', 'allAllies', 'none']),
+  target: z.enum(['self', 'enemy', 'ally', 'any', 'allEnemies', 'allAllies', 'none']),
   ops: z.array(opSchema),
 });
 
@@ -243,6 +254,8 @@ export const minionFileEntry = z.strictObject({
 });
 
 export const macroFileEntry = z.array(opSchema);
+
+export const conditionFileEntry = condSchema;
 
 export const classFileEntry = z.strictObject({
   name: z.string().min(1),

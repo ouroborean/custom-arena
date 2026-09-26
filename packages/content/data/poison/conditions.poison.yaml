@@ -1,0 +1,9 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# Prey: more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion; or below 20 HP; or
+# explicitly marked as Prey.
+prey:
+  or:
+    - { has: { unit: it, effect: prey } }
+    - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 2 } }
+    - { hpAtMost: { unit: it, value: 19 } }

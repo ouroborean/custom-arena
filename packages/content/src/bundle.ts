@@ -1,9 +1,9 @@
 // Turns raw parsed content files into a validated ContentBundle. Pure (no filesystem), so it can
 // also run in the browser or at server boot.
 
-import { scripts, variantId, type ClassDef, type ContentBundle, type EffectDef, type MinionDef, type Op, type SkillDef } from '@arena/engine';
+import { scripts, variantId, type ClassDef, type Cond, type ContentBundle, type EffectDef, type MinionDef, type Op, type SkillDef } from '@arena/engine';
 import { z } from 'zod';
-import { classFileEntry, effectDefSchema, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
+import { classFileEntry, conditionFileEntry, effectDefSchema, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
 
 export interface RawContent {
   skills: Record<string, unknown>;
@@ -11,6 +11,7 @@ export interface RawContent {
   minions: Record<string, unknown>;
   classes: Record<string, unknown>;
   macros: Record<string, unknown>;
+  conditions: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -86,8 +87,15 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     else for (const iss of r.error.issues) issues.push({ level: 'error', where: `macros.${id}.${iss.path.join('.')}`, message: iss.message });
   }
 
-  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros }));
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros };
+  const conditions: Record<string, Cond> = {};
+  for (const [id, entry] of Object.entries(raw.conditions)) {
+    const r = conditionFileEntry.safeParse(entry);
+    if (r.success) conditions[id] = r.data;
+    else for (const iss of r.error.issues) issues.push({ level: 'error', where: `conditions.${id}.${iss.path.join('.')}`, message: iss.message });
+  }
+
+  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions }));
+  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions };
   issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle));
   return { bundle, issues };
 }
@@ -123,6 +131,13 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
       if (op.op === 'summon' && !b.minions[op.minion]) err(where, `unknown minion "${op.minion}"`);
       if (op.op === 'script' && !scripts[op.id]) err(where, `unknown script "${op.id}"`);
       if (op.op === 'macro' && !b.macros[op.id]) err(where, `unknown macro "${op.id}"`);
+      if (op.op === 'convertEffects') {
+        for (const id of [op.from, op.to]) if (!b.statuses[id]) err(where, `unknown status "${id}"`);
+      }
+      for (const name of JSON.stringify(op).match(/"check":\{"cond":"([^"]+)"/g) ?? []) {
+        const id = name.slice('"check":{"cond":"'.length, -1);
+        if (!b.conditions[id]) err(where, `unknown condition "${id}"`);
+      }
     });
 
   for (const s of Object.values(b.skills)) checkOps(`skills.${s.id}`, s.ops);
@@ -171,9 +186,10 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
 export function checkElements(b: ContentBundle): ContentIssue[] {
   const issues: ContentIssue[] = [];
   const base = Object.values(b.skills).filter((s) => s.element === 'None' && !s.id.includes('.'));
-  const elements = new Set(Object.values(b.skills).filter((s) => s.element !== 'None').map((s) => s.element));
-  for (const s of Object.values(b.skills)) {
-    if (s.element === 'None') continue;
+  const archetypes = new Set(base.map((s) => s.archetype));
+  const variants = Object.values(b.skills).filter((s) => s.element !== 'None' && archetypes.has(s.archetype));
+  const elements = new Set(variants.map((s) => s.element));
+  for (const s of variants) {
     const baseId = s.id.split('.')[0]!;
     const baseSkill = b.skills[baseId];
     if (!baseSkill) issues.push({ level: 'error', where: `skills.${s.id}`, message: `no base skill "${baseId}"` });

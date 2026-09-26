@@ -106,6 +106,10 @@ function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: bo
       if (spec.on !== 'damaged') continue;
       if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
       if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
+      if (spec.when?.fromSide) {
+        const side = source.owner === e.sourceOwner ? 'ally' : 'enemy';
+        if (side !== spec.when.fromSide) continue;
+      }
       if (spec.consume) {
         if (e.data.pendingConsume) continue;
         e.data.pendingConsume = true;

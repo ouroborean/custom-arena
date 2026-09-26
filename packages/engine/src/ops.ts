@@ -20,8 +20,8 @@ import { dealDamage, heal, killUnit } from './damage.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, Selector, SkillDef, Value } from './defs.js';
 import { applyEffect, removeEffect, revealEffect } from './effects.js';
 import { canTarget } from './queries.js';
-import { sample } from './rng.js';
-import type { EffectInstance, Unit, UnitId } from './types.js';
+import { nextInt, pick, sample } from './rng.js';
+import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
 
 export interface Scope {
   actor: UnitId;
@@ -39,6 +39,8 @@ export interface Scope {
   direct: boolean;
   bypass: boolean;
   skill?: SkillDef | undefined;
+  /** Slot of the skill being used (for resetCooldown). */
+  slot?: number;
 }
 
 export type ScriptFn = (ctx: Ctx, scope: Scope, params: Record<string, unknown>) => void;
@@ -148,6 +150,23 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     const u = select(ctx, c.hpAbove.unit, sc)[0];
     return !!u && u.hp > c.hpAbove.value;
   }
+  if ('stackTotal' in c) {
+    const u = select(ctx, c.stackTotal.unit, sc)[0];
+    if (!u) return false;
+    const keys = new Set(c.stackTotal.effects);
+    const total = effectsOn(ctx.s, u.id).filter((e) => keys.has(effectKeyOf(e))).reduce((n, e) => n + e.stacks, 0);
+    return total > c.stackTotal.moreThan;
+  }
+  if ('kind' in c) {
+    const u = select(ctx, c.kind.unit, sc)[0];
+    return !!u && u.kind === c.kind.is;
+  }
+  if ('check' in c) {
+    const u = select(ctx, c.check.unit, sc)[0];
+    const named = ctx.c.conditions[c.check.cond];
+    if (!named) throw new Error(`Unknown condition ${c.check.cond}`);
+    return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
+  }
   if ('any' in c) return select(ctx, c.any.in, sc).some((u) => withIt(sc, u.id, () => evalCond(ctx, c.any.cond, sc)));
   if ('all' in c) return select(ctx, c.all.in, sc).every((u) => withIt(sc, u.id, () => evalCond(ctx, c.all.cond, sc)));
   if ('and' in c) return c.and.every((x) => evalCond(ctx, x, sc));
@@ -238,6 +257,41 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'signal':
       broadcastSignal(ctx, op.name, actor);
       return;
+    case 'random': {
+      if (op.options.length === 0) return;
+      runOps(ctx, op.options[nextInt(ctx.s.rng, op.options.length)]!, sc);
+      return;
+    }
+    case 'convertEffects': {
+      const to = resolveEffectDef(ctx.c, op.to);
+      for (const e of ctx.s.effects.filter((x) => effectKeyOf(x) === op.from)) {
+        const bearer = unit(ctx, e.bearer);
+        removeEffect(ctx, e, 'removed');
+        applyEffect(ctx, {
+          def: to,
+          inline: false,
+          bearer,
+          source: actor,
+          sourceSkill: sc.skill,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+      }
+      return;
+    }
+    case 'gainEnergy': {
+      const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+      for (let i = 0; i < op.amount; i++) gained[pick(ctx.s.rng, COLORS)] += 1;
+      for (const c of COLORS) ctx.s.players[actor.owner].energy[c] += gained[c];
+      emit(ctx, { t: 'energyGained', player: actor.owner, gained }, actor.owner);
+      return;
+    }
+    case 'resetCooldown': {
+      const slot = sc.slot === undefined ? undefined : actor.skills[sc.slot];
+      if (slot) slot.cooldown = 0;
+      return;
+    }
     case 'if':
       runOps(ctx, evalCond(ctx, op.cond, sc) ? op.then : (op.else ?? []), sc);
       return;
@@ -403,12 +457,13 @@ export function enqueueTriggers(
   ctx: Ctx,
   bearer: UnitId,
   event: 'skillUsed' | 'turnStart' | 'turnEnd',
-  filter: { harmful?: boolean; eventSource?: UnitId; eventTarget?: UnitId } = {},
+  filter: { harmful?: boolean; strategic?: boolean; eventSource?: UnitId; eventTarget?: UnitId } = {},
 ): void {
   for (const e of effectsOn(ctx.s, bearer)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
       if (spec.on !== event || spec.intercept) continue;
       if (spec.when?.harmful !== undefined && spec.when.harmful !== filter.harmful) continue;
+      if (spec.when?.strategic !== undefined && spec.when.strategic !== filter.strategic) continue;
       ctx.triggerQueue.push({
         effect: e.id,
         spec,

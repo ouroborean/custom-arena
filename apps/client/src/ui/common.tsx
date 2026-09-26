@@ -164,6 +164,15 @@ const STATUS_CODES: Record<string, string> = {
   ring_of_fire: 'ROF',
   dragon_breath: 'ATK',
   cinder_burst: 'ATK',
+  // Poison
+  toxin: 'TOX',
+  prey: 'PRY',
+  shed_skin: 'SKN',
+  banewood_javelin: 'AIM',
+  snake_pit: 'PIT',
+  nine_plagues: 'CHN',
+  numbing_needle: 'NDL',
+  preymark: 'PMK',
 };
 
 function consonantCode(name: string): string {

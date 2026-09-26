@@ -70,7 +70,7 @@ export function applyCommand(content: ContentBundle, state: GameState, player: P
         actor: actor.id,
         slot: cmd.slot,
         // Single-target skills keep the declared target; AoE/self targets are recomputed at resolution.
-        targets: def.target === 'enemy' || def.target === 'ally' ? (tr.ok ? tr.targets : []) : [],
+        targets: def.target === 'enemy' || def.target === 'ally' || def.target === 'any' ? (tr.ok ? tr.targets : []) : [],
         cost: modifiedCost(ctx, actor, def),
       });
       break;

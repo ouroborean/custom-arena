@@ -59,6 +59,12 @@ export type Cond =
   | { hasFromArchetype: { unit: Selector; archetype: string } }
   | { hpAtMost: { unit: Selector; value: number } }
   | { hpAbove: { unit: Selector; value: number } }
+  /** Total stacks of the listed effects on the unit is more than `moreThan`. */
+  | { stackTotal: { unit: Selector; effects: string[]; moreThan: number } }
+  /** The unit is a character or a minion. */
+  | { kind: { unit: Selector; is: 'character' | 'minion' } }
+  /** A named condition from content (e.g. Poison's "prey"), evaluated with `it` = the unit. */
+  | { check: { cond: string; unit: Selector } }
   | { any: { in: Selector; cond: Cond } }
   | { all: { in: Selector; cond: Cond } }
   | { and: Cond[] }
@@ -104,6 +110,14 @@ export type Op =
   | { op: 'macro'; id: string }
   /** Broadcasts a named event that effects can react to (trigger `on: signal`). */
   | { op: 'signal'; name: string }
+  /** Runs one of the option lists, chosen at random. */
+  | { op: 'random'; options: Op[][] }
+  /** Every instance of `from` in the battle becomes `to` (same bearer, stacks, duration). */
+  | { op: 'convertEffects'; from: string; to: string }
+  /** The actor's player gains random-colored energy. */
+  | { op: 'gainEnergy'; amount: number }
+  /** The skill being used comes off cooldown. */
+  | { op: 'resetCooldown' }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
@@ -152,8 +166,19 @@ export interface TriggerSpec {
   on: TriggerEvent;
   /** For `on: signal`: which signal. */
   signal?: string;
-  /** `side`: for signals, whose side sent it relative to the bearer. */
-  when?: { direct?: boolean; harmful?: boolean; byEnemy?: boolean; side?: 'ally' | 'enemy' };
+  /**
+   * - side: for signals, whose side sent it relative to the bearer.
+   * - fromSide: for damaged, the damager's side relative to the effect's applier.
+   * - strategic: for skillUsed, only Strategic (true) or non-Strategic (false) skills.
+   */
+  when?: {
+    direct?: boolean;
+    harmful?: boolean;
+    byEnemy?: boolean;
+    side?: 'ally' | 'enemy';
+    fromSide?: 'ally' | 'enemy';
+    strategic?: boolean;
+  };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
   do?: Op[];
@@ -169,8 +194,12 @@ export interface EffectDef {
   kind: EffectKind;
   element?: string;
   description?: string;
-  /** independent (default): each application is its own instance. unique: one per bearer, reapplying refreshes. */
-  stacking?: 'independent' | 'unique';
+  /**
+   * - independent (default): each application is its own instance.
+   * - unique: one per bearer; reapplying refreshes it.
+   * - merge: one per bearer per applying side; reapplying adds stacks and refreshes (Toxin).
+   */
+  stacking?: 'independent' | 'unique' | 'merge';
   /** hidden: invisible to the opponent of the applier. hiddenTarget: visible, but its remembered targets aren't. */
   visibility?: 'public' | 'hidden' | 'hiddenTarget';
   /** Damage-absorbing pool stored in the instance's value. */
@@ -187,7 +216,7 @@ export interface EffectDef {
 
 // ---------------------------------------------------------------- skills, minions, classes
 
-export type TargetKind = 'self' | 'enemy' | 'ally' | 'allEnemies' | 'allAllies' | 'none';
+export type TargetKind = 'self' | 'enemy' | 'ally' | 'any' | 'allEnemies' | 'allAllies' | 'none';
 
 export type SkillTag =
   | 'Harmful'
@@ -242,6 +271,8 @@ export interface ContentBundle {
   classes: Record<string, ClassDef>;
   /** Reusable op lists, referenced by `{ op: macro }`. */
   macros: Record<string, Op[]>;
+  /** Named conditions, referenced by `{ check: { cond } }` (evaluated with `it` = the unit). */
+  conditions: Record<string, Cond>;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

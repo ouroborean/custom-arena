@@ -52,12 +52,15 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   const stacks = a.stacks ?? 1;
   const value = a.value ?? 0;
 
-  if (def.stacking === 'unique') {
-    const existing = effectsOn(ctx.s, bearer.id).find((e) => effectKey(e) === def.id);
+  if (def.stacking === 'unique' || def.stacking === 'merge') {
+    const merge = def.stacking === 'merge';
+    const existing = effectsOn(ctx.s, bearer.id).find(
+      (e) => effectKey(e) === def.id && (!merge || e.sourceOwner === source.owner),
+    );
     if (existing) {
       existing.duration =
         existing.duration === null || duration === null ? null : Math.max(existing.duration, duration);
-      existing.stacks = Math.max(existing.stacks, stacks);
+      existing.stacks = merge ? existing.stacks + stacks : Math.max(existing.stacks, stacks);
       existing.value = Math.max(existing.value, value);
       existing.source = source.id;
       existing.sourceOwner = source.owner;
