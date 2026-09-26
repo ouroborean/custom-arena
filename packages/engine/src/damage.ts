@@ -12,6 +12,7 @@ import {
   damageDealtBonus,
   damageTakenBonus,
   hasNoArmorOrShield,
+  invulnerableToSource,
   modifiedHealing,
   modsOn,
 } from './queries.js';
@@ -34,6 +35,10 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   if (!target.alive) return 0;
   const enemy = isEnemy(source, target);
 
+  if (enemy && !a.bypass && invulnerableToSource(ctx, source, target)) {
+    emit(ctx, { t: 'damageBlocked', source: source.id, target: target.id, reason: 'invulnerable to that source' });
+    return 0;
+  }
   if (enemy && a.direct && !canTarget(ctx, source, target, a.bypass)) {
     emit(ctx, { t: 'damageBlocked', source: source.id, target: target.id, reason: 'untargetable' });
     return 0;

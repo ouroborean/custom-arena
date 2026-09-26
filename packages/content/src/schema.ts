@@ -39,13 +39,15 @@ export const costSchema: z.ZodType<Cost> = z.union([
   }),
 ]) as z.ZodType<Cost>;
 
-export const durationSchema: z.ZodType<DurationSpec> = z.union([
-  z.literal('permanent'),
-  z.strictObject({ thisTurn: z.literal(true) }),
-  z.strictObject({ enemyTurns: z.number().int().min(1) }),
-  z.strictObject({ ownTurns: z.number().int().min(1) }),
-  z.strictObject({ raw: z.number().int().min(1) }),
-]);
+export const durationSchema: z.ZodType<DurationSpec> = z.lazy(() =>
+  z.union([
+    z.literal('permanent'),
+    z.strictObject({ thisTurn: z.literal(true) }),
+    z.strictObject({ enemyTurns: z.union([z.number().int().min(1), valueSchema]) }),
+    z.strictObject({ ownTurns: z.union([z.number().int().min(1), valueSchema]) }),
+    z.strictObject({ raw: z.number().int().min(1) }),
+  ]),
+) as z.ZodType<DurationSpec>;
 
 const namedSelector = z.enum([
   'actor',
@@ -62,6 +64,7 @@ const namedSelector = z.enum([
   'lastDamaged',
   'summoner',
   'eventTargets',
+  'allUnits',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -82,6 +85,10 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     }),
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
+    z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
+    z.strictObject({
+      compare: z.strictObject({ value: valueSchema, atLeast: z.number().optional(), atMost: z.number().optional() }),
+    }),
     z.strictObject({ any: z.strictObject({ in: selectorSchema, cond: condSchema }) }),
     z.strictObject({ all: z.strictObject({ in: selectorSchema, cond: condSchema }) }),
     z.strictObject({ and: z.array(condSchema) }),
@@ -102,6 +109,8 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ stacks: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ countOf: selectorSchema }),
+    z.strictObject({ missingHp: selectorSchema }),
+    z.strictObject({ div: z.tuple([valueSchema, valueSchema]) }),
     z.strictObject({ sum: z.array(valueSchema) }),
     z.strictObject({ mul: z.array(valueSchema) }),
     z.strictObject({ if: condSchema, then: valueSchema, else: valueSchema }),
@@ -124,7 +133,11 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional() }),
   z.strictObject({ mod: z.literal('untargetable'), by: z.enum(['enemies', 'allies']), bypassable: z.boolean() }),
   z.strictObject({ mod: z.literal('blockIndirectDamage') }),
-  z.strictObject({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional() }),
+  z.strictObject({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional() }),
+  z.strictObject({ mod: z.literal('noCostReduction') }),
+  z.strictObject({ mod: z.literal('cannotApplyBuffs') }),
+  z.strictObject({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),
+  z.strictObject({ mod: z.literal('invulnerableTo'), sourceHas: z.array(z.string()).min(1) }),
   z.strictObject({ mod: z.literal('immuneTo'), kind: effectKind }),
   z.strictObject({ mod: z.literal('negateNext'), effect: z.string() }),
   z.strictObject({ mod: z.literal('forceTarget') }),

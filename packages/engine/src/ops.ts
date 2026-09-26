@@ -17,7 +17,7 @@ import {
   type PendingTrigger,
 } from './ctx.js';
 import { dealDamage, heal, killUnit } from './damage.js';
-import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, Selector, SkillDef, Value } from './defs.js';
+import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, Value } from './defs.js';
 import { applyEffect, removeEffect, revealEffect } from './effects.js';
 import { canTarget } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
@@ -91,6 +91,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return one(ctx, actor.summonedBy);
     case 'eventTargets':
       return (sc.eventTargets ?? []).flatMap((id) => one(ctx, id)).filter((u) => u.alive);
+    case 'allUnits':
+      return ctx.s.units.filter((u) => u.alive);
   }
 }
 
@@ -135,6 +137,14 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
   }
   if ('countOf' in v) return select(ctx, v.countOf, sc).length;
+  if ('missingHp' in v) {
+    const u = select(ctx, v.missingHp, sc)[0];
+    return u ? u.maxHp - u.hp : 0;
+  }
+  if ('div' in v) {
+    const d = evalValue(ctx, v.div[1], sc);
+    return d === 0 ? 0 : Math.floor(evalValue(ctx, v.div[0], sc) / d);
+  }
   if ('sum' in v) return v.sum.reduce<number>((n, x) => n + evalValue(ctx, x, sc), 0);
   if ('mul' in v) return v.mul.reduce<number>((n, x) => n * evalValue(ctx, x, sc), 1);
   return evalCond(ctx, v.if, sc) ? evalValue(ctx, v.then, sc) : evalValue(ctx, v.else, sc);
@@ -174,6 +184,16 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (!named) throw new Error(`Unknown condition ${c.check.cond}`);
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
+  if ('hasKind' in c) {
+    const u = select(ctx, c.hasKind.unit, sc)[0];
+    return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).kind === c.hasKind.kind);
+  }
+  if ('compare' in c) {
+    const n = evalValue(ctx, c.compare.value, sc);
+    if (c.compare.atLeast !== undefined && n < c.compare.atLeast) return false;
+    if (c.compare.atMost !== undefined && n > c.compare.atMost) return false;
+    return true;
+  }
   if ('any' in c) return select(ctx, c.any.in, sc).some((u) => withIt(sc, u.id, () => evalCond(ctx, c.any.cond, sc)));
   if ('all' in c) return select(ctx, c.all.in, sc).every((u) => withIt(sc, u.id, () => evalCond(ctx, c.all.cond, sc)));
   if ('and' in c) return c.and.every((x) => evalCond(ctx, x, sc));
@@ -184,6 +204,17 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
 }
 
 // ---------------------------------------------------------------- ops
+
+/** Evaluates turn counts given as Values; null means "0 or fewer turns: apply nothing". */
+function resolveDuration(ctx: Ctx, d: DurationSpec | undefined, sc: Scope): ResolvedDuration | undefined | null {
+  if (d === undefined || d === 'permanent' || 'thisTurn' in d || 'raw' in d) return d;
+  if ('enemyTurns' in d) {
+    const n = typeof d.enemyTurns === 'number' ? d.enemyTurns : evalValue(ctx, d.enemyTurns, sc);
+    return n > 0 ? { enemyTurns: n } : null;
+  }
+  const n = typeof d.ownTurns === 'number' ? d.ownTurns : evalValue(ctx, d.ownTurns, sc);
+  return n > 0 ? { ownTurns: n } : null;
+}
 
 export function runOps(ctx: Ctx, ops: readonly Op[], sc: Scope): void {
   for (const op of ops) {
@@ -223,6 +254,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const def = resolveEffectDef(ctx.c, op.effect);
       const remembered = op.remember ? select(ctx, op.remember, sc).map((u) => u.id) : [];
       const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return; // e.g. "1 turn per 15 missing health" with too little missing
       for (const t of select(ctx, op.to, sc)) {
         withIt(sc, t.id, () => {
           const stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
@@ -235,7 +268,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             sourceSkill: sc.skill,
             stacks,
             value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
-            duration: op.duration,
+            duration,
             targets: remembered,
             until: op.until,
             boundTo,
@@ -244,9 +277,12 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       }
       return;
     }
-    case 'summon':
-      for (let i = 0; i < (op.count ?? 1); i++) summonMinion(ctx, actor, op.minion, op.duration, sc.skill);
+    case 'summon': {
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return;
+      for (let i = 0; i < (op.count ?? 1); i++) summonMinion(ctx, actor, op.minion, duration, sc.skill);
       return;
+    }
     case 'kill':
       for (const t of select(ctx, op.to, sc)) killUnit(ctx, t);
       return;
@@ -344,7 +380,7 @@ function summonMinion(
   ctx: Ctx,
   summoner: Unit,
   minionId: string,
-  duration: DurationSpec | undefined,
+  duration: ResolvedDuration | undefined,
   skill: SkillDef | undefined,
 ): void {
   const def = ctx.c.minions[minionId];

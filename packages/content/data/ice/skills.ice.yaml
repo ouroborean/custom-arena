@@ -1,0 +1,534 @@
+# The 30 Ice variants, from "Custom Arena - Ice". Ids are "<base>.ice".
+# Themes: Shielding, Hindering, Oppression. "Frost debuffs" = Frostbitten, Chilled, Numb.
+# Durations: "for N turns" = enemyTurns N; "until the end of <their/user's> next turn" = ownTurns 1;
+# unstated = permanent (Q16).
+
+strike.ice:
+  archetype: Strike
+  element: Ice
+  name: Glacial Hammer
+  description: Deals 25 damage to target enemy and afflicts them with Frostbitten for 2 turns.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
+
+smash.ice:
+  archetype: Smash
+  element: Ice
+  name: Foot of the Mountain
+  description: Deals 10 damage to all enemies and Chills them for 2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+    - { op: apply, to: targets, effect: chilled, duration: { enemyTurns: 2 } }
+
+charge.ice:
+  archetype: Charge
+  element: Ice
+  name: Avalanche
+  description: Deals 15 damage to target enemy and Numbs them for 2 turns.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 2 } }
+
+riposte.ice:
+  archetype: Riposte
+  element: Ice
+  name: Frost Spines
+  description: >-
+    For 1 turn, the user will counter any Harmful skill used on them. If a skill is countered this
+    way, the user gains Frostborn for 3 turns. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frost_spines
+        name: Frost Spines
+        kind: Buff
+        element: Ice
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; each counter grants 3 turns of Frostborn.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: frostborn, duration: { enemyTurns: 3 } }
+
+rage.ice:
+  archetype: Rage
+  element: Ice
+  name: Absolute Zero
+  description: Any character with Swiftness loses all Swiftness and is Stunned for 1 turn.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: none
+  ops:
+    - op: forEach
+      in: allUnits
+      do:
+        - op: if
+          cond: { and: [{ kind: { unit: it, is: character } }, { has: { unit: it, effect: swiftness } }] }
+          then:
+            - { op: removeEffect, from: it, effect: swiftness }
+            - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
+
+shot.ice:
+  archetype: Shot
+  element: Ice
+  name: Icicle
+  description: Deals 20 damage to target enemy and Chills them for 1 turn.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 1 } }
+
+snipe.ice:
+  archetype: Snipe
+  element: Ice
+  name: Comet Shard
+  description: >-
+    The user deals 50 Piercing damage to target enemy on the following turn. The target of this
+    skill is invisible. Channeled. If the target is Chilled, this skill strikes instantly.
+  cost: AIr
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: chilled } }
+      then:
+        - { op: damage, to: primary, amount: 50, type: Piercing }
+      else:
+        - op: apply
+          to: actor
+          remember: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: comet_shard
+            name: Comet Shard (aiming)
+            kind: Neutral
+            element: Ice
+            visibility: hiddenTarget
+            interruptible: true
+            description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 50, type: Piercing }
+
+trap.ice:
+  archetype: Trap
+  element: Ice
+  name: Frost Snare
+  description: For 1 turn, if target enemy uses a Harmful skill, they will be Stunned for 2 turns. Invisible.
+  cost: IA
+  cooldown: 4
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frost_snare
+        name: Frost Snare
+        kind: Debuff
+        element: Ice
+        visibility: hidden
+        description: When the bearer uses a Harmful skill, they are Stunned for 2 turns.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 2 } }
+
+maneuver.ice:
+  archetype: Maneuver
+  element: Ice
+  name: Glissade
+  description: The user is Stunned, Invulnerable and Immune until the end of their next turn.
+  cost: I
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    # Stun first: Immune would otherwise block the user's own Stun.
+    - { op: apply, to: actor, effect: stun, duration: { ownTurns: 1 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { ownTurns: 1 } }
+    - { op: apply, to: actor, effect: immune, duration: { ownTurns: 1 } }
+
+companion.ice:
+  archetype: Companion
+  element: Ice
+  name: Ice Bear
+  description: 'Summons an Ice Bear minion (40 HP). Frostfang (S): 25 damage to target enemy and Chills them for 1 turn.'
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: ice_bear }
+
+bolt.ice:
+  archetype: Bolt
+  element: Ice
+  name: Icelance
+  description: Deals 15 damage to target enemy and Numbs them for 1 turn. Against targets with no Buffs, deals 10 additional damage.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { hasKind: { unit: it, kind: Buff } }, then: 15, else: 25 } }
+    - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 1 } }
+
+blast.ice:
+  archetype: Blast
+  element: Ice
+  name: Glacial Burst
+  description: Deals 30 damage to all enemies. Enemies without Buffs take 10 additional damage.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: { if: { hasKind: { unit: it, kind: Buff } }, then: 30, else: 40 } }
+
+consume.ice:
+  archetype: Consume
+  element: Ice
+  name: Siphon Frost
+  description: Deals 10 damage to target enemy. If the target has two or more Frost debuffs, the user gains Frostborn for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { compare: { value: { count: { effects: [frostbitten, chilled, numb], in: primary } }, atLeast: 2 } }
+      then: [{ op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 } }]
+
+summon.ice:
+  archetype: Summon
+  element: Ice
+  name: Icy Familiar
+  description: >-
+    Summons an Icy Familiar minion (35 HP) for 3 turns. Chilling Touch (I): 15 damage and Chilled
+    for 2 turns. Frosty Breath (r): target enemy is Chilled through the next turn.
+  cost: Ir
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: icy_familiar, duration: { enemyTurns: 3 } }
+
+channel.ice:
+  archetype: Channel
+  element: Ice
+  name: Blizzard
+  description: >-
+    At the end of each of the user's turns, deals 10 damage to target enemy and afflicts them with
+    Frostbitten for 1 turn. If the user is Frostborn, this affects all enemies. Channeled.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      effect:
+        id: blizzard
+        name: Blizzard
+        kind: Neutral
+        element: Ice
+        interruptible: true
+        description: Each end of the user's turn, 10 damage and 1 turn of Frostbitten to the target (all enemies if Frostborn). Lasts until interrupted.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: actor, effect: frostborn } }
+                then:
+                  - { op: damage, to: allEnemies, amount: 10 }
+                  - { op: apply, to: lastDamaged, effect: frostbitten, duration: { enemyTurns: 1 } }
+                else:
+                  - { op: damage, to: effectTargets, amount: 10 }
+                  - { op: apply, to: lastDamaged, effect: frostbitten, duration: { enemyTurns: 1 } }
+
+stab.ice:
+  archetype: Stab
+  element: Ice
+  name: Piercing Cold
+  description: Deals 10 damage to target enemy and afflicts them with Frostbitten until the end of the user's next turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: frostbitten, duration: { ownTurns: 1 } }
+
+ravage.ice:
+  archetype: Ravage
+  element: Ice
+  name: Shardstorm
+  description: Deals 25 Piercing damage to all Frostbitten enemies. If the user is Frostborn, this skill deals 10 additional damage.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: frostbitten } }
+          then:
+            - op: damage
+              to: it
+              type: Piercing
+              amount: { if: { has: { unit: actor, effect: frostborn } }, then: 35, else: 25 }
+
+mislead.ice:
+  archetype: Mislead
+  element: Ice
+  name: Iceform
+  description: The user becomes Frostborn for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 1 } }
+
+stun.ice:
+  archetype: Stun
+  element: Ice
+  name: Flash Freeze
+  description: Target enemy is afflicted with Frostbitten for 2 turns.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
+
+dance.ice:
+  archetype: Dance
+  element: Ice
+  name: Boreal Dance
+  description: Deals 10 damage to each enemy for each Frost debuff that enemy has.
+  cost: AI
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { compare: { value: { count: { effects: [frostbitten, chilled, numb], in: it } }, atLeast: 1 } }
+          then:
+            - op: damage
+              to: it
+              amount: { mul: [10, { count: { effects: [frostbitten, chilled, numb], in: it } }] }
+
+heal.ice:
+  archetype: Heal
+  element: Ice
+  name: Freeze Wound
+  description: Heals target ally for 10 health and grants them 2 Armor for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: armor, stacks: 2, duration: { enemyTurns: 1 } }
+
+bless.ice:
+  archetype: Bless
+  element: Ice
+  name: Boreal Aegis
+  description: Target ally gains Frostborn until the end of their next turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: frostborn, duration: { ownTurns: 1 } }
+
+curse.ice:
+  archetype: Curse
+  element: Ice
+  name: Hypothermia
+  description: Target enemy is Frostbitten, Chilled, and Numb for 2 turns.
+  cost: IW
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 2 } }
+
+smite.ice:
+  archetype: Smite
+  element: Ice
+  name: Chilling Grasp
+  description: Deals 20 damage to target enemy and Numbs them for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 1 } }
+
+prayer.ice:
+  archetype: Prayer
+  element: Ice
+  name: Northern Solace
+  description: Heals all allies for 10 health and grants them 30 Shield and 2 Armor for 1 turn.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 10 }
+    - { op: apply, to: targets, effect: shield, value: 30, duration: { enemyTurns: 1 } }
+    - { op: apply, to: targets, effect: armor, stacks: 2, duration: { enemyTurns: 1 } }
+
+cleave.ice:
+  archetype: Cleave
+  element: Ice
+  name: Glacial Sweep
+  description: Deals 25 damage to target enemy. If that enemy is affected by a Frost debuff, this skill also hits an additional random enemy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: frosted, value: { count: { effects: [frostbitten, chilled, numb], in: primary } } }
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { compare: { value: { var: frosted }, atLeast: 1 } }
+      then: [{ op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 25 }]
+
+shout.ice:
+  archetype: Shout
+  element: Ice
+  name: Arctic Roar
+  description: The enemy team is afflicted with Frostbitten until the end of the user's next turn.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: frostbitten, duration: { ownTurns: 1 } }
+
+withstand.ice:
+  archetype: Withstand
+  element: Ice
+  name: Permafrost
+  description: The user gains 20 Shield for 2 turns. If the user is Frostborn, this Shield increases to 35.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect: shield
+      value: { if: { has: { unit: actor, effect: frostborn } }, then: 35, else: 20 }
+      duration: { enemyTurns: 2 }
+
+taunt.ice:
+  archetype: Taunt
+  element: Ice
+  name: Cold Shoulder
+  description: Target enemy is Frostbitten and Taunted for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
+
+titan.ice:
+  archetype: Titan
+  element: Ice
+  name: Frost Giant
+  description: The user gains Frostborn for 1 turn for each 15 health they are missing.
+  cost: Sr
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect: frostborn
+      duration: { enemyTurns: { div: [{ missingHp: actor }, 15] } }
+
+# ---------------------------------------------------------------- minion skills
+
+ice_bear_frostfang:
+  archetype: Minion
+  element: Ice
+  name: Frostfang
+  description: Deals 25 damage to target enemy and Chills them for 1 turn.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 1 } }
+
+icy_familiar_touch:
+  archetype: Minion
+  element: Ice
+  name: Chilling Touch
+  description: Deals 15 damage to target enemy and Chills them for 2 turns.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 2 } }
+
+icy_familiar_breath:
+  archetype: Minion
+  element: Ice
+  name: Frosty Breath
+  description: Target enemy is Chilled until the end of the next turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 1 } }

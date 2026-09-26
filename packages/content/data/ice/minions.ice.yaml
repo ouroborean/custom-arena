@@ -1,0 +1,11 @@
+# Ice minions (HP from the sheet).
+
+ice_bear:
+  name: Ice Bear
+  hp: 40
+  skills: [ice_bear_frostfang]
+
+icy_familiar:
+  name: Icy Familiar
+  hp: 35
+  skills: [icy_familiar_touch, icy_familiar_breath]

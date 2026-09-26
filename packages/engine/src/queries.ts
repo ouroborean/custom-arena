@@ -45,6 +45,8 @@ export function skillClass(def: SkillDef): SkillClass {
 export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
   let delta = 0;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'costGeneric')) delta += scaled(spec.amount, spec.perStack, effect);
+  // Chilled: costs can't go down.
+  if (delta < 0 && modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0) delta = 0;
   return applyGenericModifier(def.cost, delta);
 }
 
@@ -62,16 +64,28 @@ export function cannotUseReason(ctx: Ctx, u: Unit, def: SkillDef): string | null
   if (!u.alive) return 'dead';
   if (def.tags.includes('UsableWhileStunned') || def.tags.includes('Unstunnable')) return null;
   const cls = skillClass(def);
+  const harmful = def.tags.includes('Harmful');
   for (const { spec } of modsOn(ctx.s, ctx.c, u.id, 'cannotUseSkills')) {
-    if (!spec.classes || spec.classes.includes(cls)) return 'stunned';
+    if (spec.classes && !spec.classes.includes(cls)) continue;
+    if (spec.harmful !== undefined && spec.harmful !== harmful) continue;
+    return 'stunned';
   }
   return null;
+}
+
+/** Frostborn-style: does `target` ignore `source` because the source carries one of the listed effects? */
+export function invulnerableToSource(ctx: Ctx, source: Unit, target: Unit): boolean {
+  for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'invulnerableTo')) {
+    if (spec.sourceHas.some((k) => effectsOn(ctx.s, source.id).some((e) => (e.inline ? e.inline.id : e.defId) === k))) return true;
+  }
+  return false;
 }
 
 /** Can `source` pick `target` with a skill (single or AoE)? */
 export function canTarget(ctx: Ctx, source: Unit, target: Unit, bypass: boolean): boolean {
   if (!target.alive) return false;
   const enemy = isEnemy(source, target);
+  if (enemy && !bypass && invulnerableToSource(ctx, source, target)) return false;
   for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'untargetable')) {
     if (bypass && spec.bypassable) continue;
     if (spec.by === 'enemies' && enemy) return false;

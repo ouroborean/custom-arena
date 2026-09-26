@@ -1,7 +1,7 @@
 // Effect lifecycle: applying, refreshing, removing, revealing and interrupting effect instances.
 
 import { effectDef, effectKey, effectsOn, emit, nextId, skillDef, type Ctx } from './ctx.js';
-import type { DurationSpec, EffectDef, SkillDef, UntilSpec } from './defs.js';
+import type { EffectDef, ResolvedDuration, SkillDef, UntilSpec } from './defs.js';
 import { compileDuration } from './duration.js';
 import { cannotUseReason, modsOn } from './queries.js';
 import type { EffectInstance, RemoveReason, Unit, UnitId } from './types.js';
@@ -15,7 +15,7 @@ export interface ApplyArgs {
   sourceSkill?: SkillDef | undefined;
   stacks?: number;
   value?: number;
-  duration?: DurationSpec | undefined;
+  duration?: ResolvedDuration | undefined;
   targets?: UnitId[];
   until?: UntilSpec | undefined;
   /** The effect ends when this unit leaves the board. */
@@ -31,6 +31,21 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   if (!bearer.alive) return null;
   const hidden = def.visibility === 'hidden';
   const privateTo = hidden ? source.owner : undefined;
+
+  // Numb: the source can't apply Buffs.
+  if (def.kind === 'Buff' && modsOn(ctx.s, ctx.c, source.id, 'cannotApplyBuffs').length > 0) {
+    emit(ctx, { t: 'effectBlocked', defId: def.id, bearer: bearer.id, reason: `${source.name} can't apply buffs` }, privateTo);
+    return null;
+  }
+  // Frostborn: immune to Debuffs from sources carrying certain effects.
+  if (def.kind === 'Debuff') {
+    for (const { spec } of modsOn(ctx.s, ctx.c, bearer.id, 'immuneToDebuffsFrom')) {
+      if (spec.sourceHas.some((k) => effectsOn(ctx.s, source.id).some((e) => effectKey(e) === k))) {
+        emit(ctx, { t: 'effectBlocked', defId: def.id, bearer: bearer.id, reason: 'immune to that source' }, privateTo);
+        return null;
+      }
+    }
+  }
 
   // Immune (and similar): cannot receive effects of this kind.
   if (modsOn(ctx.s, ctx.c, bearer.id, 'immuneTo').some(({ spec }) => spec.kind === def.kind)) {

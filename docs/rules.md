@@ -263,3 +263,44 @@ Content: `packages/content/data/holy/`. Statuses: **Anointed**, **Condemned** (p
 - Lowest Holy skills: Angel's Grace about 37%, Cloister about 40%, Guardian Strike about 41%, Retribution and Saving Grace about 42%.
 - The greedy bot undervalues setup (Anoint → payoff) and defensive skills, so Holy's support side likely plays better in human hands than these numbers suggest.
 
+---
+
+## 14. Ice
+
+Content: `packages/content/data/ice/`. Statuses: **Frostbitten**, **Chilled**, **Numb** (the three "Frost debuffs"), and **Frostborn**.
+
+### 14.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Frostbitten** | Can't use **Harmful Strategic** skills. Damaging skills and Helpful skills are still allowed. |
+| **Chilled** | Skill costs can't be reduced (Focus and other cost reductions stop working; increases still apply). |
+| **Numb** | Can't apply Buffs to anyone, **including themselves**. |
+| **Frostborn** | Immune to Debuffs applied by units that are Numb or Chilled. Units that are Frostbitten can't target it and can't damage it at all, directly or indirectly. Bypass ignores the latter. Implemented as two generic modifiers, `immuneToDebuffsFrom` and `invulnerableTo`, keyed on what the **source** carries. |
+| **"No Buffs"** | "Targets with no Buffs" means the target carries no effect of kind Buff. |
+
+### 14.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Absolute Zero | Hits every **character** on both sides with Swiftness: removes all their Swiftness, then Stuns them for 1 turn. |
+| Comet Shard | Against a Chilled target it deals its 50 Piercing immediately, not delayed or channeled. Otherwise it behaves like Snipe. |
+| Frost Snare | Fires once. The 2-turn Stun covers the target's next 2 turns. |
+| Glissade | Applies the Stun first, then Invulnerable and Immune, so Immune doesn't block the user's own Stun. All last through the user's next turn, so the user can't act next turn. |
+| Blizzard | No duration is given, so it channels until interrupted. It hits the remembered target, or all enemies while the user is Frostborn. Tick damage is indirect. |
+| Shardstorm | Only hits enemies that are Frostbitten; it's usable even if none are. |
+| Boreal Dance | 10 damage per Frost debuff on each enemy. Enemies with none aren't hit. |
+| Glacial Sweep | If the primary target had a Frost debuff **before** the hit, a random other enemy also takes 25. |
+| Frost Giant | Frostborn for (missing HP ÷ 15, rounded down) turns. Under 15 missing HP, nothing happens. |
+| Ice Bear, Icy Familiar skills | No cooldowns are given, so none. Frosty Breath's Chill covers the enemy's next turn. |
+
+### 14.3 Balance notes (greedy-bot simulation, 3,000 matches, five element pools)
+
+- By character element: Poison 52.3%, Fire 50.9%, None 49.5%, Ice 49.1%, Holy 46.1%.
+- **Glacial Burst** is about 72%, the clear Ice outlier. It deals 30 to all enemies, or 40 to any without a Buff, which early on is nearly everyone; base Blast deals 35. Candidate fixes: raise its cost, or make the bonus +5.
+- Other strong Ice skills: Ice Bear about 60%. Weakest: Cold Shoulder about 37%, Boreal Dance about 38%, Flash Freeze about 40%.
+
+### 14.4 Engine fix found while adding Ice
+
+When a match ended partway through the end-of-turn expiry pass, the remaining expired effects were left on the board with 0 turns remaining. Expired effects are now always cleared; once the match is over, no further expiry payloads run.
+

@@ -16,6 +16,14 @@ import type { Cost, DamageType } from './types.js';
 export type DurationSpec =
   | 'permanent'
   | { thisTurn: true }
+  | { enemyTurns: number | Value }
+  | { ownTurns: number | Value }
+  | { raw: number };
+
+/** A DurationSpec whose turn counts have been evaluated. */
+export type ResolvedDuration =
+  | 'permanent'
+  | { thisTurn: true }
   | { enemyTurns: number }
   | { ownTurns: number }
   | { raw: number };
@@ -36,7 +44,8 @@ export type NamedSelector =
   | 'it' // the current unit inside forEach / any / all
   | 'lastDamaged' // units damaged by the most recent damage op
   | 'summoner' // the unit that summoned the actor (for minions)
-  | 'eventTargets'; // for skillUsed/skillResolved triggers: the targets of the triggering skill
+  | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
+  | 'allUnits'; // every living unit on both sides
 
 export type Selector =
   | NamedSelector
@@ -54,6 +63,10 @@ export type Value =
   | { count: { effects: string[]; in?: Selector } }
   /** Number of units the selector yields (e.g. lastDamaged). */
   | { countOf: Selector }
+  /** Max HP minus current HP of the (first) selected unit. */
+  | { missingHp: Selector }
+  /** Integer division, rounded down. */
+  | { div: [Value, Value] }
   | { sum: Value[] }
   | { mul: Value[] }
   | { if: Cond; then: Value; else: Value };
@@ -69,6 +82,10 @@ export type Cond =
   | { kind: { unit: Selector; is: 'character' | 'minion' } }
   /** A named condition from content (e.g. Poison's "prey"), evaluated with `it` = the unit. */
   | { check: { cond: string; unit: Selector } }
+  /** The unit carries at least one effect of this kind (e.g. "targets with no Buffs"). */
+  | { hasKind: { unit: Selector; kind: EffectKind } }
+  /** A numeric comparison. */
+  | { compare: { value: Value; atLeast?: number; atMost?: number } }
   | { any: { in: Selector; cond: Cond } }
   | { all: { in: Selector; cond: Cond } }
   | { and: Cond[] }
@@ -155,7 +172,16 @@ export type ModifierSpec =
   | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean }
   | { mod: 'untargetable'; by: 'enemies' | 'allies'; bypassable: boolean }
   | { mod: 'blockIndirectDamage' }
-  | { mod: 'cannotUseSkills'; classes?: SkillClass[] }
+  /** Stun. `classes` limits it to Strategic / non-Strategic skills; `harmful` to Harmful (true) or Helpful (false) ones. */
+  | { mod: 'cannotUseSkills'; classes?: SkillClass[]; harmful?: boolean }
+  /** The bearer's costs can't be reduced (Chilled). */
+  | { mod: 'noCostReduction' }
+  /** The bearer can't apply Buffs, to anyone (Numb). */
+  | { mod: 'cannotApplyBuffs' }
+  /** The bearer can't receive Debuffs from units carrying any of these effects (Frostborn). */
+  | { mod: 'immuneToDebuffsFrom'; sourceHas: string[] }
+  /** Units carrying any of these effects can't target or damage the bearer (Frostborn); Bypass ignores it. */
+  | { mod: 'invulnerableTo'; sourceHas: string[] }
   | { mod: 'immuneTo'; kind: EffectKind }
   | { mod: 'negateNext'; effect: string }
   | { mod: 'forceTarget' }

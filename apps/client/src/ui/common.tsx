@@ -184,6 +184,15 @@ const STATUS_CODES: Record<string, string> = {
   consecration: 'CHN',
   martyrdom: 'MTR',
   saving_grace: 'SVG',
+  // Ice
+  frostbitten: 'FRB',
+  chilled: 'CHL',
+  numb: 'NMB',
+  frostborn: 'FRO',
+  frost_spines: 'RIP',
+  comet_shard: 'AIM',
+  frost_snare: 'SNR',
+  blizzard: 'CHN',
 };
 
 function consonantCode(name: string): string {

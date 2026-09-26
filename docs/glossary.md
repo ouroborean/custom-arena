@@ -13,6 +13,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Buff / Debuff** | Effect kinds. Immune blocks Debuffs. |
 | **Bypass** | Ignores Invulnerable and Isolated. |
 | **Channeled** | An ongoing skill effect on its user. It ends if the user is stunned (for that skill's class), dies, or uses another skill. |
+| **Chilled** | Ice: skill costs can't be reduced. |
 | **Character** | A player's hero unit. Generates energy; its death counts toward elimination. |
 | **Condemned** | Holy: the next skill the bearer uses gives them a random Weakness, Vulnerable or Confusion, then it ends. |
 | **Cooldown (CD)** | Number of the owner's own turns a skill stays locked after use. |
@@ -20,6 +21,9 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
 | **Duration** | Internal count of turns; drops by 1 at the end of every turn. See rules.md §8. |
 | **Explode / Explosion** | Fire: 10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets. |
+| **Frost debuff** | Ice: Frostbitten, Chilled or Numb. |
+| **Frostbitten** | Ice: can't use Harmful Strategic skills. |
+| **Frostborn** | Ice: immune to Debuffs from Numb or Chilled units; Frostbitten units can't target or damage it. |
 | **GEN / r / random** | A wildcard cost payable with any color. |
 | **Ghosted** | The bearer's skills Bypass. |
 | **Harmful / Helpful** | Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful. |
@@ -31,6 +35,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Minion** | A summoned unit. Has HP and possibly skills, generates no energy, and pays skill costs from its owner's pool. |
 | **"New" skill** | A skill actually used this turn (queued or triggered), as opposed to an ongoing effect ticking. |
 | **Normal** | The default damage type. Reduced by Armor, absorbed by Shield. |
+| **Numb** | Ice: can't apply Buffs, even to themselves. |
 | **Once per round** | Once per **match**. |
 | **Piercing** | Damage type that ignores Armor but is absorbed by Shield. |
 | **Prey** | Poison: a unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 HP, or marked as Prey. Computed, not applied. |

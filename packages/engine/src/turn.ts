@@ -85,7 +85,8 @@ export function endTurn(ctx: Ctx): void {
     if (!s.effects.includes(e)) continue;
     const onExpire = effectDef(ctx.c, e).onExpire;
     removeEffect(ctx, e, 'expired');
-    if (onExpire && unit(ctx, e.bearer).alive) {
+    // Once the match is over, finish clearing expired effects but run no more payloads.
+    if (onExpire && unit(ctx, e.bearer).alive && s.phase !== 'finished') {
       const sc: Scope = {
         actor: e.source,
         targets: e.targets,
@@ -101,8 +102,9 @@ export function endTurn(ctx: Ctx): void {
       if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
       runOps(ctx, onExpire, sc);
     }
-    if (checkGameOver(ctx)) return;
+    checkGameOver(ctx);
   }
+  if (s.phase === 'finished') return;
   flushTriggers(ctx);
   if (checkGameOver(ctx)) return;
 
