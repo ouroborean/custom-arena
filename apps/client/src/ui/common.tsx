@@ -240,6 +240,16 @@ const STATUS_CODES: Record<string, string> = {
   vortex: 'CHN',
   wind_step: 'WST',
   feathermark: 'FTH',
+  // Shadow (+ base Sleep)
+  sleep: 'SLP',
+  stealth: 'STH',
+  blinded: 'BLD',
+  long_shadow: 'LSH',
+  mirage_blade: 'RIP',
+  dream_seeker: 'AIM',
+  dream_chains: 'DRM',
+  nightsong: 'CHN',
+  illusory_lure: 'LUR',
 };
 
 function consonantCode(name: string): string {

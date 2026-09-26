@@ -43,6 +43,7 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
     case 'energyGained':
       return `Player ${e.player + 1} gains ${energyText(e.gained)}`;
     case 'skillUsed': {
+      if (!e.skill) return 'A Stealthed unit acted';
       const cost = content.skills[e.skill] ? ` [${formatCost(content.skills[e.skill]!.cost)}]` : '';
       const on = e.targets.length ? ` on ${e.targets.map(name).join(', ')}` : '';
       return `${name(e.actor)} uses ${skill(e.skill)}${cost}${on}`;

@@ -511,3 +511,54 @@ Content: `packages/content/data/wind/`. Themes are Reactivity, Immunity and Spee
 - Ops: `removeKind`, and `setFlag` with `value` (to clear a flag).
 - The `hasSkill` condition.
 - The base `stun_s` status.
+
+## 19. Shadow
+
+Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception and Interference. Statuses: **Stealth** and **Blinded**. **Sleep** is a new base status, because Holy's Chastise is the same status (GDD §5.3). Ghosted and Isolated were already base statuses.
+
+### 19.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Stealth** | Untargetable by enemies (Bypass doesn't pierce it). Skills grant it for 2 turns, i.e. through the enemy's second turn. It ends once the bearer uses a skill that isn't Stealthy, **after** that skill resolves (whether it resolves or is countered), so "if the user is Stealthed" checks in that skill still see it. It uses the new effect flag `stealth`. |
+| **Stealthy** | A skill tag. Using a Stealthy skill (or any skill under Long Shadow's buff) keeps Stealth and adds 1 turn to it. A skill that grants Stealth always grants a fresh one (the `gain_stealth` macro), so non-Stealthy Stealth-granting skills don't cancel their own Stealth. |
+| **R6 visibility** | When a Stealthed unit uses a Stealthy skill, the opponent's `skillUsed` event is redacted to "A Stealthed unit acted", with no actor, skill or targets. **Known gap:** that skill's damage and effect events, and the enemy skill tile's cooldown, still reveal the actor. Full redaction belongs with the server work (Phase 5). |
+| **Blinded** | When a Blinded unit's single-target skill (enemy, ally or any) resolves, its primary target is re-rolled uniformly among **all** legal targets for that skill. That includes the one they chose, and still respects Taunt, Untargetable and Isolated. AoE and self skills are unaffected. It uses the new `randomPrimaryTarget` modifier. |
+| **Sleep** | Can't use skills. It ends when the bearer takes damage (any amount above 0, including Shield-absorbed), except damage marked `wakes: false` (Dream Seeker). A new Sleep interrupts channels like any stun, and Swiftness negates it like the other stuns. |
+
+### 19.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Black Axe | The user gains Stealth if the target is dead after the hit. |
+| Shadow Crash | Counts every Stealthed ally (including the user), removes all their Stealth, then adds +10 per Stealth to **both** the 10 hit and each 5 splash. |
+| Long Shadow | Stealthy. It gives a one-shot buff that makes the user's next skill count as Stealthy. |
+| Mirage Blade | Invisible. Counters the first Harmful skill used on the user within 1 turn. The Focus has no duration, so it's permanent (Q16). |
+| Shadow Spine | Counts Blinded, Isolated and Sleep **before** the first hit, then deals that many extra 5-Piercing hits. The first hit wakes the target, but the counted hits still land. |
+| Dream Seeker | Not Channeled, since the sheet doesn't say so, and so not interruptible. 35 damage a turn later with Bypass, and it doesn't wake a Sleeping target. |
+| Dream Chains | Visible. If the target uses no skill during their next turn, they take 15 indirect Affliction and fall Asleep for 2 turns. |
+| Spirit Raven | Fel Swoop heals the Raven itself. Blackwing's Taunt points at the Raven. |
+| Wave of Darkness | The Confusion has no duration, so it's permanent (Q16). See the balance notes. |
+| Drink Darkness | 5 Affliction to all enemies. Each Blinded enemy then loses Blind and takes 10 more Affliction. |
+| Nightsong | Channel for 3 turns. If it runs to completion (not interrupted), every living enemy falls Asleep for 2 turns, after the final tick. |
+| Hall of Phantoms | Always grants a fresh Stealth. If the user was already Stealthed, they also get Ghosted, Immune and 1 Focus for 2 turns. |
+| Touch of Slumber | Puts the healed **ally** to Sleep, as written. |
+| Shadowbrand | Used while Stealthed, its cooldown resets immediately. |
+| Veiled Guard | +1 permanent Armor. At 3 or more total Armor stacks, the user gains a fresh Stealth. |
+| Shadow Mockery | Summons a 5 HP minion with no skills (permanent until killed). The target is Taunted **to the minion** for 1 turn, via the new `from` on `apply` and the `lastSummoned` selector. If the minion cap blocks the summon, there's no Taunt. |
+| Faceless One | Uses the GDD §14.2 text: for 3 turns the user has 1 Armor, and all enemies are Taunted by the user and Isolated. |
+
+### 19.3 Balance notes (greedy-bot simulation, 3,000 matches, ten element pools)
+
+- By character element: Fire 52.4%, Poison 51.7%, Ice 50.1%, Lightning 50.1%, None 49.9%, Wind 49.9%, Holy 49.0%, **Shadow 48.4%**, Unholy 47.5%, Water 45.8%.
+  - With 10 pools, each skill now appears in only about 110 games, so per-skill numbers are noisy (±5%).
+- **Wave of Darkness is about 84%**, the largest outlier in the game. 25 damage to every enemy every other turn, plus a **permanent** Confusion stack each time (no duration on the sheet, so Q16), quickly makes enemy skills unaffordable. **Recommended fix:** give the Confusion a duration of 1–2 turns.
+- Other strong Shadow skills: Shadow Mockery (about 61%) and Spirit Raven (about 59%).
+- Weakest: Hall of Phantoms (about 32%), Blinding Powder (about 34%), Touch of Slumber (about 35%) and Nightwrap (about 36%). The bot can't exploit Stealth timing or plan around Blind.
+
+### 19.4 Engine additions for Shadow
+
+- The `stealth` effect flag (Stealth upkeep lives in the pipeline), plus the `nextSkillStealthy` and `randomPrimaryTarget` modifiers.
+- Sleep support: `wakes` on damage ops and on `damaged` triggers.
+- Taunting to a summoned minion: `from` on `apply`, and the `lastSummoned` selector. Summon ops now return the unit.
+- The `stealthFrom` redaction on `skillUsed` events.

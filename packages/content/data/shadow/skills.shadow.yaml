@@ -1,0 +1,562 @@
+# The 30 Shadow variants, from "Custom Arena - Shadow". Ids are "<base>.shadow".
+# Stealth: see statuses.shadow.yaml; "Stealthy" is a skill tag. Sleep lasts 2 turns.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.shadow:
+  archetype: Strike
+  element: Shadow
+  name: Black Axe
+  description: Deals 25 damage to target enemy. If this kills the target, the user gains Stealth.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { compare: { value: { countOf: primary }, atMost: 0 } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }]
+
+smash.shadow:
+  archetype: Smash
+  element: Shadow
+  name: Shadow Crash
+  description: >-
+    Removes Stealth from every Stealthed ally, then deals 10 damage to target enemy and 5 to the
+    other enemies, +10 to each hit per Stealth removed.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: shadows, value: { count: { effects: [stealth], in: allAllies } } }
+    - { op: removeEffect, from: allAllies, effect: stealth }
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [10, { var: shadows }] }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [5, { mul: [10, { var: shadows }] }] } }
+
+charge.shadow:
+  archetype: Charge
+  element: Shadow
+  name: Long Shadow
+  description: Deals 10 damage to target enemy. Stealthy. The user's next skill is also Stealthy.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: long_shadow
+        name: Long Shadow
+        kind: Buff
+        element: Shadow
+        stacking: unique
+        description: The bearer's next skill is Stealthy.
+        modifiers:
+          - { mod: nextSkillStealthy }
+
+riposte.shadow:
+  archetype: Riposte
+  element: Shadow
+  name: Mirage Blade
+  description: For 1 turn, the user counters the first Harmful skill used on them and gains 1 Focus. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mirage_blade
+        name: Mirage Blade
+        kind: Buff
+        element: Shadow
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, who then gains 1 Focus.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: focus }
+
+rage.shadow:
+  archetype: Rage
+  element: Shadow
+  name: Night of Knives
+  description: For 3 turns, the user gains 1 Might and 1 Swiftness. Stealthy.
+  cost: SA
+  cooldown: 4
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+
+shot.shadow:
+  archetype: Shot
+  element: Shadow
+  name: Shadow Spine
+  description: >-
+    Deals 5 Piercing damage to target enemy, striking once more for each of Blinded, Isolated and
+    Sleeping the target is.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: hits
+      value:
+        sum:
+          - 1
+          - { if: { has: { unit: primary, effect: blinded } }, then: 1, else: 0 }
+          - { if: { has: { unit: primary, effect: isolated } }, then: 1, else: 0 }
+          - { if: { has: { unit: primary, effect: sleep } }, then: 1, else: 0 }
+    - op: repeat
+      times: { var: hits }
+      do:
+        - { op: damage, to: primary, amount: 5, type: Piercing }
+
+snipe.shadow:
+  archetype: Snipe
+  element: Shadow
+  name: Dream Seeker
+  description: >-
+    The user deals 35 damage to target enemy on the following turn, Bypassing Invulnerability. It
+    doesn't end Sleep.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dream_seeker
+        name: Dream Seeker (aiming)
+        kind: Neutral
+        element: Shadow
+        description: At the end of the following turn, 35 damage to the target, Bypassing Invulnerability.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 35, bypass: true, wakes: false }
+
+trap.shadow:
+  archetype: Trap
+  element: Shadow
+  name: Dream Chains
+  description: For 1 turn, if target enemy doesn't use a skill, they take 15 Affliction damage and fall Asleep.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dream_chains
+        name: Dream Chains
+        kind: Debuff
+        element: Shadow
+        description: If the bearer uses no skill before this ends, they take 15 Affliction damage and fall Asleep.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: setFlag, flag: acted }
+        onExpire:
+          - op: if
+            cond: { not: { flag: acted } }
+            then:
+              - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
+              - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 2 } }
+
+maneuver.shadow:
+  archetype: Maneuver
+  element: Shadow
+  name: Shadowstep
+  description: The user becomes Ghosted for 1 turn. Stealthy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 1 } }
+
+companion.shadow:
+  archetype: Companion
+  element: Shadow
+  name: Spirit Raven
+  description: >-
+    Summons a Spirit Raven minion (30 HP). Fel Swoop (r): 10 Piercing damage to target enemy and
+    heals the Raven 10. Blackwing (r): Taunts target enemy for 1 turn.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: spirit_raven }
+
+bolt.shadow:
+  archetype: Bolt
+  element: Shadow
+  name: Blackbolt
+  description: Deals 20 damage to target enemy and Blinds them for 2 turns.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+
+blast.shadow:
+  archetype: Blast
+  element: Shadow
+  name: Wave of Darkness
+  description: Deals 25 damage to all enemies and gives each 1 Confusion.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: apply, to: targets, effect: confusion }
+
+consume.shadow:
+  archetype: Consume
+  element: Shadow
+  name: Drink Darkness
+  description: >-
+    Deals 5 Affliction damage to all enemies. Blinded ones lose their Blind and take 10 more
+    damage.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 5, type: Affliction }
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: blinded } } }
+      do:
+        - { op: removeEffect, from: it, effect: blinded }
+        - { op: damage, to: it, amount: 10, type: Affliction }
+
+summon.shadow:
+  archetype: Summon
+  element: Shadow
+  name: Call Shade
+  description: >-
+    Summons a Shade minion (15 HP) for 3 turns. Shadow Choke (r): target enemy takes 5 Affliction
+    damage and is Blinded for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: shade, duration: { enemyTurns: 3 } }
+
+channel.shadow:
+  archetype: Channel
+  element: Shadow
+  name: Nightsong
+  description: >-
+    Deals 10 damage to all enemies for 3 turns. If the channel completes, every enemy falls Asleep.
+    Channeled.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: nightsong
+        name: Nightsong
+        kind: Neutral
+        element: Shadow
+        interruptible: true
+        description: Each end of the user's turn, 10 damage to all enemies. If it runs its full course, all enemies fall Asleep.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+        onExpire:
+          - { op: apply, to: allEnemies, effect: sleep, duration: { enemyTurns: 2 } }
+
+stab.shadow:
+  archetype: Stab
+  element: Shadow
+  name: Backstab
+  description: Deals 10 damage to target enemy, increased to 25 if the user is Stealthed or the target is Blinded.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if: { or: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: blinded } }] }
+        then: 25
+        else: 10
+
+ravage.shadow:
+  archetype: Ravage
+  element: Shadow
+  name: Ambush
+  description: Deals 20 Piercing damage to target enemy, doubled if the user is Stealthed.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { if: { has: { unit: actor, effect: stealth } }, then: 40, else: 20 }
+
+mislead.shadow:
+  archetype: Mislead
+  element: Shadow
+  name: Illusory Lure
+  description: For 1 turn, if target enemy uses a Harmful skill, it is countered and they are Isolated for 2 turns.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: illusory_lure
+        name: Illusory Lure
+        kind: Debuff
+        element: Shadow
+        description: The bearer's Harmful skills are countered, and each counter Isolates them for 2 turns.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 2 } }
+
+stun.shadow:
+  archetype: Stun
+  element: Shadow
+  name: Sap
+  description: Deals 10 damage to target enemy and puts them to Sleep.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+
+dance.shadow:
+  archetype: Dance
+  element: Shadow
+  name: Hall of Phantoms
+  description: >-
+    The user gains Stealth. If they were already Stealthed, they also gain Ghosted, Immune and 1
+    Focus for 2 turns.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: hidden, value: { if: { has: { unit: actor, effect: stealth } }, then: 1, else: 0 } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }
+    - op: if
+      cond: { varTrue: hidden }
+      then:
+        - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 2 } }
+        - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+        - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 2 } }
+
+heal.shadow:
+  archetype: Heal
+  element: Shadow
+  name: Touch of Slumber
+  description: Target ally heals 20 HP and falls Asleep.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+
+bless.shadow:
+  archetype: Bless
+  element: Shadow
+  name: Nightwrap
+  description: Target ally gains Stealth.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: forEach, in: primary, do: [{ op: macro, id: gain_stealth }] }
+
+curse.shadow:
+  archetype: Curse
+  element: Shadow
+  name: Blinding Powder
+  description: Target enemy is Blinded for 3 turns.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 3 } }
+
+smite.shadow:
+  archetype: Smite
+  element: Shadow
+  name: Shadowbrand
+  description: Deals 10 damage to target enemy and Sanctifies them for 2 turns. Used from Stealth, it has no cooldown.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    - { op: if, cond: { has: { unit: actor, effect: stealth } }, then: [{ op: resetCooldown }] }
+
+prayer.shadow:
+  archetype: Prayer
+  element: Shadow
+  name: Nightfall
+  description: All allies gain Stealth and heal 20 HP.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: forEach, in: targets, do: [{ op: macro, id: gain_stealth }] }
+
+cleave.shadow:
+  archetype: Cleave
+  element: Shadow
+  name: Shadow Pulse
+  description: Deals 10 damage to all enemies. Stealthy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+
+shout.shadow:
+  archetype: Shout
+  element: Shadow
+  name: Hunter's Howl
+  description: Blinds all enemies for 2 turns. Enemies already Blinded are Intimidated for 2 turns instead.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: blinded } }
+          then: [{ op: apply, to: it, effect: intimidated, duration: { enemyTurns: 2 } }]
+          else: [{ op: apply, to: it, effect: blinded, duration: { enemyTurns: 2 } }]
+
+withstand.shadow:
+  archetype: Withstand
+  element: Shadow
+  name: Veiled Guard
+  description: The user gains 1 permanent Armor. Then, if they have 3 or more Armor, they gain Stealth.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: armor } }, atLeast: 3 } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }]
+
+taunt.shadow:
+  archetype: Taunt
+  element: Shadow
+  name: Shadow Mockery
+  description: Creates a Shadow Mockery minion (5 HP). Target enemy is Taunted by it for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: shadow_mockery }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+
+titan.shadow:
+  archetype: Titan
+  element: Shadow
+  name: Faceless One
+  description: For 3 turns, the user gains 1 Armor, and all enemies are Taunted by the user and Isolated.
+  cost: AW
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 3 } }
+    - { op: apply, to: targets, effect: taunt, duration: { enemyTurns: 3 } }
+    - { op: apply, to: targets, effect: isolated, duration: { enemyTurns: 3 } }
+
+# ---------------------------------------------------------------- minion skills
+
+raven_fel_swoop:
+  archetype: Minion
+  element: Shadow
+  name: Fel Swoop
+  description: Deals 10 Piercing damage to target enemy and heals the Spirit Raven 10 HP.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - { op: heal, to: actor, amount: 10 }
+
+raven_blackwing:
+  archetype: Minion
+  element: Shadow
+  name: Blackwing
+  description: Taunts target enemy for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
+
+shade_shadow_choke:
+  archetype: Minion
+  element: Shadow
+  name: Shadow Choke
+  description: Target enemy takes 5 Affliction damage and is Blinded for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Affliction }
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 1 } }

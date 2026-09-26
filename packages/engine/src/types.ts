@@ -172,7 +172,8 @@ export type RemoveReason = 'expired' | 'consumed' | 'died' | 'interrupted' | 'de
 export type EventBody =
   | { t: 'turnStart'; turn: number; player: PlayerId }
   | { t: 'energyGained'; player: PlayerId; gained: Energy }
-  | { t: 'skillUsed'; actor: UnitId; skill: string; targets: UnitId[]; secretFrom?: PlayerId }
+  /** `stealthFrom`: that player only learns that a Stealthed unit acted (R6). */
+  | { t: 'skillUsed'; actor: UnitId; skill: string; targets: UnitId[]; secretFrom?: PlayerId; stealthFrom?: PlayerId }
   | { t: 'skillFailed'; actor: UnitId; skill: string; reason: string; refunded: boolean }
   | { t: 'skillCountered'; actor: UnitId; skill: string; by: UnitId; effect: string; reflected: boolean }
   | {

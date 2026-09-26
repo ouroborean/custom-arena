@@ -56,6 +56,20 @@ stun_s:
   modifiers:
     - { mod: cannotUseSkills, classes: [Strategic] }
 
+# Shadow's Sleep; Holy's Chastise is the same status (GDD §5.3). Skills give it for 2 turns.
+sleep:
+  name: Sleep
+  kind: Debuff
+  stacking: unique
+  description: Stunned. Ends when the bearer takes damage.
+  modifiers:
+    - { mod: cannotUseSkills }
+  triggers:
+    - on: damaged
+      when: { wakes: true }
+      do:
+        - { op: removeSelf }
+
 invulnerable:
   name: Invulnerable
   kind: Buff
@@ -102,6 +116,7 @@ swiftness:
     - { mod: negateNext, effect: stun }
     - { mod: negateNext, effect: stun_ns }
     - { mod: negateNext, effect: stun_s }
+    - { mod: negateNext, effect: sleep }
 
 intimidated:
   name: Intimidated

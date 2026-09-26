@@ -1,0 +1,23 @@
+# Shadow statuses, from "Custom Arena - Shadow". Themes: Untargetability, Deception, Interference.
+# Ghosted and Isolated are base statuses; Sleep is a base status shared with Holy's Chastise.
+
+stealth:
+  name: Stealth
+  kind: Buff
+  element: Shadow
+  stacking: unique
+  stealth: true
+  description: >-
+    Untargetable by enemies. Skills give it for 2 turns. Ends after the bearer uses a skill that
+    isn't Stealthy; a Stealthy skill extends it by 1 turn instead.
+  modifiers:
+    - { mod: untargetable, by: enemies, bypassable: false }
+
+blinded:
+  name: Blinded
+  kind: Debuff
+  element: Shadow
+  stacking: unique
+  description: The primary target of the bearer's single-target skills is chosen at random.
+  modifiers:
+    - { mod: randomPrimaryTarget }

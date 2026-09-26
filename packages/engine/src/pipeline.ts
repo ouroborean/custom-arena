@@ -5,7 +5,17 @@ import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
 import { enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
-import { canTarget, cannotUseReason, cooldownOnUse, forcedTargets, hasGrantBypass, ignoresCounters, modifiedCost } from './queries.js';
+import {
+  canTarget,
+  cannotUseReason,
+  cooldownOnUse,
+  forcedTargets,
+  hasGrantBypass,
+  ignoresCounters,
+  modifiedCost,
+  modsOn,
+} from './queries.js';
+import { nextInt } from './rng.js';
 import type { EffectInstance, QueuedAction, Unit, UnitId } from './types.js';
 
 export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason: string };
@@ -164,7 +174,16 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const tr = resolveTargets(ctx, actor, def, action.targets, false);
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
-  useSkill(ctx, actor, action.slot, def, tr.targets);
+  useSkill(ctx, actor, action.slot, def, blindTargets(ctx, actor, def, tr.targets));
+}
+
+/** Blinded: a single-target skill's primary target is re-rolled among every legal target (GDD §3.6). */
+function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): UnitId[] {
+  if (def.target !== 'enemy' && def.target !== 'ally' && def.target !== 'any') return targets;
+  if (modsOn(ctx.s, ctx.c, actor.id, 'randomPrimaryTarget').length === 0) return targets;
+  const legal = ctx.s.units.filter((u) => u.alive && resolveTargets(ctx, actor, def, [u.id], true).ok);
+  if (legal.length === 0) return targets;
+  return [legal[nextInt(ctx.s.rng, legal.length)]!.id];
 }
 
 export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[]): void {
@@ -177,6 +196,9 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
 
   const secret = def.tags.includes('HiddenTarget');
   const privateTo = def.tags.includes('Invisible') ? actor.owner : undefined;
+  // Stealth (Shadow): Stealthy skills keep it; anything else ends it once this use is over.
+  const stealthy = def.tags.includes('Stealthy') || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').length > 0;
+  const stealthed = effectsOn(ctx.s, actor.id).filter((e) => effectDef(ctx.c, e).stealth);
   emit(
     ctx,
     {
@@ -185,6 +207,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
       skill: def.id,
       targets,
       ...(secret ? { secretFrom: actor.owner === 0 ? 1 : 0 } : {}),
+      // R6: a Stealthed unit's Stealthy actions only show as "a Stealthed unit acted".
+      ...(stealthy && stealthed.length > 0 ? { stealthFrom: actor.owner === 0 ? 1 : 0 } : {}),
     },
     privateTo,
   );
@@ -201,6 +225,11 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
     for (const e of ending) removeEffect(ctx, e, 'consumed');
+    for (const e of stealthed) {
+      if (!ctx.s.effects.includes(e)) continue;
+      if (!stealthy) removeEffect(ctx, e, 'consumed');
+      else if (e.duration !== null) e.duration += 2;
+    }
   }
 }
 
