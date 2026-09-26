@@ -577,10 +577,6 @@ h3,
   gap: 3px;
 }
 
-.unit-row.minion .fighter {
-  width: 72px;
-}
-
 .portrait {
   position: relative;
   width: 100%;
@@ -601,11 +597,6 @@ h3,
   line-height: 1;
   margin-top: -12px;
   text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
-}
-
-.unit-row.minion .portrait .mono {
-  font-size: 28px;
-  margin-top: -8px;
 }
 
 .portrait .tag {
@@ -733,10 +724,6 @@ button.portrait.targetable {
   overflow: hidden;
 }
 
-.unit-row.minion .statuses.box {
-  --rows: 2;
-}
-
 .unit-row.enemy .statuses.box {
   direction: rtl;
 }
@@ -850,15 +837,6 @@ button.portrait.targetable {
   transition: transform 0.08s, border-color 0.1s;
 }
 
-.unit-row.minion .tile,
-.unit-row.minion .tile-wrap {
-  width: 56px;
-}
-
-.unit-row.minion .tile {
-  height: 56px;
-}
-
 .tile::before {
   content: '';
   position: absolute;
@@ -885,10 +863,6 @@ button.portrait.targetable {
   font-size: 27px;
   line-height: 1;
   margin-top: -6px;
-}
-
-.unit-row.minion .tile .code {
-  font-size: 20px;
 }
 
 .tile .cost {
@@ -1004,6 +978,168 @@ button.portrait.targetable {
 
 .enemy-skills .mini .cdn {
   color: var(--yellow);
+}
+
+/* ------------------------------------------------------------ minion bench (fixed slots) */
+
+.bench {
+  --slot-h: 166px;
+  --slot-tile: 40px;
+  /* Take the roster's width without contributing to it, so filling a slot never resizes the column. */
+  width: 0;
+  min-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.roster.enemy .bench {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.slot {
+  position: relative;
+  height: var(--slot-h);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  border: 2px dashed var(--line);
+  overflow: hidden;
+}
+
+.slot.empty {
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.slot.filled {
+  border-style: solid;
+  border-color: var(--line-2);
+  background: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.slot.dead {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.slot .portrait {
+  aspect-ratio: auto;
+  height: 48px;
+  flex: none;
+  box-shadow: none;
+}
+
+.slot .portrait .mono {
+  font-size: 20px;
+  margin-top: -12px;
+}
+
+.slot .portrait .tag {
+  font-size: 9.5px;
+  padding: 1px 3px;
+}
+
+.slot .portrait.targetable::after {
+  font-size: 8.5px;
+  padding: 0 3px;
+}
+
+.slot .queued-slot {
+  font-size: 9px;
+}
+
+.slot .hptext {
+  font-size: 12px;
+}
+
+.slot .statuses.box {
+  --chip: 20px;
+  --cols: 4;
+  --rows: 1;
+  width: auto;
+}
+
+.slot .chip {
+  font-size: 9px;
+}
+
+.slot .chip .n,
+.slot .chip .d {
+  font-size: 7.5px;
+}
+
+.slot-skills {
+  display: flex;
+  gap: 4px;
+  height: var(--slot-tile);
+  flex: none;
+  align-items: center;
+}
+
+.slot .tile-wrap,
+.slot .tile {
+  width: var(--slot-tile);
+}
+
+.slot .tile {
+  height: var(--slot-tile);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.slot .tile::before {
+  height: 3px;
+}
+
+.slot .tile .code {
+  font-size: 14px;
+  margin-top: -4px;
+}
+
+.slot .tile .cost {
+  left: 2px;
+  bottom: 2px;
+}
+
+.slot .tile .cost .pip {
+  width: 7px;
+  height: 7px;
+}
+
+.slot .tile .cd {
+  font-size: 20px;
+}
+
+.slot .tile.queued::after {
+  content: 'Q';
+  top: 3px;
+  font-size: 7.5px;
+}
+
+.tile.static {
+  cursor: help;
+}
+
+.slot-note {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.slot.hit .portrait {
+  animation: jolt 0.26s steps(4);
 }
 
 /* ------------------------------------------------------------ floating numbers */
@@ -1741,6 +1877,13 @@ select:focus {
   .roster.enemy .enemy-skills {
     display: none;
   }
+  .roster.enemy .bench {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .bench {
+    --slot-h: 150px;
+    --slot-tile: 32px;
+  }
   .roster.enemy .portrait {
     aspect-ratio: 16 / 10;
   }
@@ -1809,6 +1952,20 @@ select:focus {
   .tile .cost .pip {
     width: 8px;
     height: 8px;
+  }
+  .bench {
+    --slot-h: 146px;
+    --slot-tile: 30px;
+    gap: 5px;
+  }
+  .slot {
+    padding: 4px;
+  }
+  .slot .tile .code {
+    font-size: 12px;
+  }
+  .slot .statuses.box {
+    --chip: 16px;
   }
   .tile .code {
     font-size: 18px;

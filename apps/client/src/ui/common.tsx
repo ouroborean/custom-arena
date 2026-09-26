@@ -137,6 +137,8 @@ const STATUS_CODES: Record<string, string> = {
   snipe: 'AIM',
   channel: 'CHN',
   lifetime: 'SUM',
+  wolf_bite: 'ATK',
+  arcane_bolt: 'ATK',
 };
 
 function consonantCode(name: string): string {

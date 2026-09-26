@@ -1,11 +1,12 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { PlayerId } from '@arena/engine';
-import { delayFor } from '../match/playback.js';
+import type { LocalMatch } from '../match/LocalMatch.js';
+import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
 import { Inspector, LogDrawer, QueueTray, Stage, TopBar } from './Panels.js';
-import { UnitRow } from './UnitRow.js';
+import { EmptySlot, MinionSlot, UnitRow } from './UnitRow.js';
 
 /** Steps through queued events on a timer, so resolution plays out instead of snapping. */
 function usePlayback(): void {
@@ -37,6 +38,8 @@ export function Battle() {
   const toggleLog = useStore((s) => s.toggleLog);
   const toast = useStore((s) => s.toast);
   const dismissToast = useStore((s) => s.dismissToast);
+  // Stable minion bench slots per side, remembered across renders for this match.
+  const bench = useRef<{ match: LocalMatch | null; slots: [(string | null)[], (string | null)[]] }>({ match: null, slots: [[], []] });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,16 +73,34 @@ export function Battle() {
   const status = match.finished ? 'Match over' : playing ? 'Resolving' : myTurn ? 'Your move' : watch ? `Bot ${match.active + 1}` : 'Enemy move';
   const tone = playing ? 'busy' : myTurn ? 'mine' : 'idle';
 
+  if (bench.current.match !== match) bench.current = { match, slots: [[], []] };
+  const benchFor = (p: PlayerId) => {
+    const present = view.units.filter((u) => u.owner === p && u.kind === 'minion' && u.alive).map((u) => u.id);
+    const slots = assignBench(bench.current.slots[p], present, view.settings.minionCap);
+    bench.current.slots[p] = slots;
+    return slots;
+  };
+
   const roster = (p: PlayerId) => {
-    const units = view.units.filter((u) => u.owner === p && (u.kind === 'character' || u.alive));
+    const chars = view.units.filter((u) => u.owner === p && u.kind === 'character');
     const label = p === viewer ? (watch ? 'Bot 1' : 'Your team') : watch ? 'Bot 2' : 'Enemy team';
     return (
       <section className={`roster${p === viewer ? '' : ' enemy'}`} aria-label={label}>
         <div className="roster-label">{label}</div>
         <div className="rows">
-          {units.map((u) => (
+          {chars.map((u) => (
             <UnitRow key={u.id} unit={u} view={view} viewer={viewer} content={content} availability={availability} hit={hitUnits.has(u.id)} />
           ))}
+        </div>
+        <div className="bench" aria-label={`${label} minions`}>
+          {benchFor(p).map((id, i) => {
+            const u = id ? view.units.find((x) => x.id === id) : undefined;
+            return u ? (
+              <MinionSlot key={u.id} unit={u} view={view} viewer={viewer} content={content} availability={availability} hit={hitUnits.has(u.id)} />
+            ) : (
+              <EmptySlot key={`empty-${i}`} />
+            );
+          })}
         </div>
       </section>
     );

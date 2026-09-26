@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { replay, stateFingerprint, type MatchConfig } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
 import { LocalMatch } from '../src/match/LocalMatch.js';
-import { damageDetail, toFloat } from '../src/match/playback.js';
+import { assignBench, damageDetail, toFloat } from '../src/match/playback.js';
 import { useStore } from '../src/store.js';
 
 const content = loadContentOrThrow();
@@ -42,6 +42,17 @@ describe('playback helpers', () => {
     expect(damageDetail(e)).toBe('20 base +5 modifiers −10 armor 5 absorbed by shield (direct)');
     expect(toFloat(e, 1)).toEqual({ id: 1, unit: 'b', text: '−10', kind: 'damage' });
     expect(toFloat({ t: 'heal', source: 'a', target: 'b', amount: 0, hp: 100 }, 2)).toBeNull();
+  });
+});
+
+describe('minion bench', () => {
+  it('keeps survivors in place and fills the lowest free slot', () => {
+    let slots = assignBench([], ['m1', 'm2'], 4);
+    expect(slots).toEqual(['m1', 'm2', null, null]);
+    slots = assignBench(slots, ['m2', 'm3'], 4); // m1 died, m3 summoned
+    expect(slots).toEqual(['m3', 'm2', null, null]);
+    slots = assignBench(slots, ['m2', 'm3', 'm4', 'm5', 'm6'], 4); // more than the cap never overflows
+    expect(slots).toEqual(['m3', 'm2', 'm4', 'm5']);
   });
 });
 

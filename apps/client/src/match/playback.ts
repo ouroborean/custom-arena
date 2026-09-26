@@ -97,6 +97,24 @@ export function toLogLine(content: ContentBundle, units: readonly Unit[], e: Gam
   return line;
 }
 
+/**
+ * Keeps minions in stable bench slots: a minion keeps its slot until it leaves the board, and new
+ * minions take the lowest free slot. Never reorders survivors, so nothing on screen shifts.
+ */
+export function assignBench(prev: readonly (string | null)[], present: readonly string[], size: number): (string | null)[] {
+  const keep = new Set(present);
+  const slots = Array.from({ length: size }, (_, i) => {
+    const id = prev[i] ?? null;
+    return id !== null && keep.has(id) ? id : null;
+  });
+  for (const id of present) {
+    if (slots.includes(id)) continue;
+    const free = slots.indexOf(null);
+    if (free >= 0) slots[free] = id;
+  }
+  return slots;
+}
+
 export function toFloat(e: GameEvent, id: number): FloatText | null {
   if (e.t === 'damage') {
     if (e.amount === 0 && e.absorbed > 0) return { id, unit: e.target, text: `(${e.absorbed})`, kind: 'shield' };
