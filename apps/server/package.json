@@ -12,6 +12,7 @@
     "@arena/content": "0.1.0",
     "@arena/engine": "0.1.0",
     "@arena/meta": "0.1.0",
+    "@arena/protocol": "0.1.0",
     "@electric-sql/pglite": "^0.5.8",
     "@fastify/cookie": "^11.1.2",
     "@node-rs/argon2": "^2.2.1",
