@@ -3,14 +3,14 @@
 //   npm run sim                          one match, full battle log
 //   npm run sim -- --seed 7 --save       ...and write replays/match-7.json
 //   npm run sim -- --games 2000          aggregate results + per-skill win rates
-//   npm run sim -- --bots greedy,random  choose bots (greedy | random)
+//   npm run sim -- --bots normal,hard    choose bots (easy | normal | hard | greedy | random)
 //   npm run sim -- --games 2000 --equip  rolled characters in random legal loadouts, + item win rates
 //   npm run sim -- --replay replays/match-7.json   re-run a saved match and verify it
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { formatEvent, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
-import { greedyBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
+import { botFor, greedyBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
 import { equippedItems, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
 import { num, parseArgs } from './args.js';
 
@@ -20,7 +20,8 @@ const content = loadContentOrThrow();
 function makeBot(kind: string, seed: number): Bot {
   if (kind === 'greedy') return greedyBot(seed);
   if (kind === 'random') return randomBot(seed);
-  throw new Error(`Unknown bot "${kind}" (use greedy or random)`);
+  if (kind === 'easy' || kind === 'normal' || kind === 'hard') return botFor(kind, seed);
+  throw new Error(`Unknown bot "${kind}" (use easy, normal, hard, greedy or random)`);
 }
 
 if (typeof args.replay === 'string') {

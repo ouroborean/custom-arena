@@ -14,7 +14,8 @@ import type {
 } from '@arena/engine';
 import type { MatchKind, MatchReward, RatingChange } from '@arena/protocol';
 
-export type BotKind = 'greedy' | 'random';
+/** Bot difficulty (GDD §11.9, packages/ai/src/search.ts). */
+export type BotKind = 'easy' | 'normal' | 'hard';
 
 export type MatchMode =
   | { kind: 'vsBot'; bot: BotKind; human: PlayerId }

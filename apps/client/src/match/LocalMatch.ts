@@ -1,7 +1,7 @@
 // The authoritative match for local play. It owns the full GameState and hands the UI only
 // per-player views, the same shape a networked client will get from the server in Phase 5.
 
-import { greedyBot, randomBot, type Bot } from '@arena/ai';
+import { botFor, type Bot } from '@arena/ai';
 import {
   applyCommand,
   createMatch,
@@ -25,7 +25,7 @@ import type { BotKind, MatchMode, MatchSession } from './session.js';
 export type { BotKind, MatchMode } from './session.js';
 
 function makeBot(kind: BotKind, seed: number): Bot {
-  return kind === 'greedy' ? greedyBot(seed) : randomBot(seed);
+  return botFor(kind, seed);
 }
 
 export class LocalMatch implements MatchSession {
