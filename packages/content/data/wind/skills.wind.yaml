@@ -1,0 +1,536 @@
+# The 30 Wind variants, from "Custom Arena - Wind". Ids are "<base>.wind".
+# "Leaps" = the `leap` macro (Invulnerable 1 turn + Leaping). "Begins Rushing" = apply Rushing.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.wind:
+  archetype: Strike
+  element: Wind
+  name: Leaping Strike
+  description: Deals 25 damage to target enemy. If used while Leaping, also stuns their non-Strategic skills for 1 turn.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: leaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 25 }
+    - { op: if, cond: { varTrue: leaping }, then: [{ op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }] }
+
+smash.wind:
+  archetype: Smash
+  element: Wind
+  name: Spiral Crash
+  description: >-
+    Deals 20 damage to target enemy. If the user is not Leaping, they Leap. If they are Leaping,
+    this also deals 10 damage to all enemies.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: leaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { varTrue: leaping }
+      then: [{ op: damage, to: allEnemies, amount: 10 }]
+      else: [{ op: forEach, in: actor, do: [{ op: macro, id: leap }] }]
+
+charge.wind:
+  archetype: Charge
+  element: Wind
+  name: Launch
+  description: The user begins Rushing.
+  cost: nc
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: rushing }
+
+riposte.wind:
+  archetype: Riposte
+  element: Wind
+  name: Zephyr Blade
+  description: Deals 5 Piercing damage to target enemy. If this skill is countered, the countering enemy takes 25 Piercing damage.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+  onCountered:
+    - { op: damage, to: eventSource, amount: 25, type: Piercing }
+
+rage.wind:
+  archetype: Rage
+  element: Wind
+  name: Chainbreaker
+  description: Removes all Debuffs from the user and makes them Immune for 2 turns. Usable while Stunned.
+  cost: A
+  cooldown: 4
+  tags: [Helpful, Strategic, UsableWhileStunned]
+  target: self
+  ops:
+    - { op: removeKind, from: actor, kind: Debuff }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+
+shot.wind:
+  archetype: Shot
+  element: Wind
+  name: Air Bullet
+  description: Deals 10 damage to target enemy. If the user is Leaping, deals 5 more damage and the user Leaps again.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: leaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: { if: { varTrue: leaping }, then: 15, else: 10 } }
+    - { op: if, cond: { varTrue: leaping }, then: [{ op: forEach, in: actor, do: [{ op: macro, id: leap }] }] }
+
+snipe.wind:
+  archetype: Snipe
+  element: Wind
+  name: Elegant Sweep
+  description: The user deals 25 Piercing damage to the enemy team on the following turn. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: elegant_sweep
+        name: Elegant Sweep (winding up)
+        kind: Neutral
+        element: Wind
+        interruptible: true
+        description: At the end of the following turn, 25 Piercing damage to every enemy, unless interrupted.
+        onExpire:
+          - { op: damage, to: allEnemies, amount: 25, type: Piercing }
+
+trap.wind:
+  archetype: Trap
+  element: Wind
+  name: Float Noose
+  description: For 2 turns, each time target enemy uses a skill, they are Isolated for 1 turn and take 10 Piercing damage.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: float_noose
+        name: Float Noose
+        kind: Debuff
+        element: Wind
+        description: Each skill the bearer uses Isolates them for 1 turn and deals them 10 Piercing damage.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
+              - { op: damage, to: bearer, amount: 10, type: Piercing }
+
+maneuver.wind:
+  archetype: Maneuver
+  element: Wind
+  name: Bound
+  description: The user Leaps.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+
+companion.wind:
+  archetype: Companion
+  element: Wind
+  name: Grand Eagle
+  description: >-
+    Summons a Grand Eagle minion (45 HP). Talon Rake (r): 15 damage to target enemy. Soar (A): the
+    Eagle and target ally Leap.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: grand_eagle }
+
+bolt.wind:
+  archetype: Bolt
+  element: Wind
+  name: Compressed Bolt
+  description: Deals 15 damage to target enemy. If they are Immobile, their non-Strategic skills are stunned for 1 turn.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { check: { cond: immobile, unit: primary } }
+      then: [{ op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }]
+
+blast.wind:
+  archetype: Blast
+  element: Wind
+  name: Spiral Burst
+  description: Deals 10 damage to all enemies, +10 if the user is Leaping and +10 if they are Rushing.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      amount:
+        sum:
+          - 10
+          - { if: { has: { unit: actor, effect: leaping } }, then: 10, else: 0 }
+          - { if: { has: { unit: actor, effect: rushing } }, then: 10, else: 0 }
+
+consume.wind:
+  archetype: Consume
+  element: Wind
+  name: Sap Speed
+  description: >-
+    Deals 5 damage to target enemy and removes all their Mobility buffs. Then, if they are Immobile,
+    the user gains 1 Swiftness.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: macro, id: remove_mobility }
+    - op: if
+      cond: { check: { cond: immobile, unit: primary } }
+      then: [{ op: apply, to: actor, effect: swiftness }]
+
+summon.wind:
+  archetype: Summon
+  element: Wind
+  name: Summon Wind Sprite
+  description: >-
+    Summons 2 Wind Sprite minions (10 HP) for 3 turns. Bother (no cost): 5 Piercing damage to target
+    enemy; if it's countered, the countering enemy is Stunned for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: wind_sprite, count: 2, duration: { enemyTurns: 3 } }
+
+channel.wind:
+  archetype: Channel
+  element: Wind
+  name: Vortex
+  description: >-
+    Deals 10 damage to all enemies for 2 turns. If the user is Leaping or Rushing when a tick fires,
+    an additional turn is added (once). Channeled.
+  cost: AI
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: vortex
+        name: Vortex
+        kind: Neutral
+        element: Wind
+        interruptible: true
+        description: Each end of the user's turn, 10 damage to all enemies. Extended once if the user is Leaping or Rushing.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: if
+                cond:
+                  and:
+                    - { not: { flag: extended } }
+                    - or:
+                        - { has: { unit: bearer, effect: leaping } }
+                        - { has: { unit: bearer, effect: rushing } }
+                then:
+                  - { op: extendSelf, by: 2 }
+                  - { op: setFlag, flag: extended }
+
+stab.wind:
+  archetype: Stab
+  element: Wind
+  name: Airknife
+  description: Deals 10 damage to target enemy, increased to 20 if the user is Rushing.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { has: { unit: actor, effect: rushing } }, then: 20, else: 10 }
+
+ravage.wind:
+  archetype: Ravage
+  element: Wind
+  name: Sonic Thrust
+  description: Deals 25 Piercing damage to target enemy. If the user isn't Rushing, they are Stunned for 1 turn.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { not: { has: { unit: actor, effect: rushing } } }
+      then: [{ op: apply, to: actor, effect: stun, duration: { ownTurns: 1 } }]
+
+mislead.wind:
+  archetype: Mislead
+  element: Wind
+  name: Wind Step
+  description: For 1 turn, if target enemy uses a Harmful skill, they are Marked and the user begins Rushing.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: wind_step
+        name: Wind Step
+        kind: Debuff
+        element: Wind
+        description: When the bearer uses a Harmful skill, they are Marked and the caster begins Rushing.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: apply, to: bearer, effect: mark, duration: { enemyTurns: 1 } }
+              - { op: apply, to: actor, effect: rushing }
+
+stun.wind:
+  archetype: Stun
+  element: Wind
+  name: Buffet
+  description: Deals 10 damage to target enemy and stuns their Strategic skills for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: stun_s, duration: { enemyTurns: 1 } }
+
+dance.wind:
+  archetype: Dance
+  element: Wind
+  name: Top Speed
+  description: The user gains 1 Might and Ghosted for 3 turns, and begins Rushing.
+  cost: AI
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: rushing }
+
+heal.wind:
+  archetype: Heal
+  element: Wind
+  name: Invigorating Breeze
+  description: Heals target ally 20 HP. If they are above 60 HP afterwards, they begin Rushing.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: if, cond: { hpAbove: { unit: primary, value: 60 } }, then: [{ op: apply, to: primary, effect: rushing }] }
+
+bless.wind:
+  archetype: Bless
+  element: Wind
+  name: Swiftwind
+  description: Target ally gains 2 Swiftness.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: swiftness, stacks: 2 }
+
+curse.wind:
+  archetype: Curse
+  element: Wind
+  name: Headwind
+  description: Target enemy loses all Mobility buffs and gains 1 Weakness.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: macro, id: remove_mobility }
+    - { op: apply, to: primary, effect: weakness }
+
+smite.wind:
+  archetype: Smite
+  element: Wind
+  name: Feathermark
+  description: Deals 20 damage to target enemy. For 1 turn, allies that damage them Leap.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: feathermark
+        name: Feathermark
+        kind: Debuff
+        element: Wind
+        description: Units on the applier's side that damage the bearer Leap.
+        triggers:
+          - on: damaged
+            when: { fromSide: ally }
+            do:
+              - { op: forEach, in: eventSource, do: [{ op: macro, id: leap }] }
+
+prayer.wind:
+  archetype: Prayer
+  element: Wind
+  name: Uplifting Verse
+  description: Heals all allies for 15 HP, then every unit in the game Leaps.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: forEach, in: allUnits, do: [{ op: macro, id: leap }] }
+
+cleave.wind:
+  archetype: Cleave
+  element: Wind
+  name: Falling Slam
+  description: Deals 10 damage to all enemies. Costs 1 GEN less while the user is Leaping or Rushing.
+  cost: Ar
+  altCost:
+    when: { or: [{ has: { unit: actor, effect: leaping } }, { has: { unit: actor, effect: rushing } }] }
+    cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+
+shout.wind:
+  archetype: Shout
+  element: Wind
+  name: Echoing Voice
+  description: Every unit in the game gains 1 Swiftness.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: allUnits, effect: swiftness }
+
+withstand.wind:
+  archetype: Withstand
+  element: Wind
+  name: Slipstream
+  description: The user gains 15 Shield, increased by 15 if the user is Rushing.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect: shield
+      value: { if: { has: { unit: actor, effect: rushing } }, then: 30, else: 15 }
+
+taunt.wind:
+  archetype: Taunt
+  element: Wind
+  name: Piercing Cry
+  description: Taunts target enemy for 1 turn, or 3 turns if they are Immobile.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      effect: taunt
+      duration: { enemyTurns: { if: { check: { cond: immobile, unit: primary } }, then: 3, else: 1 } }
+
+titan.wind:
+  archetype: Titan
+  element: Wind
+  name: Djinnform
+  description: The user gains 15 Shield and Immune for 3 turns, then Leaps.
+  cost: SA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 15, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+
+# ---------------------------------------------------------------- minion skills
+
+eagle_talon_rake:
+  archetype: Minion
+  element: Wind
+  name: Talon Rake
+  description: Deals 15 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+
+eagle_soar:
+  archetype: Minion
+  element: Wind
+  name: Soar
+  description: The Eagle and target ally Leap.
+  cost: A
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - { op: forEach, in: primary, do: [{ op: macro, id: leap }] }
+
+sprite_bother:
+  archetype: Minion
+  element: Wind
+  name: Bother
+  description: Deals 5 Piercing damage to target enemy. If this is countered, the countering enemy is Stunned for 1 turn.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+  onCountered:
+    - { op: apply, to: eventSource, effect: stun, duration: { enemyTurns: 1 } }

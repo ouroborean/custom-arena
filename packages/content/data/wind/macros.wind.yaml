@@ -1,0 +1,23 @@
+# Reusable Wind actions.
+
+# Rushing upkeep on its bearer: 1 Swiftness and 1 Focus (lasting until their next skill) if they
+# have none.
+rush_upkeep:
+  - { op: if, cond: { not: { has: { unit: bearer, effect: swiftness } } }, then: [{ op: apply, to: bearer, effect: swiftness }] }
+  - op: if
+    cond: { not: { has: { unit: bearer, effect: focus } } }
+    then: [{ op: apply, to: bearer, effect: focus, until: { skillUsed: {} } }]
+
+# "`it` Leaps": Invulnerable for 1 turn, and a fresh Leaping (+5 on its next damaging skill). Any
+# old Leaping is replaced so a skill can consume one Leap and grant the next ("Leap again").
+# Use inside forEach (e.g. `forEach: { in: actor, do: [{ op: macro, id: leap }] }`).
+leap:
+  - { op: removeEffect, from: it, effect: leaping }
+  - { op: apply, to: it, effect: leaping }
+  - { op: apply, to: it, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+# "Removes all Mobility buffs": Swiftness, Rushing and Leaping.
+remove_mobility:
+  - { op: removeEffect, from: primary, effect: swiftness }
+  - { op: removeEffect, from: primary, effect: rushing }
+  - { op: removeEffect, from: primary, effect: leaping }

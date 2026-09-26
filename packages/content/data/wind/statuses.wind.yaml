@@ -1,0 +1,46 @@
+# Wind statuses, from "Custom Arena - Wind". Themes: Reactivity, Immunity, Speed.
+# Mobility buffs: Swiftness, Rushing, Leaping. Immobile is derived (conditions.wind.yaml).
+
+rushing:
+  name: Rushing
+  kind: Buff
+  element: Wind
+  stacking: unique
+  description: >-
+    On gaining it and at the start of each of the bearer's turns: 1 Swiftness and 1 Focus (until
+    the next skill) if they have none. Ends at the end of a turn in which the bearer used no skill.
+  triggers:
+    - on: effectGained
+      effect: rushing
+      do:
+        - { op: setFlag, flag: acted } # the turn it starts never ends it
+        - { op: macro, id: rush_upkeep }
+    - on: turnStart
+      do:
+        - { op: setFlag, flag: acted, value: false }
+        - { op: macro, id: rush_upkeep }
+    - on: skillUsed
+      do:
+        - { op: setFlag, flag: acted }
+    - on: turnEnd
+      do:
+        - { op: if, cond: { not: { flag: acted } }, then: [{ op: removeSelf }] }
+
+leaping:
+  name: Leaping
+  kind: Buff
+  element: Wind
+  stacking: unique
+  description: >-
+    +5 direct damage. Ends once a skill of the bearer's has dealt direct damage and resolved.
+    (Leaping also grants Invulnerable for 1 turn, applied separately.)
+  modifiers:
+    - { mod: damageDealt, amount: 5, when: { direct: true } }
+  triggers:
+    - on: dealtDamage
+      when: { direct: true }
+      do:
+        - { op: setFlag, flag: hit }
+    - on: skillResolved
+      do:
+        - { op: if, cond: { flag: hit }, then: [{ op: removeSelf }] }

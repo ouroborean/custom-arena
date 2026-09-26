@@ -196,6 +196,10 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
   if ('isActor' in c) return select(ctx, c.isActor, sc)[0]?.id === sc.actor;
+  if ('hasSkill' in c) {
+    const u = select(ctx, c.hasSkill.unit, sc)[0];
+    return !!u && u.skills.some((s) => c.hasSkill.archetypes.includes(ctx.c.skills[s.defId]?.archetype ?? ''));
+  }
   if ('hasKind' in c) {
     const u = select(ctx, c.hasKind.unit, sc)[0];
     return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).kind === c.hasKind.kind);
@@ -308,6 +312,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
       }
       return;
+    case 'removeKind':
+      for (const t of select(ctx, op.from, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).kind === op.kind) removeEffect(ctx, e, 'removed');
+      }
+      return;
     case 'removeStacks':
       for (const t of select(ctx, op.from, sc)) {
         let left = op.amount;
@@ -400,7 +409,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (sc.self && sc.self.duration !== null) sc.self.duration += op.by;
       return;
     case 'setFlag':
-      if (sc.self) sc.self.data[op.flag] = true;
+      if (sc.self) sc.self.data[op.flag] = op.value ?? true;
       return;
     case 'addStacksSelf':
       if (sc.self) {

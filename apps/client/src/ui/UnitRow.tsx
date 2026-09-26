@@ -191,14 +191,27 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
 
   // Named conditions from content that deserve a visible badge (derived, so they have no status chip).
   const prey = unit.alive && !!content.conditions.prey && evaluateNamedCondition(content, view, 'prey', unit.id);
+  // Immobile is true of most units, so it's only worth showing when a Wind skill is in play.
+  const windInPlay = view.units.some((u) => u.alive && u.skills.some((s) => content.skills[s.defId]?.element === 'Wind'));
+  const immobile =
+    windInPlay && unit.alive && !!content.conditions.immobile && evaluateNamedCondition(content, view, 'immobile', unit.id);
+  const states = [prey && 'PREY', immobile && 'IMMOBILE'].filter(Boolean).join(' · ');
 
   const inner = (
     <>
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
-      {prey && (
-        <span className="state-tag" title="Prey: more than 2 debuff stacks, under 20 HP, or marked">
-          PREY
+      {states && (
+        <span
+          className="state-tag"
+          title={[
+            prey && 'Prey: more than 2 debuff stacks, under 20 HP, or marked',
+            immobile && 'Immobile: no mobility skills and no Swiftness, Rushing or Leaping',
+          ]
+            .filter(Boolean)
+            .join(' / ')}
+        >
+          {states}
         </span>
       )}
       {queuedDef && !st.playing && (

@@ -458,3 +458,56 @@ Content: `packages/content/data/lightning/`. Themes are Resource management, Tar
 - Conditional cost: `altCost` on skills.
 - Triggers: `dealtDamage` and `shieldDamaged` (a depleted Shield's own trigger still runs), plus non-intercepting `skillTargeted` with `when.side`.
 - Selectors and ops: the `{ filter, where, exclude }` selector, and `adjustCooldowns` with `skill` and a computed `by`.
+
+## 18. Wind
+
+Content: `packages/content/data/wind/`. Themes are Reactivity, Immunity and Speed. Statuses: **Rushing** and **Leaping**. **Immobile** is a named condition, and a new base status **Stunned (Strategic)** (`stun_s`) was added.
+
+### 18.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Rushing** | A Buff that doesn't stack and has no duration. When gained, and at the start of each of the bearer's turns, it grants 1 Swiftness if they have none and 1 Focus if they have none. That Focus lasts until the bearer's next skill, so it's a steady −1 GEN per turn. Rushing ends at the end of a bearer's turn in which they used no skill. The turn it's gained never ends it, even if an ally granted it. "A new skill" is read as **any** skill used that turn. |
+| **Leap** | "X Leaps" means Invulnerable for 1 turn, plus **Leaping**: +5 to direct damage. Leaping lasts until one of the bearer's skills has dealt direct damage and resolved; every hit of that skill gets the +5. A new Leap replaces the old Leaping, so "Leap again" (Air Bullet) spends one and grants a fresh one. |
+| **Mobility buffs** | Swiftness, Rushing and Leaping. "Removes all Mobility buffs" (Sap Speed, Headwind) removes all three. Leap's Invulnerable isn't a mobility buff and stays. |
+| **Immobile** | A **character** (never a minion) with no Charge, Maneuver, Mislead or Dance skill and no mobility buff. It's computed live, like Poison's Prey. It uses the new `hasSkill` condition, and the client shows an **IMMOBILE** badge while any Wind skill is in play. |
+| **Stunned (Strategic)** | New base status for "stuns their Strategic skills" (Buffet). Swiftness negates it like the other stuns. Water's stun checks (Drown, Undertow, Whale Call) now count it too. |
+
+### 18.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Leaping Strike, Spiral Crash, Air Bullet | Check Leaping **before** the hit. Spiral Crash's +10 AoE also hits the primary target. Air Bullet's Leaping bonus is 5 more on top of Leaping's own +5. |
+| Launch | Free (no cost). The user begins Rushing. |
+| Zephyr Blade | If countered (or reflected), the counterer takes 25 Piercing. This uses the new skill-level `onCountered` ops, which run even if the counter killed the user. |
+| Chainbreaker | Usable while Stunned. Removes every Debuff (new `removeKind` op), then Immune for 2 turns. |
+| Elegant Sweep | A Snipe-like channel: 25 Piercing to every enemy at the end of the following turn. |
+| Float Noose | Visible (the sheet doesn't say Invisible). For 2 turns, **every** skill the target uses Isolates them for 1 turn and deals 10 indirect Piercing. |
+| Grand Eagle | Soar makes the Eagle and the target ally Leap. Neither minion skill has a cooldown. |
+| Summon Wind Sprite | Two Sprites for 3 turns. A countered Bother Stuns the counterer for 1 turn. |
+| Vortex | The redesigned text (GDD §14.2). The extra turn is added **once**, the first time the user is Leaping or Rushing at a tick, matching base Channel's single extension. |
+| Sonic Thrust | If the user isn't Rushing, they're Stunned through their own next turn (`ownTurns 1`). Swiftness can negate it. |
+| Wind Step | Visible. For 1 turn, a Harmful skill from the target Marks them (1 turn) and the caster begins Rushing. It isn't a counter. |
+| Top Speed | Might and Ghosted for 3 turns, and Rushing (no duration). |
+| Invigorating Breeze | Checks for 61+ HP **after** the heal. |
+| Uplifting Verse | "All units in the game" includes enemies and minions. Everyone gets Leaping and 1 turn of Invulnerable. |
+| Falling Slam | Costs A instead of Ar while Leaping or Rushing (Lightning's `altCost`). Chilled can't stop this, since it's a different base cost, not a reduction. |
+| Echoing Voice | Every unit in the game, enemies included, gains 1 Swiftness. |
+| Slipstream | 15 Shield, or 30 while Rushing. No duration is given, so it lasts until depleted. |
+| Piercing Cry | Taunt for 1 turn, or 3 against an Immobile target. |
+| Headwind | The Weakness has no duration, so it's permanent (Q16). |
+| Djinnform | 15 Shield and Immune for 3 turns, then the user Leaps. |
+
+### 18.3 Balance notes (greedy-bot simulation, 3,000 matches, nine element pools)
+
+- By character element: Poison 53.3%, Fire 52.2%, None 49.8%, Ice 49.3%, Water 48.9%, Holy 48.5%, Lightning 48.0%, **Wind 47.9%**, Unholy 46.6%.
+- Strongest Wind skills: Summon Wind Sprite (about 61%; two free 5-Piercing pokes per turn) and Elegant Sweep (about 58%).
+- Weakest: Falling Slam (about 34%; only 10 AoE), Feathermark (about 37%), Piercing Cry (about 39%), Airknife and Zephyr Blade (about 40%).
+  - Rushing upkeep and Leap timing are sequencing plays the greedy bot doesn't plan for.
+
+### 18.4 Engine additions for Wind
+
+- Skill-level `onCountered` ops.
+- Ops: `removeKind`, and `setFlag` with `value` (to clear a flag).
+- The `hasSkill` condition.
+- The base `stun_s` status.

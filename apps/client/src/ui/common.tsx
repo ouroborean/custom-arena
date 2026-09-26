@@ -231,6 +231,15 @@ const STATUS_CODES: Record<string, string> = {
   polarity: 'POL',
   lightning_cage: 'CGE',
   aggro_signal: 'AGR',
+  // Wind
+  stun_s: 'STN',
+  rushing: 'RSH',
+  leaping: 'LEA',
+  elegant_sweep: 'AIM',
+  float_noose: 'NSE',
+  vortex: 'CHN',
+  wind_step: 'WST',
+  feathermark: 'FTH',
 };
 
 function consonantCode(name: string): string {

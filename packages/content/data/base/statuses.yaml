@@ -49,6 +49,13 @@ stun_ns:
   modifiers:
     - { mod: cannotUseSkills, classes: [NonStrategic] }
 
+stun_s:
+  name: Stunned (Strategic)
+  kind: Debuff
+  description: Cannot use Strategic skills.
+  modifiers:
+    - { mod: cannotUseSkills, classes: [Strategic] }
+
 invulnerable:
   name: Invulnerable
   kind: Buff
@@ -94,6 +101,7 @@ swiftness:
   modifiers:
     - { mod: negateNext, effect: stun }
     - { mod: negateNext, effect: stun_ns }
+    - { mod: negateNext, effect: stun_s }
 
 intimidated:
   name: Intimidated

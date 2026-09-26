@@ -1,0 +1,11 @@
+# Wind minions (HP from the sheet).
+
+grand_eagle:
+  name: Grand Eagle
+  hp: 45
+  skills: [eagle_talon_rake, eagle_soar]
+
+wind_sprite:
+  name: Wind Sprite
+  hp: 10
+  skills: [sprite_bother]

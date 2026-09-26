@@ -91,6 +91,8 @@ export type Cond =
   | { hasKind: { unit: Selector; kind: EffectKind } }
   /** The selected unit is the actor (e.g. a targetFilter excluding the user). */
   | { isActor: Selector }
+  /** The unit has a skill of one of these archetypes (Wind: mobility skills). */
+  | { hasSkill: { unit: Selector; archetypes: string[] } }
   /** A numeric comparison. */
   | { compare: { value: Value; atLeast?: number; atMost?: number } }
   | { any: { in: Selector; cond: Cond } }
@@ -136,6 +138,8 @@ export type Op =
   | { op: 'kill'; to: Selector }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
+  /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
+  | { op: 'removeKind'; from: Selector; kind: EffectKind }
   /** Removes up to `amount` stacks of an effect (by key) from each selected unit. */
   | { op: 'removeStacks'; from: Selector; effect: string; amount: number }
   /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
@@ -160,7 +164,8 @@ export type Op =
   /** Runs `do` `times` times (evaluated once, up front). */
   | { op: 'repeat'; times: Value; do: Op[] }
   | { op: 'extendSelf'; by: number }
-  | { op: 'setFlag'; flag: string }
+  /** Sets (or with `value: false`, clears) a flag on the executing effect. */
+  | { op: 'setFlag'; flag: string; value?: boolean }
   | { op: 'addStacksSelf'; amount: number }
   | { op: 'removeSelf' }
   | { op: 'script'; id: string; params?: Record<string, unknown> };
@@ -326,6 +331,8 @@ export interface SkillDef {
   targetFilter?: Cond;
   /** Requirement on the user to use this skill (evaluated with actor = the user), e.g. "Requires Flow". */
   requires?: Cond;
+  /** Runs when this skill is countered or reflected; `eventSource` is the unit that countered it. */
+  onCountered?: Op[];
   /** A different base cost while `when` holds for the user (Lightning Zap: I, or r when Charged). */
   altCost?: { when: Cond; cost: Cost };
   ops: Op[];

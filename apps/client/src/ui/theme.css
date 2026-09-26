@@ -44,6 +44,7 @@
   --el-water: #2f6bff;
   --el-unholy: #a24dff;
   --el-lightning: #ffcc00;
+  --el-wind: #f3f3f3;
 
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
@@ -893,6 +894,10 @@ button.portrait.targetable {
 
 .el-lightning {
   --el: var(--el-lightning);
+}
+
+.el-wind {
+  --el: var(--el-wind);
 }
 
 /* Derived-state badges (e.g. Poison's Prey), bottom-left of the portrait above the name. */

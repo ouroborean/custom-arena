@@ -88,6 +88,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ isActor: selectorSchema }),
+    z.strictObject({ hasSkill: z.strictObject({ unit: selectorSchema, archetypes: z.array(z.string()).min(1) }) }),
     z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
     z.strictObject({
       compare: z.strictObject({ value: valueSchema, atLeast: z.number().optional(), atMost: z.number().optional() }),
@@ -190,6 +191,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
+    z.strictObject({ op: z.literal('removeKind'), from: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('removeStacks'), from: selectorSchema, effect: z.string(), amount: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('macro'), id: z.string() }),
     z.strictObject({ op: z.literal('signal'), name: z.string() }),
@@ -210,7 +212,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
     z.strictObject({ op: z.literal('repeat'), times: valueSchema, do: z.array(opSchema) }),
     z.strictObject({ op: z.literal('extendSelf'), by: z.number().int() }),
-    z.strictObject({ op: z.literal('setFlag'), flag: z.string() }),
+    z.strictObject({ op: z.literal('setFlag'), flag: z.string(), value: z.boolean().optional() }),
     z.strictObject({ op: z.literal('addStacksSelf'), amount: z.number().int() }),
     z.strictObject({ op: z.literal('removeSelf') }),
     z.strictObject({ op: z.literal('script'), id: z.string(), params: z.record(z.string(), z.unknown()).optional() }),
@@ -284,6 +286,7 @@ export const skillFileEntry = z.strictObject({
   target: z.enum(['self', 'enemy', 'ally', 'any', 'allEnemies', 'allAllies', 'none']),
   targetFilter: condSchema.optional(),
   requires: condSchema.optional(),
+  onCountered: z.array(opSchema).optional(),
   altCost: z.strictObject({ when: condSchema, cost: costSchema }).optional(),
   ops: z.array(opSchema),
 });

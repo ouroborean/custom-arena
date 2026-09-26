@@ -235,6 +235,20 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
       });
       runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
       flushTriggers(ctx);
+      if (def.onCountered?.length && ctx.s.result === null) {
+        runOps(ctx, def.onCountered, {
+          actor: actor.id,
+          targets,
+          eventSource: reflector.id,
+          vars: {},
+          lastDamage: 0,
+          lastDamaged: [],
+          direct: true,
+          bypass: false,
+          skill: def,
+        });
+        flushTriggers(ctx);
+      }
       if (spec.intercept === 'reflect' && reflector.alive && actor.alive) {
         const aoe = def.target === 'allEnemies';
         const reflectedTargets = aoe ? livingUnits(ctx.s, actor.owner).map((u) => u.id) : [actor.id];

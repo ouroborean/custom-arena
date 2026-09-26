@@ -140,7 +140,7 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
       }
     });
 
-  for (const s of Object.values(b.skills)) checkOps(`skills.${s.id}`, s.ops);
+  for (const s of Object.values(b.skills)) checkOps(`skills.${s.id}`, [...s.ops, ...(s.onCountered ?? [])]);
   for (const st of Object.values(b.statuses)) {
     walkEffect(st, (op) => checkOps(`statuses.${st.id}`, [op]));
     for (const m of st.modifiers ?? []) {
