@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { randomCharacter, randomConfig } from '@arena/ai';
-import { MAX_SKILLS, seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
+import { seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
 import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
@@ -12,15 +12,15 @@ function newSeed(): number {
   return Math.floor(Math.random() * 1_000_000);
 }
 
-function CharacterEditor({ spec, onChange, onReroll }: { spec: CharacterSpec; onChange: (c: CharacterSpec) => void; onReroll: () => void }) {
-  const cls = content.classes[spec.classId ?? ''];
-  const pool = cls ? [...cls.signatures, ...cls.affinity] : Object.keys(content.skills);
-  const toggle = (id: string) => {
-    const has = spec.skills.includes(id);
-    if (has && spec.skills.length === 1) return;
-    if (!has && spec.skills.length >= MAX_SKILLS) return;
-    onChange({ ...spec, skills: has ? spec.skills.filter((s) => s !== id) : [...spec.skills, id] });
-  };
+function CharacterEditor({
+  spec,
+  onChange,
+  onReroll,
+}: {
+  spec: CharacterSpec;
+  onChange: (c: CharacterSpec) => void;
+  onReroll: (classId?: string) => void;
+}) {
   return (
     <div className="char-editor">
       <div className="portrait" style={portraitStyle(spec.classId ?? '')} aria-hidden>
@@ -29,36 +29,26 @@ function CharacterEditor({ spec, onChange, onReroll }: { spec: CharacterSpec; on
       <div className="body">
         <div className="top">
           <input type="text" aria-label="Character name" value={spec.name} onChange={(e) => onChange({ ...spec, name: e.target.value })} />
-          <select
-            aria-label="Class"
-            value={spec.classId}
-            onChange={(e) => {
-              const c = content.classes[e.target.value]!;
-              onChange({ ...spec, classId: c.id, skills: [...c.signatures] });
-            }}
-          >
+          <select aria-label="Class" value={spec.classId} onChange={(e) => onReroll(e.target.value)}>
             {Object.values(content.classes).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </select>
-          <button type="button" className="btn small" onClick={onReroll} aria-label="Randomize character">
+          <button type="button" className="btn small" onClick={() => onReroll()} aria-label="Randomize character">
             ⟳
           </button>
         </div>
-        <div className="pool" role="group" aria-label={`Skills (${spec.skills.length}/${MAX_SKILLS})`}>
-          {pool.map((id) => {
+        <div className="skill-list" aria-label={`${spec.name} skills`}>
+          {spec.skills.map((id) => {
             const d = content.skills[id]!;
-            const sig = cls?.signatures.includes(id);
             return (
               <Tooltip
                 key={id}
                 content={
                   <>
-                    <h4>
-                      {d.name} {sig ? '· signature' : '· affinity'}
-                    </h4>
+                    <h4>{d.name}</h4>
                     <div>{d.description}</div>
                     <div className="row">
                       <CostPips cost={d.cost} /> · cooldown {d.cooldown}
@@ -66,10 +56,10 @@ function CharacterEditor({ spec, onChange, onReroll }: { spec: CharacterSpec; on
                   </>
                 }
               >
-                <button type="button" aria-pressed={spec.skills.includes(id)} onClick={() => toggle(id)}>
-                  {sig && <span className="star">★</span>}
+                <span className="skill-chip" tabIndex={0}>
                   {d.name}
-                </button>
+                  <CostPips cost={d.cost} />
+                </span>
               </Tooltip>
             );
           })}
@@ -99,8 +89,9 @@ export function Setup() {
     setConfig({ ...config, teams });
   };
 
-  const rerollChar = (p: 0 | 1, i: number) => {
-    const c = randomCharacter(content, seedRng(newSeed()), '');
+  /** New random skills, keeping the class if one is given (changing class re-rolls for that class). */
+  const rerollChar = (p: 0 | 1, i: number, classId?: string) => {
+    const c = randomCharacter(content, seedRng(newSeed()), '', classId);
     const name = `${p === 0 ? 'Blue' : 'Red'} ${content.classes[c.classId!]!.name} ${i + 1}`;
     updateChar(p, i, { ...c, name });
   };
@@ -192,10 +183,9 @@ export function Setup() {
           <section className="team-editor" key={p} aria-label={sideName(p)}>
             <div className="side-label">
               <span>{sideName(p)}</span>
-              <span className="note">★ signature skill · 1–{MAX_SKILLS} skills each</span>
             </div>
             {config.teams[p].map((c, i) => (
-              <CharacterEditor key={i} spec={c} onChange={(n) => updateChar(p, i, n)} onReroll={() => rerollChar(p, i)} />
+              <CharacterEditor key={i} spec={c} onChange={(n) => updateChar(p, i, n)} onReroll={(classId) => rerollChar(p, i, classId)} />
             ))}
           </section>
         ))}
