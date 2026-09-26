@@ -60,6 +60,7 @@ const namedSelector = z.enum([
   'effectTargets',
   'it',
   'lastDamaged',
+  'summoner',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.union([
@@ -91,6 +92,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ effectValue: z.literal(true) }),
     z.strictObject({ effectStacks: z.literal(true) }),
     z.strictObject({ stacks: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
+    z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ sum: z.array(valueSchema) }),
     z.strictObject({ mul: z.array(valueSchema) }),
     z.strictObject({ if: condSchema, then: valueSchema, else: valueSchema }),
@@ -119,6 +121,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('forceTarget') }),
   z.strictObject({ mod: z.literal('noArmorOrShield') }),
   z.strictObject({ mod: z.literal('energyGain'), amount: z.number().int() }),
+  z.strictObject({ mod: z.literal('healingReceived'), mul: z.number().min(0), roundUpTo: z.number().int().min(1).optional() }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -130,6 +133,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       type: damageType.optional(),
       direct: z.boolean().optional(),
       bypass: z.boolean().optional(),
+      respectsInvulnerable: z.boolean().optional(),
     }),
     z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({
@@ -140,7 +144,10 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       value: valueSchema.optional(),
       duration: durationSchema.optional(),
       remember: selectorSchema.optional(),
-      until: z.strictObject({ skillUsed: z.strictObject({ harmful: z.boolean().optional() }) }).optional(),
+      until: z
+        .strictObject({ skillUsed: z.strictObject({ harmful: z.boolean().optional(), nonStrategic: z.boolean().optional() }) })
+        .optional(),
+      bindTo: selectorSchema.optional(),
     }),
     z.strictObject({
       op: z.literal('summon'),
@@ -149,6 +156,9 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
+    z.strictObject({ op: z.literal('macro'), id: z.string() }),
+    z.strictObject({ op: z.literal('signal'), name: z.string() }),
     z.strictObject({ op: z.literal('if'), cond: condSchema, then: z.array(opSchema), else: z.array(opSchema).optional() }),
     z.strictObject({ op: z.literal('set'), var: z.string(), value: z.union([valueSchema, z.boolean()]) }),
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
@@ -162,9 +172,15 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillTargeted', 'turnEnd', 'turnStart']),
+    on: z.enum(['damaged', 'skillUsed', 'skillTargeted', 'turnEnd', 'turnStart', 'signal']),
+    signal: z.string().optional(),
     when: z
-      .strictObject({ direct: z.boolean().optional(), harmful: z.boolean().optional(), byEnemy: z.boolean().optional() })
+      .strictObject({
+        direct: z.boolean().optional(),
+        harmful: z.boolean().optional(),
+        byEnemy: z.boolean().optional(),
+        side: z.enum(['ally', 'enemy']).optional(),
+      })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
     do: z.array(opSchema).optional(),
@@ -223,7 +239,10 @@ export const minionFileEntry = z.strictObject({
   hp: z.number().int().min(1),
   skills: z.array(z.string()).default([]),
   passives: z.array(z.union([z.string(), effectDefSchema])).default([]),
+  onSummon: z.array(opSchema).optional(),
 });
+
+export const macroFileEntry = z.array(opSchema);
 
 export const classFileEntry = z.strictObject({
   name: z.string().min(1),

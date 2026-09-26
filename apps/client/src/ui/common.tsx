@@ -151,6 +151,19 @@ const STATUS_CODES: Record<string, string> = {
   lifetime: 'SUM',
   wolf_bite: 'ATK',
   arcane_bolt: 'ATK',
+  stun_ns: 'STN',
+  // Fire
+  ignite: 'IGN',
+  scorched: 'SCR',
+  flameborn: 'FLB',
+  blisterblade: 'RIP',
+  heat_seeker: 'AIM',
+  hidden_explosives: 'EXP',
+  heat_haze: 'HAZ',
+  flamethrower: 'CHN',
+  ring_of_fire: 'ROF',
+  dragon_breath: 'ATK',
+  cinder_burst: 'ATK',
 };
 
 function consonantCode(name: string): string {
@@ -180,6 +193,11 @@ export function skillCode(def: SkillDef): string {
 
 export function statusCode(key: string, name: string): string {
   return STATUS_CODES[key] ?? consonantCode(name);
+}
+
+/** CSS class for an element accent ("" for no element). */
+export function elementClass(element: string | undefined): string {
+  return element && element !== 'None' ? `has-el el-${element.toLowerCase()}` : '';
 }
 
 export type SkillCategory = 'attack' | 'control' | 'support';

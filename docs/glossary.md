@@ -17,6 +17,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Counter** | Negates a skill as it's used. Cost stays paid, and the cooldown starts. |
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
 | **Duration** | Internal count of turns; drops by 1 at the end of every turn. See rules.md §8. |
+| **Explode / Explosion** | Fire: 10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets. |
 | **GEN / r / random** | A wildcard cost payable with any color. |
 | **Harmful / Helpful** | Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful. |
 | **HiddenTarget** | Skill tag: the opponent sees the skill but not its target (Snipe). |

@@ -133,12 +133,22 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     privateTo,
   );
 
-  // "Until the bearer uses a skill" effects end now (they were applied before this use).
-  for (const e of effectsOn(ctx.s, actor.id)) {
-    if (!e.until) continue;
-    if (e.until.skillUsed.harmful && !harmful) continue;
-    removeEffect(ctx, e, 'consumed');
+  // "Until the bearer uses a skill" effects apply to this use, then end once it has resolved.
+  // Only effects that existed before this use qualify (not ones the skill itself applies).
+  const ending = effectsOn(ctx.s, actor.id).filter(
+    (e) =>
+      e.until &&
+      !(e.until.skillUsed.harmful && !harmful) &&
+      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')),
+  );
+  try {
+    resolveUse(ctx, actor, def, targets, harmful);
+  } finally {
+    for (const e of ending) removeEffect(ctx, e, 'consumed');
   }
+}
+
+function resolveUse(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], harmful: boolean): void {
 
   // 4a. Traps and other on-use triggers fire whether or not the skill is countered.
   enqueueTriggers(ctx, actor.id, 'skillUsed', { harmful, eventSource: actor.id, eventTarget: actor.id });

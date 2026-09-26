@@ -10,14 +10,14 @@ export interface ContentFile {
   text: string;
 }
 
-const CATEGORIES = ['skills', 'statuses', 'minions', 'classes'] as const;
+const CATEGORIES = ['skills', 'statuses', 'minions', 'classes', 'macros'] as const;
 
 export function rawFromYamlFiles(files: readonly ContentFile[]): RawContent {
-  const raw: RawContent = { skills: {}, statuses: {}, minions: {}, classes: {} };
+  const raw: RawContent = { skills: {}, statuses: {}, minions: {}, classes: {}, macros: {} };
   for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : 1))) {
     const base = file.path.split(/[\\/]/).pop() ?? file.path;
     const category = CATEGORIES.find((c) => base.startsWith(c));
-    if (!category) throw new Error(`Can't tell what ${file.path} contains (name it skills*, statuses*, minions* or classes*)`);
+    if (!category) throw new Error(`Can't tell what ${file.path} contains (name it skills*, statuses*, minions*, classes* or macros*)`);
     const parsed = (parse(file.text) ?? {}) as Record<string, unknown>;
     for (const [id, entry] of Object.entries(parsed)) {
       if (id in raw[category]) throw new Error(`Duplicate ${category} id "${id}" in ${file.path}`);

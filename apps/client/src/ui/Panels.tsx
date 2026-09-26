@@ -11,7 +11,7 @@ import {
 } from '@arena/engine';
 import { LocalMatch } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
-import { CATEGORY_LABEL, CostPips, describeAction, durationText, skillCategory } from './common.js';
+import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, skillCategory } from './common.js';
 
 const TARGET_TEXT: Record<string, string> = {
   self: 'Self',
@@ -75,6 +75,7 @@ export function HoverCard({ view, content, availability }: { view: PlayerView; c
             <span>CD {def.cooldown}</span>
             <span>{TARGET_TEXT[def.target]}</span>
             <span className={`tag-pill cat-${cat}`}>{CATEGORY_LABEL[cat]}</span>
+            {def.element !== 'None' && <span className={`tag-pill ${elementClass(def.element)}`}>{def.element}</span>}
             {def.tags
               .filter((t) => !['Harmful', 'Helpful', 'Strategic', 'NonStrategic'].includes(t))
               .map((t) => (

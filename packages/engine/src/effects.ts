@@ -1,7 +1,7 @@
 // Effect lifecycle: applying, refreshing, removing, revealing and interrupting effect instances.
 
 import { effectDef, effectKey, effectsOn, emit, nextId, skillDef, type Ctx } from './ctx.js';
-import type { DurationSpec, EffectDef, SkillDef } from './defs.js';
+import type { DurationSpec, EffectDef, SkillDef, UntilSpec } from './defs.js';
 import { compileDuration } from './duration.js';
 import { cannotUseReason, modsOn } from './queries.js';
 import type { EffectInstance, RemoveReason, Unit, UnitId } from './types.js';
@@ -17,7 +17,9 @@ export interface ApplyArgs {
   value?: number;
   duration?: DurationSpec | undefined;
   targets?: UnitId[];
-  until?: { skillUsed: { harmful?: boolean } } | undefined;
+  until?: UntilSpec | undefined;
+  /** The effect ends when this unit leaves the board. */
+  boundTo?: UnitId | undefined;
 }
 
 export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
@@ -97,6 +99,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
     inst.sourceArchetype = a.sourceSkill.archetype;
   }
   if (a.until) inst.until = a.until;
+  if (a.boundTo) inst.data.boundTo = a.boundTo;
   ctx.s.effects.push(inst);
   emit(
     ctx,

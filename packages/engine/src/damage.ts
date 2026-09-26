@@ -12,6 +12,7 @@ import {
   damageDealtBonus,
   damageTakenBonus,
   hasNoArmorOrShield,
+  modifiedHealing,
 } from './queries.js';
 import type { DamageType, Unit } from './types.js';
 
@@ -117,7 +118,7 @@ function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: bo
 
 export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number): number {
   if (!target.alive || amount <= 0) return 0;
-  const healed = Math.min(amount, target.maxHp - target.hp);
+  const healed = Math.min(modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
   target.hp += healed;
   emit(ctx, { t: 'heal', source: source.id, target: target.id, amount: healed, hp: target.hp });
   return healed;
@@ -130,4 +131,6 @@ export function killUnit(ctx: Ctx, u: Unit): void {
   emit(ctx, { t: 'died', unit: u.id });
   interruptChannels(ctx, u, 'death');
   for (const e of effectsOn(ctx.s, u.id)) removeEffect(ctx, e, 'died');
+  // Auras granted by this unit (e.g. a minion's gift to its owner) end with it.
+  for (const e of ctx.s.effects.filter((x) => x.data.boundTo === u.id)) removeEffect(ctx, e, 'removed');
 }

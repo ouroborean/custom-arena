@@ -34,7 +34,8 @@ export type NamedSelector =
   | 'eventTarget' // for triggers: who the event happened to
   | 'effectTargets' // units remembered by the executing effect
   | 'it' // the current unit inside forEach / any / all
-  | 'lastDamaged'; // units damaged by the most recent damage op
+  | 'lastDamaged' // units damaged by the most recent damage op
+  | 'summoner'; // the unit that summoned the actor (for minions)
 
 export type Selector =
   | NamedSelector
@@ -47,6 +48,8 @@ export type Value =
   | { effectValue: true }
   | { effectStacks: true }
   | { stacks: { unit: Selector; effect: string } }
+  /** Number of active effect instances with these keys, on `in` (default: the whole board). */
+  | { count: { effects: string[]; in?: Selector } }
   | { sum: Value[] }
   | { mul: Value[] }
   | { if: Cond; then: Value; else: Value };
@@ -75,6 +78,8 @@ export type Op =
       /** Defaults to true inside a skill's own ops, false inside triggers/ticks (GDD §3.7). */
       direct?: boolean;
       bypass?: boolean;
+      /** This damage never hits Invulnerable targets, even if it's Affliction (Fire Explode, Q14). */
+      respectsInvulnerable?: boolean;
     }
   | { op: 'heal'; to: Selector; amount: Value }
   | {
@@ -87,10 +92,18 @@ export type Op =
       /** Remember these units on the new effect (Snipe target, etc.). */
       remember?: Selector;
       /** End the effect when the bearer next uses a skill (e.g. "next action" buffs). */
-      until?: { skillUsed: { harmful?: boolean } };
+      until?: UntilSpec;
+      /** End the effect when this unit leaves the board (auras granted by minions). */
+      bindTo?: Selector;
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
+  /** Removes every instance of an effect (by key) from the selected units. */
+  | { op: 'removeEffect'; from: Selector; effect: string }
+  /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
+  | { op: 'macro'; id: string }
+  /** Broadcasts a named event that effects can react to (trigger `on: signal`). */
+  | { op: 'signal'; name: string }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
@@ -109,6 +122,11 @@ export interface DamageWhen {
 
 export type SkillClass = 'Strategic' | 'NonStrategic';
 
+/** Ends an effect on the bearer's next skill use, optionally only for Harmful or damaging ones. */
+export interface UntilSpec {
+  skillUsed: { harmful?: boolean; nonStrategic?: boolean };
+}
+
 export type ModifierSpec =
   /** Bearer is the damage source. */
   | { mod: 'damageDealt'; amount: number; perStack?: boolean; when?: DamageWhen }
@@ -124,13 +142,18 @@ export type ModifierSpec =
   | { mod: 'negateNext'; effect: string }
   | { mod: 'forceTarget' }
   | { mod: 'noArmorOrShield' }
-  | { mod: 'energyGain'; amount: number };
+  | { mod: 'energyGain'; amount: number }
+  /** Multiplies healing the bearer receives, rounding up to a multiple of `roundUpTo` (Scorched). */
+  | { mod: 'healingReceived'; mul: number; roundUpTo?: number };
 
-export type TriggerEvent = 'damaged' | 'skillUsed' | 'skillTargeted' | 'turnEnd' | 'turnStart';
+export type TriggerEvent = 'damaged' | 'skillUsed' | 'skillTargeted' | 'turnEnd' | 'turnStart' | 'signal';
 
 export interface TriggerSpec {
   on: TriggerEvent;
-  when?: { direct?: boolean; harmful?: boolean; byEnemy?: boolean };
+  /** For `on: signal`: which signal. */
+  signal?: string;
+  /** `side`: for signals, whose side sent it relative to the bearer. */
+  when?: { direct?: boolean; harmful?: boolean; byEnemy?: boolean; side?: 'ally' | 'enemy' };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
   do?: Op[];
@@ -200,6 +223,8 @@ export interface MinionDef {
   skills: string[];
   /** Effects applied to the minion when summoned (permanent), e.g. its automatic attack. */
   passives: (string | EffectDef)[];
+  /** Ops run once when summoned, with the minion as the actor (e.g. grant its owner an aura). */
+  onSummon?: Op[];
 }
 
 export interface ClassDef {
@@ -215,4 +240,11 @@ export interface ContentBundle {
   statuses: Record<string, EffectDef>;
   minions: Record<string, MinionDef>;
   classes: Record<string, ClassDef>;
+  /** Reusable op lists, referenced by `{ op: macro }`. */
+  macros: Record<string, Op[]>;
+}
+
+/** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */
+export function variantId(baseSkillId: string, element: string): string {
+  return element === 'None' ? baseSkillId : `${baseSkillId}.${element.toLowerCase()}`;
 }

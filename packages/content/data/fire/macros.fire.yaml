@@ -1,0 +1,8 @@
+# Reusable Fire actions.
+
+# "Explode": a triggered Explosion deals 10 Affliction damage to the enemy team (the enemies of
+# whoever caused it). Invulnerable targets are not damaged — an explicit exception to the
+# Affliction rule (Q14). Flameborn allies react to the "explosion" signal.
+explode:
+  - { op: damage, to: allEnemies, amount: 10, type: Affliction, direct: false, respectsInvulnerable: true }
+  - { op: signal, name: explosion }
