@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { SESSION_COOKIE, createSession, deleteSession, hashPassword, verifyPassword } from '../auth.js';
 import { teams, users } from '../db/schema.js';
+import { grantStarterKit } from './equipment.js';
 import { rollForUser } from './roster.js';
 
 const Credentials = z.object({
@@ -42,6 +43,7 @@ export function authRoutes(ctx: AppContext) {
       const starters = [];
       for (let i = 0; i < 3; i++) starters.push(await rollForUser(ctx, user.id));
       await ctx.db.insert(teams).values({ userId: user.id, name: 'Team 1', characterIds: starters.map((c) => c.id), isActive: true });
+      await grantStarterKit(ctx, user.id);
 
       await setSession(reply, user.id);
       return reply.status(201).send({ user });

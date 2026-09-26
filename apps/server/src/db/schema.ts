@@ -1,7 +1,7 @@
 // PostgreSQL schema (GDD §10.5), managed with Drizzle. Migrations: `npm run db:generate -w @arena/server`.
 // Item definitions live in content, never in the database (referenced by string id).
 
-import type { CharacterSkill, RarityId } from '@arena/meta';
+import type { CharacterSkill, Loadout, RarityId } from '@arena/meta';
 import { sql } from 'drizzle-orm';
 import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
@@ -47,6 +47,8 @@ export const characters = pgTable(
     portraitId: text('portrait_id').notNull(),
     /** Ordered skill list; validated by @arena/meta (GDD §7.1 character_skills, kept as one document). */
     skills: jsonb('skills').$type<CharacterSkill[]>().notNull(),
+    /** Equipped items by slot (instance ids from item_instances); validated by @arena/meta. */
+    loadout: jsonb('loadout').$type<Loadout>().notNull().default({}),
     /** Content version the character was generated against. */
     contentVersion: text('content_version').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -68,4 +70,34 @@ export const teams = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('teams_user_idx').on(t.userId)],
+);
+
+export const itemInstances = pgTable(
+  'item_instances',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Content item id (items.yaml). */
+    itemId: text('item_id').notNull(),
+    /** Where it came from (starter kit, dev grant, later drops and rewards). */
+    source: text('source').notNull(),
+    acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('item_instances_user_idx').on(t.userId)],
+);
+
+export const loadoutPresets = pgTable(
+  'loadout_presets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    loadout: jsonb('loadout').$type<Loadout>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('loadout_presets_character_idx').on(t.characterId)],
 );

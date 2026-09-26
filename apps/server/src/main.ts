@@ -19,6 +19,7 @@ const app = await buildApp({
   content,
   sessionDays: config.sessionDays,
   secureCookies: config.secureCookies,
+  devGrants: config.devGrants,
   logger: true,
 });
 

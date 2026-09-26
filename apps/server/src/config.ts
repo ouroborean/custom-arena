@@ -11,6 +11,8 @@ export interface ServerConfig {
   sessionDays: number;
   /** Mark cookies Secure (set in production behind HTTPS). */
   secureCookies: boolean;
+  /** Allow POST /api/dev/grant (never in production). */
+  devGrants: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -21,5 +23,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     pgliteDir: env.PGLITE_DIR ?? '.data/pglite',
     sessionDays: Number(env.SESSION_DAYS ?? 30),
     secureCookies: env.NODE_ENV === 'production',
+    devGrants: env.NODE_ENV !== 'production',
   };
 }

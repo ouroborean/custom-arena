@@ -1,13 +1,14 @@
 // Roster (characters) and teams (GDD §7, §9.1). Rolling is free for now; its cost and currency
 // arrive with the economy (Phase 7).
 
-import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter, type CharacterRecord } from '@arena/meta';
+import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter } from '@arena/meta';
 import { seedRng } from '@arena/engine';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { characters, teams, users } from '../db/schema.js';
+import { recordOf, resolveStored } from './equipment.js';
 
 /** Upper bound on roster size while rolling is free. */
 export const MAX_ROSTER = 60;
@@ -23,19 +24,11 @@ export function characterJson(c: CharacterRow) {
     rarity: c.rarity,
     portraitId: c.portraitId,
     skills: c.skills,
+    loadout: c.loadout,
     contentVersion: c.contentVersion,
     createdAt: c.createdAt,
   };
 }
-
-const recordOf = (c: CharacterRow): CharacterRecord => ({
-  name: c.name,
-  classId: c.classId,
-  element: c.element,
-  rarity: c.rarity,
-  portraitId: c.portraitId,
-  skills: c.skills,
-});
 
 /** Rolls a character for a user (class weighting and pity from their roster) and stores it. */
 export async function rollForUser(ctx: AppContext, userId: string): Promise<CharacterRow> {
@@ -93,7 +86,11 @@ export function rosterRoutes(ctx: AppContext) {
     app.get('/api/characters/:id', async (req) => {
       const { id } = parse(IdParam, req.params);
       const row = await ownedCharacter(ctx, req.user!.id, id);
-      return { character: characterJson(row), problems: validateCharacter(ctx.content, recordOf(row)) };
+      return {
+        character: characterJson(row),
+        problems: validateCharacter(ctx.content, recordOf(row)),
+        resolved: resolveStored(ctx, row),
+      };
     });
 
     app.post('/api/characters/roll', async (req, reply) => {
@@ -140,12 +137,17 @@ export function rosterRoutes(ctx: AppContext) {
       return { team: { id: row!.id, name: row!.name, characterIds } };
     });
 
-    /** The active team as engine input (the client's practice mode, later the match service). */
+    /** The active team as engine input, equipment included; loadouts are re-validated (GDD §7.3). */
     app.get('/api/teams/active/specs', async (req) => {
       const team = await activeTeam(ctx, req.user!.id);
       if (!team) throw new HttpError(404, 'No active team');
       const specs = [];
-      for (const id of team.characterIds) specs.push(toCharacterSpec(recordOf(await ownedCharacter(ctx, req.user!.id, id))));
+      for (const id of team.characterIds) {
+        const c = await ownedCharacter(ctx, req.user!.id, id);
+        const resolved = resolveStored(ctx, c);
+        if (resolved.problems.length) throw new HttpError(409, `${c.name}'s loadout needs fixing`, { problems: resolved.problems });
+        specs.push(toCharacterSpec(recordOf(c), resolved));
+      }
       return { specs };
     });
   };

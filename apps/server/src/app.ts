@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { SESSION_COOKIE, userForSession, type SessionUser } from './auth.js';
 import type { Db } from './db/client.js';
 import { authRoutes } from './routes/auth.js';
+import { equipmentRoutes } from './routes/equipment.js';
 import { rosterRoutes } from './routes/roster.js';
 
 declare module 'fastify' {
@@ -24,6 +25,8 @@ export interface AppOptions {
   secureCookies?: boolean;
   /** Seed source for character rolls (default: crypto-random). */
   rollSeed?: () => number;
+  /** Enable POST /api/dev/grant (development only). */
+  devGrants?: boolean;
   logger?: boolean;
 }
 
@@ -33,12 +36,15 @@ export interface AppContext {
   sessionDays: number;
   secureCookies: boolean;
   rollSeed: () => number;
+  devGrants: boolean;
 }
 
 export class HttpError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** Extra fields for the JSON body (e.g. `problems`). */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -62,6 +68,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     sessionDays: opts.sessionDays ?? 30,
     secureCookies: opts.secureCookies ?? false,
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
+    devGrants: opts.devGrants ?? false,
   };
   const app = Fastify({ logger: opts.logger ?? false });
   await app.register(cookie);
@@ -72,7 +79,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   });
 
   app.setErrorHandler((err: unknown, _req: FastifyRequest, reply: FastifyReply) => {
-    if (err instanceof HttpError) return reply.status(err.status).send({ error: err.message });
+    if (err instanceof HttpError) return reply.status(err.status).send({ error: err.message, ...err.details });
     const status = (err as { statusCode?: number }).statusCode;
     if (status && status < 500) return reply.status(status).send({ error: (err as Error).message });
     app.log.error(err);
@@ -92,5 +99,6 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
 
   await app.register(authRoutes(ctx));
   await app.register(rosterRoutes(ctx));
+  await app.register(equipmentRoutes(ctx));
   return app;
 }
