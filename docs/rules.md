@@ -562,3 +562,56 @@ Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception 
 - Sleep support: `wakes` on damage ops and on `damaged` triggers.
 - Taunting to a summoned minion: `from` on `apply`, and the `lastSummoned` selector. Summon ops now return the unit.
 - The `stealthFrom` redaction on `skillUsed` events.
+
+## 20. Earth
+
+Content: `packages/content/data/earth/`. Themes are Armor, Healing and Minions. There are no new statuses. Earth's identity is its minions: **Boulder** (45 HP, no skills), **Seedling** (15 HP, Channel Earth), **Forest Stalker** (50 HP, counts as a Seedling) and **Worldsprout** (35 HP). The minion cap (4 per side, GDD §3.2) applies throughout, and summons beyond it fail silently.
+
+### 20.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Minion types** | Minions can carry extra `tags`. Forest Stalker is tagged `seedling`, so "Seedling" everywhere includes it. The new `minion {unit, types}` condition matches by minion id or tag. |
+| **Channel Growth** | A macro, not a status. Every allied Seedling gains +10 **max** HP (new `addMaxHp` op), then heals 10. |
+| **Channel Earth** | A Seedling skill (r, no cooldown). The Seedling's **summoner** gains 1 Might and 1 Armor, both **permanent** since there's no duration (Q16). |
+| **Launching a Boulder** | The Boulder deals its current HP to a random enemy **as the Boulder** (new `from` on damage ops), so "damage from a Boulder" effects see it. The Boulder is then destroyed. It's direct damage, but it doesn't benefit from the user's Might. |
+
+### 20.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Worldfist, Worldquake | Count every allied minion. Worldquake's discount is 1 GEN per minion, applied like Focus (new skill-level `costAdjust`), so Chilled blocks it. |
+| Shale Guard | Invisible. Counters the first Harmful skill within 1 turn and deals 10 indirect Piercing to its user. |
+| Launch Stone | Targets an enemy (15 damage) **or** an allied Boulder (launched as above). No other ally or minion can be targeted. |
+| Tunnelmaker | Lands in 2 turns (like a Snipe with `enemyTurns 2`). If the user has a Boulder, a random one is destroyed and it lands a turn sooner. Interruptible. |
+| Boulder Trap | For 2 turns, **every** minion the target summons is destroyed on arrival, and the trapper summons a Boulder each time. It uses the new `summoned` trigger on the summoner's effects. It's visible. |
+| Vine Lash | Creates a Seedling only if the user has none (Forest Stalkers count). |
+| Worldmarch | Kills all allied Seedlings and summons that many Worldsprouts (up to the cap). |
+| Worldcaller | Channel for 4 turns: one Worldsprout at the end of each of the user's turns. Vitality Transfer kills the Worldsprout and heals **another** ally for its HP at that moment. |
+| Stonepierce | 20 against a target with Armor or any Shield with value left (new `hasShield` condition). |
+| Stone Drill | +20 if the user's Armor stacks plus Might stacks total at least 3. |
+| Pitfall | Visible. For 1 turn, the target's Harmful skills are countered, and each counter Stuns and Isolates them for 1 turn. |
+| Earthwrap | The enemy's 25 Shield is permanent until depleted (Q16). It's a 2-turn Stun. |
+| Landslide | Each use adds a 10-point "Landslide" Shield. If one was already up, the user also creates a Boulder. |
+| Infuse Earth | Free, no cooldown. Randomly 1 Might or 1 Armor, both permanent. |
+| Worldmute | Targets an **ally** (intentional, GDD §14.2). For each Might stack on that ally, a random enemy (re-rolled each time) gains 1 permanent Weakness. |
+| Earth Pillar | For 1 turn, damage from a Boulder (a launched one) Stuns the target for 1 turn. |
+| Vine Whirl | 5 to all enemies, then launches a random allied Boulder if there is one. |
+| Awakener's Roar | Every allied Boulder gains 1 permanent Armor and heals to full. |
+| Rampart | With any Shield up, every Shield effect on the user is doubled (new `scaleShields` op). Otherwise it's a new 30 Shield, permanent until depleted. |
+| Ancient Grudge | A permanent Taunt (inline, forcing targeting onto the user). Using it again moves the grudge: it's removed from all enemies first. |
+| Treant Form | Counted when used: Might equal to the Seedling count and a Shield of 5 per Boulder, both for 4 turns. There's no Shield with 0 Boulders. |
+
+### 20.3 Balance notes (greedy-bot simulation, 4,000 matches, eleven element pools)
+
+- By character element: Poison 53.3%, Fire 51.7%, Water 51.4%, None 50.9%, **Earth 50.1%**, Holy 50.0%, Wind 47.5%, Ice 46.9%, Shadow 46.9%, Unholy 46.3%, Lightning 46.1%.
+- Strongest Earth skills: Vine Lash (about 72%), Forest Stalker (about 69%), Nature's Wrath (about 64%) and Sprout Seedling (about 62%). Seedlings' Channel Earth grants **permanent** Might and Armor for r each turn, which snowballs.
+  - **Candidate fix:** give Channel Earth's Might and Armor a duration, or a cooldown of 1.
+- Weakest: Vine Whirl (about 34%), Tunnelmaker (about 39%), Rampart (about 40%) and Ancient Grudge (about 41%).
+
+### 20.4 Engine additions for Earth
+
+- Minions: minion `tags`, the `summoned` trigger, and summon ops that return the unit.
+- Conditions and values: `minion`, `isEnemy` and `hasShield` conditions, and the `hp` value.
+- Ops: `from` on damage ops, `addMaxHp`, and `scaleShields`.
+- Costs: skill-level `costAdjust`.

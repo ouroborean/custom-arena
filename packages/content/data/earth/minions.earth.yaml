@@ -1,0 +1,23 @@
+# Earth minions (HP from the sheet). Seedlings are Seedling-type; Forest Stalker counts as one too.
+
+boulder:
+  name: Boulder
+  hp: 45
+  skills: []
+
+seedling:
+  name: Seedling
+  hp: 15
+  skills: [seedling_channel_earth]
+  tags: [seedling]
+
+forest_stalker:
+  name: Forest Stalker
+  hp: 50
+  skills: [stalker_rootlash, seedling_channel_earth]
+  tags: [seedling]
+
+worldsprout:
+  name: Worldsprout
+  hp: 35
+  skills: [worldsprout_treant_smash, worldsprout_vitality_transfer]

@@ -89,6 +89,9 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ isActor: selectorSchema }),
+    z.strictObject({ isEnemy: selectorSchema }),
+    z.strictObject({ minion: z.strictObject({ unit: selectorSchema, types: z.array(z.string()).optional() }) }),
+    z.strictObject({ hasShield: selectorSchema }),
     z.strictObject({ hasSkill: z.strictObject({ unit: selectorSchema, archetypes: z.array(z.string()).min(1) }) }),
     z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
     z.strictObject({
@@ -115,6 +118,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ countOf: selectorSchema }),
     z.strictObject({ missingHp: selectorSchema }),
+    z.strictObject({ hp: selectorSchema }),
     z.strictObject({ totalStacks: z.strictObject({ in: selectorSchema, effect: z.string() }) }),
     z.strictObject({ div: z.tuple([valueSchema, valueSchema]) }),
     z.strictObject({ sum: z.array(valueSchema) }),
@@ -171,6 +175,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       bypass: z.boolean().optional(),
       respectsInvulnerable: z.boolean().optional(),
       wakes: z.boolean().optional(),
+      from: selectorSchema.optional(),
     }),
     z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({
@@ -196,6 +201,8 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
+    z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
+    z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),
     z.strictObject({ op: z.literal('removeKind'), from: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('removeStacks'), from: selectorSchema, effect: z.string(), amount: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('macro'), id: z.string() }),
@@ -226,7 +233,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged']),
+    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged', 'summoned']),
     signal: z.string().optional(),
     effect: z.string().optional(),
     when: z
@@ -295,6 +302,7 @@ export const skillFileEntry = z.strictObject({
   requires: condSchema.optional(),
   onCountered: z.array(opSchema).optional(),
   altCost: z.strictObject({ when: condSchema, cost: costSchema }).optional(),
+  costAdjust: valueSchema.optional(),
   ops: z.array(opSchema),
 });
 
@@ -304,6 +312,7 @@ export const minionFileEntry = z.strictObject({
   skills: z.array(z.string()).default([]),
   passives: z.array(z.union([z.string(), effectDefSchema])).default([]),
   onSummon: z.array(opSchema).optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const macroFileEntry = z.array(opSchema);

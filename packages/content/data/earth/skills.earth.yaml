@@ -1,0 +1,604 @@
+# The 30 Earth variants, from "Custom Arena - Earth". Ids are "<base>.earth".
+# Themes: Armor, Healing, Minions. "Seedling" includes Forest Stalkers. Minion cap: 4 per side.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.earth:
+  archetype: Strike
+  element: Earth
+  name: Worldfist
+  description: Deals 15 damage to target enemy, +5 for each allied minion.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { sum: [15, { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it } } } }] }] }
+
+smash.earth:
+  archetype: Smash
+  element: Earth
+  name: Worldquake
+  description: Deals 15 damage to target enemy and 10 to its allies. Costs 1 GEN less per allied minion.
+  cost: rrr
+  costAdjust: { mul: [-1, { countOf: { filter: allAllies, where: { minion: { unit: it } } } }] }
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+
+charge.earth:
+  archetype: Charge
+  element: Earth
+  name: Rolling Crash
+  description: Deals 10 damage to target enemy and creates a Boulder minion (45 HP).
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: summon, minion: boulder }
+
+riposte.earth:
+  archetype: Riposte
+  element: Earth
+  name: Shale Guard
+  description: For 1 turn, the user counters the first Harmful skill used on them, dealing 10 Piercing damage to its user. Invisible.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shale_guard
+        name: Shale Guard
+        kind: Buff
+        element: Earth
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, dealing 10 Piercing damage to its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: eventSource, amount: 10, type: Piercing }
+
+rage.earth:
+  archetype: Rage
+  element: Earth
+  name: Nature's Wrath
+  description: The user creates 2 Seedling minions, then gains Immune for 2 turns.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: seedling, count: 2 }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+
+shot.earth:
+  archetype: Shot
+  element: Earth
+  name: Launch Stone
+  description: >-
+    Deals 15 damage to target enemy. Can instead target an allied Boulder, launching it at a random
+    enemy for damage equal to its remaining HP; this destroys the Boulder.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: any
+  targetFilter: { or: [{ isEnemy: it }, { minion: { unit: it, types: [boulder] } }] }
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then: [{ op: damage, to: primary, amount: 15 }]
+      else: [{ op: forEach, in: primary, do: [{ op: macro, id: launch_boulder }] }]
+
+snipe.earth:
+  archetype: Snipe
+  element: Earth
+  name: Tunnelmaker
+  description: >-
+    In 2 turns, the user deals 65 damage to target enemy. If the user has a Boulder, one is consumed
+    to make it land a turn sooner. Channeled.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: set
+      var: boulders
+      value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
+    - op: if
+      cond: { varTrue: boulders }
+      then: [{ op: kill, to: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } } }]
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: { if: { varTrue: boulders }, then: 1, else: 2 } }
+      effect:
+        id: tunnelmaker
+        name: Tunnelmaker (digging)
+        kind: Neutral
+        element: Earth
+        interruptible: true
+        description: When it runs out, 65 damage to the target, unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 65 }
+
+trap.earth:
+  archetype: Trap
+  element: Earth
+  name: Boulder Trap
+  description: >-
+    For 2 turns, whenever target enemy creates a minion, that minion is destroyed and the user
+    creates a Boulder minion instead.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: boulder_trap
+        name: Boulder Trap
+        kind: Debuff
+        element: Earth
+        description: Minions the bearer creates are destroyed, and the trapper creates a Boulder instead.
+        triggers:
+          - on: summoned
+            do:
+              - { op: kill, to: eventTarget }
+              - { op: summon, minion: boulder }
+
+maneuver.earth:
+  archetype: Maneuver
+  element: Earth
+  name: Burrow
+  description: The user becomes Invulnerable and Ghosted for 1 turn.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 1 } }
+
+companion.earth:
+  archetype: Companion
+  element: Earth
+  name: Forest Stalker
+  description: >-
+    Summons a Forest Stalker minion (50 HP, counts as a Seedling). Rootlash (no cost): 10 Piercing
+    damage to target enemy. Channel Earth (r): its creator gains 1 Might and 1 Armor.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: forest_stalker }
+
+bolt.earth:
+  archetype: Bolt
+  element: Earth
+  name: Vine Lash
+  description: Deals 25 damage to target enemy. If the user has no Seedling minions, they create one.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }, atMost: 0 } }
+      then: [{ op: summon, minion: seedling }]
+
+blast.earth:
+  archetype: Blast
+  element: Earth
+  name: Verdant Burst
+  description: Channel Growth, then deal 25 damage to all enemies.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: macro, id: channel_growth }
+    - { op: damage, to: targets, amount: 25 }
+
+consume.earth:
+  archetype: Consume
+  element: Earth
+  name: Worldmarch
+  description: Sacrifices all allied Seedling minions and creates that many Worldsprout minions.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: set
+      var: seedlings
+      value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+    - { op: repeat, times: { var: seedlings }, do: [{ op: summon, minion: worldsprout }] }
+
+summon.earth:
+  archetype: Summon
+  element: Earth
+  name: Sprout Seedling
+  description: 'Summons 2 Seedling minions (15 HP). Channel Earth (r): its creator gains 1 Might and 1 Armor.'
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: seedling, count: 2 }
+
+channel.earth:
+  archetype: Channel
+  element: Earth
+  name: Worldcaller
+  description: >-
+    Creates a Worldsprout minion (35 HP) at the end of each of the user's turns, for 4 turns.
+    Treant Smash (no cost): 10 damage. Vitality Transfer (no cost): sacrifices the Worldsprout to heal
+    target ally for its current HP. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: worldcaller
+        name: Worldcaller
+        kind: Neutral
+        element: Earth
+        interruptible: true
+        description: Each end of the user's turn, a Worldsprout is created.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: summon, minion: worldsprout }
+
+stab.earth:
+  archetype: Stab
+  element: Earth
+  name: Stonepierce
+  description: Deals 10 damage to target enemy, increased to 20 against targets with Shield or Armor.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if: { or: [{ hasShield: primary }, { has: { unit: primary, effect: armor } }] }
+        then: 20
+        else: 10
+
+ravage.earth:
+  archetype: Ravage
+  element: Earth
+  name: Stone Drill
+  description: Deals 25 Piercing damage to target enemy, +20 if the user has at least 3 total Armor and Might.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        if:
+          compare:
+            value: { sum: [{ stacks: { unit: actor, effect: armor } }, { stacks: { unit: actor, effect: might } }] }
+            atLeast: 3
+        then: 45
+        else: 25
+
+mislead.earth:
+  archetype: Mislead
+  element: Earth
+  name: Pitfall
+  description: For 1 turn, if target enemy uses a Harmful skill, it is countered and they are Stunned and Isolated for 1 turn.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pitfall
+        name: Pitfall
+        kind: Debuff
+        element: Earth
+        description: The bearer's Harmful skills are countered, and each counter Stuns and Isolates them for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
+
+stun.earth:
+  archetype: Stun
+  element: Earth
+  name: Earthwrap
+  description: Target enemy gains 25 Shield and is Stunned for 2 turns.
+  cost: Wr
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: shield, value: 25 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
+
+dance.earth:
+  archetype: Dance
+  element: Earth
+  name: Landslide
+  description: The user gains 10 Shield. If they already had Shield from Landslide, they also create a Boulder minion.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: had, value: { if: { has: { unit: actor, effect: landslide } }, then: 1, else: 0 } }
+    - op: apply
+      to: actor
+      value: 10
+      effect:
+        id: landslide
+        name: Landslide
+        kind: Buff
+        element: Earth
+        shield: true
+        description: A Shield. Using Landslide again while it holds creates a Boulder.
+    - { op: if, cond: { varTrue: had }, then: [{ op: summon, minion: boulder }] }
+
+heal.earth:
+  archetype: Heal
+  element: Earth
+  name: Grovetender
+  description: Channel Growth, then heal target ally for 15 HP.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: macro, id: channel_growth }
+    - { op: heal, to: primary, amount: 15 }
+
+bless.earth:
+  archetype: Bless
+  element: Earth
+  name: Infuse Earth
+  description: Target ally gains 1 Might or 1 Armor, chosen at random.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: random
+      options:
+        - [{ op: apply, to: primary, effect: might }]
+        - [{ op: apply, to: primary, effect: armor }]
+
+curse.earth:
+  archetype: Curse
+  element: Earth
+  name: Worldmute
+  description: For each Might target ally has, a random enemy gains 1 Weakness.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: repeat
+      times: { stacks: { unit: primary, effect: might } }
+      do:
+        - { op: apply, to: { randomEnemy: 1 }, effect: weakness }
+
+smite.earth:
+  archetype: Smite
+  element: Earth
+  name: Earth Pillar
+  description: Deals 20 damage to target enemy. For 1 turn, if a Boulder damages them, they are Stunned for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: earth_pillar
+        name: Earth Pillar
+        kind: Debuff
+        element: Earth
+        description: If a Boulder damages the bearer, they are Stunned for 1 turn.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { minion: { unit: eventSource, types: [boulder] } }
+                then: [{ op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }]
+
+prayer.earth:
+  archetype: Prayer
+  element: Earth
+  name: Verse of Nurturing
+  description: Channel Growth twice, then heal all allies for 25 HP and give them 2 Renew.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: macro, id: channel_growth }
+    - { op: macro, id: channel_growth }
+    - { op: heal, to: targets, amount: 25 }
+    - { op: apply, to: targets, effect: renew, stacks: 2 }
+
+cleave.earth:
+  archetype: Cleave
+  element: Earth
+  name: Vine Whirl
+  description: Deals 5 damage to all enemies. If there's an allied Boulder, a random one is launched (as Launch Stone).
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 5 }
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+      do: [{ op: macro, id: launch_boulder }]
+
+shout.earth:
+  archetype: Shout
+  element: Earth
+  name: Awakener's Roar
+  description: All allied Boulder minions gain 1 Armor and are healed to full HP.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: forEach
+      in: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } }
+      do:
+        - { op: apply, to: it, effect: armor }
+        - { op: heal, to: it, amount: { missingHp: it } }
+
+withstand.earth:
+  archetype: Withstand
+  element: Earth
+  name: Rampart
+  description: The user gains 30 Shield. If the user already has Shield, they instead double their current Shield.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { hasShield: actor }
+      then: [{ op: scaleShields, on: actor, factor: 2 }]
+      else: [{ op: apply, to: actor, effect: shield, value: 30 }]
+
+taunt.earth:
+  archetype: Taunt
+  element: Earth
+  name: Ancient Grudge
+  description: Permanently Taunts one enemy. Only one enemy can hold the grudge at a time.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: allEnemies, effect: ancient_grudge }
+    - op: apply
+      to: primary
+      effect:
+        id: ancient_grudge
+        name: Ancient Grudge
+        kind: Debuff
+        element: Earth
+        stacking: unique
+        description: Permanently Taunted by the user.
+        modifiers:
+          - { mod: forceTarget }
+
+titan.earth:
+  archetype: Titan
+  element: Earth
+  name: Treant Form
+  description: For 4 turns, the user gains 1 Might per allied Seedling and 5 Shield per allied Boulder.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect: might
+      stacks: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+      duration: { enemyTurns: 4 }
+    - op: set
+      var: boulders
+      value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
+    - op: if
+      cond: { varTrue: boulders }
+      then: [{ op: apply, to: actor, effect: shield, value: { mul: [5, { var: boulders }] }, duration: { enemyTurns: 4 } }]
+
+# ---------------------------------------------------------------- minion skills
+
+seedling_channel_earth:
+  archetype: Minion
+  element: Earth
+  name: Channel Earth
+  description: This minion's creator gains 1 Might and 1 Armor.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: summoner, effect: might }
+    - { op: apply, to: summoner, effect: armor }
+
+stalker_rootlash:
+  archetype: Minion
+  element: Earth
+  name: Rootlash
+  description: Deals 10 Piercing damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+
+worldsprout_treant_smash:
+  archetype: Minion
+  element: Earth
+  name: Treant Smash
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+worldsprout_vitality_transfer:
+  archetype: Minion
+  element: Earth
+  name: Vitality Transfer
+  description: Sacrifices the Worldsprout to heal target ally for its current HP.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  targetFilter: { not: { isActor: it } }
+  ops:
+    - { op: set, var: life, value: { hp: actor } }
+    - { op: kill, to: actor }
+    - { op: heal, to: primary, amount: { var: life } }

@@ -151,6 +151,7 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     const ids = new Set(select(ctx, v.totalStacks.in, sc).map((u) => u.id));
     return ctx.s.effects.filter((e) => ids.has(e.bearer) && effectKeyOf(e) === v.totalStacks.effect).reduce((n, e) => n + e.stacks, 0);
   }
+  if ('hp' in v) return select(ctx, v.hp, sc)[0]?.hp ?? 0;
   if ('missingHp' in v) {
     const u = select(ctx, v.missingHp, sc)[0];
     return u ? u.maxHp - u.hp : 0;
@@ -199,6 +200,20 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
   if ('isActor' in c) return select(ctx, c.isActor, sc)[0]?.id === sc.actor;
+  if ('isEnemy' in c) {
+    const u = select(ctx, c.isEnemy, sc)[0];
+    return !!u && isEnemy(unit(ctx, sc.actor), u);
+  }
+  if ('minion' in c) {
+    const u = select(ctx, c.minion.unit, sc)[0];
+    if (!u || u.kind !== 'minion') return false;
+    const types = c.minion.types;
+    return !types || types.includes(u.defId) || (ctx.c.minions[u.defId]?.tags ?? []).some((t) => types.includes(t));
+  }
+  if ('hasShield' in c) {
+    const u = select(ctx, c.hasShield, sc)[0];
+    return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).shield && e.value > 0);
+  }
   if ('hasSkill' in c) {
     const u = select(ctx, c.hasSkill.unit, sc)[0];
     return !!u && u.skills.some((s) => c.hasSkill.archetypes.includes(ctx.c.skills[s.defId]?.archetype ?? ''));
@@ -250,10 +265,12 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       sc.lastDamage = 0;
       sc.lastDamaged = [];
       const respectsInvulnerable = op.respectsInvulnerable ?? (sc.self ? effectDef(ctx.c, sc.self).respectsInvulnerable : undefined);
+      const dealer = op.from ? select(ctx, op.from, sc)[0] : actor;
+      if (!dealer) return;
       for (const t of select(ctx, op.to, sc)) {
         const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
         const dealt = dealDamage(ctx, {
-          source: actor,
+          source: dealer,
           target: t,
           amount,
           type: op.type ?? 'Normal',
@@ -319,6 +336,14 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
+      }
+      return;
+    case 'addMaxHp':
+      for (const t of select(ctx, op.to, sc)) t.maxHp += op.amount;
+      return;
+    case 'scaleShields':
+      for (const t of select(ctx, op.on, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) e.value = Math.round(e.value * op.factor);
       }
       return;
     case 'removeKind':
@@ -475,6 +500,12 @@ function summonMinion(
   };
   ctx.s.units.push(m);
   emit(ctx, { t: 'summoned', unit: m.id, defId: def.id, by: summoner.id });
+  // "If target enemy creates a minion" (Earth Boulder Trap): the summoner's effects react.
+  for (const e of effectsOn(ctx.s, summoner.id)) {
+    for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+      if (spec.on === 'summoned') ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: summoner.id, eventTarget: m.id });
+    }
+  }
   for (const p of def.passives) {
     applyEffect(ctx, { def: resolveEffectDef(ctx.c, p), inline: typeof p !== 'string', bearer: m, source: m, sourceSkill: skill });
   }
