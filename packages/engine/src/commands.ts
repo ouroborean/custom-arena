@@ -69,8 +69,14 @@ export function applyCommand(content: ContentBundle, state: GameState, player: P
       ps.queue.push({
         actor: actor.id,
         slot: cmd.slot,
-        // Single-target skills keep the declared target; AoE/self targets are recomputed at resolution.
-        targets: def.target === 'enemy' || def.target === 'ally' || def.target === 'any' ? (tr.ok ? tr.targets : []) : [],
+        // Single-target skills keep the declared target; AoE/self targets are recomputed at resolution,
+        // unless equipment redirected a self skill to another unit (Lightsaber Dirk).
+        targets:
+          def.target === 'enemy' || def.target === 'ally' || def.target === 'any' || (def.target === 'self' && tr.ok && tr.targets[0] !== actor.id)
+            ? tr.ok
+              ? tr.targets
+              : []
+            : [],
         cost: modifiedCost(ctx, actor, def),
       });
       break;

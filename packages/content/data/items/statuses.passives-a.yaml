@@ -1,0 +1,412 @@
+# Type A (Main Hand) passives — one per base skill (GDD §8, docs/equipment.md). Each is a permanent
+# status on the wearer, id `eq_<item id>`, linked from items.yaml by `passiveEffect`.
+# "Your X skills" = skills of archetype X, base or elemental.
+# Statuses are kind Neutral: they can't be cleansed, stolen or blocked like Buffs.
+
+eq_wind_katana:
+  name: Wind Katana
+  kind: Neutral
+  description: Your Strike skills deal 5 more damage, plus 5 per energy in their total cost.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Strike]
+      when: { direct: true }
+      amount: 0
+      value: { sum: [5, { mul: [5, { skillCost: true }] }] }
+
+eq_magma_hammer:
+  name: Magma Hammer
+  kind: Neutral
+  description: Your Smash skills deal 10 more damage to every target but cost 1 more random energy.
+  modifiers:
+    - { mod: damageDealt, archetypes: [Smash], when: { direct: true }, amount: 10 }
+    - { mod: costGeneric, archetypes: [Smash], amount: 1 }
+
+eq_water_spear:
+  name: Water Spear
+  kind: Neutral
+  description: Your Charge skills deal 5 more damage, and after using one, your skill costs are all random energy for 1 turn.
+  modifiers:
+    - { mod: damageDealt, archetypes: [Charge], when: { direct: true }, amount: 5 }
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Charge] }
+      do:
+        - op: apply
+          to: bearer
+          duration: { ownTurns: 1 }
+          effect:
+            id: water_spear_flow
+            name: Water Spear
+            kind: Buff
+            element: Water
+            stacking: unique
+            description: Skill costs are all random energy.
+            modifiers:
+              - { mod: costToRandom }
+
+eq_poison_rapier:
+  name: Poison Rapier
+  kind: Neutral
+  description: Once per match, when one of your Riposte skills counters something, its cooldown resets.
+  triggers:
+    - on: ownEffectTriggered
+      when: { archetypes: [Riposte], counter: true }
+      do:
+        - op: if
+          cond: { not: { flag: used } }
+          then:
+            - { op: resetCooldown, archetypes: [Riposte] }
+            - { op: setFlag, flag: used }
+
+eq_unholy_cleaver:
+  name: Unholy Cleaver
+  kind: Neutral
+  description: Your Rage skills give you 10 Shield for every 20 Health you're missing.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Rage] }
+      do:
+        - { op: set, var: shield, value: { mul: [10, { div: [{ missingHp: bearer }, 20] }] } }
+        - op: if
+          cond: { compare: { value: { var: shield }, atLeast: 10 } }
+          then: [{ op: apply, to: bearer, effect: shield, value: { var: shield } }]
+
+eq_ice_kunai:
+  name: Ice Kunai
+  kind: Neutral
+  description: Your Shot skills deal 5 more damage for each earlier Shot hit on the same target.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Shot]
+      when: { direct: true }
+      amount: 0
+      value: { mul: [5, { stacks: { unit: it, effect: kunai_mark } }] }
+  triggers:
+    - on: dealtDamage
+      when: { direct: true, archetypes: [Shot] }
+      do:
+        - { op: apply, to: eventTarget, effect: kunai_mark }
+
+kunai_mark:
+  name: Kunai Mark
+  kind: Neutral
+  stacking: merge
+  description: Each stack adds 5 damage to the Ice Kunai wearer's Shot skills against this unit.
+
+eq_shadow_arbalest:
+  name: Shadow Arbalest
+  kind: Neutral
+  description: Your Snipe skills' targets are visible, but they Bypass and can't be countered.
+  modifiers:
+    - { mod: skillTags, archetypes: [Snipe], add: [Bypass, Uncounterable], remove: [HiddenTarget] }
+
+eq_vine_whip:
+  name: Vine Whip
+  kind: Neutral
+  description: When one of your Traps expires without going off, your Trap skills' cooldowns drop by 1.
+  triggers:
+    - on: ownEffectEnded
+      when: { archetypes: [Trap], reason: [expired], untriggered: true }
+      do:
+        - { op: adjustCooldowns, to: bearer, archetypes: [Trap], by: -1 }
+
+eq_lightsaber_dirk:
+  name: Lightsaber Dirk
+  kind: Neutral
+  description: Your self-targeted Maneuver skills can be used on an allied character instead, but their cooldowns are 1 longer.
+  modifiers:
+    - mod: extraTargets
+      archetypes: [Maneuver]
+      castAs: true
+      where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }, { kind: { unit: it, is: character } }] }
+    - { mod: cooldownOnUse, archetypes: [Maneuver], amount: 1 }
+
+eq_ice_claw:
+  name: Ice Claw
+  kind: Neutral
+  description: Minions from your Companion skills pay all their costs with random energy.
+  triggers:
+    - on: summoned
+      when: { archetypes: [Companion] }
+      do:
+        - op: apply
+          to: eventTarget
+          effect:
+            id: ice_claw_gen
+            name: Ice Claw
+            kind: Neutral
+            element: Ice
+            stacking: unique
+            description: Skill costs are all random energy.
+            modifiers:
+              - { mod: costToRandom }
+
+eq_fire_sceptre:
+  name: Fire Sceptre
+  kind: Neutral
+  description: Your Bolt skills get double the benefit from Might.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Bolt]
+      when: { direct: true }
+      amount: 0
+      value: { mul: [5, { stacks: { unit: actor, effect: might } }] }
+
+eq_holy_book:
+  name: Holy Book
+  kind: Neutral
+  description: Your Blast skills deal 10 more damage for each dead enemy character.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Blast]
+      when: { direct: true }
+      amount: 0
+      value: { mul: [10, { deadCount: enemies }] }
+
+eq_twisted_wand:
+  name: Twisted Wand
+  kind: Neutral
+  description: Your Consume skills can target an allied minion from a Summon skill, killing it to heal you 10 and give you 10 Shield.
+  modifiers:
+    - mod: extraTargets
+      archetypes: [Consume]
+      where: { and: [{ minion: { unit: it, fromArchetypes: [Summon] } }, { not: { isEnemy: it } }] }
+      ops:
+        - { op: kill, to: primary }
+        - { op: heal, to: actor, amount: 10 }
+        - { op: apply, to: actor, effect: shield, value: 10 }
+
+eq_sacrificial_dagger:
+  name: Sacrificial Dagger
+  kind: Neutral
+  description: Whenever you're healed, your minions from Summon skills are healed as much.
+  triggers:
+    - on: healed
+      do:
+        - op: heal
+          to: { filter: allAllies, where: { minion: { unit: it, fromArchetypes: [Summon] } } }
+          amount: { eventAmount: true }
+
+eq_holy_censer:
+  name: Holy Censer
+  kind: Neutral
+  description: At the end of each of your turns while you're channeling a Channel skill, you gain 10 Shield for 1 turn.
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { hasFromArchetype: { unit: bearer, archetype: Channel } }
+          then: [{ op: apply, to: bearer, effect: shield, value: 10, duration: { enemyTurns: 1 } }]
+
+eq_scything_claw:
+  name: Scything Claw
+  kind: Neutral
+  description: When one of your Stab skills gets its bonus, all your cooldowns drop by 1.
+  triggers:
+    - on: signal
+      signal: stab_bonus
+      when: { side: ally }
+      do:
+        - op: if
+          cond: { isActor: eventSource }
+          then: [{ op: adjustCooldowns, to: bearer, by: -1 }]
+
+eq_lightning_dagger:
+  name: Lightning Dagger
+  kind: Neutral
+  description: Your Ravage skills deal 5 more damage for each allied character that acted before you this turn.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Ravage]
+      when: { direct: true }
+      amount: 0
+      value: { mul: [5, { alliesActed: true }] }
+
+eq_mist_fan:
+  name: Mist Fan
+  kind: Neutral
+  description: When one of your Mislead effects triggers, your skills Bypass until the end of your next turn.
+  triggers:
+    - on: ownEffectTriggered
+      when: { archetypes: [Mislead] }
+      do:
+        - { op: apply, to: bearer, effect: ghosted, duration: { ownTurns: 1 } }
+
+eq_sun_baton:
+  name: Sun Baton
+  kind: Neutral
+  description: Enemies you Stun are also Shattered for as long as the Stun lasts.
+  triggers:
+    - on: effectApplied
+      when: { effects: [stun, stun_ns, stun_s], toEnemy: true }
+      do:
+        - { op: apply, to: eventTarget, effect: shattered, duration: { sameAsEvent: true } }
+
+eq_hoop_blade:
+  name: Hoop Blade
+  kind: Neutral
+  description: Using a skill lowers the remaining cooldown of your other Dance skills by 1.
+  triggers:
+    - on: skillUsed
+      do:
+        - { op: adjustCooldowns, to: bearer, archetypes: [Dance], by: -1, exceptEvent: true }
+
+eq_wind_charm_stick:
+  name: Wind Charm Stick
+  kind: Neutral
+  description: Allies you target with Heal skills heal 5 more at the start of each of your next 2 turns.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Heal] }
+      do:
+        - op: apply
+          to: eventTargets
+          duration: { ownTurns: 2 }
+          effect:
+            id: wind_charm_hot
+            name: Wind Charm
+            kind: Buff
+            element: Wind
+            stacking: unique
+            description: Heals 5 at the start of the healer's next 2 turns.
+            triggers:
+              - on: turnStart
+                do:
+                  - { op: heal, to: bearer, amount: 5 }
+
+eq_anointment_mace:
+  name: Anointment Mace
+  kind: Neutral
+  description: Allies you target with Bless skills become Immune to Debuffs for 1 turn.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Bless] }
+      do:
+        - { op: apply, to: eventTargets, effect: immune, duration: { enemyTurns: 1 } }
+
+eq_brimstone_lash:
+  name: Brimstone Lash
+  kind: Neutral
+  description: Whenever an enemy carrying an effect from your Curse skills dies, you gain 1 random energy.
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { and: [{ isEnemy: eventTarget }, { eventTargetHad: { archetypes: [Curse] } }] }
+          then: [{ op: gainEnergy, amount: 1 }]
+
+eq_book_of_shadows:
+  name: Book of Shadows
+  kind: Neutral
+  description: Your Smite skills cost 1 less random energy, but deal no damage.
+  modifiers:
+    - { mod: costGeneric, archetypes: [Smite], amount: -1 }
+    - { mod: damageDealt, archetypes: [Smite], amount: 0, mul: 0 }
+
+eq_book_of_the_damned:
+  name: Book of the Damned
+  kind: Neutral
+  description: Your Prayer skills' cooldowns are 1 longer; targets at full Health after the Prayer are also Blessed (as the base Bless skill).
+  modifiers:
+    - { mod: cooldownOnUse, archetypes: [Prayer], amount: 1 }
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Prayer] }
+      do:
+        - op: castSkill
+          skill: bless
+          on: { filter: eventTargets, where: { compare: { value: { missingHp: it }, atMost: 0 } } }
+
+eq_paladin_axe:
+  name: Paladin Axe
+  kind: Neutral
+  description: Your Cleave skills also deal 5 Piercing damage to every enemy they didn't hit.
+  triggers:
+    # Mark what the Cleave hits, then splash everyone unmarked once it has resolved.
+    - on: dealtDamage
+      when: { direct: true, archetypes: [Cleave] }
+      do:
+        - { op: apply, to: eventTarget, effect: paladin_axe_hit, duration: { thisTurn: true } }
+    - on: skillResolved
+      when: { archetypes: [Cleave] }
+      do:
+        - op: damage
+          to: { filter: allEnemies, where: { not: { has: { unit: it, effect: paladin_axe_hit } } } }
+          amount: 5
+          type: Piercing
+        - { op: removeEffect, from: allEnemies, effect: paladin_axe_hit }
+
+paladin_axe_hit:
+  name: Paladin Axe (hit)
+  kind: Neutral
+  stacking: unique
+  description: Already hit by this Cleave.
+
+eq_lightning_banner:
+  name: Lightning Banner
+  kind: Neutral
+  description: While an enemy carries an effect from your Shout skills, each skill they use gives you 10 Shield.
+  triggers:
+    - on: effectApplied
+      when: { archetypes: [Shout], toEnemy: true }
+      do:
+        - op: apply
+          to: eventTarget
+          duration: { sameAsEvent: true }
+          effect:
+            id: banner_watch
+            name: Lightning Banner
+            kind: Neutral
+            element: Lightning
+            stacking: unique
+            description: Each skill this unit uses gives the Banner's wearer 10 Shield.
+            triggers:
+              - on: skillUsed
+                do:
+                  - { op: apply, to: actor, effect: shield, value: 10 }
+
+eq_wind_shield:
+  name: Wind Shield
+  kind: Neutral
+  description: While your Withstand's effects are on you, enemies that damage you take 10 Piercing damage.
+  triggers:
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - op: if
+          cond: { hasFromArchetype: { unit: bearer, archetype: Withstand } }
+          then: [{ op: damage, to: eventSource, amount: 10, type: Piercing }]
+
+eq_ice_hammer:
+  name: Ice Hammer
+  kind: Neutral
+  description: Taunts from your Taunt skills last until removed, but you can't use Taunt skills while one is active.
+  modifiers:
+    - { mod: cannotUseSkills, archetypes: [Taunt], if: { appliedFromArchetype: Taunt } }
+  triggers:
+    - on: effectApplied
+      when: { archetypes: [Taunt], effects: [taunt] }
+      do:
+        - { op: eventEffect, permanent: true }
+
+eq_chemtech_sword:
+  name: Chemtech Sword
+  kind: Neutral
+  description: When your Titan's effects expire, you heal 10, or 20 if you're at or below 40 Health.
+  triggers:
+    - on: ownEffectEnded
+      when: { archetypes: [Titan], reason: [expired] }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: chemtech_spent } } }
+          then:
+            - { op: heal, to: bearer, amount: { if: { hpAtMost: { unit: bearer, value: 40 } }, then: 20, else: 10 } }
+            - { op: apply, to: bearer, effect: chemtech_spent, duration: { thisTurn: true } }
+
+chemtech_spent:
+  name: Chemtech Sword (used this turn)
+  kind: Neutral
+  stacking: unique
+  description: The Chemtech Sword has already healed this turn.

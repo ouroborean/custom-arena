@@ -282,6 +282,7 @@ stab.earth:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: if, cond: { or: [{ hasShield: primary }, { has: { unit: primary, effect: armor } }] }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
       amount:

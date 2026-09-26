@@ -305,6 +305,7 @@ stab.fire:
       cond: { or: [{ has: { unit: primary, effect: ignite } }, { has: { unit: primary, effect: scorched } }] }
       then:
         - { op: damage, to: primary, amount: 10, type: Affliction }
+        - { op: signal, name: stab_bonus }
 
 ravage.fire:
   archetype: Ravage

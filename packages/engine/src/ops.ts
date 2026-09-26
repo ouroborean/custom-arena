@@ -1,6 +1,7 @@
 // The skill DSL interpreter (GDD §11.5) and the trigger queue (GDD §11.4).
 
 import {
+  archetypeOf,
   effectDef,
   effectsOn,
   emit,
@@ -17,7 +18,8 @@ import {
   type PendingTrigger,
 } from './ctx.js';
 import { dealDamage, heal, killUnit } from './damage.js';
-import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, Value } from './defs.js';
+import { costTotal } from './energy.js';
+import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
 import { applyEffect, removeEffect, revealEffect } from './effects.js';
 import { canTarget } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
@@ -43,6 +45,13 @@ export interface Scope {
   skill?: SkillDef | undefined;
   /** Slot of the skill being used (for resetCooldown). */
   slot?: number;
+  /** Skill (def id) behind the event that started this trigger. */
+  eventSkill?: string;
+  /** Effect (instance id) the event is about. */
+  eventEffect?: string;
+  eventAmount?: number;
+  /** Effects the event's unit carried at the time (deaths). */
+  snapshot?: EffectInstance[];
 }
 
 export type ScriptFn = (ctx: Ctx, scope: Scope, params: Record<string, unknown>) => void;
@@ -162,7 +171,30 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('sum' in v) return v.sum.reduce<number>((n, x) => n + evalValue(ctx, x, sc), 0);
   if ('mul' in v) return v.mul.reduce<number>((n, x) => n * evalValue(ctx, x, sc), 1);
+  if ('skillCost' in v) {
+    const d = scopeSkill(ctx, sc);
+    return d ? costTotal(d.cost) : 0;
+  }
+  if ('deadCount' in v) {
+    const me = unit(ctx, sc.actor);
+    return ctx.s.units.filter(
+      (u) => u.kind === 'character' && !u.alive && (v.deadCount === 'enemies' ? u.owner !== me.owner : u.owner === me.owner),
+    ).length;
+  }
+  if ('alliesActed' in v) {
+    const me = unit(ctx, sc.actor);
+    return ctx.s.units.filter(
+      (u) => u.kind === 'character' && u.alive && u.owner === me.owner && u.id !== me.id && u.counters.actedTurn === ctx.s.turn,
+    ).length;
+  }
+  if ('eventAmount' in v) return sc.eventAmount ?? 0;
+  if ('eventDuration' in v) return ctx.s.effects.find((e) => e.id === sc.eventEffect)?.duration ?? 0;
   return evalCond(ctx, v.if, sc) ? evalValue(ctx, v.then, sc) : evalValue(ctx, v.else, sc);
+}
+
+/** The skill an expression is about: the event's skill in triggers, else the skill being used. */
+function scopeSkill(ctx: Ctx, sc: Scope): SkillDef | undefined {
+  return sc.eventSkill ? ctx.c.skills[sc.eventSkill] : sc.skill;
 }
 
 export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
@@ -207,6 +239,8 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('minion' in c) {
     const u = select(ctx, c.minion.unit, sc)[0];
     if (!u || u.kind !== 'minion') return false;
+    const from = c.minion.fromArchetypes;
+    if (from && !from.includes(u.summonArchetype ?? '')) return false;
     const types = c.minion.types;
     return !types || types.includes(u.defId) || (ctx.c.minions[u.defId]?.tags ?? []).some((t) => types.includes(t));
   }
@@ -234,6 +268,23 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('or' in c) return c.or.some((x) => evalCond(ctx, x, sc));
   if ('not' in c) return !evalCond(ctx, c.not, sc);
   if ('flag' in c) return !!sc.self?.data[c.flag];
+  if ('isEventTarget' in c) {
+    const u = select(ctx, c.isEventTarget, sc)[0];
+    return !!u && (sc.eventTargets ?? []).includes(u.id);
+  }
+  if ('appliedFromArchetype' in c) {
+    return ctx.s.effects.some((e) => e.source === sc.actor && archetypeOf(ctx.c, e.sourceSkill) === c.appliedFromArchetype);
+  }
+  if ('eventTargetHad' in c) {
+    return (sc.snapshot ?? []).some((e) => e.source === sc.actor && c.eventTargetHad.archetypes.includes(archetypeOf(ctx.c, e.sourceSkill) ?? ''));
+  }
+  if ('eventSkill' in c) {
+    const d = scopeSkill(ctx, sc);
+    if (!d) return false;
+    if (c.eventSkill.archetypes && !c.eventSkill.archetypes.includes(d.archetype)) return false;
+    if (c.eventSkill.costAtLeast !== undefined && costTotal(d.cost) < c.eventSkill.costAtLeast) return false;
+    return true;
+  }
   return !!sc.vars[c.varTrue];
 }
 
@@ -241,7 +292,16 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
 
 /** Evaluates turn counts given as Values; null means "0 or fewer turns: apply nothing". */
 function resolveDuration(ctx: Ctx, d: DurationSpec | undefined, sc: Scope): ResolvedDuration | undefined | null {
-  if (d === undefined || d === 'permanent' || 'thisTurn' in d || 'raw' in d) return d;
+  if (d === undefined || d === 'permanent' || 'thisTurn' in d) return d;
+  if ('sameAsEvent' in d) {
+    const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+    if (!e) return null;
+    return e.duration === null ? 'permanent' : e.duration > 0 ? { raw: e.duration } : null;
+  }
+  if ('raw' in d) {
+    const n = typeof d.raw === 'number' ? d.raw : evalValue(ctx, d.raw, sc);
+    return n > 0 ? { raw: n } : null;
+  }
   if ('enemyTurns' in d) {
     const n = typeof d.enemyTurns === 'number' ? d.enemyTurns : evalValue(ctx, d.enemyTurns, sc);
     return n > 0 ? { enemyTurns: n } : null;
@@ -267,6 +327,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const respectsInvulnerable = op.respectsInvulnerable ?? (sc.self ? effectDef(ctx.c, sc.self).respectsInvulnerable : undefined);
       const dealer = op.from ? select(ctx, op.from, sc)[0] : actor;
       if (!dealer) return;
+      // The skill "dealing" it: the one being used, or the one that applied the ticking/delayed effect.
+      const damageSkill = sc.skill?.id ?? sc.self?.sourceSkill;
       for (const t of select(ctx, op.to, sc)) {
         const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
         const dealt = dealDamage(ctx, {
@@ -278,6 +340,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           bypass: op.bypass ?? sc.bypass,
           ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
           ...(op.wakes === false ? { wakes: false } : {}),
+          ...(damageSkill ? { skill: damageSkill } : {}),
         });
         sc.lastDamage += dealt;
         if (dealt > 0) sc.lastDamaged.push(t.id);
@@ -331,7 +394,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'kill':
-      for (const t of select(ctx, op.to, sc)) killUnit(ctx, t);
+      for (const t of select(ctx, op.to, sc)) killUnit(ctx, t, actor, sc.skill?.id);
       return;
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {
@@ -346,6 +409,45 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) e.value = Math.round(e.value * op.factor);
       }
       return;
+    case 'castSkill': {
+      const def = op.skill
+        ? ctx.c.skills[op.skill]
+        : actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype);
+      if (!def) return;
+      for (const t of select(ctx, op.on, sc)) {
+        const caster = op.as === 'it' ? t : actor;
+        if (!caster.alive) continue;
+        const targets =
+          def.target === 'self'
+            ? [caster.id]
+            : def.target === 'allEnemies'
+              ? ctx.s.units.filter((u) => u.alive && isEnemy(caster, u) && canTarget(ctx, caster, u, false)).map((u) => u.id)
+              : def.target === 'allAllies'
+                ? ctx.s.units.filter((u) => u.alive && u.owner === caster.owner).map((u) => u.id)
+                : def.target === 'none'
+                  ? []
+                  : [t.id];
+        emit(ctx, { t: 'skillUsed', actor: caster.id, skill: def.id, targets });
+        runOps(ctx, def.ops, {
+          actor: caster.id,
+          targets,
+          vars: {},
+          lastDamage: 0,
+          lastDamaged: [],
+          direct: true,
+          bypass: def.tags.includes('Bypass'),
+          skill: def,
+        });
+      }
+      return;
+    }
+    case 'eventEffect': {
+      const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+      if (!e) return;
+      if (op.permanent) e.duration = null;
+      if (op.extendBy && e.duration !== null) e.duration += op.extendBy;
+      return;
+    }
     case 'removeKind':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).kind === op.kind) removeEffect(ctx, e, 'removed');
@@ -403,6 +505,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'resetCooldown': {
+      if (op.archetypes) {
+        for (const s of actor.skills) if (op.archetypes.includes(archetypeOf(ctx.c, s.defId) ?? '')) s.cooldown = 0;
+        return;
+      }
       const slot = op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
       if (slot) slot.cooldown = 0;
       return;
@@ -413,6 +519,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         t.skills.forEach((slot, i) => {
           if (op.exceptCurrent && t.id === actor.id && i === sc.slot) return;
           if (op.skill && slot.defId !== op.skill) return;
+          if (op.archetypes && !op.archetypes.includes(archetypeOf(ctx.c, slot.defId) ?? '')) return;
+          if (op.exceptEvent && slot.defId === sc.eventSkill) return;
           slot.cooldown = Math.max(0, slot.cooldown + by);
         });
       }
@@ -498,12 +606,15 @@ function summonMinion(
     summonedBy: summoner.id,
     counters: {},
   };
+  if (skill) m.summonArchetype = skill.archetype;
   ctx.s.units.push(m);
   emit(ctx, { t: 'summoned', unit: m.id, defId: def.id, by: summoner.id });
   // "If target enemy creates a minion" (Earth Boulder Trap): the summoner's effects react.
   for (const e of effectsOn(ctx.s, summoner.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-      if (spec.on === 'summoned') ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: summoner.id, eventTarget: m.id });
+      if (spec.on !== 'summoned') continue;
+      if (spec.when?.archetypes && !spec.when.archetypes.includes(skill?.archetype ?? '')) continue;
+      ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: summoner.id, eventTarget: m.id, ...(skill ? { eventSkill: skill.id } : {}) });
     }
   }
   for (const p of def.passives) {
@@ -528,7 +639,12 @@ function summonMinion(
 }
 
 /** Queues `on: signal` triggers on every effect on the board that listens for `name`. */
-function broadcastSignal(ctx: Ctx, name: string, source: Unit): void {
+export function broadcastSignal(
+  ctx: Ctx,
+  name: string,
+  source: Unit,
+  extra: { target?: Unit; snapshot?: EffectInstance[]; eventSkill?: string | undefined } = {},
+): void {
   for (const e of ctx.s.effects) {
     const bearer = findUnit(ctx.s, e.bearer);
     if (!bearer?.alive) continue;
@@ -536,7 +652,60 @@ function broadcastSignal(ctx: Ctx, name: string, source: Unit): void {
       if (spec.on !== 'signal' || spec.signal !== name) continue;
       const side = bearer.owner === source.owner ? 'ally' : 'enemy';
       if (spec.when?.side && spec.when.side !== side) continue;
-      ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id });
+      if (spec.when?.archetypes && !spec.when.archetypes.includes(archetypeOf(ctx.c, extra.eventSkill) ?? '')) continue;
+      ctx.triggerQueue.push({
+        effect: e.id,
+        spec,
+        eventSource: source.id,
+        eventTarget: extra.target?.id ?? bearer.id,
+        ...(extra.snapshot ? { snapshot: extra.snapshot } : {}),
+        ...(extra.eventSkill ? { eventSkill: extra.eventSkill } : {}),
+      });
+    }
+  }
+}
+
+/** Filters for trigger events about effects, skills and amounts (see TriggerSpec.when). */
+export interface EventInfo {
+  eventSource?: UnitId;
+  eventTarget?: UnitId;
+  eventTargets?: UnitId[];
+  eventSkill?: string | undefined;
+  eventEffect?: string;
+  eventAmount?: number;
+  /** For filtering. */
+  effectKey?: string;
+  effectKind?: string;
+  toEnemy?: boolean;
+  counter?: boolean;
+  reason?: string;
+  untriggered?: boolean;
+}
+
+/** Queues a unit's triggers for one of the equipment-era events (ownEffect*, effectApplied, healed). */
+export function enqueueFor(ctx: Ctx, unitId: UnitId, on: TriggerSpec['on'], info: EventInfo): void {
+  for (const e of effectsOn(ctx.s, unitId)) {
+    for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+      if (spec.on !== on) continue;
+      const w = spec.when;
+      if (w?.archetypes && !w.archetypes.includes(archetypeOf(ctx.c, info.eventSkill) ?? '')) continue;
+      if (w?.counter !== undefined && w.counter !== !!info.counter) continue;
+      if (w?.reason && !w.reason.includes(info.reason as never)) continue;
+      if (w?.untriggered && !info.untriggered) continue;
+      if (w?.effects && !w.effects.includes(info.effectKey ?? '')) continue;
+      if (w?.kind && w.kind !== info.effectKind) continue;
+      if (w?.toEnemy !== undefined && w.toEnemy !== info.toEnemy) continue;
+      ctx.triggerQueue.push({
+        effect: e.id,
+        inst: e,
+        spec,
+        ...(info.eventSource !== undefined ? { eventSource: info.eventSource } : {}),
+        ...(info.eventTarget !== undefined ? { eventTarget: info.eventTarget } : {}),
+        ...(info.eventTargets !== undefined ? { eventTargets: info.eventTargets } : {}),
+        ...(info.eventSkill !== undefined ? { eventSkill: info.eventSkill } : {}),
+        ...(info.eventEffect !== undefined ? { eventEffect: info.eventEffect } : {}),
+        ...(info.eventAmount !== undefined ? { eventAmount: info.eventAmount } : {}),
+      });
     }
   }
 }
@@ -546,6 +715,9 @@ function effectKeyOf(e: EffectInstance): string {
 }
 
 // ---------------------------------------------------------------- triggers
+
+/** Trigger kinds that aren't reactions (they don't count as an effect "triggering"). */
+const PERIODIC = new Set(['turnEnd', 'turnStart', 'ownEffectTriggered', 'ownEffectEnded', 'effectApplied', 'healed', 'effectGained']);
 
 /** Runs queued triggers FIFO. Nested calls return immediately; the outermost loop drains the queue. */
 export function flushTriggers(ctx: Ctx): void {
@@ -588,7 +760,25 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
     ...(p.eventSource !== undefined ? { eventSource: p.eventSource } : {}),
     ...(p.eventTarget !== undefined ? { eventTarget: p.eventTarget } : {}),
     ...(p.eventTargets !== undefined ? { eventTargets: p.eventTargets } : {}),
+    ...(p.eventSkill !== undefined ? { eventSkill: p.eventSkill } : {}),
+    ...(p.eventEffect !== undefined ? { eventEffect: p.eventEffect } : {}),
+    ...(p.eventAmount !== undefined ? { eventAmount: p.eventAmount } : {}),
+    ...(p.snapshot !== undefined ? { snapshot: p.snapshot } : {}),
   };
+  // A skill's effect reacting to something counts as "triggered" (Traps, Counters, Misleads);
+  // equipment can respond to that on the effect's source.
+  if (!PERIODIC.has(p.spec.on)) {
+    e.data.triggered = true;
+    if (e.sourceSkill) {
+      enqueueFor(ctx, e.source, 'ownEffectTriggered', {
+        eventTarget: e.bearer,
+        eventSkill: e.sourceSkill,
+        eventEffect: e.id,
+        ...(p.eventSource !== undefined ? { eventSource: p.eventSource } : {}),
+        counter: !!p.spec.intercept,
+      });
+    }
+  }
   // Run nested so triggers caused by this payload queue behind it.
   const wasFlushing = ctx.flushing;
   ctx.flushing = true;
@@ -610,6 +800,8 @@ export function enqueueTriggers(
     strategic?: boolean;
     /** The event source's side relative to the bearer (for `when.side`). */
     side?: 'ally' | 'enemy';
+    /** The skill behind the event (for `when.archetypes`). */
+    eventSkill?: string;
     eventSource?: UnitId;
     eventTarget?: UnitId;
     eventTargets?: UnitId[];
@@ -624,7 +816,9 @@ export function enqueueTriggers(
       if (spec.when?.harmful !== undefined && spec.when.harmful !== filter.harmful) continue;
       if (spec.when?.strategic !== undefined && spec.when.strategic !== filter.strategic) continue;
       if (spec.when?.side !== undefined && filter.side !== undefined && spec.when.side !== filter.side) continue;
+      if (spec.when?.archetypes && !spec.when.archetypes.includes(archetypeOf(ctx.c, filter.eventSkill) ?? '')) continue;
       ctx.triggerQueue.push({
+        ...(filter.eventSkill !== undefined ? { eventSkill: filter.eventSkill } : {}),
         effect: e.id,
         spec,
         ...(filter.eventSource !== undefined ? { eventSource: filter.eventSource } : {}),

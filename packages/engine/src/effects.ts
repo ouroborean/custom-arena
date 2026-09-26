@@ -3,6 +3,7 @@
 import { effectDef, effectKey, effectsOn, emit, nextId, skillDef, type Ctx } from './ctx.js';
 import type { EffectDef, ResolvedDuration, SkillDef, UntilSpec } from './defs.js';
 import { compileDuration } from './duration.js';
+import { enqueueFor } from './ops.js';
 import { cannotUseReason, modsOn } from './queries.js';
 import type { EffectInstance, RemoveReason, Unit, UnitId } from './types.js';
 
@@ -22,6 +23,8 @@ export interface ApplyArgs {
   boundTo?: UnitId | undefined;
   /** Effect id this one is linked to: it ends when that effect ends. */
   linkedTo?: string | undefined;
+  /** Don't fire effectApplied triggers (effects applied by passives about other applications). */
+  quiet?: boolean;
 }
 
 export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
@@ -104,6 +107,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
         privateTo,
       );
       enqueueEffectGained(ctx, bearer, def.id, source);
+      if (!a.quiet) announceApplied(ctx, a, existing);
       return existing;
     }
   }
@@ -149,6 +153,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   // A new stun interrupts any channel whose skill it now blocks (GDD §3.10).
   if ((def.modifiers ?? []).some((m) => m.mod === 'cannotUseSkills')) interruptChannels(ctx, bearer, 'stun');
   enqueueEffectGained(ctx, bearer, def.id, source);
+  if (!a.quiet) announceApplied(ctx, a, inst);
   return inst;
 }
 
@@ -160,6 +165,18 @@ function enqueueEffectGained(ctx: Ctx, bearer: Unit, key: string, source: Unit):
       ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id });
     }
   }
+}
+
+/** Tells the source's equipment it applied something (Sun Baton, Lightning Banner, …). */
+function announceApplied(ctx: Ctx, a: ApplyArgs, inst: EffectInstance): void {
+  enqueueFor(ctx, a.source.id, 'effectApplied', {
+    eventTarget: a.bearer.id,
+    eventEffect: inst.id,
+    eventSkill: a.sourceSkill?.id,
+    effectKey: a.def.id,
+    effectKind: a.def.kind,
+    toEnemy: a.source.owner !== a.bearer.owner,
+  });
 }
 
 export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason): void {
@@ -174,6 +191,17 @@ export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason):
     privateTo = undefined;
   }
   emit(ctx, { t: 'effectRemoved', effect: e.id, defId: e.defId, bearer: e.bearer, reason }, privateTo);
+  // "When your Titan expires", "if your Trap fails to activate": the source's equipment hears it.
+  if (e.sourceSkill) {
+    enqueueFor(ctx, e.source, 'ownEffectEnded', {
+      eventTarget: e.bearer,
+      eventEffect: e.id,
+      eventSkill: e.sourceSkill,
+      effectKey: effectKey(e),
+      reason,
+      untriggered: !e.data.triggered,
+    });
+  }
   for (const x of ctx.s.effects.filter((y) => y.data.linkedTo === e.id)) removeEffect(ctx, x, 'removed');
 }
 

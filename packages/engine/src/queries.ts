@@ -2,9 +2,9 @@
 // folding the ModifierSpecs of the relevant effect instances. Adding a new status never requires
 // touching these functions unless it needs a brand-new modifier kind.
 
-import { effectDef, effectsOn, isEnemy, type Ctx } from './ctx.js';
-import type { DamageWhen, ModifierSpec, SkillClass, SkillDef } from './defs.js';
-import { applyGenericModifier } from './energy.js';
+import { effectDef, effectsOn, isEnemy, makeCtx, type Ctx } from './ctx.js';
+import type { DamageWhen, ModifierSpec, SkillClass, SkillDef, SkillTag } from './defs.js';
+import { applyGenericModifier, costTotal } from './energy.js';
 import { evalCond, evalValue } from './ops.js';
 import type { Cost, DamageType, EffectInstance, GameState, Unit } from './types.js';
 import type { ContentBundle } from './defs.js';
@@ -20,10 +20,49 @@ export function modsOn<K extends ModifierSpec['mod']>(
   const out: { spec: ModOf<K>; effect: EffectInstance }[] = [];
   for (const e of effectsOn(s, bearer)) {
     for (const m of effectDef(c, e).modifiers ?? []) {
-      if (m.mod === kind) out.push({ spec: m as ModOf<K>, effect: e });
+      if (m.mod !== kind) continue;
+      // Conditional modifiers (equipment: "while at or above 80 Health") are checked for the bearer.
+      if (m.if && !evalCond(makeCtx(s, c), m.if, bearerScope(bearer))) continue;
+      out.push({ spec: m as ModOf<K>, effect: e });
     }
   }
   return out;
+}
+
+function bearerScope(id: string) {
+  return { actor: id, bearer: id, it: id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: false, bypass: false };
+}
+
+/** modsOn, keeping only modifiers without an archetype filter or whose filter matches `skill`. */
+export function modsFor<K extends ModifierSpec['mod']>(
+  ctx: Ctx,
+  bearer: string,
+  kind: K,
+  skill: SkillDef | undefined,
+): { spec: ModOf<K>; effect: EffectInstance }[] {
+  return modsOn(ctx.s, ctx.c, bearer, kind).filter(({ spec }) => !spec.archetypes || (!!skill && spec.archetypes.includes(skill.archetype)));
+}
+
+/** A skill's tags after the user's modifiers (equipment can add Bypass, Uncounterable, …). */
+export function effectiveTags(ctx: Ctx, u: Unit, def: SkillDef): SkillTag[] {
+  const mods = modsFor(ctx, u.id, 'skillTags', def);
+  if (mods.length === 0) return def.tags;
+  const tags = new Set(def.tags);
+  for (const { spec } of mods) {
+    for (const t of spec.remove ?? []) tags.delete(t);
+    for (const t of spec.add ?? []) tags.add(t);
+  }
+  return [...tags];
+}
+
+/** An equipment rule letting `def` also target `target` (and how it resolves then), if any. */
+export function extraTargetFor(ctx: Ctx, u: Unit, def: SkillDef, target: Unit): ModOf<'extraTargets'> | null {
+  for (const { spec } of modsFor(ctx, u.id, 'extraTargets', def)) {
+    // Casting "as the target" only makes sense for skills that act on their user.
+    if (spec.castAs && def.target !== 'self') continue;
+    if (evalCond(ctx, spec.where, { ...bearerScope(u.id), it: target.id })) return spec;
+  }
+  return null;
 }
 
 function scaled(amount: number, perStack: boolean | undefined, e: EffectInstance): number {
@@ -47,15 +86,17 @@ export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
   const scope = { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: true, bypass: false };
   const base = def.altCost && evalCond(ctx, def.altCost.when, scope) ? def.altCost.cost : def.cost;
   let delta = def.costAdjust === undefined ? 0 : evalValue(ctx, def.costAdjust, scope);
-  for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'costGeneric')) delta += scaled(spec.amount, spec.perStack, effect);
+  for (const { spec, effect } of modsFor(ctx, u.id, 'costGeneric', def)) delta += scaled(spec.amount, spec.perStack, effect);
   // Chilled: costs can't go down.
   if (delta < 0 && modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0) delta = 0;
-  return applyGenericModifier(base, delta);
+  // "All costs become GEN": every specific pip turns into a random one.
+  const shaped = modsFor(ctx, u.id, 'costToRandom', def).length > 0 ? { S: 0, A: 0, I: 0, W: 0, r: costTotal(base) } : base;
+  return applyGenericModifier(shaped, delta);
 }
 
 export function cooldownOnUse(ctx: Ctx, u: Unit, def: SkillDef): number {
   let extra = 0;
-  for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'cooldownOnUse')) extra += scaled(spec.amount, spec.perStack, effect);
+  for (const { spec, effect } of modsFor(ctx, u.id, 'cooldownOnUse', def)) extra += scaled(spec.amount, spec.perStack, effect);
   // GDD §3.5: remaining = n + 1 (+ modifiers), decremented at the end of each owner turn incl. this one.
   return Math.max(0, def.cooldown + extra) + 1;
 }
@@ -68,7 +109,7 @@ export function cannotUseReason(ctx: Ctx, u: Unit, def: SkillDef): string | null
   if (def.tags.includes('UsableWhileStunned') || def.tags.includes('Unstunnable')) return null;
   const cls = skillClass(def);
   const harmful = def.tags.includes('Harmful');
-  for (const { spec } of modsOn(ctx.s, ctx.c, u.id, 'cannotUseSkills')) {
+  for (const { spec } of modsFor(ctx, u.id, 'cannotUseSkills', def)) {
     if (spec.classes && !spec.classes.includes(cls)) continue;
     if (spec.harmful !== undefined && spec.harmful !== harmful) continue;
     return 'stunned';
@@ -122,12 +163,28 @@ export function hasNoArmorOrShield(ctx: Ctx, target: Unit): boolean {
 
 // ---------------------------------------------------------------- damage
 
-export function damageDealtBonus(ctx: Ctx, source: Unit, type: DamageType, direct: boolean): number {
-  let n = 0;
-  for (const { spec, effect } of modsOn(ctx.s, ctx.c, source.id, 'damageDealt')) {
-    if (damageWhenMatches(spec.when, type, direct)) n += scaled(spec.amount, spec.perStack, effect);
+/**
+ * Damage bonuses from the source's modifiers. `skill` is the skill dealing the damage (archetype
+ * filters), `target` feeds `target` conditions and `value` expressions; `mul` multiplies the total.
+ */
+export function damageDealtBonus(
+  ctx: Ctx,
+  source: Unit,
+  type: DamageType,
+  direct: boolean,
+  skill?: SkillDef,
+  target?: Unit,
+): { bonus: number; mul: number } {
+  let bonus = 0;
+  let mul = 1;
+  for (const { spec, effect } of modsFor(ctx, source.id, 'damageDealt', skill)) {
+    if (!damageWhenMatches(spec.when, type, direct)) continue;
+    const sc = { ...bearerScope(source.id), ...(target ? { it: target.id } : {}), ...(skill ? { skill } : {}) };
+    if (spec.target && (!target || !evalCond(ctx, spec.target, sc))) continue;
+    if (spec.mul !== undefined) mul *= spec.mul;
+    bonus += spec.value !== undefined ? evalValue(ctx, spec.value, sc) : scaled(spec.amount, spec.perStack, effect);
   }
-  return n;
+  return { bonus, mul };
 }
 
 export function damageTakenBonus(ctx: Ctx, target: Unit, type: DamageType, direct: boolean): { other: number; armor: number } {
@@ -135,7 +192,7 @@ export function damageTakenBonus(ctx: Ctx, target: Unit, type: DamageType, direc
   let armor = 0;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'damageTaken')) {
     if (!damageWhenMatches(spec.when, type, direct)) continue;
-    const v = scaled(spec.amount, spec.perStack, effect);
+    const v = spec.value !== undefined ? evalValue(ctx, spec.value, bearerScope(target.id)) : scaled(spec.amount, spec.perStack, effect);
     if (spec.armor) armor += v;
     else other += v;
   }

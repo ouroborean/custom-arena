@@ -35,7 +35,7 @@ describe('resolveLoadout', () => {
     expect(r.problems).toEqual([]);
     expect(skillOf(r, 'smash')?.infusion).toBe('Fire');
     expect(r.usage).toEqual({ skills: 0, passives: 1, infusions: 1 });
-    expect(r.passiveEffects).toEqual([]); // passives aren't implemented yet (Phase 7)
+    expect(r.passiveEffects).toEqual(['eq_magma_hammer']); // applied at match start
   });
 
   it('grants a missing skill when there is room', () => {

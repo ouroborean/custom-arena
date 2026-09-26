@@ -9,6 +9,8 @@ import {
   canTarget,
   cannotUseReason,
   cooldownOnUse,
+  effectiveTags,
+  extraTargetFor,
   forcedTargets,
   hasGrantBypass,
   ignoresCounters,
@@ -25,6 +27,11 @@ export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason
  * at resolution time the target is redirected to the taunter instead.
  */
 export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
+  // Equipment can open extra targets (a Maneuver on an ally, a Consume on an allied minion).
+  const first = declared[0] === undefined ? undefined : findUnit(ctx.s, declared[0]);
+  if (first?.alive && extraTargetFor(ctx, actor, def, first) && !naturalTarget(ctx, actor, def, first)) {
+    return { ok: true, targets: [first.id] };
+  }
   const r = resolveTargetsRaw(ctx, actor, def, declared, strict);
   // "Target Condemned enemy" and similar requirements on single-target skills.
   if (r.ok && def.targetFilter && (def.target === 'enemy' || def.target === 'ally' || def.target === 'any')) {
@@ -44,8 +51,14 @@ export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: U
   return r;
 }
 
+/** Would the skill normally be able to pick this target (without equipment)? */
+function naturalTarget(ctx: Ctx, actor: Unit, def: SkillDef, t: Unit): boolean {
+  if (def.target === 'self') return t.id === actor.id;
+  return resolveTargetsRaw(ctx, actor, def, [t.id], true).ok;
+}
+
 function resolveTargetsRaw(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
-  const bypass = def.tags.includes('Bypass') || hasGrantBypass(ctx, actor);
+  const bypass = effectiveTags(ctx, actor, def).includes('Bypass') || hasGrantBypass(ctx, actor);
   switch (def.target) {
     case 'self':
       return { ok: true, targets: [actor.id] };
@@ -188,14 +201,17 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
 
 export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[]): void {
   const harmful = def.tags.includes('Harmful');
+  const tags = effectiveTags(ctx, actor, def);
+  // "Allies that acted before you this turn" (equipment).
+  actor.counters.actedTurn = ctx.s.turn;
 
   // 3. Cooldown starts, and using a skill ends the user's other channels (Q6).
   const slot = actor.skills[slotIndex];
   if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
   interruptChannels(ctx, actor, 'skillUse');
 
-  const secret = def.tags.includes('HiddenTarget');
-  const privateTo = def.tags.includes('Invisible') ? actor.owner : undefined;
+  const secret = tags.includes('HiddenTarget');
+  const privateTo = tags.includes('Invisible') ? actor.owner : undefined;
   // Stealth (Shadow): Stealthy skills keep it; anything else ends it once this use is over.
   const stealthy = def.tags.includes('Stealthy') || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').length > 0;
   const stealthed = effectsOn(ctx.s, actor.id).filter((e) => effectDef(ctx.c, e).stealth);
@@ -243,12 +259,13 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
     eventSource: actor.id,
     eventTarget: actor.id,
     eventTargets: targets,
+    eventSkill: def.id,
   });
   flushTriggers(ctx);
   if (!actor.alive || ctx.s.phase === 'finished') return;
 
   // 4b. Counters and reflects (Uncounterable skills and Flow users ignore them).
-  if (!def.tags.includes('Uncounterable') && !ignoresCounters(ctx, actor)) {
+  if (!effectiveTags(ctx, actor, def).includes('Uncounterable') && !ignoresCounters(ctx, actor)) {
     const hit = interceptorFor(ctx, actor, def, targets);
     if (hit) {
       const { effect, spec } = hit;
@@ -315,6 +332,7 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
       eventSource: actor.id,
       eventTargets: targets,
       maxSeq: startSeq,
+      eventSkill: def.id,
     });
     flushTriggers(ctx);
   }
@@ -329,8 +347,15 @@ function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], sl
     lastDamage: 0,
     lastDamaged: [],
     direct: true,
-    bypass: def.tags.includes('Bypass') || hasGrantBypass(ctx, actor),
+    bypass: effectiveTags(ctx, actor, def).includes('Bypass') || hasGrantBypass(ctx, actor),
     skill: def,
   };
+  // A target opened by equipment: run its alternative ops, or resolve as the target's own use.
+  const only = targets.length === 1 ? findUnit(ctx.s, targets[0]!) : undefined;
+  const extra = only ? extraTargetFor(ctx, actor, def, only) : null;
+  if (only && extra && !naturalTarget(ctx, actor, def, only)) {
+    if (extra.ops) return runOps(ctx, extra.ops, sc);
+    if (extra.castAs) sc.actor = only.id;
+  }
   runOps(ctx, def.ops, sc);
 }

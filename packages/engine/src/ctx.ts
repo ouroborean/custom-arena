@@ -12,6 +12,13 @@ export interface PendingTrigger {
   eventSource?: UnitId;
   eventTarget?: UnitId;
   eventTargets?: UnitId[];
+  /** Skill (def id) behind the event. */
+  eventSkill?: string;
+  /** Effect (instance id) the event is about. */
+  eventEffect?: string;
+  eventAmount?: number;
+  /** Effects the event's unit carried at the time (deaths). */
+  snapshot?: EffectInstance[];
 }
 
 export interface Ctx {
@@ -47,6 +54,11 @@ export function unit(ctx: Ctx, id: UnitId): Unit {
 
 export function findUnit(s: GameState, id: UnitId): Unit | undefined {
   return s.units.find((x) => x.id === id);
+}
+
+/** Archetype of a skill id (undefined for unknown / missing ids). */
+export function archetypeOf(c: ContentBundle, id: string | undefined): string | undefined {
+  return id ? c.skills[id]?.archetype : undefined;
 }
 
 export function skillDef(c: ContentBundle, id: string): SkillDef {

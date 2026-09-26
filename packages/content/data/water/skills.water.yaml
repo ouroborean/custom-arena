@@ -279,6 +279,7 @@ stab.water:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: if, cond: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
       amount: { if: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }, then: 25, else: 10 }

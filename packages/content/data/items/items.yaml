@@ -12,6 +12,7 @@ wind_katana:
   skills: [strike]
   infusions: [{ element: Wind, target: strike }]
   passive: "Your Strikes deal 5 additional damage, plus 5 damage for every mana in their total cost."
+  passiveEffect: eq_wind_katana
 
 magma_hammer:
   name: "Magma Hammer"
@@ -19,6 +20,7 @@ magma_hammer:
   skills: [smash]
   infusions: [{ element: Fire, target: smash }]
   passive: "Smash skills deal 10 additional damage to all targets but their cost is increased by 1 GEN."
+  passiveEffect: eq_magma_hammer
 
 water_spear:
   name: "Water Spear"
@@ -26,6 +28,7 @@ water_spear:
   skills: [charge]
   infusions: [{ element: Water, target: charge }]
   passive: "Charge now changes Specific costs to Random costs for 1 turn, and deals 5 additional damage."
+  passiveEffect: eq_water_spear
 
 poison_rapier:
   name: "Poison Rapier"
@@ -33,6 +36,7 @@ poison_rapier:
   skills: [riposte]
   infusions: [{ element: Poison, target: riposte }]
   passive: "Once per round, Riposte will reset its cooldown when triggered."
+  passiveEffect: eq_poison_rapier
 
 unholy_cleaver:
   name: "Unholy Cleaver"
@@ -40,6 +44,7 @@ unholy_cleaver:
   skills: [rage]
   infusions: [{ element: Unholy, target: rage }]
   passive: "Your Rage skills give you 10 Shield for each 20 HP you're missing when you use them."
+  passiveEffect: eq_unholy_cleaver
 
 ice_kunai:
   name: "Ice Kunai"
@@ -47,6 +52,7 @@ ice_kunai:
   skills: [shot]
   infusions: [{ element: Ice, target: shot }]
   passive: "Your Shot skills deal 5 additional damage every time they're used against the same target, stacking."
+  passiveEffect: eq_ice_kunai
 
 shadow_arbalest:
   name: "Shadow Arbalest"
@@ -54,6 +60,7 @@ shadow_arbalest:
   skills: [snipe]
   infusions: [{ element: Shadow, target: snipe }]
   passive: "The target of your Snipe skills is now visible, but your Snipes now Bypass and cannot be Countered."
+  passiveEffect: eq_shadow_arbalest
 
 vine_whip:
   name: "Vine Whip"
@@ -61,6 +68,7 @@ vine_whip:
   skills: [trap]
   infusions: [{ element: Earth, target: trap }]
   passive: "The cooldown of your Trap skills is reduced by 1 turn if it fails to activate."
+  passiveEffect: eq_vine_whip
 
 lightsaber_dirk:
   name: "Lightsaber Dirk"
@@ -68,6 +76,7 @@ lightsaber_dirk:
   skills: [maneuver]
   infusions: [{ element: Lightning, target: maneuver }]
   passive: "Your Maneuver skills can be used on an ally, but their cooldowns are increased by 1."
+  passiveEffect: eq_lightsaber_dirk
 
 ice_claw:
   name: "Ice Claw"
@@ -75,6 +84,7 @@ ice_claw:
   skills: [companion]
   infusions: [{ element: Ice, target: companion }]
   passive: "Minions from your Companion skills have all their costs changed to GEN."
+  passiveEffect: eq_ice_claw
 
 fire_sceptre:
   name: "Fire Sceptre"
@@ -82,6 +92,7 @@ fire_sceptre:
   skills: [bolt]
   infusions: [{ element: Fire, target: bolt }]
   passive: "Your Bolt skills receive double benefit from Might."
+  passiveEffect: eq_fire_sceptre
 
 holy_book:
   name: "Holy Book"
@@ -89,6 +100,7 @@ holy_book:
   skills: [blast]
   infusions: [{ element: Holy, target: blast }]
   passive: "Your Blast skills deal 10 additional damage for each dead enemy."
+  passiveEffect: eq_holy_book
 
 twisted_wand:
   name: "Twisted Wand"
@@ -96,6 +108,7 @@ twisted_wand:
   skills: [consume]
   infusions: [{ element: Earth, target: consume }]
   passive: "Consume may be used on allied Summoned Minions, instantly killing it to Heal 10 Health and add 10 Shield."
+  passiveEffect: eq_twisted_wand
 
 sacrificial_dagger:
   name: "Sacrificial Dagger"
@@ -103,6 +116,7 @@ sacrificial_dagger:
   skills: [summon]
   infusions: [{ element: Unholy, target: summon }]
   passive: "Your Summon is also healed whenever you are."
+  passiveEffect: eq_sacrificial_dagger
 
 holy_censer:
   name: "Holy Censer"
@@ -110,6 +124,7 @@ holy_censer:
   skills: [channel]
   infusions: [{ element: Holy, target: channel }]
   passive: "You gain 10 Shield at the end of each turn you maintain your Channel skills."
+  passiveEffect: eq_holy_censer
 
 scything_claw:
   name: "Scything Claw"
@@ -117,6 +132,7 @@ scything_claw:
   skills: [stab]
   infusions: [{ element: Poison, target: stab }]
   passive: "When Stab activates its bonus effect, all your current Cooldowns are decreased by 1."
+  passiveEffect: eq_scything_claw
 
 lightning_dagger:
   name: "Lightning Dagger"
@@ -124,6 +140,7 @@ lightning_dagger:
   skills: [ravage]
   infusions: [{ element: Lightning, target: ravage }]
   passive: "Your Ravage skills deal 5 additional damage for each ally that acted before you that turn."
+  passiveEffect: eq_lightning_dagger
 
 mist_fan:
   name: "Mist Fan"
@@ -131,6 +148,7 @@ mist_fan:
   skills: [mislead]
   infusions: [{ element: Water, target: mislead }]
   passive: "When Mislead is triggered, your skills Bypass for 1 turn."
+  passiveEffect: eq_mist_fan
 
 sun_baton:
   name: "Sun Baton"
@@ -138,6 +156,7 @@ sun_baton:
   skills: [stun]
   infusions: [{ element: Earth, target: stun }]
   passive: "Enemies affected by your Stuns are Shattered for the duration."
+  passiveEffect: eq_sun_baton
 
 hoop_blade:
   name: "Hoop Blade"
@@ -145,6 +164,7 @@ hoop_blade:
   skills: [dance]
   infusions: [{ element: Shadow, target: dance }]
   passive: "Using a skill reduces the remaining cooldown of your Dance skills by 1."
+  passiveEffect: eq_hoop_blade
 
 wind_charm_stick:
   name: "Wind Charm Stick"
@@ -152,6 +172,7 @@ wind_charm_stick:
   skills: [heal]
   infusions: [{ element: Wind, target: heal }]
   passive: "Your Heal skills heal an additional 5 health over the following 2 turns. (No bonus immediately)"
+  passiveEffect: eq_wind_charm_stick
 
 anointment_mace:
   name: "Anointment Mace"
@@ -159,6 +180,7 @@ anointment_mace:
   skills: [bless]
   infusions: [{ element: Water, target: bless }]
   passive: "Using Bless on a target causes them to ignore non-damage effects for 1 turn."
+  passiveEffect: eq_anointment_mace
 
 brimstone_lash:
   name: "Brimstone Lash"
@@ -166,6 +188,7 @@ brimstone_lash:
   skills: [curse]
   infusions: [{ element: Fire, target: curse }]
   passive: "Gain 1 random energy whenever an enemy affected by your Curse dies."
+  passiveEffect: eq_brimstone_lash
 
 book_of_shadows:
   name: "Book of Shadows"
@@ -173,6 +196,7 @@ book_of_shadows:
   skills: [smite]
   infusions: [{ element: Shadow, target: smite }]
   passive: "Your Smite skills have their cost reduced by 1 GEN, but they no longer deal damage."
+  passiveEffect: eq_book_of_shadows
 
 book_of_the_damned:
   name: "Book of the Damned"
@@ -180,6 +204,7 @@ book_of_the_damned:
   skills: [prayer]
   infusions: [{ element: Unholy, target: prayer }]
   passive: "Increases the cooldown of Prayer by 1 turn. Any targets at full health after the heal will also be affected by Bless."
+  passiveEffect: eq_book_of_the_damned
 
 paladin_axe:
   name: "Paladin Axe"
@@ -187,6 +212,7 @@ paladin_axe:
   skills: [cleave]
   infusions: [{ element: Holy, target: cleave }]
   passive: "Your Cleave skills deal 5 Piercing damage to any enemy they don't affect directly."
+  passiveEffect: eq_paladin_axe
 
 lightning_banner:
   name: "Lightning Banner"
@@ -194,6 +220,7 @@ lightning_banner:
   skills: [shout]
   infusions: [{ element: Lightning, target: shout }]
   passive: "Gain 10 Shield whenever an enemy affected by your Shout acts."
+  passiveEffect: eq_lightning_banner
 
 wind_shield:
   name: "Wind Shield"
@@ -201,6 +228,7 @@ wind_shield:
   skills: [withstand]
   infusions: [{ element: Wind, target: withstand }]
   passive: "Deals 10 Piercing damage to any enemy that damages you during your Withstand skills."
+  passiveEffect: eq_wind_shield
 
 ice_hammer:
   name: "Ice Hammer"
@@ -208,6 +236,7 @@ ice_hammer:
   skills: [taunt]
   infusions: [{ element: Ice, target: taunt }]
   passive: "Your Taunt skills have unlimited duration, but cannot be used while active."
+  passiveEffect: eq_ice_hammer
 
 chemtech_sword:
   name: "Chemtech Sword"
@@ -215,6 +244,7 @@ chemtech_sword:
   skills: [titan]
   infusions: [{ element: Poison, target: titan }]
   passive: "Heal for 10 health when Titan expires, increased to 20 if you are at or below 40 HP."
+  passiveEffect: eq_chemtech_sword
 
 soldier_spear:
   name: "Soldier Spear"

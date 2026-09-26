@@ -231,8 +231,8 @@ export const useStore = create<StoreState>((set, get) => {
         if (a?.reason) set({ toast: a.reason });
         return;
       }
-      const def = match.content.skills[a.skill];
-      const single = def && (def.target === 'enemy' || def.target === 'ally');
+      // Pick a target whenever there's a choice of single targets (equipment can add some to self skills).
+      const single = a.targets.some((t) => t.length === 1) && !(a.targets.length === 1 && a.targets[0]![0] === actor);
       if (!single) {
         set({ targeting: null });
         return run((m) => m.command(viewer, { t: 'queue', actor, slot, targets: [] }));

@@ -274,6 +274,7 @@ stab.wind:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: if, cond: { has: { unit: actor, effect: rushing } }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
       amount: { if: { has: { unit: actor, effect: rushing } }, then: 20, else: 10 }
