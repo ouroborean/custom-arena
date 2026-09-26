@@ -29,6 +29,13 @@
       "when": 1790446586636,
       "tag": "0003_economy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790461558141,
+      "tag": "0004_single_player",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,14 @@ import { variantId, type AchievementDef, type CharacterSpec, type ContentBundle,
 export const HUMAN_SEAT = 0;
 
 /**
+ * The AI's seed for a single-player match. Client and server must agree: the server re-derives the
+ * AI's moves from it when it verifies a finished attempt.
+ */
+export function singlePlayerBotSeed(matchSeed: number): number {
+  return (matchSeed + 101) >>> 0;
+}
+
+/**
  * An encounter character as engine input. Without explicit `skills`, the kit is the class's
  * signatures then affinity skills (up to `skillCount`, default 4), each infused with the unit's
  * element where a variant exists.

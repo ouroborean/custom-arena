@@ -6,6 +6,7 @@ import type { MatchKind, RatingChange } from '@arena/protocol';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { grantMatchRewards } from '../economy.js';
+import { matchFact, recordAchievements } from '../singleplayer.js';
 import { matchActions, matches, ratings } from '../db/schema.js';
 import type { EndReason, RoomStore } from './room.js';
 
@@ -35,9 +36,11 @@ export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number):
     async finish(matchId, r: { winner: PlayerId | null; endReason: EndReason; turns: number }) {
       const [m] = await db.select().from(matches).where(eq(matches.id, matchId));
       if (!m) return null;
+      // Ratings and achievements apply once per match (rewards are keyed at-most-once separately).
+      const firstFinish = m.status !== 'finished';
       const queue = ratingQueue(m.kind as MatchKind);
       let changes: [RatingChange, RatingChange] | null = null;
-      if (queue) {
+      if (queue && firstFinish) {
         const [a, b] = await Promise.all([ratingOf(db, m.p0User, queue), ratingOf(db, m.p1User, queue)]);
         const score = r.winner === 0 ? 1 : r.winner === 1 ? 0 : 0.5;
         const [na, nb] = rateMatch(a, b, score);
@@ -77,7 +80,17 @@ export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number):
         { matchId, kind: m.kind, users: [m.p0User, m.p1User], winner: r.winner, endReason: r.endReason, turns: r.turns },
         seed,
       );
-      return { ratings: changes, rewards };
+      // Achievements count casual and ranked matches that meet the reward rules' minimum length.
+      const achievements: [string[], string[]] = [[], []];
+      const rules = content.economy.rewards[m.kind];
+      if (firstFinish && rules && r.turns >= rules.minTurns) {
+        for (const p of [0, 1] as const) {
+          const outcome = r.winner === null ? 'draw' : r.winner === p ? 'win' : 'loss';
+          const unlocked = await recordAchievements(db, content, p === 0 ? m.p0User : m.p1User, matchFact(m.kind, outcome, r.turns, m.config.teams[p]));
+          achievements[p] = unlocked.map((u) => u.id);
+        }
+      }
+      return { ratings: changes, rewards, achievements };
     },
   };
 }

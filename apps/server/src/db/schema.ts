@@ -198,6 +198,75 @@ export const matchRewards = pgTable(
   (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('match_rewards_user_idx').on(t.userId)],
 );
 
+/** Story progress: clears per encounter (docs/single-player.md). */
+export const storyProgress = pgTable(
+  'story_progress',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    encounterId: text('encounter_id').notNull(),
+    clears: integer('clears').notNull().default(0),
+    firstClearedAt: timestamp('first_cleared_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.encounterId] })],
+);
+
+/** Chapters whose completion reward was paid (at most once). */
+export const storyChapters = pgTable(
+  'story_chapters',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    chapterId: text('chapter_id').notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.chapterId] })],
+);
+
+/**
+ * A single-player attempt: the server fixes the teams and the seed; the client plays locally and
+ * submits its commands, which the server replays (re-deriving the AI's moves) before paying out.
+ */
+export const spAttempts = pgTable(
+  'sp_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** story | tutorial */
+    mode: text('mode').notNull(),
+    /** Encounter id (story) or lesson id (tutorial). */
+    ref: text('ref').notNull(),
+    contentVersion: text('content_version').notNull(),
+    engineVersion: text('engine_version').notNull(),
+    config: jsonb('config').$type<MatchConfig>().notNull(),
+    /** null until finished; then win | loss | draw. */
+    outcome: text('outcome'),
+    turns: integer('turns'),
+    commands: jsonb('commands').$type<{ player: number; cmd: Command }[]>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [index('sp_attempts_user_idx').on(t.userId)],
+);
+
+/** Achievement progress (GDD §10.5 achievements_progress). */
+export const achievementProgress = pgTable(
+  'achievement_progress',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    achievementId: text('achievement_id').notNull(),
+    count: integer('count').notNull().default(0),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.achievementId] })],
+);
+
 /** Security-relevant events (GDD Phase 5 anti-abuse): logins, failures, forfeits, rate limiting. */
 export const auditLog = pgTable(
   'audit_log',
