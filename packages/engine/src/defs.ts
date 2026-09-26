@@ -51,6 +51,8 @@ export type Selector =
   | NamedSelector
   /** `where` filters candidates (evaluated with `it` = each candidate). */
   | { randomEnemy: number; exclude?: NamedSelector; where?: Cond }
+  /** Every unit of `filter` for which `where` holds (evaluated with `it`), minus `exclude`. */
+  | { filter: NamedSelector; where: Cond; exclude?: NamedSelector }
   | { randomAlly: number; exclude?: NamedSelector; where?: Cond };
 
 export type Value =
@@ -149,7 +151,7 @@ export type Op =
   /** A skill comes off cooldown: the skill being used, or the actor's skill with this id. */
   | { op: 'resetCooldown'; skill?: string }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
-  | { op: 'adjustCooldowns'; to: Selector; by: number; exceptCurrent?: boolean }
+  | { op: 'adjustCooldowns'; to: Selector; by: number | Value; exceptCurrent?: boolean; skill?: string }
   /** Adds `by` turn-ends to the remaining duration of these effects on the selected units. */
   | { op: 'extendEffects'; on: Selector; effects: string[]; by: number }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
@@ -205,7 +207,8 @@ export type ModifierSpec =
   | { mod: 'negateNext'; effect: string }
   | { mod: 'forceTarget' }
   | { mod: 'noArmorOrShield' }
-  | { mod: 'energyGain'; amount: number }
+  /** With `atStacks`, only once the effect has that many stacks, and the effect is then removed (Charged, Sapped). */
+  | { mod: 'energyGain'; amount: number; atStacks?: number }
   /** Multiplies healing the bearer receives, rounding up to a multiple of `roundUpTo` (Scorched). */
   | { mod: 'healingReceived'; mul: number; roundUpTo?: number }
   /** Direct damage from enemies heals the bearer instead (Holy Retribution). */
@@ -229,7 +232,9 @@ export type TriggerEvent =
   | 'turnEnd'
   | 'turnStart'
   | 'signal'
-  | 'effectGained';
+  | 'effectGained'
+  | 'dealtDamage'
+  | 'shieldDamaged';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -238,7 +243,9 @@ export interface TriggerSpec {
   /** For `on: effectGained`: which effect (key). */
   effect?: string;
   /**
-   * - side: for signals, whose side sent it relative to the bearer.
+   * - side: for signals, whose side sent it relative to the bearer; for non-intercepting
+   *   skillTargeted, the skill user's side relative to the bearer.
+   * - byEnemy: for damaged, only damage from enemies; for dealtDamage, only damage to enemies.
    * - fromSide: for damaged, the damager's side relative to the effect's applier.
    * - strategic: for skillUsed, only Strategic (true) or non-Strategic (false) skills.
    */
@@ -271,6 +278,8 @@ export interface EffectDef {
    * - merge: one per bearer per applying side; reapplying adds stacks and refreshes (Toxin).
    */
   stacking?: 'independent' | 'unique' | 'merge';
+  /** Stacks on one instance never exceed this (Charged and Sapped: 3). */
+  maxStacks?: number;
   /** hidden: invisible to the opponent of the applier. hiddenTarget: visible, but its remembered targets aren't. */
   visibility?: 'public' | 'hidden' | 'hiddenTarget';
   /** Damage-absorbing pool stored in the instance's value. */
@@ -317,6 +326,8 @@ export interface SkillDef {
   targetFilter?: Cond;
   /** Requirement on the user to use this skill (evaluated with actor = the user), e.g. "Requires Flow". */
   requires?: Cond;
+  /** A different base cost while `when` holds for the user (Lightning Zap: I, or r when Charged). */
+  altCost?: { when: Cond; cost: Cost };
   ops: Op[];
 }
 

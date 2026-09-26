@@ -406,3 +406,55 @@ Content: `packages/content/data/unholy/`. Themes are Kiss/Kill, Health manipulat
 - Ops: `repeat {times, do}` and `removeStacks {from, effect, amount}`.
 - An `isActor` condition.
 - `linkTo` on `apply`: the new effect ends when the actor's named effect ends, via cascading removal in `removeEffect`.
+
+## 17. Lightning
+
+Content: `packages/content/data/lightning/`. Themes are Resource management, Target-chaining and Consistency. Statuses: **Charged**, **Sapped**, **Stormborn** and **Conduit**.
+
+### 17.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Charge / Charged** | "Charge" on the sheet means stacks of **Charged**. "Is Charged" or "has Charge" means at least 1 stack. It's a Buff that stacks by merging, is capped at **3** (new `maxStacks`), and has no duration: it lasts until spent. |
+| **Charged at 3** | At the start of the owner's next turn (their energy generation), they get **+1 energy**. Then all that unit's Charge is removed (GDD §14: "removed after triggering"). It uses the new `energyGain {atStacks}` modifier. Only characters generate energy, so Charge on a minion never converts. |
+| **Sapped** | A Debuff that works like Charge in reverse: capped at 3, no duration. At 3, the owner generates **1 less** energy on their next turn, then it's removed. "Saps" means +1 Sapped. |
+| **Stormborn** | +1 Charge each time the bearer deals damage to another unit or receives damage. Only hits that actually do something count (more than 0 after mitigation, including Shield-absorbed). It uses the new `dealtDamage` trigger. |
+| **Conduit** | When the bearer damages an enemy, it takes **all** of that enemy's Charge. When a Charged ally uses a Helpful skill on the bearer, all the ally's Charge moves to the bearer. Both respect the cap of 3. The transfer uses the new non-intercepting `skillTargeted` trigger, which fires after the skill resolves, only for effects that existed before it (so Overclock doesn't pull the caster's Charge into its own target). |
+| **Order** | Skills that "consume Charge for X" consume it before resolving X. Skills that only read Charge (Jolt, Defibrillate, Lightning Cage) don't consume it. |
+
+### 17.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Static Slam | Checks Charged before the hit (the hit itself can give Stormborn Charge). |
+| Feedback Loop | Visible (the sheet doesn't say Invisible). Counters once, then consumes all the user's Charge and lowers Feedback Loop's own cooldown by 1 per Charge. It uses `adjustCooldowns` with the new `skill` filter. |
+| Zap | Base cost I, or r while the user has Charge. It uses the new `altCost` on skills, applied at queue time (GDD §3.4) and shown on the tile. |
+| Particle Beam | Like Snipe, but not hidden-target (the sheet doesn't say so). When it fires, it hits the target plus every enemy Sapped **at that moment**, each once. It uses the new `{ filter, where, exclude }` selector. |
+| Tesla Coil | Invisible trap, 1 turn, fires once: 15 indirect damage and +1 Sapped. |
+| Blink | Can only target a Sapped enemy, so it's unusable without one. |
+| Static Elemental | If the summoner has Charge, 1 Charge becomes the Elemental's permanent Might (`onSummon` + the Unholy `removeStacks` op). |
+| Lightningrod | Channels until interrupted. It grants a Stormborn linked to the channel (Unholy's `linkTo`). If the user already has Stormborn (e.g. Overcharge), that one is kept with its own duration. |
+| Stun Baton | Checks for 80+ HP **before** the hit and 40 or less HP **after** it. |
+| Hologram | Harmful, Strategic, and targets all enemies. Only enemies **already Sapped** when it resolves get the (visible) Hologram mark. For 1 turn their Harmful skills are countered, and each counter makes the caster Untargetable for 1 turn. |
+| System Shock | Stuns non-Strategic skills for 1 turn, or 2 if the target was Sapped before the hit. |
+| Signal Boost | 25 to the target, then 10 per Charge to every Charged ally, which can include the target. Charge isn't consumed. |
+| Arc | 10 to the target, then 10 to every **other** Marked enemy (Mark's +10 applies), then Marks the target for 1 turn. |
+| Lightning Cage | A Shield of 20 + 10 per current Charge for 1 turn. Every hit it absorbs gives +1 Charge, including the hit that breaks it. It uses the new `shieldDamaged` trigger. |
+| Aggro Signal | Uses Reflect: the target's next Harmful skill within 1 turn is countered and turned back on its user, who is also Intimidated for 1 turn. Fires once. |
+| EXO-Armor | Consumes all Charge. Per Charge: 1 Armor and 1 Swiftness, both permanent (Q16). Then Stormborn for 3 turns. |
+| Storm Hawk, Static Elemental Zap | No cooldowns given, so none. Glowing Down can target any ally, including a minion (whose Charge never turns into energy). |
+
+### 17.3 Balance notes (greedy-bot simulation, 3,000 matches, eight element pools)
+
+- By character element: Poison 52.4%, Fire 51.6%, None 50.6%, Water 49.9%, Holy 48.5%, Ice 48.3%, Unholy 48.2%, **Lightning 46.9%**.
+- Strongest Lightning skills: Stun Baton (about 59%), Overcharge (about 57%), Jolt (about 56%), Malectrocute (about 55%).
+- Weakest: Signal Boost (about 33%), Apply Polarity (about 36%), Static Burst (about 36%), Power Drain (about 37%), Arc and Three Storm Breaths (about 39%).
+  - The greedy bot doesn't value building Charge or Sapped toward the 3-stack energy swing, so these probably understate the element.
+  - The energy swing itself is the element's main payoff and should be watched in human playtests.
+
+### 17.4 Engine additions for Lightning
+
+- Stacks and energy: `maxStacks` on effects, and `energyGain {atStacks}` (fires at the threshold, then removes the effect).
+- Conditional cost: `altCost` on skills.
+- Triggers: `dealtDamage` and `shieldDamaged` (a depleted Shield's own trigger still runs), plus non-intercepting `skillTargeted` with `when.side`.
+- Selectors and ops: the `{ filter, where, exclude }` selector, and `adjustCooldowns` with `skill` and a computed `by`.

@@ -996,7 +996,7 @@ Each phase ends in something playable or testable. Estimates assume one experien
 - Tooltips with modifier breakdowns.
 - **Exit criterion:** internal playtests of base-skill teams are fun and legible.
 
-### Phase 3: Elements (6–10 weeks; parallelizable per element) — in progress: Fire ✅, Poison ✅, Holy ✅, Ice ✅, Water ✅, Unholy ✅ (2026-09-26)
+### Phase 3: Elements (6–10 weeks; parallelizable per element) — in progress: Fire ✅, Poison ✅, Holy ✅, Ice ✅, Water ✅, Unholy ✅, Lightning ✅ (2026-09-26)
 Suggested order (simple → complex mechanics):
 1. **Fire** (DoT, explosion event, conditional payoffs)
 2. **Poison** (stacking DoT, derived Prey)

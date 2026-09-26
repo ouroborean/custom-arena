@@ -1,0 +1,590 @@
+# The 30 Lightning variants, from "Custom Arena - Lightning". Ids are "<base>.lightning".
+# "Charge" = stacks of Charged (max 3); "Charged" = has at least 1. "Saps" = +1 Sapped (max 3).
+# Charge and Sapped have no duration: they last until spent, consumed or triggered at 3.
+# Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.lightning:
+  archetype: Strike
+  element: Lightning
+  name: Jolt
+  description: Deals 15 damage to target enemy, increased by 5 for each Charge the user has.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { sum: [15, { mul: [5, { stacks: { unit: actor, effect: charged } }] }] }
+
+smash.lightning:
+  archetype: Smash
+  element: Lightning
+  name: Static Slam
+  description: Deals 25 damage to target enemy. If the user is Charged, the target's allies take 15 damage and are Sapped.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: charged, value: { if: { has: { unit: actor, effect: charged } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { varTrue: charged }
+      then:
+        - { op: damage, to: primaryAllies, amount: 15 }
+        - { op: apply, to: primaryAllies, effect: sapped }
+
+charge.lightning:
+  archetype: Charge
+  element: Lightning
+  name: Charged Dash
+  description: Deals 10 damage to target enemy and grants the user Charge.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: actor, effect: charged }
+
+riposte.lightning:
+  archetype: Riposte
+  element: Lightning
+  name: Feedback Loop
+  description: >-
+    For 1 turn, the user will counter the next Harmful skill used against them. When this triggers,
+    it consumes the user's Charge, lowering this skill's cooldown by 1 per Charge.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: feedback_loop
+        name: Feedback Loop
+        kind: Buff
+        element: Lightning
+        description: Counters the next Harmful skill used on the bearer, then trades Charge for cooldown.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: set, var: spent, value: { stacks: { unit: bearer, effect: charged } } }
+              - { op: removeEffect, from: bearer, effect: charged }
+              - { op: adjustCooldowns, to: bearer, skill: riposte.lightning, by: { mul: [-1, { var: spent }] } }
+
+rage.lightning:
+  archetype: Rage
+  element: Lightning
+  name: Overcharge
+  description: For 3 turns, the user gains Stormborn.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+
+shot.lightning:
+  archetype: Shot
+  element: Lightning
+  name: Zap
+  description: Deals 15 damage to target enemy and grants the user Charge. Costs r instead of I while the user has Charge.
+  cost: I
+  altCost: { when: { has: { unit: actor, effect: charged } }, cost: r }
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: charged }
+
+snipe.lightning:
+  archetype: Snipe
+  element: Lightning
+  name: Particle Beam
+  description: >-
+    The user deals 30 Piercing damage to target enemy on the following turn. This also hits any
+    Sapped enemies. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: particle_beam
+        name: Particle Beam (charging)
+        kind: Neutral
+        element: Lightning
+        interruptible: true
+        description: Fires at the end of the following turn at the target and every Sapped enemy, unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 30, type: Piercing }
+          - op: damage
+            to: { filter: allEnemies, where: { has: { unit: it, effect: sapped } }, exclude: effectTargets }
+            amount: 30
+            type: Piercing
+
+trap.lightning:
+  archetype: Trap
+  element: Lightning
+  name: Tesla Coil
+  description: For 1 turn, if target enemy uses a skill, they take 15 damage and become Sapped. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tesla_coil
+        name: Tesla Coil
+        kind: Debuff
+        element: Lightning
+        visibility: hidden
+        description: When the bearer uses a skill, they take 15 damage and are Sapped.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15 }
+              - { op: apply, to: bearer, effect: sapped }
+
+maneuver.lightning:
+  archetype: Maneuver
+  element: Lightning
+  name: Blink
+  description: Deals 5 damage to a Sapped enemy and makes the user Invulnerable for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  targetFilter: { has: { unit: it, effect: sapped } }
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+companion.lightning:
+  archetype: Companion
+  element: Lightning
+  name: Storm Hawk
+  description: >-
+    Summons a Storm Hawk minion (25 HP). Stormfeather (r): 10 damage to target enemy and Saps them.
+    Glowing Down (I): target ally gains 1 Charge.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: storm_hawk }
+
+bolt.lightning:
+  archetype: Bolt
+  element: Lightning
+  name: Innervate
+  description: Deals 20 damage to target enemy and Saps them.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sapped }
+
+blast.lightning:
+  archetype: Blast
+  element: Lightning
+  name: Static Burst
+  description: Deals 15 damage to all enemies. Consumes the user's Charge to deal 10 additional damage per Charge.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: spent, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: damage, to: targets, amount: { sum: [15, { mul: [10, { var: spent }] }] } }
+
+consume.lightning:
+  archetype: Consume
+  element: Lightning
+  name: Siphon Charge
+  description: Deals 5 damage to target enemy and Saps them. The user gains Charge.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: sapped }
+    - { op: apply, to: actor, effect: charged }
+
+summon.lightning:
+  archetype: Summon
+  element: Lightning
+  name: Static Elemental
+  description: >-
+    Summons a Static Elemental minion (15 HP) for 3 turns. If the user has Charge, one is consumed to
+    give the Elemental 1 Might. Zap (r): 10 damage to target enemy, +5 if they are Sapped.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: static_elemental, duration: { enemyTurns: 3 } }
+
+channel.lightning:
+  archetype: Channel
+  element: Lightning
+  name: Lightningrod
+  description: The user gains Stormborn for as long as they keep Channeling. Channeled.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect:
+        id: lightningrod
+        name: Lightningrod
+        kind: Neutral
+        element: Lightning
+        interruptible: true
+        description: Channeling. The user has Stormborn until the channel is interrupted.
+    # A Stormborn the user already has (e.g. Overcharge) keeps its own duration.
+    - op: if
+      cond: { not: { has: { unit: actor, effect: stormborn } } }
+      then: [{ op: apply, to: actor, effect: stormborn, linkTo: lightningrod }]
+
+stab.lightning:
+  archetype: Stab
+  element: Lightning
+  name: Stun Baton
+  description: >-
+    Deals 15 damage to target enemy. If the target was at or above 80 health, the user gains Charge.
+    If the target is then at or below 40 health, they are Sapped.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: healthy, value: { if: { hpAbove: { unit: primary, value: 79 } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: if, cond: { varTrue: healthy }, then: [{ op: apply, to: actor, effect: charged }] }
+    - op: if
+      cond: { hpAtMost: { unit: primary, value: 40 } }
+      then: [{ op: apply, to: primary, effect: sapped }]
+
+ravage.lightning:
+  archetype: Ravage
+  element: Lightning
+  name: Malectrocute
+  description: >-
+    Deals 20 Piercing damage to target enemy, +10 if the user is Charged and +10 if the target is
+    Sapped.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        sum:
+          - 20
+          - { if: { has: { unit: actor, effect: charged } }, then: 10, else: 0 }
+          - { if: { has: { unit: primary, effect: sapped } }, then: 10, else: 0 }
+
+mislead.lightning:
+  archetype: Mislead
+  element: Lightning
+  name: Hologram
+  description: >-
+    For 1 turn, any Sapped enemy that uses a Harmful skill is countered, and the user becomes
+    Untargetable for 1 turn.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: { filter: targets, where: { has: { unit: it, effect: sapped } } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hologram
+        name: Hologram
+        kind: Debuff
+        element: Lightning
+        description: The bearer's Harmful skills are countered; each counter makes the caster Untargetable for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: actor, effect: untargetable, duration: { enemyTurns: 1 } }
+
+stun.lightning:
+  archetype: Stun
+  element: Lightning
+  name: System Shock
+  description: >-
+    Deals 15 damage to target enemy and stuns their non-Strategic skills for 1 turn, or 2 turns if
+    they are Sapped.
+  cost: AI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: sapped, value: { if: { has: { unit: primary, effect: sapped } }, then: 2, else: 1 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: { var: sapped } } }
+
+dance.lightning:
+  archetype: Dance
+  element: Lightning
+  name: Three Storm Breaths
+  description: The user gains Stormborn and Conduit for 3 turns.
+  cost: SI
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: conduit, duration: { enemyTurns: 3 } }
+
+heal.lightning:
+  archetype: Heal
+  element: Lightning
+  name: Defibrillate
+  description: Heals target ally for 20 Health, +5 per Charge the user has.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: heal
+      to: primary
+      amount: { sum: [20, { mul: [5, { stacks: { unit: actor, effect: charged } }] }] }
+
+bless.lightning:
+  archetype: Bless
+  element: Lightning
+  name: Overclock
+  description: Target ally gains Conduit for 2 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: conduit, duration: { enemyTurns: 2 } }
+
+curse.lightning:
+  archetype: Curse
+  element: Lightning
+  name: Power Drain
+  description: Target enemy is Sapped.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: sapped }
+
+smite.lightning:
+  archetype: Smite
+  element: Lightning
+  name: Apply Polarity
+  description: Deals 10 damage to target enemy. For 1 turn, allies that damage them gain Charge.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: polarity
+        name: Polarity
+        kind: Debuff
+        element: Lightning
+        description: Units on the applier's side that damage the bearer gain 1 Charge.
+        triggers:
+          - on: damaged
+            when: { fromSide: ally }
+            do:
+              - { op: apply, to: eventSource, effect: charged }
+
+prayer.lightning:
+  archetype: Prayer
+  element: Lightning
+  name: Signal Boost
+  description: Heals target ally for 25 Health, then heals every Charged ally 10 Health per Charge.
+  cost: WI
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+    - op: heal
+      to: { filter: allAllies, where: { has: { unit: it, effect: charged } } }
+      amount: { mul: [10, { stacks: { unit: it, effect: charged } }] }
+
+cleave.lightning:
+  archetype: Cleave
+  element: Lightning
+  name: Arc
+  description: Deals 10 damage to target enemy and any Marked enemies, then Marks the target.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: damage
+      to: { filter: allEnemies, where: { has: { unit: it, effect: mark } }, exclude: primary }
+      amount: 10
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+
+shout.lightning:
+  archetype: Shout
+  element: Lightning
+  name: Crackle
+  description: Saps all targetable enemies.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: sapped }
+
+withstand.lightning:
+  archetype: Withstand
+  element: Lightning
+  name: Lightning Cage
+  description: >-
+    The user gains 20 Shield for 1 turn, plus 10 per current Charge. The user gains Charge whenever
+    this Shield takes damage.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      value: { sum: [20, { mul: [10, { stacks: { unit: actor, effect: charged } }] }] }
+      effect:
+        id: lightning_cage
+        name: Lightning Cage
+        kind: Buff
+        element: Lightning
+        shield: true
+        description: A Shield; each hit it absorbs gives the bearer 1 Charge.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: apply, to: bearer, effect: charged }
+
+taunt.lightning:
+  archetype: Taunt
+  element: Lightning
+  name: Aggro Signal
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it is Reflected back to them, and they are
+    Intimidated for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: aggro_signal
+        name: Aggro Signal
+        kind: Debuff
+        element: Lightning
+        description: The bearer's next Harmful skill is reflected back at them, and they are Intimidated.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: reflect
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: intimidated, duration: { enemyTurns: 1 } }
+
+titan.lightning:
+  archetype: Titan
+  element: Lightning
+  name: EXO-Armor
+  description: >-
+    The user consumes their Charge, gaining 1 Armor and 1 Swiftness per Charge consumed. Then they
+    gain Stormborn for 3 turns.
+  cost: Ir
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: spent, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: apply, to: actor, effect: armor, stacks: { var: spent } }
+    - { op: apply, to: actor, effect: swiftness, stacks: { var: spent } }
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+
+# ---------------------------------------------------------------- minion skills
+
+hawk_stormfeather:
+  archetype: Minion
+  element: Lightning
+  name: Stormfeather
+  description: Deals 10 damage to target enemy and Saps them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: sapped }
+
+hawk_glowing_down:
+  archetype: Minion
+  element: Lightning
+  name: Glowing Down
+  description: Target ally gains 1 Charge.
+  cost: I
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: charged }
+
+static_zap:
+  archetype: Minion
+  element: Lightning
+  name: Zap
+  description: Deals 10 damage to target enemy, +5 if they are Sapped.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { has: { unit: primary, effect: sapped } }, then: 15, else: 10 }

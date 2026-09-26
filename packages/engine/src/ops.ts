@@ -99,6 +99,12 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
 export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
   if (typeof sel === 'string') return selectNamed(ctx, sel, sc);
   const excluded = new Set(sel.exclude ? selectNamed(ctx, sel.exclude, sc).map((u) => u.id) : []);
+  if ('filter' in sel) {
+    const cond = sel.where;
+    return selectNamed(ctx, sel.filter, sc).filter(
+      (u) => !excluded.has(u.id) && withIt(sc, u.id, () => evalCond(ctx, cond, sc)),
+    );
+  }
   const where = sel.where;
   const enemies = 'randomEnemy' in sel;
   const pool = selectNamed(ctx, enemies ? 'allEnemies' : 'allAllies', sc).filter(
@@ -358,14 +364,17 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (slot) slot.cooldown = 0;
       return;
     }
-    case 'adjustCooldowns':
+    case 'adjustCooldowns': {
+      const by = evalValue(ctx, op.by, sc);
       for (const t of select(ctx, op.to, sc)) {
         t.skills.forEach((slot, i) => {
           if (op.exceptCurrent && t.id === actor.id && i === sc.slot) return;
-          slot.cooldown = Math.max(0, slot.cooldown + op.by);
+          if (op.skill && slot.defId !== op.skill) return;
+          slot.cooldown = Math.max(0, slot.cooldown + by);
         });
       }
       return;
+    }
     case 'extendEffects': {
       const keys = new Set(op.effects);
       for (const t of select(ctx, op.on, sc)) {
@@ -498,8 +507,10 @@ export function flushTriggers(ctx: Ctx): void {
       if (++n > MAX_TRIGGER_CHAIN) throw new Error('Trigger chain limit exceeded');
       const p = ctx.triggerQueue.shift() as PendingTrigger;
       // A trigger queued before its bearer died still resolves (e.g. Sanctify on a killing blow).
+      // Likewise a Shield's own trigger on the hit that depleted it.
+      const gone = p.inst?.data.removedReason;
       const e =
-        ctx.s.effects.find((x) => x.id === p.effect) ?? (p.inst?.data.removedReason === 'died' ? p.inst : undefined);
+        ctx.s.effects.find((x) => x.id === p.effect) ?? (gone === 'died' || gone === 'depleted' ? p.inst : undefined);
       if (!e) continue;
       runTrigger(ctx, e, p);
       if (ctx.s.phase === 'finished') {
@@ -543,10 +554,12 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
 export function enqueueTriggers(
   ctx: Ctx,
   bearer: UnitId,
-  event: 'skillUsed' | 'skillResolved' | 'turnStart' | 'turnEnd',
+  event: 'skillUsed' | 'skillResolved' | 'skillTargeted' | 'turnStart' | 'turnEnd',
   filter: {
     harmful?: boolean;
     strategic?: boolean;
+    /** The event source's side relative to the bearer (for `when.side`). */
+    side?: 'ally' | 'enemy';
     eventSource?: UnitId;
     eventTarget?: UnitId;
     eventTargets?: UnitId[];
@@ -560,6 +573,7 @@ export function enqueueTriggers(
       if (spec.on !== event || spec.intercept) continue;
       if (spec.when?.harmful !== undefined && spec.when.harmful !== filter.harmful) continue;
       if (spec.when?.strategic !== undefined && spec.when.strategic !== filter.strategic) continue;
+      if (spec.when?.side !== undefined && filter.side !== undefined && spec.when.side !== filter.side) continue;
       ctx.triggerQueue.push({
         effect: e.id,
         spec,

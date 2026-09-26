@@ -5,6 +5,7 @@
 import { effectDef, effectsOn, isEnemy, type Ctx } from './ctx.js';
 import type { DamageWhen, ModifierSpec, SkillClass, SkillDef } from './defs.js';
 import { applyGenericModifier } from './energy.js';
+import { evalCond } from './ops.js';
 import type { Cost, DamageType, EffectInstance, GameState, Unit } from './types.js';
 import type { ContentBundle } from './defs.js';
 
@@ -43,11 +44,13 @@ export function skillClass(def: SkillDef): SkillClass {
 // ---------------------------------------------------------------- costs & cooldowns
 
 export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
+  const scope = { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: true, bypass: false };
+  const base = def.altCost && evalCond(ctx, def.altCost.when, scope) ? def.altCost.cost : def.cost;
   let delta = 0;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'costGeneric')) delta += scaled(spec.amount, spec.perStack, effect);
   // Chilled: costs can't go down.
   if (delta < 0 && modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0) delta = 0;
-  return applyGenericModifier(def.cost, delta);
+  return applyGenericModifier(base, delta);
 }
 
 export function cooldownOnUse(ctx: Ctx, u: Unit, def: SkillDef): number {
@@ -149,8 +152,15 @@ export function modifiedHealing(ctx: Ctx, target: Unit, amount: number): number 
   return Math.max(0, Math.round(n));
 }
 
-export function energyGainBonus(ctx: Ctx, u: Unit): number {
+/** Energy modifiers for `u`'s owner's generation; threshold effects that fired are added to `spent`. */
+export function energyGainBonus(ctx: Ctx, u: Unit, spent: EffectInstance[] = []): number {
   let n = 0;
-  for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'energyGain')) n += scaled(spec.amount, false, effect);
+  for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'energyGain')) {
+    if (spec.atStacks !== undefined) {
+      if (effect.stacks < spec.atStacks) continue;
+      spent.push(effect);
+    }
+    n += scaled(spec.amount, false, effect);
+  }
   return n;
 }
