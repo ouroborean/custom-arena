@@ -17,6 +17,7 @@
     "play": "npm run play -w @arena/cli --",
     "ci": "npm run typecheck && npm run lint && npm run content:validate && npm test",
     "dev": "npm run dev -w @arena/client",
+    "server": "npm run dev -w @arena/server",
     "build": "npm run build -w @arena/client"
   },
   "engines": {

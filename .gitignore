@@ -4,3 +4,7 @@ coverage/
 *.log
 .DS_Store
 replays/
+
+# Local server data (PGlite)
+.data/
+apps/server/.data/
