@@ -19,6 +19,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Cooldown (CD)** | Number of the owner's own turns a skill stays locked after use. |
 | **Counter** | Negates a skill as it's used. Cost stays paid, and the cooldown starts. |
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
+| **Drain (Soul Fragment)** | Unholy: "drain a Soul Fragment from X" means the user gains 1 Soul Fragment. X doesn't need to have one. |
 | **Duration** | Internal count of turns; drops by 1 at the end of every turn. See rules.md §8. |
 | **Explode / Explosion** | Fire: 10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets. |
 | **Flow** | Water: the bearer's skills ignore counters and reflects. |
@@ -28,10 +29,13 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **GEN / r / random** | A wildcard cost payable with any color. |
 | **Ghosted** | The bearer's skills Bypass. |
 | **Harmful / Helpful** | Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful. |
+| **Horrified** | Unholy: can't gain Buffs (including from itself). |
 | **HiddenTarget** | Skill tag: the opponent sees the skill but not its target (Snipe). |
 | **Indirect damage** | Damage from triggered or ticking effects. |
+| **Immortal** | Unholy: Health can't fall below 5. "Undying" on the sheet means the same thing. |
 | **Invisible** | Skill tag and effect visibility: hidden from the opponent until triggered or expired. |
 | **Invulnerable** | Can't be targeted by enemy skills, and takes no indirect enemy damage unless it's Affliction or Bypassing. |
+| **Lifesteal** | Unholy: heals for the Health the bearer removes from other characters. Shield-absorbed damage and damage to minions don't count. |
 | **Isolated** | Can't be targeted by allied skills (Bypass ignores it). |
 | **Minion** | A summoned unit. Has HP and possibly skills, generates no energy, and pays skill costs from its owner's pool. |
 | **"New" skill** | A skill actually used this turn (queued or triggered), as opposed to an ongoing effect ticking. |
@@ -43,6 +47,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Renew** | Heals 5 HP per stack at the end of the applier's turn, then loses 1 stack. |
 | **Reflect** | A counter that also applies the skill to its user (or the user's team, for AoE skills). |
 | **Shattered** | Gets no benefit from Armor or Shield. |
+| **Soul Fragment** | Unholy: a permanent stacking Buff; each stack is 1 Might. Consumed by several Unholy skills. |
 | **Strategic** | Skill class for skills that aren't explicitly directly damaging. Tagged per skill. Some stuns only affect Strategic or non-Strategic skills. |
 | **Stunned** | Can't use skills (optionally only Strategic or only non-Strategic ones). |
 | **Taunted** | Enemy single-target skills must target the taunter. |

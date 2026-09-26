@@ -84,9 +84,10 @@ function score(content: ContentBundle, s: GameState, me: PlayerId, cmd: QueueCom
   const def: SkillDef = content.skills[actor.skills[cmd.slot]!.defId]!;
   const enemies = s.units.filter((u) => u.alive && u.owner !== me);
   const allies = s.units.filter((u) => u.alive && u.owner === me);
+  const target = cmd.targets[0] ? s.units.find((u) => u.id === cmd.targets[0]) : undefined;
   let v = staticDamage(def.ops);
   if (def.target === 'allEnemies') v *= enemies.length;
-  const target = cmd.targets[0] ? s.units.find((u) => u.id === cmd.targets[0]) : undefined;
+  if (target && target.owner === me) v = -v; // damage aimed at our own side (Unholy Consume Lesser)
   if (target && target.owner !== me) {
     v += (100 - target.hp) / 4; // focus fire
     if (target.hp <= v) v += 40; // likely kill

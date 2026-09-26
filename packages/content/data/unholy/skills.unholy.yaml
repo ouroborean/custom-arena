@@ -1,0 +1,627 @@
+# The 30 Unholy variants, from "Custom Arena - Unholy". Ids are "<base>.unholy".
+# "Drain a Soul Fragment from X" = the user gains 1 Soul Fragment (X needn't have any).
+# "Undying" (Rage, Maneuver) is read as Immortal. Consuming Soul Fragments happens before the
+# damage they pay for. Durations: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.unholy:
+  archetype: Strike
+  element: Unholy
+  name: Witchblade
+  description: Deals 25 damage to target enemy. If the enemy is Horrified, this skill deals 10 additional damage.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { has: { unit: primary, effect: horrified } }, then: 35, else: 25 }
+
+smash.unholy:
+  archetype: Smash
+  element: Unholy
+  name: Soulcrusher
+  description: Deals 40 damage to target enemy and Horrifies their allies for 2 turns.
+  cost: SS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 40 }
+    - { op: apply, to: primaryAllies, effect: horrified, duration: { enemyTurns: 2 } }
+
+charge.unholy:
+  archetype: Charge
+  element: Unholy
+  name: Wraithwalk
+  description: Deals 15 damage to target enemy, and the user's next Harmful skill drains a Soul Fragment from its target.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      effect:
+        id: wraithwalk
+        name: Wraithwalk
+        kind: Buff
+        element: Unholy
+        stacking: unique
+        description: The bearer's next Harmful skill drains a Soul Fragment.
+        triggers:
+          - on: skillResolved
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: soul_fragment }
+
+riposte.unholy:
+  archetype: Riposte
+  element: Unholy
+  name: Spiteful Retort
+  description: For 1 turn, the user will counter any Harmful skill used on them, Horrifying its user for 2 turns. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spiteful_retort
+        name: Spiteful Retort
+        kind: Buff
+        element: Unholy
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer and Horrifies their users for 2 turns.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: horrified, duration: { enemyTurns: 2 } }
+
+rage.unholy:
+  archetype: Rage
+  element: Unholy
+  name: Undying Fury
+  description: >-
+    Consumes all the user's Soul Fragments, dealing 10 damage to a random enemy for each one. Then
+    the user becomes Immortal for as many turns as fragments consumed.
+  cost: Sr
+  cooldown: 4
+  tags: [Harmful, NonStrategic]
+  target: self
+  ops:
+    - { op: set, var: frags, value: { stacks: { unit: actor, effect: soul_fragment } } }
+    - { op: removeEffect, from: actor, effect: soul_fragment }
+    - op: repeat
+      times: { var: frags }
+      do:
+        - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: frags } } }
+
+shot.unholy:
+  archetype: Shot
+  element: Unholy
+  name: Bone Shard
+  description: Deals 10 damage to target enemy, increased by 5 for each Soul Fragment the user has.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { sum: [10, { mul: [5, { stacks: { unit: actor, effect: soul_fragment } }] }] }
+
+snipe.unholy:
+  archetype: Snipe
+  element: Unholy
+  name: Soul Lance
+  description: >-
+    The user deals 40 damage to target enemy on the following turn. If the target is below 50
+    health afterwards, the user drains a Soul Fragment from them. The target of this skill is
+    invisible. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: soul_lance
+        name: Soul Lance (aiming)
+        kind: Neutral
+        element: Unholy
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+          - op: if
+            cond: { any: { in: lastDamaged, cond: { hpAtMost: { unit: it, value: 49 } } } }
+            then: [{ op: apply, to: actor, effect: soul_fragment }]
+
+trap.unholy:
+  archetype: Trap
+  element: Unholy
+  name: Soul Shackle
+  description: >-
+    For 1 turn, if target enemy uses a skill, they are Stunned for 1 turn and gain 2 Weakness for 2
+    turns. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: soul_shackle
+        name: Soul Shackle
+        kind: Debuff
+        element: Unholy
+        visibility: hidden
+        description: When the bearer uses a skill, they are Stunned for 1 turn and gain 2 Weakness for 2 turns.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: weakness, stacks: 2, duration: { enemyTurns: 2 } }
+
+maneuver.unholy:
+  archetype: Maneuver
+  element: Unholy
+  name: Grave Step
+  description: The user becomes Immortal for 1 turn. This effect is Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grave_step
+        name: Grave Step
+        kind: Buff
+        element: Unholy
+        visibility: hidden
+        description: Immortal (Health can't fall below 5).
+        modifiers:
+          - { mod: hpFloor, amount: 5 }
+
+companion.unholy:
+  archetype: Companion
+  element: Unholy
+  name: Hellhound
+  description: >-
+    Summons a Hellhound minion (35 HP). Jaws of Hell (S): 10 Affliction damage to target enemy each
+    turn. Channeled.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: hellhound }
+
+bolt.unholy:
+  archetype: Bolt
+  element: Unholy
+  name: Fel Bolt
+  description: Deals 25 damage to target enemy and Horrifies them for 2 turns.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
+
+blast.unholy:
+  archetype: Blast
+  element: Unholy
+  name: Soul Blast
+  description: Deals 25 damage to all enemies, increased by 10 for each Soul Fragment the user has.
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      amount: { sum: [25, { mul: [10, { stacks: { unit: actor, effect: soul_fragment } }] }] }
+
+consume.unholy:
+  archetype: Consume
+  element: Unholy
+  name: Drain Soul
+  description: >-
+    Deals 5 damage to target enemy, draining a Soul Fragment from them. If the target is Horrified,
+    the user gains an additional Soul Fragment.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: horrified, value: { if: { has: { unit: primary, effect: horrified } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 5 }
+    - op: apply
+      to: actor
+      effect: soul_fragment
+      stacks: { if: { varTrue: horrified }, then: 2, else: 1 }
+
+summon.unholy:
+  archetype: Summon
+  element: Unholy
+  name: Imp
+  description: >-
+    Summons an Imp minion (25 HP). Firebolt (r): 10 Affliction damage to target enemy. Gleeful
+    Torment (I): target enemy is Horrified for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: imp }
+
+channel.unholy:
+  archetype: Channel
+  element: Unholy
+  name: Drain Life
+  description: >-
+    Each turn, deals 10 damage to target enemy and heals the user for 10 Health. If the target dies
+    while affected by this skill, the user gains a Soul Fragment. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      effect:
+        id: drain_life
+        name: Drain Life
+        kind: Neutral
+        element: Unholy
+        interruptible: true
+        description: Each end of the user's turn, 10 damage to the target and 10 healing to the user. Lasts until interrupted.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: effectTargets, amount: 10 }
+              - { op: heal, to: bearer, amount: 10 }
+    - op: apply
+      to: primary
+      linkTo: drain_life
+      effect:
+        id: drained
+        name: Drain Life
+        kind: Debuff
+        element: Unholy
+        description: If the bearer dies while drained, the drainer gains a Soul Fragment.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 0 } }
+                then: [{ op: apply, to: actor, effect: soul_fragment }]
+
+stab.unholy:
+  archetype: Stab
+  element: Unholy
+  name: Blighted Dagger
+  description: Deals 15 damage to target enemy. If the target is at or above 70 health, drains a Soul Fragment from them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: healthy, value: { if: { hpAbove: { unit: primary, value: 69 } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: if, cond: { varTrue: healthy }, then: [{ op: apply, to: actor, effect: soul_fragment }] }
+
+ravage.unholy:
+  archetype: Ravage
+  element: Unholy
+  name: Lay Waste
+  description: Deals 35 Piercing damage to target enemy. If the target has any Buffs, they are Horrified for 1 turn.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 35, type: Piercing }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then: [{ op: apply, to: primary, effect: horrified, duration: { enemyTurns: 1 } }]
+
+mislead.unholy:
+  archetype: Mislead
+  element: Unholy
+  name: Mirage of Nightmares
+  description: >-
+    For 1 turn, if target enemy uses a Strategic skill, it is countered, and the user becomes
+    Untargetable for 1 turn and gains 1 Might and 1 Swiftness. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mirage_of_nightmares
+        name: Mirage of Nightmares
+        kind: Debuff
+        element: Unholy
+        visibility: hidden
+        description: The bearer's Strategic skills are countered; each counter empowers the caster.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true, harmful: true }
+            intercept: counter
+            do: [{ op: macro, id: mirage_reward }]
+          - on: skillUsed
+            when: { strategic: true, harmful: false }
+            intercept: counter
+            do: [{ op: macro, id: mirage_reward }]
+
+stun.unholy:
+  archetype: Stun
+  element: Unholy
+  name: Cripple
+  description: Target enemy gains 1 permanent Vulnerable. If they are Horrified, they also gain 1 permanent Weakness.
+  cost: AS
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: vulnerable }
+    - { op: if, cond: { has: { unit: primary, effect: horrified } }, then: [{ op: apply, to: primary, effect: weakness }] }
+
+dance.unholy:
+  archetype: Dance
+  element: Unholy
+  name: Grisly Spectacle
+  description: >-
+    Deals 15 Piercing damage to target enemy and extends all active Horrify effects by 1 turn. The
+    user gains 1 Confusion for 1 turn (stacking).
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, type: Piercing }
+    - { op: extendEffects, on: allUnits, effects: [horrified], by: 2 }
+    - { op: apply, to: actor, effect: confusion, duration: { ownTurns: 1 } }
+
+heal.unholy:
+  archetype: Heal
+  element: Unholy
+  name: Consume Lesser
+  description: Deals 15 damage to another ally and heals the user for 20 health.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, NonStrategic]
+  target: ally
+  targetFilter: { not: { isActor: it } }
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: heal, to: actor, amount: 20 }
+
+bless.unholy:
+  archetype: Bless
+  element: Unholy
+  name: Vampirism
+  description: Target ally gains Lifesteal for 2 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: lifesteal, duration: { enemyTurns: 2 } }
+
+curse.unholy:
+  archetype: Curse
+  element: Unholy
+  name: Cause Fear
+  description: Target enemy is Horrified until the end of the turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: horrified, duration: { thisTurn: true } }
+
+smite.unholy:
+  archetype: Smite
+  element: Unholy
+  name: Soul Sickness
+  description: Deals 20 damage to target enemy. For 1 turn, any ally that damages them gains a Soul Fragment.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: soul_sickness
+        name: Soul Sickness
+        kind: Debuff
+        element: Unholy
+        description: Units on the applier's side that damage the bearer gain a Soul Fragment.
+        triggers:
+          - on: damaged
+            when: { fromSide: ally }
+            do:
+              - { op: apply, to: eventSource, effect: soul_fragment }
+
+prayer.unholy:
+  archetype: Prayer
+  element: Unholy
+  name: Profane Chant
+  description: Deals 20 damage to all enemies and applies 2 Weakness to each of them for 1 turn.
+  cost: Wrr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: weakness, stacks: 2, duration: { enemyTurns: 1 } }
+
+cleave.unholy:
+  archetype: Cleave
+  element: Unholy
+  name: Oathbreaker Strike
+  description: Deals 25 Piercing damage to target enemy, then 10 damage to that target and to each of the user's allies.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: damage, to: primary, amount: 10 }
+    - op: forEach
+      in: allAllies
+      do:
+        - { op: if, cond: { not: { isActor: it } }, then: [{ op: damage, to: it, amount: 10 }] }
+
+shout.unholy:
+  archetype: Shout
+  element: Unholy
+  name: Soulshriek
+  description: >-
+    Deals 20 damage to target enemy. If the user has a Soul Fragment, consumes one to deal 10
+    additional damage and Horrify the target for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: fed, value: { if: { has: { unit: actor, effect: soul_fragment } }, then: 1, else: 0 } }
+    - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }
+    - { op: damage, to: primary, amount: { if: { varTrue: fed }, then: 30, else: 20 } }
+    - { op: if, cond: { varTrue: fed }, then: [{ op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }] }
+
+withstand.unholy:
+  archetype: Withstand
+  element: Unholy
+  name: Misery
+  description: >-
+    The user drains 10 Health from each other ally, gaining 20 Shield plus the total amount
+    drained.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: drained, value: 0 }
+    - op: forEach
+      in: allAllies
+      do:
+        - op: if
+          cond: { not: { isActor: it } }
+          then:
+            - { op: damage, to: it, amount: 10, type: Affliction, direct: false }
+            - { op: set, var: drained, value: { sum: [{ var: drained }, { lastDamage: true }] } }
+    - { op: apply, to: actor, effect: shield, value: { sum: [20, { var: drained }] } }
+
+taunt.unholy:
+  archetype: Taunt
+  element: Unholy
+  name: Unrelenting Horror
+  description: Target enemy is Taunted for 2 turns. If the target is Horrified, the user also gains Lifesteal for that time.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { has: { unit: primary, effect: horrified } }
+      then: [{ op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 2 } }]
+
+titan.unholy:
+  archetype: Titan
+  element: Unholy
+  name: Soul Colossus
+  description: >-
+    Consumes all Soul Fragments to heal the user for 5 health each; then the user gains 2 Armor and
+    Immortal for as many turns as fragments consumed.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: frags, value: { stacks: { unit: actor, effect: soul_fragment } } }
+    - { op: removeEffect, from: actor, effect: soul_fragment }
+    - { op: heal, to: actor, amount: { mul: [5, { var: frags }] } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: { var: frags } } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: frags } } }
+
+# ---------------------------------------------------------------- minion skills
+
+hellhound_jaws:
+  archetype: Minion
+  element: Unholy
+  name: Jaws of Hell
+  description: Deals 10 Affliction damage to target enemy at the end of each of the Hellhound's turns. Channeled.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      effect:
+        id: jaws_of_hell
+        name: Jaws of Hell
+        kind: Neutral
+        element: Unholy
+        interruptible: true
+        description: Each end of the Hellhound's turn, 10 Affliction damage to the target. Lasts until interrupted.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: effectTargets, amount: 10, type: Affliction }
+
+imp_firebolt:
+  archetype: Minion
+  element: Unholy
+  name: Firebolt
+  description: Deals 10 Affliction damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }
+
+imp_gleeful_torment:
+  archetype: Minion
+  element: Unholy
+  name: Gleeful Torment
+  description: Target enemy is Horrified for 1 turn.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 1 } }

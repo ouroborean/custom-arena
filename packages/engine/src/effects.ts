@@ -20,6 +20,8 @@ export interface ApplyArgs {
   until?: UntilSpec | undefined;
   /** The effect ends when this unit leaves the board. */
   boundTo?: UnitId | undefined;
+  /** Effect id this one is linked to: it ends when that effect ends. */
+  linkedTo?: string | undefined;
 }
 
 export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
@@ -125,6 +127,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   }
   if (a.until) inst.until = a.until;
   if (a.boundTo) inst.data.boundTo = a.boundTo;
+  if (a.linkedTo) inst.data.linkedTo = a.linkedTo;
   ctx.s.effects.push(inst);
   emit(
     ctx,
@@ -169,6 +172,7 @@ export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason):
     privateTo = undefined;
   }
   emit(ctx, { t: 'effectRemoved', effect: e.id, defId: e.defId, bearer: e.bearer, reason }, privateTo);
+  for (const x of ctx.s.effects.filter((y) => y.data.linkedTo === e.id)) removeEffect(ctx, x, 'removed');
 }
 
 export function revealEffect(ctx: Ctx, e: EffectInstance): void {

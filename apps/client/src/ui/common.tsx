@@ -203,6 +203,21 @@ const STATUS_CODES: Record<string, string> = {
   call_rain: 'CHN',
   aqua_ring: 'RNG',
   tidal_pull_reset: 'TPL',
+  // Unholy
+  horrified: 'HOR',
+  immortal: 'IMM',
+  soul_fragment: 'SOL',
+  lifesteal: 'LST',
+  wraithwalk: 'WRW',
+  spiteful_retort: 'RIP',
+  soul_lance: 'AIM',
+  soul_shackle: 'SHK',
+  grave_step: 'IMM',
+  drain_life: 'CHN',
+  drained: 'DRN',
+  mirage_of_nightmares: 'MIR',
+  soul_sickness: 'SIK',
+  jaws_of_hell: 'CHN',
 };
 
 function consonantCode(name: string): string {

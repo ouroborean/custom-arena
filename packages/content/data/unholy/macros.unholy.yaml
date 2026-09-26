@@ -1,0 +1,8 @@
+# Reusable Unholy actions.
+
+# Mirage of Nightmares' reward when it counters: its caster (the effect's source) becomes
+# Untargetable for 1 turn and gains 1 Might and 1 Swiftness (no duration given: permanent, Q16).
+mirage_reward:
+  - { op: apply, to: actor, effect: untargetable, duration: { enemyTurns: 1 } }
+  - { op: apply, to: actor, effect: might }
+  - { op: apply, to: actor, effect: swiftness }

@@ -108,7 +108,7 @@ function walkOps(ops: readonly Op[], visit: (op: Op, inInline: boolean) => void,
     if (op.op === 'if') {
       walkOps(op.then, visit, inInline);
       walkOps(op.else ?? [], visit, inInline);
-    } else if (op.op === 'forEach') {
+    } else if (op.op === 'forEach' || op.op === 'repeat') {
       walkOps(op.do, visit, inInline);
     } else if (op.op === 'apply' && typeof op.effect !== 'string') {
       walkEffect(op.effect, visit);

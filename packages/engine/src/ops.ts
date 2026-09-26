@@ -189,6 +189,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (!named) throw new Error(`Unknown condition ${c.check.cond}`);
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
+  if ('isActor' in c) return select(ctx, c.isActor, sc)[0]?.id === sc.actor;
   if ('hasKind' in c) {
     const u = select(ctx, c.hasKind.unit, sc)[0];
     return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).kind === c.hasKind.kind);
@@ -259,6 +260,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const def = resolveEffectDef(ctx.c, op.effect);
       const remembered = op.remember ? select(ctx, op.remember, sc).map((u) => u.id) : [];
       const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
+      const linkedTo = op.linkTo
+        ? effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id
+        : undefined;
+      if (op.linkTo && !linkedTo) return; // the channel it belongs to isn't running
       const duration = resolveDuration(ctx, op.duration, sc);
       if (duration === null) return; // e.g. "1 turn per 15 missing health" with too little missing
       for (const t of select(ctx, op.to, sc)) {
@@ -277,6 +282,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             targets: remembered,
             until: op.until,
             boundTo,
+            linkedTo,
           });
         });
       }
@@ -294,6 +300,18 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
+      }
+      return;
+    case 'removeStacks':
+      for (const t of select(ctx, op.from, sc)) {
+        let left = op.amount;
+        for (const e of effectsOn(ctx.s, t.id)) {
+          if (left <= 0 || effectKeyOf(e) !== op.effect) continue;
+          const take = Math.min(e.stacks, left);
+          e.stacks -= take;
+          left -= take;
+          if (e.stacks <= 0) removeEffect(ctx, e, 'consumed');
+        }
       }
       return;
     case 'macro': {
@@ -364,6 +382,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'forEach':
       for (const t of select(ctx, op.in, sc)) withIt(sc, t.id, () => runOps(ctx, op.do, sc));
       return;
+    case 'repeat': {
+      const n = evalValue(ctx, op.times, sc);
+      for (let i = 0; i < n && ctx.s.phase !== 'finished'; i++) runOps(ctx, op.do, sc);
+      return;
+    }
     case 'extendSelf':
       if (sc.self && sc.self.duration !== null) sc.self.duration += op.by;
       return;

@@ -1,0 +1,11 @@
+# Unholy minions (HP from the sheet).
+
+hellhound:
+  name: Hellhound
+  hp: 35
+  skills: [hellhound_jaws]
+
+imp:
+  name: Imp
+  hp: 25
+  skills: [imp_firebolt, imp_gleeful_torment]

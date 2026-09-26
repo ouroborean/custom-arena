@@ -349,3 +349,60 @@ Content: `packages/content/data/water/`. Themes are Healing (Renew), Disruption 
 - Generic primitives: the `ignoreCounters` and `bonusStacksOnApply` modifiers; the skill-level `requires` condition; and the `adjustCooldowns` (with `exceptCurrent`), `extendEffects` and `resetCooldown {skill}` ops.
 - Also new: the `randomAlly` selector, the `totalStacks` value, and the `effectGained` trigger with an `effect` filter.
 - Counter and reflect interceptors now match by `when.harmful` (default: Harmful only) and `when.strategic`.
+
+## 16. Unholy
+
+Content: `packages/content/data/unholy/`. Themes are Kiss/Kill, Health manipulation and Debuffs. Statuses: **Horrified**, **Immortal**, **Soul Fragment** and **Lifesteal**.
+
+### 16.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Horrified** | Can't gain Buffs from any source, including itself (`immuneTo: Buff`). Existing Buffs stay. |
+| **Immortal** | Health can't be reduced below 5; HP already below 5 doesn't drop further. It uses the new `hpFloor` modifier. A direct `kill` still kills. |
+| **"Undying"** | Used by Undying Fury and Grave Step, but the sheet never defines it. **Read as Immortal.** |
+| **Soul Fragment** | A Buff that stacks by merging and is permanent (Q16). Each stack gives +5 direct damage, the same as 1 Might. Because it's a Buff, a Horrified unit can't gain fragments. |
+| **"Drain a Soul Fragment from X"** | The user gains 1 Soul Fragment; X loses nothing and needn't have any. |
+| **Consuming fragments** | Happens **before** the damage the fragments pay for, so consumed fragments no longer add Might to that hit. |
+| **Lifesteal** | The bearer heals for Health it removes from **another character**. Damage absorbed by Shield doesn't count, and neither does damage to minions or to itself. Any damage type, direct or not. It uses the new `lifesteal` modifier. |
+| **Draining allies** | Misery's drain is indirect Affliction, so Armor, Shield, Might and Weakness don't change it. Consume Lesser's and Oathbreaker Strike's ally damage are ordinary direct hits. |
+
+### 16.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Wraithwalk | Leaves a one-shot Buff: the user's next Harmful skill (not Wraithwalk itself) drains a fragment after it resolves. A countered skill doesn't use it up. |
+| Spiteful Retort | Counters Harmful skills used on the user for 1 turn, Horrifying each countered attacker for 2 turns. |
+| Undying Fury | Consumes all fragments, then deals 10 to a random enemy once per fragment (re-rolled each time), then Immortal for that many turns. With 0 fragments it does nothing. |
+| Soul Lance | Like Snipe. After the 40 lands, it drains a fragment if the target has 49 or less HP, including when the hit killed it. |
+| Soul Shackle | Sheet typo fixed (GDD §14): 1 turn, Invisible, fires once. It fires on use, so its Weakness already weakens the skill that triggered it. |
+| Hellhound | Jaws of Hell is a channel: 10 Affliction to the chosen enemy at the end of each Hellhound turn until it's interrupted, including by the Hellhound using Jaws again. |
+| Drain Soul | Checks Horrified **before** the hit. Gives 2 fragments against a Horrified target. |
+| Drain Life | Channels until interrupted, with no duration: 10 to the target and 10 healing to the user each turn. The target carries a linked **Drained** mark that ends with the channel. It uses the new `linkTo` on `apply`. If the target dies from **any** source while marked, the user gains a fragment. |
+| Blighted Dagger | Checks for 70+ HP **before** the hit. |
+| Lay Waste | Checks for any Buff **after** the hit; Shield counts. |
+| Mirage of Nightmares | Invisible. Counters both Harmful and Helpful Strategic skills. On each counter the caster gets Untargetable for 1 turn, plus 1 Might and 1 Swiftness. The Might and Swiftness have no duration given, so they're permanent (Q16). |
+| Cripple | Permanent Vulnerable, plus a permanent Weakness if the target is Horrified. It doesn't stun, despite the archetype. |
+| Grisly Spectacle | Extends **every** Horrified effect on the board by 1 turn. The user's Confusion lasts through their own next turn (`ownTurns 1`), and each use adds another instance. |
+| Consume Lesser | Targets another ally, never the user (via the new `isActor` condition). |
+| Cause Fear | Horrified only until the end of the current turn. Queued skills resolve at end of turn, so it only matters for skills queued **after** it that same turn (e.g. Cause Fear → Witchblade for 35). |
+| Soul Sickness | The mark lasts 1 turn. Any unit on the caster's side that damages the target (direct or not) gains a fragment. The caster's own opening hit doesn't count. |
+| Oathbreaker Strike | Read literally: 25 Piercing to the target, then another 10 to the target and 10 to each of the user's allies (not the user). |
+| Soulshriek | Consumes 1 fragment if the user has any. With one, it deals 30 and Horrifies for 2 turns. |
+| Misery | Drains 10 from each **other** ally. The Shield is 20 plus the Health actually drained, and permanent until depleted (no duration given). |
+| Soul Colossus | Consumes all fragments and heals 5 per fragment, then gives 2 Armor and Immortal for that many turns. With 0 fragments it does nothing. |
+
+### 16.3 Balance notes (greedy-bot simulation, 3,000 matches, seven element pools)
+
+- By character element: Poison 51.4%, Fire 51.0%, None 51.0%, Holy 49.3%, Water 49.0%, Ice 47.9%, **Unholy 46.2%**.
+- Strongest Unholy skills: Blighted Dagger (about 63%, a free-cooldown r-cost 15 with a fragment most of the time), Hellhound (about 60%), Soul Lance (about 59%).
+- Weakest: Consume Lesser (about 26%), Cause Fear (about 33%), Vampirism (about 34%), Unrelenting Horror and Misery (about 37%).
+  - These all rely on sequencing (same-turn Horrify combos) or on self-harm paying off later. The greedy bot can't evaluate either, so these numbers understate them.
+  - The bot was fixed to score damage to its own side as negative. Before that, it spammed Consume Lesser (16%).
+
+### 16.4 Engine additions for Unholy
+
+- Modifiers: `hpFloor` and `lifesteal`.
+- Ops: `repeat {times, do}` and `removeStacks {from, effect, amount}`.
+- An `isActor` condition.
+- `linkTo` on `apply`: the new effect ends when the actor's named effect ends, via cascading removal in `removeEffect`.

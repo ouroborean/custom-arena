@@ -87,6 +87,8 @@ export type Cond =
   | { check: { cond: string; unit: Selector } }
   /** The unit carries at least one effect of this kind (e.g. "targets with no Buffs"). */
   | { hasKind: { unit: Selector; kind: EffectKind } }
+  /** The selected unit is the actor (e.g. a targetFilter excluding the user). */
+  | { isActor: Selector }
   /** A numeric comparison. */
   | { compare: { value: Value; atLeast?: number; atMost?: number } }
   | { any: { in: Selector; cond: Cond } }
@@ -125,11 +127,15 @@ export type Op =
       until?: UntilSpec;
       /** End the effect when this unit leaves the board (auras granted by minions). */
       bindTo?: Selector;
+      /** End the effect when the actor's effect with this key ends (a channel's mark on its target). */
+      linkTo?: string;
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
+  /** Removes up to `amount` stacks of an effect (by key) from each selected unit. */
+  | { op: 'removeStacks'; from: Selector; effect: string; amount: number }
   /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
   | { op: 'macro'; id: string }
   /** Broadcasts a named event that effects can react to (trigger `on: signal`). */
@@ -149,6 +155,8 @@ export type Op =
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
+  /** Runs `do` `times` times (evaluated once, up front). */
+  | { op: 'repeat'; times: Value; do: Op[] }
   | { op: 'extendSelf'; by: number }
   | { op: 'setFlag'; flag: string }
   | { op: 'addStacksSelf'; amount: number }
@@ -203,7 +211,11 @@ export type ModifierSpec =
   /** Direct damage from enemies heals the bearer instead (Holy Retribution). */
   | { mod: 'healFromDirectDamage' }
   /** The bearer's skills Bypass (ignore Invulnerable and Isolated) — Ghosted. */
-  | { mod: 'grantBypass' };
+  | { mod: 'grantBypass' }
+  /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
+  | { mod: 'hpFloor'; amount: number }
+  /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */
+  | { mod: 'lifesteal' };
 
 /**
  * - skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets.
