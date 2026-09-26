@@ -5,7 +5,7 @@ import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
 import { enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
-import { canTarget, cannotUseReason, cooldownOnUse, forcedTargets, hasGrantBypass, modifiedCost } from './queries.js';
+import { canTarget, cannotUseReason, cooldownOnUse, forcedTargets, hasGrantBypass, ignoresCounters, modifiedCost } from './queries.js';
 import type { EffectInstance, QueuedAction, Unit, UnitId } from './types.js';
 
 export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason: string };
@@ -96,15 +96,36 @@ function fail(ctx: Ctx, actor: Unit, def: SkillDef, reason: string, refunded: bo
   emit(ctx, { t: 'skillFailed', actor: actor.id, skill: def.id, reason, refunded }, privateTo);
 }
 
+/** Requirement on the user ("Requires Flow"); returns a reason if it isn't met. */
+export function unmetRequirement(ctx: Ctx, actor: Unit, def: SkillDef): string | null {
+  if (!def.requires) return null;
+  const ok = evalCond(ctx, def.requires, {
+    actor: actor.id,
+    targets: [],
+    vars: {},
+    lastDamage: 0,
+    lastDamaged: [],
+    direct: true,
+    bypass: false,
+  });
+  return ok ? null : 'requirement not met';
+}
+
 function interceptorFor(
   ctx: Ctx,
   actor: Unit,
+  def: SkillDef,
   targets: UnitId[],
 ): { effect: EffectInstance; spec: TriggerSpec } | null {
+  const harmful = def.tags.includes('Harmful');
+  const strategic = def.tags.includes('Strategic');
+  // Counters catch Harmful skills unless they say otherwise (Dunk: Helpful; Riverbend: Strategic).
+  const matches = (spec: TriggerSpec) =>
+    (spec.when?.harmful ?? true) === harmful && (spec.when?.strategic === undefined || spec.when.strategic === strategic);
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-      if (spec.on === 'skillUsed' && spec.intercept && spec.when?.harmful !== false) found.push({ effect: e, spec });
+      if (spec.on === 'skillUsed' && spec.intercept && matches(spec)) found.push({ effect: e, spec });
     }
   }
   for (const tid of targets) {
@@ -112,7 +133,7 @@ function interceptorFor(
     if (!isEnemy(actor, t)) continue;
     for (const e of effectsOn(ctx.s, tid)) {
       for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-        if (spec.on === 'skillTargeted' && spec.intercept && spec.when?.harmful !== false) found.push({ effect: e, spec });
+        if (spec.on === 'skillTargeted' && spec.intercept && matches(spec)) found.push({ effect: e, spec });
       }
     }
   }
@@ -130,7 +151,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
 
   // 1. Can-act check. Failure: energy stays spent, no cooldown (Q7, R1).
   if (!actor.alive) return fail(ctx, actor, def, 'dead', false);
-  const blocked = cannotUseReason(ctx, actor, def);
+  const blocked = cannotUseReason(ctx, actor, def) ?? unmetRequirement(ctx, actor, def);
   if (blocked) return fail(ctx, actor, def, blocked, false);
 
   // Cost re-validation: if the cost rose since queueing, the skill fails and is refunded (§3.4).
@@ -197,9 +218,9 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
   flushTriggers(ctx);
   if (!actor.alive || ctx.s.phase === 'finished') return;
 
-  // 4b. Counters and reflects.
-  if (harmful && !def.tags.includes('Uncounterable')) {
-    const hit = interceptorFor(ctx, actor, targets);
+  // 4b. Counters and reflects (Uncounterable skills and Flow users ignore them).
+  if (!def.tags.includes('Uncounterable') && !ignoresCounters(ctx, actor)) {
+    const hit = interceptorFor(ctx, actor, def, targets);
     if (hit) {
       const { effect, spec } = hit;
       const reflector = unit(ctx, effect.bearer);

@@ -1,0 +1,10 @@
+# Water statuses, from "Custom Arena - Water". Renew is a base status (statuses.yaml).
+
+flow:
+  name: Flow
+  kind: Buff
+  element: Water
+  stacking: unique
+  description: The bearer's skills ignore counters and reflects.
+  modifiers:
+    - { mod: ignoreCounters }

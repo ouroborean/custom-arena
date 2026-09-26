@@ -100,10 +100,11 @@ export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
   if (typeof sel === 'string') return selectNamed(ctx, sel, sc);
   const excluded = new Set(sel.exclude ? selectNamed(ctx, sel.exclude, sc).map((u) => u.id) : []);
   const where = sel.where;
-  const pool = selectNamed(ctx, 'allEnemies', sc).filter(
+  const enemies = 'randomEnemy' in sel;
+  const pool = selectNamed(ctx, enemies ? 'allEnemies' : 'allAllies', sc).filter(
     (u) => !excluded.has(u.id) && (!where || withIt(sc, u.id, () => evalCond(ctx, where, sc))),
   );
-  return sample(ctx.s.rng, pool, sel.randomEnemy);
+  return sample(ctx.s.rng, pool, enemies ? sel.randomEnemy : sel.randomAlly);
 }
 
 // ---------------------------------------------------------------- values & conditions
@@ -137,6 +138,10 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
   }
   if ('countOf' in v) return select(ctx, v.countOf, sc).length;
+  if ('totalStacks' in v) {
+    const ids = new Set(select(ctx, v.totalStacks.in, sc).map((u) => u.id));
+    return ctx.s.effects.filter((e) => ids.has(e.bearer) && effectKeyOf(e) === v.totalStacks.effect).reduce((n, e) => n + e.stacks, 0);
+  }
   if ('missingHp' in v) {
     const u = select(ctx, v.missingHp, sc)[0];
     return u ? u.maxHp - u.hp : 0;
@@ -331,8 +336,23 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'resetCooldown': {
-      const slot = sc.slot === undefined ? undefined : actor.skills[sc.slot];
+      const slot = op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
       if (slot) slot.cooldown = 0;
+      return;
+    }
+    case 'adjustCooldowns':
+      for (const t of select(ctx, op.to, sc)) {
+        t.skills.forEach((slot, i) => {
+          if (op.exceptCurrent && t.id === actor.id && i === sc.slot) return;
+          slot.cooldown = Math.max(0, slot.cooldown + op.by);
+        });
+      }
+      return;
+    case 'extendEffects': {
+      const keys = new Set(op.effects);
+      for (const t of select(ctx, op.on, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (keys.has(effectKeyOf(e)) && e.duration !== null) e.duration += op.by;
+      }
       return;
     }
     case 'if':

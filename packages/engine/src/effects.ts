@@ -64,7 +64,13 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   }
 
   const duration = compileDuration(a.duration, source.owner, ctx.s.activePlayer);
-  const stacks = a.stacks ?? 1;
+  let stacks = a.stacks ?? 1;
+  // Surge-style bonus: the source's next application of this effect gets extra stacks.
+  const bonus = modsOn(ctx.s, ctx.c, source.id, 'bonusStacksOnApply').find(({ spec }) => spec.effect === def.id);
+  if (bonus) {
+    stacks += bonus.spec.amount;
+    removeEffect(ctx, bonus.effect, 'consumed');
+  }
   const value = a.value ?? 0;
 
   if (def.stacking === 'unique' || def.stacking === 'merge') {
@@ -93,6 +99,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
         },
         privateTo,
       );
+      enqueueEffectGained(ctx, bearer, def.id, source);
       return existing;
     }
   }
@@ -136,7 +143,18 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
 
   // A new stun interrupts any channel whose skill it now blocks (GDD §3.10).
   if ((def.modifiers ?? []).some((m) => m.mod === 'cannotUseSkills')) interruptChannels(ctx, bearer, 'stun');
+  enqueueEffectGained(ctx, bearer, def.id, source);
   return inst;
+}
+
+/** Queues `on: effectGained` triggers on the bearer's effects that watch for this effect. */
+function enqueueEffectGained(ctx: Ctx, bearer: Unit, key: string, source: Unit): void {
+  for (const e of effectsOn(ctx.s, bearer.id)) {
+    for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+      if (spec.on !== 'effectGained' || spec.effect !== key) continue;
+      ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id });
+    }
+  }
 }
 
 export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason): void {

@@ -4,7 +4,7 @@
 import { effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
 import type { ContentBundle } from './defs.js';
 import { autoAllocate, isPayable, isValidAllocation, sumCosts } from './energy.js';
-import { resolveTargets, useQueuedSkill } from './pipeline.js';
+import { resolveTargets, unmetRequirement, useQueuedSkill } from './pipeline.js';
 import { cannotUseReason, modifiedCost } from './queries.js';
 import { checkGameOver, endTurn, finish } from './turn.js';
 import { COLORS, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
@@ -36,7 +36,7 @@ export function checkQueue(ctx: Ctx, player: PlayerId, cmd: Extract<Command, { t
   if (!slot) return new CommandError('bad_slot', 'No such skill');
   const def = skillDef(ctx.c, slot.defId);
   if (slot.cooldown > 0) return new CommandError('on_cooldown', `${def.name} is on cooldown (${slot.cooldown})`);
-  const blocked = cannotUseReason(ctx, actor, def);
+  const blocked = cannotUseReason(ctx, actor, def) ?? unmetRequirement(ctx, actor, def);
   if (blocked) return new CommandError('cannot_act', `${actor.name} can't use ${def.name}: ${blocked}`);
   const tr = resolveTargets(ctx, actor, def, cmd.targets, true);
   if (!tr.ok) return new CommandError('bad_target', tr.reason);
