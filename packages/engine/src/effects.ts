@@ -3,7 +3,7 @@
 import { effectDef, effectKey, effectsOn, emit, findUnit, nextId, skillDef, type Ctx } from './ctx.js';
 import type { EffectDef, ResolvedDuration, SkillDef, UntilSpec } from './defs.js';
 import { compileDuration } from './duration.js';
-import { enqueueFor } from './ops.js';
+import { broadcastSignal, enqueueFor } from './ops.js';
 import { cannotUseReason, modsOn } from './queries.js';
 import type { EffectInstance, RemoveReason, Unit, UnitId } from './types.js';
 
@@ -36,6 +36,8 @@ export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
 export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   const { def, bearer, source } = a;
   if (!bearer.alive) return null;
+  // "Any target that attempts to become Invulnerable" (Emblem of the Blackout): heard before any block.
+  broadcastSignal(ctx, `applying:${def.id}`, source, { target: bearer });
   const hidden = def.visibility === 'hidden';
   const privateTo = hidden ? source.owner : undefined;
 
@@ -78,6 +80,13 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
       toEnemy: source.owner !== bearer.owner,
       eventDuration: duration,
     });
+    // …and so does the bearer's (Emblem of the Monsoon).
+    enqueueFor(ctx, bearer.id, 'incomingNegated', {
+      eventSource: source.id,
+      eventTarget: bearer.id,
+      effectKey: def.id,
+      effectKind: def.kind,
+    });
     return null;
   }
 
@@ -92,6 +101,8 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   const value = a.value ?? 0;
 
   if (def.stacking === 'unique' || def.stacking === 'merge') {
+    // Equipment can let a non-stacking effect stack a little (Emblem of the Inferno: Ignite).
+    const cap = def.stacking === 'unique' ? modsOn(ctx.s, ctx.c, source.id, 'stackCap').find(({ spec }) => spec.effect === def.id) : undefined;
     const merge = def.stacking === 'merge';
     const existing = effectsOn(ctx.s, bearer.id).find(
       (e) => effectKey(e) === def.id && (!merge || e.sourceOwner === source.owner),
@@ -100,6 +111,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
       existing.duration =
         existing.duration === null || duration === null ? null : Math.max(existing.duration, duration);
       existing.stacks = merge ? existing.stacks + stacks : Math.max(existing.stacks, stacks);
+      if (cap) existing.stacks = Math.min(existing.stacks + stacks, Math.max(existing.stacks, cap.spec.max));
       if (def.maxStacks !== undefined) existing.stacks = Math.min(existing.stacks, def.maxStacks);
       existing.value = Math.max(existing.value, value);
       existing.source = source.id;
@@ -118,7 +130,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
         },
         privateTo,
       );
-      enqueueEffectGained(ctx, bearer, def.id, source);
+      enqueueEffectGained(ctx, bearer, def, existing, source);
       if (!a.quiet) announceApplied(ctx, a, existing);
       return existing;
     }
@@ -174,7 +186,7 @@ export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
 
   // A new stun interrupts any channel whose skill it now blocks (GDD §3.10).
   if ((def.modifiers ?? []).some((m) => m.mod === 'cannotUseSkills')) interruptChannels(ctx, bearer, 'stun');
-  enqueueEffectGained(ctx, bearer, def.id, source);
+  enqueueEffectGained(ctx, bearer, def, inst, source);
   if (!a.quiet) announceApplied(ctx, a, inst);
   return inst;
 }
@@ -183,12 +195,21 @@ function maxHpBonus(def: EffectDef): number {
   return (def.modifiers ?? []).reduce((n, m) => (m.mod === 'maxHp' ? n + m.amount : n), 0);
 }
 
-/** Queues `on: effectGained` triggers on the bearer's effects that watch for this effect. */
-function enqueueEffectGained(ctx: Ctx, bearer: Unit, key: string, source: Unit): void {
+/**
+ * Queues `on: effectGained` triggers on the bearer's effects that watch for this effect: by key
+ * (`effect` or `when.effects`), or by `when.kind` / `when.shield`.
+ */
+function enqueueEffectGained(ctx: Ctx, bearer: Unit, def: EffectDef, inst: EffectInstance, source: Unit): void {
   for (const e of effectsOn(ctx.s, bearer.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-      if (spec.on !== 'effectGained' || (spec.effect !== key && !spec.when?.effects?.includes(key))) continue;
-      ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id });
+      if (spec.on !== 'effectGained') continue;
+      const w = spec.when;
+      const keyed = spec.effect !== undefined || w?.effects !== undefined;
+      if (keyed && spec.effect !== def.id && !w?.effects?.includes(def.id)) continue;
+      if (w?.kind && w.kind !== def.kind) continue;
+      if (w?.shield !== undefined && w.shield !== !!def.shield) continue;
+      if (!keyed && !w?.kind && w?.shield === undefined) continue; // watches nothing in particular
+      ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id, eventEffect: inst.id });
     }
   }
 }
@@ -202,6 +223,7 @@ function announceApplied(ctx: Ctx, a: ApplyArgs, inst: EffectInstance): void {
     effectKey: a.def.id,
     effectKind: a.def.kind,
     toEnemy: a.source.owner !== a.bearer.owner,
+    shield: !!a.def.shield,
   });
 }
 

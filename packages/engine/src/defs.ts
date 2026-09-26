@@ -48,6 +48,7 @@ export type NamedSelector =
   | 'lastDamaged' // units damaged by the most recent damage op
   | 'summoner' // the unit that summoned the actor (for minions)
   | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
+  | 'eventPrimary' // the first of eventTargets (the triggering skill's primary target)
   | 'allUnits' // every living unit on both sides
   | 'lastSummoned'; // the unit the most recent summon op created
 
@@ -90,10 +91,13 @@ export type Value =
   /** The amount carried by the event (healing received). */
   | { eventAmount: true }
   /** Remaining internal duration of the event's effect (0 if permanent or gone). */
-  | { eventDuration: true };
+  | { eventDuration: true }
+  /** Energy the actor's player has banked (all colors). */
+  | { energy: true };
 
 export type Cond =
-  | { has: { unit: Selector; effect: string } }
+  /** `mine`: only an instance the actor applied. */
+  | { has: { unit: Selector; effect: string; mine?: boolean } }
   /** `mine`: only effects the actor applied. */
   | { hasFromArchetype: { unit: Selector; archetype: string; mine?: boolean } }
   | { hpAtMost: { unit: Selector; value: number } }
@@ -110,8 +114,8 @@ export type Cond =
   | { isActor: Selector }
   /** The selected unit is an enemy of the actor. */
   | { isEnemy: Selector }
-  /** The unit is a minion, optionally of one of these types (minion id or tag). */
-  | { minion: { unit: Selector; types?: string[]; fromArchetypes?: string[] } }
+  /** The unit is a minion, optionally of one of these types (minion id or tag); `mine`: summoned by the actor. */
+  | { minion: { unit: Selector; types?: string[]; fromArchetypes?: string[]; mine?: boolean } }
   /** The unit carries any Shield effect with value left. */
   | { hasShield: Selector }
   /** The unit has a skill of one of these archetypes (Wind: mobility skills). */
@@ -130,6 +134,8 @@ export type Cond =
   | { channeling: Selector }
   /** The unit can't use at least some skills (Stun, Sleep, …). */
   | { stunned: Selector }
+  /** The unit has used a skill this turn. */
+  | { actedThisTurn: Selector }
   | { any: { in: Selector; cond: Cond } }
   | { all: { in: Selector; cond: Cond } }
   | { and: Cond[] }
@@ -158,7 +164,8 @@ export type Op =
       /** Ignore every damage modifier (Might, Armor, Vulnerable, …). */
       raw?: boolean;
     }
-  | { op: 'heal'; to: Selector; amount: Value }
+  /** `raw`: not changed by healing modifiers; `quiet`: fires no healing triggers. */
+  | { op: 'heal'; to: Selector; amount: Value; raw?: boolean; quiet?: boolean }
   | {
       op: 'apply';
       to: Selector;
@@ -193,6 +200,10 @@ export type Op =
   | { op: 'addMaxHp'; to: Selector; amount: number }
   /** Multiplies the value of every Shield effect on the selected units (Earth Rampart). */
   | { op: 'scaleShields'; on: Selector; factor: number }
+  /** Adds to the value of every Shield effect on the selected units. */
+  | { op: 'boostShields'; on: Selector; amount: number }
+  /** Moves a random effect of a kind from `from` to `to` (same stacks, value and time left). */
+  | { op: 'stealRandom'; from: Selector; to: Selector; kind: EffectKind; nonElemental?: boolean }
   /** Removes up to `amount` stacks of an effect (by key) from each selected unit. */
   | { op: 'removeStacks'; from: Selector; effect: string; amount: number }
   /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
@@ -231,9 +242,14 @@ export type Op =
       archetypes?: string[];
       /** Skip the skill behind the event (e.g. the Dance that was just used). */
       exceptEvent?: boolean;
+      /** Only one of the matching skills on cooldown, chosen at random. */
+      random?: boolean;
     }
-  /** Adds `by` turn-ends to the remaining duration of these effects on the selected units. */
-  | { op: 'extendEffects'; on: Selector; effects: string[]; by: number }
+  /**
+   * Adds `by` turn-ends to the remaining duration of effects on the selected units: these keys, or
+   * every effect of `kind` (minus `except`). With `onceKey`, each effect can only be extended once.
+   */
+  | { op: 'extendEffects'; on: Selector; effects?: string[]; kind?: EffectKind; except?: string[]; by: number; onceKey?: string }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
@@ -275,9 +291,19 @@ export type ModifierSpec = ModifierBase &
   (
   /**
    * Bearer is the damage source. `value` (actor = bearer, it = target) replaces `amount`; `target`
-   * limits it to matching targets; `mul` multiplies the final damage (0 = no damage).
+   * limits it to matching targets; `mul` multiplies the final damage (0 = no damage); `onePerTurn`
+   * limits it to one target each turn (the first one it applies to).
    */
-  | { mod: 'damageDealt'; amount: number; perStack?: boolean; when?: DamageWhen; value?: Value; target?: Cond; mul?: number }
+  | {
+      mod: 'damageDealt';
+      amount: number;
+      perStack?: boolean;
+      when?: DamageWhen;
+      value?: Value;
+      target?: Cond;
+      mul?: number;
+      onePerTurn?: boolean;
+    }
   /**
    * Bearer is the damage target. `armor: true` marks Armor-style reduction (disabled by Shattered).
    * `atLeast`: only against hits of at least this much (before Armor), applied first; `oncePerTurn`
@@ -296,7 +322,8 @@ export type ModifierSpec = ModifierBase &
     }
   /** +n adds r cost, −n reduces r cost only (GDD §3.4). */
   | { mod: 'costGeneric'; amount: number; perStack?: boolean }
-  | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean }
+  /** `min`: a reduction can't take the cooldown below this (a skill that starts lower stays put). */
+  | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean; min?: number }
   | { mod: 'untargetable'; by: 'enemies' | 'allies'; bypassable: boolean }
   | { mod: 'blockIndirectDamage' }
   /** Stun. `classes` limits it to Strategic / non-Strategic skills; `harmful` to Harmful (true) or Helpful (false) ones. */
@@ -349,6 +376,10 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'exposed' }
   /** Raises the bearer's max (and current) Health while the effect lasts. */
   | { mod: 'maxHp'; amount: number }
+  /** Multiplies the bearer's Armor. */
+  | { mod: 'armorMul'; mul: number }
+  /** A non-stacking effect the bearer applies can stack up to `max` (Emblem of the Inferno: Ignite). */
+  | { mod: 'stackCap'; effect: string; max: number }
   /** Adds or removes skill tags (e.g. Snipes gain Bypass and Uncounterable). */
   | { mod: 'skillTags'; add?: SkillTag[]; remove?: SkillTag[] }
   /**
@@ -387,7 +418,15 @@ export type TriggerEvent =
   /** One of this bearer's skills was countered or reflected; eventSource = the unit that stopped it. */
   | 'countered'
   /** An effect this bearer tried to apply was negated (Swiftness); eventTarget = who negated it. */
-  | 'effectNegated';
+  | 'effectNegated'
+  /** This bearer negated an effect aimed at it (its Swiftness stopped a Stun). */
+  | 'incomingNegated'
+  /** This bearer healed someone (eventTarget); eventAmount = HP restored. */
+  | 'healDone'
+  /** An effect on this bearer turned into energy (Charged at 3); `effects` filters by key. */
+  | 'energyFromEffect'
+  /** A counter or reflect was ignored because of this bearer's Flow. */
+  | 'counterIgnored';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -425,8 +464,10 @@ export interface TriggerSpec {
     toEnemy?: boolean;
     /** effectApplied: only effects of this kind. */
     kind?: EffectKind;
-    /** countered: only reflects (true) or only counters (false). */
+    /** countered / ownEffectTriggered: only reflects (true) or only counters (false). */
     reflected?: boolean;
+    /** effectGained / effectApplied: only Shield effects. */
+    shield?: boolean;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';

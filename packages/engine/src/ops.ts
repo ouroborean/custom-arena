@@ -103,6 +103,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return one(ctx, actor.summonedBy);
     case 'eventTargets':
       return (sc.eventTargets ?? []).flatMap((id) => one(ctx, id)).filter((u) => u.alive);
+    case 'eventPrimary':
+      return one(ctx, sc.eventTargets?.[0]).filter((u) => u.alive);
     case 'lastSummoned':
       return sc.lastSummoned ? one(ctx, sc.lastSummoned) : [];
     case 'allUnits':
@@ -191,6 +193,10 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('eventAmount' in v) return sc.eventAmount ?? 0;
   if ('eventDuration' in v) return ctx.s.effects.find((e) => e.id === sc.eventEffect)?.duration ?? 0;
+  if ('energy' in v) {
+    const pool = ctx.s.players[unit(ctx, sc.actor).owner].energy;
+    return COLORS.reduce((n, c) => n + pool[c], 0);
+  }
   return evalCond(ctx, v.if, sc) ? evalValue(ctx, v.then, sc) : evalValue(ctx, v.else, sc);
 }
 
@@ -202,7 +208,9 @@ function scopeSkill(ctx: Ctx, sc: Scope): SkillDef | undefined {
 export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('has' in c) {
     const u = select(ctx, c.has.unit, sc)[0];
-    return !!u && hasEffect(ctx.s, u.id, c.has.effect);
+    if (!u) return false;
+    if (!c.has.mine) return hasEffect(ctx.s, u.id, c.has.effect);
+    return effectsOn(ctx.s, u.id).some((e) => effectKeyOf(e) === c.has.effect && e.source === sc.actor);
   }
   if ('hasFromArchetype' in c) {
     const u = select(ctx, c.hasFromArchetype.unit, sc)[0];
@@ -244,6 +252,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (!u || u.kind !== 'minion') return false;
     const from = c.minion.fromArchetypes;
     if (from && !from.includes(u.summonArchetype ?? '')) return false;
+    if (c.minion.mine && u.summonedBy !== sc.actor) return false;
     const types = c.minion.types;
     return !types || types.includes(u.defId) || (ctx.c.minions[u.defId]?.tags ?? []).some((t) => types.includes(t));
   }
@@ -292,6 +301,10 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('channeling' in c) {
     const u = select(ctx, c.channeling, sc)[0];
     return !!u && effectsOn(ctx.s, u.id).some((e) => effectDef(ctx.c, e).interruptible);
+  }
+  if ('actedThisTurn' in c) {
+    const u = select(ctx, c.actedThisTurn, sc)[0];
+    return !!u && u.counters.actedTurn === ctx.s.turn;
   }
   if ('stunned' in c) {
     const u = select(ctx, c.stunned, sc)[0];
@@ -363,7 +376,9 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'heal':
-      for (const t of select(ctx, op.to, sc)) heal(ctx, actor, t, withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)));
+      for (const t of select(ctx, op.to, sc)) {
+        heal(ctx, actor, t, withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)), { raw: op.raw, quiet: op.quiet });
+      }
       return;
     case 'apply': {
       const def = resolveEffectDef(ctx.c, op.effect);
@@ -430,6 +445,35 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) e.value = Math.round(e.value * op.factor);
       }
       return;
+    case 'boostShields':
+      for (const t of select(ctx, op.on, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) e.value += op.amount;
+      }
+      return;
+    case 'stealRandom': {
+      const to = select(ctx, op.to, sc)[0];
+      if (!to) return;
+      for (const t of select(ctx, op.from, sc)) {
+        const pool = effectsOn(ctx.s, t.id).filter((e) => {
+          const d = effectDef(ctx.c, e);
+          return d.kind === op.kind && !(op.nonElemental && d.element && d.element !== 'None');
+        });
+        const e = sample(ctx.s.rng, pool, 1)[0];
+        if (!e) continue;
+        removeEffect(ctx, e, 'removed');
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: to,
+          source: actor,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+      }
+      return;
+    }
     case 'castSkill': {
       const own = op.archetype ? actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype) : undefined;
       const def = op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
@@ -560,21 +604,34 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'adjustCooldowns': {
       const by = evalValue(ctx, op.by, sc);
-      for (const t of select(ctx, op.to, sc)) {
-        t.skills.forEach((slot, i) => {
-          if (op.exceptCurrent && t.id === actor.id && i === sc.slot) return;
-          if (op.skill && slot.defId !== op.skill) return;
-          if (op.archetypes && !op.archetypes.includes(archetypeOf(ctx.c, slot.defId) ?? '')) return;
-          if (op.exceptEvent && slot.defId === sc.eventSkill) return;
-          slot.cooldown = Math.max(0, slot.cooldown + by);
-        });
-      }
+      const slots = select(ctx, op.to, sc).flatMap((t) =>
+        t.skills.filter((slot, i) => {
+          if (op.exceptCurrent && t.id === actor.id && i === sc.slot) return false;
+          if (op.skill && slot.defId !== op.skill) return false;
+          if (op.archetypes && !op.archetypes.includes(archetypeOf(ctx.c, slot.defId) ?? '')) return false;
+          if (op.exceptEvent && slot.defId === sc.eventSkill) return false;
+          return true;
+        }),
+      );
+      // "A random Charge, Dance or Maneuver": one of those still cooling down.
+      const chosen = op.random ? sample(ctx.s.rng, slots.filter((s) => s.cooldown > 0), 1) : slots;
+      for (const slot of chosen) slot.cooldown = Math.max(0, slot.cooldown + by);
       return;
     }
     case 'extendEffects': {
-      const keys = new Set(op.effects);
+      const keys = op.effects ? new Set(op.effects) : null;
+      const except = new Set(op.except ?? []);
       for (const t of select(ctx, op.on, sc)) {
-        for (const e of effectsOn(ctx.s, t.id)) if (keys.has(effectKeyOf(e)) && e.duration !== null) e.duration += op.by;
+        for (const e of effectsOn(ctx.s, t.id)) {
+          if (e.duration === null || except.has(effectKeyOf(e))) continue;
+          if (keys && !keys.has(effectKeyOf(e))) continue;
+          if (op.kind && effectDef(ctx.c, e).kind !== op.kind) continue;
+          if (op.onceKey) {
+            if (e.data[op.onceKey]) continue;
+            e.data[op.onceKey] = true;
+          }
+          e.duration += op.by;
+        }
       }
       return;
     }
@@ -677,6 +734,8 @@ function summonMinion(
   if (skill) m.summonArchetype = skill.archetype;
   ctx.s.units.push(m);
   emit(ctx, { t: 'summoned', unit: m.id, defId: def.id, by: summoner.id });
+  // Everyone can react to a new minion (Emblem of the Permafrost).
+  broadcastSignal(ctx, 'summoned', summoner, { target: m, eventSkill: skill?.id });
   // "If target enemy creates a minion" (Earth Boulder Trap): the summoner's effects react.
   for (const e of effectsOn(ctx.s, summoner.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
@@ -751,6 +810,7 @@ export interface EventInfo {
   harmful?: boolean;
   reflected?: boolean;
   eventDuration?: number | null;
+  shield?: boolean;
 }
 
 /** Queues a unit's triggers for one of the equipment-era events (ownEffect*, effectApplied, healed). */
@@ -768,6 +828,7 @@ export function enqueueFor(ctx: Ctx, unitId: UnitId, on: TriggerSpec['on'], info
       if (w?.toEnemy !== undefined && w.toEnemy !== info.toEnemy) continue;
       if (w?.harmful !== undefined && w.harmful !== info.harmful) continue;
       if (w?.reflected !== undefined && w.reflected !== !!info.reflected) continue;
+      if (w?.shield !== undefined && w.shield !== !!info.shield) continue;
       ctx.triggerQueue.push({
         effect: e.id,
         inst: e,
@@ -802,6 +863,10 @@ const PERIODIC = new Set([
   'battleStart',
   'countered',
   'effectNegated',
+  'incomingNegated',
+  'healDone',
+  'energyFromEffect',
+  'counterIgnored',
 ]);
 
 /** Runs queued triggers FIFO. Nested calls return immediately; the outermost loop drains the queue. */
@@ -862,6 +927,8 @@ export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void
         eventEffect: e.id,
         ...(p.eventSource !== undefined ? { eventSource: p.eventSource } : {}),
         counter: !!p.spec.intercept,
+        reflected: p.spec.intercept === 'reflect',
+        effectKey: effectKeyOf(e),
       });
     }
   }

@@ -278,51 +278,57 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
   if (!actor.alive || ctx.s.phase === 'finished') return;
 
   // 4b. Counters and reflects (Uncounterable skills and Flow users ignore them).
-  if (!effectiveTags(ctx, actor, def).includes('Uncounterable') && !ignoresCounters(ctx, actor)) {
-    const hit = interceptorFor(ctx, actor, def, targets);
-    if (hit) {
-      const { effect, spec } = hit;
-      const reflector = unit(ctx, effect.bearer);
-      revealEffect(ctx, effect);
-      emit(ctx, {
-        t: 'skillCountered',
+  const hit = effectiveTags(ctx, actor, def).includes('Uncounterable') ? null : interceptorFor(ctx, actor, def, targets);
+  if (hit && ignoresCounters(ctx, actor)) {
+    // Flow "triggers" (Emblem of the Tide).
+    enqueueFor(ctx, actor.id, 'counterIgnored', {
+      eventSource: hit.effect.bearer,
+      eventSkill: def.id,
+      reflected: hit.spec.intercept === 'reflect',
+    });
+    flushTriggers(ctx);
+  } else if (hit) {
+    const { effect, spec } = hit;
+    const reflector = unit(ctx, effect.bearer);
+    revealEffect(ctx, effect);
+    emit(ctx, {
+      t: 'skillCountered',
+      actor: actor.id,
+      skill: def.id,
+      by: reflector.id,
+      effect: effect.defId,
+      reflected: spec.intercept === 'reflect',
+    });
+    runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
+    // The user's equipment hears its skill was stopped; so does everyone else's (Mask of Many Faces).
+    enqueueFor(ctx, actor.id, 'countered', {
+      eventSource: reflector.id,
+      eventSkill: def.id,
+      harmful,
+      reflected: spec.intercept === 'reflect',
+    });
+    broadcastSignal(ctx, 'countered', actor, { target: reflector, eventSkill: def.id });
+    flushTriggers(ctx);
+    if (def.onCountered?.length && ctx.s.result === null) {
+      runOps(ctx, def.onCountered, {
         actor: actor.id,
-        skill: def.id,
-        by: reflector.id,
-        effect: effect.defId,
-        reflected: spec.intercept === 'reflect',
-      });
-      runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
-      // The user's equipment hears its skill was stopped; so does everyone else's (Mask of Many Faces).
-      enqueueFor(ctx, actor.id, 'countered', {
+        targets,
         eventSource: reflector.id,
-        eventSkill: def.id,
-        harmful,
-        reflected: spec.intercept === 'reflect',
+        vars: {},
+        lastDamage: 0,
+        lastDamaged: [],
+        direct: true,
+        bypass: false,
+        skill: def,
       });
-      broadcastSignal(ctx, 'countered', actor, { target: reflector, eventSkill: def.id });
       flushTriggers(ctx);
-      if (def.onCountered?.length && ctx.s.result === null) {
-        runOps(ctx, def.onCountered, {
-          actor: actor.id,
-          targets,
-          eventSource: reflector.id,
-          vars: {},
-          lastDamage: 0,
-          lastDamaged: [],
-          direct: true,
-          bypass: false,
-          skill: def,
-        });
-        flushTriggers(ctx);
-      }
-      if (spec.intercept === 'reflect' && reflector.alive && actor.alive) {
-        const aoe = def.target === 'allEnemies';
-        const reflectedTargets = aoe ? livingUnits(ctx.s, actor.owner).map((u) => u.id) : [actor.id];
-        runSkillOps(ctx, reflector, def, reflectedTargets);
-      }
-      return;
     }
+    if (spec.intercept === 'reflect' && reflector.alive && actor.alive) {
+      const aoe = def.target === 'allEnemies';
+      const reflectedTargets = aoe ? livingUnits(ctx.s, actor.owner).map((u) => u.id) : [actor.id];
+      runSkillOps(ctx, reflector, def, reflectedTargets);
+    }
+    return;
   }
 
   // 5. Execute the skill's ops.

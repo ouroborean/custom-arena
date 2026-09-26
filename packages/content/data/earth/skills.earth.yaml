@@ -564,6 +564,8 @@ seedling_channel_earth:
   ops:
     - { op: apply, to: summoner, effect: might }
     - { op: apply, to: summoner, effect: armor }
+    # Equipment (Emblem of the Mountain) listens for Channel Earth.
+    - { op: signal, name: channel_earth }
 
 stalker_rootlash:
   archetype: Minion

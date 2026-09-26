@@ -190,12 +190,16 @@ function enqueueOn(
   }
 }
 
-export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number): number {
+/** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
+export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number, opts: { raw?: boolean | undefined; quiet?: boolean | undefined } = {}): number {
   if (!target.alive || amount <= 0) return 0;
-  const healed = Math.min(modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
+  const healed = Math.min(opts.raw ? amount : modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
   target.hp += healed;
   emit(ctx, { t: 'heal', source: source.id, target: target.id, amount: healed, hp: target.hp });
-  if (healed > 0) enqueueFor(ctx, target.id, 'healed', { eventSource: source.id, eventTarget: target.id, eventAmount: healed });
+  if (healed > 0 && !opts.quiet) {
+    enqueueFor(ctx, target.id, 'healed', { eventSource: source.id, eventTarget: target.id, eventAmount: healed });
+    enqueueFor(ctx, source.id, 'healDone', { eventSource: source.id, eventTarget: target.id, eventAmount: healed });
+  }
   return healed;
 }
 

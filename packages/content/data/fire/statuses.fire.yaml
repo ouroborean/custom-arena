@@ -11,7 +11,8 @@ ignite:
   triggers:
     - on: turnEnd
       do:
-        - { op: damage, to: bearer, amount: 5, type: Affliction }
+        # Ignite only stacks with Emblem of the Inferno; each stack burns for 5.
+        - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
         - op: if
           cond: { has: { unit: actor, effect: flameborn } }
           then:

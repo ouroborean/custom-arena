@@ -116,9 +116,14 @@ export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
 
 export function cooldownOnUse(ctx: Ctx, u: Unit, def: SkillDef): number {
   let extra = 0;
-  for (const { spec, effect } of modsFor(ctx, u.id, 'cooldownOnUse', def)) extra += scaled(spec.amount, spec.perStack, effect);
+  let floor = 0;
+  for (const { spec, effect } of modsFor(ctx, u.id, 'cooldownOnUse', def)) {
+    extra += scaled(spec.amount, spec.perStack, effect);
+    // "1 less cooldown, to a minimum of 1": never below 1, but a 0-cooldown skill isn't raised.
+    if (spec.min !== undefined) floor = Math.max(floor, Math.min(spec.min, def.cooldown));
+  }
   // GDD §3.5: remaining = n + 1 (+ modifiers), decremented at the end of each owner turn incl. this one.
-  return Math.max(0, def.cooldown + extra) + 1;
+  return Math.max(floor, def.cooldown + extra) + 1;
 }
 
 // ---------------------------------------------------------------- acting & targeting
@@ -193,6 +198,7 @@ export function hasNoArmorOrShield(ctx: Ctx, target: Unit): boolean {
 /**
  * Damage bonuses from the source's modifiers. `skill` is the skill dealing the damage (archetype
  * filters), `target` feeds `target` conditions and `value` expressions; `mul` multiplies the total.
+ * Only called while dealing damage: one-target-per-turn modifiers pick their target here.
  */
 export function damageDealtBonus(
   ctx: Ctx,
@@ -208,6 +214,13 @@ export function damageDealtBonus(
     if (!damageWhenMatches(spec.when, type, direct)) continue;
     const sc = { ...bearerScope(source.id), ...(target ? { it: target.id } : {}), ...(skill ? { skill } : {}) };
     if (spec.target && (!target || !evalCond(ctx, spec.target, sc))) continue;
+    if (spec.onePerTurn) {
+      if (!target) continue;
+      if (effect.data.pickedTurn !== ctx.s.turn) {
+        effect.data.pickedTurn = ctx.s.turn;
+        effect.data.pickedUnit = target.id;
+      } else if (effect.data.pickedUnit !== target.id) continue;
+    }
     if (spec.mul !== undefined) mul *= spec.mul;
     bonus += spec.value !== undefined ? evalValue(ctx, spec.value, sc) : scaled(spec.amount, spec.perStack, effect);
   }
@@ -231,6 +244,8 @@ export function damageTakenBonus(
     if (spec.armor) armor += v;
     else other += v;
   }
+  // Emblem of the Glacier: Armor counts double.
+  for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'armorMul')) armor *= spec.mul;
   return { other, armor, mul };
 }
 
