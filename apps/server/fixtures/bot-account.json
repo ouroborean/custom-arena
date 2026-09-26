@@ -1,0 +1,6 @@
+{
+  "_comment": "Local development account used by scripts/bot-client.ts (never a real account).",
+  "email": "bot@arena.test",
+  "password": "arena-bot-pass-01",
+  "displayName": "Practice Bot"
+}

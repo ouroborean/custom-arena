@@ -13,6 +13,7 @@
     "@arena/content": "0.1.0",
     "@arena/engine": "0.1.0",
     "@arena/meta": "0.1.0",
+    "@arena/protocol": "0.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"

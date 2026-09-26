@@ -4,6 +4,7 @@ import { useStore } from './store.js';
 import { Account, Offline } from './ui/Account.js';
 import { Battle } from './ui/Battle.js';
 import { CharacterScreen } from './ui/CharacterScreen.js';
+import { History } from './ui/History.js';
 import { Home } from './ui/Home.js';
 import { Setup } from './ui/Setup.js';
 
@@ -22,5 +23,6 @@ export function App() {
   if (status === 'offline') return <Offline />;
   if (status === 'signedOut') return <Account />;
   if (screen === 'character') return <CharacterScreen />;
+  if (screen === 'history') return <History />;
   return <Home />;
 }

@@ -199,7 +199,7 @@ function CharacterPage({
             Save loadout
           </button>
         </div>
-        {saved && !dirty && <p className="banner ok">{saved}</p>}
+        {saved && !dirty && <p className="notice ok">{saved}</p>}
         {problems.length > 0 && (
           <ul className="problems" role="alert">
             {problems.map((p) => (

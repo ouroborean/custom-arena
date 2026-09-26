@@ -132,7 +132,8 @@ export type ServerMessage =
   | { t: 'match.events'; matchId: string; events: SeqEvent[]; seq: number; view: PlayerView; deadline: number | null }
   | { t: 'match.presence'; matchId: string; opponentConnected: boolean; forfeitAt: number | null }
   | { t: 'match.turnRejected'; matchId: string; reason: string }
-  | { t: 'match.end'; matchId: string; result: MatchResult; rating?: RatingChange }
+  /** `reason`: the engine's, or the server's forfeit reason (disconnect, afk). */
+  | { t: 'match.end'; matchId: string; result: MatchResult; reason: string; rating?: RatingChange }
   | { t: 'pong'; at: number; serverTime: number };
 
 /** Parses a raw client frame; returns null when it isn't a valid message. */

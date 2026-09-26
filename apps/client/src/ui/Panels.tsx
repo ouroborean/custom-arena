@@ -9,7 +9,8 @@ import {
   type PlayerView,
   type SkillAvailability,
 } from '@arena/engine';
-import { LocalMatch } from '../match/LocalMatch.js';
+import { serverNow } from '../match/online.js';
+import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
 import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, skillCategory } from './common.js';
 
@@ -274,7 +275,38 @@ function Plate({ side, name, sub, active }: { side: 'left' | 'right'; name: stri
   );
 }
 
-export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; view: PlayerView; viewer: PlayerId; myTurn: boolean }) {
+/** Seconds left until an epoch-ms server deadline, re-rendering every 250 ms. */
+function useCountdown(deadline: number | null): number | null {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (deadline === null) return;
+    const t = setInterval(() => tick((n) => n + 1), 250);
+    return () => clearInterval(t);
+  }, [deadline]);
+  return deadline === null ? null : Math.max(0, Math.ceil((deadline - serverNow()) / 1000));
+}
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+/** Turn timer and opponent presence for online matches. */
+function OnlineStatus({ info, mine }: { info: OnlineInfo; mine: boolean }) {
+  const left = useCountdown(info.deadline);
+  const forfeit = useCountdown(info.opponentConnected ? null : info.forfeitAt);
+  return (
+    <div className="online-status">
+      {left !== null && (
+        <span className={`turn-clock${left <= 10 ? ' urgent' : ''}`} title={mine ? 'Your turn ends' : "Opponent's turn ends"}>
+          {mmss(left)}
+        </span>
+      )}
+      {!info.opponentConnected && (
+        <span className="presence-warn">Opponent disconnected{forfeit !== null ? ` · forfeits in ${mmss(forfeit)}` : ''}</span>
+      )}
+    </div>
+  );
+}
+
+export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; view: PlayerView; viewer: PlayerId; myTurn: boolean }) {
   const openCommit = useStore((s) => s.openCommit);
   const commit = useStore((s) => s.commit);
   const playing = useStore((s) => s.pending.length > 0);
@@ -291,8 +323,21 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
   const total = COLORS.reduce((n, c) => n + energy[c], 0);
   const free = total - COLORS.reduce((n, c) => n + reserved[c], 0) - reserved.r;
   const mode = match.mode;
-  const nameOf = (p: PlayerId) =>
-    mode.kind === 'vsBot' ? (p === mode.human ? 'You' : `${mode.bot === 'greedy' ? 'Greedy' : 'Random'} Bot`) : mode.kind === 'watch' ? `Bot ${p + 1}` : `Player ${p + 1}`;
+  const spectate = mode.kind === 'watch' || mode.kind === 'replay';
+  const nameOf = (p: PlayerId) => {
+    switch (mode.kind) {
+      case 'vsBot':
+        return p === mode.human ? 'You' : `${mode.bot === 'greedy' ? 'Greedy' : 'Random'} Bot`;
+      case 'watch':
+        return `Bot ${p + 1}`;
+      case 'online':
+        return p === mode.you ? 'You' : mode.opponent;
+      case 'replay':
+        return p === mode.seat ? 'You' : mode.opponent;
+      default:
+        return `Player ${p + 1}`;
+    }
+  };
   const subOf = (p: PlayerId) => `${p === 0 ? 'Moves first' : 'Moves second'}${p === viewer ? '' : ' · energy hidden'}`;
   const activeSide = match.finished ? null : match.active;
 
@@ -301,7 +346,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
       <Plate side="left" name={nameOf(viewer)} sub={subOf(viewer)} active={activeSide === viewer} />
 
       <div className="control-center">
-        {mode.kind !== 'watch' && (
+        {!spectate && (
           <button
             type="button"
             className="end-turn-btn"
@@ -311,7 +356,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
             End Turn
           </button>
         )}
-        {mode.kind !== 'watch' && (
+        {!spectate && (
           <div className="energy-panel" aria-label="Your energy">
             {COLORS.map((c) => (
               <span key={c} className="energy-cell" title={{ S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' }[c]}>
@@ -325,11 +370,12 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
             </span>
           </div>
         )}
-        {mode.kind !== 'watch' && (
+        {!spectate && (
           <div className="energy-meta">
             <b>{free}</b> free of {total} · {reserved.r} random promised
           </div>
         )}
+        {mode.kind === 'online' && !match.finished && <OnlineStatus info={match as MatchSession & OnlineInfo} mine={myTurn} />}
       </div>
 
       <div className="plate right">
@@ -345,14 +391,16 @@ export function TopBar({ match, view, viewer, myTurn }: { match: LocalMatch; vie
           <button type="button" className="btn small" onClick={() => toggleLog()}>
             Log
           </button>
-          {!match.finished && mode.kind !== 'watch' && (
+          {!match.finished && !spectate && (
             <button type="button" className="btn small danger" onClick={() => confirm('Surrender this match?') && surrender()}>
               Surrender
             </button>
           )}
-          <button type="button" className="btn small" onClick={toSetup}>
-            Leave
-          </button>
+          {(mode.kind !== 'online' || match.finished) && (
+            <button type="button" className="btn small" onClick={toSetup}>
+              Leave
+            </button>
+          )}
         </div>
       </div>
     </header>

@@ -20,18 +20,15 @@ import {
   type SkillAvailability,
 } from '@arena/engine';
 
-export type BotKind = 'greedy' | 'random';
+import type { BotKind, MatchMode, MatchSession } from './session.js';
 
-export type MatchMode =
-  | { kind: 'vsBot'; bot: BotKind; human: PlayerId }
-  | { kind: 'hotseat' }
-  | { kind: 'watch'; bots: [BotKind, BotKind] };
+export type { BotKind, MatchMode } from './session.js';
 
 function makeBot(kind: BotKind, seed: number): Bot {
   return kind === 'greedy' ? greedyBot(seed) : randomBot(seed);
 }
 
-export class LocalMatch {
+export class LocalMatch implements MatchSession {
   private state: GameState;
   readonly record: MatchRecord;
   readonly initialEvents: GameEvent[];
@@ -72,6 +69,10 @@ export class LocalMatch {
 
   isHuman(p: PlayerId): boolean {
     return this.bots[p] === null;
+  }
+
+  canAct(p: PlayerId): boolean {
+    return !this.finished && this.active === p && this.isHuman(p);
   }
 
   view(p: PlayerId): PlayerView {

@@ -268,7 +268,7 @@ export class MatchRoom {
         this.o.log?.(`match ${this.id}: could not record the result`, e);
       }
       for (const p of [0, 1] as const) {
-        this.conns[p]?.send({ t: 'match.end', matchId: this.id, result, ...(ratings ? { rating: ratings[p] } : {}) });
+        this.conns[p]?.send({ t: 'match.end', matchId: this.id, result, reason, ...(ratings ? { rating: ratings[p] } : {}) });
       }
       this.o.onEnd?.(this);
     })();
