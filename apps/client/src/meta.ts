@@ -1,7 +1,7 @@
 // Account, roster and inventory state (the out-of-battle "meta" game), backed by the API server.
 
 import { create } from 'zustand';
-import { api, ApiError, type Character, type InventoryItem, type User } from './api.js';
+import { api, ApiError, type Character, type InventoryItem, type User, type Wallet } from './api.js';
 import { content } from './content.js';
 import { online } from './match/online.js';
 
@@ -14,6 +14,7 @@ interface MetaState {
   maxRoster: number;
   team: string[];
   inventory: InventoryItem[];
+  wallet: Wallet;
   /** Set when the server runs different content than this client build. */
   contentMismatch: string | null;
   busy: boolean;
@@ -28,6 +29,9 @@ interface MetaState {
   setTeam(ids: string[]): Promise<void>;
   rename(id: string, name: string): Promise<void>;
   retire(id: string): Promise<void>;
+  /** Crafts with a content recipe from these (unequipped) instances. */
+  craft(recipe: string, instanceIds: string[]): Promise<InventoryItem | null>;
+  salvage(id: string): Promise<void>;
   clearError(): void;
 }
 
@@ -54,6 +58,7 @@ export const useMeta = create<MetaState>((set, get) => {
     maxRoster: 0,
     team: [],
     inventory: [],
+    wallet: {},
     contentMismatch: null,
     busy: false,
     error: null,
@@ -93,7 +98,7 @@ export const useMeta = create<MetaState>((set, get) => {
     async signOut() {
       online.disconnect();
       await act(() => api.logout());
-      set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [] });
+      set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [], wallet: {} });
     },
 
     async refresh() {
@@ -104,6 +109,7 @@ export const useMeta = create<MetaState>((set, get) => {
           maxRoster: chars.maxRoster,
           team: team.team?.characterIds ?? [],
           inventory: inv.items,
+          wallet: inv.wallet,
         });
       });
     },
@@ -111,7 +117,7 @@ export const useMeta = create<MetaState>((set, get) => {
     async roll() {
       const r = await act(() => api.roll());
       if (!r) return null;
-      set({ characters: [...get().characters, r.character] });
+      set({ characters: [...get().characters, r.character], wallet: r.wallet });
       return r.character;
     },
 
@@ -131,6 +137,18 @@ export const useMeta = create<MetaState>((set, get) => {
         return true;
       });
       if (ok) await get().refresh();
+    },
+
+    async craft(recipe, instanceIds) {
+      const r = await act(() => api.craft(recipe, instanceIds));
+      if (!r) return null;
+      set({ inventory: [...get().inventory.filter((i) => !instanceIds.includes(i.id)), r.item], wallet: r.wallet });
+      return r.item;
+    },
+
+    async salvage(id) {
+      const r = await act(() => api.salvage(id));
+      if (r) set({ inventory: get().inventory.filter((i) => i.id !== id), wallet: r.wallet });
     },
 
     clearError() {

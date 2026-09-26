@@ -3,11 +3,11 @@
 
 import { ENGINE_VERSION, type MatchRecord, type PlayerId } from '@arena/engine';
 import { displayRating } from '@arena/meta';
-import { asc, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
-import { matchActions, matches, users } from '../db/schema.js';
+import { matchActions, matches, matchRewards, users } from '../db/schema.js';
 import { RANKED_SEASON, ratingOf } from '../match/store.js';
 
 export function matchRoutes(ctx: AppContext) {
@@ -28,6 +28,14 @@ export function matchRoutes(ctx: AppContext) {
         ? await ctx.db.select({ id: users.id, displayName: users.displayName }).from(users).where(inArray(users.id, opponentIds))
         : [];
       const nameOf = new Map(names.map((n) => [n.id, n.displayName]));
+      const ids = rows.map((m) => m.id);
+      const rewards = ids.length
+        ? await ctx.db
+            .select()
+            .from(matchRewards)
+            .where(and(eq(matchRewards.userId, me), inArray(matchRewards.matchId, ids)))
+        : [];
+      const rewardOf = new Map(rewards.map((r) => [r.matchId, { currency: r.currency, items: r.items }]));
       return {
         matches: rows.map((m) => {
           const seat: PlayerId = m.p0User === me ? 0 : 1;
@@ -45,6 +53,7 @@ export function matchRoutes(ctx: AppContext) {
             startedAt: m.startedAt,
             endedAt: m.endedAt,
             rating: m.ratingChanges?.[seat] ?? null,
+            reward: rewardOf.get(m.id) ?? null,
           };
         }),
       };

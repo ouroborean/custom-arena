@@ -10,7 +10,9 @@ export type AuditKind =
   | 'logout'
   | 'rate_limited'
   | 'ws_abuse'
-  | 'match_forfeit';
+  | 'match_forfeit'
+  | 'craft'
+  | 'salvage';
 
 export function audit(db: Db, kind: AuditKind, e: { userId?: string | null; detail?: Record<string, unknown>; ip?: string } = {}): void {
   db.insert(auditLog)

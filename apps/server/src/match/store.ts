@@ -1,10 +1,11 @@
 // Postgres persistence for match rooms: the replay log, results and Glicko-2 ratings.
 
 import { DEFAULT_RATING, rateMatch, type Rating } from '@arena/meta';
-import type { PlayerId } from '@arena/engine';
+import type { ContentBundle, PlayerId } from '@arena/engine';
 import type { MatchKind, RatingChange } from '@arena/protocol';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
+import { grantMatchRewards } from '../economy.js';
 import { matchActions, matches, ratings } from '../db/schema.js';
 import type { EndReason, RoomStore } from './room.js';
 
@@ -23,7 +24,8 @@ export async function ratingOf(db: Db, userId: string, queue: string): Promise<R
   return row ? { rating: row.rating, rd: row.rd, vol: row.vol, games: row.games, wins: row.wins } : { ...DEFAULT_RATING, games: 0, wins: 0 };
 }
 
-export function dbRoomStore(db: Db): RoomStore {
+/** Postgres-backed room persistence; `seed` feeds reward drop rolls. */
+export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number): RoomStore {
   return {
     async appendActions(matchId, actions) {
       if (actions.length === 0) return;
@@ -69,7 +71,13 @@ export function dbRoomStore(db: Db): RoomStore {
           ...(changes ? { ratingChanges: changes } : {}),
         })
         .where(eq(matches.id, matchId));
-      return changes;
+      const rewards = await grantMatchRewards(
+        db,
+        content,
+        { matchId, kind: m.kind, users: [m.p0User, m.p1User], winner: r.winner, endReason: r.endReason, turns: r.turns },
+        seed,
+      );
+      return { ratings: changes, rewards };
     },
   };
 }

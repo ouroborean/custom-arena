@@ -18,7 +18,7 @@ import {
   type PlayerView,
   type SkillAvailability,
 } from '@arena/engine';
-import { bundleFromState, type ClientMessage, type RatingChange, type ServerMessage } from '@arena/protocol';
+import { bundleFromState, type ClientMessage, type MatchReward, type RatingChange, type ServerMessage } from '@arena/protocol';
 import type { MatchMode, MatchSession, OnlineInfo } from './session.js';
 
 export interface Link {
@@ -41,6 +41,7 @@ export class RemoteMatch implements MatchSession, OnlineInfo {
   opponentConnected = true;
   forfeitAt: number | null = null;
   rating: RatingChange | null = null;
+  reward: MatchReward | null = null;
   endReason: string | null = null;
   private ended: MatchResult | null = null;
   private draftTimer: ReturnType<typeof setTimeout> | null = null;
@@ -173,6 +174,7 @@ export class RemoteMatch implements MatchSession, OnlineInfo {
         this.ended = msg.result;
         this.endReason = msg.reason;
         this.rating = msg.rating ?? null;
+        this.reward = msg.reward ?? null;
         this.deadline = null;
         this.plan = null;
         this.clearDraft();

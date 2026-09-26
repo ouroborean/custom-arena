@@ -260,7 +260,7 @@ export class MatchHub {
       ],
       timerSeconds: timer,
       clock: this.clock,
-      store: dbRoomStore(this.ctx.db),
+      store: dbRoomStore(this.ctx.db, this.ctx.content, this.ctx.rollSeed),
       onEnd: (r) => this.closeRoom(r),
       log: this.log,
     });

@@ -1,7 +1,8 @@
 # Equipment catalogue (GDD §8, appendix §15), generated from the "Structured Equipment" sheet.
 # Grants: `skills` (added if the character lacks them), `infusions` (a fixed `target` skill, or the
-# player chooses), and a `passive`. Passive effects are listed but not implemented yet (Phase 7), so
-# they are inactive in battle. Unlock conditions on the sheet are ignored (GDD §8.4).
+# player chooses), and a `passive`. Each passive is implemented by a status (`passiveEffect`, in
+# statuses.passives-*.yaml) applied to the wearer at match start; see docs/equipment.md for rulings.
+# Unlock conditions on the sheet are ignored (GDD §8.4).
 # Types: A main hand · B two-handed · C exotic · D elemental weapon · E off hand · F elemental armor ·
 # G class armor · H accessory · I perfect crystal · J gear · K shard · L misc (none yet).
 # Counts: {'A': 30, 'B': 20, 'C': 20, 'D': 30, 'E': 30, 'F': 30, 'G': 20, 'H': 20, 'I': 10, 'J': 40, 'K': 10}

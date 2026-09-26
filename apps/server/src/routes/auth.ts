@@ -10,6 +10,7 @@ import { SESSION_COOKIE, createSession, deleteSession, hashPassword, verifyPassw
 import { teams, users } from '../db/schema.js';
 import { grantStarterKit } from './equipment.js';
 import { rollForUser } from './roster.js';
+import { walletOf } from '../economy.js';
 
 const Credentials = z.object({
   email: z.email().max(254),
@@ -56,6 +57,7 @@ export function authRoutes(ctx: AppContext) {
       for (let i = 0; i < 3; i++) starters.push(await rollForUser(ctx, user.id));
       await ctx.db.insert(teams).values({ userId: user.id, name: 'Team 1', characterIds: starters.map((c) => c.id), isActive: true });
       await grantStarterKit(ctx, user.id);
+      await walletOf(ctx.db, ctx.content, user.id);
 
       await setSession(reply, user.id);
       audit(ctx.db, 'register', { userId: user.id, ip: req.ip });

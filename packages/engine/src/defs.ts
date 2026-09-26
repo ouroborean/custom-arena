@@ -592,12 +592,64 @@ export interface ItemDef {
   infusions: ItemInfusion[];
   /** Passive text from the sheet. */
   passive?: string;
-  /** Status implementing the passive; absent until the passive is implemented (Phase 7). */
+  /** Status implementing the passive (applied to the wearer at match start). */
   passiveEffect?: string;
   /** Only this class can equip it (type G class armor). */
   classId?: string;
   /** The sheet left it unnamed; the name is a placeholder. */
   placeholder?: boolean;
+}
+
+// ---------------------------------------------------------------- economy (GDD §8.4)
+// Like items, the economy never enters the engine: @arena/meta and the server read it.
+
+/** Amounts by currency id, e.g. { gold: 100 }. */
+export type CurrencyAmounts = Record<string, number>;
+
+export interface RewardSpec {
+  currency?: CurrencyAmounts;
+  /** Items rolled from a drop table. */
+  drops?: { table: string; count: number };
+}
+
+export interface ModeRewards {
+  /** Matches shorter than this many turns (both players' turns counted) earn nothing. */
+  minTurns: number;
+  win: RewardSpec;
+  /** Only for losses that were played out (not surrenders, forfeits or AFK). */
+  loss: RewardSpec;
+  draw: RewardSpec;
+}
+
+export interface DropTable {
+  /** Relative weight of each item type; the items of a type are equally likely. */
+  types: Partial<Record<ItemType, number>>;
+  /** Items that never drop from this table. */
+  exclude?: string[];
+}
+
+export interface RecipeDef {
+  id: string;
+  name: string;
+  description: string;
+  /** `count` unequipped items of this type (all of one element with `sameElement`). */
+  inputs: { type: ItemType; count: number; sameElement?: boolean };
+  /** The item of this type (of the inputs' element with `sameElement`). */
+  output: { type: ItemType };
+  cost?: CurrencyAmounts;
+}
+
+export interface EconomyDef {
+  currencies: Record<string, { name: string; start: number }>;
+  roll: { cost: CurrencyAmounts };
+  /** Rewards per match kind (casual, ranked, …); kinds without an entry earn nothing. */
+  rewards: Record<string, ModeRewards>;
+  /** Item drops per account per UTC day, all modes together (0 = no cap). */
+  dailyDropCap: number;
+  dropTables: Record<string, DropTable>;
+  recipes: Record<string, RecipeDef>;
+  /** What salvaging an item pays, by item type. */
+  salvage: Partial<Record<ItemType, CurrencyAmounts>>;
 }
 
 export interface ContentBundle {
@@ -612,6 +664,8 @@ export interface ContentBundle {
   conditions: Record<string, Cond>;
   /** Equipment catalogue. */
   items: Record<string, ItemDef>;
+  /** Currencies, rewards, drops, crafting and salvage. */
+  economy: EconomyDef;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

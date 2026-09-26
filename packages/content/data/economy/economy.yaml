@@ -1,0 +1,53 @@
+# The economy (GDD §8.4, docs/equipment.md §3): currencies, rolling, match rewards, drop tables,
+# crafting and salvage. Everything here is data; the numbers are first guesses to tune.
+
+currencies:
+  gold: { name: Gold, start: 300 }
+
+# Rolling a character (new accounts get their first 3 free).
+roll:
+  cost: { gold: 100 }
+
+# Per match kind. Private matches and local practice earn nothing. A loss only pays when it was
+# played out (not a surrender, forfeit or AFK), and nothing pays below `minTurns`.
+rewards:
+  casual:
+    minTurns: 8
+    win: { currency: { gold: 40 }, drops: { table: standard, count: 1 } }
+    loss: { currency: { gold: 15 } }
+    draw: { currency: { gold: 20 } }
+  ranked:
+    minTurns: 8
+    win: { currency: { gold: 60 }, drops: { table: standard, count: 1 } }
+    loss: { currency: { gold: 20 } }
+    draw: { currency: { gold: 30 } }
+
+# Item drops per account per UTC day; further wins still pay gold.
+dailyDropCap: 10
+
+dropTables:
+  # Perfect Crystals (I) don't drop: they're crafted from Shards.
+  standard:
+    types: { A: 8, B: 5, C: 6, D: 4, E: 8, F: 10, G: 5, H: 6, J: 18, K: 30 }
+
+recipes:
+  perfect_crystal:
+    name: Refine a Perfect Crystal
+    description: Three Shards of one element become that element's Perfect Anima Crystal.
+    inputs: { type: K, count: 3, sameElement: true }
+    output: { type: I }
+    cost: { gold: 50 }
+
+# Salvaging an unequipped item pays gold, by type.
+salvage:
+  A: { gold: 25 }
+  B: { gold: 35 }
+  C: { gold: 25 }
+  D: { gold: 40 }
+  E: { gold: 25 }
+  F: { gold: 15 }
+  G: { gold: 35 }
+  H: { gold: 35 }
+  I: { gold: 60 }
+  J: { gold: 10 }
+  K: { gold: 5 }

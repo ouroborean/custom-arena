@@ -31,6 +31,15 @@ export interface InventoryItem {
   equippedOn: string | null;
 }
 
+/** Balances by currency id (content economy). */
+export type Wallet = Record<string, number>;
+
+/** What a match paid (docs/equipment.md §3). */
+export interface Reward {
+  currency: Record<string, number>;
+  items: string[];
+}
+
 export interface Preset {
   id: string;
   name: string;
@@ -49,6 +58,7 @@ export interface MatchSummary {
   startedAt: string;
   endedAt: string | null;
   rating: { before: number; after: number } | null;
+  reward: Reward | null;
 }
 
 export interface Ratings {
@@ -94,7 +104,7 @@ export const api = {
   logout: () => call<void>('POST', '/auth/logout'),
 
   characters: () => call<{ characters: Character[]; maxRoster: number }>('GET', '/characters'),
-  roll: () => call<{ character: Character }>('POST', '/characters/roll'),
+  roll: () => call<{ character: Character; wallet: Wallet }>('POST', '/characters/roll'),
   rename: (id: string, name: string) => call<{ character: Character }>('PATCH', `/characters/${id}`, { name }),
   retire: (id: string) => call<void>('DELETE', `/characters/${id}`),
 
@@ -102,7 +112,9 @@ export const api = {
   setActiveTeam: (characterIds: string[]) => call<{ team: { characterIds: string[] } }>('PUT', '/teams/active', { characterIds }),
   teamSpecs: () => call<{ specs: CharacterSpec[] }>('GET', '/teams/active/specs'),
 
-  inventory: () => call<{ items: InventoryItem[] }>('GET', '/inventory'),
+  inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
+  craft: (recipe: string, instanceIds: string[]) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/craft', { recipe, instanceIds }),
+  salvage: (id: string) => call<{ paid: Record<string, number>; wallet: Wallet }>('POST', `/inventory/${id}/salvage`),
   saveLoadout: (id: string, loadout: Loadout) =>
     call<{ loadout: Loadout; resolved: ResolvedLoadout }>('PUT', `/characters/${id}/loadout`, { loadout }),
   presets: (id: string) => call<{ presets: Preset[] }>('GET', `/characters/${id}/presets`),

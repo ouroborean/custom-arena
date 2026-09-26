@@ -41,10 +41,9 @@ The catalogue is `packages/content/data/items/items.yaml`: **260 items** generat
 *Structured Equipment* sheet (A 30, B 20, C 20, D 30, E 30, F 30, G 20, H 20, I 10, J 40, K 10).
 Each item grants skills, infusions and/or a passive (GDD §8.1).
 
-> **Passives are catalogued but not active yet.** Their effects are Phase 7 work; an item's
-> `passiveEffect` will name the status that implements it, and the engine applies such statuses
-> permanently at match start (`CharacterSpec.passives`). Until then passives count against the
-> budget but do nothing in battle.
+> **Passives are live.** An item's `passiveEffect` names the status that implements it, and the
+> engine applies it permanently at match start (`CharacterSpec.passives`). All 120 passives (types
+> A, B, D, G, H) are implemented; the rulings for ambiguous wording are in `docs/equipment.md`.
 
 ### 2.1 Slots
 

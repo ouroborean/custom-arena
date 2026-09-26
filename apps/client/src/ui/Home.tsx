@@ -1,19 +1,22 @@
-// Home: active team, practice vs bot, roster (roll, open, pick a team), inventory summary.
+// Home: active team, practice vs bot, roster (roll, open, pick a team), wallet and inventory.
 
 import { useState } from 'react';
 import { randomConfig } from '@arena/ai';
 import type { MatchConfig } from '@arena/engine';
+import { canAfford, formatAmounts } from '@arena/meta';
 import { api, ApiError } from '../api.js';
 import { content } from '../content.js';
 import type { BotKind } from '../match/LocalMatch.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
+import { InventoryPanel } from './Inventory.js';
 import { OnlinePanel } from './OnlinePanel.js';
 import { CharacterCard, Portrait } from './Roster.js';
 
 export function Home() {
-  const { user, characters, maxRoster, team, inventory, busy, error, roll, setTeam, signOut, contentMismatch, clearError } = useMeta();
+  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, signOut, contentMismatch, clearError } = useMeta();
+  const rollCost = content.economy.roll.cost;
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
   const [picking, setPicking] = useState<string[] | null>(null);
@@ -47,6 +50,13 @@ export function Home() {
       <div className="meta-header">
         <Brand />
         <div className="account-chip">
+          <span className="wallet" aria-label="Wallet">
+            {Object.entries(content.economy.currencies).map(([id, c]) => (
+              <span key={id} className="currency">
+                <b>{wallet[id] ?? 0}</b> {c.name}
+              </span>
+            ))}
+          </span>
           <span>{user?.displayName}</span>
           <button type="button" className="btn small" onClick={() => void signOut()}>
             Sign out
@@ -151,8 +161,13 @@ export function Home() {
               </button>
             </>
           ) : (
-            <button type="button" className="btn primary" disabled={busy || characters.length >= maxRoster} onClick={() => void roll()}>
-              Roll a character
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy || characters.length >= maxRoster || !canAfford(wallet, rollCost)}
+              onClick={() => void roll()}
+            >
+              Roll a character ({formatAmounts(content, rollCost)})
             </button>
           )}
         </div>
@@ -172,27 +187,7 @@ export function Home() {
         </div>
       </section>
 
-      <section aria-label="Inventory">
-        <div className="section-head">
-          <h2>
-            Inventory <span className="muted">{inventory.length}</span>
-          </h2>
-          <span className="muted">Equip items from a character's page.</span>
-        </div>
-        <div className="inventory-list">
-          {inventory.map((i) => {
-            const def = content.items[i.itemId];
-            const on = i.equippedOn ? characters.find((c) => c.id === i.equippedOn)?.name : null;
-            return (
-              <div key={i.id} className="inv-item">
-                <span className="item-type">{def?.type}</span>
-                <span className="item-name">{def?.name ?? i.itemId}</span>
-                {on && <span className="muted">on {on}</span>}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <InventoryPanel />
     </div>
   );
 }

@@ -464,6 +464,39 @@ export const itemFileEntry = z.strictObject({
   placeholder: z.boolean().optional(),
 });
 
+const itemType = z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
+const amounts = z.record(z.string(), z.number().int().min(0));
+const rewardSpec = z.strictObject({
+  currency: amounts.optional(),
+  drops: z.strictObject({ table: z.string(), count: z.number().int().min(1) }).optional(),
+});
+
+/** The economy file(s): top-level sections merged from every economy*.yaml. */
+export const economySchema = z.strictObject({
+  currencies: z.record(z.string(), z.strictObject({ name: z.string().min(1), start: z.number().int().min(0) })),
+  roll: z.strictObject({ cost: amounts }),
+  rewards: z.record(
+    z.string(),
+    z.strictObject({ minTurns: z.number().int().min(0), win: rewardSpec, loss: rewardSpec, draw: rewardSpec }),
+  ),
+  dailyDropCap: z.number().int().min(0),
+  dropTables: z.record(
+    z.string(),
+    z.strictObject({ types: z.partialRecord(itemType, z.number().int().min(0)), exclude: z.array(z.string()).optional() }),
+  ),
+  recipes: z.record(
+    z.string(),
+    z.strictObject({
+      name: z.string().min(1),
+      description: z.string().min(1),
+      inputs: z.strictObject({ type: itemType, count: z.number().int().min(1), sameElement: z.boolean().optional() }),
+      output: z.strictObject({ type: itemType }),
+      cost: amounts.optional(),
+    }),
+  ),
+  salvage: z.partialRecord(itemType, amounts),
+});
+
 // Compile-time checks that file entries + injected id produce the engine's types.
 type Assert<T extends true> = T;
 export type _SkillOk = Assert<z.output<typeof skillFileEntry> & { id: string } extends SkillDef ? true : false>;

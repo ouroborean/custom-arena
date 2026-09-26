@@ -293,7 +293,13 @@ function CharacterPage({
                     })}
                     {def.passive && (
                       <p className="passive">
-                        <b>Passive</b> {def.passive} <span className="muted">(not active yet)</span>
+                        <b>Passive</b> {def.passive}
+                        {def.passiveEffect ? (
+                          // The implementation's own wording spells out the rulings (docs/equipment.md).
+                          <span className="muted"> — in play: {content.statuses[def.passiveEffect]?.description}</span>
+                        ) : (
+                          <span className="muted"> (not active yet)</span>
+                        )}
                       </p>
                     )}
                   </div>

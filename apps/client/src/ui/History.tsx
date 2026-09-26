@@ -1,6 +1,7 @@
 // Match history with replays (GDD Phase 5). Replays run locally from the recorded commands.
 
 import { useEffect, useState } from 'react';
+import { formatAmounts } from '@arena/meta';
 import { api, type MatchSummary } from '../api.js';
 import { content } from '../content.js';
 import { ReplaySession } from '../match/ReplaySession.js';
@@ -82,6 +83,14 @@ export function History() {
                     {m.rating.after >= m.rating.before ? '+' : ''}
                     {m.rating.after - m.rating.before}
                   </b>
+                )}
+              </span>
+              <span className="muted" role="cell">
+                {m.reward && (
+                  <>
+                    {formatAmounts(content, m.reward.currency)}
+                    {m.reward.items.map((id) => ` · ${content.items[id]?.name ?? id}`).join('')}
+                  </>
                 )}
               </span>
               <span role="cell">

@@ -12,7 +12,7 @@ import type {
   PlayerView,
   SkillAvailability,
 } from '@arena/engine';
-import type { MatchKind, RatingChange } from '@arena/protocol';
+import type { MatchKind, MatchReward, RatingChange } from '@arena/protocol';
 
 export type BotKind = 'greedy' | 'random';
 
@@ -60,6 +60,8 @@ export interface OnlineInfo {
   opponentConnected: boolean;
   forfeitAt: number | null;
   rating: RatingChange | null;
+  /** What this match paid, once it's over (online kinds with rewards). */
+  reward: MatchReward | null;
   endReason: string | null;
   /** True between submitting a turn and the server's answer. */
   awaiting: boolean;

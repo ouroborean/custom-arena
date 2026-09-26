@@ -1,14 +1,18 @@
-// Inventory, loadouts and presets (GDD §7.3, §8). Items are content ids; the database holds owned
-// instances. A loadout is validated on save (ownership, one character per instance, and the
-// @arena/meta rules) and again when the team is turned into engine specs.
+// Inventory, loadouts, presets, crafting and salvage (GDD §7.3, §8). Items are content ids; the
+// database holds owned instances. A loadout is validated on save (ownership, one character per
+// instance, and the @arena/meta rules) and again when the team is turned into engine specs.
+// Crafting and salvage only take unequipped items.
 
 import { pick, seedRng } from '@arena/engine';
-import { resolveLoadout, equippedItems, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
+import { craft, resolveLoadout, equippedItems, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
+import { audit } from '../audit.js';
+import type { Db } from '../db/client.js';
 import { characters, itemInstances, loadoutPresets } from '../db/schema.js';
+import { credit, inTransaction, spend, walletOf } from '../economy.js';
 
 type CharacterRow = typeof characters.$inferSelect;
 
@@ -73,7 +77,30 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
   return resolved;
 }
 
-/** Gives a new account a few items to try equipment with (acquisition proper is Phase 7). */
+/** Instance ids currently equipped on any of the user's characters, and on whom. */
+async function equippedOn(db: Db, userId: string): Promise<Map<string, string>> {
+  const chars = await db.select({ id: characters.id, loadout: characters.loadout }).from(characters).where(eq(characters.userId, userId));
+  const out = new Map<string, string>();
+  for (const c of chars) for (const { eq: e } of equippedItems(c.loadout)) if (e.instanceId) out.set(e.instanceId, c.id);
+  return out;
+}
+
+/** Owned, unequipped instances by id (for crafting and salvage); throws if any aren't. */
+async function spareInstances(db: Db, userId: string, ids: string[]) {
+  if (new Set(ids).size !== ids.length) throw new HttpError(400, 'Each item can only be used once');
+  const rows = ids.length
+    ? await db
+        .select()
+        .from(itemInstances)
+        .where(and(eq(itemInstances.userId, userId), inArray(itemInstances.id, ids)))
+    : [];
+  if (rows.length !== ids.length) throw new HttpError(404, "You don't own those items");
+  const equipped = await equippedOn(db, userId);
+  if (rows.some((r) => equipped.has(r.id))) throw new HttpError(409, 'Unequip those items first');
+  return rows;
+}
+
+/** Gives a new account a few items to try equipment with (drops, crafting and gold come after). */
 export async function grantStarterKit(ctx: AppContext, userId: string): Promise<void> {
   const rng = seedRng(ctx.rollSeed());
   const ofType = (t: string, filter: (skills: string[]) => boolean = () => true) =>
@@ -104,15 +131,52 @@ export function equipmentRoutes(ctx: AppContext) {
 
     app.get('/api/inventory', async (req) => {
       const userId = req.user!.id;
-      const [items, chars] = await Promise.all([
+      const [items, equipped, wallet] = await Promise.all([
         ctx.db.select().from(itemInstances).where(eq(itemInstances.userId, userId)).orderBy(itemInstances.acquiredAt),
-        ctx.db.select({ id: characters.id, loadout: characters.loadout }).from(characters).where(eq(characters.userId, userId)),
+        equippedOn(ctx.db, userId),
+        walletOf(ctx.db, ctx.content, userId),
       ]);
-      const equippedOn = new Map<string, string>();
-      for (const c of chars) for (const { eq: e } of equippedItems(c.loadout)) if (e.instanceId) equippedOn.set(e.instanceId, c.id);
       return {
-        items: items.map((i) => ({ id: i.id, itemId: i.itemId, source: i.source, acquiredAt: i.acquiredAt, equippedOn: equippedOn.get(i.id) ?? null })),
+        items: items.map((i) => ({ id: i.id, itemId: i.itemId, source: i.source, acquiredAt: i.acquiredAt, equippedOn: equipped.get(i.id) ?? null })),
+        wallet,
       };
+    });
+
+    app.get('/api/wallet', async (req) => ({ wallet: await walletOf(ctx.db, ctx.content, req.user!.id) }));
+
+    /** Crafts with a recipe from the content economy; the inputs are used up. */
+    app.post('/api/craft', async (req, reply) => {
+      const userId = req.user!.id;
+      const body = parse(z.object({ recipe: z.string(), instanceIds: z.array(z.uuid()).min(1).max(10) }), req.body);
+      const row = await inTransaction(ctx.db, async (db) => {
+        const inputs = await spareInstances(db, userId, body.instanceIds);
+        const r = craft(ctx.content, body.recipe, inputs.map((i) => i.itemId));
+        if (!r.ok) throw new HttpError(400, r.problems[0]!, { problems: r.problems });
+        await spend(db, ctx.content, userId, r.cost);
+        await db.delete(itemInstances).where(inArray(itemInstances.id, body.instanceIds));
+        const [made] = await db.insert(itemInstances).values({ userId, itemId: r.output, source: 'craft' }).returning();
+        return made!;
+      });
+      audit(ctx.db, 'craft', { userId, detail: { recipe: body.recipe, used: body.instanceIds, made: row.itemId } });
+      return reply.status(201).send({
+        item: { id: row.id, itemId: row.itemId, source: row.source, acquiredAt: row.acquiredAt, equippedOn: null },
+        wallet: await walletOf(ctx.db, ctx.content, userId),
+      });
+    });
+
+    /** Salvages an unequipped item for currency. */
+    app.post('/api/inventory/:id/salvage', async (req) => {
+      const userId = req.user!.id;
+      const { id } = parse(IdParam, req.params);
+      const paid = await inTransaction(ctx.db, async (db) => {
+        const [inst] = await spareInstances(db, userId, [id]);
+        const value = salvageValue(ctx.content, inst!.itemId);
+        await db.delete(itemInstances).where(eq(itemInstances.id, id));
+        await credit(db, ctx.content, userId, value);
+        return { itemId: inst!.itemId, value };
+      });
+      audit(ctx.db, 'salvage', { userId, detail: { instance: id, ...paid } });
+      return { paid: paid.value, wallet: await walletOf(ctx.db, ctx.content, userId) };
     });
 
     if (ctx.devGrants) {
