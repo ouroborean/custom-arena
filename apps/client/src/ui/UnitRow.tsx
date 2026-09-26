@@ -9,25 +9,23 @@ import {
   type Unit,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { CostPips, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useMediaQuery } from './common.js';
+import { CostPips, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
 
 // ---------------------------------------------------------------- shared pieces
 
 function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle }) {
-  const setInspect = useStore((s) => s.setInspect);
+  const hover = useHover({ kind: 'effect', effect: e.id });
   const def = effectDefinition(content, e);
   const name = effectName(content, e.defId);
   const key = e.inline?.id ?? e.defId;
   const hidden = def?.visibility === 'hidden' && !e.revealed;
-  const inspect = () => setInspect({ kind: 'effect', effect: e.id });
   return (
     <button
       type="button"
       className={`chip ${def?.kind ?? 'Neutral'}${hidden ? ' hidden' : ''}`}
       aria-label={`${name}${e.stacks > 1 ? ` ×${e.stacks}` : ''}${e.duration !== null ? `, ${e.duration} turn ends left` : ''}`}
-      onMouseEnter={inspect}
-      onFocus={inspect}
-      onClick={inspect}
+      {...hover}
+      onClick={hover.onFocus}
     >
       {statusCode(key, name)}
       {e.duration !== null && <span className="d">{e.duration}</span>}
@@ -38,8 +36,7 @@ function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle 
 
 /** Fixed-size status grid: extras collapse into a "+N" badge that opens the unit's details. */
 function StatusGrid({ unit, effects, limit, content }: { unit: Unit; effects: EffectInstance[]; limit: number; content: ContentBundle }) {
-  const setInspect = useStore((s) => s.setInspect);
-  const inspectUnit = () => setInspect({ kind: 'unit', unit: unit.id });
+  const hover = useHover({ kind: 'unit', unit: unit.id });
   const overflow = effects.length > limit;
   return (
     <div className="statuses box" aria-label={`${unit.name} effects`}>
@@ -51,9 +48,8 @@ function StatusGrid({ unit, effects, limit, content }: { unit: Unit; effects: Ef
           type="button"
           className="chip more"
           aria-label={`${effects.length - limit + 1} more effects`}
-          onMouseEnter={inspectUnit}
-          onFocus={inspectUnit}
-          onClick={inspectUnit}
+          {...hover}
+          onClick={hover.onFocus}
         >
           +{effects.length - limit + 1}
         </button>
@@ -84,26 +80,30 @@ function SkillTile({
   const targeting = useStore((s) => s.targeting);
   const selectSkill = useStore((s) => s.selectSkill);
   const unqueue = useStore((s) => s.unqueue);
-  const setInspect = useStore((s) => s.setInspect);
+  const hover = useHover({ kind: 'skill', unit: unit.id, slot });
   const s = unit.skills[slot]!;
   const def = content.skills[s.defId]!;
   const cost = availability?.cost ?? def.cost;
   const usable = !!availability && availability.targets.length > 0;
   const selected = targeting?.actor === unit.id && targeting.slot === slot;
   const reason = !usable && !queued ? availability?.reason : null;
-  const inspect = () => setInspect({ kind: 'skill', unit: unit.id, slot });
+  // aria-disabled (not disabled) so unavailable skills still receive hover/focus for their details card.
+  const unavailable = locked || (!usable && !queued);
 
   return (
     <div className="tile-wrap">
       <button
         type="button"
         className={`tile cat-${skillCategory(def)}${selected ? ' selected' : ''}${queued ? ' queued' : ''}`}
-        disabled={locked || (!usable && !queued)}
+        aria-disabled={unavailable}
         aria-pressed={selected || queued}
         aria-label={`${def.name}${s.cooldown > 0 ? `, cooldown ${s.cooldown}` : ''}${queued ? ', queued' : ''}${reason ? `, unavailable: ${reason}` : ''}`}
-        onMouseEnter={inspect}
-        onFocus={inspect}
-        onClick={() => (queued && queueIndex >= 0 ? unqueue(queueIndex) : selectSkill(unit.id, slot))}
+        {...hover}
+        onClick={() => {
+          if (unavailable) return;
+          if (queued && queueIndex >= 0) unqueue(queueIndex);
+          else selectSkill(unit.id, slot);
+        }}
       >
         <span className="code">{skillCode(def)}</span>
         <CostPips cost={cost} />
@@ -120,20 +120,27 @@ function SkillTile({
 
 /** An enemy's skill, shown for reading only (hover to inspect the unit). */
 function StaticTile({ unit, slot, content }: { unit: Unit; slot: number; content: ContentBundle }) {
-  const setInspect = useStore((s) => s.setInspect);
+  const hover = useHover({ kind: 'skill', unit: unit.id, slot });
   const s = unit.skills[slot]!;
   const def = content.skills[s.defId]!;
   return (
     <span className="tile-wrap">
-      <span
-        className={`tile static cat-${skillCategory(def)}`}
-        title={def.name}
-        onMouseEnter={() => setInspect({ kind: 'unit', unit: unit.id })}
-      >
+      <span className={`tile static cat-${skillCategory(def)}`} tabIndex={0} aria-label={def.name} {...hover}>
         <span className="code">{skillCode(def)}</span>
         <CostPips cost={def.cost} />
         {s.cooldown > 0 && <span className="cd">{s.cooldown}</span>}
       </span>
+    </span>
+  );
+}
+
+function EnemySkill({ unit, slot, content }: { unit: Unit; slot: number; content: ContentBundle }) {
+  const hover = useHover({ kind: 'skill', unit: unit.id, slot });
+  const s = unit.skills[slot]!;
+  return (
+    <span className="mini" tabIndex={0} {...hover}>
+      <span>{content.skills[s.defId]!.name}</span>
+      <span className="cdn">{s.cooldown > 0 ? s.cooldown : ''}</span>
     </span>
   );
 }
@@ -176,9 +183,8 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
   const allFloats = useStore((s) => s.floats);
   const removeFloat = useStore((s) => s.removeFloat);
   const chooseTarget = useStore((s) => s.chooseTarget);
-  const setInspect = useStore((s) => s.setInspect);
+  const hover = useHover({ kind: 'unit', unit: unit.id });
   const floats = allFloats.filter((f) => f.unit === unit.id);
-  const inspectUnit = () => setInspect({ kind: 'unit', unit: unit.id });
   const queuedDef = st.queued ? content.skills[unit.skills[st.queued.slot]!.defId] : undefined;
   const queuedTarget = st.queued?.targets[0] ? view.units.find((u) => u.id === st.queued!.targets[0])?.name : undefined;
 
@@ -210,8 +216,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
         style={portraitStyle(unit.defId)}
         aria-label={`Target ${unit.name}`}
         onClick={() => chooseTarget(unit.id)}
-        onMouseEnter={inspectUnit}
-        onFocus={inspectUnit}
+        {...hover}
       >
         {inner}
       </button>
@@ -224,8 +229,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
       tabIndex={0}
       role="group"
       aria-label={`${unit.name}, ${st.hp} of ${unit.maxHp} health`}
-      onMouseEnter={inspectUnit}
-      onFocus={inspectUnit}
+      {...hover}
     >
       {inner}
     </div>
@@ -265,7 +269,6 @@ export function UnitRow({
   hit: boolean;
 }) {
   const st = useUnitState(unit, view, viewer, content);
-  const setInspect = useStore((s) => s.setInspect);
   const narrow = useMediaQuery('(max-width: 900px)');
   const phone = useMediaQuery('(max-width: 600px)');
   const statusLimit = !st.mine && narrow ? 4 : phone ? 8 : 15;
@@ -299,15 +302,9 @@ export function UnitRow({
 
       {!st.mine && unit.skills.length > 0 && (
         <div className="enemy-skills" aria-label={`${unit.name} skills`}>
-          {unit.skills.map((slot, i) => {
-            const d = content.skills[slot.defId]!;
-            return (
-              <span key={i} className="mini" onMouseEnter={() => setInspect({ kind: 'unit', unit: unit.id })}>
-                <span>{d.name}</span>
-                <span className="cdn">{slot.cooldown > 0 ? slot.cooldown : ''}</span>
-              </span>
-            );
-          })}
+          {unit.skills.map((slot, i) => (
+            <EnemySkill key={i} unit={unit} slot={i} content={content} />
+          ))}
         </div>
       )}
     </div>
@@ -337,28 +334,32 @@ export function MinionSlot({
   const cls = ['slot', 'filled', st.mine ? '' : 'enemy', st.alive ? '' : 'dead', hit ? 'hit' : ''].filter(Boolean).join(' ');
   return (
     <div className={cls}>
-      <Portrait unit={unit} st={st} view={view} content={content} />
-      <Health unit={unit} st={st} />
-      <StatusGrid unit={unit} effects={st.effects} limit={4} content={content} />
-      <div className="slot-skills" aria-label={`${unit.name} skills`}>
-        {unit.skills.slice(0, MINION_SKILL_SLOTS).map((_, i) =>
-          st.mine ? (
-            <SkillTile
-              key={i}
-              unit={unit}
-              slot={i}
-              content={content}
-              availability={availability.find((a) => a.actor === unit.id && a.slot === i)}
-              queued={st.queued?.slot === i}
-              queueIndex={st.queueIndex}
-              locked={st.playing || !st.alive}
-              showName={false}
-            />
-          ) : (
-            <StaticTile key={i} unit={unit} slot={i} content={content} />
-          ),
-        )}
-        {unit.skills.length === 0 && <span className="slot-note">Acts automatically</span>}
+      <div className="slot-left">
+        <Portrait unit={unit} st={st} view={view} content={content} />
+      </div>
+      <div className="slot-right">
+        <Health unit={unit} st={st} />
+        <StatusGrid unit={unit} effects={st.effects} limit={4} content={content} />
+        <div className="slot-skills" aria-label={`${unit.name} skills`}>
+          {unit.skills.slice(0, MINION_SKILL_SLOTS).map((_, i) =>
+            st.mine ? (
+              <SkillTile
+                key={i}
+                unit={unit}
+                slot={i}
+                content={content}
+                availability={availability.find((a) => a.actor === unit.id && a.slot === i)}
+                queued={st.queued?.slot === i}
+                queueIndex={st.queueIndex}
+                locked={st.playing || !st.alive}
+                showName={false}
+              />
+            ) : (
+              <StaticTile key={i} unit={unit} slot={i} content={content} />
+            ),
+          )}
+          {unit.skills.length === 0 && <span className="slot-note">Acts automatically</span>}
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
-import { Inspector, LogDrawer, QueueTray, Stage, TopBar } from './Panels.js';
+import { HoverCard, LogDrawer, QueueTray, Stage, TargetHint, TopBar } from './Panels.js';
 import { EmptySlot, MinionSlot, UnitRow } from './UnitRow.js';
 
 /** Steps through queued events on a timer, so resolution plays out instead of snapping. */
@@ -116,11 +116,14 @@ export function Battle() {
         {roster(other)}
       </main>
 
-      <footer className="bottombar">
-        {!watch ? <QueueTray view={liveView} viewer={viewer} content={content} /> : <div />}
-        <Inspector view={view} content={content} availability={availability} />
-      </footer>
+      {!watch && (
+        <footer className="bottombar">
+          <QueueTray view={liveView} viewer={viewer} content={content} />
+        </footer>
+      )}
 
+      <HoverCard view={view} content={content} availability={availability} />
+      <TargetHint view={liveView} content={content} />
       <LogDrawer />
       {commitOpen && <CommitDialog view={liveView} viewer={viewer} content={content} />}
       <HandoffOverlay />

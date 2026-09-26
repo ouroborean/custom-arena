@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
+import { useStore, type InspectTarget } from '../store.js';
 
 export function Tooltip({ content, children, block }: { content: ReactNode; children: ReactNode; block?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -36,6 +37,17 @@ export function CostPips({ cost, large }: { cost: Cost; large?: boolean }) {
       ))}
     </span>
   );
+}
+
+/** Hover/focus handlers that pop up the details card for `target`, anchored to the element. */
+export function useHover(target: InspectTarget) {
+  const setInspect = useStore((s) => s.setInspect);
+  const show = (e: React.SyntheticEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setInspect(target, { left: r.left, top: r.top, width: r.width, height: r.height });
+  };
+  const hide = () => setInspect(null);
+  return { onMouseEnter: show, onMouseLeave: hide, onFocus: show, onBlur: hide };
 }
 
 export function useMediaQuery(query: string): boolean {

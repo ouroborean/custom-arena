@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   COLORS,
   effectDefinition,
@@ -22,28 +22,45 @@ const TARGET_TEXT: Record<string, string> = {
   none: 'No target',
 };
 
-// ---------------------------------------------------------------- inspector
+// ---------------------------------------------------------------- hover card
 
-export function Inspector({ view, content, availability }: { view: PlayerView; content: ContentBundle; availability: SkillAvailability[] }) {
+export function HoverCard({ view, content, availability }: { view: PlayerView; content: ContentBundle; availability: SkillAvailability[] }) {
   const inspect = useStore((s) => s.inspect);
-  const targeting = useStore((s) => s.targeting);
+  const anchor = useStore((s) => s.anchor);
+  const setInspect = useStore((s) => s.setInspect);
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
-  let body: React.ReactNode = (
-    <div className="muted">Hover a skill, portrait or effect to read it here. Click a skill, then a highlighted portrait to target.</div>
-  );
+  // Place the card above the hovered element (or below if there's no room), inside the viewport.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !anchor) return setPos(null);
+    const { width, height } = el.getBoundingClientRect();
+    const gap = 8;
+    const margin = 8;
+    let top = anchor.top - height - gap;
+    if (top < margin) top = anchor.top + anchor.height + gap;
+    top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
+    let left = anchor.left + anchor.width / 2 - width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
+    setPos({ left, top });
+  }, [anchor, inspect]);
 
-  if (targeting) {
-    const u = view.units.find((x) => x.id === targeting.actor);
-    const def = u ? content.skills[u.skills[targeting.slot]!.defId] : undefined;
-    body = (
-      <>
-        <h4>{def?.name}</h4>
-        <div className="hint" style={{ marginTop: 6 }}>
-          Choose a highlighted target · Esc to cancel
-        </div>
-      </>
-    );
-  } else if (inspect?.kind === 'skill') {
+  // A fixed card would drift from its element on scroll or resize, so close it instead.
+  useEffect(() => {
+    if (!anchor) return;
+    const close = () => setInspect(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [anchor, setInspect]);
+
+  let body: React.ReactNode = null;
+
+  if (inspect?.kind === 'skill') {
     const u = view.units.find((x) => x.id === inspect.unit);
     const slot = u?.skills[inspect.slot];
     const def = slot ? content.skills[slot.defId] : undefined;
@@ -140,13 +157,29 @@ export function Inspector({ view, content, availability }: { view: PlayerView; c
     }
   }
 
+  if (!body || !anchor) return null;
   return (
-    <section className="panel inspector" aria-label="Details" aria-live="polite">
-      <div className="panel-title">
-        <span>Details</span>
-      </div>
+    <div
+      ref={ref}
+      className="hovercard inspector"
+      role="tooltip"
+      style={pos ? { left: pos.left, top: pos.top } : { left: -9999, top: 0, visibility: 'hidden' }}
+    >
       {body}
-    </section>
+    </div>
+  );
+}
+
+/** Floating instruction while choosing a target; overlays the board instead of taking space. */
+export function TargetHint({ view, content }: { view: PlayerView; content: ContentBundle }) {
+  const targeting = useStore((s) => s.targeting);
+  if (!targeting) return null;
+  const u = view.units.find((x) => x.id === targeting.actor);
+  const def = u ? content.skills[u.skills[targeting.slot]!.defId] : undefined;
+  return (
+    <div className="target-hint" role="status">
+      <b>{def?.name}</b> Choose a highlighted target · Esc to cancel
+    </div>
   );
 }
 

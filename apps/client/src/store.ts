@@ -21,6 +21,14 @@ export type InspectTarget =
   | { kind: 'effect'; effect: string }
   | { kind: 'unit'; unit: string };
 
+/** Screen rectangle of the hovered element, for positioning the hover card. */
+export interface Anchor {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export interface CommitPlan {
   queueOrder?: number[];
   tickOrder?: string[];
@@ -48,6 +56,7 @@ interface StoreState {
   toast: string | null;
   nextId: number;
   inspect: InspectTarget | null;
+  anchor: Anchor | null;
   logOpen: boolean;
 
   newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode): void;
@@ -69,7 +78,7 @@ interface StoreState {
   setSpeed(s: Speed): void;
   acceptHandoff(): void;
   dismissToast(): void;
-  setInspect(t: InspectTarget | null): void;
+  setInspect(t: InspectTarget | null, anchor?: Anchor | null): void;
   toggleLog(open?: boolean): void;
 }
 
@@ -136,6 +145,7 @@ export const useStore = create<StoreState>((set, get) => {
     toast: null,
     nextId: 1,
     inspect: null,
+    anchor: null,
     logOpen: false,
 
     newMatch(content, config, mode) {
@@ -155,6 +165,7 @@ export const useStore = create<StoreState>((set, get) => {
         handoff: null,
         toast: null,
         inspect: null,
+        anchor: null,
         version: get().version + 1,
       });
       publish(match.initialEvents, null);
@@ -300,8 +311,8 @@ export const useStore = create<StoreState>((set, get) => {
       set({ toast: null });
     },
 
-    setInspect(inspect) {
-      set({ inspect });
+    setInspect(inspect, anchor = null) {
+      set({ inspect, anchor: inspect ? anchor : null });
     },
 
     toggleLog(open) {

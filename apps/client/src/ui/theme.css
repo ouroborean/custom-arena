@@ -871,7 +871,7 @@ button.portrait.targetable {
   bottom: 4px;
 }
 
-.tile:hover:not(:disabled) {
+.tile:hover:not([aria-disabled='true']) {
   border-color: var(--text);
   transform: translate(-1px, -1px);
 }
@@ -899,9 +899,10 @@ button.portrait.targetable {
   padding: 1px 3px;
 }
 
-.tile:disabled {
+.tile[aria-disabled='true'] {
   opacity: 0.35;
   box-shadow: none;
+  cursor: not-allowed;
 }
 
 .tile .cd {
@@ -988,14 +989,11 @@ button.portrait.targetable {
   /* Take the roster's width without contributing to it, so filling a slot never resizes the column. */
   width: 0;
   min-width: 100%;
+  container-type: inline-size;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 4px;
-}
-
-.roster.enemy .bench {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .slot {
@@ -1033,11 +1031,42 @@ button.portrait.targetable {
   filter: grayscale(1);
 }
 
+.slot-left {
+  flex: none;
+}
+
+.slot-right {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
 .slot .portrait {
   aspect-ratio: auto;
   height: 48px;
-  flex: none;
   box-shadow: none;
+}
+
+/* Wide benches: portrait on the left, stats and skills on the right. */
+@container (min-width: 400px) {
+  .slot {
+    --slot-h: 112px;
+    flex-direction: row;
+    gap: 8px;
+  }
+  .slot-left {
+    width: 72px;
+  }
+  .slot-right {
+    flex: 1;
+  }
+  .slot .portrait {
+    height: 72px;
+  }
+  .slot .portrait .mono {
+    font-size: 24px;
+  }
 }
 
 .slot .portrait .mono {
@@ -1194,7 +1223,7 @@ button.portrait.targetable {
 
 .bottombar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 0 16px 16px;
   align-items: stretch;
@@ -1210,8 +1239,48 @@ button.portrait.targetable {
 
 /* Bottom panels have a fixed height and scroll inside, so changing content never moves the page. */
 .bottombar > .panel {
-  height: 168px;
+  height: 104px;
   overflow-y: auto;
+}
+
+/* ------------------------------------------------------------ hover card & target hint (float, never take space) */
+
+.hovercard {
+  position: fixed;
+  z-index: 95;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  background: var(--void);
+  border: 2px solid var(--text);
+  border-top: 4px solid var(--red);
+  box-shadow: 6px 6px 0 #000;
+  padding: 10px 12px;
+  pointer-events: none;
+}
+
+.target-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 80;
+  max-width: calc(100vw - 32px);
+  background: var(--yellow);
+  color: var(--void);
+  border: 2px solid #000;
+  box-shadow: var(--shadow);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+.target-hint b {
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin-right: 8px;
 }
 
 .panel-title {
@@ -1877,15 +1946,13 @@ select:focus {
   .roster.enemy .enemy-skills {
     display: none;
   }
-  .roster.enemy .bench {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
   .bench {
     --slot-h: 150px;
     --slot-tile: 32px;
   }
   .roster.enemy .portrait {
-    aspect-ratio: 16 / 10;
+    aspect-ratio: auto;
+    height: 64px;
   }
   .roster.enemy .portrait .mono {
     font-size: 28px;
@@ -1915,7 +1982,7 @@ select:focus {
     grid-template-columns: 1fr;
   }
   .bottombar > .panel {
-    height: 132px;
+    height: 104px;
   }
   .teams {
     grid-template-columns: 1fr;
