@@ -4,7 +4,7 @@ import { MAX_SKILLS, seedRng, type CharacterSpec, type MatchConfig } from '@aren
 import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
-import { CostPips, Tooltip } from './common.js';
+import { classCode, CostPips, portraitStyle, Tooltip } from './common.js';
 
 type ModeKind = MatchMode['kind'];
 
@@ -23,52 +23,57 @@ function CharacterEditor({ spec, onChange, onReroll }: { spec: CharacterSpec; on
   };
   return (
     <div className="char-editor">
-      <div className="top">
-        <input type="text" aria-label="Character name" value={spec.name} onChange={(e) => onChange({ ...spec, name: e.target.value })} />
-        <select
-          aria-label="Class"
-          value={spec.classId}
-          onChange={(e) => {
-            const c = content.classes[e.target.value]!;
-            onChange({ ...spec, classId: c.id, skills: [...c.signatures] });
-          }}
-        >
-          {Object.values(content.classes).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="btn small" onClick={onReroll} aria-label="Randomize character">
-          ⟳
-        </button>
+      <div className="portrait" style={portraitStyle(spec.classId ?? '')} aria-hidden>
+        <span className="mono">{classCode(spec.classId ?? '')}</span>
       </div>
-      <div className="pool" role="group" aria-label={`Skills (${spec.skills.length}/${MAX_SKILLS})`}>
-        {pool.map((id) => {
-          const d = content.skills[id]!;
-          const sig = cls?.signatures.includes(id);
-          return (
-            <Tooltip
-              key={id}
-              content={
-                <>
-                  <h4>
-                    {d.name} {sig ? '· signature' : '· affinity'}
-                  </h4>
-                  <div>{d.description}</div>
-                  <div className="row">
-                    <CostPips cost={d.cost} /> · cooldown {d.cooldown}
-                  </div>
-                </>
-              }
-            >
-              <button type="button" aria-pressed={spec.skills.includes(id)} onClick={() => toggle(id)}>
-                {sig && <span className="star">★</span>}
-                {d.name}
-              </button>
-            </Tooltip>
-          );
-        })}
+      <div className="body">
+        <div className="top">
+          <input type="text" aria-label="Character name" value={spec.name} onChange={(e) => onChange({ ...spec, name: e.target.value })} />
+          <select
+            aria-label="Class"
+            value={spec.classId}
+            onChange={(e) => {
+              const c = content.classes[e.target.value]!;
+              onChange({ ...spec, classId: c.id, skills: [...c.signatures] });
+            }}
+          >
+            {Object.values(content.classes).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn small" onClick={onReroll} aria-label="Randomize character">
+            ⟳
+          </button>
+        </div>
+        <div className="pool" role="group" aria-label={`Skills (${spec.skills.length}/${MAX_SKILLS})`}>
+          {pool.map((id) => {
+            const d = content.skills[id]!;
+            const sig = cls?.signatures.includes(id);
+            return (
+              <Tooltip
+                key={id}
+                content={
+                  <>
+                    <h4>
+                      {d.name} {sig ? '· signature' : '· affinity'}
+                    </h4>
+                    <div>{d.description}</div>
+                    <div className="row">
+                      <CostPips cost={d.cost} /> · cooldown {d.cooldown}
+                    </div>
+                  </>
+                }
+              >
+                <button type="button" aria-pressed={spec.skills.includes(id)} onClick={() => toggle(id)}>
+                  {sig && <span className="star">★</span>}
+                  {d.name}
+                </button>
+              </Tooltip>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -112,8 +117,10 @@ export function Setup() {
   return (
     <div className="setup">
       <div className="hero">
-        <h1>Custom Arena</h1>
-        <span className="muted">
+        <h1>
+          Custom <span>Arena</span>
+        </h1>
+        <span className="muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 12, fontWeight: 700 }}>
           Battle prototype · {Object.keys(content.skills).length} skills · content {content.version.slice(0, 8)}
         </span>
       </div>
@@ -175,7 +182,7 @@ export function Setup() {
           Random teams
         </button>
         <span style={{ flex: 1 }} />
-        <button type="button" className="btn primary" style={{ padding: '10px 22px', fontSize: 15 }} onClick={start}>
+        <button type="button" className="end-turn-btn" onClick={start}>
           Start match
         </button>
       </section>
@@ -185,7 +192,7 @@ export function Setup() {
           <section className="team-editor" key={p} aria-label={sideName(p)}>
             <div className="side-label">
               <span>{sideName(p)}</span>
-              <span style={{ textTransform: 'none', letterSpacing: 0 }}>★ signature skill · 1–{MAX_SKILLS} skills each</span>
+              <span className="note">★ signature skill · 1–{MAX_SKILLS} skills each</span>
             </div>
             {config.teams[p].map((c, i) => (
               <CharacterEditor key={i} spec={c} onChange={(n) => updateChar(p, i, n)} onReroll={() => rerollChar(p, i)} />

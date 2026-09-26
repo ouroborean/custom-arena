@@ -43,7 +43,7 @@ export function GameOverOverlay() {
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="over-title">
       <div className="dialog" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <div className="banner" id="over-title">
+        <div className={`banner${r.winner === null ? '' : vsBot ? (r.winner === viewer ? ' win' : ' lose') : ' win'}`} id="over-title">
           {headline}
         </div>
         <p className="muted">

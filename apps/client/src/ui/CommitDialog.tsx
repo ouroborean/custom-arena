@@ -12,7 +12,7 @@ import {
   type PlayerView,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { describeAction } from './Dock.js';
+import { describeAction } from './common.js';
 import { ReorderList } from './ReorderList.js';
 
 const COLOR_NAMES = { S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' } as const;
@@ -51,7 +51,10 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
 
         <section>
           <h3>Resolution order</h3>
-          <ReorderList items={order} keyOf={(x) => x.q.actor} render={(x) => describeAction(x.q, view, content)} onChange={setOrder} />
+          <ReorderList items={order} keyOf={(x) => x.q.actor} render={(x) => {
+              const d = describeAction(x.q, view, content);
+              return `${d.skill} — ${d.line}`;
+            }} onChange={setOrder} />
         </section>
 
         {ticks.length > 1 && (

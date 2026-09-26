@@ -15,6 +15,12 @@ export interface Targeting {
   options: string[][];
 }
 
+/** What the inspector panel is describing (last hovered / focused thing). */
+export type InspectTarget =
+  | { kind: 'skill'; unit: string; slot: number }
+  | { kind: 'effect'; effect: string }
+  | { kind: 'unit'; unit: string };
+
 export interface CommitPlan {
   queueOrder?: number[];
   tickOrder?: string[];
@@ -41,6 +47,8 @@ interface StoreState {
   handoff: PlayerId | null;
   toast: string | null;
   nextId: number;
+  inspect: InspectTarget | null;
+  logOpen: boolean;
 
   newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode): void;
   rematch(): void;
@@ -61,6 +69,8 @@ interface StoreState {
   setSpeed(s: Speed): void;
   acceptHandoff(): void;
   dismissToast(): void;
+  setInspect(t: InspectTarget | null): void;
+  toggleLog(open?: boolean): void;
 }
 
 function initialViewer(mode: MatchMode): PlayerId {
@@ -125,6 +135,8 @@ export const useStore = create<StoreState>((set, get) => {
     handoff: null,
     toast: null,
     nextId: 1,
+    inspect: null,
+    logOpen: false,
 
     newMatch(content, config, mode) {
       const match = new LocalMatch(content, config, mode);
@@ -142,6 +154,7 @@ export const useStore = create<StoreState>((set, get) => {
         commitOpen: false,
         handoff: null,
         toast: null,
+        inspect: null,
         version: get().version + 1,
       });
       publish(match.initialEvents, null);
@@ -285,6 +298,14 @@ export const useStore = create<StoreState>((set, get) => {
 
     dismissToast() {
       set({ toast: null });
+    },
+
+    setInspect(inspect) {
+      set({ inspect });
+    },
+
+    toggleLog(open) {
+      set({ logOpen: open ?? !get().logOpen });
     },
   };
 });
