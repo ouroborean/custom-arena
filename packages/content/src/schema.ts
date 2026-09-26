@@ -4,6 +4,7 @@
 import {
   parseCost,
   type ClassDef,
+  type ItemDef,
   type Cond,
   type Cost,
   type DurationSpec,
@@ -325,8 +326,20 @@ export const classFileEntry = z.strictObject({
   affinity: z.array(z.string()).length(3),
 });
 
+export const itemFileEntry = z.strictObject({
+  name: z.string().min(1),
+  type: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']),
+  skills: z.array(z.string()).max(2).default([]),
+  infusions: z.array(z.strictObject({ element: z.string(), target: z.string().optional() })).max(2).default([]),
+  passive: z.string().optional(),
+  passiveEffect: z.string().optional(),
+  classId: z.string().optional(),
+  placeholder: z.boolean().optional(),
+});
+
 // Compile-time checks that file entries + injected id produce the engine's types.
 type Assert<T extends true> = T;
 export type _SkillOk = Assert<z.output<typeof skillFileEntry> & { id: string } extends SkillDef ? true : false>;
 export type _MinionOk = Assert<z.output<typeof minionFileEntry> & { id: string } extends MinionDef ? true : false>;
 export type _ClassOk = Assert<z.output<typeof classFileEntry> & { id: string } extends ClassDef ? true : false>;
+export type _ItemOk = Assert<z.output<typeof itemFileEntry> & { id: string } extends ItemDef ? true : false>;

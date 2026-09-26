@@ -13,18 +13,68 @@ export interface RarityDef {
   defaultInfusions: [number, number];
   /** Accessory-style equipment slots (GDD §8.3). */
   equipmentSlots: number;
-  /** Free infusion sockets the player can fill with crystals. */
+  /** Free infusion sockets the player can fill with crystals and shards (types I, K). */
   freeSockets: number;
+  /**
+   * Most equipment-granted skills, passives and infusions the character can use at once (GDD §8.2:
+   * "3 skills 2 passives 4 element" for a fully kitted character, scaled down by rarity).
+   */
+  budget: { skills: number; passives: number; infusions: number };
 }
 
 export const RARITY_ORDER: readonly RarityId[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
 export const RARITIES: Record<RarityId, RarityDef> = {
-  common: { id: 'common', name: 'Common', weight: 50, nativeSkills: 3, defaultInfusions: [1, 1], equipmentSlots: 2, freeSockets: 1 },
-  uncommon: { id: 'uncommon', name: 'Uncommon', weight: 28, nativeSkills: 3, defaultInfusions: [1, 2], equipmentSlots: 3, freeSockets: 1 },
-  rare: { id: 'rare', name: 'Rare', weight: 14, nativeSkills: 4, defaultInfusions: [1, 2], equipmentSlots: 3, freeSockets: 2 },
-  epic: { id: 'epic', name: 'Epic', weight: 6, nativeSkills: 4, defaultInfusions: [2, 3], equipmentSlots: 4, freeSockets: 2 },
-  legendary: { id: 'legendary', name: 'Legendary', weight: 2, nativeSkills: 5, defaultInfusions: [2, 3], equipmentSlots: 5, freeSockets: 3 },
+  common: {
+    id: 'common',
+    name: 'Common',
+    weight: 50,
+    nativeSkills: 3,
+    defaultInfusions: [1, 1],
+    equipmentSlots: 2,
+    freeSockets: 1,
+    budget: { skills: 1, passives: 1, infusions: 2 },
+  },
+  uncommon: {
+    id: 'uncommon',
+    name: 'Uncommon',
+    weight: 28,
+    nativeSkills: 3,
+    defaultInfusions: [1, 2],
+    equipmentSlots: 3,
+    freeSockets: 1,
+    budget: { skills: 2, passives: 1, infusions: 2 },
+  },
+  rare: {
+    id: 'rare',
+    name: 'Rare',
+    weight: 14,
+    nativeSkills: 4,
+    defaultInfusions: [1, 2],
+    equipmentSlots: 3,
+    freeSockets: 2,
+    budget: { skills: 2, passives: 2, infusions: 3 },
+  },
+  epic: {
+    id: 'epic',
+    name: 'Epic',
+    weight: 6,
+    nativeSkills: 4,
+    defaultInfusions: [2, 3],
+    equipmentSlots: 4,
+    freeSockets: 2,
+    budget: { skills: 3, passives: 2, infusions: 3 },
+  },
+  legendary: {
+    id: 'legendary',
+    name: 'Legendary',
+    weight: 2,
+    nativeSkills: 5,
+    defaultInfusions: [2, 3],
+    equipmentSlots: 5,
+    freeSockets: 3,
+    budget: { skills: 3, passives: 2, infusions: 4 },
+  },
 };
 
 /**

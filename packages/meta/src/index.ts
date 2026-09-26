@@ -4,4 +4,5 @@
 export * from './rarity.js';
 export * from './character.js';
 export * from './generate.js';
+export * from './loadout.js';
 export { generateName } from './names.js';

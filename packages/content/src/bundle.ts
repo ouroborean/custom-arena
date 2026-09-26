@@ -1,9 +1,20 @@
 // Turns raw parsed content files into a validated ContentBundle. Pure (no filesystem), so it can
 // also run in the browser or at server boot.
 
-import { scripts, variantId, type ClassDef, type Cond, type ContentBundle, type EffectDef, type MinionDef, type Op, type SkillDef } from '@arena/engine';
+import {
+  scripts,
+  variantId,
+  type ClassDef,
+  type Cond,
+  type ContentBundle,
+  type EffectDef,
+  type ItemDef,
+  type MinionDef,
+  type Op,
+  type SkillDef,
+} from '@arena/engine';
 import { z } from 'zod';
-import { classFileEntry, conditionFileEntry, effectDefSchema, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
+import { classFileEntry, conditionFileEntry, effectDefSchema, itemFileEntry, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
 
 export interface RawContent {
   skills: Record<string, unknown>;
@@ -12,6 +23,7 @@ export interface RawContent {
   classes: Record<string, unknown>;
   macros: Record<string, unknown>;
   conditions: Record<string, unknown>;
+  items: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -94,8 +106,10 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     else for (const iss of r.error.issues) issues.push({ level: 'error', where: `conditions.${id}.${iss.path.join('.')}`, message: iss.message });
   }
 
-  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions }));
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions };
+  const items = parseEntries('items', raw.items ?? {}, itemFileEntry, issues) as Record<string, ItemDef>;
+
+  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions, items }));
+  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions, items };
   issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle));
   return { bundle, issues };
 }
@@ -156,6 +170,19 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
         if (!b.statuses[p]) err(`minions.${m.id}`, `unknown status "${p}"`);
       } else walkEffect(p, (op) => checkOps(`minions.${m.id}`, [op]));
     }
+  }
+
+  // Items: granted and targeted skills are base skills, elements exist, classes exist.
+  const elements = new Set(Object.values(b.skills).map((s) => s.element));
+  for (const it of Object.values(b.items)) {
+    const where = `items.${it.id}`;
+    for (const sk of it.skills) if (b.skills[sk]?.element !== 'None') err(where, `"${sk}" isn't a base skill`);
+    for (const inf of it.infusions) {
+      if (!elements.has(inf.element) || inf.element === 'None') err(where, `unknown element "${inf.element}"`);
+      if (inf.target && b.skills[inf.target]?.element !== 'None') err(where, `infusion target "${inf.target}" isn't a base skill`);
+    }
+    if (it.classId && !b.classes[it.classId]) err(where, `unknown class "${it.classId}"`);
+    if (it.passiveEffect && !b.statuses[it.passiveEffect]) err(where, `unknown passive effect "${it.passiveEffect}"`);
   }
 
   // Classes: skills exist, and each skill is a signature once and an affinity once (GDD §6.2).

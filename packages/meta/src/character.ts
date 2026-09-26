@@ -29,13 +29,17 @@ export function skillDefId(s: CharacterSkill): string {
   return s.infusion ? variantId(s.base, s.infusion) : s.base;
 }
 
-/** Engine input for a character (equipment passives join this in the equipment slice). */
-export function toCharacterSpec(record: CharacterRecord): CharacterSpec {
+/**
+ * Engine input for a character. Pass the resolved loadout to include equipment skills, infusions
+ * and passives; without it, only the native skills are used.
+ */
+export function toCharacterSpec(record: CharacterRecord, loadout?: { skills: CharacterSkill[]; passiveEffects: string[] }): CharacterSpec {
   return {
     name: record.name,
     classId: record.classId,
     element: record.element,
-    skills: record.skills.map(skillDefId),
+    skills: (loadout?.skills ?? record.skills).map(skillDefId),
+    ...(loadout?.passiveEffects.length ? { passives: loadout.passiveEffects } : {}),
   };
 }
 
