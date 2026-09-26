@@ -12,6 +12,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Archetype** | One of the 30 base skill slots (Strike … Titan). Elemental variants keep their archetype, so "your Strike skills" matches Torch Strike too. |
 | **Buff / Debuff** | Effect kinds. Immune blocks Debuffs. |
 | **Bypass** | Ignores Invulnerable and Isolated. |
+| **Blinded** | Shadow: the primary target of the bearer's single-target skills is chosen at random among legal targets. |
 | **Channeled** | An ongoing skill effect on its user. It ends if the user is stunned (for that skill's class), dies, or uses another skill. |
 | **Charge / Charged** | Lightning: stacks of Charged, max 3. At 3, the owner generates 1 extra energy on their next turn and the Charge is spent. "Charged" means at least 1. |
 | **Chilled** | Ice: skill costs can't be reduced. |
@@ -53,8 +54,10 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Rushing** | Wind: 1 Swiftness and 1 Focus each turn if missing. Ends after a turn in which the bearer used no skill. |
 | **Sapped** | Lightning: max 3 stacks. At 3, the owner generates 1 less energy on their next turn and Sapped is removed. |
 | **Shattered** | Gets no benefit from Armor or Shield. |
+| **Sleep** | Stunned (2 turns when applied by skills), ending when the bearer takes damage. Holy's Chastise is the same status. |
 | **Soul Fragment** | Unholy: a permanent stacking Buff; each stack is 1 Might. Consumed by several Unholy skills. |
 | **Stormborn** | Lightning: gains 1 Charge whenever it deals or receives damage. |
+| **Stealth / Stealthy** | Shadow: Stealth makes the bearer untargetable by enemies for 2 turns; a non-Stealthy skill ends it, a Stealthy one extends it by 1 turn. |
 | **Strategic** | Skill class for skills that aren't explicitly directly damaging. Tagged per skill. Some stuns only affect Strategic or non-Strategic skills. |
 | **Stunned** | Can't use skills (optionally only Strategic or only non-Strategic ones). |
 | **Taunted** | Enemy single-target skills must target the taunter. |

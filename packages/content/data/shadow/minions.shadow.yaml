@@ -1,0 +1,16 @@
+# Shadow minions (HP from the sheet).
+
+spirit_raven:
+  name: Spirit Raven
+  hp: 30
+  skills: [raven_fel_swoop, raven_blackwing]
+
+shade:
+  name: Shade
+  hp: 15
+  skills: [shade_shadow_choke]
+
+shadow_mockery:
+  name: Shadow Mockery
+  hp: 5
+  skills: []

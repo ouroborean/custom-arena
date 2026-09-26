@@ -36,6 +36,7 @@ export interface Scope {
   vars: Record<string, number | boolean>;
   lastDamage: number;
   lastDamaged: UnitId[];
+  lastSummoned?: UnitId;
   /** Default for damage ops: true for a skill's own ops, false for triggers and ticks. */
   direct: boolean;
   bypass: boolean;
@@ -91,6 +92,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return one(ctx, actor.summonedBy);
     case 'eventTargets':
       return (sc.eventTargets ?? []).flatMap((id) => one(ctx, id)).filter((u) => u.alive);
+    case 'lastSummoned':
+      return sc.lastSummoned ? one(ctx, sc.lastSummoned) : [];
     case 'allUnits':
       return ctx.s.units.filter((u) => u.alive);
   }
@@ -257,6 +260,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           direct: op.direct ?? sc.direct,
           bypass: op.bypass ?? sc.bypass,
           ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
+          ...(op.wakes === false ? { wakes: false } : {}),
         });
         sc.lastDamage += dealt;
         if (dealt > 0) sc.lastDamaged.push(t.id);
@@ -270,6 +274,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const def = resolveEffectDef(ctx.c, op.effect);
       const remembered = op.remember ? select(ctx, op.remember, sc).map((u) => u.id) : [];
       const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
+      const src = op.from ? select(ctx, op.from, sc)[0] : actor;
+      if (!src) return; // e.g. the minion it should come from wasn't summoned
       const linkedTo = op.linkTo
         ? effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id
         : undefined;
@@ -284,7 +290,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             def,
             inline: typeof op.effect !== 'string',
             bearer: t,
-            source: actor,
+            source: src,
             sourceSkill: sc.skill,
             stacks,
             value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
@@ -301,7 +307,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'summon': {
       const duration = resolveDuration(ctx, op.duration, sc);
       if (duration === null) return;
-      for (let i = 0; i < (op.count ?? 1); i++) summonMinion(ctx, actor, op.minion, duration, sc.skill);
+      for (let i = 0; i < (op.count ?? 1); i++) {
+        const m = summonMinion(ctx, actor, op.minion, duration, sc.skill);
+        if (m) sc.lastSummoned = m.id;
+      }
       return;
     }
     case 'kill':
@@ -443,13 +452,13 @@ function summonMinion(
   minionId: string,
   duration: ResolvedDuration | undefined,
   skill: SkillDef | undefined,
-): void {
+): Unit | undefined {
   const def = ctx.c.minions[minionId];
   if (!def) throw new Error(`Unknown minion ${minionId}`);
   const living = ctx.s.units.filter((u) => u.alive && u.owner === summoner.owner && u.kind === 'minion').length;
   if (living >= ctx.s.settings.minionCap) {
     emit(ctx, { t: 'effectBlocked', defId: minionId, bearer: summoner.id, reason: 'minion cap reached' });
-    return;
+    return undefined;
   }
   const m: Unit = {
     id: nextId(ctx, 'm'),
@@ -484,6 +493,7 @@ function summonMinion(
       skill,
     });
   }
+  return m;
 }
 
 /** Queues `on: signal` triggers on every effect on the board that listens for `name`. */

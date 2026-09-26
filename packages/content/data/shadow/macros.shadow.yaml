@@ -1,0 +1,7 @@
+# Reusable Shadow actions.
+
+# "`it` gains Stealth" (2 turns). Any older Stealth is replaced, so a skill that isn't Stealthy can
+# grant a fresh Stealth that its own use doesn't break. Use inside forEach.
+gain_stealth:
+  - { op: removeEffect, from: it, effect: stealth }
+  - { op: apply, to: it, effect: stealth, duration: { enemyTurns: 2 } }

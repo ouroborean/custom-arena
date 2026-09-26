@@ -65,6 +65,7 @@ const namedSelector = z.enum([
   'summoner',
   'eventTargets',
   'allUnits',
+  'lastSummoned',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -154,6 +155,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('healFromDirectDamage') }),
   z.strictObject({ mod: z.literal('hpFloor'), amount: z.number().int() }),
   z.strictObject({ mod: z.literal('lifesteal') }),
+  z.strictObject({ mod: z.literal('nextSkillStealthy') }),
+  z.strictObject({ mod: z.literal('randomPrimaryTarget') }),
   z.strictObject({ mod: z.literal('grantBypass') }),
 ]) as z.ZodType<ModifierSpec>;
 
@@ -167,6 +170,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       direct: z.boolean().optional(),
       bypass: z.boolean().optional(),
       respectsInvulnerable: z.boolean().optional(),
+      wakes: z.boolean().optional(),
     }),
     z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({
@@ -182,6 +186,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
         .optional(),
       bindTo: selectorSchema.optional(),
       linkTo: z.string().optional(),
+      from: selectorSchema.optional(),
     }),
     z.strictObject({
       op: z.literal('summon'),
@@ -232,6 +237,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         side: z.enum(['ally', 'enemy']).optional(),
         fromSide: z.enum(['ally', 'enemy']).optional(),
         strategic: z.boolean().optional(),
+        wakes: z.boolean().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
@@ -249,6 +255,7 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     description: z.string().optional(),
     stacking: z.enum(['independent', 'unique', 'merge']).optional(),
     maxStacks: z.number().int().min(1).optional(),
+    stealth: z.boolean().optional(),
     visibility: z.enum(['public', 'hidden', 'hiddenTarget']).optional(),
     shield: z.boolean().optional(),
     interruptible: z.boolean().optional(),

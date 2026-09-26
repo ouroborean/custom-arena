@@ -45,7 +45,8 @@ export type NamedSelector =
   | 'lastDamaged' // units damaged by the most recent damage op
   | 'summoner' // the unit that summoned the actor (for minions)
   | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
-  | 'allUnits'; // every living unit on both sides
+  | 'allUnits' // every living unit on both sides
+  | 'lastSummoned'; // the unit the most recent summon op created
 
 export type Selector =
   | NamedSelector
@@ -116,6 +117,8 @@ export type Op =
       bypass?: boolean;
       /** This damage never hits Invulnerable targets, even if it's Affliction (Fire Explode, Q14). */
       respectsInvulnerable?: boolean;
+      /** `false`: doesn't end Sleep (Shadow Dream Seeker). Damage wakes by default. */
+      wakes?: boolean;
     }
   | { op: 'heal'; to: Selector; amount: Value }
   | {
@@ -133,6 +136,8 @@ export type Op =
       bindTo?: Selector;
       /** End the effect when the actor's effect with this key ends (a channel's mark on its target). */
       linkTo?: string;
+      /** Apply as if from this unit instead of the actor (a taunt "by that minion"). */
+      from?: Selector;
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
@@ -223,7 +228,11 @@ export type ModifierSpec =
   /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
   | { mod: 'hpFloor'; amount: number }
   /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */
-  | { mod: 'lifesteal' };
+  | { mod: 'lifesteal' }
+  /** The bearer's next skill counts as Stealthy (Shadow Long Shadow); apply with `until`. */
+  | { mod: 'nextSkillStealthy' }
+  /** The primary target of the bearer's single-target skills is chosen at random (Blinded). */
+  | { mod: 'randomPrimaryTarget' };
 
 /**
  * - skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets.
@@ -261,6 +270,8 @@ export interface TriggerSpec {
     side?: 'ally' | 'enemy';
     fromSide?: 'ally' | 'enemy';
     strategic?: boolean;
+    /** For damaged: `true` ignores damage that doesn't wake (`wakes: false`). */
+    wakes?: boolean;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
@@ -285,6 +296,11 @@ export interface EffectDef {
   stacking?: 'independent' | 'unique' | 'merge';
   /** Stacks on one instance never exceed this (Charged and Sapped: 3). */
   maxStacks?: number;
+  /**
+   * Shadow Stealth: ends after the bearer uses a skill that isn't Stealthy (whether it resolves or
+   * is countered); a Stealthy skill extends it by one turn instead.
+   */
+  stealth?: boolean;
   /** hidden: invisible to the opponent of the applier. hiddenTarget: visible, but its remembered targets aren't. */
   visibility?: 'public' | 'hidden' | 'hiddenTarget';
   /** Damage-absorbing pool stored in the instance's value. */

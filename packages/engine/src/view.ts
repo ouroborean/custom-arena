@@ -41,5 +41,9 @@ export function viewFor(content: ContentBundle, state: GameState, viewer: Player
 export function redactEvents(events: readonly GameEvent[], viewer: PlayerId): GameEvent[] {
   return events
     .filter((e) => e.visibleTo === undefined || e.visibleTo === viewer)
-    .map((e) => (e.t === 'skillUsed' && e.secretFrom === viewer ? { ...e, targets: [] } : e));
+    .map((e) => {
+      if (e.t !== 'skillUsed') return e;
+      if (e.stealthFrom === viewer) return { ...e, actor: '', skill: '', targets: [] };
+      return e.secretFrom === viewer ? { ...e, targets: [] } : e;
+    });
 }

@@ -27,6 +27,8 @@ export interface DamageArgs {
   bypass: boolean;
   /** Per-effect exception: this damage never hits Invulnerable targets (Fire Explode, Q14). */
   respectsInvulnerable?: boolean;
+  /** `false`: doesn't end Sleep. */
+  wakes?: boolean;
 }
 
 /** Returns the damage actually dealt (absorbed by Shield + lost HP). */
@@ -118,7 +120,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     if (modsOn(ctx.s, ctx.c, source.id, 'lifesteal').length > 0) heal(ctx, source, source, remaining);
   }
 
-  enqueueDamagedTriggers(ctx, source, target, a.direct);
+  enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true);
   for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct);
   if (source !== target) {
     for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct);
@@ -127,10 +129,11 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   return amount;
 }
 
-function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean): void {
+function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean, wakes: boolean): void {
   for (const e of effectsOn(ctx.s, target.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
       if (spec.on !== 'damaged') continue;
+      if (spec.when?.wakes && !wakes) continue;
       if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
       if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
       if (spec.when?.fromSide) {
