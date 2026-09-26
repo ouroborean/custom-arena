@@ -1,7 +1,7 @@
 // Equipment loadouts (GDD §7.3, §8): slot layout, skill/infusion/passive grants, budgets, and
 // resolution into the character's effective skill list. Validated on save and again at match start.
 
-import { variantId, type ContentBundle, type ItemDef, type ItemType } from '@arena/engine';
+import { nextInt, sample, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
 import type { CharacterRecord, CharacterSkill } from './character.js';
 import { MAX_SKILLS, RARITIES } from './rarity.js';
 
@@ -155,4 +155,78 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
   if (usage.infusions > b.infusions) problems.push(`${usage.infusions} equipment infusions; ${rarity.name} characters can use ${b.infusions}`);
 
   return { skills, passiveItems, passiveEffects, usage, problems };
+}
+
+/**
+ * A random loadout the resolver accepts (balance simulations, bots): slots are filled in a random
+ * order, each with a random fitting item that keeps the loadout valid; chosen infusions go to
+ * random eligible skills. Slots may stay empty when nothing fits the budget.
+ */
+export function randomLoadout(content: ContentBundle, record: CharacterRecord, rng: RngState, triesPerSlot = 8): Loadout {
+  const rarity = RARITIES[record.rarity];
+  const byType = (types: readonly ItemType[]) =>
+    Object.values(content.items)
+      .filter((i) => types.includes(i.type) && (!i.classId || i.classId === record.classId))
+      .sort((a, b) => (a.id < b.id ? -1 : 1));
+  type Slot = 'weapon' | 'offHand' | 'body' | 'accessory' | 'socket';
+  const slots: Slot[] = sample(
+    rng,
+    ['weapon', 'offHand', 'body', ...Array<Slot>(rarity.equipmentSlots).fill('accessory'), ...Array<Slot>(rarity.freeSockets).fill('socket')],
+    3 + rarity.equipmentSlots + rarity.freeSockets,
+  );
+  let loadout: Loadout = {};
+  for (const slot of slots) {
+    for (let t = 0; t < triesPerSlot; t++) {
+      const twoHanded = slot === 'weapon' && nextInt(rng, 3) === 0;
+      if (slot === 'offHand' && loadout.twoHanded) break;
+      const pool = byType(
+        slot === 'weapon' ? SLOT_TYPES[twoHanded ? 'twoHanded' : 'mainHand'] : slot === 'offHand' ? SLOT_TYPES.offHand : SLOT_TYPES[slot],
+      );
+      const def = pool[nextInt(rng, pool.length)];
+      if (!def) break;
+      const eq = equipWithTargets(content, record, loadout, def, rng);
+      const next: Loadout =
+        slot === 'weapon'
+          ? twoHanded
+            ? { ...withoutHands(loadout), twoHanded: eq }
+            : { ...loadout, mainHand: eq }
+          : slot === 'offHand'
+            ? { ...loadout, offHand: eq }
+            : slot === 'body'
+              ? { ...loadout, body: eq }
+              : slot === 'accessory'
+                ? { ...loadout, accessories: [...(loadout.accessories ?? []), eq] }
+                : { ...loadout, sockets: [...(loadout.sockets ?? []), eq] };
+      if (slot === 'weapon' && twoHanded && (loadout.mainHand || loadout.offHand)) continue;
+      if (resolveLoadout(content, record, next).problems.length === 0) {
+        loadout = next;
+        break;
+      }
+    }
+  }
+  return loadout;
+}
+
+function withoutHands(l: Loadout): Loadout {
+  const { mainHand: _m, offHand: _o, ...rest } = l;
+  return rest;
+}
+
+/** The item, with its player-chosen infusions aimed at random skills that can take them. */
+function equipWithTargets(content: ContentBundle, record: CharacterRecord, current: Loadout, def: ItemDef, rng: RngState): EquippedItem {
+  if (def.infusions.every((inf) => inf.target)) return { itemId: def.id };
+  const now = resolveLoadout(content, record, current).skills;
+  const bases = [...new Set([...now.map((s) => s.base), ...def.skills])];
+  const taken = new Set<string>();
+  const targets = def.infusions.map((inf) => {
+    if (inf.target) return null;
+    const ok = bases.filter((b) => {
+      const s = now.find((x) => x.base === b);
+      return !taken.has(b) && !s?.locked && !s?.infusion && !!content.skills[variantId(b, inf.element)];
+    });
+    const pick = ok[nextInt(rng, Math.max(1, ok.length))] ?? null;
+    if (pick) taken.add(pick);
+    return pick;
+  });
+  return { itemId: def.id, targets };
 }

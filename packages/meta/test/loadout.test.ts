@@ -115,3 +115,22 @@ describe('resolveLoadout', () => {
     expect(state.units[0]!.skills.map((s) => s.defId)).toEqual(spec.skills);
   });
 });
+
+describe('randomLoadout', () => {
+  it('builds loadouts the resolver accepts, usually with equipment', async () => {
+    const { rollCharacter, randomLoadout } = await import('../src/index.js');
+    const { seedRng } = await import('@arena/engine');
+    let equipped = 0;
+    for (let s = 1; s <= 60; s++) {
+      const rng = seedRng(s);
+      const { character } = rollCharacter(content, rng);
+      const loadout = randomLoadout(content, character, rng);
+      const r = resolveLoadout(content, character, loadout);
+      expect(r.problems).toEqual([]);
+      if (Object.keys(loadout).length > 0) equipped++;
+      // The team spec is valid engine input.
+      createMatch(content, { seed: s, teams: [[toCharacterSpec(character, r)], [toCharacterSpec(character, r)]] });
+    }
+    expect(equipped).toBeGreaterThan(50);
+  });
+});

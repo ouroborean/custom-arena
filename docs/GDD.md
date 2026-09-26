@@ -1028,7 +1028,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 - Tutorial (step-scripted using engine hooks: "force this hand", "highlight this skill").
 - Story chapters, rewards, and the achievement/unlock predicate system (§8.4).
 
-### Phase 7: Equipment content and economy (3–4 weeks)
+### Phase 7: Equipment content and economy (3–4 weeks) — in progress: all 120 item passives, gold, match rewards, drop tables, crafting, salvage, equipment-aware simulator ✅ (2026-09-26); tuning deferred; see docs/equipment.md
 - Implement equipment types A–L passives (they reuse the effect runtime), drop tables, crafting (shards → crystals), and currencies.
 - Balance simulator including equipment. Tune.
 
