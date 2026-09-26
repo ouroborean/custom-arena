@@ -1,0 +1,577 @@
+# The 30 Holy variants, from "Custom Arena - Holy". Ids are "<base>.holy".
+# Themes: Healing, Anointment benefits, Penalties (Sanctify, Condemn).
+# Durations: "for N turns" = enemyTurns N; "until the end of <their/user's> next turn" = ownTurns 1;
+# unstated = permanent (Q16).
+
+strike.holy:
+  archetype: Strike
+  element: Holy
+  name: Righteous Blow
+  description: Deals 20 damage to target enemy. If the user is Anointed, deals an additional 10 damage and heals the user for 10.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: actor, effect: anointed } }, then: 30, else: 20 } }
+    - { op: if, cond: { has: { unit: actor, effect: anointed } }, then: [{ op: heal, to: actor, amount: 10 }] }
+
+smash.holy:
+  archetype: Smash
+  element: Holy
+  name: Divine Storm
+  description: Deals 20 damage to target enemy and 10 damage to their allies. Heals the user for 5 health per target hit.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: set, var: hits, value: { countOf: lastDamaged } }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: heal, to: actor, amount: { mul: [5, { sum: [{ var: hits }, { countOf: lastDamaged }] }] } }
+
+charge.holy:
+  archetype: Charge
+  element: Holy
+  name: Zealous Rush
+  description: Deals 15 damage to target enemy, and the user's next Harmful skill Sanctifies its targets for 1 turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      until: { skillUsed: { harmful: true } }
+      effect:
+        id: zealous_rush
+        name: Zealous Rush
+        kind: Buff
+        element: Holy
+        description: The bearer's next Harmful skill Sanctifies its targets for 1 turn.
+        triggers:
+          - on: skillResolved
+            when: { harmful: true }
+            do:
+              - { op: apply, to: eventTargets, effect: sanctify, duration: { enemyTurns: 1 } }
+
+riposte.holy:
+  archetype: Riposte
+  element: Holy
+  name: Retribution
+  description: For 1 turn, any Harmful skill received by the user will heal instead of damage.
+  cost: G
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: retribution
+        name: Retribution
+        kind: Buff
+        element: Holy
+        description: Direct damage from enemies heals the bearer instead.
+        modifiers:
+          - { mod: healFromDirectDamage }
+
+rage.holy:
+  archetype: Rage
+  element: Holy
+  name: Divine Fury
+  description: The user becomes Anointed for the next 3 turns.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: anointed, duration: { enemyTurns: 3 } }
+
+shot.holy:
+  archetype: Shot
+  element: Holy
+  name: Sunbeam
+  description: Deals 15 damage to target enemy. Consumes Anointed on the user to heal them for 15.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - { op: removeEffect, from: actor, effect: anointed }
+        - { op: heal, to: actor, amount: 15 }
+
+snipe.holy:
+  archetype: Snipe
+  element: Holy
+  name: Spear of Light
+  description: The user deals 50 damage to target enemy on the following turn. The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spear_of_light
+        name: Spear of Light (aiming)
+        kind: Neutral
+        element: Holy
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50 }
+
+trap.holy:
+  archetype: Trap
+  element: Holy
+  name: Decree
+  description: Target enemy is Condemned for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: condemned, duration: { enemyTurns: 2 } }
+
+maneuver.holy:
+  archetype: Maneuver
+  element: Holy
+  name: Cloister
+  description: The user gains Immune for 1 turn. If they are Anointed, this skill also grants Invulnerable.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then: [{ op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }]
+
+companion.holy:
+  archetype: Companion
+  element: Holy
+  name: Sacred Lion
+  description: >-
+    Summons a Sacred Lion minion (45 HP). Sanctified Roar: 10 damage to all enemies and Sanctifies
+    them. Claws of the Church: 15 damage, 10 more against Sanctified enemies.
+  cost: SG
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sacred_lion }
+
+bolt.holy:
+  archetype: Bolt
+  element: Holy
+  name: Rebuke
+  description: Deals 20 damage to target enemy and Sanctifies them for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+
+blast.holy:
+  archetype: Blast
+  element: Holy
+  name: Holy Nova
+  description: Deals 25 Piercing damage to all enemies. If the user is Anointed, this skill strikes again at the start of the user's next turn.
+  cost: IW
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25, type: Piercing }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - op: apply
+          to: actor
+          duration: { ownTurns: 1 }
+          effect:
+            id: holy_nova
+            name: Holy Nova (lingering)
+            kind: Neutral
+            element: Holy
+            description: Deals 25 Piercing damage to all enemies at the start of the user's next turn.
+            triggers:
+              - on: turnStart
+                consume: true
+                do:
+                  - { op: damage, to: allEnemies, amount: 25, type: Piercing, direct: true }
+
+consume.holy:
+  archetype: Consume
+  element: Holy
+  name: Ascension
+  description: Deals 5 damage to target enemy. If that enemy is affected by Sanctify, the user is permanently Anointed.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: if, cond: { has: { unit: primary, effect: sanctify } }, then: [{ op: apply, to: actor, effect: anointed }] }
+
+summon.holy:
+  archetype: Summon
+  element: Holy
+  name: Divine Blessing
+  description: >-
+    Summons a Divine Blessing minion (10 HP) for 3 turns. Blessing from Above (W): Anoints target
+    ally, then the Divine Blessing dies.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: divine_blessing, duration: { enemyTurns: 3 } }
+
+channel.holy:
+  archetype: Channel
+  element: Holy
+  name: Consecration
+  description: >-
+    At the end of each of the user's turns, deals 10 damage to a random enemy not affected by
+    Sanctify and Sanctifies them. Channeled.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      effect:
+        id: consecration
+        name: Consecration
+        kind: Neutral
+        element: Holy
+        interruptible: true
+        description: Each end of the user's turn, 10 damage to a random un-Sanctified enemy and Sanctifies them. Lasts until interrupted.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: damage
+                to: { randomEnemy: 1, where: { not: { has: { unit: it, effect: sanctify } } } }
+                amount: 10
+              - { op: apply, to: lastDamaged, effect: sanctify }
+
+stab.holy:
+  archetype: Stab
+  element: Holy
+  name: Piercing Light
+  description: >-
+    Deals 10 damage to target enemy. If the target is Condemned or Sanctified, this skill deals an
+    additional 10 damage. If the user is Anointed, the bonus always applies.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if:
+          or:
+            - { has: { unit: actor, effect: anointed } }
+            - { has: { unit: it, effect: condemned } }
+            - { has: { unit: it, effect: sanctify } }
+        then: 20
+        else: 10
+
+ravage.holy:
+  archetype: Ravage
+  element: Holy
+  name: Crusade
+  description: Deals 20 Piercing damage to target enemy. If the target is above 75 health, they are Condemned.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: healthy, value: { if: { hpAbove: { unit: primary, value: 75 } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 20, type: Piercing }
+    - { op: if, cond: { varTrue: healthy }, then: [{ op: apply, to: primary, effect: condemned }] }
+
+mislead.holy:
+  archetype: Mislead
+  element: Holy
+  name: Martyrdom
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, all targets of that skill will be
+    permanently Anointed, if not already. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: martyrdom
+        name: Martyrdom
+        kind: Debuff
+        element: Holy
+        visibility: hidden
+        description: When the bearer uses a Harmful skill, its targets are permanently Anointed.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: eventTargets, effect: anointed }
+
+stun.holy:
+  archetype: Stun
+  element: Holy
+  name: Repentance
+  description: Target Condemned enemy is Stunned for 1 turn.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  targetFilter: { has: { unit: it, effect: condemned } }
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.holy:
+  archetype: Dance
+  element: Holy
+  name: Angel's Grace
+  description: For 3 turns, the user is Invulnerable, Immune, and Ghosted.
+  cost: WW
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 3 } }
+
+heal.holy:
+  archetype: Heal
+  element: Holy
+  name: Hand of Light
+  description: Heals target ally for 50.
+  cost: Wr
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 50 }
+
+bless.holy:
+  archetype: Bless
+  element: Holy
+  name: Holy Favor
+  description: Target ally is Anointed until the end of their next turn.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: anointed, duration: { ownTurns: 1 } }
+
+curse.holy:
+  archetype: Curse
+  element: Holy
+  name: Mark of Heresy
+  description: Target enemy is Condemned and Sanctified until the end of the user's next turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: condemned, duration: { ownTurns: 1 } }
+    - { op: apply, to: primary, effect: sanctify, duration: { ownTurns: 1 } }
+
+smite.holy:
+  archetype: Smite
+  element: Holy
+  name: Karmic Marking
+  description: Deals 15 damage to target enemy. If the user is Anointed, the target is Sanctified for 2 turns.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then: [{ op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }]
+
+prayer.holy:
+  archetype: Prayer
+  element: Holy
+  name: Saving Grace
+  description: >-
+    Heals allies for 10 health and grants them 10 Shield. If the user is Anointed, this repeats at
+    the start of the user's next two turns.
+  cost: WS
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 10 }
+    - { op: apply, to: targets, effect: shield, value: 10 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - op: apply
+          to: actor
+          duration: { ownTurns: 2 }
+          effect:
+            id: saving_grace
+            name: Saving Grace (lingering)
+            kind: Buff
+            element: Holy
+            description: At the start of the user's turn, heals all allies 10 and grants them 10 Shield.
+            triggers:
+              - on: turnStart
+                do:
+                  - { op: heal, to: allAllies, amount: 10 }
+                  - { op: apply, to: allAllies, effect: shield, value: 10 }
+
+cleave.holy:
+  archetype: Cleave
+  element: Holy
+  name: Guardian Strike
+  description: >-
+    Deals 10 damage to target enemy and an additional random enemy. If a Sanctified target is
+    struck by this skill, all allies are healed for 5 health.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: holyHit, value: { if: { has: { unit: primary, effect: sanctify } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 10 }
+    - op: if
+      cond:
+        or:
+          - { varTrue: holyHit }
+          - { any: { in: lastDamaged, cond: { has: { unit: it, effect: sanctify } } } }
+      then: [{ op: heal, to: allAllies, amount: 5 }]
+
+shout.holy:
+  archetype: Shout
+  element: Holy
+  name: Excoriate
+  description: All Sanctified enemies are Condemned for 1 turn. This skill Bypasses.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic, Bypass]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: if, cond: { has: { unit: it, effect: sanctify } }, then: [{ op: apply, to: it, effect: condemned, duration: { enemyTurns: 1 } }] }
+
+withstand.holy:
+  archetype: Withstand
+  element: Holy
+  name: Shield of Faith
+  description: The user gains 20 Shield. If they are Anointed, they also gain Immune for 2 turns.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 20 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then: [{ op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }]
+
+taunt.holy:
+  archetype: Taunt
+  element: Holy
+  name: Gleam
+  description: Target enemy is Taunted and Condemned until they use a new Harmful skill.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, until: { skillUsed: { harmful: true } } }
+    - { op: apply, to: primary, effect: condemned }
+
+titan.holy:
+  archetype: Titan
+  element: Holy
+  name: Grand Crusader
+  description: >-
+    Deals 10 damage to all enemies. For each Sanctified or Condemned enemy hit, the user gains 1
+    Might and 1 Armor for 3 turns.
+  cost: Wr
+  cooldown: 4
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+    - op: forEach
+      in: lastDamaged
+      do:
+        - op: if
+          cond: { or: [{ has: { unit: it, effect: sanctify } }, { has: { unit: it, effect: condemned } }] }
+          then:
+            - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+            - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 3 } }
+
+# ---------------------------------------------------------------- minion skills
+
+lion_roar:
+  archetype: Minion
+  element: Holy
+  name: Sanctified Roar
+  description: Deals 10 damage to all enemies and afflicts them with Sanctify.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+    - { op: apply, to: targets, effect: sanctify }
+
+lion_claws:
+  archetype: Minion
+  element: Holy
+  name: Claws of the Church
+  description: Deals 15 damage to target enemy, 10 more to enemies affected by Sanctify.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: it, effect: sanctify } }, then: 25, else: 15 } }
+
+blessing_from_above:
+  archetype: Minion
+  element: Holy
+  name: Blessing from Above
+  description: Anoints target ally. The Divine Blessing then dies.
+  cost: W
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: anointed }
+    - { op: kill, to: actor }

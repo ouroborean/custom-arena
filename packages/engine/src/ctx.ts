@@ -11,6 +11,7 @@ export interface PendingTrigger {
   spec: TriggerSpec;
   eventSource?: UnitId;
   eventTarget?: UnitId;
+  eventTargets?: UnitId[];
 }
 
 export interface Ctx {

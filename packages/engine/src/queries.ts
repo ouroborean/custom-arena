@@ -85,6 +85,11 @@ export function forcedTargets(ctx: Ctx, u: Unit): string[] {
   return modsOn(ctx.s, ctx.c, u.id, 'forceTarget').map(({ effect }) => effect.source);
 }
 
+/** Ghosted: the unit's skills Bypass. */
+export function hasGrantBypass(ctx: Ctx, u: Unit): boolean {
+  return modsOn(ctx.s, ctx.c, u.id, 'grantBypass').length > 0;
+}
+
 export function blocksIndirectDamage(ctx: Ctx, target: Unit): boolean {
   return modsOn(ctx.s, ctx.c, target.id, 'blockIndirectDamage').length > 0;
 }

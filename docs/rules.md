@@ -222,3 +222,44 @@ Content: `packages/content/data/poison/`. Statuses: **Toxin**, **Prey (marked)**
 - Lowest Poison skills: Pounce, Slither, Mesmerizing Glare, Tail Lash, Lacerate, Shed Skin and Coil, at 43–45%.
 - **Watch:** Slither's permanent Focus, and permanent Weakness/Vulnerable from Sting and Numbing Needle. These stack up over long matches; permanent debuffs also make Prey easy to trigger.
 
+---
+
+## 13. Holy
+
+Content: `packages/content/data/holy/`. Statuses: **Anointed**, **Condemned** (plus base **Sanctify** and **Ghosted**).
+
+### 13.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Anointed** | A marker that empowers Holy skills. One per unit. It's permanent unless the skill states a duration (for example, Divine Fury gives 3 turns and Holy Favor lasts through the ally's next turn). |
+| **Condemned** | The next skill the bearer uses (any skill) gives them a random 1 Weakness, 1 Vulnerable or 1 Confusion, and Condemn is removed. The debuff has no stated duration, so it's permanent. It lands before that skill resolves, so a rolled Weakness reduces that skill's damage. |
+| **Ghosted** | A base status: the bearer's skills Bypass (they can target and hit Invulnerable and Isolated units). |
+| **"Lasts additional turns"** | Holy Nova and Saving Grace, when Anointed, repeat at the **start** of the user's next turn(s). Holy Nova repeats once; Saving Grace twice. |
+
+### 13.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Divine Storm | Heals 5 per target actually damaged, counting the primary and each ally hit. |
+| Zealous Rush | The user's next **Harmful** skill Sanctifies its targets for 1 turn, **after** that skill resolves, so its own hits don't trigger Sanctify. It doesn't apply to the Rush itself. |
+| Retribution | For the enemy's turn, direct damage from enemies heals the user by the amount it would have dealt, after modifiers. It isn't Invisible, and it isn't a counter. |
+| Sunbeam | Heals 15 only if it consumed Anointed. |
+| Decree | Condemned for 2 turns. It's visible (the sheet doesn't mark it Invisible). |
+| Consecration | No duration is given, so it channels until interrupted. Each end of the user's turn it hits a random **un-Sanctified** enemy for 10 (indirect) and Sanctifies them permanently. With no un-Sanctified enemies left, it does nothing. |
+| Piercing Light | Deals 20 instead of 10 if the target is Condemned or Sanctified, or if the user is Anointed. The sheet's "both effects always trigger" is read as "the bonus always applies". |
+| Crusade | Condemns if the target is above 75 HP **before** the hit. |
+| Martyrdom | Not a counter. When the target next uses a Harmful skill, that skill's targets are permanently Anointed. Fires once. |
+| Repentance | Can only target a Condemned enemy (a target requirement). |
+| Sacred Lion | Roar (W) and Claws (r) have no cooldown; the sheet gives none. Roar's Sanctify is permanent. |
+| Divine Blessing | Blessing from Above (W) Anoints permanently, then the minion dies. |
+| Gleam | The Taunt ends when the target uses a Harmful skill. The Condemn resolves on their next skill of any kind. |
+| Grand Crusader | +1 Might and +1 Armor (3 turns) per Sanctified or Condemned enemy actually hit. |
+
+### 13.3 Balance notes (greedy-bot simulation, 3,000 matches, elements None/Fire/Poison/Holy)
+
+- By character element: Poison 51.0%, Fire 50.2%, None 49.6%, Holy 48.1%.
+- Highest Holy skills: Holy Nova about 60%, Sunbeam about 58%, Divine Storm about 56%.
+- Lowest Holy skills: Angel's Grace about 37%, Cloister about 40%, Guardian Strike about 41%, Retribution and Saving Grace about 42%.
+- The greedy bot undervalues setup (Anoint → payoff) and defensive skills, so Holy's support side likely plays better in human hands than these numbers suggest.
+

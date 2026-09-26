@@ -6,6 +6,7 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 |---|---|
 | **Affliction** | Damage type that ignores Armor and Shield, and gets through Invulnerable when indirect. |
 | **Ally / Enemy** | Any unit on the same / other side, **including minions**, unless the text says "character". "Ally" includes the user. |
+| **Anointed** | Holy: a marker that empowers Holy skills. |
 | **AoE** | A skill targeting all enemies or all allies (target kind `allEnemies` / `allAllies`). |
 | **Applier** | The unit (and its player) that put an effect on the board. Ticking effects fire at the end of the applier's turn. |
 | **Archetype** | One of the 30 base skill slots (Strike … Titan). Elemental variants keep their archetype, so "your Strike skills" matches Torch Strike too. |
@@ -13,12 +14,14 @@ Keywords used in skill text and in the engine. Content descriptions should use t
 | **Bypass** | Ignores Invulnerable and Isolated. |
 | **Channeled** | An ongoing skill effect on its user. It ends if the user is stunned (for that skill's class), dies, or uses another skill. |
 | **Character** | A player's hero unit. Generates energy; its death counts toward elimination. |
+| **Condemned** | Holy: the next skill the bearer uses gives them a random Weakness, Vulnerable or Confusion, then it ends. |
 | **Cooldown (CD)** | Number of the owner's own turns a skill stays locked after use. |
 | **Counter** | Negates a skill as it's used. Cost stays paid, and the cooldown starts. |
 | **Direct damage** | Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers "on direct damage" effects. |
 | **Duration** | Internal count of turns; drops by 1 at the end of every turn. See rules.md §8. |
 | **Explode / Explosion** | Fire: 10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets. |
 | **GEN / r / random** | A wildcard cost payable with any color. |
+| **Ghosted** | The bearer's skills Bypass. |
 | **Harmful / Helpful** | Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful. |
 | **HiddenTarget** | Skill tag: the opponent sees the skill but not its target (Snipe). |
 | **Indirect damage** | Damage from triggered or ticking effects. |

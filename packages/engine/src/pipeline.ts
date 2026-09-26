@@ -4,8 +4,8 @@ import { effectDef, effectsOn, emit, findUnit, isEnemy, livingUnits, skillDef, u
 import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
-import { enqueueTriggers, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
-import { canTarget, cannotUseReason, cooldownOnUse, forcedTargets, modifiedCost } from './queries.js';
+import { enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
+import { canTarget, cannotUseReason, cooldownOnUse, forcedTargets, hasGrantBypass, modifiedCost } from './queries.js';
 import type { EffectInstance, QueuedAction, Unit, UnitId } from './types.js';
 
 export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason: string };
@@ -15,7 +15,27 @@ export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason
  * at resolution time the target is redirected to the taunter instead.
  */
 export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
-  const bypass = def.tags.includes('Bypass');
+  const r = resolveTargetsRaw(ctx, actor, def, declared, strict);
+  // "Target Condemned enemy" and similar requirements on single-target skills.
+  if (r.ok && def.targetFilter && (def.target === 'enemy' || def.target === 'ally' || def.target === 'any')) {
+    const t = r.targets[0]!;
+    const ok = evalCond(ctx, def.targetFilter, {
+      actor: actor.id,
+      targets: r.targets,
+      it: t,
+      vars: {},
+      lastDamage: 0,
+      lastDamaged: [],
+      direct: true,
+      bypass: false,
+    });
+    if (!ok) return { ok: false, reason: 'target does not meet the requirement' };
+  }
+  return r;
+}
+
+function resolveTargetsRaw(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
+  const bypass = def.tags.includes('Bypass') || hasGrantBypass(ctx, actor);
   switch (def.target) {
     case 'self':
       return { ok: true, targets: [actor.id] };
@@ -166,11 +186,13 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
 function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[], harmful: boolean): void {
 
   // 4a. Traps and other on-use triggers fire whether or not the skill is countered.
+  const startSeq = ctx.s.seq;
   enqueueTriggers(ctx, actor.id, 'skillUsed', {
     harmful,
     strategic: def.tags.includes('Strategic'),
     eventSource: actor.id,
     eventTarget: actor.id,
+    eventTargets: targets,
   });
   flushTriggers(ctx);
   if (!actor.alive || ctx.s.phase === 'finished') return;
@@ -203,6 +225,18 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
 
   // 5. Execute the skill's ops.
   runSkillOps(ctx, actor, def, targets, slotIndex);
+
+  // 6. After-resolution triggers on the user (only effects that existed before this use).
+  if (actor.alive && ctx.s.result === null) {
+    enqueueTriggers(ctx, actor.id, 'skillResolved', {
+      harmful,
+      strategic: def.tags.includes('Strategic'),
+      eventSource: actor.id,
+      eventTargets: targets,
+      maxSeq: startSeq,
+    });
+    flushTriggers(ctx);
+  }
 }
 
 function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], slot?: number): void {
@@ -214,7 +248,7 @@ function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], sl
     lastDamage: 0,
     lastDamaged: [],
     direct: true,
-    bypass: def.tags.includes('Bypass'),
+    bypass: def.tags.includes('Bypass') || hasGrantBypass(ctx, actor),
     skill: def,
   };
   runOps(ctx, def.ops, sc);

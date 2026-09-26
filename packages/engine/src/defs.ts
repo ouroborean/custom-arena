@@ -35,11 +35,13 @@ export type NamedSelector =
   | 'effectTargets' // units remembered by the executing effect
   | 'it' // the current unit inside forEach / any / all
   | 'lastDamaged' // units damaged by the most recent damage op
-  | 'summoner'; // the unit that summoned the actor (for minions)
+  | 'summoner' // the unit that summoned the actor (for minions)
+  | 'eventTargets'; // for skillUsed/skillResolved triggers: the targets of the triggering skill
 
 export type Selector =
   | NamedSelector
-  | { randomEnemy: number; exclude?: NamedSelector };
+  /** `where` filters candidates (evaluated with `it` = each candidate). */
+  | { randomEnemy: number; exclude?: NamedSelector; where?: Cond };
 
 export type Value =
   | number
@@ -50,6 +52,8 @@ export type Value =
   | { stacks: { unit: Selector; effect: string } }
   /** Number of active effect instances with these keys, on `in` (default: the whole board). */
   | { count: { effects: string[]; in?: Selector } }
+  /** Number of units the selector yields (e.g. lastDamaged). */
+  | { countOf: Selector }
   | { sum: Value[] }
   | { mul: Value[] }
   | { if: Cond; then: Value; else: Value };
@@ -158,9 +162,14 @@ export type ModifierSpec =
   | { mod: 'noArmorOrShield' }
   | { mod: 'energyGain'; amount: number }
   /** Multiplies healing the bearer receives, rounding up to a multiple of `roundUpTo` (Scorched). */
-  | { mod: 'healingReceived'; mul: number; roundUpTo?: number };
+  | { mod: 'healingReceived'; mul: number; roundUpTo?: number }
+  /** Direct damage from enemies heals the bearer instead (Holy Retribution). */
+  | { mod: 'healFromDirectDamage' }
+  /** The bearer's skills Bypass (ignore Invulnerable and Isolated) — Ghosted. */
+  | { mod: 'grantBypass' };
 
-export type TriggerEvent = 'damaged' | 'skillUsed' | 'skillTargeted' | 'turnEnd' | 'turnStart' | 'signal';
+/** skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets. */
+export type TriggerEvent = 'damaged' | 'skillUsed' | 'skillResolved' | 'skillTargeted' | 'turnEnd' | 'turnStart' | 'signal';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -242,6 +251,8 @@ export interface SkillDef {
   cooldown: number;
   tags: SkillTag[];
   target: TargetKind;
+  /** Extra requirement on a single target (evaluated with `it` = the target), e.g. "target Condemned enemy". */
+  targetFilter?: Cond;
   ops: Op[];
 }
 

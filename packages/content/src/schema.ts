@@ -61,12 +61,15 @@ const namedSelector = z.enum([
   'it',
   'lastDamaged',
   'summoner',
+  'eventTargets',
 ]);
 
-export const selectorSchema: z.ZodType<Selector> = z.union([
-  namedSelector,
-  z.strictObject({ randomEnemy: z.number().int().min(1), exclude: namedSelector.optional() }),
-]) as z.ZodType<Selector>;
+export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
+  z.union([
+    namedSelector,
+    z.strictObject({ randomEnemy: z.number().int().min(1), exclude: namedSelector.optional(), where: condSchema.optional() }),
+  ]),
+) as z.ZodType<Selector>;
 
 export const condSchema: z.ZodType<Cond> = z.lazy(() =>
   z.union([
@@ -98,6 +101,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ effectStacks: z.literal(true) }),
     z.strictObject({ stacks: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
+    z.strictObject({ countOf: selectorSchema }),
     z.strictObject({ sum: z.array(valueSchema) }),
     z.strictObject({ mul: z.array(valueSchema) }),
     z.strictObject({ if: condSchema, then: valueSchema, else: valueSchema }),
@@ -127,6 +131,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   z.strictObject({ mod: z.literal('noArmorOrShield') }),
   z.strictObject({ mod: z.literal('energyGain'), amount: z.number().int() }),
   z.strictObject({ mod: z.literal('healingReceived'), mul: z.number().min(0), roundUpTo: z.number().int().min(1).optional() }),
+  z.strictObject({ mod: z.literal('healFromDirectDamage') }),
+  z.strictObject({ mod: z.literal('grantBypass') }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -181,7 +187,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillTargeted', 'turnEnd', 'turnStart', 'signal']),
+    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal']),
     signal: z.string().optional(),
     when: z
       .strictObject({
@@ -242,6 +248,7 @@ export const skillFileEntry = z.strictObject({
   cooldown: z.number().int().min(0),
   tags: z.array(skillTag),
   target: z.enum(['self', 'enemy', 'ally', 'any', 'allEnemies', 'allAllies', 'none']),
+  targetFilter: condSchema.optional(),
   ops: z.array(opSchema),
 });
 
