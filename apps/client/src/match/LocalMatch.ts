@@ -1,7 +1,8 @@
 // The authoritative match for local play. It owns the full GameState and hands the UI only
 // per-player views, the same shape a networked client will get from the server in Phase 5.
 
-import { botFor, type Bot } from '@arena/ai';
+import { botFor, encounterBot, type Bot } from '@arena/ai';
+import { singlePlayerBotSeed } from '@arena/meta';
 import {
   applyCommand,
   createMatch,
@@ -44,7 +45,13 @@ export class LocalMatch implements MatchSession {
     this.initialEvents = r.events;
     this.record = { engineVersion: ENGINE_VERSION, contentVersion: content.version, config, commands: [] };
     const botFor = (p: PlayerId): Bot | null => {
-      if (mode.kind === 'vsBot') return p === mode.human ? null : makeBot(mode.bot, config.seed + 101);
+      if (mode.kind === 'vsBot' && mode.story) {
+        // Seeded exactly as the server seeds it when it verifies the attempt.
+        const enc = content.encounters[mode.story.encounter];
+        if (!enc) throw new Error(`Unknown encounter ${mode.story.encounter}`);
+        return p === mode.human ? null : encounterBot(enc, singlePlayerBotSeed(config.seed));
+      }
+      if (mode.kind === 'vsBot') return p === mode.human ? null : makeBot(mode.bot, singlePlayerBotSeed(config.seed));
       if (mode.kind === 'watch') return makeBot(mode.bots[p], config.seed + 101 + p);
       return null;
     };

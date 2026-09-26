@@ -3,7 +3,9 @@
 
 import { CommandError, redactEvents, type Energy, type GameEvent, type MatchConfig, type PlayerId, type PlayerView } from '@arena/engine';
 import { create } from 'zustand';
+import { api, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
+import { useMeta } from './meta.js';
 import type { MatchMode, MatchSession } from './match/session.js';
 import { isLogged, toFloat, toLogLine, type FloatText, type LogLine } from './match/playback.js';
 import type { ContentBundle } from '@arena/engine';
@@ -37,7 +39,7 @@ export interface CommitPlan {
 }
 
 /** Screens a match can return to. */
-export type ReturnScreen = 'home' | 'sandbox' | 'history';
+export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story';
 export type Screen = ReturnScreen | 'character' | 'battle';
 
 interface StoreState {
@@ -67,6 +69,8 @@ interface StoreState {
   inspect: InspectTarget | null;
   anchor: Anchor | null;
   logOpen: boolean;
+  /** A finished story attempt: being verified by the server, its verdict, or why it failed. */
+  storyResult: { status: 'submitting' } | { status: 'done'; result: StoryResult } | { status: 'error'; message: string } | null;
 
   newMatch(content: ContentBundle, config: MatchConfig, mode: MatchMode, returnTo?: ReturnScreen): void;
   /** Shows any session (online, replay, local) on the battle screen. */
@@ -142,10 +146,27 @@ export const useStore = create<StoreState>((set, get) => {
       if (e instanceof CommandError) set({ toast: e.message, version: get().version + 1 });
       else throw e;
     }
+    if (match.finished) submitStory(match);
+  }
+
+  /** A story match that just ended goes to the server, which replays it before paying out. */
+  function submitStory(match: MatchSession): void {
+    const mode = match.mode;
+    if (mode.kind !== 'vsBot' || !mode.story || !match.record || get().storyResult !== null) return;
+    set({ storyResult: { status: 'submitting' } });
+    api.finishStory(mode.story.attemptId, match.record.commands).then(
+      (result) => {
+        if (get().match !== match) return;
+        set({ storyResult: { status: 'done', result } });
+        void useMeta.getState().refresh();
+      },
+      (e: unknown) => get().match === match && set({ storyResult: { status: 'error', message: e instanceof Error ? e.message : String(e) } }),
+    );
   }
 
   return {
     screen: 'home',
+    storyResult: null,
     characterId: null,
     returnTo: 'sandbox',
     match: null,
@@ -199,6 +220,7 @@ export const useStore = create<StoreState>((set, get) => {
         toast: null,
         inspect: null,
         anchor: null,
+        storyResult: null,
         version: get().version + 1,
       });
       publish(match.initialEvents, null);
@@ -209,13 +231,14 @@ export const useStore = create<StoreState>((set, get) => {
 
     rematch() {
       const m = get().match;
-      if (m?.config && (m.mode.kind === 'vsBot' || m.mode.kind === 'hotseat' || m.mode.kind === 'watch')) {
+      // A story attempt can't be replayed locally: the server issues a new one (see the Story screen).
+      if (m?.config && ((m.mode.kind === 'vsBot' && !m.mode.story) || m.mode.kind === 'hotseat' || m.mode.kind === 'watch')) {
         get().newMatch(m.content, m.config, m.mode, get().returnTo);
       }
     },
 
     toSetup() {
-      set({ screen: get().returnTo, match: null, pending: [], displayView: null, commitOpen: false, handoff: null });
+      set({ screen: get().returnTo, match: null, pending: [], displayView: null, commitOpen: false, handoff: null, storyResult: null });
     },
 
     go(screen, characterId) {

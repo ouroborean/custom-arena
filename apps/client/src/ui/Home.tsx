@@ -121,6 +121,9 @@ export function Home() {
               </button>
             </div>
           </div>
+          <button type="button" className="btn primary" onClick={() => go('story')} disabled={busy}>
+            Story
+          </button>
           <button type="button" className="btn primary" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
             Practice vs bot
           </button>

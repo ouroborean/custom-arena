@@ -327,7 +327,9 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
   const nameOf = (p: PlayerId) => {
     switch (mode.kind) {
       case 'vsBot':
-        return p === mode.human ? 'You' : `${{ easy: 'Easy', normal: 'Normal', hard: 'Hard' }[mode.bot]} Bot`;
+        if (p === mode.human) return 'You';
+        if (mode.story) return match.content.encounters[mode.story.encounter]?.name ?? 'Enemy';
+        return `${{ easy: 'Easy', normal: 'Normal', hard: 'Hard' }[mode.bot]} Bot`;
       case 'watch':
         return `Bot ${p + 1}`;
       case 'online':

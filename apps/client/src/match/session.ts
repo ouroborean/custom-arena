@@ -17,8 +17,15 @@ import type { MatchKind, MatchReward, RatingChange } from '@arena/protocol';
 /** Bot difficulty (GDD §11.9, packages/ai/src/search.ts). */
 export type BotKind = 'easy' | 'normal' | 'hard';
 
+/** A story attempt the server issued (the result is submitted for verification when it ends). */
+export interface StoryTag {
+  encounter: string;
+  attemptId: string;
+}
+
 export type MatchMode =
-  | { kind: 'vsBot'; bot: BotKind; human: PlayerId }
+  /** With `story`, the encounter's own AI plays instead of `bot`. */
+  | { kind: 'vsBot'; bot: BotKind; human: PlayerId; story?: StoryTag }
   | { kind: 'hotseat' }
   | { kind: 'watch'; bots: [BotKind, BotKind] }
   | { kind: 'online'; you: PlayerId; opponent: string; matchKind: MatchKind; timer: number | null }
