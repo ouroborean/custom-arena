@@ -1,0 +1,40 @@
+# Ice statuses, from "Custom Arena - Ice". The "Frost debuffs" are Frostbitten, Chilled and Numb.
+
+frostbitten:
+  name: Frostbitten
+  kind: Debuff
+  element: Ice
+  stacking: unique
+  description: Unable to use Harmful Strategic skills.
+  modifiers:
+    - { mod: cannotUseSkills, classes: [Strategic], harmful: true }
+
+chilled:
+  name: Chilled
+  kind: Debuff
+  element: Ice
+  stacking: unique
+  description: Unable to have skill costs reduced.
+  modifiers:
+    - { mod: noCostReduction }
+
+numb:
+  name: Numb
+  kind: Debuff
+  element: Ice
+  stacking: unique
+  description: Cannot apply Buffs (to anyone, including themselves).
+  modifiers:
+    - { mod: cannotApplyBuffs }
+
+frostborn:
+  name: Frostborn
+  kind: Buff
+  element: Ice
+  stacking: unique
+  description: >-
+    Immune to Debuffs from Numb or Chilled units, and Invulnerable to Frostbitten units (they can't
+    target or damage the bearer).
+  modifiers:
+    - { mod: immuneToDebuffsFrom, sourceHas: [numb, chilled] }
+    - { mod: invulnerableTo, sourceHas: [frostbitten] }

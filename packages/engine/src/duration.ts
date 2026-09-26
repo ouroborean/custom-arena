@@ -4,11 +4,11 @@
 // removed when it reaches 0. Authors write intent; this turns it into the tick count, based on
 // whether the applier's side is the one currently taking its turn.
 
-import type { DurationSpec } from './defs.js';
+import type { ResolvedDuration } from './defs.js';
 import type { PlayerId } from './types.js';
 
 export function compileDuration(
-  spec: DurationSpec | undefined,
+  spec: ResolvedDuration | undefined,
   applierOwner: PlayerId,
   activePlayer: PlayerId,
 ): number | null {
