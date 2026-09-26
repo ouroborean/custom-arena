@@ -153,6 +153,26 @@ describe('Shadow skills', () => {
     expect([a.hp(B1), a.hp(B2), a.stacks(B2, 'confusion')]).toEqual([75, 75, 1]);
   });
 
+  it("Wave of Darkness (CD 2): locked on the user's next 2 turns, usable on the 3rd after use", () => {
+    const a = arena({ p0: [['blast.shadow']], p1: [['shot'], ['shot']], hp: 1000 });
+    a.use(A1, 'blast.shadow').end(); // Player turn 1: used
+    a.pass(1); // Enemy turn 1
+    expect(a.reject(() => a.use(A1, 'blast.shadow'))).toBe('on_cooldown'); // Player turn 2
+    a.pass(2); // (Player turn 2 ends, enemy turn 2)
+    expect(a.reject(() => a.use(A1, 'blast.shadow'))).toBe('on_cooldown'); // Player turn 3
+    a.pass(2); // (Player turn 3 ends, enemy turn 3)
+    a.use(A1, 'blast.shadow').end(); // Player turn 4: usable again
+    expect(a.hp(B1)).toBe(1000 - 50);
+  });
+
+  it("a CD 1 skill is locked only on the user's next turn", () => {
+    const a = arena({ p0: [['strike.shadow', 'smite.shadow']], p1: [['shot']] });
+    a.use(A1, 'smite.shadow', B1).end().pass(1); // turn 1 used; enemy turn
+    expect(a.reject(() => a.use(A1, 'smite.shadow', B1))).toBe('on_cooldown'); // player turn 2
+    a.pass(2);
+    a.use(A1, 'smite.shadow', B1).end(); // player turn 3: usable
+  });
+
   it('Drink Darkness: 5 Affliction to all; Blinded enemies lose it and take 10 more', () => {
     const a = arena({ p0: [['consume.shadow']], p1: [['shot'], ['shot']] });
     a.give(B2, 'blinded', { source: A1 }).use(A1, 'consume.shadow').end();
