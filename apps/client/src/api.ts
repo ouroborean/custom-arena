@@ -1,0 +1,94 @@
+// Typed client for the API server (apps/server). Requests are same-origin (/api, proxied by Vite in
+// development) so the httpOnly session cookie rides along automatically.
+
+import type { CharacterSpec } from '@arena/engine';
+import type { CharacterSkill, Loadout, RarityId, ResolvedLoadout } from '@arena/meta';
+
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface Character {
+  id: string;
+  name: string;
+  classId: string;
+  element: string;
+  rarity: RarityId;
+  portraitId: string;
+  skills: CharacterSkill[];
+  loadout: Loadout;
+  contentVersion: string;
+  createdAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  itemId: string;
+  source: string;
+  acquiredAt: string;
+  equippedOn: string | null;
+}
+
+export interface Preset {
+  id: string;
+  name: string;
+  loadout: Loadout;
+}
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly problems: string[] = [],
+  ) {
+    super(message);
+  }
+}
+
+async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method,
+      credentials: 'same-origin',
+      headers: body === undefined ? {} : { 'content-type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  } catch {
+    throw new ApiError(0, "Can't reach the server");
+  }
+  if (res.status === 204) return undefined as T;
+  const data = (await res.json().catch(() => ({}))) as { error?: string; problems?: string[] };
+  if (!res.ok) throw new ApiError(res.status, data.error ?? `Request failed (${res.status})`, data.problems ?? []);
+  return data as T;
+}
+
+export const api = {
+  health: () => call<{ ok: boolean; engine: string; content: string }>('GET', '/health'),
+  me: () => call<{ user: User; rollsSincePity: number }>('GET', '/me'),
+  register: (email: string, password: string, displayName: string) =>
+    call<{ user: User }>('POST', '/auth/register', { email, password, displayName }),
+  login: (email: string, password: string) => call<{ user: User }>('POST', '/auth/login', { email, password }),
+  logout: () => call<void>('POST', '/auth/logout'),
+
+  characters: () => call<{ characters: Character[]; maxRoster: number }>('GET', '/characters'),
+  roll: () => call<{ character: Character }>('POST', '/characters/roll'),
+  rename: (id: string, name: string) => call<{ character: Character }>('PATCH', `/characters/${id}`, { name }),
+  retire: (id: string) => call<void>('DELETE', `/characters/${id}`),
+
+  activeTeam: () => call<{ team: { id: string; name: string; characterIds: string[] } | null }>('GET', '/teams/active'),
+  setActiveTeam: (characterIds: string[]) => call<{ team: { characterIds: string[] } }>('PUT', '/teams/active', { characterIds }),
+  teamSpecs: () => call<{ specs: CharacterSpec[] }>('GET', '/teams/active/specs'),
+
+  inventory: () => call<{ items: InventoryItem[] }>('GET', '/inventory'),
+  saveLoadout: (id: string, loadout: Loadout) =>
+    call<{ loadout: Loadout; resolved: ResolvedLoadout }>('PUT', `/characters/${id}/loadout`, { loadout }),
+  presets: (id: string) => call<{ presets: Preset[] }>('GET', `/characters/${id}/presets`),
+  savePreset: (id: string, name: string, loadout: Loadout) =>
+    call<{ preset: Preset }>('POST', `/characters/${id}/presets`, { name, loadout }),
+  applyPreset: (id: string, presetId: string) =>
+    call<{ loadout: Loadout }>('POST', `/characters/${id}/presets/${presetId}/apply`),
+  deletePreset: (id: string, presetId: string) => call<void>('DELETE', `/characters/${id}/presets/${presetId}`),
+};

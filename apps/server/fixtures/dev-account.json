@@ -1,0 +1,6 @@
+{
+  "_comment": "Local development/test account for the API server's own PGlite database (never a real account).",
+  "email": "tester@arena.test",
+  "password": "arena-dev-pass-01",
+  "displayName": "Tester"
+}

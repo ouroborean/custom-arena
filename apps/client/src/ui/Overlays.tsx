@@ -23,6 +23,7 @@ export function GameOverOverlay() {
   const playing = useStore((s) => s.pending.length > 0);
   const rematch = useStore((s) => s.rematch);
   const toSetup = useStore((s) => s.toSetup);
+  const returnTo = useStore((s) => s.returnTo);
   useStore((s) => s.version);
   if (!match || !match.finished || playing) return null;
   const r = match.result!;
@@ -54,7 +55,7 @@ export function GameOverOverlay() {
             Download replay
           </button>
           <button type="button" className="btn" onClick={toSetup}>
-            New match
+            {returnTo === 'home' ? 'Home' : 'New match'}
           </button>
           <button type="button" className="btn primary" autoFocus onClick={rematch}>
             Rematch

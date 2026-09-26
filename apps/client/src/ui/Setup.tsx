@@ -80,6 +80,7 @@ function CharacterEditor({
 
 export function Setup() {
   const newMatch = useStore((s) => s.newMatch);
+  const go = useStore((s) => s.go);
   const [seed, setSeed] = useState(newSeed);
   const [config, setConfig] = useState<MatchConfig>(() => randomConfig(content, seed));
   const [mode, setMode] = useState<ModeKind>('vsBot');
@@ -121,8 +122,12 @@ export function Setup() {
           Custom <span>Arena</span>
         </h1>
         <span className="muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 12, fontWeight: 700 }}>
-          Battle prototype · {Object.keys(content.skills).length} skills · content {content.version.slice(0, 8)}
+          Sandbox · {Object.keys(content.skills).length} skills · content {content.version.slice(0, 8)}
         </span>
+        <span style={{ flex: 1 }} />
+        <button type="button" className="btn" onClick={() => go('home')}>
+          ← Home
+        </button>
       </div>
 
       <section className="panel setup-controls" aria-label="Match options">

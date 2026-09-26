@@ -1,0 +1,1604 @@
+# Equipment catalogue (GDD §8, appendix §15), generated from the "Structured Equipment" sheet.
+# Grants: `skills` (added if the character lacks them), `infusions` (a fixed `target` skill, or the
+# player chooses), and a `passive`. Passive effects are listed but not implemented yet (Phase 7), so
+# they are inactive in battle. Unlock conditions on the sheet are ignored (GDD §8.4).
+# Types: A main hand · B two-handed · C exotic · D elemental weapon · E off hand · F elemental armor ·
+# G class armor · H accessory · I perfect crystal · J gear · K shard · L misc (none yet).
+# Counts: {'A': 30, 'B': 20, 'C': 20, 'D': 30, 'E': 30, 'F': 30, 'G': 20, 'H': 20, 'I': 10, 'J': 40, 'K': 10}
+
+wind_katana:
+  name: "Wind Katana"
+  type: A
+  skills: [strike]
+  infusions: [{ element: Wind, target: strike }]
+  passive: "Your Strikes deal 5 additional damage, plus 5 damage for every mana in their total cost."
+
+magma_hammer:
+  name: "Magma Hammer"
+  type: A
+  skills: [smash]
+  infusions: [{ element: Fire, target: smash }]
+  passive: "Smash skills deal 10 additional damage to all targets but their cost is increased by 1 GEN."
+
+water_spear:
+  name: "Water Spear"
+  type: A
+  skills: [charge]
+  infusions: [{ element: Water, target: charge }]
+  passive: "Charge now changes Specific costs to Random costs for 1 turn, and deals 5 additional damage."
+
+poison_rapier:
+  name: "Poison Rapier"
+  type: A
+  skills: [riposte]
+  infusions: [{ element: Poison, target: riposte }]
+  passive: "Once per round, Riposte will reset its cooldown when triggered."
+
+unholy_cleaver:
+  name: "Unholy Cleaver"
+  type: A
+  skills: [rage]
+  infusions: [{ element: Unholy, target: rage }]
+  passive: "Your Rage skills give you 10 Shield for each 20 HP you're missing when you use them."
+
+ice_kunai:
+  name: "Ice Kunai"
+  type: A
+  skills: [shot]
+  infusions: [{ element: Ice, target: shot }]
+  passive: "Your Shot skills deal 5 additional damage every time they're used against the same target, stacking."
+
+shadow_arbalest:
+  name: "Shadow Arbalest"
+  type: A
+  skills: [snipe]
+  infusions: [{ element: Shadow, target: snipe }]
+  passive: "The target of your Snipe skills is now visible, but your Snipes now Bypass and cannot be Countered."
+
+vine_whip:
+  name: "Vine Whip"
+  type: A
+  skills: [trap]
+  infusions: [{ element: Earth, target: trap }]
+  passive: "The cooldown of your Trap skills is reduced by 1 turn if it fails to activate."
+
+lightsaber_dirk:
+  name: "Lightsaber Dirk"
+  type: A
+  skills: [maneuver]
+  infusions: [{ element: Lightning, target: maneuver }]
+  passive: "Your Maneuver skills can be used on an ally, but their cooldowns are increased by 1."
+
+ice_claw:
+  name: "Ice Claw"
+  type: A
+  skills: [companion]
+  infusions: [{ element: Ice, target: companion }]
+  passive: "Minions from your Companion skills have all their costs changed to GEN."
+
+fire_sceptre:
+  name: "Fire Sceptre"
+  type: A
+  skills: [bolt]
+  infusions: [{ element: Fire, target: bolt }]
+  passive: "Your Bolt skills receive double benefit from Might."
+
+holy_book:
+  name: "Holy Book"
+  type: A
+  skills: [blast]
+  infusions: [{ element: Holy, target: blast }]
+  passive: "Your Blast skills deal 10 additional damage for each dead enemy."
+
+twisted_wand:
+  name: "Twisted Wand"
+  type: A
+  skills: [consume]
+  infusions: [{ element: Earth, target: consume }]
+  passive: "Consume may be used on allied Summoned Minions, instantly killing it to Heal 10 Health and add 10 Shield."
+
+sacrificial_dagger:
+  name: "Sacrificial Dagger"
+  type: A
+  skills: [summon]
+  infusions: [{ element: Unholy, target: summon }]
+  passive: "Your Summon is also healed whenever you are."
+
+holy_censer:
+  name: "Holy Censer"
+  type: A
+  skills: [channel]
+  infusions: [{ element: Holy, target: channel }]
+  passive: "You gain 10 Shield at the end of each turn you maintain your Channel skills."
+
+scything_claw:
+  name: "Scything Claw"
+  type: A
+  skills: [stab]
+  infusions: [{ element: Poison, target: stab }]
+  passive: "When Stab activates its bonus effect, all your current Cooldowns are decreased by 1."
+
+lightning_dagger:
+  name: "Lightning Dagger"
+  type: A
+  skills: [ravage]
+  infusions: [{ element: Lightning, target: ravage }]
+  passive: "Your Ravage skills deal 5 additional damage for each ally that acted before you that turn."
+
+mist_fan:
+  name: "Mist Fan"
+  type: A
+  skills: [mislead]
+  infusions: [{ element: Water, target: mislead }]
+  passive: "When Mislead is triggered, your skills Bypass for 1 turn."
+
+sun_baton:
+  name: "Sun Baton"
+  type: A
+  skills: [stun]
+  infusions: [{ element: Earth, target: stun }]
+  passive: "Enemies affected by your Stuns are Shattered for the duration."
+
+hoop_blade:
+  name: "Hoop Blade"
+  type: A
+  skills: [dance]
+  infusions: [{ element: Shadow, target: dance }]
+  passive: "Using a skill reduces the remaining cooldown of your Dance skills by 1."
+
+wind_charm_stick:
+  name: "Wind Charm Stick"
+  type: A
+  skills: [heal]
+  infusions: [{ element: Wind, target: heal }]
+  passive: "Your Heal skills heal an additional 5 health over the following 2 turns. (No bonus immediately)"
+
+anointment_mace:
+  name: "Anointment Mace"
+  type: A
+  skills: [bless]
+  infusions: [{ element: Water, target: bless }]
+  passive: "Using Bless on a target causes them to ignore non-damage effects for 1 turn."
+
+brimstone_lash:
+  name: "Brimstone Lash"
+  type: A
+  skills: [curse]
+  infusions: [{ element: Fire, target: curse }]
+  passive: "Gain 1 random energy whenever an enemy affected by your Curse dies."
+
+book_of_shadows:
+  name: "Book of Shadows"
+  type: A
+  skills: [smite]
+  infusions: [{ element: Shadow, target: smite }]
+  passive: "Your Smite skills have their cost reduced by 1 GEN, but they no longer deal damage."
+
+book_of_the_damned:
+  name: "Book of the Damned"
+  type: A
+  skills: [prayer]
+  infusions: [{ element: Unholy, target: prayer }]
+  passive: "Increases the cooldown of Prayer by 1 turn. Any targets at full health after the heal will also be affected by Bless."
+
+paladin_axe:
+  name: "Paladin Axe"
+  type: A
+  skills: [cleave]
+  infusions: [{ element: Holy, target: cleave }]
+  passive: "Your Cleave skills deal 5 Piercing damage to any enemy they don't affect directly."
+
+lightning_banner:
+  name: "Lightning Banner"
+  type: A
+  skills: [shout]
+  infusions: [{ element: Lightning, target: shout }]
+  passive: "Gain 10 Shield whenever an enemy affected by your Shout acts."
+
+wind_shield:
+  name: "Wind Shield"
+  type: A
+  skills: [withstand]
+  infusions: [{ element: Wind, target: withstand }]
+  passive: "Deals 10 Piercing damage to any enemy that damages you during your Withstand skills."
+
+ice_hammer:
+  name: "Ice Hammer"
+  type: A
+  skills: [taunt]
+  infusions: [{ element: Ice, target: taunt }]
+  passive: "Your Taunt skills have unlimited duration, but cannot be used while active."
+
+chemtech_sword:
+  name: "Chemtech Sword"
+  type: A
+  skills: [titan]
+  infusions: [{ element: Poison, target: titan }]
+  passive: "Heal for 10 health when Titan expires, increased to 20 if you are at or below 40 HP."
+
+soldier_spear:
+  name: "Soldier Spear"
+  type: B
+  skills: [charge, riposte]
+  passive: "After using a Charge skill, your next Riposte costs no energy."
+
+soldier_greataxe:
+  name: "Soldier Greataxe"
+  type: B
+  skills: [charge, rage]
+  passive: "You will automatically use Charge on the first enemy to damage you when you Rage."
+
+kusurigama:
+  name: "Kusurigama"
+  type: B
+  skills: [stun, dance]
+  passive: "Gain 1 Swiftness when you Stun an enemy."
+
+dual_blackjacks:
+  name: "Dual Blackjacks"
+  type: B
+  skills: [stun, mislead]
+  passive: "Successfully Countering an enemy with Mislead resets the cooldown of your Stun ability."
+
+ancient_longbow:
+  name: "Ancient Longbow"
+  type: B
+  skills: [maneuver, snipe]
+  passive: "After using a Maneuver, your Snipe skills will hit instantly for 1 turn."
+
+trackers_whistle:
+  name: "Tracker's Whistle"
+  type: B
+  skills: [maneuver, companion]
+  passive: "Maneuvers that only target the user are also used on every Companion."
+
+warlock_staff:
+  name: "Warlock Staff"
+  type: B
+  skills: [consume, channel]
+  passive: "Consumes no longer interrupt Channeled skills."
+
+summoners_scrollstaff:
+  name: "Summoner's Scrollstaff"
+  type: B
+  skills: [summon, channel]
+  passive: "When you start Channeling, your Summons' skills have no cost on the following turn."
+
+staff_and_shield:
+  name: "Staff and Shield"
+  type: B
+  skills: [bless, withstand]
+  passive: "Using Withstand while below 40 Health will also activate Bless."
+
+high_priest_staff:
+  name: "High Priest Staff"
+  type: B
+  skills: [bless, prayer]
+  passive: "If any target affected by your Prayer is also affected by your Bless, the Bless will also be applied to all allies."
+
+dual_claws:
+  name: "Dual Claws"
+  type: B
+  skills: [companion, rage]
+  passive: "Your Rage costs an additional Generic, but also casts your Companion when used."
+
+tree_club:
+  name: "Tree Club"
+  type: B
+  skills: [companion, titan]
+  passive: "During Titan, your Companion gains 20 HP, 1 Might and 1 Armor."
+
+spear_and_shield:
+  name: "Spear and Shield"
+  type: B
+  skills: [withstand, charge]
+  passive: "Charge deals double damage if Withstand was not broken."
+
+sword_and_shield:
+  name: "Sword and Shield"
+  type: B
+  skills: [withstand, taunt]
+  passive: "Taunted targets receive 1 Weakness, and the user gains 1 Might during their Withstand."
+
+dagger_and_orb:
+  name: "Dagger and Orb"
+  type: B
+  skills: [consume, curse]
+  passive: "Killing an enemy with Consume makes your next Curse cost no energy."
+
+cultist_scythe:
+  name: "Cultist Scythe"
+  type: B
+  skills: [consume, stun]
+  passive: "Consume deals 10 affliction damage when used on a Stun target. This damage is not affected by other modifiers."
+
+staff_and_beads:
+  name: "Staff and Beads"
+  type: B
+  skills: [withstand, prayer]
+  passive: "If your Withstand's Shield is broken, your Prayer costs 1 less Specific energy for 1 turn."
+
+dual_tonfa:
+  name: "Dual Tonfa"
+  type: B
+  skills: [withstand, dance]
+  passive: "Gain 1 Swiftness when you Withstand, and 1 Armor while Dance is active."
+
+mace_and_greatshield:
+  name: "Mace and Greatshield"
+  type: B
+  skills: [withstand, titan]
+  passive: "At the start of battle, the user permanently gains 2 Armor and 1 Weakness"
+
+paladins_greatsword:
+  name: "Paladin's Greatsword"
+  type: B
+  skills: [bless, titan]
+  passive: "Gain 1 Might when you buff an ally, up to 1 per ally. Gain 1 Armor when you buff yourself, up to 2."
+
+hexblade:
+  name: "Hexblade"
+  type: C
+  skills: [strike, summon]
+  infusions: [{ element: Unholy }]
+
+iceblood_hammer:
+  name: "Iceblood Hammer"
+  type: C
+  skills: [smash, stun]
+  infusions: [{ element: Ice }]
+
+knife_talisman:
+  name: "Knife Talisman"
+  type: C
+  skills: [stab, prayer]
+  infusions: [{ element: Shadow }]
+
+blightfang_staff:
+  name: "Blightfang Staff"
+  type: C
+  skills: [ravage, channel]
+  infusions: [{ element: Poison }]
+  placeholder: true
+
+galewarden_bow:
+  name: "Galewarden Bow"
+  type: C
+  skills: [shot, titan]
+  infusions: [{ element: Wind }]
+  placeholder: true
+
+tidecallers_net:
+  name: "Tidecaller's Net"
+  type: C
+  skills: [trap, prayer]
+  infusions: [{ element: Water }]
+  placeholder: true
+
+dawnspark_rod:
+  name: "Dawnspark Rod"
+  type: C
+  skills: [bolt, bless]
+  infusions: [{ element: Holy }]
+  placeholder: true
+
+tempest_aegis:
+  name: "Tempest Aegis"
+  type: C
+  skills: [blast, riposte]
+  infusions: [{ element: Wind }]
+  placeholder: true
+
+thunderbrand_longbow:
+  name: "Thunderbrand Longbow"
+  type: C
+  skills: [smite, snipe]
+  infusions: [{ element: Lightning }]
+  placeholder: true
+
+wellspring_maul:
+  name: "Wellspring Maul"
+  type: C
+  skills: [heal, rage]
+  infusions: [{ element: Water }]
+  placeholder: true
+
+emberforged_greatsword:
+  name: "Emberforged Greatsword"
+  type: C
+  skills: [strike, titan]
+  infusions: [{ element: Fire }]
+  placeholder: true
+
+duskveil_charm:
+  name: "Duskveil Charm"
+  type: C
+  skills: [heal, maneuver]
+  infusions: [{ element: Shadow }]
+  placeholder: true
+
+rootbound_halberd:
+  name: "Rootbound Halberd"
+  type: C
+  skills: [cleave, companion]
+  infusions: [{ element: Earth }]
+  placeholder: true
+
+heralds_trumpet:
+  name: "Herald's Trumpet"
+  type: C
+  skills: [shout, bless]
+  infusions: [{ element: Holy }]
+  placeholder: true
+
+rimeglass_wand:
+  name: "Rimeglass Wand"
+  type: C
+  skills: [bolt, withstand]
+  infusions: [{ element: Ice }]
+  placeholder: true
+
+stormhex_chakram:
+  name: "Stormhex Chakram"
+  type: C
+  skills: [curse, dance]
+  infusions: [{ element: Lightning }]
+  placeholder: true
+
+mountainbreaker:
+  name: "Mountainbreaker"
+  type: C
+  skills: [smash, taunt]
+  infusions: [{ element: Earth }]
+  placeholder: true
+
+venomkiss_chalice:
+  name: "Venomkiss Chalice"
+  type: C
+  skills: [bless, consume]
+  infusions: [{ element: Poison }]
+  placeholder: true
+
+cinderpsalm_axe:
+  name: "Cinderpsalm Axe"
+  type: C
+  skills: [cleave, prayer]
+  infusions: [{ element: Fire }]
+  placeholder: true
+
+bloodpact_lance:
+  name: "Bloodpact Lance"
+  type: C
+  skills: [heal, charge]
+  infusions: [{ element: Unholy }]
+  placeholder: true
+
+emblem_of_the_inferno:
+  name: "Emblem of the Inferno"
+  type: D
+  infusions: [{ element: Fire }, { element: Fire }]
+  passive: "Ignite may stack an additional time."
+  placeholder: true
+
+emblem_of_the_arc_furnace:
+  name: "Emblem of the Arc Furnace"
+  type: D
+  infusions: [{ element: Fire }, { element: Lightning }]
+  passive: "Shattered enemies take 5 additional damage whenever they take Effect damage."
+  placeholder: true
+
+emblem_of_the_hellfire:
+  name: "Emblem of the Hellfire"
+  type: D
+  infusions: [{ element: Fire }, { element: Unholy }]
+  passive: "Dealing damage to an ally grants the user a random buff until the end of their next turn"
+  placeholder: true
+
+emblem_of_the_glacier:
+  name: "Emblem of the Glacier"
+  type: D
+  infusions: [{ element: Ice }, { element: Ice }]
+  passive: "You gain double benefit from Armor while Frostborn."
+  placeholder: true
+
+emblem_of_the_permafrost:
+  name: "Emblem of the Permafrost"
+  type: D
+  infusions: [{ element: Ice }, { element: Earth }]
+  passive: "All allies begin the game with 10 Shield. Minions are created with 5 Shield."
+  placeholder: true
+
+emblem_of_the_frostflame:
+  name: "Emblem of the Frostflame"
+  type: D
+  infusions: [{ element: Ice }, { element: Fire }]
+  passive: "When this character gains new Shield, they deal 5 Affliction damage to all enemies."
+  placeholder: true
+
+emblem_of_the_gale:
+  name: "Emblem of the Gale"
+  type: D
+  infusions: [{ element: Wind }, { element: Wind }]
+  passive: "Gain 1 Might every turn while Rushing. This Might is lost if Rush ends."
+  placeholder: true
+
+emblem_of_the_miasma:
+  name: "Emblem of the Miasma"
+  type: D
+  infusions: [{ element: Wind }, { element: Poison }]
+  passive: "Deal 10 additional damage to each enemy. This effect is disabled for any enemy that damages you."
+  placeholder: true
+
+emblem_of_the_monsoon:
+  name: "Emblem of the Monsoon"
+  type: D
+  infusions: [{ element: Wind }, { element: Water }]
+  passive: "Heal 10 Health whenever a Swiftness is removed by a Stun."
+  placeholder: true
+
+emblem_of_the_tempest:
+  name: "Emblem of the Tempest"
+  type: D
+  infusions: [{ element: Lightning }, { element: Lightning }]
+  passive: "Gain 15 Shield whenever you gain energy from Charge. This Shield refreshes but does not stack."
+  placeholder: true
+
+emblem_of_the_blackout:
+  name: "Emblem of the Blackout"
+  type: D
+  infusions: [{ element: Lightning }, { element: Shadow }]
+  passive: "Deal 10 damage to any target that attempts to become Invulnerable. This effect can only happen once per turn per target."
+  placeholder: true
+
+emblem_of_the_aurora:
+  name: "Emblem of the Aurora"
+  type: D
+  infusions: [{ element: Lightning }, { element: Ice }]
+  passive: "Each turn, randomly gain Might, Armor, Swiftness, Focus, Stormborn, or Frostborn"
+  placeholder: true
+
+emblem_of_the_tide:
+  name: "Emblem of the Tide"
+  type: D
+  infusions: [{ element: Water }, { element: Water }]
+  passive: "Gain 1 Swiftness whenever Flow is triggered. If you have Swiftness already, gain Focus until the end of your next turn instead"
+  placeholder: true
+
+emblem_of_the_abyss:
+  name: "Emblem of the Abyss"
+  type: D
+  infusions: [{ element: Water }, { element: Shadow }]
+  passive: "When you Counter or Reflect an enemy skill, deal 10 Piercing damage to the Countered enemy, or 5 Piercing damage to the enemy Reflected to and from."
+  placeholder: true
+
+emblem_of_the_bloodtide:
+  name: "Emblem of the Bloodtide"
+  type: D
+  infusions: [{ element: Water }, { element: Unholy }]
+  passive: "Heal for 5 Health whenever you use a damaging ability."
+  placeholder: true
+
+emblem_of_the_mountain:
+  name: "Emblem of the Mountain"
+  type: D
+  infusions: [{ element: Earth }, { element: Earth }]
+  passive: "Heal for 5 Health whenever Channel Earth occurs"
+  placeholder: true
+
+emblem_of_the_sanctuary:
+  name: "Emblem of the Sanctuary"
+  type: D
+  infusions: [{ element: Earth }, { element: Holy }]
+  passive: "Until you use a Harmful skill, you heal 10 Health every turn"
+  placeholder: true
+
+emblem_of_the_magma:
+  name: "Emblem of the Magma"
+  type: D
+  infusions: [{ element: Earth }, { element: Fire }]
+  passive: "Deal double damage to minions. This effect can only trigger on one creature each turn."
+  placeholder: true
+
+emblem_of_the_serpent:
+  name: "Emblem of the Serpent"
+  type: D
+  infusions: [{ element: Poison }, { element: Poison }]
+  passive: "Permanently gain 1 Might or 1 Armor, depending whether you damaged an enemy or were damaged by an enemy."
+  placeholder: true
+
+emblem_of_the_neurotoxin:
+  name: "Emblem of the Neurotoxin"
+  type: D
+  infusions: [{ element: Poison }, { element: Lightning }]
+  passive: "Ending your turn without spending all of your energy grants a random ally Might for 1 turn."
+  placeholder: true
+
+emblem_of_the_bog:
+  name: "Emblem of the Bog"
+  type: D
+  infusions: [{ element: Poison }, { element: Earth }]
+  passive: "Allied minions deal 5 Affliction damage to a random target when they die"
+  placeholder: true
+
+emblem_of_the_void:
+  name: "Emblem of the Void"
+  type: D
+  infusions: [{ element: Shadow }, { element: Shadow }]
+  passive: "If you end your turn without acting, extend the duration of any active Invulnerability effects by 1 turn. This can only happen once per effect"
+  placeholder: true
+
+emblem_of_the_phantom:
+  name: "Emblem of the Phantom"
+  type: D
+  infusions: [{ element: Shadow }, { element: Wind }]
+  passive: "Deal 10 additional Piercing damage whenever you damage an Invulnerable enemy."
+  placeholder: true
+
+emblem_of_the_eclipse:
+  name: "Emblem of the Eclipse"
+  type: D
+  infusions: [{ element: Shadow }, { element: Holy }]
+  passive: "Dealing damage with Mark effects applies 1 Weakness for 1 turn."
+  placeholder: true
+
+emblem_of_the_sun:
+  name: "Emblem of the Sun"
+  type: D
+  infusions: [{ element: Holy }, { element: Holy }]
+  passive: "Dealing damage to a Sanctified enemy grants you 1 Might."
+  placeholder: true
+
+emblem_of_the_seraph:
+  name: "Emblem of the Seraph"
+  type: D
+  infusions: [{ element: Holy }, { element: Wind }]
+  passive: "Become Invulnerable for 1 turn the first time you are Stunned each round"
+  placeholder: true
+
+emblem_of_the_font:
+  name: "Emblem of the Font"
+  type: D
+  infusions: [{ element: Holy }, { element: Water }]
+  passive: "Anointing an ally removes all debuffs from them."
+  placeholder: true
+
+emblem_of_the_grave:
+  name: "Emblem of the Grave"
+  type: D
+  infusions: [{ element: Unholy }, { element: Unholy }]
+  passive: "Gain 1 Might and heal for 10 Health when an allied hero is killed."
+  placeholder: true
+
+emblem_of_the_plague:
+  name: "Emblem of the Plague"
+  type: D
+  infusions: [{ element: Unholy }, { element: Poison }]
+  passive: "Stackable debuffs you cause or receive are permanent."
+  placeholder: true
+
+emblem_of_the_lich:
+  name: "Emblem of the Lich"
+  type: D
+  infusions: [{ element: Unholy }, { element: Ice }]
+  passive: "You and your Minions gain 5 Shield whenever you use a Harmful skill."
+  placeholder: true
+
+devils_blade:
+  name: "Devil's Blade"
+  type: E
+  skills: [strike]
+  infusions: [{ element: Fire, target: strike }, { element: Unholy }]
+
+mythic_hammer:
+  name: "Mythic Hammer"
+  type: E
+  skills: [smash]
+  infusions: [{ element: Earth, target: smash }, { element: Ice }]
+
+storm_chaser:
+  name: "Storm Chaser"
+  type: E
+  skills: [charge]
+  infusions: [{ element: Lightning, target: charge }, { element: Wind }]
+
+ritual_guard:
+  name: "Ritual Guard"
+  type: E
+  skills: [riposte]
+  infusions: [{ element: Fire, target: riposte }, { element: Shadow }]
+
+solar_berserker:
+  name: "Solar Berserker"
+  type: E
+  skills: [rage]
+  infusions: [{ element: Fire, target: rage }, { element: Earth }]
+
+spore_hunter:
+  name: "Spore Hunter"
+  type: E
+  skills: [shot]
+  infusions: [{ element: Poison, target: shot }, { element: Earth }]
+
+charged_sight:
+  name: "Charged Sight"
+  type: E
+  skills: [snipe]
+  infusions: [{ element: Poison, target: snipe }, { element: Lightning }]
+
+mirror_world:
+  name: "Mirror World"
+  type: E
+  skills: [trap]
+  infusions: [{ element: Water, target: trap }, { element: Shadow }]
+
+ninja_step:
+  name: "Ninja Step"
+  type: E
+  skills: [maneuver]
+  infusions: [{ element: Wind, target: maneuver }, { element: Shadow }]
+
+faerie_partner:
+  name: "Faerie Partner"
+  type: E
+  skills: [companion]
+  infusions: [{ element: Wind, target: companion }, { element: Poison }]
+
+rainbow_mage:
+  name: "Rainbow Mage"
+  type: E
+  skills: [bolt]
+  infusions: [{ element: Lightning, target: bolt }, { element: Ice }]
+
+alchemical_explosion:
+  name: "Alchemical Explosion"
+  type: E
+  skills: [blast]
+  infusions: [{ element: Fire, target: blast }, { element: Water }]
+
+corpse_eater:
+  name: "Corpse Eater"
+  type: E
+  skills: [consume]
+  infusions: [{ element: Unholy, target: consume }, { element: Lightning }]
+
+misty_calling:
+  name: "Misty Calling"
+  type: E
+  skills: [summon]
+  infusions: [{ element: Water, target: summon }, { element: Wind }]
+
+channels_current:
+  name: "Channel's Current"
+  type: E
+  skills: [channel]
+  infusions: [{ element: Water, target: channel }, { element: Lightning }]
+
+spectral_knife:
+  name: "Spectral Knife"
+  type: E
+  skills: [stab]
+  infusions: [{ element: Unholy, target: stab }, { element: Wind }]
+
+lichs_spike:
+  name: "Lich's Spike"
+  type: E
+  skills: [ravage]
+  infusions: [{ element: Ice, target: ravage }, { element: Unholy }]
+
+vigilante_mask:
+  name: "Vigilante Mask"
+  type: E
+  skills: [mislead]
+  infusions: [{ element: Holy, target: mislead }, { element: Shadow }]
+
+good_nights_sleep:
+  name: "Good Night's Sleep"
+  type: E
+  skills: [stun]
+  infusions: [{ element: Ice, target: stun }, { element: Shadow }]
+
+preserved_form:
+  name: "Preserved Form"
+  type: E
+  skills: [dance]
+  infusions: [{ element: Poison, target: dance }, { element: Ice }]
+
+pure_injection:
+  name: "Pure Injection"
+  type: E
+  skills: [heal]
+  infusions: [{ element: Poison, target: heal }, { element: Water }]
+
+cleansing_touch:
+  name: "Cleansing Touch"
+  type: E
+  skills: [bless]
+  infusions: [{ element: Holy, target: bless }, { element: Poison }]
+
+evil_fate:
+  name: "Evil Fate"
+  type: E
+  skills: [curse]
+  infusions: [{ element: Unholy, target: curse }, { element: Shadow }]
+
+angels_wrath:
+  name: "Angel's Wrath"
+  type: E
+  skills: [smite]
+  infusions: [{ element: Wind, target: smite }, { element: Holy }]
+
+anointed_words:
+  name: "Anointed Words"
+  type: E
+  skills: [prayer]
+  infusions: [{ element: Water, target: prayer }, { element: Holy }]
+
+magnetic_arc:
+  name: "Magnetic Arc"
+  type: E
+  skills: [cleave]
+  infusions: [{ element: Lightning, target: cleave }, { element: Earth }]
+
+fire_and_ice:
+  name: "Fire and Ice"
+  type: E
+  skills: [shout]
+  infusions: [{ element: Ice, target: shout }, { element: Fire }]
+
+divine_authority:
+  name: "Divine Authority"
+  type: E
+  skills: [withstand]
+  infusions: [{ element: Fire, target: withstand }, { element: Holy }]
+
+grave_insult:
+  name: "Grave Insult"
+  type: E
+  skills: [taunt]
+  infusions: [{ element: Earth, target: taunt }, { element: Unholy }]
+
+prism_guardian:
+  name: "Prism Guardian"
+  type: E
+  skills: [titan]
+  infusions: [{ element: Ice, target: titan }, { element: Holy }]
+
+viper_blade:
+  name: "Viper Blade"
+  type: F
+  skills: [strike]
+  infusions: [{ element: Poison, target: strike }]
+
+frostblood_mallet:
+  name: "Frostblood Mallet"
+  type: F
+  skills: [smash]
+  infusions: [{ element: Ice, target: smash }]
+
+skylance:
+  name: "Skylance"
+  type: F
+  skills: [charge]
+  infusions: [{ element: Wind, target: charge }]
+
+secutor_mk_i:
+  name: "S.E.C.U.T.O.R. MK I"
+  type: F
+  skills: [riposte]
+  infusions: [{ element: Lightning, target: riposte }]
+
+oathsign:
+  name: "Oathsign"
+  type: F
+  skills: [rage]
+  infusions: [{ element: Holy, target: rage }]
+
+blackflint_revolver:
+  name: "Blackflint Revolver"
+  type: F
+  skills: [shot]
+  infusions: [{ element: Unholy, target: shot }]
+
+red_arcane_lens:
+  name: "Red Arcane Lens"
+  type: F
+  skills: [snipe]
+  infusions: [{ element: Fire, target: snipe }]
+
+satchel_of_void_ooze:
+  name: "Satchel of Void Ooze"
+  type: F
+  skills: [trap]
+  infusions: [{ element: Shadow, target: trap }]
+
+sapphire_anklet:
+  name: "Sapphire Anklet"
+  type: F
+  skills: [maneuver]
+  infusions: [{ element: Water, target: maneuver }]
+
+feather_talisman:
+  name: "Feather Talisman"
+  type: F
+  skills: [companion]
+  infusions: [{ element: Wind, target: companion }]
+
+dark_faeries_blessing:
+  name: "Dark Faerie's Blessing"
+  type: F
+  skills: [bolt]
+  infusions: [{ element: Shadow, target: bolt }]
+
+hoof_talisman:
+  name: "Hoof Talisman"
+  type: F
+  skills: [blast]
+  infusions: [{ element: Earth, target: blast }]
+
+blue_arcane_lens:
+  name: "Blue Arcane Lens"
+  type: F
+  skills: [consume]
+  infusions: [{ element: Water, target: consume }]
+
+deployment_platform:
+  name: "Deployment Platform"
+  type: F
+  skills: [summon]
+  infusions: [{ element: Lightning, target: summon }]
+
+arcadian_brooch:
+  name: "Arcadian Brooch"
+  type: F
+  skills: [channel]
+  infusions: [{ element: Poison, target: channel }]
+
+inquisitors_prod:
+  name: "Inquisitor's Prod"
+  type: F
+  skills: [stab]
+  infusions: [{ element: Holy, target: stab }]
+
+sanguine_hook:
+  name: "Sanguine Hook"
+  type: F
+  skills: [ravage]
+  infusions: [{ element: Unholy, target: ravage }]
+
+dusk_rose:
+  name: "Dusk Rose"
+  type: F
+  skills: [mislead]
+  infusions: [{ element: Earth, target: mislead }]
+
+divine_edict:
+  name: "Divine Edict"
+  type: F
+  skills: [stun]
+  infusions: [{ element: Holy, target: stun }]
+
+fan_of_the_flames:
+  name: "Fan of the Flames"
+  type: F
+  skills: [dance]
+  infusions: [{ element: Fire, target: dance }]
+
+holy_prism:
+  name: "Holy Prism"
+  type: F
+  skills: [heal]
+  infusions: [{ element: Ice, target: heal }]
+
+writ_of_vengeance:
+  name: "Writ of Vengeance"
+  type: F
+  skills: [bless]
+  infusions: [{ element: Lightning, target: bless }]
+
+haunted_memento:
+  name: "Haunted Memento"
+  type: F
+  skills: [curse]
+  infusions: [{ element: Shadow, target: curse }]
+
+druidic_symbol:
+  name: "Druidic Symbol"
+  type: F
+  skills: [smite]
+  infusions: [{ element: Earth, target: smite }]
+
+tome_of_fables:
+  name: "Tome of Fables"
+  type: F
+  skills: [prayer]
+  infusions: [{ element: Ice, target: prayer }]
+
+oathbreakers_blade:
+  name: "Oathbreaker's Blade"
+  type: F
+  skills: [cleave]
+  infusions: [{ element: Unholy, target: cleave }]
+
+faerie_bugle:
+  name: "Faerie Bugle"
+  type: F
+  skills: [shout]
+  infusions: [{ element: Poison, target: shout }]
+
+ironshell_shield:
+  name: "Ironshell Shield"
+  type: F
+  skills: [withstand]
+  infusions: [{ element: Water, target: withstand }]
+
+dragon_knights_helm:
+  name: "Dragon Knight's Helm"
+  type: F
+  skills: [taunt]
+  infusions: [{ element: Fire, target: taunt }]
+
+rocfeather_charm:
+  name: "Rocfeather Charm"
+  type: F
+  skills: [titan]
+  infusions: [{ element: Wind, target: titan }]
+
+barbarian_greatclub:
+  name: "Barbarian Greatclub"
+  type: G
+  classId: warrior
+  skills: [smash]
+  passive: "Whenever you damage all living enemies, deal 5 additional Piercing damage to all enemies."
+
+helmet_of_the_ancestors:
+  name: "Helmet of the Ancestors"
+  type: G
+  classId: warrior
+  skills: [titan]
+  passive: "Once per turn if you would take 30 or more damage from a single ability, first lower that damage by 10"
+
+shadowrune_bolas:
+  name: "Shadowrune Bolas"
+  type: G
+  classId: rogue
+  skills: [stun]
+  passive: "Stunning a target affected by Swiftness applies Confusion for the same duration."
+
+mask_of_many_faces:
+  name: "Mask of Many Faces"
+  type: G
+  classId: rogue
+  skills: [mislead]
+  passive: "You gain 5 Shield whenever a skill is Countered or Reflected, increased to 10 for enemy skills."
+
+boomerang_blade:
+  name: "Boomerang Blade"
+  type: G
+  classId: ranger
+  skills: [trap]
+  passive: "For 1 turn after a Trap is triggered, your skills Bypass against the triggerer."
+
+ricochet_rifle:
+  name: "Ricochet Rifle"
+  type: G
+  classId: ranger
+  skills: [snipe]
+  passive: "Deal 10 damage to a random enemy whenever one of your Harmful skills is Countered."
+
+explosive_relic:
+  name: "Explosive Relic"
+  type: G
+  classId: mage
+  skills: [blast]
+  passive: "Using a skill that costs 2 or more total energy grants the user Focus until the end of their next turn."
+
+high_wizards_hat:
+  name: "High Wizard's Hat"
+  type: G
+  classId: mage
+  skills: [channel]
+  passive: "If you are Stunned while Channeling a skill, you gain Immune until the end of your next turn."
+
+hand_of_blessing:
+  name: "Hand of Blessing"
+  type: G
+  classId: priest
+  skills: [bless]
+  passive: "The first Buff you apply to an ally each turn is also applied to you."
+
+robe_of_the_song:
+  name: "Robe of the Song"
+  type: G
+  classId: priest
+  skills: [prayer]
+  passive: "While your health is 60 or below, your Helpful skills cannot be Stunned."
+
+totem_of_the_fallen:
+  name: "Totem of the Fallen"
+  type: G
+  classId: druid
+  skills: [companion]
+  passive: "Gain 1 Might for 1 turn whenever an allied Minion is killed by an enemy."
+
+cloak_of_ancient_leaves:
+  name: "Cloak of Ancient Leaves"
+  type: G
+  classId: druid
+  skills: [rage]
+  passive: "Gain 1 Might and 1 Vulnerable while at or above 80 Health."
+
+banner_of_glory:
+  name: "Banner of Glory"
+  type: G
+  classId: knight
+  skills: [shout]
+  passive: "Remove a random Debuff from all allies when you Shout"
+
+knights_buckler:
+  name: "Knight's Buckler"
+  type: G
+  classId: knight
+  skills: [riposte]
+  passive: "Countering or Reflecting a skill applies 1 Weakness and 1 Vulnerable to the target for 2 turns"
+
+rod_of_domination:
+  name: "Rod of Domination"
+  type: G
+  classId: warlock
+  skills: [summon]
+  passive: "Damage that would be dealt to you is instead dealt to one of your Minions at random. You take double damage while you have no Minions."
+
+blood_chalice:
+  name: "Blood Chalice"
+  type: G
+  classId: warlock
+  skills: [consume]
+  passive: "Automatically kill Minions that fall to 10 or lower health, gaining a random Buff."
+
+visor_of_the_restful_spirit:
+  name: "Visor of the Restful Spirit"
+  type: G
+  classId: monk
+  skills: [maneuver]
+  passive: "At the start of your turn, gain 2 Might if you weren't damaged last turn."
+
+footwraps_of_the_long_path:
+  name: "Footwraps of the Long Path"
+  type: G
+  classId: monk
+  skills: [dance]
+  passive: "Using a Harmful skill makes your Helpful skills Unstunnable for 1 turn."
+
+hand_of_healing:
+  name: "Hand of Healing"
+  type: G
+  classId: paladin
+  skills: [heal]
+  passive: "Using Heal on an ally also heals you for 10 Health, but you may no longer Heal yourself."
+
+golden_plate:
+  name: "Golden Plate"
+  type: G
+  classId: paladin
+  skills: [withstand]
+  passive: "Gain 1 Armor per 35 missing Health."
+
+crown_of_flames:
+  name: "Crown of Flames"
+  type: H
+  infusions: [{ element: Fire }]
+  passive: "Your Shout, Curse, and Taunt skills deal 10 Affliction damage to a random enemy when used."
+
+flame_whip:
+  name: "Flame Whip"
+  type: H
+  infusions: [{ element: Fire }]
+  passive: "Trap, Riposte, and Mislead skills have their cooldowns reset when an allied character dies."
+
+frozen_gauntlets:
+  name: "Frozen Gauntlets"
+  type: H
+  infusions: [{ element: Ice }]
+  passive: "After using Cleave, Withstand, or Blast skills, increase any Shield you have by 10."
+
+glacial_pendant:
+  name: "Glacial Pendant"
+  type: H
+  infusions: [{ element: Ice }]
+  passive: "Heal for 5 Health whenever one of your Stun or Curse skills expires, increased to 10 if you are at or below 40 Health"
+
+winged_sandals:
+  name: "Winged Sandals"
+  type: H
+  infusions: [{ element: Wind }]
+  passive: "Once per turn, taking new damage lowers the cooldown of a random Charge, Dance or Maneuver by 1"
+
+rocfeather_cloak:
+  name: "Rocfeather Cloak"
+  type: H
+  infusions: [{ element: Wind }]
+  passive: "Your Strike and Cleave skills deal 5 additional damage for each Swiftness you have."
+
+electroblade:
+  name: "Electroblade"
+  type: H
+  infusions: [{ element: Lightning }]
+  passive: "Your Strike, Bolt and Charge skills deal 5 Piercing damage to two random targets when used."
+
+cybernetic_enhancements:
+  name: "Cybernetic Enhancements"
+  type: H
+  infusions: [{ element: Lightning }]
+  passive: "Your Dance, Titan, and Rage skills grant 1 Might, 1 Armor, and 1 Swiftness for 1 turn."
+
+chalice_of_life:
+  name: "Chalice of Life"
+  type: H
+  infusions: [{ element: Water }]
+  passive: "Gain 1 Focus each turn your Channel or Rage skills are active. When these skills end, gain 1 Confusion."
+
+trident_of_the_deep:
+  name: "Trident of the Deep"
+  type: H
+  infusions: [{ element: Water }]
+  passive: "Gain 1 Renew when using Bless, Heal, or Withstand skills."
+
+crown_of_the_caller:
+  name: "Crown of the Caller"
+  type: H
+  infusions: [{ element: Earth }]
+  passive: "Your Summon and Companion skills share Buffs with you."
+
+earthcallers_hammer:
+  name: "Earthcaller's Hammer"
+  type: H
+  infusions: [{ element: Earth }]
+  passive: "Your Stun and Smash skills remove a random Buff from their primary target."
+
+lotus_essence:
+  name: "Lotus Essence"
+  type: H
+  infusions: [{ element: Poison }]
+  passive: "Ravage and Consume extend the duration of non-Stun Debuffs on the target by 1 turn."
+
+cryptid_dagger:
+  name: "Cryptid Dagger"
+  type: H
+  infusions: [{ element: Poison }]
+  passive: "Stab and Strike skills deal 5 more damage to Prey."
+
+cloak_of_night:
+  name: "Cloak of Night"
+  type: H
+  infusions: [{ element: Shadow }]
+  passive: "Your Mislead, Riposte, and Maneuver skills have 1 less cooldown, to a minimum of 1."
+
+wightblades:
+  name: "Wightblades"
+  type: H
+  infusions: [{ element: Shadow }]
+  passive: "Your Stab and Shot abilities deal 5 less damage, but they Bypass and cannot be Countered."
+
+revered_crown:
+  name: "Revered Crown"
+  type: H
+  infusions: [{ element: Holy }]
+  passive: "Apply 5 Shield to allies you heal, and heal allies you Shield for 5 Health. This Healing and Shielding cannot be modified, and cannot cause Triggers."
+
+penance_lash:
+  name: "Penance Lash"
+  type: H
+  infusions: [{ element: Holy }]
+  passive: "Effects applied by your Bolt and Smite skills last an additional turn."
+
+helm_of_the_damned:
+  name: "Helm of the Damned"
+  type: H
+  infusions: [{ element: Unholy }]
+  passive: "Your Bless and Curse skills grant you 1 Might or 1 Armor for their duration."
+
+the_black_blade:
+  name: "The Black Blade"
+  type: H
+  infusions: [{ element: Unholy }]
+  passive: "Your Ravage and Charge skills steal a random non-Elemental Buff from their primary target."
+
+fire_crystal:
+  name: "Fire Crystal"
+  type: I
+  infusions: [{ element: Fire }, { element: Fire }]
+
+ice_crystal:
+  name: "Ice Crystal"
+  type: I
+  infusions: [{ element: Ice }, { element: Ice }]
+
+wind_crystal:
+  name: "Wind Crystal"
+  type: I
+  infusions: [{ element: Wind }, { element: Wind }]
+
+lightning_crystal:
+  name: "Lightning Crystal"
+  type: I
+  infusions: [{ element: Lightning }, { element: Lightning }]
+
+water_crystal:
+  name: "Water Crystal"
+  type: I
+  infusions: [{ element: Water }, { element: Water }]
+
+earth_crystal:
+  name: "Earth Crystal"
+  type: I
+  infusions: [{ element: Earth }, { element: Earth }]
+
+poison_crystal:
+  name: "Poison Crystal"
+  type: I
+  infusions: [{ element: Poison }, { element: Poison }]
+
+shadow_crystal:
+  name: "Shadow Crystal"
+  type: I
+  infusions: [{ element: Shadow }, { element: Shadow }]
+
+holy_crystal:
+  name: "Holy Crystal"
+  type: I
+  infusions: [{ element: Holy }, { element: Holy }]
+
+unholy_crystal:
+  name: "Unholy Crystal"
+  type: I
+  infusions: [{ element: Unholy }, { element: Unholy }]
+
+officers_saber:
+  name: "Officer's Saber"
+  type: J
+  skills: [rage, riposte]
+
+wicked_blades:
+  name: "Wicked Blades"
+  type: J
+  skills: [dance, mislead]
+
+farstrider_longbow:
+  name: "Farstrider Longbow"
+  type: J
+  skills: [snipe, companion]
+
+staff_of_the_magi:
+  name: "Staff of the Magi"
+  type: J
+  skills: [summon, prayer]
+
+insatiable_armaments:
+  name: "Insatiable Armaments"
+  type: J
+  skills: [withstand, consume]
+
+totem_of_natures_fury:
+  name: "Totem of Nature's Fury"
+  type: J
+  skills: [rage, taunt]
+
+knights_spear_and_shield:
+  name: "Knight's Spear and Shield"
+  type: J
+  skills: [charge, stun]
+
+tome_of_the_damned:
+  name: "Tome of the Damned"
+  type: J
+  skills: [curse, ravage]
+
+staff_of_the_grandmaster:
+  name: "Staff of the Grandmaster"
+  type: J
+  skills: [prayer, dance]
+
+paladins_mace_and_shield:
+  name: "Paladin's Mace and Shield"
+  type: J
+  skills: [withstand, bless]
+
+worn_blade:
+  name: "Worn Blade"
+  type: J
+  skills: [strike]
+
+mighty_greathammer:
+  name: "Mighty Greathammer"
+  type: J
+  skills: [smash]
+
+infantry_spear:
+  name: "Infantry Spear"
+  type: J
+  skills: [charge]
+
+duelling_sidearm:
+  name: "Duelling Sidearm"
+  type: J
+  skills: [riposte]
+
+berserker_helmet:
+  name: "Berserker Helmet"
+  type: J
+  skills: [rage]
+
+trackers_shortbow:
+  name: "Tracker's Shortbow"
+  type: J
+  skills: [shot]
+
+marksmans_rifle:
+  name: "Marksman's Rifle"
+  type: J
+  skills: [snipe]
+
+trappers_blade:
+  name: "Trapper's Blade"
+  type: J
+  skills: [trap]
+
+grappling_hook:
+  name: "Grappling Hook"
+  type: J
+  skills: [maneuver]
+
+bear_idol:
+  name: "Bear Idol"
+  type: J
+  skills: [companion]
+
+apprentice_wand:
+  name: "Apprentice Wand"
+  type: J
+  skills: [bolt]
+
+magic_tome:
+  name: "Magic Tome"
+  type: J
+  skills: [blast]
+
+arcane_orb:
+  name: "Arcane Orb"
+  type: J
+  skills: [consume]
+
+glove_of_the_arcanist:
+  name: "Glove of the Arcanist"
+  type: J
+  skills: [summon]
+
+crown_of_the_magi:
+  name: "Crown of the Magi"
+  type: J
+  skills: [channel]
+
+assassins_knife:
+  name: "Assassin's Knife"
+  type: J
+  skills: [stab]
+
+butchers_blades:
+  name: "Butcher's Blades"
+  type: J
+  skills: [ravage]
+
+smoke_bomb:
+  name: "Smoke Bomb"
+  type: J
+  skills: [mislead]
+
+blackjack:
+  name: "Blackjack"
+  type: J
+  skills: [stun]
+
+dervish_blades:
+  name: "Dervish Blades"
+  type: J
+  skills: [dance]
+
+initiates_mace:
+  name: "Initiate's Mace"
+  type: J
+  skills: [heal]
+
+holy_water:
+  name: "Holy Water"
+  type: J
+  skills: [bless]
+
+cursed_vessel:
+  name: "Cursed Vessel"
+  type: J
+  skills: [curse]
+
+holy_sceptre:
+  name: "Holy Sceptre"
+  type: J
+  skills: [smite]
+
+book_of_hymns:
+  name: "Book of Hymns"
+  type: J
+  skills: [prayer]
+
+battleaxe:
+  name: "Battleaxe"
+  type: J
+  skills: [cleave]
+
+war_horn:
+  name: "War Horn"
+  type: J
+  skills: [shout]
+
+iron_shield:
+  name: "Iron Shield"
+  type: J
+  skills: [withstand]
+
+flag_of_challenge:
+  name: "Flag of Challenge"
+  type: J
+  skills: [taunt]
+
+mithril_plate:
+  name: "Mithril Plate"
+  type: J
+  skills: [titan]
+
+fire_shard:
+  name: "Fire Shard"
+  type: K
+  infusions: [{ element: Fire }]
+
+ice_shard:
+  name: "Ice Shard"
+  type: K
+  infusions: [{ element: Ice }]
+
+wind_shard:
+  name: "Wind Shard"
+  type: K
+  infusions: [{ element: Wind }]
+
+lightning_shard:
+  name: "Lightning Shard"
+  type: K
+  infusions: [{ element: Lightning }]
+
+water_shard:
+  name: "Water Shard"
+  type: K
+  infusions: [{ element: Water }]
+
+earth_shard:
+  name: "Earth Shard"
+  type: K
+  infusions: [{ element: Earth }]
+
+poison_shard:
+  name: "Poison Shard"
+  type: K
+  infusions: [{ element: Poison }]
+
+shadow_shard:
+  name: "Shadow Shard"
+  type: K
+  infusions: [{ element: Shadow }]
+
+holy_shard:
+  name: "Holy Shard"
+  type: K
+  infusions: [{ element: Holy }]
+
+unholy_shard:
+  name: "Unholy Shard"
+  type: K
+  infusions: [{ element: Unholy }]

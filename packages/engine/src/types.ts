@@ -134,6 +134,8 @@ export interface CharacterSpec {
   hp?: number;
   /** Skill def ids (base or elemental variants), 1–5 of them. */
   skills: string[];
+  /** Status ids applied permanently at match start (equipment passives). */
+  passives?: string[];
 }
 
 export interface MatchConfig {

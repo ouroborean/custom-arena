@@ -1,4 +1,5 @@
-import { makeCtx, type Ctx } from './ctx.js';
+import { makeCtx, resolveEffectDef, type Ctx } from './ctx.js';
+import { applyEffect } from './effects.js';
 import type { ContentBundle } from './defs.js';
 import { emptyEnergy } from './energy.js';
 import { seedRng } from './rng.js';
@@ -24,6 +25,7 @@ export function createMatch(content: ContentBundle, config: MatchConfig): ApplyR
         throw new Error(`${spec.name} must have 1–${MAX_SKILLS} skills`);
       }
       for (const id of spec.skills) if (!content.skills[id]) throw new Error(`Unknown skill ${id} on ${spec.name}`);
+      for (const id of spec.passives ?? []) if (!content.statuses[id]) throw new Error(`Unknown passive ${id} on ${spec.name}`);
       const hp = spec.hp ?? DEFAULT_HP;
       units.push({
         id: `p${p}c${i}`,
@@ -59,6 +61,15 @@ export function createMatch(content: ContentBundle, config: MatchConfig): ApplyR
     seq: 0,
   };
   const ctx: Ctx = makeCtx(state, content);
+  // Equipment passives: permanent effects on their character from the start.
+  config.teams.forEach((team, p) =>
+    team.forEach((spec, i) => {
+      const u = units.find((x) => x.id === `p${p}c${i}`)!;
+      for (const id of spec.passives ?? []) {
+        applyEffect(ctx, { def: resolveEffectDef(content, id), inline: false, bearer: u, source: u, duration: 'permanent' });
+      }
+    }),
+  );
   startTurn(ctx);
   return { state, events: ctx.events };
 }

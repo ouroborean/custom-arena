@@ -1011,7 +1011,7 @@ Suggested order (simple → complex mechanics):
 
 Per element: statuses → 30 variants → scenario tests → tooltip-diff pass → sim run.
 
-### Phase 4: Backend and meta (4–6 weeks)
+### Phase 4: Backend and meta (4–6 weeks) — in progress: API server, auth, content delivery, roster/teams, equipment catalogue + loadouts, client screens ✅ (2026-09-26); see docs/meta.md
 - Auth, profiles, the Postgres schema, and REST APIs.
 - Character generation (rarity, class pools, default infusions, portraits), roster, and teams.
 - Inventory, equipment, the loadout validator (budgets, slots, skill cap), and presets.

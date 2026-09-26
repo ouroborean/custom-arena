@@ -391,6 +391,34 @@ export interface ClassDef {
   affinity: string[];
 }
 
+/** Equipment types (GDD §8.2): which slot an item fits and what it grants. */
+export type ItemType = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
+
+export interface ItemInfusion {
+  element: string;
+  /** The skill (base id) it infuses; omitted when the player chooses the target. */
+  target?: string;
+}
+
+/** An equipment item (GDD §8.1 grant model). Items never enter the engine directly: the loadout
+ * resolver (@arena/meta) turns them into skills, infusions and passives on a CharacterSpec. */
+export interface ItemDef {
+  id: string;
+  name: string;
+  type: ItemType;
+  /** Base skills granted (added when the character lacks them and has room). */
+  skills: string[];
+  infusions: ItemInfusion[];
+  /** Passive text from the sheet. */
+  passive?: string;
+  /** Status implementing the passive; absent until the passive is implemented (Phase 7). */
+  passiveEffect?: string;
+  /** Only this class can equip it (type G class armor). */
+  classId?: string;
+  /** The sheet left it unnamed; the name is a placeholder. */
+  placeholder?: boolean;
+}
+
 export interface ContentBundle {
   version: string;
   skills: Record<string, SkillDef>;
@@ -401,6 +429,8 @@ export interface ContentBundle {
   macros: Record<string, Op[]>;
   /** Named conditions, referenced by `{ check: { cond } }` (evaluated with `it` = the unit). */
   conditions: Record<string, Cond>;
+  /** Equipment catalogue. */
+  items: Record<string, ItemDef>;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */
