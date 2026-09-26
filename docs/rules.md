@@ -538,7 +538,7 @@ Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception 
 | Dream Seeker | Not Channeled, since the sheet doesn't say so, and so not interruptible. 35 damage a turn later with Bypass, and it doesn't wake a Sleeping target. |
 | Dream Chains | Visible. If the target uses no skill during their next turn, they take 15 indirect Affliction and fall Asleep for 2 turns. |
 | Spirit Raven | Fel Swoop heals the Raven itself. Blackwing's Taunt points at the Raven. |
-| Wave of Darkness | The Confusion has no duration, so it's permanent (Q16). See the balance notes. |
+| Wave of Darkness | **Changed at the user's request (2026-09-26):** the Confusion lasts 1 turn. The sheet gives no duration, which made it permanent under Q16 and an 84% outlier. |
 | Drink Darkness | 5 Affliction to all enemies. Each Blinded enemy then loses Blind and takes 10 more Affliction. |
 | Nightsong | Channel for 3 turns. If it runs to completion (not interrupted), every living enemy falls Asleep for 2 turns, after the final tick. |
 | Hall of Phantoms | Always grants a fresh Stealth. If the user was already Stealthed, they also get Ghosted, Immune and 1 Focus for 2 turns. |
@@ -552,7 +552,7 @@ Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception 
 
 - By character element: Fire 52.4%, Poison 51.7%, Ice 50.1%, Lightning 50.1%, None 49.9%, Wind 49.9%, Holy 49.0%, **Shadow 48.4%**, Unholy 47.5%, Water 45.8%.
   - With 10 pools, each skill now appears in only about 110 games, so per-skill numbers are noisy (±5%).
-- **Wave of Darkness is about 84%**, the largest outlier in the game. 25 damage to every enemy every other turn, plus a **permanent** Confusion stack each time (no duration on the sheet, so Q16), quickly makes enemy skills unaffordable. **Recommended fix:** give the Confusion a duration of 1–2 turns.
+- **Wave of Darkness** was about 84% while its Confusion was permanent (Q16), because stacking Confusion quickly made enemy skills unaffordable. With a 1-turn Confusion, it's about 64%, and Shadow overall is about 47%.
 - Other strong Shadow skills: Shadow Mockery (about 61%) and Spirit Raven (about 59%).
 - Weakest: Hall of Phantoms (about 32%), Blinding Powder (about 34%), Touch of Slumber (about 35%) and Nightwrap (about 36%). The bot can't exploit Stealth timing or plan around Blind.
 

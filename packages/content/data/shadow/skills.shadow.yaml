@@ -222,14 +222,15 @@ blast.shadow:
   archetype: Blast
   element: Shadow
   name: Wave of Darkness
-  description: Deals 25 damage to all enemies and gives each 1 Confusion.
+  description: Deals 25 damage to all enemies and gives each 1 Confusion for 1 turn.
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
     - { op: damage, to: targets, amount: 25 }
-    - { op: apply, to: targets, effect: confusion }
+    # The sheet gives no duration (permanent under Q16), which made it a ~84% outlier; 1 turn per the user.
+    - { op: apply, to: targets, effect: confusion, duration: { enemyTurns: 1 } }
 
 consume.shadow:
   archetype: Consume
