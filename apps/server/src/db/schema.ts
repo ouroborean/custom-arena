@@ -167,6 +167,37 @@ export const ratings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.queue] })],
 );
 
+/** Currency balances (GDD §10.5 currencies): one row per user and currency (docs/equipment.md §3). */
+export const currencies = pgTable(
+  'currencies',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    amount: integer('amount').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.kind] })],
+);
+
+/** What each player earned from a match; the key makes rewards at-most-once. */
+export const matchRewards = pgTable(
+  'match_rewards',
+  {
+    matchId: uuid('match_id')
+      .notNull()
+      .references(() => matches.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    currency: jsonb('currency').$type<Record<string, number>>().notNull(),
+    /** Item ids granted (their instances have source 'reward'). */
+    items: jsonb('items').$type<string[]>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('match_rewards_user_idx').on(t.userId)],
+);
+
 /** Security-relevant events (GDD Phase 5 anti-abuse): logins, failures, forfeits, rate limiting. */
 export const auditLog = pgTable(
   'audit_log',

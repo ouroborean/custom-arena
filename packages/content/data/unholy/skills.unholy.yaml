@@ -330,7 +330,7 @@ stab.unholy:
   ops:
     - { op: set, var: healthy, value: { if: { hpAbove: { unit: primary, value: 69 } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 15 }
-    - { op: if, cond: { varTrue: healthy }, then: [{ op: apply, to: actor, effect: soul_fragment }] }
+    - { op: if, cond: { varTrue: healthy }, then: [{ op: apply, to: actor, effect: soul_fragment }, { op: signal, name: stab_bonus }] }
 
 ravage.unholy:
   archetype: Ravage

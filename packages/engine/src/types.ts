@@ -50,6 +50,8 @@ export interface Unit {
   element?: string;
   /** Generic per-unit resource store (e.g. future Soul Fragments, Charge). */
   counters: Record<string, number>;
+  /** For minions: the archetype of the skill that summoned them (Companion, Summon, …). */
+  summonArchetype?: string;
 }
 
 export interface EffectInstance {

@@ -1,3 +1,5 @@
+import { formatAmounts } from '@arena/meta';
+import { content } from '../content.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
 
@@ -57,6 +59,7 @@ export function GameOverOverlay() {
   const record = match.record;
   const seed = match.config?.seed ?? 0;
   const rating = online?.rating;
+  const reward = online?.reward;
 
   const download = () => {
     if (!record) return;
@@ -82,6 +85,17 @@ export function GameOverOverlay() {
           <p className="rating-change">
             Rating {rating.before} → <b>{rating.after}</b> ({rating.after >= rating.before ? '+' : ''}
             {rating.after - rating.before})
+          </p>
+        )}
+        {reward && (
+          <p className="reward">
+            Earned {formatAmounts(content, reward.currency)}
+            {reward.items.map((id) => (
+              <span key={id}>
+                {' · '}
+                <b>{content.items[id]?.name ?? id}</b>
+              </span>
+            ))}
           </p>
         )}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>

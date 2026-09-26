@@ -6,7 +6,7 @@ import { applyCommand, legalQueueCommands, type Command, type PlayerId, type Pla
 import { loadContentOrThrow } from '@arena/content';
 import { bundleFromState, type ServerMessage, type TurnBundle } from '@arena/protocol';
 import { FakeClock } from '../src/match/clock.js';
-import { DISCONNECT_GRACE_MS, MatchRoom, MAX_TIMEOUTS, type EndReason, type RoomStore } from '../src/match/room.js';
+import { DISCONNECT_GRACE_MS, MatchRoom, MAX_TIMEOUTS, type EndReason, type FinishOutcome, type RoomStore } from '../src/match/room.js';
 
 const content = loadContentOrThrow();
 
@@ -27,12 +27,14 @@ class Conn {
 class MemStore implements RoomStore {
   actions: { seq: number; player: PlayerId; command: Command }[] = [];
   result: { winner: PlayerId | null; endReason: EndReason; turns: number } | null = null;
+  /** What finish() reports (rewards per seat), if anything. */
+  outcome: FinishOutcome | null = null;
   async appendActions(_id: string, a: { seq: number; player: PlayerId; command: Command }[]) {
     this.actions.push(...a);
   }
   async finish(_id: string, r: { winner: PlayerId | null; endReason: EndReason; turns: number }) {
     this.result = r;
-    return null;
+    return this.outcome;
   }
 }
 
@@ -150,5 +152,14 @@ describe('MatchRoom', () => {
     expect(store.actions.map((a) => a.seq)).toEqual(store.actions.map((_, i) => i + 1));
     expect(store.actions.at(-1)!.command).toEqual({ t: 'surrender' });
     expect(c[1].last('match.end')).toBeDefined();
+  });
+
+  it("tells each player their own reward when the match ends", async () => {
+    const { room, c, store } = setup();
+    store.outcome = { ratings: null, rewards: [{ currency: { gold: 40 }, items: ['wind_katana'] }, null] };
+    room.surrender(1);
+    await room.finished;
+    expect(c[0].last('match.end')?.reward).toEqual({ currency: { gold: 40 }, items: ['wind_katana'] });
+    expect(c[1].last('match.end')?.reward).toBeUndefined();
   });
 });

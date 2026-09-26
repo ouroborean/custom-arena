@@ -1,9 +1,9 @@
 // Turn structure (GDD §3.3): start-of-turn energy, end-of-turn ticks, duration countdown,
 // cooldowns, win checks.
 
-import { effectDef, emit, livingCharacters, other, unit, type Ctx } from './ctx.js';
+import { effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
 import { removeEffect } from './effects.js';
-import { enqueueTriggers, flushTriggers, runOps, type Scope } from './ops.js';
+import { enqueueFor, enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
 import { energyGainBonus } from './queries.js';
 import { pick } from './rng.js';
 import { COLORS, type EffectInstance, type Energy } from './types.js';
@@ -38,7 +38,11 @@ export function startTurn(ctx: Ctx): void {
   for (let i = 0; i < Math.max(0, count); i++) gained[pick(ctx.s.rng, COLORS)] += 1;
   for (const c of COLORS) ctx.s.players[p].energy[c] += gained[c];
   emit(ctx, { t: 'energyGained', player: p, gained }, p);
-  for (const e of spent) removeEffect(ctx, e, 'consumed'); // Charged / Sapped fire once at 3 stacks
+  for (const e of spent) {
+    // Charged / Sapped fire once at 3 stacks; equipment hears it (Emblem of the Tempest).
+    enqueueFor(ctx, e.bearer, 'energyFromEffect', { effectKey: effectKey(e), eventEffect: e.id });
+    removeEffect(ctx, e, 'consumed');
+  }
 
   for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);
@@ -85,25 +89,7 @@ export function endTurn(ctx: Ctx): void {
   }
   for (const e of expired) {
     if (!s.effects.includes(e)) continue;
-    const onExpire = effectDef(ctx.c, e).onExpire;
-    removeEffect(ctx, e, 'expired');
-    // Once the match is over, finish clearing expired effects but run no more payloads.
-    if (onExpire && unit(ctx, e.bearer).alive && s.phase !== 'finished') {
-      const sc: Scope = {
-        actor: e.source,
-        targets: e.targets,
-        bearer: e.bearer,
-        self: e,
-        vars: {},
-        lastDamage: 0,
-        lastDamaged: [],
-        // Delayed payloads (Snipe) are the skill's own effect, so their damage is direct.
-        direct: true,
-        bypass: false,
-      };
-      if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
-      runOps(ctx, onExpire, sc);
-    }
+    expireEffect(ctx, e);
     checkGameOver(ctx);
   }
   if (s.phase === 'finished') return;

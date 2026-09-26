@@ -35,7 +35,7 @@ describe('resolveLoadout', () => {
     expect(r.problems).toEqual([]);
     expect(skillOf(r, 'smash')?.infusion).toBe('Fire');
     expect(r.usage).toEqual({ skills: 0, passives: 1, infusions: 1 });
-    expect(r.passiveEffects).toEqual([]); // passives aren't implemented yet (Phase 7)
+    expect(r.passiveEffects).toEqual(['eq_magma_hammer']); // applied at match start
   });
 
   it('grants a missing skill when there is room', () => {
@@ -113,5 +113,24 @@ describe('resolveLoadout', () => {
     expect(spec.skills).toEqual(['strike.fire', 'smash.fire', 'titan.wind', 'charge.lightning']);
     const { state } = createMatch(content, { seed: 1, teams: [[spec], [spec]] });
     expect(state.units[0]!.skills.map((s) => s.defId)).toEqual(spec.skills);
+  });
+});
+
+describe('randomLoadout', () => {
+  it('builds loadouts the resolver accepts, usually with equipment', async () => {
+    const { rollCharacter, randomLoadout } = await import('../src/index.js');
+    const { seedRng } = await import('@arena/engine');
+    let equipped = 0;
+    for (let s = 1; s <= 60; s++) {
+      const rng = seedRng(s);
+      const { character } = rollCharacter(content, rng);
+      const loadout = randomLoadout(content, character, rng);
+      const r = resolveLoadout(content, character, loadout);
+      expect(r.problems).toEqual([]);
+      if (Object.keys(loadout).length > 0) equipped++;
+      // The team spec is valid engine input.
+      createMatch(content, { seed: s, teams: [[toCharacterSpec(character, r)], [toCharacterSpec(character, r)]] });
+    }
+    expect(equipped).toBeGreaterThan(50);
   });
 });

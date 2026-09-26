@@ -4,6 +4,7 @@
 import { PROTOCOL_VERSION, type ClientMessage, type QueueMode, type ServerMessage } from '@arena/protocol';
 import { create } from 'zustand';
 import { content } from '../content.js';
+import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { RemoteMatch } from './RemoteMatch.js';
 
@@ -168,6 +169,8 @@ class OnlineLink {
       case 'match.end': {
         this.sessions.get(msg.matchId)?.handle(msg);
         useOnline.setState({ lobby: { kind: 'idle' } });
+        // Rewards changed the wallet and inventory.
+        if (msg.reward) void useMeta.getState().refresh();
         return;
       }
       case 'match.events':

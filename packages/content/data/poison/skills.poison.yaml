@@ -279,7 +279,7 @@ stab.poison:
     - { op: damage, to: primary, amount: 5, type: Piercing }
     - op: if
       cond: { check: { cond: prey, unit: primary } }
-      then: [{ op: gainEnergy, amount: 1 }]
+      then: [{ op: gainEnergy, amount: 1 }, { op: signal, name: stab_bonus }]
 
 ravage.poison:
   archetype: Ravage

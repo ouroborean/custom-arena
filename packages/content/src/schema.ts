@@ -46,7 +46,8 @@ export const durationSchema: z.ZodType<DurationSpec> = z.lazy(() =>
     z.strictObject({ thisTurn: z.literal(true) }),
     z.strictObject({ enemyTurns: z.union([z.number().int().min(1), valueSchema]) }),
     z.strictObject({ ownTurns: z.union([z.number().int().min(1), valueSchema]) }),
-    z.strictObject({ raw: z.number().int().min(1) }),
+    z.strictObject({ raw: z.union([z.number().int().min(1), valueSchema]) }),
+    z.strictObject({ sameAsEvent: z.literal(true) }),
   ]),
 ) as z.ZodType<DurationSpec>;
 
@@ -65,6 +66,7 @@ const namedSelector = z.enum([
   'lastDamaged',
   'summoner',
   'eventTargets',
+  'eventPrimary',
   'allUnits',
   'lastSummoned',
 ]);
@@ -80,8 +82,8 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
 
 export const condSchema: z.ZodType<Cond> = z.lazy(() =>
   z.union([
-    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
-    z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string() }) }),
+    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string(), mine: z.boolean().optional() }) }),
+    z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string(), mine: z.boolean().optional() }) }),
     z.strictObject({ hpAtMost: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({ hpAbove: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({
@@ -91,7 +93,27 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ isActor: selectorSchema }),
     z.strictObject({ isEnemy: selectorSchema }),
-    z.strictObject({ minion: z.strictObject({ unit: selectorSchema, types: z.array(z.string()).optional() }) }),
+    z.strictObject({
+      minion: z.strictObject({
+        unit: selectorSchema,
+        types: z.array(z.string()).optional(),
+        fromArchetypes: z.array(z.string()).optional(),
+        mine: z.boolean().optional(),
+      }),
+    }),
+    z.strictObject({ isEventTarget: selectorSchema }),
+    z.strictObject({ appliedFromArchetype: z.string() }),
+    z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1) }) }),
+    z.strictObject({
+      eventSkill: z.strictObject({
+        archetypes: z.array(z.string()).optional(),
+        costAtLeast: z.number().optional(),
+        tags: z.array(z.string()).optional(),
+      }),
+    }),
+    z.strictObject({ channeling: selectorSchema }),
+    z.strictObject({ stunned: selectorSchema }),
+    z.strictObject({ actedThisTurn: selectorSchema }),
     z.strictObject({ hasShield: selectorSchema }),
     z.strictObject({ hasSkill: z.strictObject({ unit: selectorSchema, archetypes: z.array(z.string()).min(1) }) }),
     z.strictObject({ hasKind: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
@@ -120,6 +142,12 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ countOf: selectorSchema }),
     z.strictObject({ missingHp: selectorSchema }),
     z.strictObject({ hp: selectorSchema }),
+    z.strictObject({ skillCost: z.literal(true) }),
+    z.strictObject({ deadCount: z.enum(['enemies', 'allies']) }),
+    z.strictObject({ alliesActed: z.literal(true) }),
+    z.strictObject({ eventAmount: z.literal(true) }),
+    z.strictObject({ eventDuration: z.literal(true) }),
+    z.strictObject({ energy: z.literal(true) }),
     z.strictObject({ totalStacks: z.strictObject({ in: selectorSchema, effect: z.string() }) }),
     z.strictObject({ div: z.tuple([valueSchema, valueSchema]) }),
     z.strictObject({ sum: z.array(valueSchema) }),
@@ -131,38 +159,76 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
 const damageWhen = z.strictObject({ direct: z.boolean().optional(), types: z.array(damageType).optional() });
 const skillClass = z.enum(['Strategic', 'NonStrategic']);
 
+/** Fields every modifier may carry: an `if` condition and archetype / tag filters (equipment). */
+const modBase = {
+  if: z.lazy(() => condSchema).optional(),
+  archetypes: z.array(z.string()).optional(),
+  skillsWith: z.array(z.string()).optional(),
+};
+const mod = <T extends z.ZodRawShape>(shape: T) => z.strictObject({ ...shape, ...modBase });
+
 export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod', [
-  z.strictObject({ mod: z.literal('damageDealt'), amount: z.number(), perStack: z.boolean().optional(), when: damageWhen.optional() }),
-  z.strictObject({
+  mod({
+    mod: z.literal('damageDealt'),
+    amount: z.number(),
+    perStack: z.boolean().optional(),
+    when: damageWhen.optional(),
+    value: z.lazy(() => valueSchema).optional(),
+    target: z.lazy(() => condSchema).optional(),
+    mul: z.number().min(0).optional(),
+    onePerTurn: z.boolean().optional(),
+  }),
+  mod({
     mod: z.literal('damageTaken'),
     amount: z.number(),
     perStack: z.boolean().optional(),
     when: damageWhen.optional(),
     armor: z.boolean().optional(),
+    value: z.lazy(() => valueSchema).optional(),
+    atLeast: z.number().optional(),
+    oncePerTurn: z.boolean().optional(),
+    mul: z.number().min(0).optional(),
   }),
-  z.strictObject({ mod: z.literal('costGeneric'), amount: z.number().int(), perStack: z.boolean().optional() }),
-  z.strictObject({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional() }),
-  z.strictObject({ mod: z.literal('untargetable'), by: z.enum(['enemies', 'allies']), bypassable: z.boolean() }),
-  z.strictObject({ mod: z.literal('blockIndirectDamage') }),
-  z.strictObject({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional() }),
-  z.strictObject({ mod: z.literal('noCostReduction') }),
-  z.strictObject({ mod: z.literal('cannotApplyBuffs') }),
-  z.strictObject({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),
-  z.strictObject({ mod: z.literal('invulnerableTo'), sourceHas: z.array(z.string()).min(1) }),
-  z.strictObject({ mod: z.literal('ignoreCounters') }),
-  z.strictObject({ mod: z.literal('bonusStacksOnApply'), effect: z.string(), amount: z.number().int() }),
-  z.strictObject({ mod: z.literal('immuneTo'), kind: effectKind }),
-  z.strictObject({ mod: z.literal('negateNext'), effect: z.string() }),
-  z.strictObject({ mod: z.literal('forceTarget') }),
-  z.strictObject({ mod: z.literal('noArmorOrShield') }),
-  z.strictObject({ mod: z.literal('energyGain'), amount: z.number().int(), atStacks: z.number().int().min(1).optional() }),
-  z.strictObject({ mod: z.literal('healingReceived'), mul: z.number().min(0), roundUpTo: z.number().int().min(1).optional() }),
-  z.strictObject({ mod: z.literal('healFromDirectDamage') }),
-  z.strictObject({ mod: z.literal('hpFloor'), amount: z.number().int() }),
-  z.strictObject({ mod: z.literal('lifesteal') }),
-  z.strictObject({ mod: z.literal('nextSkillStealthy') }),
-  z.strictObject({ mod: z.literal('randomPrimaryTarget') }),
-  z.strictObject({ mod: z.literal('grantBypass') }),
+  mod({ mod: z.literal('costGeneric'), amount: z.number().int(), perStack: z.boolean().optional() }),
+  mod({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional(), min: z.number().int().min(0).optional() }),
+  mod({ mod: z.literal('untargetable'), by: z.enum(['enemies', 'allies']), bypassable: z.boolean() }),
+  mod({ mod: z.literal('blockIndirectDamage') }),
+  mod({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional() }),
+  mod({ mod: z.literal('noCostReduction') }),
+  mod({ mod: z.literal('cannotApplyBuffs') }),
+  mod({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),
+  mod({ mod: z.literal('invulnerableTo'), sourceHas: z.array(z.string()).min(1) }),
+  mod({ mod: z.literal('ignoreCounters') }),
+  mod({ mod: z.literal('bonusStacksOnApply'), effect: z.string(), amount: z.number().int() }),
+  mod({ mod: z.literal('immuneTo'), kind: effectKind }),
+  mod({ mod: z.literal('negateNext'), effect: z.string() }),
+  mod({ mod: z.literal('forceTarget') }),
+  mod({ mod: z.literal('noArmorOrShield') }),
+  mod({ mod: z.literal('energyGain'), amount: z.number().int(), atStacks: z.number().int().min(1).optional() }),
+  mod({ mod: z.literal('healingReceived'), mul: z.number().min(0), roundUpTo: z.number().int().min(1).optional() }),
+  mod({ mod: z.literal('healFromDirectDamage') }),
+  mod({ mod: z.literal('hpFloor'), amount: z.number().int() }),
+  mod({ mod: z.literal('lifesteal') }),
+  mod({ mod: z.literal('nextSkillStealthy') }),
+  mod({ mod: z.literal('randomPrimaryTarget') }),
+  mod({ mod: z.literal('costToRandom') }),
+  mod({ mod: z.literal('freeSkills') }),
+  mod({ mod: z.literal('costSpecific'), amount: z.number().int().max(-1) }),
+  mod({ mod: z.literal('keepChannels') }),
+  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
+  mod({ mod: z.literal('redirectDamage') }),
+  mod({ mod: z.literal('exposed') }),
+  mod({ mod: z.literal('maxHp'), amount: z.number().int() }),
+  mod({ mod: z.literal('armorMul'), mul: z.number().min(0) }),
+  mod({ mod: z.literal('stackCap'), effect: z.string(), max: z.number().int().min(2) }),
+  mod({ mod: z.literal('skillTags'), add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() }),
+  mod({
+    mod: z.literal('extraTargets'),
+    where: z.lazy(() => condSchema),
+    castAs: z.boolean().optional(),
+    ops: z.lazy(() => z.array(opSchema)).optional(),
+  }),
+  mod({ mod: z.literal('grantBypass') }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -177,8 +243,9 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       respectsInvulnerable: z.boolean().optional(),
       wakes: z.boolean().optional(),
       from: selectorSchema.optional(),
+      raw: z.boolean().optional(),
     }),
-    z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema }),
+    z.strictObject({ op: z.literal('heal'), to: selectorSchema, amount: valueSchema, raw: z.boolean().optional(), quiet: z.boolean().optional() }),
     z.strictObject({
       op: z.literal('apply'),
       to: selectorSchema,
@@ -188,11 +255,20 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
       remember: selectorSchema.optional(),
       until: z
-        .strictObject({ skillUsed: z.strictObject({ harmful: z.boolean().optional(), nonStrategic: z.boolean().optional() }) })
+        .strictObject({
+          skillUsed: z.strictObject({
+            harmful: z.boolean().optional(),
+            nonStrategic: z.boolean().optional(),
+            archetypes: z.array(z.string()).optional(),
+          }),
+        })
         .optional(),
       bindTo: selectorSchema.optional(),
       linkTo: z.string().optional(),
       from: selectorSchema.optional(),
+      quiet: z.boolean().optional(),
+      whileActorHas: z.string().optional(),
+      linkToEvent: z.boolean().optional(),
     }),
     z.strictObject({
       op: z.literal('summon'),
@@ -204,6 +280,14 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
     z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
     z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),
+    z.strictObject({ op: z.literal('boostShields'), on: selectorSchema, amount: z.number().int() }),
+    z.strictObject({
+      op: z.literal('stealRandom'),
+      from: selectorSchema,
+      to: selectorSchema,
+      kind: z.enum(['Buff', 'Debuff', 'Neutral']),
+      nonElemental: z.boolean().optional(),
+    }),
     z.strictObject({ op: z.literal('removeKind'), from: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('removeStacks'), from: selectorSchema, effect: z.string(), amount: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('macro'), id: z.string() }),
@@ -211,15 +295,49 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
     z.strictObject({ op: z.literal('convertEffects'), from: z.string(), to: z.string() }),
     z.strictObject({ op: z.literal('gainEnergy'), amount: z.number().int().min(1) }),
-    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional() }),
+    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional(), archetypes: z.array(z.string()).optional() }),
+    z.strictObject({
+      op: z.literal('castSkill'),
+      skill: z.string().optional(),
+      archetype: z.string().optional(),
+      eventSkill: z.boolean().optional(),
+      on: selectorSchema,
+      as: z.enum(['actor', 'it']).optional(),
+    }),
+    z.strictObject({
+      op: z.literal('eventEffect'),
+      permanent: z.boolean().optional(),
+      extendBy: z.number().int().optional(),
+      expireNow: z.boolean().optional(),
+    }),
+    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema }),
+    z.strictObject({
+      op: z.literal('removeRandom'),
+      from: selectorSchema,
+      kind: z.enum(['Buff', 'Debuff', 'Neutral']),
+      count: z.number().int().min(1).optional(),
+    }),
     z.strictObject({
       op: z.literal('adjustCooldowns'),
       to: selectorSchema,
       by: z.union([z.number().int(), valueSchema]),
       exceptCurrent: z.boolean().optional(),
       skill: z.string().optional(),
+      archetypes: z.array(z.string()).optional(),
+      exceptEvent: z.boolean().optional(),
+      random: z.boolean().optional(),
     }),
-    z.strictObject({ op: z.literal('extendEffects'), on: selectorSchema, effects: z.array(z.string()).min(1), by: z.number().int() }),
+    z
+      .strictObject({
+        op: z.literal('extendEffects'),
+        on: selectorSchema,
+        effects: z.array(z.string()).min(1).optional(),
+        kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(),
+        except: z.array(z.string()).optional(),
+        by: z.number().int(),
+        onceKey: z.string().optional(),
+      })
+      .refine((o) => o.effects !== undefined || o.kind !== undefined, 'extendEffects needs `effects` or `kind`'),
     z.strictObject({ op: z.literal('if'), cond: condSchema, then: z.array(opSchema), else: z.array(opSchema).optional() }),
     z.strictObject({ op: z.literal('set'), var: z.string(), value: z.union([valueSchema, z.boolean()]) }),
     z.strictObject({ op: z.literal('forEach'), in: selectorSchema, do: z.array(opSchema) }),
@@ -234,7 +352,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
 
 export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
   z.strictObject({
-    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged', 'summoned']),
+    on: z.enum(['damaged', 'skillUsed', 'skillResolved', 'skillTargeted', 'turnEnd', 'turnStart', 'signal', 'effectGained', 'dealtDamage', 'shieldDamaged', 'summoned', 'ownEffectTriggered', 'ownEffectEnded', 'effectApplied', 'healed', 'battleStart', 'countered', 'effectNegated', 'incomingNegated', 'healDone', 'energyFromEffect', 'counterIgnored']),
     signal: z.string().optional(),
     effect: z.string().optional(),
     when: z
@@ -246,6 +364,15 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         fromSide: z.enum(['ally', 'enemy']).optional(),
         strategic: z.boolean().optional(),
         wakes: z.boolean().optional(),
+        archetypes: z.array(z.string()).optional(),
+        counter: z.boolean().optional(),
+        reason: z.array(z.enum(['expired', 'consumed', 'died', 'interrupted', 'depleted', 'removed'])).optional(),
+        untriggered: z.boolean().optional(),
+        effects: z.array(z.string()).optional(),
+        toEnemy: z.boolean().optional(),
+        kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(),
+        reflected: z.boolean().optional(),
+        shield: z.boolean().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
@@ -335,6 +462,39 @@ export const itemFileEntry = z.strictObject({
   passiveEffect: z.string().optional(),
   classId: z.string().optional(),
   placeholder: z.boolean().optional(),
+});
+
+const itemType = z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
+const amounts = z.record(z.string(), z.number().int().min(0));
+const rewardSpec = z.strictObject({
+  currency: amounts.optional(),
+  drops: z.strictObject({ table: z.string(), count: z.number().int().min(1) }).optional(),
+});
+
+/** The economy file(s): top-level sections merged from every economy*.yaml. */
+export const economySchema = z.strictObject({
+  currencies: z.record(z.string(), z.strictObject({ name: z.string().min(1), start: z.number().int().min(0) })),
+  roll: z.strictObject({ cost: amounts }),
+  rewards: z.record(
+    z.string(),
+    z.strictObject({ minTurns: z.number().int().min(0), win: rewardSpec, loss: rewardSpec, draw: rewardSpec }),
+  ),
+  dailyDropCap: z.number().int().min(0),
+  dropTables: z.record(
+    z.string(),
+    z.strictObject({ types: z.partialRecord(itemType, z.number().int().min(0)), exclude: z.array(z.string()).optional() }),
+  ),
+  recipes: z.record(
+    z.string(),
+    z.strictObject({
+      name: z.string().min(1),
+      description: z.string().min(1),
+      inputs: z.strictObject({ type: itemType, count: z.number().int().min(1), sameElement: z.boolean().optional() }),
+      output: z.strictObject({ type: itemType }),
+      cost: amounts.optional(),
+    }),
+  ),
+  salvage: z.partialRecord(itemType, amounts),
 });
 
 // Compile-time checks that file entries + injected id produce the engine's types.

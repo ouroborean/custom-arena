@@ -1,0 +1,349 @@
+# Type B (Two-Handed) passives — each plays two base skills off each other (GDD §8, docs/equipment.md).
+# Same conventions as type A: a permanent Neutral status `eq_<item id>` on the wearer; "your X
+# skills" are skills of archetype X, base or elemental.
+
+eq_soldier_spear:
+  name: Soldier Spear
+  kind: Neutral
+  description: After you use a Charge skill, your next Riposte skill costs no energy.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Charge] }
+      do:
+        - op: apply
+          to: bearer
+          until: { skillUsed: { archetypes: [Riposte] } }
+          effect:
+            id: soldier_spear_ready
+            name: Soldier Spear
+            kind: Buff
+            stacking: unique
+            description: The next Riposte skill costs no energy.
+            modifiers:
+              - { mod: freeSkills, archetypes: [Riposte] }
+
+eq_soldier_greataxe:
+  name: Soldier Greataxe
+  kind: Neutral
+  description: After you use a Rage skill, the first enemy to damage you while its effects last is hit by your Charge skill.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Rage] }
+      do:
+        - { op: setFlag, flag: armed }
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - op: if
+          cond: { and: [{ flag: armed }, { hasFromArchetype: { unit: bearer, archetype: Rage } }] }
+          then:
+            - { op: setFlag, flag: armed, value: false }
+            - { op: castSkill, archetype: Charge, skill: charge, on: eventSource }
+
+eq_kusurigama:
+  name: Kusurigama
+  kind: Neutral
+  description: Whenever you Stun an enemy, you gain 1 Swiftness.
+  triggers:
+    - on: effectApplied
+      when: { effects: [stun, stun_ns, stun_s], toEnemy: true }
+      do:
+        - { op: apply, to: bearer, effect: swiftness }
+
+eq_dual_blackjacks:
+  name: Dual Blackjacks
+  kind: Neutral
+  description: When one of your Mislead effects counters a skill, your Stun skills come off cooldown.
+  triggers:
+    - on: ownEffectTriggered
+      when: { archetypes: [Mislead], counter: true }
+      do:
+        - { op: resetCooldown, archetypes: [Stun] }
+
+eq_ancient_longbow:
+  name: Ancient Longbow
+  kind: Neutral
+  description: After you use a Maneuver skill, your Snipe skills hit at once instead of a turn later, until the end of your next turn.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Maneuver] }
+      do:
+        - op: apply
+          to: bearer
+          duration: { ownTurns: 1 }
+          effect:
+            id: longbow_quickdraw
+            name: Ancient Longbow
+            kind: Buff
+            stacking: unique
+            description: Snipe skills hit at once.
+            triggers:
+              - on: effectApplied
+                when: { archetypes: [Snipe], toEnemy: false }
+                do:
+                  - { op: eventEffect, expireNow: true }
+
+eq_trackers_whistle:
+  name: Tracker's Whistle
+  kind: Neutral
+  description: When you use a Maneuver skill only on yourself, each of your Companion minions uses it on itself too.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Maneuver] }
+      do:
+        - op: if
+          cond: { all: { in: eventTargets, cond: { isActor: it } } }
+          then:
+            - op: castSkill
+              eventSkill: true
+              as: it
+              on: { filter: allAllies, where: { minion: { unit: it, fromArchetypes: [Companion] } } }
+
+eq_warlock_staff:
+  name: Warlock Staff
+  kind: Neutral
+  description: Your Consume skills don't interrupt your Channeled skills.
+  modifiers:
+    - { mod: keepChannels, archetypes: [Consume] }
+
+eq_summoners_scrollstaff:
+  name: Summoner's Scrollstaff
+  kind: Neutral
+  description: When you start a Channeled skill, your Summon minions' skills cost nothing until the end of your next turn.
+  triggers:
+    - on: skillUsed
+      do:
+        - op: if
+          cond: { eventSkill: { tags: [Channeled] } }
+          then:
+            - op: apply
+              to: { filter: allAllies, where: { minion: { unit: it, fromArchetypes: [Summon] } } }
+              duration: { ownTurns: 1 }
+              effect:
+                id: scrollstaff_flow
+                name: Summoner's Scrollstaff
+                kind: Buff
+                stacking: unique
+                description: Skills cost nothing.
+                modifiers:
+                  - { mod: freeSkills }
+
+eq_staff_and_shield:
+  name: Staff and Shield
+  kind: Neutral
+  description: Using a Withstand skill while below 40 Health also casts your Bless skill on you.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Withstand] }
+      do:
+        - op: if
+          cond: { hpAtMost: { unit: bearer, value: 39 } }
+          then: [{ op: castSkill, archetype: Bless, skill: bless, on: bearer }]
+
+eq_high_priest_staff:
+  name: High Priest Staff
+  kind: Neutral
+  description: If any ally your Prayer skill affects carries your Bless, your Bless skill is also cast on every ally without it.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Prayer] }
+      do:
+        - op: if
+          cond: { any: { in: eventTargets, cond: { hasFromArchetype: { unit: it, archetype: Bless, mine: true } } } }
+          then:
+            - op: castSkill
+              archetype: Bless
+              skill: bless
+              on: { filter: allAllies, where: { not: { hasFromArchetype: { unit: it, archetype: Bless, mine: true } } } }
+
+eq_dual_claws:
+  name: Dual Claws
+  kind: Neutral
+  description: Your Rage skills cost 1 more random energy, and using one also casts your Companion skill.
+  modifiers:
+    - { mod: costGeneric, archetypes: [Rage], amount: 1 }
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Rage] }
+      do:
+        - { op: castSkill, archetype: Companion, skill: companion, on: bearer }
+
+eq_tree_club:
+  name: Tree Club
+  kind: Neutral
+  description: While your Titan skill's effects are on you, your Companion minions have 20 more Health, 1 Might and 1 Armor.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Titan] }
+      do:
+        - op: apply
+          to: { filter: allAllies, where: { minion: { unit: it, fromArchetypes: [Companion] } } }
+          effect: tree_club_growth
+          whileActorHas: Titan
+    - on: summoned
+      when: { archetypes: [Companion] }
+      do:
+        - { op: apply, to: eventTarget, effect: tree_club_growth, whileActorHas: Titan }
+
+tree_club_growth:
+  name: Tree Club
+  kind: Buff
+  stacking: unique
+  description: 20 more max Health, 1 Might and 1 Armor while the summoner's Titan lasts.
+  modifiers:
+    - { mod: maxHp, amount: 20 }
+    - { mod: damageDealt, amount: 5, when: { direct: true } }
+    - { mod: damageTaken, amount: -5, armor: true, when: { types: [Normal] } }
+
+eq_spear_and_shield:
+  name: Spear and Shield
+  kind: Neutral
+  description: When your Withstand's effects run out without being broken, your next Charge skill deals double damage.
+  triggers:
+    - on: ownEffectEnded
+      when: { archetypes: [Withstand], reason: [expired] }
+      do:
+        - { op: apply, to: bearer, effect: spear_and_shield_ready, until: { skillUsed: { archetypes: [Charge] } } }
+    - on: ownEffectEnded
+      when: { archetypes: [Withstand], reason: [depleted] }
+      do:
+        - { op: removeEffect, from: bearer, effect: spear_and_shield_ready }
+
+spear_and_shield_ready:
+  name: Spear and Shield
+  kind: Buff
+  stacking: unique
+  description: The next Charge skill deals double damage.
+  modifiers:
+    - { mod: damageDealt, archetypes: [Charge], amount: 0, mul: 2, when: { direct: true } }
+
+eq_sword_and_shield:
+  name: Sword and Shield
+  kind: Neutral
+  description: Enemies you Taunt also have 1 Weakness while the Taunt lasts, and you have 1 Might while your Withstand's effects are on you.
+  modifiers:
+    - mod: damageDealt
+      amount: 5
+      when: { direct: true }
+      if: { hasFromArchetype: { unit: bearer, archetype: Withstand } }
+  triggers:
+    - on: effectApplied
+      when: { effects: [taunt], toEnemy: true }
+      do:
+        - { op: apply, to: eventTarget, effect: weakness, linkToEvent: true }
+
+eq_dagger_and_orb:
+  name: Dagger and Orb
+  kind: Neutral
+  description: When one of your Consume skills kills an enemy, your next Curse skill costs no energy.
+  triggers:
+    - on: signal
+      signal: died
+      when: { archetypes: [Consume] }
+      do:
+        - op: if
+          cond: { and: [{ isActor: eventSource }, { isEnemy: eventTarget }] }
+          then:
+            - op: apply
+              to: bearer
+              until: { skillUsed: { archetypes: [Curse] } }
+              effect:
+                id: dagger_and_orb_ready
+                name: Dagger and Orb
+                kind: Buff
+                stacking: unique
+                description: The next Curse skill costs no energy.
+                modifiers:
+                  - { mod: freeSkills, archetypes: [Curse] }
+
+eq_cultist_scythe:
+  name: Cultist Scythe
+  kind: Neutral
+  description: Your Consume skills also deal 10 Affliction damage to a Stunned target, unaffected by any modifier.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Consume] }
+      do:
+        - { op: damage, to: { filter: eventTargets, where: { stunned: it } }, amount: 10, type: Affliction, raw: true }
+
+eq_staff_and_beads:
+  name: Staff and Beads
+  kind: Neutral
+  description: When your Withstand's Shield is broken, your Prayer skills cost 1 less specific energy until the end of your next turn.
+  triggers:
+    - on: ownEffectEnded
+      when: { archetypes: [Withstand], reason: [depleted] }
+      do:
+        - op: apply
+          to: bearer
+          duration: { ownTurns: 1 }
+          effect:
+            id: staff_and_beads_grace
+            name: Staff and Beads
+            kind: Buff
+            stacking: unique
+            description: Prayer skills cost 1 less specific energy.
+            modifiers:
+              - { mod: costSpecific, archetypes: [Prayer], amount: -1 }
+
+eq_dual_tonfa:
+  name: Dual Tonfa
+  kind: Neutral
+  description: Using a Withstand skill gives you 1 Swiftness, and you have 1 Armor while your Dance skill's effects are on you.
+  modifiers:
+    - mod: damageTaken
+      amount: -5
+      armor: true
+      when: { types: [Normal] }
+      if: { hasFromArchetype: { unit: bearer, archetype: Dance } }
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Withstand] }
+      do:
+        - { op: apply, to: bearer, effect: swiftness }
+
+eq_mace_and_greatshield:
+  name: Mace and Greatshield
+  kind: Neutral
+  description: At the start of battle, you gain 2 Armor and 1 Weakness, permanently.
+  triggers:
+    - on: battleStart
+      do:
+        - { op: apply, to: bearer, effect: armor, stacks: 2 }
+        - { op: apply, to: bearer, effect: weakness }
+
+eq_paladins_greatsword:
+  name: Paladin's Greatsword
+  kind: Neutral
+  description: Giving an ally a Buff gives you 1 Might (once per ally); giving yourself a Buff gives you 1 Armor (up to 2).
+  triggers:
+    - on: effectApplied
+      when: { kind: Buff, toEnemy: false }
+      do:
+        - op: if
+          cond: { isActor: eventTarget }
+          then:
+            - op: if
+              cond: { compare: { value: { stacks: { unit: bearer, effect: greatsword_armor } }, atMost: 1 } }
+              then:
+                - { op: apply, to: bearer, effect: greatsword_armor, quiet: true }
+                - { op: apply, to: bearer, effect: armor, quiet: true }
+          else:
+            - op: if
+              cond: { not: { has: { unit: eventTarget, effect: greatsword_counted } } }
+              then:
+                - { op: apply, to: eventTarget, effect: greatsword_counted, quiet: true }
+                - { op: apply, to: bearer, effect: might, quiet: true }
+
+greatsword_armor:
+  name: Paladin's Greatsword (Armor gained)
+  kind: Neutral
+  stacking: merge
+  maxStacks: 2
+  description: Armor gained from buffing yourself (up to 2).
+
+greatsword_counted:
+  name: Paladin's Greatsword (counted)
+  kind: Neutral
+  stacking: unique
+  description: Buffing this ally already gave the Greatsword's wearer Might.

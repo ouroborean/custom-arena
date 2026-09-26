@@ -4,15 +4,19 @@ import { effectDef, effectsOn, emit, findUnit, isEnemy, livingUnits, skillDef, u
 import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
-import { enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
+import { broadcastSignal, enqueueFor, enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
 import {
   canTarget,
   cannotUseReason,
   cooldownOnUse,
+  effectiveTags,
+  extraTargetFor,
   forcedTargets,
   hasGrantBypass,
   ignoresCounters,
+  isExcludedTarget,
   modifiedCost,
+  modsFor,
   modsOn,
 } from './queries.js';
 import { nextInt } from './rng.js';
@@ -25,6 +29,21 @@ export type TargetResult = { ok: true; targets: UnitId[] } | { ok: false; reason
  * at resolution time the target is redirected to the taunter instead.
  */
 export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
+  const r = resolveTargetsWithExtras(ctx, actor, def, declared, strict);
+  // Equipment can also rule targets out (Hand of Healing: never yourself).
+  if (!r.ok) return r;
+  const kept = r.targets.filter((id) => !isExcludedTarget(ctx, actor, def, unit(ctx, id)));
+  if (kept.length === r.targets.length) return r;
+  if (kept.length === 0) return { ok: false, reason: 'target not allowed' };
+  return { ok: true, targets: kept };
+}
+
+function resolveTargetsWithExtras(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
+  // Equipment can open extra targets (a Maneuver on an ally, a Consume on an allied minion).
+  const first = declared[0] === undefined ? undefined : findUnit(ctx.s, declared[0]);
+  if (first?.alive && extraTargetFor(ctx, actor, def, first) && !naturalTarget(ctx, actor, def, first)) {
+    return { ok: true, targets: [first.id] };
+  }
   const r = resolveTargetsRaw(ctx, actor, def, declared, strict);
   // "Target Condemned enemy" and similar requirements on single-target skills.
   if (r.ok && def.targetFilter && (def.target === 'enemy' || def.target === 'ally' || def.target === 'any')) {
@@ -44,8 +63,14 @@ export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: U
   return r;
 }
 
+/** Would the skill normally be able to pick this target (without equipment)? */
+function naturalTarget(ctx: Ctx, actor: Unit, def: SkillDef, t: Unit): boolean {
+  if (def.target === 'self') return t.id === actor.id;
+  return resolveTargetsRaw(ctx, actor, def, [t.id], true).ok;
+}
+
 function resolveTargetsRaw(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitId[], strict: boolean): TargetResult {
-  const bypass = def.tags.includes('Bypass') || hasGrantBypass(ctx, actor);
+  const bypass = effectiveTags(ctx, actor, def).includes('Bypass') || hasGrantBypass(ctx, actor);
   switch (def.target) {
     case 'self':
       return { ok: true, targets: [actor.id] };
@@ -188,14 +213,17 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
 
 export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[]): void {
   const harmful = def.tags.includes('Harmful');
+  const tags = effectiveTags(ctx, actor, def);
+  // "Allies that acted before you this turn" (equipment).
+  actor.counters.actedTurn = ctx.s.turn;
 
-  // 3. Cooldown starts, and using a skill ends the user's other channels (Q6).
+  // 3. Cooldown starts, and using a skill ends the user's other channels (Q6), unless equipment says otherwise.
   const slot = actor.skills[slotIndex];
   if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
-  interruptChannels(ctx, actor, 'skillUse');
+  if (modsFor(ctx, actor.id, 'keepChannels', def).length === 0) interruptChannels(ctx, actor, 'skillUse');
 
-  const secret = def.tags.includes('HiddenTarget');
-  const privateTo = def.tags.includes('Invisible') ? actor.owner : undefined;
+  const secret = tags.includes('HiddenTarget');
+  const privateTo = tags.includes('Invisible') ? actor.owner : undefined;
   // Stealth (Shadow): Stealthy skills keep it; anything else ends it once this use is over.
   const stealthy = def.tags.includes('Stealthy') || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').length > 0;
   const stealthed = effectsOn(ctx.s, actor.id).filter((e) => effectDef(ctx.c, e).stealth);
@@ -219,7 +247,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     (e) =>
       e.until &&
       !(e.until.skillUsed.harmful && !harmful) &&
-      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')),
+      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')) &&
+      !(e.until.skillUsed.archetypes && !e.until.skillUsed.archetypes.includes(def.archetype)),
   );
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
@@ -243,48 +272,63 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
     eventSource: actor.id,
     eventTarget: actor.id,
     eventTargets: targets,
+    eventSkill: def.id,
   });
   flushTriggers(ctx);
   if (!actor.alive || ctx.s.phase === 'finished') return;
 
   // 4b. Counters and reflects (Uncounterable skills and Flow users ignore them).
-  if (!def.tags.includes('Uncounterable') && !ignoresCounters(ctx, actor)) {
-    const hit = interceptorFor(ctx, actor, def, targets);
-    if (hit) {
-      const { effect, spec } = hit;
-      const reflector = unit(ctx, effect.bearer);
-      revealEffect(ctx, effect);
-      emit(ctx, {
-        t: 'skillCountered',
+  const hit = effectiveTags(ctx, actor, def).includes('Uncounterable') ? null : interceptorFor(ctx, actor, def, targets);
+  if (hit && ignoresCounters(ctx, actor)) {
+    // Flow "triggers" (Emblem of the Tide).
+    enqueueFor(ctx, actor.id, 'counterIgnored', {
+      eventSource: hit.effect.bearer,
+      eventSkill: def.id,
+      reflected: hit.spec.intercept === 'reflect',
+    });
+    flushTriggers(ctx);
+  } else if (hit) {
+    const { effect, spec } = hit;
+    const reflector = unit(ctx, effect.bearer);
+    revealEffect(ctx, effect);
+    emit(ctx, {
+      t: 'skillCountered',
+      actor: actor.id,
+      skill: def.id,
+      by: reflector.id,
+      effect: effect.defId,
+      reflected: spec.intercept === 'reflect',
+    });
+    runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
+    // The user's equipment hears its skill was stopped; so does everyone else's (Mask of Many Faces).
+    enqueueFor(ctx, actor.id, 'countered', {
+      eventSource: reflector.id,
+      eventSkill: def.id,
+      harmful,
+      reflected: spec.intercept === 'reflect',
+    });
+    broadcastSignal(ctx, 'countered', actor, { target: reflector, eventSkill: def.id });
+    flushTriggers(ctx);
+    if (def.onCountered?.length && ctx.s.result === null) {
+      runOps(ctx, def.onCountered, {
         actor: actor.id,
-        skill: def.id,
-        by: reflector.id,
-        effect: effect.defId,
-        reflected: spec.intercept === 'reflect',
+        targets,
+        eventSource: reflector.id,
+        vars: {},
+        lastDamage: 0,
+        lastDamaged: [],
+        direct: true,
+        bypass: false,
+        skill: def,
       });
-      runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
       flushTriggers(ctx);
-      if (def.onCountered?.length && ctx.s.result === null) {
-        runOps(ctx, def.onCountered, {
-          actor: actor.id,
-          targets,
-          eventSource: reflector.id,
-          vars: {},
-          lastDamage: 0,
-          lastDamaged: [],
-          direct: true,
-          bypass: false,
-          skill: def,
-        });
-        flushTriggers(ctx);
-      }
-      if (spec.intercept === 'reflect' && reflector.alive && actor.alive) {
-        const aoe = def.target === 'allEnemies';
-        const reflectedTargets = aoe ? livingUnits(ctx.s, actor.owner).map((u) => u.id) : [actor.id];
-        runSkillOps(ctx, reflector, def, reflectedTargets);
-      }
-      return;
     }
+    if (spec.intercept === 'reflect' && reflector.alive && actor.alive) {
+      const aoe = def.target === 'allEnemies';
+      const reflectedTargets = aoe ? livingUnits(ctx.s, actor.owner).map((u) => u.id) : [actor.id];
+      runSkillOps(ctx, reflector, def, reflectedTargets);
+    }
+    return;
   }
 
   // 5. Execute the skill's ops.
@@ -315,6 +359,7 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
       eventSource: actor.id,
       eventTargets: targets,
       maxSeq: startSeq,
+      eventSkill: def.id,
     });
     flushTriggers(ctx);
   }
@@ -329,8 +374,15 @@ function runSkillOps(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[], sl
     lastDamage: 0,
     lastDamaged: [],
     direct: true,
-    bypass: def.tags.includes('Bypass') || hasGrantBypass(ctx, actor),
+    bypass: effectiveTags(ctx, actor, def).includes('Bypass') || hasGrantBypass(ctx, actor),
     skill: def,
   };
+  // A target opened by equipment: run its alternative ops, or resolve as the target's own use.
+  const only = targets.length === 1 ? findUnit(ctx.s, targets[0]!) : undefined;
+  const extra = only ? extraTargetFor(ctx, actor, def, only) : null;
+  if (only && extra && !naturalTarget(ctx, actor, def, only)) {
+    if (extra.ops) return runOps(ctx, extra.ops, sc);
+    if (extra.castAs) sc.actor = only.id;
+  }
   runOps(ctx, def.ops, sc);
 }

@@ -1,7 +1,8 @@
 # Equipment catalogue (GDD §8, appendix §15), generated from the "Structured Equipment" sheet.
 # Grants: `skills` (added if the character lacks them), `infusions` (a fixed `target` skill, or the
-# player chooses), and a `passive`. Passive effects are listed but not implemented yet (Phase 7), so
-# they are inactive in battle. Unlock conditions on the sheet are ignored (GDD §8.4).
+# player chooses), and a `passive`. Each passive is implemented by a status (`passiveEffect`, in
+# statuses.passives-*.yaml) applied to the wearer at match start; see docs/equipment.md for rulings.
+# Unlock conditions on the sheet are ignored (GDD §8.4).
 # Types: A main hand · B two-handed · C exotic · D elemental weapon · E off hand · F elemental armor ·
 # G class armor · H accessory · I perfect crystal · J gear · K shard · L misc (none yet).
 # Counts: {'A': 30, 'B': 20, 'C': 20, 'D': 30, 'E': 30, 'F': 30, 'G': 20, 'H': 20, 'I': 10, 'J': 40, 'K': 10}
@@ -12,6 +13,7 @@ wind_katana:
   skills: [strike]
   infusions: [{ element: Wind, target: strike }]
   passive: "Your Strikes deal 5 additional damage, plus 5 damage for every mana in their total cost."
+  passiveEffect: eq_wind_katana
 
 magma_hammer:
   name: "Magma Hammer"
@@ -19,6 +21,7 @@ magma_hammer:
   skills: [smash]
   infusions: [{ element: Fire, target: smash }]
   passive: "Smash skills deal 10 additional damage to all targets but their cost is increased by 1 GEN."
+  passiveEffect: eq_magma_hammer
 
 water_spear:
   name: "Water Spear"
@@ -26,6 +29,7 @@ water_spear:
   skills: [charge]
   infusions: [{ element: Water, target: charge }]
   passive: "Charge now changes Specific costs to Random costs for 1 turn, and deals 5 additional damage."
+  passiveEffect: eq_water_spear
 
 poison_rapier:
   name: "Poison Rapier"
@@ -33,6 +37,7 @@ poison_rapier:
   skills: [riposte]
   infusions: [{ element: Poison, target: riposte }]
   passive: "Once per round, Riposte will reset its cooldown when triggered."
+  passiveEffect: eq_poison_rapier
 
 unholy_cleaver:
   name: "Unholy Cleaver"
@@ -40,6 +45,7 @@ unholy_cleaver:
   skills: [rage]
   infusions: [{ element: Unholy, target: rage }]
   passive: "Your Rage skills give you 10 Shield for each 20 HP you're missing when you use them."
+  passiveEffect: eq_unholy_cleaver
 
 ice_kunai:
   name: "Ice Kunai"
@@ -47,6 +53,7 @@ ice_kunai:
   skills: [shot]
   infusions: [{ element: Ice, target: shot }]
   passive: "Your Shot skills deal 5 additional damage every time they're used against the same target, stacking."
+  passiveEffect: eq_ice_kunai
 
 shadow_arbalest:
   name: "Shadow Arbalest"
@@ -54,6 +61,7 @@ shadow_arbalest:
   skills: [snipe]
   infusions: [{ element: Shadow, target: snipe }]
   passive: "The target of your Snipe skills is now visible, but your Snipes now Bypass and cannot be Countered."
+  passiveEffect: eq_shadow_arbalest
 
 vine_whip:
   name: "Vine Whip"
@@ -61,6 +69,7 @@ vine_whip:
   skills: [trap]
   infusions: [{ element: Earth, target: trap }]
   passive: "The cooldown of your Trap skills is reduced by 1 turn if it fails to activate."
+  passiveEffect: eq_vine_whip
 
 lightsaber_dirk:
   name: "Lightsaber Dirk"
@@ -68,6 +77,7 @@ lightsaber_dirk:
   skills: [maneuver]
   infusions: [{ element: Lightning, target: maneuver }]
   passive: "Your Maneuver skills can be used on an ally, but their cooldowns are increased by 1."
+  passiveEffect: eq_lightsaber_dirk
 
 ice_claw:
   name: "Ice Claw"
@@ -75,6 +85,7 @@ ice_claw:
   skills: [companion]
   infusions: [{ element: Ice, target: companion }]
   passive: "Minions from your Companion skills have all their costs changed to GEN."
+  passiveEffect: eq_ice_claw
 
 fire_sceptre:
   name: "Fire Sceptre"
@@ -82,6 +93,7 @@ fire_sceptre:
   skills: [bolt]
   infusions: [{ element: Fire, target: bolt }]
   passive: "Your Bolt skills receive double benefit from Might."
+  passiveEffect: eq_fire_sceptre
 
 holy_book:
   name: "Holy Book"
@@ -89,6 +101,7 @@ holy_book:
   skills: [blast]
   infusions: [{ element: Holy, target: blast }]
   passive: "Your Blast skills deal 10 additional damage for each dead enemy."
+  passiveEffect: eq_holy_book
 
 twisted_wand:
   name: "Twisted Wand"
@@ -96,6 +109,7 @@ twisted_wand:
   skills: [consume]
   infusions: [{ element: Earth, target: consume }]
   passive: "Consume may be used on allied Summoned Minions, instantly killing it to Heal 10 Health and add 10 Shield."
+  passiveEffect: eq_twisted_wand
 
 sacrificial_dagger:
   name: "Sacrificial Dagger"
@@ -103,6 +117,7 @@ sacrificial_dagger:
   skills: [summon]
   infusions: [{ element: Unholy, target: summon }]
   passive: "Your Summon is also healed whenever you are."
+  passiveEffect: eq_sacrificial_dagger
 
 holy_censer:
   name: "Holy Censer"
@@ -110,6 +125,7 @@ holy_censer:
   skills: [channel]
   infusions: [{ element: Holy, target: channel }]
   passive: "You gain 10 Shield at the end of each turn you maintain your Channel skills."
+  passiveEffect: eq_holy_censer
 
 scything_claw:
   name: "Scything Claw"
@@ -117,6 +133,7 @@ scything_claw:
   skills: [stab]
   infusions: [{ element: Poison, target: stab }]
   passive: "When Stab activates its bonus effect, all your current Cooldowns are decreased by 1."
+  passiveEffect: eq_scything_claw
 
 lightning_dagger:
   name: "Lightning Dagger"
@@ -124,6 +141,7 @@ lightning_dagger:
   skills: [ravage]
   infusions: [{ element: Lightning, target: ravage }]
   passive: "Your Ravage skills deal 5 additional damage for each ally that acted before you that turn."
+  passiveEffect: eq_lightning_dagger
 
 mist_fan:
   name: "Mist Fan"
@@ -131,6 +149,7 @@ mist_fan:
   skills: [mislead]
   infusions: [{ element: Water, target: mislead }]
   passive: "When Mislead is triggered, your skills Bypass for 1 turn."
+  passiveEffect: eq_mist_fan
 
 sun_baton:
   name: "Sun Baton"
@@ -138,6 +157,7 @@ sun_baton:
   skills: [stun]
   infusions: [{ element: Earth, target: stun }]
   passive: "Enemies affected by your Stuns are Shattered for the duration."
+  passiveEffect: eq_sun_baton
 
 hoop_blade:
   name: "Hoop Blade"
@@ -145,6 +165,7 @@ hoop_blade:
   skills: [dance]
   infusions: [{ element: Shadow, target: dance }]
   passive: "Using a skill reduces the remaining cooldown of your Dance skills by 1."
+  passiveEffect: eq_hoop_blade
 
 wind_charm_stick:
   name: "Wind Charm Stick"
@@ -152,6 +173,7 @@ wind_charm_stick:
   skills: [heal]
   infusions: [{ element: Wind, target: heal }]
   passive: "Your Heal skills heal an additional 5 health over the following 2 turns. (No bonus immediately)"
+  passiveEffect: eq_wind_charm_stick
 
 anointment_mace:
   name: "Anointment Mace"
@@ -159,6 +181,7 @@ anointment_mace:
   skills: [bless]
   infusions: [{ element: Water, target: bless }]
   passive: "Using Bless on a target causes them to ignore non-damage effects for 1 turn."
+  passiveEffect: eq_anointment_mace
 
 brimstone_lash:
   name: "Brimstone Lash"
@@ -166,6 +189,7 @@ brimstone_lash:
   skills: [curse]
   infusions: [{ element: Fire, target: curse }]
   passive: "Gain 1 random energy whenever an enemy affected by your Curse dies."
+  passiveEffect: eq_brimstone_lash
 
 book_of_shadows:
   name: "Book of Shadows"
@@ -173,6 +197,7 @@ book_of_shadows:
   skills: [smite]
   infusions: [{ element: Shadow, target: smite }]
   passive: "Your Smite skills have their cost reduced by 1 GEN, but they no longer deal damage."
+  passiveEffect: eq_book_of_shadows
 
 book_of_the_damned:
   name: "Book of the Damned"
@@ -180,6 +205,7 @@ book_of_the_damned:
   skills: [prayer]
   infusions: [{ element: Unholy, target: prayer }]
   passive: "Increases the cooldown of Prayer by 1 turn. Any targets at full health after the heal will also be affected by Bless."
+  passiveEffect: eq_book_of_the_damned
 
 paladin_axe:
   name: "Paladin Axe"
@@ -187,6 +213,7 @@ paladin_axe:
   skills: [cleave]
   infusions: [{ element: Holy, target: cleave }]
   passive: "Your Cleave skills deal 5 Piercing damage to any enemy they don't affect directly."
+  passiveEffect: eq_paladin_axe
 
 lightning_banner:
   name: "Lightning Banner"
@@ -194,6 +221,7 @@ lightning_banner:
   skills: [shout]
   infusions: [{ element: Lightning, target: shout }]
   passive: "Gain 10 Shield whenever an enemy affected by your Shout acts."
+  passiveEffect: eq_lightning_banner
 
 wind_shield:
   name: "Wind Shield"
@@ -201,6 +229,7 @@ wind_shield:
   skills: [withstand]
   infusions: [{ element: Wind, target: withstand }]
   passive: "Deals 10 Piercing damage to any enemy that damages you during your Withstand skills."
+  passiveEffect: eq_wind_shield
 
 ice_hammer:
   name: "Ice Hammer"
@@ -208,6 +237,7 @@ ice_hammer:
   skills: [taunt]
   infusions: [{ element: Ice, target: taunt }]
   passive: "Your Taunt skills have unlimited duration, but cannot be used while active."
+  passiveEffect: eq_ice_hammer
 
 chemtech_sword:
   name: "Chemtech Sword"
@@ -215,126 +245,147 @@ chemtech_sword:
   skills: [titan]
   infusions: [{ element: Poison, target: titan }]
   passive: "Heal for 10 health when Titan expires, increased to 20 if you are at or below 40 HP."
+  passiveEffect: eq_chemtech_sword
 
 soldier_spear:
   name: "Soldier Spear"
   type: B
   skills: [charge, riposte]
   passive: "After using a Charge skill, your next Riposte costs no energy."
+  passiveEffect: eq_soldier_spear
 
 soldier_greataxe:
   name: "Soldier Greataxe"
   type: B
   skills: [charge, rage]
   passive: "You will automatically use Charge on the first enemy to damage you when you Rage."
+  passiveEffect: eq_soldier_greataxe
 
 kusurigama:
   name: "Kusurigama"
   type: B
   skills: [stun, dance]
   passive: "Gain 1 Swiftness when you Stun an enemy."
+  passiveEffect: eq_kusurigama
 
 dual_blackjacks:
   name: "Dual Blackjacks"
   type: B
   skills: [stun, mislead]
   passive: "Successfully Countering an enemy with Mislead resets the cooldown of your Stun ability."
+  passiveEffect: eq_dual_blackjacks
 
 ancient_longbow:
   name: "Ancient Longbow"
   type: B
   skills: [maneuver, snipe]
   passive: "After using a Maneuver, your Snipe skills will hit instantly for 1 turn."
+  passiveEffect: eq_ancient_longbow
 
 trackers_whistle:
   name: "Tracker's Whistle"
   type: B
   skills: [maneuver, companion]
   passive: "Maneuvers that only target the user are also used on every Companion."
+  passiveEffect: eq_trackers_whistle
 
 warlock_staff:
   name: "Warlock Staff"
   type: B
   skills: [consume, channel]
   passive: "Consumes no longer interrupt Channeled skills."
+  passiveEffect: eq_warlock_staff
 
 summoners_scrollstaff:
   name: "Summoner's Scrollstaff"
   type: B
   skills: [summon, channel]
   passive: "When you start Channeling, your Summons' skills have no cost on the following turn."
+  passiveEffect: eq_summoners_scrollstaff
 
 staff_and_shield:
   name: "Staff and Shield"
   type: B
   skills: [bless, withstand]
   passive: "Using Withstand while below 40 Health will also activate Bless."
+  passiveEffect: eq_staff_and_shield
 
 high_priest_staff:
   name: "High Priest Staff"
   type: B
   skills: [bless, prayer]
   passive: "If any target affected by your Prayer is also affected by your Bless, the Bless will also be applied to all allies."
+  passiveEffect: eq_high_priest_staff
 
 dual_claws:
   name: "Dual Claws"
   type: B
   skills: [companion, rage]
   passive: "Your Rage costs an additional Generic, but also casts your Companion when used."
+  passiveEffect: eq_dual_claws
 
 tree_club:
   name: "Tree Club"
   type: B
   skills: [companion, titan]
   passive: "During Titan, your Companion gains 20 HP, 1 Might and 1 Armor."
+  passiveEffect: eq_tree_club
 
 spear_and_shield:
   name: "Spear and Shield"
   type: B
   skills: [withstand, charge]
   passive: "Charge deals double damage if Withstand was not broken."
+  passiveEffect: eq_spear_and_shield
 
 sword_and_shield:
   name: "Sword and Shield"
   type: B
   skills: [withstand, taunt]
   passive: "Taunted targets receive 1 Weakness, and the user gains 1 Might during their Withstand."
+  passiveEffect: eq_sword_and_shield
 
 dagger_and_orb:
   name: "Dagger and Orb"
   type: B
   skills: [consume, curse]
   passive: "Killing an enemy with Consume makes your next Curse cost no energy."
+  passiveEffect: eq_dagger_and_orb
 
 cultist_scythe:
   name: "Cultist Scythe"
   type: B
   skills: [consume, stun]
   passive: "Consume deals 10 affliction damage when used on a Stun target. This damage is not affected by other modifiers."
+  passiveEffect: eq_cultist_scythe
 
 staff_and_beads:
   name: "Staff and Beads"
   type: B
   skills: [withstand, prayer]
   passive: "If your Withstand's Shield is broken, your Prayer costs 1 less Specific energy for 1 turn."
+  passiveEffect: eq_staff_and_beads
 
 dual_tonfa:
   name: "Dual Tonfa"
   type: B
   skills: [withstand, dance]
   passive: "Gain 1 Swiftness when you Withstand, and 1 Armor while Dance is active."
+  passiveEffect: eq_dual_tonfa
 
 mace_and_greatshield:
   name: "Mace and Greatshield"
   type: B
   skills: [withstand, titan]
   passive: "At the start of battle, the user permanently gains 2 Armor and 1 Weakness"
+  passiveEffect: eq_mace_and_greatshield
 
 paladins_greatsword:
   name: "Paladin's Greatsword"
   type: B
   skills: [bless, titan]
   passive: "Gain 1 Might when you buff an ally, up to 1 per ally. Gain 1 Armor when you buff yourself, up to 2."
+  passiveEffect: eq_paladins_greatsword
 
 hexblade:
   name: "Hexblade"
@@ -478,6 +529,7 @@ emblem_of_the_inferno:
   type: D
   infusions: [{ element: Fire }, { element: Fire }]
   passive: "Ignite may stack an additional time."
+  passiveEffect: eq_emblem_of_the_inferno
   placeholder: true
 
 emblem_of_the_arc_furnace:
@@ -485,6 +537,7 @@ emblem_of_the_arc_furnace:
   type: D
   infusions: [{ element: Fire }, { element: Lightning }]
   passive: "Shattered enemies take 5 additional damage whenever they take Effect damage."
+  passiveEffect: eq_emblem_of_the_arc_furnace
   placeholder: true
 
 emblem_of_the_hellfire:
@@ -492,6 +545,7 @@ emblem_of_the_hellfire:
   type: D
   infusions: [{ element: Fire }, { element: Unholy }]
   passive: "Dealing damage to an ally grants the user a random buff until the end of their next turn"
+  passiveEffect: eq_emblem_of_the_hellfire
   placeholder: true
 
 emblem_of_the_glacier:
@@ -499,6 +553,7 @@ emblem_of_the_glacier:
   type: D
   infusions: [{ element: Ice }, { element: Ice }]
   passive: "You gain double benefit from Armor while Frostborn."
+  passiveEffect: eq_emblem_of_the_glacier
   placeholder: true
 
 emblem_of_the_permafrost:
@@ -506,6 +561,7 @@ emblem_of_the_permafrost:
   type: D
   infusions: [{ element: Ice }, { element: Earth }]
   passive: "All allies begin the game with 10 Shield. Minions are created with 5 Shield."
+  passiveEffect: eq_emblem_of_the_permafrost
   placeholder: true
 
 emblem_of_the_frostflame:
@@ -513,6 +569,7 @@ emblem_of_the_frostflame:
   type: D
   infusions: [{ element: Ice }, { element: Fire }]
   passive: "When this character gains new Shield, they deal 5 Affliction damage to all enemies."
+  passiveEffect: eq_emblem_of_the_frostflame
   placeholder: true
 
 emblem_of_the_gale:
@@ -520,6 +577,7 @@ emblem_of_the_gale:
   type: D
   infusions: [{ element: Wind }, { element: Wind }]
   passive: "Gain 1 Might every turn while Rushing. This Might is lost if Rush ends."
+  passiveEffect: eq_emblem_of_the_gale
   placeholder: true
 
 emblem_of_the_miasma:
@@ -527,6 +585,7 @@ emblem_of_the_miasma:
   type: D
   infusions: [{ element: Wind }, { element: Poison }]
   passive: "Deal 10 additional damage to each enemy. This effect is disabled for any enemy that damages you."
+  passiveEffect: eq_emblem_of_the_miasma
   placeholder: true
 
 emblem_of_the_monsoon:
@@ -534,6 +593,7 @@ emblem_of_the_monsoon:
   type: D
   infusions: [{ element: Wind }, { element: Water }]
   passive: "Heal 10 Health whenever a Swiftness is removed by a Stun."
+  passiveEffect: eq_emblem_of_the_monsoon
   placeholder: true
 
 emblem_of_the_tempest:
@@ -541,6 +601,7 @@ emblem_of_the_tempest:
   type: D
   infusions: [{ element: Lightning }, { element: Lightning }]
   passive: "Gain 15 Shield whenever you gain energy from Charge. This Shield refreshes but does not stack."
+  passiveEffect: eq_emblem_of_the_tempest
   placeholder: true
 
 emblem_of_the_blackout:
@@ -548,6 +609,7 @@ emblem_of_the_blackout:
   type: D
   infusions: [{ element: Lightning }, { element: Shadow }]
   passive: "Deal 10 damage to any target that attempts to become Invulnerable. This effect can only happen once per turn per target."
+  passiveEffect: eq_emblem_of_the_blackout
   placeholder: true
 
 emblem_of_the_aurora:
@@ -555,6 +617,7 @@ emblem_of_the_aurora:
   type: D
   infusions: [{ element: Lightning }, { element: Ice }]
   passive: "Each turn, randomly gain Might, Armor, Swiftness, Focus, Stormborn, or Frostborn"
+  passiveEffect: eq_emblem_of_the_aurora
   placeholder: true
 
 emblem_of_the_tide:
@@ -562,6 +625,7 @@ emblem_of_the_tide:
   type: D
   infusions: [{ element: Water }, { element: Water }]
   passive: "Gain 1 Swiftness whenever Flow is triggered. If you have Swiftness already, gain Focus until the end of your next turn instead"
+  passiveEffect: eq_emblem_of_the_tide
   placeholder: true
 
 emblem_of_the_abyss:
@@ -569,6 +633,7 @@ emblem_of_the_abyss:
   type: D
   infusions: [{ element: Water }, { element: Shadow }]
   passive: "When you Counter or Reflect an enemy skill, deal 10 Piercing damage to the Countered enemy, or 5 Piercing damage to the enemy Reflected to and from."
+  passiveEffect: eq_emblem_of_the_abyss
   placeholder: true
 
 emblem_of_the_bloodtide:
@@ -576,6 +641,7 @@ emblem_of_the_bloodtide:
   type: D
   infusions: [{ element: Water }, { element: Unholy }]
   passive: "Heal for 5 Health whenever you use a damaging ability."
+  passiveEffect: eq_emblem_of_the_bloodtide
   placeholder: true
 
 emblem_of_the_mountain:
@@ -583,6 +649,7 @@ emblem_of_the_mountain:
   type: D
   infusions: [{ element: Earth }, { element: Earth }]
   passive: "Heal for 5 Health whenever Channel Earth occurs"
+  passiveEffect: eq_emblem_of_the_mountain
   placeholder: true
 
 emblem_of_the_sanctuary:
@@ -590,6 +657,7 @@ emblem_of_the_sanctuary:
   type: D
   infusions: [{ element: Earth }, { element: Holy }]
   passive: "Until you use a Harmful skill, you heal 10 Health every turn"
+  passiveEffect: eq_emblem_of_the_sanctuary
   placeholder: true
 
 emblem_of_the_magma:
@@ -597,6 +665,7 @@ emblem_of_the_magma:
   type: D
   infusions: [{ element: Earth }, { element: Fire }]
   passive: "Deal double damage to minions. This effect can only trigger on one creature each turn."
+  passiveEffect: eq_emblem_of_the_magma
   placeholder: true
 
 emblem_of_the_serpent:
@@ -604,6 +673,7 @@ emblem_of_the_serpent:
   type: D
   infusions: [{ element: Poison }, { element: Poison }]
   passive: "Permanently gain 1 Might or 1 Armor, depending whether you damaged an enemy or were damaged by an enemy."
+  passiveEffect: eq_emblem_of_the_serpent
   placeholder: true
 
 emblem_of_the_neurotoxin:
@@ -611,6 +681,7 @@ emblem_of_the_neurotoxin:
   type: D
   infusions: [{ element: Poison }, { element: Lightning }]
   passive: "Ending your turn without spending all of your energy grants a random ally Might for 1 turn."
+  passiveEffect: eq_emblem_of_the_neurotoxin
   placeholder: true
 
 emblem_of_the_bog:
@@ -618,6 +689,7 @@ emblem_of_the_bog:
   type: D
   infusions: [{ element: Poison }, { element: Earth }]
   passive: "Allied minions deal 5 Affliction damage to a random target when they die"
+  passiveEffect: eq_emblem_of_the_bog
   placeholder: true
 
 emblem_of_the_void:
@@ -625,6 +697,7 @@ emblem_of_the_void:
   type: D
   infusions: [{ element: Shadow }, { element: Shadow }]
   passive: "If you end your turn without acting, extend the duration of any active Invulnerability effects by 1 turn. This can only happen once per effect"
+  passiveEffect: eq_emblem_of_the_void
   placeholder: true
 
 emblem_of_the_phantom:
@@ -632,6 +705,7 @@ emblem_of_the_phantom:
   type: D
   infusions: [{ element: Shadow }, { element: Wind }]
   passive: "Deal 10 additional Piercing damage whenever you damage an Invulnerable enemy."
+  passiveEffect: eq_emblem_of_the_phantom
   placeholder: true
 
 emblem_of_the_eclipse:
@@ -639,6 +713,7 @@ emblem_of_the_eclipse:
   type: D
   infusions: [{ element: Shadow }, { element: Holy }]
   passive: "Dealing damage with Mark effects applies 1 Weakness for 1 turn."
+  passiveEffect: eq_emblem_of_the_eclipse
   placeholder: true
 
 emblem_of_the_sun:
@@ -646,6 +721,7 @@ emblem_of_the_sun:
   type: D
   infusions: [{ element: Holy }, { element: Holy }]
   passive: "Dealing damage to a Sanctified enemy grants you 1 Might."
+  passiveEffect: eq_emblem_of_the_sun
   placeholder: true
 
 emblem_of_the_seraph:
@@ -653,6 +729,7 @@ emblem_of_the_seraph:
   type: D
   infusions: [{ element: Holy }, { element: Wind }]
   passive: "Become Invulnerable for 1 turn the first time you are Stunned each round"
+  passiveEffect: eq_emblem_of_the_seraph
   placeholder: true
 
 emblem_of_the_font:
@@ -660,6 +737,7 @@ emblem_of_the_font:
   type: D
   infusions: [{ element: Holy }, { element: Water }]
   passive: "Anointing an ally removes all debuffs from them."
+  passiveEffect: eq_emblem_of_the_font
   placeholder: true
 
 emblem_of_the_grave:
@@ -667,6 +745,7 @@ emblem_of_the_grave:
   type: D
   infusions: [{ element: Unholy }, { element: Unholy }]
   passive: "Gain 1 Might and heal for 10 Health when an allied hero is killed."
+  passiveEffect: eq_emblem_of_the_grave
   placeholder: true
 
 emblem_of_the_plague:
@@ -674,6 +753,7 @@ emblem_of_the_plague:
   type: D
   infusions: [{ element: Unholy }, { element: Poison }]
   passive: "Stackable debuffs you cause or receive are permanent."
+  passiveEffect: eq_emblem_of_the_plague
   placeholder: true
 
 emblem_of_the_lich:
@@ -681,6 +761,7 @@ emblem_of_the_lich:
   type: D
   infusions: [{ element: Unholy }, { element: Ice }]
   passive: "You and your Minions gain 5 Shield whenever you use a Harmful skill."
+  passiveEffect: eq_emblem_of_the_lich
   placeholder: true
 
 devils_blade:
@@ -1049,6 +1130,7 @@ barbarian_greatclub:
   classId: warrior
   skills: [smash]
   passive: "Whenever you damage all living enemies, deal 5 additional Piercing damage to all enemies."
+  passiveEffect: eq_barbarian_greatclub
 
 helmet_of_the_ancestors:
   name: "Helmet of the Ancestors"
@@ -1056,6 +1138,7 @@ helmet_of_the_ancestors:
   classId: warrior
   skills: [titan]
   passive: "Once per turn if you would take 30 or more damage from a single ability, first lower that damage by 10"
+  passiveEffect: eq_helmet_of_the_ancestors
 
 shadowrune_bolas:
   name: "Shadowrune Bolas"
@@ -1063,6 +1146,7 @@ shadowrune_bolas:
   classId: rogue
   skills: [stun]
   passive: "Stunning a target affected by Swiftness applies Confusion for the same duration."
+  passiveEffect: eq_shadowrune_bolas
 
 mask_of_many_faces:
   name: "Mask of Many Faces"
@@ -1070,6 +1154,7 @@ mask_of_many_faces:
   classId: rogue
   skills: [mislead]
   passive: "You gain 5 Shield whenever a skill is Countered or Reflected, increased to 10 for enemy skills."
+  passiveEffect: eq_mask_of_many_faces
 
 boomerang_blade:
   name: "Boomerang Blade"
@@ -1077,6 +1162,7 @@ boomerang_blade:
   classId: ranger
   skills: [trap]
   passive: "For 1 turn after a Trap is triggered, your skills Bypass against the triggerer."
+  passiveEffect: eq_boomerang_blade
 
 ricochet_rifle:
   name: "Ricochet Rifle"
@@ -1084,6 +1170,7 @@ ricochet_rifle:
   classId: ranger
   skills: [snipe]
   passive: "Deal 10 damage to a random enemy whenever one of your Harmful skills is Countered."
+  passiveEffect: eq_ricochet_rifle
 
 explosive_relic:
   name: "Explosive Relic"
@@ -1091,6 +1178,7 @@ explosive_relic:
   classId: mage
   skills: [blast]
   passive: "Using a skill that costs 2 or more total energy grants the user Focus until the end of their next turn."
+  passiveEffect: eq_explosive_relic
 
 high_wizards_hat:
   name: "High Wizard's Hat"
@@ -1098,6 +1186,7 @@ high_wizards_hat:
   classId: mage
   skills: [channel]
   passive: "If you are Stunned while Channeling a skill, you gain Immune until the end of your next turn."
+  passiveEffect: eq_high_wizards_hat
 
 hand_of_blessing:
   name: "Hand of Blessing"
@@ -1105,6 +1194,7 @@ hand_of_blessing:
   classId: priest
   skills: [bless]
   passive: "The first Buff you apply to an ally each turn is also applied to you."
+  passiveEffect: eq_hand_of_blessing
 
 robe_of_the_song:
   name: "Robe of the Song"
@@ -1112,6 +1202,7 @@ robe_of_the_song:
   classId: priest
   skills: [prayer]
   passive: "While your health is 60 or below, your Helpful skills cannot be Stunned."
+  passiveEffect: eq_robe_of_the_song
 
 totem_of_the_fallen:
   name: "Totem of the Fallen"
@@ -1119,6 +1210,7 @@ totem_of_the_fallen:
   classId: druid
   skills: [companion]
   passive: "Gain 1 Might for 1 turn whenever an allied Minion is killed by an enemy."
+  passiveEffect: eq_totem_of_the_fallen
 
 cloak_of_ancient_leaves:
   name: "Cloak of Ancient Leaves"
@@ -1126,6 +1218,7 @@ cloak_of_ancient_leaves:
   classId: druid
   skills: [rage]
   passive: "Gain 1 Might and 1 Vulnerable while at or above 80 Health."
+  passiveEffect: eq_cloak_of_ancient_leaves
 
 banner_of_glory:
   name: "Banner of Glory"
@@ -1133,6 +1226,7 @@ banner_of_glory:
   classId: knight
   skills: [shout]
   passive: "Remove a random Debuff from all allies when you Shout"
+  passiveEffect: eq_banner_of_glory
 
 knights_buckler:
   name: "Knight's Buckler"
@@ -1140,6 +1234,7 @@ knights_buckler:
   classId: knight
   skills: [riposte]
   passive: "Countering or Reflecting a skill applies 1 Weakness and 1 Vulnerable to the target for 2 turns"
+  passiveEffect: eq_knights_buckler
 
 rod_of_domination:
   name: "Rod of Domination"
@@ -1147,6 +1242,7 @@ rod_of_domination:
   classId: warlock
   skills: [summon]
   passive: "Damage that would be dealt to you is instead dealt to one of your Minions at random. You take double damage while you have no Minions."
+  passiveEffect: eq_rod_of_domination
 
 blood_chalice:
   name: "Blood Chalice"
@@ -1154,6 +1250,7 @@ blood_chalice:
   classId: warlock
   skills: [consume]
   passive: "Automatically kill Minions that fall to 10 or lower health, gaining a random Buff."
+  passiveEffect: eq_blood_chalice
 
 visor_of_the_restful_spirit:
   name: "Visor of the Restful Spirit"
@@ -1161,6 +1258,7 @@ visor_of_the_restful_spirit:
   classId: monk
   skills: [maneuver]
   passive: "At the start of your turn, gain 2 Might if you weren't damaged last turn."
+  passiveEffect: eq_visor_of_the_restful_spirit
 
 footwraps_of_the_long_path:
   name: "Footwraps of the Long Path"
@@ -1168,6 +1266,7 @@ footwraps_of_the_long_path:
   classId: monk
   skills: [dance]
   passive: "Using a Harmful skill makes your Helpful skills Unstunnable for 1 turn."
+  passiveEffect: eq_footwraps_of_the_long_path
 
 hand_of_healing:
   name: "Hand of Healing"
@@ -1175,6 +1274,7 @@ hand_of_healing:
   classId: paladin
   skills: [heal]
   passive: "Using Heal on an ally also heals you for 10 Health, but you may no longer Heal yourself."
+  passiveEffect: eq_hand_of_healing
 
 golden_plate:
   name: "Golden Plate"
@@ -1182,126 +1282,147 @@ golden_plate:
   classId: paladin
   skills: [withstand]
   passive: "Gain 1 Armor per 35 missing Health."
+  passiveEffect: eq_golden_plate
 
 crown_of_flames:
   name: "Crown of Flames"
   type: H
   infusions: [{ element: Fire }]
   passive: "Your Shout, Curse, and Taunt skills deal 10 Affliction damage to a random enemy when used."
+  passiveEffect: eq_crown_of_flames
 
 flame_whip:
   name: "Flame Whip"
   type: H
   infusions: [{ element: Fire }]
   passive: "Trap, Riposte, and Mislead skills have their cooldowns reset when an allied character dies."
+  passiveEffect: eq_flame_whip
 
 frozen_gauntlets:
   name: "Frozen Gauntlets"
   type: H
   infusions: [{ element: Ice }]
   passive: "After using Cleave, Withstand, or Blast skills, increase any Shield you have by 10."
+  passiveEffect: eq_frozen_gauntlets
 
 glacial_pendant:
   name: "Glacial Pendant"
   type: H
   infusions: [{ element: Ice }]
   passive: "Heal for 5 Health whenever one of your Stun or Curse skills expires, increased to 10 if you are at or below 40 Health"
+  passiveEffect: eq_glacial_pendant
 
 winged_sandals:
   name: "Winged Sandals"
   type: H
   infusions: [{ element: Wind }]
   passive: "Once per turn, taking new damage lowers the cooldown of a random Charge, Dance or Maneuver by 1"
+  passiveEffect: eq_winged_sandals
 
 rocfeather_cloak:
   name: "Rocfeather Cloak"
   type: H
   infusions: [{ element: Wind }]
   passive: "Your Strike and Cleave skills deal 5 additional damage for each Swiftness you have."
+  passiveEffect: eq_rocfeather_cloak
 
 electroblade:
   name: "Electroblade"
   type: H
   infusions: [{ element: Lightning }]
   passive: "Your Strike, Bolt and Charge skills deal 5 Piercing damage to two random targets when used."
+  passiveEffect: eq_electroblade
 
 cybernetic_enhancements:
   name: "Cybernetic Enhancements"
   type: H
   infusions: [{ element: Lightning }]
   passive: "Your Dance, Titan, and Rage skills grant 1 Might, 1 Armor, and 1 Swiftness for 1 turn."
+  passiveEffect: eq_cybernetic_enhancements
 
 chalice_of_life:
   name: "Chalice of Life"
   type: H
   infusions: [{ element: Water }]
   passive: "Gain 1 Focus each turn your Channel or Rage skills are active. When these skills end, gain 1 Confusion."
+  passiveEffect: eq_chalice_of_life
 
 trident_of_the_deep:
   name: "Trident of the Deep"
   type: H
   infusions: [{ element: Water }]
   passive: "Gain 1 Renew when using Bless, Heal, or Withstand skills."
+  passiveEffect: eq_trident_of_the_deep
 
 crown_of_the_caller:
   name: "Crown of the Caller"
   type: H
   infusions: [{ element: Earth }]
   passive: "Your Summon and Companion skills share Buffs with you."
+  passiveEffect: eq_crown_of_the_caller
 
 earthcallers_hammer:
   name: "Earthcaller's Hammer"
   type: H
   infusions: [{ element: Earth }]
   passive: "Your Stun and Smash skills remove a random Buff from their primary target."
+  passiveEffect: eq_earthcallers_hammer
 
 lotus_essence:
   name: "Lotus Essence"
   type: H
   infusions: [{ element: Poison }]
   passive: "Ravage and Consume extend the duration of non-Stun Debuffs on the target by 1 turn."
+  passiveEffect: eq_lotus_essence
 
 cryptid_dagger:
   name: "Cryptid Dagger"
   type: H
   infusions: [{ element: Poison }]
   passive: "Stab and Strike skills deal 5 more damage to Prey."
+  passiveEffect: eq_cryptid_dagger
 
 cloak_of_night:
   name: "Cloak of Night"
   type: H
   infusions: [{ element: Shadow }]
   passive: "Your Mislead, Riposte, and Maneuver skills have 1 less cooldown, to a minimum of 1."
+  passiveEffect: eq_cloak_of_night
 
 wightblades:
   name: "Wightblades"
   type: H
   infusions: [{ element: Shadow }]
   passive: "Your Stab and Shot abilities deal 5 less damage, but they Bypass and cannot be Countered."
+  passiveEffect: eq_wightblades
 
 revered_crown:
   name: "Revered Crown"
   type: H
   infusions: [{ element: Holy }]
   passive: "Apply 5 Shield to allies you heal, and heal allies you Shield for 5 Health. This Healing and Shielding cannot be modified, and cannot cause Triggers."
+  passiveEffect: eq_revered_crown
 
 penance_lash:
   name: "Penance Lash"
   type: H
   infusions: [{ element: Holy }]
   passive: "Effects applied by your Bolt and Smite skills last an additional turn."
+  passiveEffect: eq_penance_lash
 
 helm_of_the_damned:
   name: "Helm of the Damned"
   type: H
   infusions: [{ element: Unholy }]
   passive: "Your Bless and Curse skills grant you 1 Might or 1 Armor for their duration."
+  passiveEffect: eq_helm_of_the_damned
 
 the_black_blade:
   name: "The Black Blade"
   type: H
   infusions: [{ element: Unholy }]
   passive: "Your Ravage and Charge skills steal a random non-Elemental Buff from their primary target."
+  passiveEffect: eq_the_black_blade
 
 fire_crystal:
   name: "Fire Crystal"

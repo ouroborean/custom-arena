@@ -266,6 +266,8 @@ stab:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    # Equipment (Scything Claw) listens for Stab bonuses.
+    - { op: if, cond: { hpAtMost: { unit: primary, value: 60 } }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
       amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }

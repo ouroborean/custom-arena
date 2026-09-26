@@ -4,12 +4,14 @@
 //   npm run sim -- --seed 7 --save       ...and write replays/match-7.json
 //   npm run sim -- --games 2000          aggregate results + per-skill win rates
 //   npm run sim -- --bots greedy,random  choose bots (greedy | random)
+//   npm run sim -- --games 2000 --equip  rolled characters in random legal loadouts, + item win rates
 //   npm run sim -- --replay replays/match-7.json   re-run a saved match and verify it
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { formatEvent, replay, stateFingerprint, type MatchRecord } from '@arena/engine';
+import { formatEvent, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
 import { greedyBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
+import { equippedItems, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
 import { num, parseArgs } from './args.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -28,16 +30,37 @@ if (typeof args.replay === 'string') {
   process.exit(0);
 }
 
+/**
+ * Teams for one match. Default: random characters without equipment. With --equip: characters
+ * rolled like players' (rarity, class, element) in random loadouts the resolver accepts, so
+ * item skills, infusions and passives all take part.
+ */
+function matchSetup(seed: number): { config: MatchConfig; items: [string[], string[]] } {
+  if (!args.equip) return { config: randomConfig(content, seed), items: [[], []] };
+  const rng = seedRng(seed ^ 0x2545f491);
+  const items: [string[], string[]] = [[], []];
+  const team = (p: 0 | 1) =>
+    [0, 1, 2].map((i) => {
+      const { character } = rollCharacter(content, rng);
+      const loadout = randomLoadout(content, character, rng);
+      items[p].push(...equippedItems(loadout).map((e) => e.eq.itemId));
+      const spec = toCharacterSpec(character, resolveLoadout(content, character, loadout));
+      return { ...spec, name: `${p === 0 ? 'Blue' : 'Red'} ${content.classes[character.classId]!.name} ${i + 1}` };
+    });
+  return { config: { seed, teams: [team(0), team(1)] }, items };
+}
+
 const [k0, k1] = (typeof args.bots === 'string' ? args.bots : 'greedy,greedy').split(',');
 const seed = num(args.seed, 1);
 const games = num(args.games, 1);
 
 if (games === 1) {
-  const config = randomConfig(content, seed);
+  const { config, items } = matchSetup(seed);
   const played = playMatch(content, config, [makeBot(k0 ?? 'greedy', seed), makeBot(k1 ?? k0 ?? 'greedy', seed + 1)]);
   for (const [p, team] of config.teams.entries()) {
     console.log(`Player ${p + 1}:`);
     for (const c of team) console.log(`  ${c.name.padEnd(20)} ${c.skills.map((s) => content.skills[s]!.name).join(', ')}`);
+    if (items[p]!.length) console.log(`  items: ${items[p]!.map((id) => content.items[id]!.name).join(', ')}`);
   }
   console.log('');
   for (const e of played.events) {
@@ -62,10 +85,11 @@ const wins = { p1: 0, p2: 0, draw: 0 };
 let turns = 0;
 const skillStats = new Map<string, { games: number; wins: number }>();
 const elementStats = new Map<string, { chars: number; wins: number }>();
+const itemStats = new Map<string, { games: number; wins: number }>();
 const started = performance.now();
 for (let i = 0; i < games; i++) {
   const s = seed + i;
-  const config = randomConfig(content, s);
+  const { config, items } = matchSetup(s);
   const { state } = playMatch(content, config, [makeBot(k0 ?? 'greedy', s), makeBot(k1 ?? k0 ?? 'greedy', s + 1)]);
   const w = state.result!.winner;
   if (w === null) wins.draw++;
@@ -86,6 +110,12 @@ for (let i = 0; i < games; i++) {
       if (w === p) st.wins++;
       skillStats.set(id, st);
     }
+    for (const id of new Set(items[p])) {
+      const st = itemStats.get(id) ?? { games: 0, wins: 0 };
+      st.games++;
+      if (w === p) st.wins++;
+      itemStats.set(id, st);
+    }
   });
 }
 const ms = performance.now() - started;
@@ -102,4 +132,15 @@ rows.sort((a, b) => b.rate - a.rate);
 for (const r of rows) {
   const flag = r.rate > 0.55 ? '  ▲' : r.rate < 0.45 ? '  ▼' : '';
   console.log(`  ${content.skills[r.id]!.name.padEnd(12)} ${(100 * r.rate).toFixed(1).padStart(5)}%  (n=${r.n})${flag}`);
+}
+
+if (itemStats.size) {
+  console.log('\nItem win rate (team had the item; * = has a passive):');
+  const items = [...itemStats.entries()].map(([id, st]) => ({ id, rate: st.wins / st.games, n: st.games }));
+  items.sort((a, b) => b.rate - a.rate);
+  for (const r of items) {
+    const def = content.items[r.id]!;
+    const flag = r.rate > 0.55 ? '  ▲' : r.rate < 0.45 ? '  ▼' : '';
+    console.log(`  ${def.type} ${`${def.name}${def.passiveEffect ? '*' : ''}`.padEnd(30)} ${(100 * r.rate).toFixed(1).padStart(5)}%  (n=${r.n})${flag}`);
+  }
 }

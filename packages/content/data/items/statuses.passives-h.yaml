@@ -1,0 +1,310 @@
+# Type H (Accessory) passives — each touches three base skills (GDD §8, docs/equipment.md). Same
+# conventions as type A: a permanent Neutral status `eq_<item id>` on the wearer.
+
+eq_crown_of_flames:
+  name: Crown of Flames
+  kind: Neutral
+  description: Your Shout, Curse and Taunt skills also deal 10 Affliction damage to a random enemy.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Shout, Curse, Taunt] }
+      do:
+        - { op: damage, to: { randomEnemy: 1 }, amount: 10, type: Affliction }
+
+eq_flame_whip:
+  name: Flame Whip
+  kind: Neutral
+  description: When an allied character dies, your Trap, Riposte and Mislead skills come off cooldown.
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { and: [{ kind: { unit: eventTarget, is: character } }, { not: { isEnemy: eventTarget } }] }
+          then: [{ op: resetCooldown, archetypes: [Trap, Riposte, Mislead] }]
+
+eq_frozen_gauntlets:
+  name: Frozen Gauntlets
+  kind: Neutral
+  description: After you use a Cleave, Withstand or Blast skill, each Shield on you gains 10.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Cleave, Withstand, Blast] }
+      do:
+        - { op: boostShields, on: bearer, amount: 10 }
+
+eq_glacial_pendant:
+  name: Glacial Pendant
+  kind: Neutral
+  description: When the effects of your Stun or Curse skills run out, you heal 5, or 10 at 40 Health or less.
+  triggers:
+    # Once per skill type per turn, however many effects that skill left.
+    - on: ownEffectEnded
+      when: { archetypes: [Stun], reason: [expired] }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: pendant_stun_spent } } }
+          then:
+            - { op: apply, to: bearer, effect: pendant_stun_spent, duration: { thisTurn: true }, quiet: true }
+            - { op: heal, to: bearer, amount: { if: { hpAtMost: { unit: bearer, value: 40 } }, then: 10, else: 5 } }
+    - on: ownEffectEnded
+      when: { archetypes: [Curse], reason: [expired] }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: pendant_curse_spent } } }
+          then:
+            - { op: apply, to: bearer, effect: pendant_curse_spent, duration: { thisTurn: true }, quiet: true }
+            - { op: heal, to: bearer, amount: { if: { hpAtMost: { unit: bearer, value: 40 } }, then: 10, else: 5 } }
+
+pendant_stun_spent:
+  name: Glacial Pendant (Stun)
+  kind: Neutral
+  stacking: unique
+  description: The Glacial Pendant has already healed for a Stun this turn.
+
+pendant_curse_spent:
+  name: Glacial Pendant (Curse)
+  kind: Neutral
+  stacking: unique
+  description: The Glacial Pendant has already healed for a Curse this turn.
+
+eq_winged_sandals:
+  name: Winged Sandals
+  kind: Neutral
+  description: Once per turn, taking damage takes 1 off the cooldown of a random Charge, Dance or Maneuver skill of yours.
+  triggers:
+    - on: damaged
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: sandals_spent } } }
+          then:
+            - { op: apply, to: bearer, effect: sandals_spent, duration: { thisTurn: true }, quiet: true }
+            - { op: adjustCooldowns, to: bearer, archetypes: [Charge, Dance, Maneuver], by: -1, random: true }
+
+sandals_spent:
+  name: Winged Sandals (used this turn)
+  kind: Neutral
+  stacking: unique
+  description: The Winged Sandals have already worked this turn.
+
+eq_rocfeather_cloak:
+  name: Rocfeather Cloak
+  kind: Neutral
+  description: Your Strike and Cleave skills deal 5 more damage for each Swiftness you have.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Strike, Cleave]
+      when: { direct: true }
+      amount: 0
+      value: { mul: [5, { stacks: { unit: actor, effect: swiftness } }] }
+
+eq_electroblade:
+  name: Electroblade
+  kind: Neutral
+  description: Your Strike, Bolt and Charge skills also deal 5 Piercing damage to two random enemies.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Strike, Bolt, Charge] }
+      do:
+        - { op: damage, to: { randomEnemy: 2 }, amount: 5, type: Piercing }
+
+eq_cybernetic_enhancements:
+  name: Cybernetic Enhancements
+  kind: Neutral
+  description: Your Dance, Titan and Rage skills also give you 1 Might, 1 Armor and 1 Swiftness until the end of your next turn.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Dance, Titan, Rage] }
+      do:
+        - { op: apply, to: bearer, effect: might, duration: { ownTurns: 1 } }
+        - { op: apply, to: bearer, effect: armor, duration: { ownTurns: 1 } }
+        - { op: apply, to: bearer, effect: swiftness, duration: { ownTurns: 1 } }
+
+eq_chalice_of_life:
+  name: Chalice of Life
+  kind: Neutral
+  description: >-
+    Each of your turns while your Channel or Rage skill's effects are on you, you gain 1 Focus for the
+    turn. When they end, you gain 1 Confusion until the end of your next turn.
+  triggers:
+    - on: turnStart
+      do:
+        - op: if
+          cond: { or: [{ hasFromArchetype: { unit: bearer, archetype: Channel } }, { hasFromArchetype: { unit: bearer, archetype: Rage } }] }
+          then: [{ op: apply, to: bearer, effect: focus, duration: { thisTurn: true } }]
+    - on: ownEffectEnded
+      when: { archetypes: [Channel] }
+      do:
+        - op: if
+          cond:
+            and:
+              - { isActor: eventTarget }
+              - { not: { hasFromArchetype: { unit: bearer, archetype: Channel } } }
+              - { not: { has: { unit: bearer, effect: chalice_soured_channel } } }
+          then:
+            - { op: apply, to: bearer, effect: chalice_soured_channel, duration: { thisTurn: true }, quiet: true }
+            - { op: apply, to: bearer, effect: confusion, duration: { ownTurns: 1 } }
+    - on: ownEffectEnded
+      when: { archetypes: [Rage] }
+      do:
+        - op: if
+          cond:
+            and:
+              - { isActor: eventTarget }
+              - { not: { hasFromArchetype: { unit: bearer, archetype: Rage } } }
+              - { not: { has: { unit: bearer, effect: chalice_soured_rage } } }
+          then:
+            - { op: apply, to: bearer, effect: chalice_soured_rage, duration: { thisTurn: true }, quiet: true }
+            - { op: apply, to: bearer, effect: confusion, duration: { ownTurns: 1 } }
+
+chalice_soured_channel:
+  name: Chalice of Life (Channel ended)
+  kind: Neutral
+  stacking: unique
+  description: The Channel's end has already been paid for this turn.
+
+chalice_soured_rage:
+  name: Chalice of Life (Rage ended)
+  kind: Neutral
+  stacking: unique
+  description: The Rage's end has already been paid for this turn.
+
+eq_trident_of_the_deep:
+  name: Trident of the Deep
+  kind: Neutral
+  description: Using a Bless, Heal or Withstand skill gives you 1 Renew.
+  triggers:
+    - on: skillUsed
+      when: { archetypes: [Bless, Heal, Withstand] }
+      do:
+        - { op: apply, to: bearer, effect: renew }
+
+eq_crown_of_the_caller:
+  name: Crown of the Caller
+  kind: Neutral
+  description: Whenever a minion from your Summon or Companion skills gains a Buff, you gain a copy of it.
+  triggers:
+    - on: summoned
+      when: { archetypes: [Summon, Companion] }
+      do:
+        - op: apply
+          to: eventTarget
+          effect:
+            id: caller_bond
+            name: Crown of the Caller
+            kind: Neutral
+            stacking: unique
+            description: Buffs this minion gains are copied to its summoner.
+            triggers:
+              - on: effectGained
+                when: { kind: Buff }
+                do:
+                  - { op: copyEventEffect, to: actor }
+
+eq_earthcallers_hammer:
+  name: Earthcaller's Hammer
+  kind: Neutral
+  description: Your Stun and Smash skills also remove a random Buff from their primary target.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Stun, Smash] }
+      do:
+        - { op: removeRandom, from: eventPrimary, kind: Buff }
+
+eq_lotus_essence:
+  name: Lotus Essence
+  kind: Neutral
+  description: Your Ravage and Consume skills make their target's Debuffs (other than Stuns) last 1 turn longer.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Ravage, Consume] }
+      do:
+        - { op: extendEffects, on: eventPrimary, kind: Debuff, except: [stun, stun_ns, stun_s, sleep], by: 2 }
+
+eq_cryptid_dagger:
+  name: Cryptid Dagger
+  kind: Neutral
+  description: Your Stab and Strike skills deal 5 more damage to Prey.
+  modifiers:
+    - mod: damageDealt
+      archetypes: [Stab, Strike]
+      when: { direct: true }
+      amount: 5
+      target: { check: { cond: prey, unit: it } }
+
+eq_cloak_of_night:
+  name: Cloak of Night
+  kind: Neutral
+  description: Your Mislead, Riposte and Maneuver skills have 1 less cooldown, but not below 1.
+  modifiers:
+    - { mod: cooldownOnUse, archetypes: [Mislead, Riposte, Maneuver], amount: -1, min: 1 }
+
+eq_wightblades:
+  name: Wightblades
+  kind: Neutral
+  description: Your Stab and Shot skills deal 5 less damage, but they Bypass and can't be countered.
+  modifiers:
+    - { mod: damageDealt, archetypes: [Stab, Shot], when: { direct: true }, amount: -5 }
+    - { mod: skillTags, archetypes: [Stab, Shot], add: [Bypass, Uncounterable] }
+
+eq_revered_crown:
+  name: Revered Crown
+  kind: Neutral
+  description: >-
+    Other allies you heal gain 5 Shield, and other allies you give Shield heal 5. This Shield and
+    healing can't be modified and set off nothing.
+  triggers:
+    - on: healDone
+      do:
+        - op: if
+          cond: { and: [{ not: { isEnemy: eventTarget } }, { not: { isActor: eventTarget } }] }
+          then: [{ op: apply, to: eventTarget, effect: shield, value: 5, quiet: true }]
+    - on: effectApplied
+      when: { shield: true, toEnemy: false }
+      do:
+        - op: if
+          cond: { not: { isActor: eventTarget } }
+          then: [{ op: heal, to: eventTarget, amount: 5, raw: true, quiet: true }]
+
+eq_penance_lash:
+  name: Penance Lash
+  kind: Neutral
+  description: Effects from your Bolt and Smite skills last 1 turn longer.
+  triggers:
+    - on: effectApplied
+      when: { archetypes: [Bolt, Smite] }
+      do:
+        - { op: eventEffect, extendBy: 2 }
+
+eq_helm_of_the_damned:
+  name: Helm of the Damned
+  kind: Neutral
+  description: Your Bless and Curse skills also give you 1 Might or 1 Armor (at random) for as long as their effect lasts.
+  triggers:
+    - on: effectApplied
+      when: { archetypes: [Bless, Curse] }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: helm_granted } } }
+          then:
+            - { op: apply, to: bearer, effect: helm_granted, duration: { thisTurn: true }, quiet: true }
+            - op: random
+              options:
+                - [{ op: apply, to: bearer, effect: might, linkToEvent: true, quiet: true }]
+                - [{ op: apply, to: bearer, effect: armor, linkToEvent: true, quiet: true }]
+
+helm_granted:
+  name: Helm of the Damned (used this turn)
+  kind: Neutral
+  stacking: unique
+  description: The Helm of the Damned has already granted its bonus this turn.
+
+eq_the_black_blade:
+  name: The Black Blade
+  kind: Neutral
+  description: Your Ravage and Charge skills steal a random non-elemental Buff from their primary target.
+  triggers:
+    - on: skillResolved
+      when: { archetypes: [Ravage, Charge] }
+      do:
+        - { op: stealRandom, from: eventPrimary, to: bearer, kind: Buff, nonElemental: true }

@@ -4,7 +4,8 @@
 //   Direct (what amplifies it): damage from a skill's use gets Might/Weakness/Vulnerable and fires
 //                               "on direct damage" effects; triggered and ticking damage does not.
 
-import { effectDef, effectsOn, emit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
+import { archetypeOf, effectDef, effectsOn, emit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
+import { broadcastSignal, enqueueFor } from './ops.js';
 import { interruptChannels, removeEffect } from './effects.js';
 import {
   blocksIndirectDamage,
@@ -15,7 +16,9 @@ import {
   invulnerableToSource,
   modifiedHealing,
   modsOn,
+  thresholdReduction,
 } from './queries.js';
+import { nextInt } from './rng.js';
 import type { DamageType, EffectInstance, Unit } from './types.js';
 
 export interface DamageArgs {
@@ -29,6 +32,10 @@ export interface DamageArgs {
   respectsInvulnerable?: boolean;
   /** `false`: doesn't end Sleep. */
   wakes?: boolean;
+  /** Skill (def id) dealing the damage, for equipment that cares ("your Strike skills"). */
+  skill?: string;
+  /** Not affected by any damage modifier (Cultist Scythe). */
+  raw?: boolean;
 }
 
 /** Returns the damage actually dealt (absorbed by Shield + lost HP). */
@@ -56,14 +63,25 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     return 0;
   }
 
+  // Rod of Domination: damage from others lands on a random allied minion instead.
+  if (source !== target && modsOn(ctx.s, ctx.c, target.id, 'redirectDamage').length > 0) {
+    const minions = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && u.kind === 'minion');
+    if (minions.length > 0) return dealDamage(ctx, { ...a, target: minions[nextInt(ctx.s.rng, minions.length)]! });
+  }
+
   // Retribution: direct damage from enemies heals instead (after all damage modifiers).
   const heals = enemy && a.direct && modsOn(ctx.s, ctx.c, target.id, 'healFromDirectDamage').length > 0;
 
   const shattered = hasNoArmorOrShield(ctx, target);
-  const taken = damageTakenBonus(ctx, target, a.type, a.direct);
-  const bonus = damageDealtBonus(ctx, source, a.type, a.direct) + taken.other;
+  const taken = a.raw ? { other: 0, armor: 0, mul: 1 } : damageTakenBonus(ctx, target, a.type, a.direct);
+  const dealt = a.raw
+    ? { bonus: 0, mul: 1 }
+    : damageDealtBonus(ctx, source, a.type, a.direct, a.skill ? ctx.c.skills[a.skill] : undefined, target);
+  let bonus = dealt.bonus + taken.other;
+  // Big-hit reductions apply first, measured before Armor (Helmet of the Ancestors).
+  if (!a.raw) bonus += thresholdReduction(ctx, target, a.type, a.direct, a.amount + bonus);
   const armor = shattered ? 0 : taken.armor;
-  const amount = Math.max(0, a.amount + bonus + armor);
+  const amount = Math.max(0, Math.round((a.amount + bonus + armor) * dealt.mul * taken.mul));
   const breakdown = { base: a.amount, bonus, armor };
   if (heals) {
     heal(ctx, source, target, amount);
@@ -120,20 +138,23 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     if (modsOn(ctx.s, ctx.c, source.id, 'lifesteal').length > 0) heal(ctx, source, source, remaining);
   }
 
-  enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true);
-  for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct);
+  enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true, a.skill);
+  // Anyone can listen for damage anywhere (Blood Chalice).
+  broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
+  for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill);
   if (source !== target) {
-    for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct);
+    for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);
   }
-  if (target.hp <= 0) killUnit(ctx, target);
+  if (target.hp <= 0) killUnit(ctx, target, source, a.skill);
   return amount;
 }
 
-function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean, wakes: boolean): void {
+function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean, wakes: boolean, skill?: string): void {
   for (const e of effectsOn(ctx.s, target.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
       if (spec.on !== 'damaged') continue;
       if (spec.when?.wakes && !wakes) continue;
+      if (spec.when?.archetypes && !spec.when.archetypes.includes(archetypeOf(ctx.c, skill) ?? '')) continue;
       if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
       if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
       if (spec.when?.fromSide) {
@@ -144,7 +165,7 @@ function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: bo
         if (e.data.pendingConsume) continue;
         e.data.pendingConsume = true;
       }
-      const p: PendingTrigger = { effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id };
+      const p: PendingTrigger = { effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id, ...(skill ? { eventSkill: skill } : {}) };
       ctx.triggerQueue.push(p);
     }
   }
@@ -158,28 +179,37 @@ function enqueueOn(
   source: Unit,
   target: Unit,
   direct: boolean,
+  skill?: string,
 ): void {
   for (const spec of effectDef(ctx.c, e).triggers ?? []) {
     if (spec.on !== on) continue;
     if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
     if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
-    ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id });
+    if (spec.when?.archetypes && !spec.when.archetypes.includes(archetypeOf(ctx.c, skill) ?? '')) continue;
+    ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id, ...(skill ? { eventSkill: skill } : {}) });
   }
 }
 
-export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number): number {
+/** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
+export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number, opts: { raw?: boolean | undefined; quiet?: boolean | undefined } = {}): number {
   if (!target.alive || amount <= 0) return 0;
-  const healed = Math.min(modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
+  const healed = Math.min(opts.raw ? amount : modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
   target.hp += healed;
   emit(ctx, { t: 'heal', source: source.id, target: target.id, amount: healed, hp: target.hp });
+  if (healed > 0 && !opts.quiet) {
+    enqueueFor(ctx, target.id, 'healed', { eventSource: source.id, eventTarget: target.id, eventAmount: healed });
+    enqueueFor(ctx, source.id, 'healDone', { eventSource: source.id, eventTarget: target.id, eventAmount: healed });
+  }
   return healed;
 }
 
-export function killUnit(ctx: Ctx, u: Unit): void {
+export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void {
   if (!u.alive) return;
   u.alive = false;
   u.hp = 0;
   emit(ctx, { t: 'died', unit: u.id });
+  // "When an ally dies…": everyone hears it, with what the unit carried at the time.
+  broadcastSignal(ctx, 'died', killer ?? u, { target: u, snapshot: effectsOn(ctx.s, u.id).slice(), eventSkill: skill });
   interruptChannels(ctx, u, 'death');
   for (const e of effectsOn(ctx.s, u.id)) removeEffect(ctx, e, 'died');
   // Auras granted by this unit (e.g. a minion's gift to its owner) end with it.

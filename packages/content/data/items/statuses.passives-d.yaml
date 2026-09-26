@@ -1,0 +1,399 @@
+# Type D (Elemental Weapon) passives — each plays on its two elements (GDD §8, docs/equipment.md).
+# Same conventions as type A: a permanent Neutral status `eq_<item id>` on the wearer.
+
+eq_emblem_of_the_inferno:
+  name: Emblem of the Inferno
+  kind: Neutral
+  description: Your Ignites can stack twice (5 Affliction per stack).
+  modifiers:
+    - { mod: stackCap, effect: ignite, max: 2 }
+
+eq_emblem_of_the_arc_furnace:
+  name: Emblem of the Arc Furnace
+  kind: Neutral
+  description: Damage from your effects deals 5 more to Shattered enemies.
+  modifiers:
+    - mod: damageDealt
+      when: { direct: false }
+      amount: 5
+      target: { and: [{ isEnemy: it }, { has: { unit: it, effect: shattered } }] }
+
+eq_emblem_of_the_hellfire:
+  name: Emblem of the Hellfire
+  kind: Neutral
+  description: Damaging another ally gives you a random Buff (Might, Armor, Swiftness or Focus) until the end of your next turn.
+  triggers:
+    - on: dealtDamage
+      do:
+        - op: if
+          cond: { not: { isEnemy: eventTarget } }
+          then:
+            - op: random
+              options:
+                - [{ op: apply, to: bearer, effect: might, duration: { ownTurns: 1 } }]
+                - [{ op: apply, to: bearer, effect: armor, duration: { ownTurns: 1 } }]
+                - [{ op: apply, to: bearer, effect: swiftness, duration: { ownTurns: 1 } }]
+                - [{ op: apply, to: bearer, effect: focus, duration: { ownTurns: 1 } }]
+
+eq_emblem_of_the_glacier:
+  name: Emblem of the Glacier
+  kind: Neutral
+  description: While you're Frostborn, your Armor counts double.
+  modifiers:
+    - { mod: armorMul, mul: 2, if: { has: { unit: bearer, effect: frostborn } } }
+
+eq_emblem_of_the_permafrost:
+  name: Emblem of the Permafrost
+  kind: Neutral
+  description: Your side starts the battle with 10 Shield on every ally, and your minions arrive with 5 Shield.
+  triggers:
+    - on: battleStart
+      do:
+        - { op: apply, to: allAllies, effect: shield, value: 10 }
+    - on: signal
+      signal: summoned
+      when: { side: ally }
+      do:
+        - { op: apply, to: eventTarget, effect: shield, value: 5 }
+
+eq_emblem_of_the_frostflame:
+  name: Emblem of the Frostflame
+  kind: Neutral
+  description: Whenever you gain a new Shield, you deal 5 Affliction damage to all enemies.
+  triggers:
+    - on: effectGained
+      when: { shield: true }
+      do:
+        - { op: damage, to: allEnemies, amount: 5, type: Affliction }
+
+eq_emblem_of_the_gale:
+  name: Emblem of the Gale
+  kind: Neutral
+  description: At the start of each of your turns while Rushing, you gain 1 Might that lasts until your Rush ends.
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: bearer, effect: might, linkTo: rushing }
+
+eq_emblem_of_the_miasma:
+  name: Emblem of the Miasma
+  kind: Neutral
+  description: You deal 10 more damage to each enemy — until that enemy damages you.
+  modifiers:
+    - mod: damageDealt
+      when: { direct: true }
+      amount: 10
+      target: { and: [{ isEnemy: it }, { not: { has: { unit: it, effect: miasma_spoiled, mine: true } } }] }
+  triggers:
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - { op: apply, to: eventSource, effect: miasma_spoiled, quiet: true }
+
+miasma_spoiled:
+  name: Emblem of the Miasma (spoiled)
+  kind: Neutral
+  stacking: unique
+  description: Damaged the Miasma's wearer, so no longer takes its extra damage.
+
+eq_emblem_of_the_monsoon:
+  name: Emblem of the Monsoon
+  kind: Neutral
+  description: Whenever your Swiftness stops a Stun, you heal 10.
+  triggers:
+    - on: incomingNegated
+      when: { effects: [stun, stun_ns, stun_s, sleep] }
+      do:
+        - { op: heal, to: bearer, amount: 10 }
+
+eq_emblem_of_the_tempest:
+  name: Emblem of the Tempest
+  kind: Neutral
+  description: Whenever your Charge turns into energy, you gain a 15 Shield (it refreshes rather than stacking).
+  triggers:
+    - on: energyFromEffect
+      when: { effects: [charged] }
+      do:
+        - op: apply
+          to: bearer
+          value: 15
+          effect:
+            id: tempest_shield
+            name: Tempest Shield
+            kind: Buff
+            element: Lightning
+            stacking: unique
+            shield: true
+            description: Absorbs damage; refreshes to 15 instead of stacking.
+
+eq_emblem_of_the_blackout:
+  name: Emblem of the Blackout
+  kind: Neutral
+  description: Any enemy that tries to become Invulnerable takes 10 damage that ignores it (once per turn per enemy).
+  triggers:
+    - on: signal
+      signal: 'applying:invulnerable'
+      do:
+        - op: if
+          cond: { and: [{ isEnemy: eventTarget }, { not: { has: { unit: eventTarget, effect: blackout_zapped } } }] }
+          then:
+            - { op: apply, to: eventTarget, effect: blackout_zapped, duration: { thisTurn: true }, quiet: true }
+            - { op: damage, to: eventTarget, amount: 10, bypass: true }
+
+blackout_zapped:
+  name: Emblem of the Blackout (zapped this turn)
+  kind: Neutral
+  stacking: unique
+  description: Already hit by the Blackout this turn.
+
+eq_emblem_of_the_aurora:
+  name: Emblem of the Aurora
+  kind: Neutral
+  description: At the start of each of your turns, you gain a random one of Might, Armor, Swiftness, Focus, Stormborn or Frostborn for 1 turn.
+  triggers:
+    - on: turnStart
+      do:
+        - op: random
+          options:
+            - [{ op: apply, to: bearer, effect: might, duration: { enemyTurns: 1 } }]
+            - [{ op: apply, to: bearer, effect: armor, duration: { enemyTurns: 1 } }]
+            - [{ op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 1 } }]
+            - [{ op: apply, to: bearer, effect: focus, duration: { enemyTurns: 1 } }]
+            - [{ op: apply, to: bearer, effect: stormborn, duration: { enemyTurns: 1 } }]
+            - [{ op: apply, to: bearer, effect: frostborn, duration: { enemyTurns: 1 } }]
+
+eq_emblem_of_the_tide:
+  name: Emblem of the Tide
+  kind: Neutral
+  description: Whenever your Flow ignores a counter or reflect, you gain 1 Swiftness — or, if you already have Swiftness, Focus until the end of your next turn.
+  triggers:
+    - on: counterIgnored
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: swiftness } }
+          then: [{ op: apply, to: bearer, effect: focus, duration: { ownTurns: 1 } }]
+          else: [{ op: apply, to: bearer, effect: swiftness }]
+
+eq_emblem_of_the_abyss:
+  name: Emblem of the Abyss
+  kind: Neutral
+  description: When one of your effects counters an enemy's skill, that enemy takes 10 Piercing damage; when it reflects one, 5.
+  triggers:
+    - on: ownEffectTriggered
+      when: { counter: true, reflected: false }
+      do:
+        - op: if
+          cond: { isEnemy: eventSource }
+          then: [{ op: damage, to: eventSource, amount: 10, type: Piercing }]
+    - on: ownEffectTriggered
+      when: { counter: true, reflected: true }
+      do:
+        - op: if
+          cond: { isEnemy: eventSource }
+          then: [{ op: damage, to: eventSource, amount: 5, type: Piercing }]
+
+eq_emblem_of_the_bloodtide:
+  name: Emblem of the Bloodtide
+  kind: Neutral
+  description: Whenever you use a damaging (non-Strategic) skill, you heal 5.
+  triggers:
+    - on: skillUsed
+      when: { strategic: false }
+      do:
+        - { op: heal, to: bearer, amount: 5 }
+
+eq_emblem_of_the_mountain:
+  name: Emblem of the Mountain
+  kind: Neutral
+  description: Whenever an allied Seedling uses Channel Earth, you heal 5.
+  triggers:
+    - on: signal
+      signal: channel_earth
+      when: { side: ally }
+      do:
+        - { op: heal, to: bearer, amount: 5 }
+
+eq_emblem_of_the_sanctuary:
+  name: Emblem of the Sanctuary
+  kind: Neutral
+  description: You heal 10 at the start of each of your turns, until you first use a Harmful skill.
+  triggers:
+    - on: skillUsed
+      when: { harmful: true }
+      do:
+        - { op: setFlag, flag: broken }
+    - on: turnStart
+      do:
+        - { op: if, cond: { not: { flag: broken } }, then: [{ op: heal, to: bearer, amount: 10 }] }
+
+eq_emblem_of_the_magma:
+  name: Emblem of the Magma
+  kind: Neutral
+  description: You deal double damage to minions — to one minion each turn (the first you damage).
+  modifiers:
+    - { mod: damageDealt, amount: 0, mul: 2, onePerTurn: true, target: { kind: { unit: it, is: minion } } }
+
+eq_emblem_of_the_serpent:
+  name: Emblem of the Serpent
+  kind: Neutral
+  description: Once per turn, damaging an enemy permanently gives you 1 Might, or being damaged by one gives you 1 Armor (whichever happens first).
+  triggers:
+    - on: dealtDamage
+      when: { byEnemy: true }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: serpent_fed } } }
+          then:
+            - { op: apply, to: bearer, effect: serpent_fed, duration: { thisTurn: true }, quiet: true }
+            - { op: apply, to: bearer, effect: might }
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: serpent_fed } } }
+          then:
+            - { op: apply, to: bearer, effect: serpent_fed, duration: { thisTurn: true }, quiet: true }
+            - { op: apply, to: bearer, effect: armor }
+
+serpent_fed:
+  name: Emblem of the Serpent (fed this turn)
+  kind: Neutral
+  stacking: unique
+  description: The Serpent has already grown this turn.
+
+eq_emblem_of_the_neurotoxin:
+  name: Emblem of the Neurotoxin
+  kind: Neutral
+  description: If you end your turn with energy left over, a random allied character gains 1 Might until the end of your next turn.
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { compare: { value: { energy: true }, atLeast: 1 } }
+          then:
+            - op: apply
+              to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }
+              effect: might
+              duration: { ownTurns: 1 }
+
+eq_emblem_of_the_bog:
+  name: Emblem of the Bog
+  kind: Neutral
+  description: When an allied minion dies, it deals 5 Affliction damage to a random enemy.
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { and: [{ kind: { unit: eventTarget, is: minion } }, { not: { isEnemy: eventTarget } }] }
+          then: [{ op: damage, to: { randomEnemy: 1 }, amount: 5, type: Affliction, from: eventTarget }]
+
+eq_emblem_of_the_void:
+  name: Emblem of the Void
+  kind: Neutral
+  description: If you end your turn without using a skill, your Invulnerable effects last 1 turn longer (once per effect).
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { not: { actedThisTurn: bearer } }
+          then: [{ op: extendEffects, on: bearer, effects: [invulnerable], by: 2, onceKey: voidExtended }]
+
+eq_emblem_of_the_phantom:
+  name: Emblem of the Phantom
+  kind: Neutral
+  description: Whenever your skills damage an Invulnerable enemy, you deal 10 more Piercing damage to them.
+  triggers:
+    - on: dealtDamage
+      when: { byEnemy: true, direct: true }
+      do:
+        - op: if
+          cond: { has: { unit: eventTarget, effect: invulnerable } }
+          then: [{ op: damage, to: eventTarget, amount: 10, type: Piercing, bypass: true }]
+
+eq_emblem_of_the_eclipse:
+  name: Emblem of the Eclipse
+  kind: Neutral
+  description: When one of your Marks deals its damage, the marked unit gets 1 Weakness for 1 turn.
+  triggers:
+    - on: ownEffectTriggered
+      when: { effects: [mark] }
+      do:
+        - { op: apply, to: eventTarget, effect: weakness, duration: { enemyTurns: 1 } }
+
+eq_emblem_of_the_sun:
+  name: Emblem of the Sun
+  kind: Neutral
+  description: Whenever your skills damage a Sanctified enemy, you permanently gain 1 Might.
+  triggers:
+    - on: dealtDamage
+      when: { byEnemy: true, direct: true }
+      do:
+        - op: if
+          cond: { has: { unit: eventTarget, effect: sanctify } }
+          then: [{ op: apply, to: bearer, effect: might }]
+
+eq_emblem_of_the_seraph:
+  name: Emblem of the Seraph
+  kind: Neutral
+  description: The first time you're Stunned in the match, you become Invulnerable for 1 turn.
+  triggers:
+    - on: effectGained
+      when: { effects: [stun, stun_ns, stun_s, sleep] }
+      do:
+        - op: if
+          cond: { not: { flag: used } }
+          then:
+            - { op: setFlag, flag: used }
+            - { op: apply, to: bearer, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+eq_emblem_of_the_font:
+  name: Emblem of the Font
+  kind: Neutral
+  description: Anointing an ally also removes all their Debuffs.
+  triggers:
+    - on: effectApplied
+      when: { effects: [anointed], toEnemy: false }
+      do:
+        - { op: removeKind, from: eventTarget, kind: Debuff }
+
+eq_emblem_of_the_grave:
+  name: Emblem of the Grave
+  kind: Neutral
+  description: When another allied character dies, you permanently gain 1 Might and heal 10.
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { and: [{ kind: { unit: eventTarget, is: character } }, { not: { isEnemy: eventTarget } }, { not: { isActor: eventTarget } }] }
+          then:
+            - { op: apply, to: bearer, effect: might }
+            - { op: heal, to: bearer, amount: 10 }
+
+eq_emblem_of_the_plague:
+  name: Emblem of the Plague
+  kind: Neutral
+  description: Stacking Debuffs (Weakness, Vulnerable, Confusion, Intimidated, Toxin, Sapped) you apply or receive never run out.
+  triggers:
+    - on: effectApplied
+      when: { effects: [weakness, vulnerable, confusion, intimidated, toxin, sapped] }
+      do:
+        - { op: eventEffect, permanent: true }
+    - on: effectGained
+      when: { effects: [weakness, vulnerable, confusion, intimidated, toxin, sapped] }
+      do:
+        - { op: eventEffect, permanent: true }
+
+eq_emblem_of_the_lich:
+  name: Emblem of the Lich
+  kind: Neutral
+  description: Whenever you use a Harmful skill, you and your minions gain 5 Shield.
+  triggers:
+    - on: skillUsed
+      when: { harmful: true }
+      do:
+        - op: apply
+          to: { filter: allAllies, where: { or: [{ isActor: it }, { minion: { unit: it, mine: true } }] } }
+          effect: shield
+          value: 5

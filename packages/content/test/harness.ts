@@ -25,6 +25,8 @@ export interface ArenaOptions {
   seed?: number;
   /** Give the active player plenty of every color at each of their turns (default true). */
   richEnergy?: boolean;
+  /** Equipment passives (status ids) per unit id, applied at match start like a real loadout. */
+  passives?: Record<string, string[]>;
 }
 
 export class Arena {
@@ -37,7 +39,12 @@ export class Arena {
   constructor(o: ArenaOptions) {
     this.rich = o.richEnergy ?? true;
     const mk = (side: string[][], p: number) =>
-      side.map((skills, i) => ({ name: `${p === 0 ? 'A' : 'B'}${i + 1}`, skills, ...(o.hp ? { hp: o.hp } : {}) }));
+      side.map((skills, i) => ({
+        name: `${p === 0 ? 'A' : 'B'}${i + 1}`,
+        skills,
+        ...(o.hp ? { hp: o.hp } : {}),
+        ...(o.passives?.[`p${p}c${i}`] ? { passives: o.passives[`p${p}c${i}`] } : {}),
+      }));
     const r = createMatch(content, { seed: o.seed ?? 1, teams: [mk(o.p0, 0), mk(o.p1, 1)] });
     this.state = r.state;
     this.events.push(...r.events);

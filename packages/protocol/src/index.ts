@@ -97,6 +97,12 @@ export interface RatingChange {
   after: number;
 }
 
+/** What a player earned from a match (docs/equipment.md §3): currency amounts and item ids. */
+export interface MatchReward {
+  currency: Record<string, number>;
+  items: string[];
+}
+
 export type ServerMessage =
   | { t: 'welcome'; v: number; user: { id: string; displayName: string }; activeMatch: string | null; serverTime: number }
   | { t: 'error'; code: ErrorCode; message: string; problems?: string[] }
@@ -133,7 +139,7 @@ export type ServerMessage =
   | { t: 'match.presence'; matchId: string; opponentConnected: boolean; forfeitAt: number | null }
   | { t: 'match.turnRejected'; matchId: string; reason: string }
   /** `reason`: the engine's, or the server's forfeit reason (disconnect, afk). */
-  | { t: 'match.end'; matchId: string; result: MatchResult; reason: string; rating?: RatingChange }
+  | { t: 'match.end'; matchId: string; result: MatchResult; reason: string; rating?: RatingChange; reward?: MatchReward }
   | { t: 'pong'; at: number; serverTime: number };
 
 /** Parses a raw client frame; returns null when it isn't a valid message. */

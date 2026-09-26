@@ -2,7 +2,7 @@
 // (GDD §11.5). Content files are validated against Zod schemas in @arena/content that are typed
 // against these interfaces, so the two can't drift apart.
 
-import type { Cost, DamageType } from './types.js';
+import type { Cost, DamageType, RemoveReason } from './types.js';
 
 // ---------------------------------------------------------------- durations (GDD §3.8)
 
@@ -18,7 +18,10 @@ export type DurationSpec =
   | { thisTurn: true }
   | { enemyTurns: number | Value }
   | { ownTurns: number | Value }
-  | { raw: number };
+  /** Internal ticks. */
+  | { raw: number | Value }
+  /** However long the event's effect has left (permanent if it's permanent). */
+  | { sameAsEvent: true };
 
 /** A DurationSpec whose turn counts have been evaluated. */
 export type ResolvedDuration =
@@ -45,6 +48,7 @@ export type NamedSelector =
   | 'lastDamaged' // units damaged by the most recent damage op
   | 'summoner' // the unit that summoned the actor (for minions)
   | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
+  | 'eventPrimary' // the first of eventTargets (the triggering skill's primary target)
   | 'allUnits' // every living unit on both sides
   | 'lastSummoned'; // the unit the most recent summon op created
 
@@ -77,11 +81,25 @@ export type Value =
   | { div: [Value, Value] }
   | { sum: Value[] }
   | { mul: Value[] }
-  | { if: Cond; then: Value; else: Value };
+  | { if: Cond; then: Value; else: Value }
+  /** Total base cost of the skill in scope (the skill being used, or the one behind the event). */
+  | { skillCost: true }
+  /** Dead characters on the actor's enemy / own side. */
+  | { deadCount: 'enemies' | 'allies' }
+  /** The actor's other characters that have used a skill this turn. */
+  | { alliesActed: true }
+  /** The amount carried by the event (healing received). */
+  | { eventAmount: true }
+  /** Remaining internal duration of the event's effect (0 if permanent or gone). */
+  | { eventDuration: true }
+  /** Energy the actor's player has banked (all colors). */
+  | { energy: true };
 
 export type Cond =
-  | { has: { unit: Selector; effect: string } }
-  | { hasFromArchetype: { unit: Selector; archetype: string } }
+  /** `mine`: only an instance the actor applied. */
+  | { has: { unit: Selector; effect: string; mine?: boolean } }
+  /** `mine`: only effects the actor applied. */
+  | { hasFromArchetype: { unit: Selector; archetype: string; mine?: boolean } }
   | { hpAtMost: { unit: Selector; value: number } }
   | { hpAbove: { unit: Selector; value: number } }
   /** Total stacks of the listed effects on the unit is more than `moreThan`. */
@@ -96,14 +114,28 @@ export type Cond =
   | { isActor: Selector }
   /** The selected unit is an enemy of the actor. */
   | { isEnemy: Selector }
-  /** The unit is a minion, optionally of one of these types (minion id or tag). */
-  | { minion: { unit: Selector; types?: string[] } }
+  /** The unit is a minion, optionally of one of these types (minion id or tag); `mine`: summoned by the actor. */
+  | { minion: { unit: Selector; types?: string[]; fromArchetypes?: string[]; mine?: boolean } }
   /** The unit carries any Shield effect with value left. */
   | { hasShield: Selector }
   /** The unit has a skill of one of these archetypes (Wind: mobility skills). */
   | { hasSkill: { unit: Selector; archetypes: string[] } }
   /** A numeric comparison. */
   | { compare: { value: Value; atLeast?: number; atMost?: number } }
+  /** The unit is one of the event's targets (the skill that caused the event). */
+  | { isEventTarget: Selector }
+  /** An effect the actor applied from a skill of this archetype is on the board (e.g. an active Taunt). */
+  | { appliedFromArchetype: string }
+  /** At the time of the event, its unit carried an effect the actor applied from one of these archetypes. */
+  | { eventTargetHad: { archetypes: string[] } }
+  /** The skill behind the event (or in scope) matches. */
+  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[] } }
+  /** The unit is channeling (carries an interruptible effect). */
+  | { channeling: Selector }
+  /** The unit can't use at least some skills (Stun, Sleep, …). */
+  | { stunned: Selector }
+  /** The unit has used a skill this turn. */
+  | { actedThisTurn: Selector }
   | { any: { in: Selector; cond: Cond } }
   | { all: { in: Selector; cond: Cond } }
   | { and: Cond[] }
@@ -129,8 +161,11 @@ export type Op =
       wakes?: boolean;
       /** Deal the damage as this unit instead of the actor (a launched Boulder). */
       from?: Selector;
+      /** Ignore every damage modifier (Might, Armor, Vulnerable, …). */
+      raw?: boolean;
     }
-  | { op: 'heal'; to: Selector; amount: Value }
+  /** `raw`: not changed by healing modifiers; `quiet`: fires no healing triggers. */
+  | { op: 'heal'; to: Selector; amount: Value; raw?: boolean; quiet?: boolean }
   | {
       op: 'apply';
       to: Selector;
@@ -148,6 +183,12 @@ export type Op =
       linkTo?: string;
       /** Apply as if from this unit instead of the actor (a taunt "by that minion"). */
       from?: Selector;
+      /** Don't tell the applier's equipment (passives reacting to applications use this). */
+      quiet?: boolean;
+      /** End the effect once the actor carries no effect from its skills of this archetype ("during Titan"). */
+      whileActorHas?: string;
+      /** End the effect when the event's effect ends ("for as long as the Taunt lasts"). */
+      linkToEvent?: boolean;
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
@@ -159,6 +200,10 @@ export type Op =
   | { op: 'addMaxHp'; to: Selector; amount: number }
   /** Multiplies the value of every Shield effect on the selected units (Earth Rampart). */
   | { op: 'scaleShields'; on: Selector; factor: number }
+  /** Adds to the value of every Shield effect on the selected units. */
+  | { op: 'boostShields'; on: Selector; amount: number }
+  /** Moves a random effect of a kind from `from` to `to` (same stacks, value and time left). */
+  | { op: 'stealRandom'; from: Selector; to: Selector; kind: EffectKind; nonElemental?: boolean }
   /** Removes up to `amount` stacks of an effect (by key) from each selected unit. */
   | { op: 'removeStacks'; from: Selector; effect: string; amount: number }
   /** Runs a named, reusable op list from content (e.g. Fire's "explode"). */
@@ -172,11 +217,39 @@ export type Op =
   /** The actor's player gains random-colored energy. */
   | { op: 'gainEnergy'; amount: number }
   /** A skill comes off cooldown: the skill being used, or the actor's skill with this id. */
-  | { op: 'resetCooldown'; skill?: string }
+  | { op: 'resetCooldown'; skill?: string; archetypes?: string[] }
+  /**
+   * Uses a skill without cost or cooldown (GDD §11.5 meta ops): a content skill id, or the actor's
+   * own skill of an archetype. Single-target skills hit each unit of `on`; self and AoE skills
+   * resolve their own targets. `as: 'it'` casts it as each unit of `on` instead (e.g. on a minion).
+   */
+  /** `archetype` falls back to `skill` when the actor has no skill of it; `eventSkill` casts the event's skill. */
+  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; on: Selector; as?: 'actor' | 'it' }
+  /** Changes the effect the event is about (the one just applied). `expireNow` ends it as if its time ran out. */
+  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean }
+  /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
+  | { op: 'copyEventEffect'; to: Selector }
+  /** Removes `count` (default 1) random effects of a kind from each selected unit. */
+  | { op: 'removeRandom'; from: Selector; kind: EffectKind; count?: number }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
-  | { op: 'adjustCooldowns'; to: Selector; by: number | Value; exceptCurrent?: boolean; skill?: string }
-  /** Adds `by` turn-ends to the remaining duration of these effects on the selected units. */
-  | { op: 'extendEffects'; on: Selector; effects: string[]; by: number }
+  | {
+      op: 'adjustCooldowns';
+      to: Selector;
+      by: number | Value;
+      exceptCurrent?: boolean;
+      skill?: string;
+      /** Only skills of these archetypes. */
+      archetypes?: string[];
+      /** Skip the skill behind the event (e.g. the Dance that was just used). */
+      exceptEvent?: boolean;
+      /** Only one of the matching skills on cooldown, chosen at random. */
+      random?: boolean;
+    }
+  /**
+   * Adds `by` turn-ends to the remaining duration of effects on the selected units: these keys, or
+   * every effect of `kind` (minus `except`). With `onceKey`, each effect can only be extended once.
+   */
+  | { op: 'extendEffects'; on: Selector; effects?: string[]; kind?: EffectKind; except?: string[]; by: number; onceKey?: string }
   | { op: 'if'; cond: Cond; then: Op[]; else?: Op[] }
   | { op: 'set'; var: string; value: Value | boolean }
   | { op: 'forEach'; in: Selector; do: Op[] }
@@ -200,17 +273,57 @@ export type SkillClass = 'Strategic' | 'NonStrategic';
 
 /** Ends an effect on the bearer's next skill use, optionally only for Harmful or damaging ones. */
 export interface UntilSpec {
-  skillUsed: { harmful?: boolean; nonStrategic?: boolean };
+  /** `archetypes`: only skills of these archetypes (a free next Riposte). */
+  skillUsed: { harmful?: boolean; nonStrategic?: boolean; archetypes?: string[] };
 }
 
-export type ModifierSpec =
-  /** Bearer is the damage source. */
-  | { mod: 'damageDealt'; amount: number; perStack?: boolean; when?: DamageWhen }
-  /** Bearer is the damage target. `armor: true` marks Armor-style reduction (disabled by Shattered). */
-  | { mod: 'damageTaken'; amount: number; perStack?: boolean; when?: DamageWhen; armor?: boolean }
+/** Fields every modifier may carry (equipment passives rely on them). */
+export interface ModifierBase {
+  /** Only active while this holds (evaluated with actor = it = the bearer). */
+  if?: Cond;
+  /** Only for skills of these archetypes (the skill being used, or the one dealing the damage). */
+  archetypes?: string[];
+  /** Only for skills with one of these tags (e.g. Helpful). */
+  skillsWith?: SkillTag[];
+}
+
+export type ModifierSpec = ModifierBase &
+  (
+  /**
+   * Bearer is the damage source. `value` (actor = bearer, it = target) replaces `amount`; `target`
+   * limits it to matching targets; `mul` multiplies the final damage (0 = no damage); `onePerTurn`
+   * limits it to one target each turn (the first one it applies to).
+   */
+  | {
+      mod: 'damageDealt';
+      amount: number;
+      perStack?: boolean;
+      when?: DamageWhen;
+      value?: Value;
+      target?: Cond;
+      mul?: number;
+      onePerTurn?: boolean;
+    }
+  /**
+   * Bearer is the damage target. `armor: true` marks Armor-style reduction (disabled by Shattered).
+   * `atLeast`: only against hits of at least this much (before Armor), applied first; `oncePerTurn`
+   * limits that to one hit per turn. `mul` multiplies the damage taken.
+   */
+  | {
+      mod: 'damageTaken';
+      amount: number;
+      perStack?: boolean;
+      when?: DamageWhen;
+      armor?: boolean;
+      value?: Value;
+      atLeast?: number;
+      oncePerTurn?: boolean;
+      mul?: number;
+    }
   /** +n adds r cost, −n reduces r cost only (GDD §3.4). */
   | { mod: 'costGeneric'; amount: number; perStack?: boolean }
-  | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean }
+  /** `min`: a reduction can't take the cooldown below this (a skill that starts lower stays put). */
+  | { mod: 'cooldownOnUse'; amount: number; perStack?: boolean; min?: number }
   | { mod: 'untargetable'; by: 'enemies' | 'allies'; bypassable: boolean }
   | { mod: 'blockIndirectDamage' }
   /** Stun. `classes` limits it to Strategic / non-Strategic skills; `harmful` to Harmful (true) or Helpful (false) ones. */
@@ -246,7 +359,35 @@ export type ModifierSpec =
   /** The bearer's next skill counts as Stealthy (Shadow Long Shadow); apply with `until`. */
   | { mod: 'nextSkillStealthy' }
   /** The primary target of the bearer's single-target skills is chosen at random (Blinded). */
-  | { mod: 'randomPrimaryTarget' };
+  | { mod: 'randomPrimaryTarget' }
+  /** The bearer's skill costs become all random (r) energy. */
+  | { mod: 'costToRandom' }
+  /** The bearer's skills cost nothing. */
+  | { mod: 'freeSkills' }
+  /** −n removes n specific-color pips from the cost (the most common color first). */
+  | { mod: 'costSpecific'; amount: number }
+  /** Using these skills doesn't end the bearer's channels. */
+  | { mod: 'keepChannels' }
+  /** The bearer's skills can't pick targets matching `where` (it = candidate). */
+  | { mod: 'targetExclude'; where: Cond }
+  /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
+  | { mod: 'redirectDamage' }
+  /** Skills of this effect's source Bypass against the bearer. */
+  | { mod: 'exposed' }
+  /** Raises the bearer's max (and current) Health while the effect lasts. */
+  | { mod: 'maxHp'; amount: number }
+  /** Multiplies the bearer's Armor. */
+  | { mod: 'armorMul'; mul: number }
+  /** A non-stacking effect the bearer applies can stack up to `max` (Emblem of the Inferno: Ignite). */
+  | { mod: 'stackCap'; effect: string; max: number }
+  /** Adds or removes skill tags (e.g. Snipes gain Bypass and Uncounterable). */
+  | { mod: 'skillTags'; add?: SkillTag[]; remove?: SkillTag[] }
+  /**
+   * Skills may also target units matching `where` (it = candidate). Then either `ops` run instead of
+   * the skill's own, or (`castAs`) the skill resolves as if the target had used it on itself.
+   */
+  | { mod: 'extraTargets'; where: Cond; castAs?: boolean; ops?: Op[] }
+  );
 
 /**
  * - skillResolved: after the bearer's skill has fully resolved (not countered); sees its targets.
@@ -263,7 +404,29 @@ export type TriggerEvent =
   | 'effectGained'
   | 'dealtDamage'
   | 'shieldDamaged'
-  | 'summoned';
+  | 'summoned'
+  /** An effect this bearer applied (from a skill) triggered; eventTarget = its bearer. */
+  | 'ownEffectTriggered'
+  /** An effect this bearer applied (from a skill) ended; filter with when.reason / untriggered. */
+  | 'ownEffectEnded'
+  /** This bearer applied an effect to someone (eventTarget); eventEffect = that effect. */
+  | 'effectApplied'
+  /** This bearer was healed; eventAmount = HP restored. */
+  | 'healed'
+  /** Once, when the match starts (equipment). */
+  | 'battleStart'
+  /** One of this bearer's skills was countered or reflected; eventSource = the unit that stopped it. */
+  | 'countered'
+  /** An effect this bearer tried to apply was negated (Swiftness); eventTarget = who negated it. */
+  | 'effectNegated'
+  /** This bearer negated an effect aimed at it (its Swiftness stopped a Stun). */
+  | 'incomingNegated'
+  /** This bearer healed someone (eventTarget); eventAmount = HP restored. */
+  | 'healDone'
+  /** An effect on this bearer turned into energy (Charged at 3); `effects` filters by key. */
+  | 'energyFromEffect'
+  /** A counter or reflect was ignored because of this bearer's Flow. */
+  | 'counterIgnored';
 
 export interface TriggerSpec {
   on: TriggerEvent;
@@ -287,6 +450,24 @@ export interface TriggerSpec {
     strategic?: boolean;
     /** For damaged: `true` ignores damage that doesn't wake (`wakes: false`). */
     wakes?: boolean;
+    /** Only events caused by (or effects applied from) skills of these archetypes. */
+    archetypes?: string[];
+    /** ownEffectTriggered: only counters/reflects (true) or only other triggers (false). */
+    counter?: boolean;
+    /** ownEffectEnded: only these removal reasons. */
+    reason?: RemoveReason[];
+    /** ownEffectEnded: only effects that never triggered. */
+    untriggered?: boolean;
+    /** effectApplied / effectGained: only these effect keys. */
+    effects?: string[];
+    /** effectApplied: only effects applied to enemies (true) or to allies (false). */
+    toEnemy?: boolean;
+    /** effectApplied: only effects of this kind. */
+    kind?: EffectKind;
+    /** countered / ownEffectTriggered: only reflects (true) or only counters (false). */
+    reflected?: boolean;
+    /** effectGained / effectApplied: only Shield effects. */
+    shield?: boolean;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
@@ -411,12 +592,64 @@ export interface ItemDef {
   infusions: ItemInfusion[];
   /** Passive text from the sheet. */
   passive?: string;
-  /** Status implementing the passive; absent until the passive is implemented (Phase 7). */
+  /** Status implementing the passive (applied to the wearer at match start). */
   passiveEffect?: string;
   /** Only this class can equip it (type G class armor). */
   classId?: string;
   /** The sheet left it unnamed; the name is a placeholder. */
   placeholder?: boolean;
+}
+
+// ---------------------------------------------------------------- economy (GDD §8.4)
+// Like items, the economy never enters the engine: @arena/meta and the server read it.
+
+/** Amounts by currency id, e.g. { gold: 100 }. */
+export type CurrencyAmounts = Record<string, number>;
+
+export interface RewardSpec {
+  currency?: CurrencyAmounts;
+  /** Items rolled from a drop table. */
+  drops?: { table: string; count: number };
+}
+
+export interface ModeRewards {
+  /** Matches shorter than this many turns (both players' turns counted) earn nothing. */
+  minTurns: number;
+  win: RewardSpec;
+  /** Only for losses that were played out (not surrenders, forfeits or AFK). */
+  loss: RewardSpec;
+  draw: RewardSpec;
+}
+
+export interface DropTable {
+  /** Relative weight of each item type; the items of a type are equally likely. */
+  types: Partial<Record<ItemType, number>>;
+  /** Items that never drop from this table. */
+  exclude?: string[];
+}
+
+export interface RecipeDef {
+  id: string;
+  name: string;
+  description: string;
+  /** `count` unequipped items of this type (all of one element with `sameElement`). */
+  inputs: { type: ItemType; count: number; sameElement?: boolean };
+  /** The item of this type (of the inputs' element with `sameElement`). */
+  output: { type: ItemType };
+  cost?: CurrencyAmounts;
+}
+
+export interface EconomyDef {
+  currencies: Record<string, { name: string; start: number }>;
+  roll: { cost: CurrencyAmounts };
+  /** Rewards per match kind (casual, ranked, …); kinds without an entry earn nothing. */
+  rewards: Record<string, ModeRewards>;
+  /** Item drops per account per UTC day, all modes together (0 = no cap). */
+  dailyDropCap: number;
+  dropTables: Record<string, DropTable>;
+  recipes: Record<string, RecipeDef>;
+  /** What salvaging an item pays, by item type. */
+  salvage: Partial<Record<ItemType, CurrencyAmounts>>;
 }
 
 export interface ContentBundle {
@@ -431,6 +664,8 @@ export interface ContentBundle {
   conditions: Record<string, Cond>;
   /** Equipment catalogue. */
   items: Record<string, ItemDef>;
+  /** Currencies, rewards, drops, crafting and salvage. */
+  economy: EconomyDef;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

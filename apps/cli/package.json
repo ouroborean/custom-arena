@@ -8,8 +8,9 @@
     "play": "tsx src/play.ts"
   },
   "dependencies": {
-    "@arena/engine": "0.1.0",
+    "@arena/ai": "0.1.0",
     "@arena/content": "0.1.0",
-    "@arena/ai": "0.1.0"
+    "@arena/engine": "0.1.0",
+    "@arena/meta": "0.1.0"
   }
 }

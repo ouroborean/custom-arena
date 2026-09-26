@@ -304,6 +304,7 @@ stab.shadow:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: if, cond: { or: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: blinded } }] }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
       amount:

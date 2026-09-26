@@ -70,6 +70,7 @@ export function bundle(skills: SkillDef[], extra: Partial<ContentBundle> = {}): 
     macros: extra.macros ?? {},
     items: extra.items ?? {},
     conditions: extra.conditions ?? {},
+    economy: { currencies: {}, roll: { cost: {} }, rewards: {}, dailyDropCap: 0, dropTables: {}, recipes: {}, salvage: {} },
   };
 }
 

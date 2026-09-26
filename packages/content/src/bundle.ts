@@ -7,6 +7,7 @@ import {
   type ClassDef,
   type Cond,
   type ContentBundle,
+  type EconomyDef,
   type EffectDef,
   type ItemDef,
   type MinionDef,
@@ -14,7 +15,16 @@ import {
   type SkillDef,
 } from '@arena/engine';
 import { z } from 'zod';
-import { classFileEntry, conditionFileEntry, effectDefSchema, itemFileEntry, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
+import {
+  classFileEntry,
+  conditionFileEntry,
+  economySchema,
+  effectDefSchema,
+  itemFileEntry,
+  macroFileEntry,
+  minionFileEntry,
+  skillFileEntry,
+} from './schema.js';
 
 export interface RawContent {
   skills: Record<string, unknown>;
@@ -24,6 +34,8 @@ export interface RawContent {
   macros: Record<string, unknown>;
   conditions: Record<string, unknown>;
   items: Record<string, unknown>;
+  /** Top-level sections of the economy file(s): currencies, roll, rewards, … */
+  economy: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -108,10 +120,56 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
 
   const items = parseEntries('items', raw.items ?? {}, itemFileEntry, issues) as Record<string, ItemDef>;
 
-  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions, items }));
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions, items };
-  issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle));
+  const eco = economySchema.safeParse(raw.economy ?? {});
+  if (!eco.success) {
+    for (const iss of eco.error.issues) issues.push({ level: 'error', where: `economy${iss.path.length ? '.' + iss.path.join('.') : ''}`, message: iss.message });
+  }
+  const economy: EconomyDef = eco.success ? withRecipeIds(eco.data) : EMPTY_ECONOMY;
+
+  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy }));
+  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions, items, economy };
+  issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle), ...checkEconomy(bundle));
   return { bundle, issues };
+}
+
+const EMPTY_ECONOMY: EconomyDef = { currencies: {}, roll: { cost: {} }, rewards: {}, dailyDropCap: 0, dropTables: {}, recipes: {}, salvage: {} };
+
+function withRecipeIds(e: Omit<EconomyDef, 'recipes'> & { recipes: Record<string, Omit<EconomyDef['recipes'][string], 'id'>> }): EconomyDef {
+  return { ...e, recipes: Object.fromEntries(Object.entries(e.recipes).map(([id, r]) => [id, { ...r, id }])) };
+}
+
+/** Currencies, drop tables and recipes must point at things that exist. */
+export function checkEconomy(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const e = b.economy;
+  const err = (where: string, message: string) => issues.push({ level: 'error', where: `economy.${where}`, message });
+  const currencies = (where: string, amounts: Record<string, number> | undefined) => {
+    for (const k of Object.keys(amounts ?? {})) if (!e.currencies[k]) err(where, `unknown currency "${k}"`);
+  };
+  const itemsOfType = (t: string) => Object.values(b.items).filter((i) => i.type === t);
+  currencies('roll.cost', e.roll.cost);
+  for (const [mode, r] of Object.entries(e.rewards)) {
+    for (const outcome of ['win', 'loss', 'draw'] as const) {
+      const spec = r[outcome];
+      currencies(`rewards.${mode}.${outcome}`, spec.currency);
+      if (spec.drops && !e.dropTables[spec.drops.table]) err(`rewards.${mode}.${outcome}`, `unknown drop table "${spec.drops.table}"`);
+    }
+  }
+  for (const [id, t] of Object.entries(e.dropTables)) {
+    for (const [type, w] of Object.entries(t.types)) if (w && itemsOfType(type).length === 0) err(`dropTables.${id}`, `no items of type ${type}`);
+    for (const x of t.exclude ?? []) if (!b.items[x]) err(`dropTables.${id}`, `unknown item "${x}"`);
+  }
+  for (const r of Object.values(e.recipes)) {
+    currencies(`recipes.${r.id}`, r.cost);
+    if (itemsOfType(r.inputs.type).length === 0) err(`recipes.${r.id}`, `no items of type ${r.inputs.type}`);
+    for (const input of itemsOfType(r.inputs.type)) {
+      const el = input.infusions[0]?.element;
+      const out = itemsOfType(r.output.type).filter((o) => !r.inputs.sameElement || o.infusions[0]?.element === el);
+      if (out.length !== 1) err(`recipes.${r.id}`, `${input.id} would make ${out.length} possible items (needs exactly 1)`);
+    }
+  }
+  for (const [type, amounts] of Object.entries(e.salvage)) currencies(`salvage.${type}`, amounts);
+  return issues;
 }
 
 // ---------------------------------------------------------------- referential integrity

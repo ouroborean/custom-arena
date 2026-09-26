@@ -19,7 +19,7 @@ import {
   type MatchResult,
   type PlayerId,
 } from '@arena/engine';
-import { applyTurnBundle, type MatchKind, type OpponentInfo, type RatingChange, type SeqEvent, type ServerMessage, type TurnBundle } from '@arena/protocol';
+import { applyTurnBundle, type MatchKind, type MatchReward, type OpponentInfo, type RatingChange, type SeqEvent, type ServerMessage, type TurnBundle } from '@arena/protocol';
 import type { Clock, Timer } from './clock.js';
 
 /** How long a disconnected player has to come back before forfeiting. */
@@ -40,14 +40,17 @@ export interface Connection {
 
 export type EndReason = MatchResult['reason'] | 'disconnect' | 'afk';
 
+/** What finishing a match produced for each seat: rating changes (ranked) and rewards. */
+export interface FinishOutcome {
+  ratings: [RatingChange, RatingChange] | null;
+  rewards: [MatchReward | null, MatchReward | null];
+}
+
 /** Persistence the room needs; the server backs it with Postgres, tests with memory. */
 export interface RoomStore {
   appendActions(matchId: string, actions: { seq: number; player: PlayerId; command: Command }[]): Promise<void>;
-  /** Records the result and applies rating changes; returns them for ranked matches. */
-  finish(
-    matchId: string,
-    r: { winner: PlayerId | null; endReason: EndReason; turns: number },
-  ): Promise<[RatingChange, RatingChange] | null>;
+  /** Records the result, applies rating changes and grants rewards. */
+  finish(matchId: string, r: { winner: PlayerId | null; endReason: EndReason; turns: number }): Promise<FinishOutcome | null>;
 }
 
 export interface RoomOptions {
@@ -261,14 +264,16 @@ export class MatchRoom {
     const result = this.state.result!;
     this.finished = (async () => {
       await this.writes;
-      let ratings: [RatingChange, RatingChange] | null = null;
+      let outcome: FinishOutcome | null = null;
       try {
-        ratings = await this.o.store.finish(this.id, { winner: result.winner, endReason: reason, turns: this.state.turn });
+        outcome = await this.o.store.finish(this.id, { winner: result.winner, endReason: reason, turns: this.state.turn });
       } catch (e) {
         this.o.log?.(`match ${this.id}: could not record the result`, e);
       }
       for (const p of [0, 1] as const) {
-        this.conns[p]?.send({ t: 'match.end', matchId: this.id, result, reason, ...(ratings ? { rating: ratings[p] } : {}) });
+        const rating = outcome?.ratings?.[p];
+        const reward = outcome?.rewards[p];
+        this.conns[p]?.send({ t: 'match.end', matchId: this.id, result, reason, ...(rating ? { rating } : {}), ...(reward ? { reward } : {}) });
       }
       this.o.onEnd?.(this);
     })();

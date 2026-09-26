@@ -1,5 +1,5 @@
-// Roster (characters) and teams (GDD §7, §9.1). Rolling is free for now; its cost and currency
-// arrive with the economy (Phase 7).
+// Roster (characters) and teams (GDD §7, §9.1). Rolling costs currency (content economy `roll`);
+// a new account's first three characters are free.
 
 import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter } from '@arena/meta';
 import { seedRng, type CharacterSpec } from '@arena/engine';
@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { characters, teams, users } from '../db/schema.js';
+import { inTransaction, spend, walletOf } from '../economy.js';
 import { recordOf, resolveStored } from './equipment.js';
 
 /**
@@ -27,7 +28,7 @@ export async function activeTeamSpecs(ctx: AppContext, userId: string): Promise<
   return specs;
 }
 
-/** Upper bound on roster size while rolling is free. */
+/** Upper bound on roster size. */
 export const MAX_ROSTER = 60;
 
 type CharacterRow = typeof characters.$inferSelect;
@@ -111,8 +112,13 @@ export function rosterRoutes(ctx: AppContext) {
     });
 
     app.post('/api/characters/roll', async (req, reply) => {
-      const row = await rollForUser(ctx, req.user!.id);
-      return reply.status(201).send({ character: characterJson(row) });
+      const userId = req.user!.id;
+      // Pay and roll together: a full roster (409) or a short wallet (402) leaves both untouched.
+      const row = await inTransaction(ctx.db, async (db) => {
+        await spend(db, ctx.content, userId, ctx.content.economy.roll.cost);
+        return rollForUser({ ...ctx, db }, userId);
+      });
+      return reply.status(201).send({ character: characterJson(row), wallet: await walletOf(ctx.db, ctx.content, userId) });
     });
 
     app.patch('/api/characters/:id', async (req) => {

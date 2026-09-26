@@ -1,5 +1,6 @@
 import { makeCtx, resolveEffectDef, type Ctx } from './ctx.js';
 import { applyEffect } from './effects.js';
+import { enqueueTriggers, flushTriggers } from './ops.js';
 import type { ContentBundle } from './defs.js';
 import { emptyEnergy } from './energy.js';
 import { seedRng } from './rng.js';
@@ -70,6 +71,9 @@ export function createMatch(content: ContentBundle, config: MatchConfig): ApplyR
       }
     }),
   );
+  // "At the start of battle" passives.
+  for (const u of units) enqueueTriggers(ctx, u.id, 'battleStart');
+  flushTriggers(ctx);
   startTurn(ctx);
   return { state, events: ctx.events };
 }

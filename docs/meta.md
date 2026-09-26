@@ -41,10 +41,9 @@ The catalogue is `packages/content/data/items/items.yaml`: **260 items** generat
 *Structured Equipment* sheet (A 30, B 20, C 20, D 30, E 30, F 30, G 20, H 20, I 10, J 40, K 10).
 Each item grants skills, infusions and/or a passive (GDD §8.1).
 
-> **Passives are catalogued but not active yet.** Their effects are Phase 7 work; an item's
-> `passiveEffect` will name the status that implements it, and the engine applies such statuses
-> permanently at match start (`CharacterSpec.passives`). Until then passives count against the
-> budget but do nothing in battle.
+> **Passives are live.** An item's `passiveEffect` names the status that implements it, and the
+> engine applies it permanently at match start (`CharacterSpec.passives`). All 120 passives (types
+> A, B, D, G, H) are implemented; the rulings for ambiguous wording are in `docs/equipment.md`.
 
 ### 2.1 Slots
 
@@ -69,11 +68,21 @@ Each item grants skills, infusions and/or a passive (GDD §8.1).
 - A loadout is validated when saved and again when the team becomes engine input (a loadout that
   became invalid blocks the match with a 409 listing the problems).
 
-### 2.3 Acquisition (placeholder)
+### 2.3 Acquisition
 
-Acquisition is designed in Phase 7 (GDD §8.4). For now new accounts get 3 rolled characters, an
-active team of them, and a **starter kit** (a K shard, a single-skill J item and an F armor piece);
-rolling is free up to 60 characters. Development servers also expose `POST /api/dev/grant`.
+New accounts get:
+- **Three characters:** rolled for free, and made the active team.
+- **A starter kit:** a K shard, a single-skill J item and an F armor piece.
+- **300 Gold.**
+
+After that:
+- **Rolling costs Gold,** up to 60 characters.
+- **Items** come from casual and ranked match drops, and from crafting (three Shards → a Perfect
+  Crystal).
+- **Salvage** turns unequipped items back into Gold.
+
+The rules and numbers are in `docs/equipment.md` §4. Development servers also expose
+`POST /api/dev/grant`.
 
 ### 2.4 Data decisions
 
@@ -96,7 +105,7 @@ Passwords: Argon2id.
 | GET | `/api/content`, `/api/content/:version` | Current content version; the bundle (immutable) |
 | POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | Accounts and sessions |
 | GET | `/api/me` | Current user and pity counter |
-| GET, POST | `/api/characters`, `/api/characters/roll` | Roster; roll a character |
+| GET, POST | `/api/characters`, `/api/characters/roll` | Roster; roll a character (costs Gold) |
 | GET, PATCH, DELETE | `/api/characters/:id` | Detail (with validation and resolved loadout), rename, retire |
 | GET, PUT | `/api/teams/active` | Active team (3 characters, in battle order) |
 | GET | `/api/teams/active/specs` | The team as engine input, equipment included |
@@ -104,6 +113,9 @@ Passwords: Argon2id.
 | GET, PUT | `/api/characters/:id/loadout` | Loadout and its resolution; save (400 lists problems) |
 | GET, POST | `/api/characters/:id/presets` | Loadout presets |
 | POST, DELETE | `/api/characters/:id/presets/:presetId(/apply)` | Apply or delete a preset |
+| GET | `/api/wallet` | Currency balances (docs/equipment.md §4) |
+| POST | `/api/craft` | Craft with a recipe from unequipped items |
+| POST | `/api/inventory/:id/salvage` | Salvage an unequipped item for Gold |
 | POST | `/api/dev/grant` | Development only: add an item to the inventory |
 | GET | `/api/matches`, `/api/matches/:id/replay` | Match history; replay records (see docs/multiplayer.md) |
 | GET | `/api/ratings` | Ranked season rating and casual record |

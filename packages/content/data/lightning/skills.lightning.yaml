@@ -287,6 +287,7 @@ stab.lightning:
     - op: if
       cond: { hpAtMost: { unit: primary, value: 40 } }
       then: [{ op: apply, to: primary, effect: sapped }]
+    - { op: if, cond: { or: [{ varTrue: healthy }, { hpAtMost: { unit: primary, value: 40 } }] }, then: [{ op: signal, name: stab_bonus }] }
 
 ravage.lightning:
   archetype: Ravage
