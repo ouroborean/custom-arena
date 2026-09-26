@@ -1,6 +1,6 @@
 # Custom Arena — Formal Ruleset
 
-**Status:** Locked for engine v0.1.0 (Phase 1). Source: GDD §3 plus decisions Q1–Q17 and R1–R10 (GDD §14).
+**Status:** Locked for engine v0.1.0 (Phases 1–3). Source: GDD §3 plus decisions Q1–Q17 and R1–R10 (GDD §14). Element rulings are in §11+.
 **Implementation:** `packages/engine`. Each rule below names the module that enforces it.
 **Changing a rule:** update this document, the engine, and the matching test in the same change.
 
@@ -68,7 +68,7 @@ For each queued skill:
    - AoE skills take every currently targetable unit, and fail if there are none.
 4. **Cooldown starts.** Using a skill ends the actor's other **channels** (Q6).
 5. The `skillUsed` event fires. It's private to the owner for **Invisible** skills. For **HiddenTarget** skills, the targets are hidden from the opponent.
-6. Effects that end "when the bearer next uses a skill" end now.
+6. Effects that end "when the bearer next uses a skill" (optionally only a Harmful or a damaging one) still apply to this use, and end once it has resolved.
 7. **Traps** and other on-use triggers on the actor fire. The skill continues unless the actor died.
 8. If the skill is **Harmful** and not **Uncounterable**, the first **counter** or **reflect** in application order intercepts it:
    - counters on the actor (Mislead-type) or on an enemy target (Riposte-type);
@@ -142,3 +142,40 @@ These are rulings the sheets left open. Each is easy to change in `packages/cont
 | Consume | "Damage dealt" counts damage absorbed by Shield. The Mark/Curse bonus is checked before the hit consumes the Mark. |
 | Cleave | The second random enemy is never the primary target. |
 | Prayer | Its 10 Shield has no stated duration, so it's permanent until depleted. |
+
+---
+
+## 11. Fire
+
+Content: `packages/content/data/fire/`. Statuses: **Ignite**, **Scorched**, **Flameborn**. Action: **Explode**.
+
+### 11.1 Mechanics
+
+| Term | Ruling |
+|---|---|
+| **Ignite** | 5 Affliction damage at the end of the applier's turn. One per unit: re-applying refreshes it, and the newest applier becomes its source. There's no stated duration, so it lasts until something removes it (Q16). |
+| **Scorched** | Healing received ×0.5, rounded up to a multiple of 5. One per unit. It's permanent unless a skill states a duration. |
+| **Flameborn** | One per unit. The bearer heals for the damage their own Ignites deal. They also heal 10 whenever **their side** causes an Explosion. |
+| **Explode** | 10 Affliction damage to every enemy of whoever caused it (the skill user, trap setter or channeler). It's indirect damage, and Invulnerable targets are skipped (Q14). Each qualifying target causes its own Explosion, so Chain Detonation, Blastwave and Flamethrower can set off several at once. |
+
+### 11.2 Skill rulings
+
+| Skill | Ruling |
+|---|---|
+| Hot Foot | The +2 Might applies to the user's next damaging (non-Strategic) skill, then ends. Strategic skills don't use it up. |
+| Blisterblade | Counters every Harmful skill for the turn. An attacker who is already Ignited is Scorched instead. |
+| Flickerflare | If the target was already Ignited, one random *other* enemy is also Ignited. |
+| Heat Seeker | Deals 40 direct damage at the end of the following turn, then Scorches the target permanently. |
+| Hidden Explosives, Heat Haze | Each fires once. Heat Haze triggers on **any** skill; Hidden Explosives only on Harmful ones. |
+| Dragon Hatchling | HP 30 (placeholder). Its owner's Flameborn is an aura that ends when the Hatchling leaves the board. Its attack Ignites the enemy it hit; that Ignite starts ticking on the owner's next turn. |
+| Cinderlings | HP 10 each (placeholder). Both count toward the 4-minion cap. |
+| Flashbang | Applies **Stunned (non-Strategic)**, a base status that Swiftness also negates. |
+| Ivory Step | Tagged Helpful/Strategic (self-targeted), so it can't be countered. |
+| Ashen Barrier, Wraith in White | Count every active Ignite / Scorched on the board. Ashen Barrier's Shield has no stated duration, so it lasts until depleted. |
+| Ring of Fire | A Harmful skill during the Taunt Ignites the bearer. If they use none, they're Scorched for 2 of their turns when the Taunt ends. |
+
+### 11.3 Balance notes (greedy-bot simulation, 3,000 matches)
+
+- Fire characters win about 51% of games, and characters with no element about 49%.
+- **Flickerflare** won about 76% of the games it appeared in, the clear outlier. For 1 random energy with no cooldown, it added Ignite to Shot's damage and spread Ignite on re-cast. Giving Ignite a 3-turn duration barely changed this (about 75%).
+- **Change (2026-09-26):** Flickerflare's cooldown went from 0 to 1. Re-simulated over 2,000 matches, it wins about 71%. That's still the top Fire skill, so it's worth revisiting (cost color, or spreading only onto un-Ignited enemies).

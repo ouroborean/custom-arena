@@ -1,15 +1,16 @@
 // Turns raw parsed content files into a validated ContentBundle. Pure (no filesystem), so it can
 // also run in the browser or at server boot.
 
-import { scripts, type ClassDef, type ContentBundle, type EffectDef, type MinionDef, type Op, type SkillDef } from '@arena/engine';
+import { scripts, variantId, type ClassDef, type ContentBundle, type EffectDef, type MinionDef, type Op, type SkillDef } from '@arena/engine';
 import { z } from 'zod';
-import { classFileEntry, effectDefSchema, minionFileEntry, skillFileEntry } from './schema.js';
+import { classFileEntry, effectDefSchema, macroFileEntry, minionFileEntry, skillFileEntry } from './schema.js';
 
 export interface RawContent {
   skills: Record<string, unknown>;
   statuses: Record<string, unknown>;
   minions: Record<string, unknown>;
   classes: Record<string, unknown>;
+  macros: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -78,10 +79,16 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const skills = parseEntries('skills', raw.skills, skillFileEntry, issues) as Record<string, SkillDef>;
   const minions = parseEntries('minions', raw.minions, minionFileEntry, issues) as Record<string, MinionDef>;
   const classes = parseEntries('classes', raw.classes, classFileEntry, issues) as Record<string, ClassDef>;
+  const macros: Record<string, Op[]> = {};
+  for (const [id, entry] of Object.entries(raw.macros)) {
+    const r = macroFileEntry.safeParse(entry);
+    if (r.success) macros[id] = r.data;
+    else for (const iss of r.error.issues) issues.push({ level: 'error', where: `macros.${id}.${iss.path.join('.')}`, message: iss.message });
+  }
 
-  const version = contentHash(canonicalJson({ skills, statuses, minions, classes }));
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes };
-  issues.push(...checkReferences(bundle), ...lintSkills(bundle));
+  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros }));
+  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros };
+  issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle));
   return { bundle, issues };
 }
 
@@ -115,6 +122,7 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
       if (op.op === 'apply' && typeof op.effect === 'string' && !b.statuses[op.effect]) err(where, `unknown status "${op.effect}"`);
       if (op.op === 'summon' && !b.minions[op.minion]) err(where, `unknown minion "${op.minion}"`);
       if (op.op === 'script' && !scripts[op.id]) err(where, `unknown script "${op.id}"`);
+      if (op.op === 'macro' && !b.macros[op.id]) err(where, `unknown macro "${op.id}"`);
     });
 
   for (const s of Object.values(b.skills)) checkOps(`skills.${s.id}`, s.ops);
@@ -124,7 +132,9 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
       if (m.mod === 'negateNext' && !b.statuses[m.effect]) err(`statuses.${st.id}`, `negateNext refers to unknown status "${m.effect}"`);
     }
   }
+  for (const [id, ops] of Object.entries(b.macros)) checkOps(`macros.${id}`, ops);
   for (const m of Object.values(b.minions)) {
+    checkOps(`minions.${m.id}.onSummon`, m.onSummon ?? []);
     for (const sk of m.skills) if (!b.skills[sk]) err(`minions.${m.id}`, `unknown skill "${sk}"`);
     for (const p of m.passives) {
       if (typeof p === 'string') {
@@ -148,6 +158,33 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
       if (sigCount.get(s.id) !== 1) err('classes', `"${s.id}" is a signature of ${sigCount.get(s.id) ?? 0} classes (expected 1)`);
       if (affCount.get(s.id) !== 1) err('classes', `"${s.id}" is an affinity of ${affCount.get(s.id) ?? 0} classes (expected 1)`);
     }
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------- elements
+
+/**
+ * Elemental variants: "<base>.<element>" must share its base skill's archetype, and every element
+ * that has any variants should cover all base archetypes (a warning while an element is in progress).
+ */
+export function checkElements(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const base = Object.values(b.skills).filter((s) => s.element === 'None' && !s.id.includes('.'));
+  const elements = new Set(Object.values(b.skills).filter((s) => s.element !== 'None').map((s) => s.element));
+  for (const s of Object.values(b.skills)) {
+    if (s.element === 'None') continue;
+    const baseId = s.id.split('.')[0]!;
+    const baseSkill = b.skills[baseId];
+    if (!baseSkill) issues.push({ level: 'error', where: `skills.${s.id}`, message: `no base skill "${baseId}"` });
+    else if (baseSkill.archetype !== s.archetype) {
+      issues.push({ level: 'error', where: `skills.${s.id}`, message: `archetype ${s.archetype} differs from base ${baseSkill.archetype}` });
+    }
+    if (s.id !== variantId(baseId, s.element)) issues.push({ level: 'error', where: `skills.${s.id}`, message: `id should be "${variantId(baseId, s.element)}"` });
+  }
+  for (const el of elements) {
+    const missing = base.filter((s) => !b.skills[variantId(s.id, el)]).map((s) => s.id);
+    if (missing.length) issues.push({ level: 'warning', where: `element ${el}`, message: `missing variants: ${missing.join(', ')}` });
   }
   return issues;
 }

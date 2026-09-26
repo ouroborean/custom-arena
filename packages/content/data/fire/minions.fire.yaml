@@ -1,0 +1,33 @@
+# Fire minions. The sheet gives no HP for these; values are placeholders (see docs/rules.md).
+
+dragon_hatchling:
+  name: Dragon Hatchling
+  hp: 30
+  # "The minion gives its owner Flameborn" — an aura that ends when the hatchling leaves the board.
+  onSummon:
+    - { op: apply, to: summoner, effect: flameborn, bindTo: actor }
+  passives:
+    - id: dragon_breath
+      name: Dragon Breath
+      kind: Neutral
+      element: Fire
+      description: At the end of its owner's turn, deals 10 Affliction damage to a random enemy and Ignites them.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10, type: Affliction }
+            - { op: apply, to: lastDamaged, effect: ignite }
+
+cinderling:
+  name: Cinderling
+  hp: 10
+  passives:
+    - id: cinder_burst
+      name: Cinder Burst
+      kind: Neutral
+      element: Fire
+      description: At the end of its owner's turn, deals 5 Affliction damage to each enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: allEnemies, amount: 5, type: Affliction }

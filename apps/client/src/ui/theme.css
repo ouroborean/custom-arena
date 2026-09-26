@@ -36,6 +36,9 @@
   --e-W: #f3f3f0;
   --e-r: #0c0c10;
 
+  /* elements (per the design sheets' color key) */
+  --el-fire: #ff6a00;
+
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
   --font-display: 'Big Shoulders Display', 'Impact', sans-serif;
@@ -855,6 +858,31 @@ button.portrait.targetable {
 }
 .tile.cat-support {
   --cat: var(--support);
+}
+
+/* Element accents: a hard corner notch in the element color. */
+.el-fire {
+  --el: var(--el-fire);
+}
+
+.tile.has-el {
+  background: linear-gradient(315deg, var(--el) 0 13px, transparent 13px), var(--ink-3);
+}
+
+.portrait.has-el::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  border-top: 18px solid var(--el);
+  border-left: 18px solid transparent;
+}
+
+.tag-pill.has-el,
+.skill-chip.has-el {
+  border-color: var(--el);
+  color: var(--el);
 }
 
 .tile .code {

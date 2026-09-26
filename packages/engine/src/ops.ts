@@ -84,6 +84,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return one(ctx, sc.it);
     case 'lastDamaged':
       return sc.lastDamaged.flatMap((id) => one(ctx, id));
+    case 'summoner':
+      return one(ctx, actor.summonedBy);
   }
 }
 
@@ -118,6 +120,11 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   if ('stacks' in v) {
     const u = select(ctx, v.stacks.unit, sc)[0];
     return u ? stacksOf(ctx.s, u.id, v.stacks.effect) : 0;
+  }
+  if ('count' in v) {
+    const keys = new Set(v.count.effects);
+    const where = v.count.in ? new Set(select(ctx, v.count.in, sc).map((u) => u.id)) : null;
+    return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
   }
   if ('sum' in v) return v.sum.reduce<number>((n, x) => n + evalValue(ctx, x, sc), 0);
   if ('mul' in v) return v.mul.reduce<number>((n, x) => n * evalValue(ctx, x, sc), 1);
@@ -166,7 +173,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'damage': {
       sc.lastDamage = 0;
       sc.lastDamaged = [];
-      const respectsInvulnerable = sc.self ? effectDef(ctx.c, sc.self).respectsInvulnerable : undefined;
+      const respectsInvulnerable = op.respectsInvulnerable ?? (sc.self ? effectDef(ctx.c, sc.self).respectsInvulnerable : undefined);
       for (const t of select(ctx, op.to, sc)) {
         const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
         const dealt = dealDamage(ctx, {
@@ -189,21 +196,25 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'apply': {
       const def = resolveEffectDef(ctx.c, op.effect);
       const remembered = op.remember ? select(ctx, op.remember, sc).map((u) => u.id) : [];
+      const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
       for (const t of select(ctx, op.to, sc)) {
-        withIt(sc, t.id, () =>
+        withIt(sc, t.id, () => {
+          const stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
+          if (stacks <= 0) return; // "1 Might per Ignite" with no Ignites applies nothing
           applyEffect(ctx, {
             def,
             inline: typeof op.effect !== 'string',
             bearer: t,
             source: actor,
             sourceSkill: sc.skill,
-            stacks: op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc),
+            stacks,
             value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
             duration: op.duration,
             targets: remembered,
             until: op.until,
-          }),
-        );
+            boundTo,
+          });
+        });
       }
       return;
     }
@@ -212,6 +223,20 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     case 'kill':
       for (const t of select(ctx, op.to, sc)) killUnit(ctx, t);
+      return;
+    case 'removeEffect':
+      for (const t of select(ctx, op.from, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
+      }
+      return;
+    case 'macro': {
+      const ops = ctx.c.macros[op.id];
+      if (!ops) throw new Error(`Unknown macro ${op.id}`);
+      runOps(ctx, ops, sc);
+      return;
+    }
+    case 'signal':
+      broadcastSignal(ctx, op.name, actor);
       return;
     case 'if':
       runOps(ctx, evalCond(ctx, op.cond, sc) ? op.then : (op.else ?? []), sc);
@@ -289,6 +314,36 @@ function summonMinion(
   if (duration !== undefined && duration !== 'permanent') {
     applyEffect(ctx, { def: LIFETIME, inline: true, bearer: m, source: summoner, sourceSkill: skill, duration });
   }
+  if (def.onSummon?.length) {
+    runOps(ctx, def.onSummon, {
+      actor: m.id,
+      targets: [],
+      vars: {},
+      lastDamage: 0,
+      lastDamaged: [],
+      direct: false,
+      bypass: false,
+      skill,
+    });
+  }
+}
+
+/** Queues `on: signal` triggers on every effect on the board that listens for `name`. */
+function broadcastSignal(ctx: Ctx, name: string, source: Unit): void {
+  for (const e of ctx.s.effects) {
+    const bearer = findUnit(ctx.s, e.bearer);
+    if (!bearer?.alive) continue;
+    for (const spec of effectDef(ctx.c, e).triggers ?? []) {
+      if (spec.on !== 'signal' || spec.signal !== name) continue;
+      const side = bearer.owner === source.owner ? 'ally' : 'enemy';
+      if (spec.when?.side && spec.when.side !== side) continue;
+      ctx.triggerQueue.push({ effect: e.id, spec, eventSource: source.id, eventTarget: bearer.id });
+    }
+  }
+}
+
+function effectKeyOf(e: EffectInstance): string {
+  return e.inline ? e.inline.id : e.defId;
 }
 
 // ---------------------------------------------------------------- triggers

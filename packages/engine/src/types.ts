@@ -46,6 +46,8 @@ export interface Unit {
   alive: boolean;
   skills: SkillSlot[];
   summonedBy?: UnitId;
+  /** Base element (characters): drives default infusions and presentation. */
+  element?: string;
   /** Generic per-unit resource store (e.g. future Soul Fragments, Charge). */
   counters: Record<string, number>;
 }
@@ -71,7 +73,7 @@ export interface EffectInstance {
   targets: UnitId[];
   revealed: boolean;
   /** Ends when the bearer next uses a skill (optionally only Harmful ones). */
-  until?: { skillUsed: { harmful?: boolean } };
+  until?: import('./defs.js').UntilSpec;
   data: Record<string, number | boolean | string>;
   seq: number;
 }
@@ -127,6 +129,8 @@ export interface GameState {
 export interface CharacterSpec {
   name: string;
   classId?: string;
+  /** Base element, for presentation; infused skills are listed by variant id in `skills`. */
+  element?: string;
   hp?: number;
   /** Skill def ids (base or elemental variants), 1–5 of them. */
   skills: string[];

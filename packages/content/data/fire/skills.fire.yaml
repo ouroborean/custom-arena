@@ -1,0 +1,553 @@
+# The 30 Fire variants, from "Custom Arena - Fire". Ids are "<base>.fire".
+# Themes: spread Ignite, detonate it (Explode), sustain through Flameborn.
+# Durations follow the base convention: "for N turns" = enemyTurns N; unstated = permanent (Q16).
+
+strike.fire:
+  archetype: Strike
+  element: Fire
+  name: Torch Strike
+  description: Deals 25 damage to target enemy and Ignites them.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: ignite }
+
+smash.fire:
+  archetype: Smash
+  element: Fire
+  name: Chain Detonation
+  description: >-
+    Deals 20 damage to target enemy and 10 damage to their allies. If any of the targets are
+    Ignited, they Explode.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: forEach
+      in: primary
+      do:
+        - { op: if, cond: { has: { unit: it, effect: ignite } }, then: [{ op: macro, id: explode }] }
+    - op: forEach
+      in: primaryAllies
+      do:
+        - { op: if, cond: { has: { unit: it, effect: ignite } }, then: [{ op: macro, id: explode }] }
+
+charge.fire:
+  archetype: Charge
+  element: Fire
+  name: Hot Foot
+  description: >-
+    Deals 10 damage to target enemy. If that enemy is Ignited, the user gains 2 Might until they
+    use a new damaging skill.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: apply, to: actor, effect: might, stacks: 2, until: { skillUsed: { nonStrategic: true } } }
+
+riposte.fire:
+  archetype: Riposte
+  element: Fire
+  name: Blisterblade
+  description: >-
+    For 1 turn, the user will counter any Harmful skill used on them, Igniting the triggering
+    enemy. If they are already Ignited, they are Scorched instead. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: blisterblade
+        name: Blisterblade
+        kind: Buff
+        element: Fire
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer, Igniting the attacker (or Scorching them if already Ignited).
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: ignite } }
+                then: [{ op: apply, to: eventSource, effect: scorched }]
+                else: [{ op: apply, to: eventSource, effect: ignite }]
+
+rage.fire:
+  archetype: Rage
+  element: Fire
+  name: Blazing Fury
+  description: For 3 turns, the user gains 1 Might and Flameborn.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
+
+shot.fire:
+  archetype: Shot
+  element: Fire
+  name: Flickerflare
+  description: >-
+    Deals 15 damage to target enemy and Ignites them. If the enemy is already Ignited, an
+    additional random enemy is Ignited.
+  cost: r
+  cooldown: 1 # balance: sheet has 0; raised to 1 on 2026-09-26 (rules.md §11.3)
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: wasIgnited, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: ignite }
+    - op: if
+      cond: { varTrue: wasIgnited }
+      then:
+        - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: ignite }
+
+snipe.fire:
+  archetype: Snipe
+  element: Fire
+  name: Heat Seeker
+  description: >-
+    The user deals 40 damage to target enemy on the following turn and permanently Scorches them.
+    The target of this skill is invisible. Channeled.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: heat_seeker
+        name: Heat Seeker (aiming)
+        kind: Neutral
+        element: Fire
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+          - { op: apply, to: effectTargets, effect: scorched }
+
+trap.fire:
+  archetype: Trap
+  element: Fire
+  name: Hidden Explosives
+  description: For 1 turn, if target enemy uses a Harmful skill, an Explosion is triggered. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hidden_explosives
+        name: Hidden Explosives
+        kind: Debuff
+        element: Fire
+        visibility: hidden
+        description: When the bearer uses a Harmful skill, an Explosion is triggered.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: macro, id: explode }
+
+maneuver.fire:
+  archetype: Maneuver
+  element: Fire
+  name: Flame Dash
+  description: The user gains Flameborn and becomes Invulnerable for 1 turn.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+companion.fire:
+  archetype: Companion
+  element: Fire
+  name: Dragon Hatchling
+  description: >-
+    Summons a Dragon Hatchling minion. The minion gives its owner Flameborn and deals 10 Affliction
+    damage to a random enemy each turn, Igniting them.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: dragon_hatchling }
+
+bolt.fire:
+  archetype: Bolt
+  element: Fire
+  name: Fireball
+  description: Deals 20 damage to target enemy. If the target is Ignited, they Explode.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: if, cond: { has: { unit: primary, effect: ignite } }, then: [{ op: macro, id: explode }] }
+
+blast.fire:
+  archetype: Blast
+  element: Fire
+  name: Inferno
+  description: Ignites all enemies.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: ignite }
+
+consume.fire:
+  archetype: Consume
+  element: Fire
+  name: Feed the Fire
+  description: >-
+    Deals 10 damage to target enemy. If the target is Ignited, the Ignite is consumed to grant the
+    user Flameborn for 3 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: removeEffect, from: primary, effect: ignite }
+        - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
+
+summon.fire:
+  archetype: Summon
+  element: Fire
+  name: Cinderlings
+  description: Summons two Cinderlings for 2 turns; each deals 5 Affliction damage to the enemy team each turn.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: cinderling, count: 2, duration: { enemyTurns: 2 } }
+
+channel.fire:
+  archetype: Channel
+  element: Fire
+  name: Flamethrower
+  description: >-
+    Deals 10 damage to all enemies for 3 turns. Each Ignited enemy damaged by this skill causes an
+    Explosion. Channeled.
+  cost: SI
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: flamethrower
+        name: Flamethrower
+        kind: Neutral
+        element: Fire
+        interruptible: true
+        description: Deals 10 damage to all enemies at the end of each of the user's turns; Ignited targets Explode.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: forEach
+                in: lastDamaged
+                do:
+                  - { op: if, cond: { has: { unit: it, effect: ignite } }, then: [{ op: macro, id: explode }] }
+
+stab.fire:
+  archetype: Stab
+  element: Fire
+  name: Searing Needle
+  description: Deals 10 damage to target enemy. If the target is Ignited or Scorched, they also take 10 Affliction damage.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { or: [{ has: { unit: primary, effect: ignite } }, { has: { unit: primary, effect: scorched } }] }
+      then:
+        - { op: damage, to: primary, amount: 10, type: Affliction }
+
+ravage.fire:
+  archetype: Ravage
+  element: Fire
+  name: Pyrokinesis
+  description: Deals 20 Affliction damage to target enemy. If the target is Ignited or Scorched, this skill deals double damage.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Affliction
+      amount:
+        if: { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }
+        then: 40
+        else: 20
+
+mislead.fire:
+  archetype: Mislead
+  element: Fire
+  name: Heat Haze
+  description: For 1 turn, if target enemy uses a skill, they will be Ignited and Scorched. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: heat_haze
+        name: Heat Haze
+        kind: Debuff
+        element: Fire
+        visibility: hidden
+        description: When the bearer uses a skill, they are Ignited and Scorched.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: ignite }
+              - { op: apply, to: bearer, effect: scorched }
+
+stun.fire:
+  archetype: Stun
+  element: Fire
+  name: Flashbang
+  description: Deals 15 damage to target enemy and stuns their non-Strategic skills for 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }
+
+dance.fire:
+  archetype: Dance
+  element: Fire
+  name: Ivory Step
+  description: The user gains Immune for 1 turn and Explodes.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 1 } }
+    - { op: macro, id: explode }
+
+heal.fire:
+  archetype: Heal
+  element: Fire
+  name: Flamethirst
+  description: Target ally gains Flameborn for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: flameborn, duration: { enemyTurns: 2 } }
+
+bless.fire:
+  archetype: Bless
+  element: Fire
+  name: Burning Blood
+  description: Target ally gains 2 Might until the end of the turn.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, stacks: 2, duration: { thisTurn: true } }
+
+curse.fire:
+  archetype: Curse
+  element: Fire
+  name: Overheat Metal
+  description: Target enemy gains 1 Weakness and 1 Vulnerable for 2 turns.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: weakness, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: vulnerable, duration: { enemyTurns: 2 } }
+
+smite.fire:
+  archetype: Smite
+  element: Fire
+  name: Searing Brand
+  description: Deals 15 damage to target enemy. If the target was Ignited, they gain 2 Weakness for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: apply, to: primary, effect: weakness, stacks: 2, duration: { enemyTurns: 1 } }
+
+prayer.fire:
+  archetype: Prayer
+  element: Fire
+  name: Searing Aegis
+  description: Grants 10 Shield and Flameborn to all allies for 3 turns.
+  cost: WS
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 3 } }
+    - { op: apply, to: targets, effect: flameborn, duration: { enemyTurns: 3 } }
+
+cleave.fire:
+  archetype: Cleave
+  element: Fire
+  name: Blastwave
+  description: >-
+    Deals 10 damage to target enemy and an additional random enemy. If either target is Ignited,
+    they Explode.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: if, cond: { has: { unit: primary, effect: ignite } }, then: [{ op: macro, id: explode }] }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 10 }
+    - op: if
+      cond: { any: { in: lastDamaged, cond: { has: { unit: it, effect: ignite } } } }
+      then: [{ op: macro, id: explode }]
+
+shout.fire:
+  archetype: Shout
+  element: Fire
+  name: Blistering Cry
+  description: Applies Ignite to target enemy. If the enemy is already Ignited, the user gains Flameborn for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: wasIgnited, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
+    - { op: apply, to: primary, effect: ignite }
+    - op: if
+      cond: { varTrue: wasIgnited }
+      then:
+        - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 1 } }
+
+withstand.fire:
+  archetype: Withstand
+  element: Fire
+  name: Ashen Barrier
+  description: >-
+    The user gains 10 Shield for each active Ignite or Scorch effect. If the user is Flameborn,
+    they gain 10 additional Shield.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      effect: shield
+      value:
+        sum:
+          - { mul: [10, { count: { effects: [ignite, scorched] } }] }
+          - { if: { has: { unit: actor, effect: flameborn } }, then: 10, else: 0 }
+
+taunt.fire:
+  archetype: Taunt
+  element: Fire
+  name: Ring of Fire
+  description: >-
+    Taunts target enemy for 1 turn. If they use a Harmful skill during this time, they are
+    Ignited. If they do not, they are Scorched for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ring_of_fire
+        name: Ring of Fire
+        kind: Debuff
+        element: Fire
+        description: Using a Harmful skill Ignites the bearer; using none Scorches them for 2 turns when this ends.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: apply, to: bearer, effect: ignite }
+              - { op: setFlag, flag: fought }
+        onExpire:
+          - op: if
+            cond: { not: { flag: fought } }
+            then:
+              - { op: apply, to: bearer, effect: scorched, duration: { enemyTurns: 2 } }
+
+titan.fire:
+  archetype: Titan
+  element: Fire
+  name: Wraith in White
+  description: >-
+    For 3 turns, the user gains 1 Might for each active Ignite, 1 Armor for each active Scorch, and
+    Immune if they have Flameborn.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: { count: { effects: [ignite] } }, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: { count: { effects: [scorched] } }, duration: { enemyTurns: 3 } }
+    - op: if
+      cond: { has: { unit: actor, effect: flameborn } }
+      then:
+        - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }

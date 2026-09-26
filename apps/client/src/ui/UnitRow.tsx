@@ -9,7 +9,7 @@ import {
   type Unit,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { CostPips, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
+import { CostPips, elementClass, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
 
 // ---------------------------------------------------------------- shared pieces
 
@@ -94,7 +94,7 @@ function SkillTile({
     <div className="tile-wrap">
       <button
         type="button"
-        className={`tile cat-${skillCategory(def)}${selected ? ' selected' : ''}${queued ? ' queued' : ''}`}
+        className={`tile cat-${skillCategory(def)} ${elementClass(def.element)}${selected ? ' selected' : ''}${queued ? ' queued' : ''}`}
         aria-disabled={unavailable}
         aria-pressed={selected || queued}
         aria-label={`${def.name}${s.cooldown > 0 ? `, cooldown ${s.cooldown}` : ''}${queued ? ', queued' : ''}${reason ? `, unavailable: ${reason}` : ''}`}
@@ -125,7 +125,7 @@ function StaticTile({ unit, slot, content }: { unit: Unit; slot: number; content
   const def = content.skills[s.defId]!;
   return (
     <span className="tile-wrap">
-      <span className={`tile static cat-${skillCategory(def)}`} tabIndex={0} aria-label={def.name} {...hover}>
+      <span className={`tile static cat-${skillCategory(def)} ${elementClass(def.element)}`} tabIndex={0} aria-label={def.name} {...hover}>
         <span className="code">{skillCode(def)}</span>
         <CostPips cost={def.cost} />
         {s.cooldown > 0 && <span className="cd">{s.cooldown}</span>}
@@ -212,7 +212,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
     return (
       <button
         type="button"
-        className="portrait targetable"
+        className={`portrait targetable ${elementClass(unit.element)}`}
         style={portraitStyle(unit.defId)}
         aria-label={`Target ${unit.name}`}
         onClick={() => chooseTarget(unit.id)}
@@ -224,7 +224,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
   }
   return (
     <div
-      className={`portrait${st.acting ? ' acting' : ''}`}
+      className={`portrait ${elementClass(unit.element)}${st.acting ? ' acting' : ''}`}
       style={portraitStyle(unit.defId)}
       tabIndex={0}
       role="group"

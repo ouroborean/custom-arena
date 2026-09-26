@@ -99,6 +99,28 @@ export class Arena {
     return this;
   }
 
+  /** Places a named status directly on a unit (permanent unless `duration` is given). */
+  give(id: string, status: string, opts: { stacks?: number; value?: number; duration?: number | null; source?: string } = {}): this {
+    const bearer = this.unit(id);
+    const source = opts.source ? this.unit(opts.source) : bearer;
+    this.state.seq += 1;
+    this.state.effects.push({
+      id: `g${this.state.seq}`,
+      defId: status,
+      source: source.id,
+      sourceOwner: source.owner,
+      bearer: id,
+      stacks: opts.stacks ?? 1,
+      value: opts.value ?? 0,
+      duration: opts.duration ?? null,
+      targets: [],
+      revealed: false,
+      data: {},
+      seq: this.state.seq,
+    });
+    return this;
+  }
+
   effects(id: string) {
     return this.state.effects.filter((e) => e.bearer === id);
   }

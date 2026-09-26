@@ -115,6 +115,16 @@ export function damageTakenBonus(ctx: Ctx, target: Unit, type: DamageType, direc
   return { other, armor };
 }
 
+/** Healing after `healingReceived` modifiers (e.g. Scorched: ×0.5, rounded up to a multiple of 5). */
+export function modifiedHealing(ctx: Ctx, target: Unit, amount: number): number {
+  let n = amount;
+  for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'healingReceived')) {
+    n *= spec.mul;
+    if (spec.roundUpTo) n = Math.ceil(n / spec.roundUpTo) * spec.roundUpTo;
+  }
+  return Math.max(0, Math.round(n));
+}
+
 export function energyGainBonus(ctx: Ctx, u: Unit): number {
   let n = 0;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, u.id, 'energyGain')) n += scaled(spec.amount, false, effect);

@@ -36,6 +36,7 @@ export function createMatch(content: ContentBundle, config: MatchConfig): ApplyR
         alive: true,
         skills: spec.skills.map((defId) => ({ defId, cooldown: 0 })),
         counters: {},
+        ...(spec.element ? { element: spec.element } : {}),
       });
     });
   });

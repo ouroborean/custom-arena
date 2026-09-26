@@ -67,6 +67,7 @@ export function bundle(skills: SkillDef[], extra: Partial<ContentBundle> = {}): 
     statuses: { ...statuses, ...extra.statuses },
     minions: extra.minions ?? {},
     classes: {},
+    macros: extra.macros ?? {},
   };
 }
 

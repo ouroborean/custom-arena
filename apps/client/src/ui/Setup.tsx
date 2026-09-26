@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { randomCharacter, randomConfig } from '@arena/ai';
+import { availableElements, randomCharacter, randomConfig } from '@arena/ai';
 import { seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
 import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
-import { classCode, CostPips, portraitStyle, Tooltip } from './common.js';
+import { classCode, CostPips, elementClass, portraitStyle, Tooltip } from './common.js';
+
+const ELEMENTS = availableElements(content);
 
 type ModeKind = MatchMode['kind'];
 
@@ -19,20 +21,27 @@ function CharacterEditor({
 }: {
   spec: CharacterSpec;
   onChange: (c: CharacterSpec) => void;
-  onReroll: (classId?: string) => void;
+  onReroll: (classId?: string, element?: string) => void;
 }) {
   return (
     <div className="char-editor">
-      <div className="portrait" style={portraitStyle(spec.classId ?? '')} aria-hidden>
+      <div className={`portrait ${elementClass(spec.element)}`} style={portraitStyle(spec.classId ?? '')} aria-hidden>
         <span className="mono">{classCode(spec.classId ?? '')}</span>
       </div>
       <div className="body">
         <div className="top">
           <input type="text" aria-label="Character name" value={spec.name} onChange={(e) => onChange({ ...spec, name: e.target.value })} />
-          <select aria-label="Class" value={spec.classId} onChange={(e) => onReroll(e.target.value)}>
+          <select aria-label="Class" value={spec.classId} onChange={(e) => onReroll(e.target.value, spec.element)}>
             {Object.values(content.classes).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Element" value={spec.element ?? 'None'} onChange={(e) => onReroll(spec.classId, e.target.value)}>
+            {ELEMENTS.map((el) => (
+              <option key={el} value={el}>
+                {el === 'None' ? 'No element' : el}
               </option>
             ))}
           </select>
@@ -56,7 +65,7 @@ function CharacterEditor({
                   </>
                 }
               >
-                <span className="skill-chip" tabIndex={0}>
+                <span className={`skill-chip ${elementClass(d.element)}`} tabIndex={0}>
                   {d.name}
                   <CostPips cost={d.cost} />
                 </span>
@@ -89,9 +98,9 @@ export function Setup() {
     setConfig({ ...config, teams });
   };
 
-  /** New random skills, keeping the class if one is given (changing class re-rolls for that class). */
-  const rerollChar = (p: 0 | 1, i: number, classId?: string) => {
-    const c = randomCharacter(content, seedRng(newSeed()), '', classId);
+  /** New random skills and infusions, keeping the class and/or element when given. */
+  const rerollChar = (p: 0 | 1, i: number, classId?: string, element?: string) => {
+    const c = randomCharacter(content, seedRng(newSeed()), '', classId, element);
     const name = `${p === 0 ? 'Blue' : 'Red'} ${content.classes[c.classId!]!.name} ${i + 1}`;
     updateChar(p, i, { ...c, name });
   };
@@ -185,7 +194,7 @@ export function Setup() {
               <span>{sideName(p)}</span>
             </div>
             {config.teams[p].map((c, i) => (
-              <CharacterEditor key={i} spec={c} onChange={(n) => updateChar(p, i, n)} onReroll={(classId) => rerollChar(p, i, classId)} />
+              <CharacterEditor key={i} spec={c} onChange={(n) => updateChar(p, i, n)} onReroll={(classId, element) => rerollChar(p, i, classId, element)} />
             ))}
           </section>
         ))}

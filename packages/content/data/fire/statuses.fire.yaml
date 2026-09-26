@@ -1,0 +1,42 @@
+# Fire statuses, from "Custom Arena - Fire".
+
+ignite:
+  name: Ignite
+  kind: Debuff
+  element: Fire
+  stacking: unique
+  description: >-
+    Takes 5 Affliction damage at the end of the applier's turn. Does not stack. If the applier is
+    Flameborn, they heal for the damage dealt.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: 5, type: Affliction }
+        - op: if
+          cond: { has: { unit: actor, effect: flameborn } }
+          then:
+            - { op: heal, to: actor, amount: { lastDamage: true } }
+
+scorched:
+  name: Scorched
+  kind: Debuff
+  element: Fire
+  stacking: unique
+  description: Healing received is halved (rounded up to the nearest 5).
+  modifiers:
+    - { mod: healingReceived, mul: 0.5, roundUpTo: 5 }
+
+flameborn:
+  name: Flameborn
+  kind: Buff
+  element: Fire
+  stacking: unique
+  description: >-
+    Heals for the damage dealt by the bearer's Ignites, and heals 10 whenever the bearer's side
+    causes an Explosion.
+  triggers:
+    - on: signal
+      signal: explosion
+      when: { side: ally }
+      do:
+        - { op: heal, to: bearer, amount: 10 }
