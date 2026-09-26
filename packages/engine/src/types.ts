@@ -108,6 +108,11 @@ export interface MatchResult {
 export interface MatchSettings {
   turnLimitPerPlayer: number;
   minionCap: number;
+  /**
+   * "Force this hand" (tutorials): this player's energy gain on their Nth own turn is exactly
+   * `turns[N]` instead of random; turns past the list are random again.
+   */
+  fixedEnergy?: { player: PlayerId; turns: Energy[] };
 }
 
 export interface GameState {

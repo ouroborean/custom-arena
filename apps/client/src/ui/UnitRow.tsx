@@ -99,6 +99,8 @@ function SkillTile({
         aria-disabled={unavailable}
         aria-pressed={selected || queued}
         aria-label={`${def.name}${s.cooldown > 0 ? `, cooldown ${s.cooldown}` : ''}${queued ? ', queued' : ''}${reason ? `, unavailable: ${reason}` : ''}`}
+        data-skill={s.defId}
+        data-unit={unit.id}
         {...hover}
         onClick={() => {
           if (unavailable) return;
@@ -238,6 +240,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
         style={portraitStyle(unit.defId)}
         aria-label={`Target ${unit.name}`}
         onClick={() => chooseTarget(unit.id)}
+        data-unit={unit.id}
         {...hover}
       >
         {inner}
@@ -251,6 +254,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
       tabIndex={0}
       role="group"
       aria-label={`${unit.name}, ${st.hp} of ${unit.maxHp} health`}
+      data-unit={unit.id}
       {...hover}
     >
       {inner}

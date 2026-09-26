@@ -660,6 +660,8 @@ export interface EconomyDef {
 export interface GrantSpec {
   currency?: CurrencyAmounts;
   items?: string[];
+  /** Free character rolls (story and tutorial rewards; the roster cap still applies). */
+  rolls?: number;
 }
 
 /** A character in an authored encounter. */
@@ -723,6 +725,8 @@ export interface ChapterDef {
   encounters: string[];
   /** A chapter to finish first. */
   requires?: string;
+  /** The tutorial's lessons: shown on the Tutorial screen, not in the story. */
+  tutorial?: boolean;
   /** Paid once, the first time the chapter's last encounter is cleared. */
   reward?: GrantSpec;
 }
@@ -751,6 +755,26 @@ export interface AchievementDef {
   reward?: GrantSpec;
 }
 
+/** Where the tutorial coach points (the client maps these to screen elements). */
+export type CoachTarget = 'energy' | 'endTurn' | 'queue' | 'enemies' | 'log' | { skill: string } | { unit: string };
+
+/** One step of a tutorial lesson: the coach's text, what to highlight, and what the player must do. */
+export interface TutorialStep {
+  text: string;
+  highlight?: CoachTarget;
+  /**
+   * Nothing (the player clicks Next), queueing a skill (a skill id or base id, optionally on a unit),
+   * or ending the turn. While a step expects something, the client refuses other commands.
+   */
+  expect?: { queue: { skill: string; target?: string } } | { endTurn: true };
+}
+
+/** The coach script for a tutorial encounter (keyed by the encounter id). */
+export interface TutorialDef {
+  id: string;
+  steps: TutorialStep[];
+}
+
 export interface ContentBundle {
   version: string;
   skills: Record<string, SkillDef>;
@@ -769,6 +793,8 @@ export interface ContentBundle {
   /** Story chapters, in play order (file order). */
   chapters: Record<string, ChapterDef>;
   achievements: Record<string, AchievementDef>;
+  /** Tutorial coach scripts by encounter id. */
+  tutorial: Record<string, TutorialDef>;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

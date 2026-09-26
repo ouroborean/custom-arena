@@ -121,6 +121,9 @@ export function Home() {
               </button>
             </div>
           </div>
+          <button type="button" className="btn" onClick={() => go('tutorial')} disabled={busy}>
+            Tutorial
+          </button>
           <button type="button" className="btn primary" onClick={() => go('story')} disabled={busy}>
             Story
           </button>

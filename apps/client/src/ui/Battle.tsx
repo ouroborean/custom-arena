@@ -4,6 +4,7 @@ import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
+import { Coach } from './Coach.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
 import { HoverCard, LogDrawer, QueueTray, Stage, TargetHint, TopBar } from './Panels.js';
 import { EmptySlot, MinionSlot, UnitRow } from './UnitRow.js';
@@ -101,7 +102,7 @@ export function Battle() {
     const chars = view.units.filter((u) => u.owner === p && u.kind === 'character');
     const label = p === viewer ? (watch ? 'Bot 1' : 'Your team') : watch ? 'Bot 2' : 'Enemy team';
     return (
-      <section className={`roster${p === viewer ? '' : ' enemy'}`} aria-label={label}>
+      <section className={`roster${p === viewer ? '' : ' enemy'}`} aria-label={label} {...(p === viewer ? {} : { 'data-coach': 'enemies' })}>
         <div className="roster-label">{label}</div>
         <div className="rows">
           {chars.map((u) => (
@@ -142,6 +143,7 @@ export function Battle() {
       <TargetHint view={liveView} content={content} />
       <LogDrawer />
       {commitOpen && <CommitDialog view={liveView} viewer={viewer} content={content} />}
+      <Coach />
       <HandoffOverlay />
       <GameOverOverlay />
       <Toast />

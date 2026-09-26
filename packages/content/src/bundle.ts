@@ -11,6 +11,7 @@ import {
   type ContentBundle,
   type EconomyDef,
   type EncounterDef,
+  type TutorialDef,
   type EffectDef,
   type ItemDef,
   type MinionDef,
@@ -26,6 +27,7 @@ import {
   economySchema,
   effectDefSchema,
   encounterFileEntry,
+  tutorialFileEntry,
   itemFileEntry,
   macroFileEntry,
   minionFileEntry,
@@ -46,6 +48,8 @@ export interface RawContent {
   /** Story chapters by id (story*.yaml). */
   story: Record<string, unknown>;
   achievements: Record<string, unknown>;
+  /** Tutorial coach scripts by encounter id. */
+  tutorial: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -139,11 +143,26 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const encounters = parseEntries('encounters', raw.encounters ?? {}, encounterFileEntry, issues) as Record<string, EncounterDef>;
   const chapters = parseEntries('story', raw.story ?? {}, chapterFileEntry, issues) as Record<string, ChapterDef>;
   const achievements = parseEntries('achievements', raw.achievements ?? {}, achievementFileEntry, issues) as Record<string, AchievementDef>;
+  const tutorial = parseEntries('tutorial', raw.tutorial ?? {}, tutorialFileEntry, issues, true) as Record<string, TutorialDef>;
 
   const version = contentHash(
-    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements }),
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial }),
   );
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements };
+  const bundle: ContentBundle = {
+    version,
+    skills,
+    statuses,
+    minions,
+    classes,
+    macros,
+    conditions,
+    items,
+    economy,
+    encounters,
+    chapters,
+    achievements,
+    tutorial,
+  };
   issues.push(
     ...checkReferences(bundle),
     ...lintSkills(bundle),
@@ -193,6 +212,20 @@ export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
     if (a.when.encounter && !b.encounters[a.when.encounter]) err(`achievements.${a.id}`, `unknown encounter "${a.when.encounter}"`);
     if (a.when.chapter && !b.chapters[a.when.chapter]) err(`achievements.${a.id}`, `unknown chapter "${a.when.chapter}"`);
     grant(`achievements.${a.id}.reward`, a.reward);
+  }
+  for (const t of Object.values(b.tutorial)) {
+    const enc = b.encounters[t.id];
+    if (!enc) {
+      err(`tutorial.${t.id}`, 'no encounter with this id');
+      continue;
+    }
+    if (!enc.playerTeam) err(`tutorial.${t.id}`, 'tutorial encounters need a fixed playerTeam');
+    t.steps.forEach((s, i) => {
+      const skill = s.expect && 'queue' in s.expect ? s.expect.queue.skill : typeof s.highlight === 'object' && 'skill' in s.highlight ? s.highlight.skill : null;
+      if (skill && !b.skills[skill] && !Object.keys(b.skills).some((id) => id.startsWith(`${skill}.`))) {
+        err(`tutorial.${t.id}.steps.${i}`, `unknown skill "${skill}"`);
+      }
+    });
   }
   return issues;
 }

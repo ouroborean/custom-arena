@@ -34,8 +34,11 @@ export function startTurn(ctx: Ctx): void {
   let count = ctx.s.turn === 1 ? 1 : chars.length;
   const spent: EffectInstance[] = [];
   for (const u of chars) count += energyGainBonus(ctx, u, spent);
-  const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
-  for (let i = 0; i < Math.max(0, count); i++) gained[pick(ctx.s.rng, COLORS)] += 1;
+  let gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+  const fixed = ctx.s.settings.fixedEnergy;
+  const forced = fixed?.player === p ? fixed.turns[ctx.s.players[p].turnsTaken] : undefined;
+  if (forced) gained = { ...forced };
+  else for (let i = 0; i < Math.max(0, count); i++) gained[pick(ctx.s.rng, COLORS)] += 1;
   for (const c of COLORS) ctx.s.players[p].energy[c] += gained[c];
   emit(ctx, { t: 'energyGained', player: p, gained }, p);
   for (const e of spent) {

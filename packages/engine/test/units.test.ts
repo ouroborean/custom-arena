@@ -69,3 +69,25 @@ describe('duration compilation (GDD §3.8, Q1)', () => {
     expect(compileDuration({ thisTurn: true }, 0, 1)).toBe(1);
   });
 });
+
+describe('fixed energy (tutorials: "force this hand")', () => {
+  it("gives a player exactly the listed energy on their first turns, then random again", async () => {
+    const { createMatch, applyCommand } = await import('../src/index.js');
+    const { bundle, skill } = await import('./fixture.js');
+    const c = bundle([skill('noop', 'self', [])]);
+    const turns = [
+      { S: 1, A: 0, I: 0, W: 0 },
+      { S: 0, A: 2, I: 0, W: 3 },
+    ];
+    const team = [{ name: 'A', skills: ['noop'] }, { name: 'B', skills: ['noop'] }, { name: 'C', skills: ['noop'] }];
+    let { state } = createMatch(c, { seed: 3, teams: [team, team], settings: { fixedEnergy: { player: 0, turns } } });
+    expect(state.players[0].energy).toEqual(turns[0]);
+    state = applyCommand(c, state, 0, { t: 'endTurn' }).state;
+    state = applyCommand(c, state, 1, { t: 'endTurn' }).state;
+    expect(state.players[0].energy).toEqual({ S: 1, A: 2, I: 0, W: 3 });
+    state = applyCommand(c, state, 0, { t: 'endTurn' }).state;
+    state = applyCommand(c, state, 1, { t: 'endTurn' }).state;
+    const total = Object.values(state.players[0].energy).reduce((a, b) => a + b, 0);
+    expect(total).toBe(6 + 3); // banked 6, then a normal random turn for 3 characters
+  });
+});

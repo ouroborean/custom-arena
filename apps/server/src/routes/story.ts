@@ -10,11 +10,27 @@ import type { Db } from '../db/client.js';
 import { achievementProgress, spAttempts, storyChapters, storyProgress } from '../db/schema.js';
 import { grant, inTransaction, sumRewards, walletOf } from '../economy.js';
 import { attemptBot, engineVersion, matchFact, recordAchievements, verifyMatch, type AchievementUnlock } from '../singleplayer.js';
-import { activeTeamSpecs } from './roster.js';
+import { activeTeamSpecs, characterJson, rollForUser } from './roster.js';
+import type { GrantSpec } from '@arena/engine';
 
 async function clearedSet(db: Db, userId: string): Promise<Map<string, number>> {
   const rows = await db.select().from(storyProgress).where(eq(storyProgress.userId, userId));
   return new Map(rows.map((r) => [r.encounterId, r.clears]));
+}
+
+type CharacterRow = Awaited<ReturnType<typeof rollForUser>>;
+
+/** Pays a grant, including free character rolls (skipped once the roster is full). */
+async function payGrant(ctx: AppContext, db: Db, userId: string, spec: GrantSpec | undefined, characters: CharacterRow[]): Promise<Reward> {
+  const reward = await grant(db, ctx.content, userId, spec, 'story');
+  for (let i = 0; i < (spec?.rolls ?? 0); i++) {
+    try {
+      characters.push(await rollForUser({ ...ctx, db }, userId));
+    } catch (e) {
+      if (!(e instanceof HttpError && e.status === 409)) throw e;
+    }
+  }
+  return reward;
 }
 
 const Submitted = z.object({
@@ -78,6 +94,7 @@ export function storyRoutes(ctx: AppContext) {
           .returning();
         if (claimed.length === 0) throw new HttpError(409, 'That attempt was already submitted');
         const rewards: Reward[] = [];
+        const characters: CharacterRow[] = [];
         let chapterDone = false;
         if (result.outcome === 'win') {
           const [prev] = await db
@@ -92,7 +109,7 @@ export function storyRoutes(ctx: AppContext) {
           } else {
             await db.insert(storyProgress).values({ userId, encounterId: attempt.ref, clears: 1 });
           }
-          rewards.push(await grant(db, ctx.content, userId, prev ? enc.rewards?.repeat : enc.rewards?.first, 'story'));
+          rewards.push(await payGrant(ctx, db, userId, prev ? enc.rewards?.repeat : enc.rewards?.first, characters));
           // The chapter's reward, the first time all its encounters are cleared.
           const chapter = ctx.content.chapters[chapterId]!;
           const cleared = await clearedSet(db, userId);
@@ -100,18 +117,21 @@ export function storyRoutes(ctx: AppContext) {
             const ins = await db.insert(storyChapters).values({ userId, chapterId }).onConflictDoNothing().returning();
             if (ins.length) {
               chapterDone = true;
-              rewards.push(await grant(db, ctx.content, userId, chapter.reward, 'story'));
+              rewards.push(await payGrant(ctx, db, userId, chapter.reward, characters));
             }
           }
         }
-        return { reward: sumRewards(rewards), chapterDone };
+        return { reward: sumRewards(rewards), chapterDone, characters };
       });
 
       const achievements: AchievementUnlock[] = await recordAchievements(
         ctx.db,
         ctx.content,
         userId,
-        matchFact('story', result.outcome, result.turns, attempt.config.teams[0], { encounter: attempt.ref, content: ctx.content }),
+        matchFact(ctx.content.chapters[chapterId]?.tutorial ? 'tutorial' : 'story', result.outcome, result.turns, attempt.config.teams[0], {
+          encounter: attempt.ref,
+          content: ctx.content,
+        }),
       );
       const clears = await clearedSet(ctx.db, userId);
       return {
@@ -119,6 +139,7 @@ export function storyRoutes(ctx: AppContext) {
         turns: result.turns,
         reward: paid.reward,
         chapterComplete: paid.chapterDone ? chapterId : null,
+        characters: paid.characters.map(characterJson),
         achievements,
         chapters: storyStatus(ctx.content, new Set(clears.keys())),
         wallet: await walletOf(ctx.db, ctx.content, userId),

@@ -107,7 +107,7 @@ export function GameOverOverlay() {
             </button>
           )}
           <button type="button" className={`btn${local ? '' : ' primary'}`} autoFocus={!local} onClick={toSetup}>
-            {{ home: 'Home', history: 'Back to history', sandbox: 'New match', story: 'Back to the story' }[returnTo]}
+            {{ home: 'Home', history: 'Back to history', sandbox: 'New match', story: 'Back to the story', tutorial: 'Back to the tutorial' }[returnTo]}
           </button>
           {local && (
             <button type="button" className="btn primary" autoFocus onClick={rematch}>
@@ -148,6 +148,11 @@ function StoryVerdict() {
       )}
       {!earned && <p className="muted">Result recorded ({r.outcome}).</p>}
       {r.chapterComplete && <p className="reward">{content.chapters[r.chapterComplete]?.name} complete!</p>}
+      {r.characters.map((c) => (
+        <p key={c.id} className="reward">
+          New character: <b>{c.name}</b>
+        </p>
+      ))}
       {r.achievements.map((a) => (
         <p key={a.id} className="reward">
           Achievement: <b>{content.achievements[a.id]?.name ?? a.id}</b>

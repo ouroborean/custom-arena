@@ -89,6 +89,21 @@ describe('story', () => {
     expect(forged.statusCode === 400 || forged.json().outcome !== 'win').toBe(true);
   }, 60_000);
 
+  it('finishing the tutorial pays its lessons, then a free character and a crystal', async () => {
+    const a = await account('tutorial@example.com');
+    const before = (await a.call('GET', '/api/characters')).json().characters.length;
+    await winEncounter(a, 'tutorial_1');
+    await winEncounter(a, 'tutorial_2');
+    const last = await winEncounter(a, 'tutorial_3');
+    expect(last.body.chapterComplete).toBe('tutorial');
+    expect(last.body.characters).toHaveLength(1);
+    expect(last.body.reward.items).toEqual(['fire_shard', 'fire_crystal']);
+    expect((await a.call('GET', '/api/characters')).json().characters.length).toBe(before + 1);
+    // Tutorial wins count as 'tutorial' matches for achievements (First Victory counts any mode).
+    const ach = (await a.call('GET', '/api/achievements')).json().achievements as { id: string; done: boolean }[];
+    expect(ach.find((x) => x.id === 'first_victory')?.done).toBe(true);
+  }, 60_000);
+
   it('a surrender is a recorded loss that pays nothing', async () => {
     const a = await account('story4@example.com');
     const start = (await a.call('POST', '/api/story/embers_1/start')).json();

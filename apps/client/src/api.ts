@@ -66,6 +66,8 @@ export interface StoryResult {
   turns: number;
   reward: Reward;
   chapterComplete: string | null;
+  /** Characters rolled for free by the reward (the tutorial's starter character). */
+  characters: Character[];
   achievements: { id: string; reward: Reward }[];
   chapters: ChapterStatus[];
   wallet: Wallet;

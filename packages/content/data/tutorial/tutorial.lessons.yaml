@@ -1,0 +1,64 @@
+# Coach scripts for the tutorial lessons (keyed by encounter id). Each step shows text, can
+# highlight part of the screen (energy, endTurn, queue, enemies, log, { skill }, { unit }), and can
+# require the player to queue a skill or end the turn before moving on; other commands are refused
+# meanwhile. Unit ids: p0c0… are yours, p1c0… the enemy's. After the last step, play freely.
+
+tutorial_1:
+  steps:
+    - text: "Welcome to the arena! Matches are played in turns. Each turn you gain energy in four colors: Strength, Agility, Intelligence and Wisdom."
+      highlight: energy
+    - text: "Skills cost energy. Strike costs one Strength, and you have one. Click Strike, then click the Training Dummy."
+      highlight: { skill: strike }
+      expect: { queue: { skill: strike, target: p1c0 } }
+    - text: "Queued skills don't happen right away: they resolve in order, left to right, when you end your turn."
+      highlight: queue
+    - text: "End your turn. The Dummy will take its turn, then it's yours again."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "Strike also gave you Might (+5 damage). Now you have two energy. Smash costs one Strength plus one random energy: any color can pay the random part. Queue Smash on the Dummy."
+      highlight: { skill: smash }
+      expect: { queue: { skill: smash, target: p1c0 } }
+    - text: "End your turn. With a random cost to pay you'll choose which color pays it, or keep the suggestion."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "Smash now has a cooldown: the number on its tile is how many of your turns it needs to recover. Strike has none. Finish the Dummy off!"
+      highlight: { skill: smash }
+
+tutorial_2:
+  steps:
+    - text: "Effects on characters are Buffs (good) or Debuffs (bad). Hover or tap one to read exactly what it does and how long it lasts."
+    - text: "Charge hits hard and gives the Squire Focus, which makes his next skill cost one less. Queue Charge on the Sparring Partner."
+      highlight: { skill: charge }
+      expect: { queue: { skill: charge, target: p1c0 } }
+    - text: "Bless gives an ally Might and Renew (healing at the end of your turns). Queue Bless on the Squire."
+      highlight: { skill: bless }
+      expect: { queue: { skill: bless, target: p0c0 } }
+    - text: "End your turn."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "Riposte is Invisible: the enemy can't see it. For a turn it counters the next Harmful skill used on the Squire and hits back. Queue Riposte."
+      highlight: { skill: riposte }
+      expect: { queue: { skill: riposte } }
+    - text: "End your turn and watch the Sparring Partner walk into it."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "A countered skill does nothing, and its energy stays spent. Now win the fight!"
+      highlight: enemies
+
+tutorial_3:
+  steps:
+    - text: "Characters can be infused with an element, which swaps their skills for elemental versions. These two use Fire."
+    - text: "Torch Strike (Fire's Strike) Ignites its target: it burns for 5 damage at the end of each of your turns. Queue it on the Straw Dummy."
+      highlight: { skill: strike }
+      expect: { queue: { skill: strike, target: p1c0 } }
+    - text: "End your turn."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "Chain Detonation (Fire's Smash) makes Ignited enemies explode, hurting the whole enemy team. Queue it on the Ignited Dummy."
+      highlight: { skill: smash }
+      expect: { queue: { skill: smash, target: p1c0 } }
+    - text: "End your turn."
+      highlight: endTurn
+      expect: { endTurn: true }
+    - text: "Every element plays differently. You'll meet all ten in the story. Finish the fight!"
+      highlight: enemies

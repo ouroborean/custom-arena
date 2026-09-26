@@ -8,6 +8,7 @@ import {
   type ClassDef,
   type EncounterDef,
   type ItemDef,
+  type TutorialDef,
   type Cond,
   type Cost,
   type DurationSpec,
@@ -500,7 +501,12 @@ export const economySchema = z.strictObject({
   salvage: z.partialRecord(itemType, amounts),
 });
 
-const grantSpec = z.strictObject({ currency: amounts.optional(), items: z.array(z.string()).optional() });
+const grantSpec = z.strictObject({
+  currency: amounts.optional(),
+  items: z.array(z.string()).optional(),
+  rolls: z.number().int().min(1).max(3).optional(),
+});
+const energy = z.strictObject({ S: z.number().int().min(0), A: z.number().int().min(0), I: z.number().int().min(0), W: z.number().int().min(0) });
 
 const encounterUnit = z.strictObject({
   name: z.string().min(1),
@@ -533,7 +539,13 @@ export const encounterFileEntry = z.strictObject({
   ai: z.strictObject({ tier: z.enum(['easy', 'normal', 'hard']), script: z.array(scriptRule).optional() }),
   playerTeam: z.array(encounterUnit).min(1).max(3).optional(),
   first: z.enum(['player', 'enemy']).optional(),
-  settings: z.strictObject({ turnLimitPerPlayer: z.number().int().min(1).optional(), minionCap: z.number().int().min(0).optional() }).optional(),
+  settings: z
+    .strictObject({
+      turnLimitPerPlayer: z.number().int().min(1).optional(),
+      minionCap: z.number().int().min(0).optional(),
+      fixedEnergy: z.strictObject({ player: z.union([z.literal(0), z.literal(1)]), turns: z.array(energy) }).optional(),
+    })
+    .optional(),
   rewards: z.strictObject({ first: grantSpec.optional(), repeat: grantSpec.optional() }).optional(),
 });
 
@@ -543,7 +555,29 @@ export const chapterFileEntry = z.strictObject({
   description: z.string().min(1),
   encounters: z.array(z.string()).min(1),
   requires: z.string().optional(),
+  tutorial: z.boolean().optional(),
   reward: grantSpec.optional(),
+});
+
+const coachTarget = z.union([
+  z.enum(['energy', 'endTurn', 'queue', 'enemies', 'log']),
+  z.strictObject({ skill: z.string() }),
+  z.strictObject({ unit: z.string() }),
+]);
+
+export const tutorialFileEntry = z.strictObject({
+  id: z.string(),
+  steps: z
+    .array(
+      z.strictObject({
+        text: z.string().min(1),
+        highlight: coachTarget.optional(),
+        expect: z
+          .union([z.strictObject({ queue: z.strictObject({ skill: z.string(), target: z.string().optional() }) }), z.strictObject({ endTurn: z.literal(true) })])
+          .optional(),
+      }),
+    )
+    .min(1),
 });
 
 export const achievementFileEntry = z.strictObject({
@@ -572,3 +606,4 @@ export type _ItemOk = Assert<z.output<typeof itemFileEntry> & { id: string } ext
 export type _EncounterOk = Assert<z.output<typeof encounterFileEntry> & { id: string } extends EncounterDef ? true : false>;
 export type _ChapterOk = Assert<z.output<typeof chapterFileEntry> & { id: string } extends ChapterDef ? true : false>;
 export type _AchievementOk = Assert<z.output<typeof achievementFileEntry> & { id: string } extends AchievementDef ? true : false>;
+export type _TutorialOk = Assert<z.output<typeof tutorialFileEntry> extends TutorialDef ? true : false>;

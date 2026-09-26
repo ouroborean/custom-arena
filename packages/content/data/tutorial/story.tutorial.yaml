@@ -1,0 +1,9 @@
+# The tutorial's lessons as a chapter (shown on the Tutorial screen, not in the story). Finishing it
+# pays the GDD's "starter characters and crystals".
+
+tutorial:
+  name: "Tutorial"
+  description: "Three short lessons: energy and skills, statuses and counters, and elements."
+  tutorial: true
+  encounters: [tutorial_1, tutorial_2, tutorial_3]
+  reward: { rolls: 1, items: [fire_crystal] }

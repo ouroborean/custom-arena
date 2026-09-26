@@ -1,7 +1,16 @@
 // Client state. The LocalMatch is the source of truth for the game; this store holds UI state
 // (targeting, playback, logs, dialogs) and bumps `version` whenever the match changes.
 
-import { CommandError, redactEvents, type Energy, type GameEvent, type MatchConfig, type PlayerId, type PlayerView } from '@arena/engine';
+import {
+  CommandError,
+  redactEvents,
+  type Energy,
+  type GameEvent,
+  type MatchConfig,
+  type PlayerId,
+  type PlayerView,
+  type TutorialStep,
+} from '@arena/engine';
 import { create } from 'zustand';
 import { api, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
@@ -39,7 +48,7 @@ export interface CommitPlan {
 }
 
 /** Screens a match can return to. */
-export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story';
+export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
 export type Screen = ReturnScreen | 'character' | 'battle';
 
 interface StoreState {
@@ -69,6 +78,8 @@ interface StoreState {
   inspect: InspectTarget | null;
   anchor: Anchor | null;
   logOpen: boolean;
+  /** Tutorial coaching: the lesson (encounter id) and the current step; null once the steps are done. */
+  coach: { lesson: string; step: number } | null;
   /** A finished story attempt: being verified by the server, its verdict, or why it failed. */
   storyResult: { status: 'submitting' } | { status: 'done'; result: StoryResult } | { status: 'error'; message: string } | null;
 
@@ -97,6 +108,8 @@ interface StoreState {
   dismissToast(): void;
   setInspect(t: InspectTarget | null, anchor?: Anchor | null): void;
   toggleLog(open?: boolean): void;
+  /** Moves past a coach step that only asks the player to read. */
+  coachNext(): void;
 }
 
 function initialViewer(mode: MatchMode): PlayerId {
@@ -149,6 +162,51 @@ export const useStore = create<StoreState>((set, get) => {
     if (match.finished) submitStory(match);
   }
 
+  // ---------------------------------------------------------------- tutorial coach
+
+  function coachStep(): TutorialStep | null {
+    const { coach, match } = get();
+    if (!coach || !match) return null;
+    return match.content.tutorial[coach.lesson]?.steps[coach.step] ?? null;
+  }
+
+  /** Why the coach refuses an action right now, or null if it's what the step asks for (or there's no step). */
+  function coachBlocks(action: { queue: { defId: string; target?: string } } | { endTurn: true } | { other: true }): string | null {
+    const step = coachStep();
+    const match = get().match;
+    if (!step || !match) return null;
+    const e = step.expect;
+    if (!e) return 'Read the tip first, then click "Got it".';
+    if ('endTurn' in e) return 'endTurn' in action ? null : 'Now end your turn.';
+    const want = e.queue;
+    const name = Object.values(match.content.skills).find((d) => d.id === want.skill || d.id.startsWith(`${want.skill}.`))?.name ?? want.skill;
+    if (!('queue' in action)) return `Queue ${name} first.`;
+    if (action.queue.defId !== want.skill && !action.queue.defId.startsWith(`${want.skill}.`)) return `Use ${name} for now.`;
+    if (want.target && action.queue.target !== undefined && action.queue.target !== want.target) {
+      const unit = match.view(get().viewer).units.find((u) => u.id === want.target);
+      return `Use it on ${unit?.name ?? 'the highlighted target'}.`;
+    }
+    return null;
+  }
+
+  function coachAdvance(): void {
+    const { coach, match } = get();
+    if (!coach || !match) return;
+    const steps = match.content.tutorial[coach.lesson]?.steps ?? [];
+    set({ coach: coach.step + 1 < steps.length ? { ...coach, step: coach.step + 1 } : null });
+  }
+
+  /** A queue command went through: if it's what the step asked for, move on. */
+  function coachAdvanceOnQueue(): void {
+    const step = coachStep();
+    if (step?.expect && 'queue' in step.expect) coachAdvance();
+  }
+
+  function queueLength(): number {
+    const { match, viewer } = get();
+    return match ? (match.view(viewer).players[viewer].queue?.length ?? 0) : 0;
+  }
+
   /** A story match that just ended goes to the server, which replays it before paying out. */
   function submitStory(match: MatchSession): void {
     const mode = match.mode;
@@ -167,6 +225,7 @@ export const useStore = create<StoreState>((set, get) => {
   return {
     screen: 'home',
     storyResult: null,
+    coach: null,
     characterId: null,
     returnTo: 'sandbox',
     match: null,
@@ -221,6 +280,7 @@ export const useStore = create<StoreState>((set, get) => {
         inspect: null,
         anchor: null,
         storyResult: null,
+        coach: mode.kind === 'vsBot' && mode.story && match.content.tutorial[mode.story.encounter] ? { lesson: mode.story.encounter, step: 0 } : null,
         version: get().version + 1,
       });
       publish(match.initialEvents, null);
@@ -238,7 +298,7 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     toSetup() {
-      set({ screen: get().returnTo, match: null, pending: [], displayView: null, commitOpen: false, handoff: null, storyResult: null });
+      set({ screen: get().returnTo, match: null, pending: [], displayView: null, commitOpen: false, handoff: null, storyResult: null, coach: null });
     },
 
     go(screen, characterId) {
@@ -254,20 +314,30 @@ export const useStore = create<StoreState>((set, get) => {
         if (a?.reason) set({ toast: a.reason });
         return;
       }
+      const blocked = coachBlocks({ queue: { defId: a.skill } });
+      if (blocked) return set({ toast: blocked, targeting: null });
       // Pick a target whenever there's a choice of single targets (equipment can add some to self skills).
       const single = a.targets.some((t) => t.length === 1) && !(a.targets.length === 1 && a.targets[0]![0] === actor);
       if (!single) {
         set({ targeting: null });
-        return run((m) => m.command(viewer, { t: 'queue', actor, slot, targets: [] }));
+        const before = queueLength();
+        run((m) => m.command(viewer, { t: 'queue', actor, slot, targets: [] }));
+        if (queueLength() > before) coachAdvanceOnQueue();
+        return;
       }
       set({ targeting: { actor, slot, options: a.targets } });
     },
 
     chooseTarget(unitId) {
-      const { targeting, viewer } = get();
-      if (!targeting || !targeting.options.some((o) => o[0] === unitId)) return;
+      const { targeting, viewer, match } = get();
+      if (!targeting || !match || !targeting.options.some((o) => o[0] === unitId)) return;
+      const defId = match.view(viewer).units.find((u) => u.id === targeting.actor)?.skills[targeting.slot]?.defId ?? '';
+      const blocked = coachBlocks({ queue: { defId, target: unitId } });
+      if (blocked) return set({ toast: blocked });
       set({ targeting: null });
+      const before = queueLength();
       run((m) => m.command(viewer, { t: 'queue', actor: targeting.actor, slot: targeting.slot, targets: [unitId] }));
+      if (queueLength() > before) coachAdvanceOnQueue();
     },
 
     cancelTargeting() {
@@ -275,14 +345,20 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     unqueue(index) {
+      const blocked = coachBlocks({ other: true });
+      if (blocked) return set({ toast: blocked });
       run((m) => m.command(get().viewer, { t: 'unqueue', index }));
     },
 
     reorderQueue(order) {
+      const blocked = coachBlocks({ other: true });
+      if (blocked) return set({ toast: blocked });
       run((m) => m.command(get().viewer, { t: 'reorder', order }));
     },
 
     openCommit() {
+      const blocked = coachBlocks({ endTurn: true });
+      if (blocked) return set({ toast: blocked });
       set({ commitOpen: true, targeting: null });
     },
 
@@ -305,6 +381,13 @@ export const useStore = create<StoreState>((set, get) => {
         if (m.mode.kind === 'vsBot') events.push(...m.runBots());
         return events;
       });
+      const step = coachStep();
+      if (step?.expect && 'endTurn' in step.expect) coachAdvance();
+    },
+
+    coachNext() {
+      const step = coachStep();
+      if (step && !step.expect) coachAdvance();
     },
 
     surrender() {
