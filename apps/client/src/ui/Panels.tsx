@@ -12,7 +12,7 @@ import {
 import { serverNow } from '../match/online.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
-import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, skillCategory } from './common.js';
+import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, ENERGY_NAMES, EnergyPip, skillCategory } from './common.js';
 
 const TARGET_TEXT: Record<string, string> = {
   self: 'Self',
@@ -362,13 +362,13 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
         {!spectate && (
           <div className="energy-panel" aria-label="Your energy" data-coach="energy">
             {COLORS.map((c) => (
-              <span key={c} className="energy-cell" title={{ S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' }[c]}>
-                <span className={`pip lg ${c}`} />
+              <span key={c} className="energy-cell" title={ENERGY_NAMES[c]}>
+                <EnergyPip color={c} size={20} />
                 {energy[c] - reserved[c]}
               </span>
             ))}
             <span className={`energy-cell promised${reserved.r > 0 ? '' : ' zero'}`} title="Random costs you've promised to pay">
-              <span className="pip lg r" />
+              <EnergyPip color="r" size={20} title="Random" />
               {reserved.r}
             </span>
           </div>

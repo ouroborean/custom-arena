@@ -15,6 +15,7 @@ import { create } from 'zustand';
 import { api, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
 import { useMeta } from './meta.js';
+import { useSettings } from './settings.js';
 import type { MatchMode, MatchSession } from './match/session.js';
 import { isLogged, toFloat, toLogLine, type FloatText, type LogLine } from './match/playback.js';
 import type { ContentBundle } from '@arena/engine';
@@ -49,7 +50,7 @@ export interface CommitPlan {
 
 /** Screens a match can return to. */
 export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
-export type Screen = ReturnScreen | 'character' | 'battle';
+export type Screen = ReturnScreen | 'character' | 'battle' | 'settings';
 
 interface StoreState {
   screen: Screen;
@@ -280,6 +281,7 @@ export const useStore = create<StoreState>((set, get) => {
         inspect: null,
         anchor: null,
         storyResult: null,
+        speed: useSettings.getState().speed,
         coach: mode.kind === 'vsBot' && mode.story && match.content.tutorial[mode.story.encounter] ? { lesson: mode.story.encounter, step: 0 } : null,
         version: get().version + 1,
       });

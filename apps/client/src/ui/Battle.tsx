@@ -4,6 +4,7 @@ import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
+import { Announcer } from './Announcer.js';
 import { Coach } from './Coach.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
 import { HoverCard, LogDrawer, QueueTray, Stage, TargetHint, TopBar } from './Panels.js';
@@ -144,6 +145,7 @@ export function Battle() {
       <LogDrawer />
       {commitOpen && <CommitDialog view={liveView} viewer={viewer} content={content} />}
       <Coach />
+      <Announcer />
       <HandoffOverlay />
       <GameOverOverlay />
       <Toast />

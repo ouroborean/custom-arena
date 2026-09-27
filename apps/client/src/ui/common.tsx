@@ -25,15 +25,42 @@ export function Tooltip({ content, children, block }: { content: ReactNode; chil
   );
 }
 
+export type PipColor = 'S' | 'A' | 'I' | 'W' | 'r';
+
+export const ENERGY_NAMES: Record<PipColor, string> = { S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom', r: 'Random' };
+
+/**
+ * Pip outlines on a 0–12 grid. Every color has its own shape so energy never depends on telling
+ * red from green (GDD Phase 8 "color-blind energy pip shapes"): Strength ■, Agility ▲,
+ * Intelligence ◆, Wisdom ⬢, and random as a hollow square.
+ */
+const PIP_SHAPES: Record<PipColor, string> = {
+  S: '1,1 11,1 11,11 1,11',
+  A: '6,0.8 11.4,11 0.6,11',
+  I: '6,0.4 11.6,6 6,11.6 0.4,6',
+  W: '3.3,1 8.7,1 11.5,6 8.7,11 3.3,11 0.5,6',
+  r: '1.5,1.5 10.5,1.5 10.5,10.5 1.5,10.5',
+};
+
+/** One energy pip: a shape in the color's fill with a hard outline. */
+export function EnergyPip({ color, size = 11, title }: { color: PipColor; size?: number; title?: string }) {
+  return (
+    <svg className={`pip-svg ${color}`} width={size} height={size} viewBox="0 0 12 12" role="img" aria-label={title ?? ENERGY_NAMES[color]}>
+      <polygon points={PIP_SHAPES[color]} />
+    </svg>
+  );
+}
+
 export function CostPips({ cost, large }: { cost: Cost; large?: boolean }) {
-  const pips: { c: string; key: string }[] = [];
+  const pips: { c: PipColor; key: string }[] = [];
   for (const c of COLORS) for (let i = 0; i < cost[c]; i++) pips.push({ c, key: `${c}${i}` });
   for (let i = 0; i < cost.r; i++) pips.push({ c: 'r', key: `r${i}` });
+  const label = pips.length ? pips.map((p) => ENERGY_NAMES[p.c]).join(', ') : 'free';
   return (
-    <span className="cost" aria-label={`Cost ${pips.map((p) => p.c).join('') || 'free'}`}>
+    <span className="cost" role="img" aria-label={`Cost: ${label}`}>
       {pips.length === 0 && <span className="pip free">0</span>}
       {pips.map((p) => (
-        <span key={p.key} className={`pip ${p.c}${large ? ' lg' : ''}`} />
+        <EnergyPip key={p.key} color={p.c} size={large ? 20 : 11} />
       ))}
     </span>
   );

@@ -12,7 +12,7 @@ import {
   type PlayerView,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { describeAction } from './common.js';
+import { describeAction, EnergyPip } from './common.js';
 import { ReorderList } from './ReorderList.js';
 
 const COLOR_NAMES = { S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' } as const;
@@ -79,7 +79,7 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
                 const spare = pool[c] - reserved[c];
                 return (
                   <div className="alloc-cell" key={c}>
-                    <span className={`pip ${c}`}>{c}</span>
+                    <EnergyPip color={c} size={16} />
                     <span className="muted" style={{ fontSize: 12 }}>
                       {COLOR_NAMES[c]} · {spare} spare
                     </span>

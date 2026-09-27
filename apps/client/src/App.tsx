@@ -8,6 +8,7 @@ import { History } from './ui/History.js';
 import { Home } from './ui/Home.js';
 import { Setup } from './ui/Setup.js';
 import { Story } from './ui/Story.js';
+import { Settings } from './ui/Settings.js';
 import { Tutorial } from './ui/Tutorial.js';
 
 export function App() {
@@ -21,6 +22,7 @@ export function App() {
 
   if (screen === 'battle') return <Battle />;
   if (screen === 'sandbox') return <Setup />;
+  if (screen === 'settings') return <Settings />;
   if (status === 'loading') return <div className="meta-page muted">Connecting…</div>;
   if (status === 'offline') return <Offline />;
   if (status === 'signedOut') return <Account />;

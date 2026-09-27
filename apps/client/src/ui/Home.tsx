@@ -58,6 +58,9 @@ export function Home() {
             ))}
           </span>
           <span>{user?.displayName}</span>
+          <button type="button" className="btn small" onClick={() => go('settings')}>
+            Settings
+          </button>
           <button type="button" className="btn small" onClick={() => void signOut()}>
             Sign out
           </button>
