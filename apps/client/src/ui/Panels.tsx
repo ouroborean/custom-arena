@@ -205,7 +205,7 @@ export function QueueTray({ view, viewer, content }: { view: PlayerView; viewer:
   };
 
   return (
-    <section className="panel" aria-label="Queued skills">
+    <section className="panel" aria-label="Queued skills" data-coach="queue">
       <div className="panel-title">
         <span>Queue · resolves left to right</span>
         {queue.length > 0 && <CostPips cost={reserved} />}
@@ -327,7 +327,9 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
   const nameOf = (p: PlayerId) => {
     switch (mode.kind) {
       case 'vsBot':
-        return p === mode.human ? 'You' : `${mode.bot === 'greedy' ? 'Greedy' : 'Random'} Bot`;
+        if (p === mode.human) return 'You';
+        if (mode.story) return match.content.encounters[mode.story.encounter]?.name ?? 'Enemy';
+        return `${{ easy: 'Easy', normal: 'Normal', hard: 'Hard' }[mode.bot]} Bot`;
       case 'watch':
         return `Bot ${p + 1}`;
       case 'online':
@@ -350,6 +352,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
           <button
             type="button"
             className="end-turn-btn"
+            data-coach="endTurn"
             disabled={!myTurn || playing}
             onClick={() => (queue.length === 0 ? commit({}) : openCommit())}
           >
@@ -357,7 +360,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
           </button>
         )}
         {!spectate && (
-          <div className="energy-panel" aria-label="Your energy">
+          <div className="energy-panel" aria-label="Your energy" data-coach="energy">
             {COLORS.map((c) => (
               <span key={c} className="energy-cell" title={{ S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' }[c]}>
                 <span className={`pip lg ${c}`} />
@@ -388,7 +391,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
               </button>
             ))}
           </div>
-          <button type="button" className="btn small" onClick={() => toggleLog()}>
+          <button type="button" className="btn small" data-coach="log" onClick={() => toggleLog()}>
             Log
           </button>
           {!match.finished && !spectate && (

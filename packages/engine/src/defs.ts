@@ -2,7 +2,7 @@
 // (GDD §11.5). Content files are validated against Zod schemas in @arena/content that are typed
 // against these interfaces, so the two can't drift apart.
 
-import type { Cost, DamageType, RemoveReason } from './types.js';
+import type { Cost, DamageType, MatchSettings, RemoveReason } from './types.js';
 
 // ---------------------------------------------------------------- durations (GDD §3.8)
 
@@ -652,6 +652,129 @@ export interface EconomyDef {
   salvage: Partial<Record<ItemType, CurrencyAmounts>>;
 }
 
+// ---------------------------------------------------------------- single-player (GDD §2.2, §11.9)
+// Encounters, story chapters, achievements and tutorial lessons: data for @arena/meta, @arena/ai,
+// the server and the client. Like items, they never enter the engine directly.
+
+/** A fixed grant: currency and items (story and achievement rewards). */
+export interface GrantSpec {
+  currency?: CurrencyAmounts;
+  items?: string[];
+  /** Free character rolls (story and tutorial rewards; the roster cap still applies). */
+  rolls?: number;
+}
+
+/** A character in an authored encounter. */
+export interface EncounterUnitDef {
+  name: string;
+  classId: string;
+  /** Base element: every skill with a variant in it is infused (unless `skills` lists ids). */
+  element?: string;
+  /** Skill ids (base or variant); default: the class's signatures, then affinity skills, up to `skillCount`. */
+  skills?: string[];
+  /** Skills when `skills` is omitted (1–5, default 4). */
+  skillCount?: number;
+  /** Starting and max Health (default 100). */
+  hp?: number;
+  /** Statuses on the unit for the whole match (boss traits, item passives). */
+  passives?: string[];
+}
+
+/** A scripted AI rule: when `when` holds on the AI's turn, `unit` uses `skill` (GDD §11.9 "Scripted"). */
+export interface ScriptRule {
+  when?: {
+    /** The AI's own turn number (1 = its first turn). */
+    turn?: number;
+    /** Every Nth own turn (2 = the 2nd, 4th, …). */
+    every?: number;
+    /** From this own turn on. */
+    from?: number;
+    /** The AI unit (index in its team) is at or below this Health. */
+    hpAtMost?: { unit: number; value: number };
+  };
+  /** The AI unit (index in its team). */
+  unit: number;
+  /** The unit's skill: a skill id, or a base id matching its elemental variant. */
+  skill: string;
+  /** Target for single-target skills; default: the player's unit with the lowest Health. */
+  target?: 'lowestHp' | 'highestHp' | 'self' | 'weakestAlly' | number;
+}
+
+export interface EncounterDef {
+  id: string;
+  name: string;
+  description: string;
+  enemies: EncounterUnitDef[];
+  /** How the enemy plays: a difficulty tier, with script rules taking priority. */
+  ai: { tier: 'easy' | 'normal' | 'hard'; script?: ScriptRule[] };
+  /** A fixed team for the player (tutorial); otherwise the player brings their active team. */
+  playerTeam?: EncounterUnitDef[];
+  /** Who takes the first turn (default: the player). */
+  first?: 'player' | 'enemy';
+  settings?: Partial<MatchSettings>;
+  /** Paid on the first clear, and (smaller) on later clears. */
+  rewards?: { first?: GrantSpec; repeat?: GrantSpec };
+}
+
+export interface ChapterDef {
+  id: string;
+  name: string;
+  element?: string;
+  description: string;
+  /** Encounter ids in order; each unlocks the next. */
+  encounters: string[];
+  /** A chapter to finish first. */
+  requires?: string;
+  /** The tutorial's lessons: shown on the Tutorial screen, not in the story. */
+  tutorial?: boolean;
+  /** Paid once, the first time the chapter's last encounter is cleared. */
+  reward?: GrantSpec;
+}
+
+/** Counts finished matches that match `when` (GDD §8.4 achievement predicates). */
+export interface AchievementDef {
+  id: string;
+  name: string;
+  description: string;
+  when: {
+    outcome?: 'win' | 'loss' | 'draw';
+    /** Match kinds: casual, ranked, private, story, tutorial. */
+    modes?: string[];
+    /** A character of this class was on the player's team. */
+    withClass?: string;
+    /** A character of this base element was on the player's team. */
+    withElement?: string;
+    encounter?: string;
+    chapter?: string;
+    /** The match ended by turn N (both players' turns). */
+    maxTurns?: number;
+  };
+  /** How many counting matches; with `streak`, in a row (a non-counting match of the same modes resets it). */
+  count: number;
+  streak?: boolean;
+  reward?: GrantSpec;
+}
+
+/** Where the tutorial coach points (the client maps these to screen elements). */
+export type CoachTarget = 'energy' | 'endTurn' | 'queue' | 'enemies' | 'log' | { skill: string } | { unit: string };
+
+/** One step of a tutorial lesson: the coach's text, what to highlight, and what the player must do. */
+export interface TutorialStep {
+  text: string;
+  highlight?: CoachTarget;
+  /**
+   * Nothing (the player clicks Next), queueing a skill (a skill id or base id, optionally on a unit),
+   * or ending the turn. While a step expects something, the client refuses other commands.
+   */
+  expect?: { queue: { skill: string; target?: string } } | { endTurn: true };
+}
+
+/** The coach script for a tutorial encounter (keyed by the encounter id). */
+export interface TutorialDef {
+  id: string;
+  steps: TutorialStep[];
+}
+
 export interface ContentBundle {
   version: string;
   skills: Record<string, SkillDef>;
@@ -666,6 +789,12 @@ export interface ContentBundle {
   items: Record<string, ItemDef>;
   /** Currencies, rewards, drops, crafting and salvage. */
   economy: EconomyDef;
+  encounters: Record<string, EncounterDef>;
+  /** Story chapters, in play order (file order). */
+  chapters: Record<string, ChapterDef>;
+  achievements: Record<string, AchievementDef>;
+  /** Tutorial coach scripts by encounter id. */
+  tutorial: Record<string, TutorialDef>;
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

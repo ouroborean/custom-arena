@@ -20,7 +20,7 @@ export function Home() {
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
   const [picking, setPicking] = useState<string[] | null>(null);
-  const [bot, setBot] = useState<BotKind>('greedy');
+  const [bot, setBot] = useState<BotKind>('normal');
   const [human, setHuman] = useState<0 | 1>(0);
   const [problem, setProblem] = useState<{ message: string; problems: string[] } | null>(null);
 
@@ -105,8 +105,9 @@ export function Home() {
           <div className="control">
             <label htmlFor="home-bot">Bot</label>
             <select id="home-bot" value={bot} onChange={(e) => setBot(e.target.value as BotKind)}>
-              <option value="greedy">Greedy (normal)</option>
-              <option value="random">Random (easy)</option>
+              <option value="easy">Easy</option>
+              <option value="normal">Normal</option>
+              <option value="hard">Hard</option>
             </select>
           </div>
           <div className="control">
@@ -120,6 +121,12 @@ export function Home() {
               </button>
             </div>
           </div>
+          <button type="button" className="btn" onClick={() => go('tutorial')} disabled={busy}>
+            Tutorial
+          </button>
+          <button type="button" className="btn primary" onClick={() => go('story')} disabled={busy}>
+            Story
+          </button>
           <button type="button" className="btn primary" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
             Practice vs bot
           </button>

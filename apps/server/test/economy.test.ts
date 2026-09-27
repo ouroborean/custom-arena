@@ -108,13 +108,15 @@ describe('match rewards', () => {
     expect(out?.rewards[0]).toMatchObject({ currency: { gold: 40 } });
     expect(out?.rewards[0]?.items).toHaveLength(1);
     expect(out?.rewards[1]).toEqual({ currency: { gold: 15 }, items: [] });
-    expect([await a.gold(), await b.gold()]).toEqual([340, 315]);
+    // The winner's first online win also completes two achievements (First Victory, Arena Debut).
+    expect(out?.achievements?.[0]).toEqual(['first_victory', 'online_debut']);
+    expect([await a.gold(), await b.gold()]).toEqual([340 + 50 + 100, 315]);
     const drops = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, a.userId));
     expect(drops.filter((d) => d.source === 'reward').map((d) => d.itemId)).toEqual(out!.rewards[0]!.items);
 
     const again = await store.finish(id, { winner: 0, endReason: 'elimination', turns: 20 });
     expect(again?.rewards).toEqual([null, null]);
-    expect(await a.gold()).toBe(340);
+    expect(await a.gold()).toBe(490);
 
     const history = (await a.call('GET', '/api/matches')).json().matches as { id: string; reward: unknown }[];
     expect(history.find((m) => m.id === id)?.reward).toEqual(out!.rewards[0]);

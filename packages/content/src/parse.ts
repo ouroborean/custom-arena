@@ -10,15 +10,28 @@ export interface ContentFile {
   text: string;
 }
 
-const CATEGORIES = ['skills', 'statuses', 'minions', 'classes', 'macros', 'conditions', 'items', 'economy'] as const;
+const CATEGORIES = ['skills', 'statuses', 'minions', 'classes', 'macros', 'conditions', 'items', 'economy', 'encounters', 'story', 'achievements', 'tutorial'] as const;
 
 export function rawFromYamlFiles(files: readonly ContentFile[]): RawContent {
-  const raw: RawContent = { skills: {}, statuses: {}, minions: {}, classes: {}, macros: {}, conditions: {}, items: {}, economy: {} };
+  const raw: RawContent = {
+    skills: {},
+    statuses: {},
+    minions: {},
+    classes: {},
+    macros: {},
+    conditions: {},
+    items: {},
+    economy: {},
+    encounters: {},
+    story: {},
+    achievements: {},
+    tutorial: {},
+  };
   for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : 1))) {
     const base = file.path.split(/[\\/]/).pop() ?? file.path;
     const category = CATEGORIES.find((c) => base.startsWith(c));
     if (!category) {
-      throw new Error(`Can't tell what ${file.path} contains (name it skills*, statuses*, minions*, classes*, macros*, conditions*, items* or economy*)`);
+      throw new Error(`Can't tell what ${file.path} contains (name it skills*, statuses*, minions*, classes*, macros*, conditions*, items*, economy*, encounters*, story*, achievements* or tutorial*)`);
     }
     let parsed: Record<string, unknown>;
     try {

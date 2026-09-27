@@ -1,7 +1,7 @@
 // Typed client for the API server (apps/server). Requests are same-origin (/api, proxied by Vite in
 // development) so the httpOnly session cookie rides along automatically.
 
-import type { CharacterSpec, MatchRecord, PlayerId } from '@arena/engine';
+import type { CharacterSpec, MatchConfig, MatchRecord, PlayerId } from '@arena/engine';
 import type { CharacterSkill, Loadout, RarityId, ResolvedLoadout } from '@arena/meta';
 
 export interface User {
@@ -38,6 +38,39 @@ export type Wallet = Record<string, number>;
 export interface Reward {
   currency: Record<string, number>;
   items: string[];
+}
+
+export interface EncounterStatus {
+  id: string;
+  unlocked: boolean;
+  cleared: boolean;
+}
+
+export interface ChapterStatus {
+  id: string;
+  unlocked: boolean;
+  complete: boolean;
+  encounters: EncounterStatus[];
+}
+
+export interface AchievementStatus {
+  id: string;
+  count: number;
+  done: boolean;
+  completedAt: string | null;
+}
+
+/** The server's verdict on a finished story attempt. */
+export interface StoryResult {
+  outcome: 'win' | 'loss' | 'draw';
+  turns: number;
+  reward: Reward;
+  chapterComplete: string | null;
+  /** Characters rolled for free by the reward (the tutorial's starter character). */
+  characters: Character[];
+  achievements: { id: string; reward: Reward }[];
+  chapters: ChapterStatus[];
+  wallet: Wallet;
 }
 
 export interface Preset {
@@ -127,4 +160,10 @@ export const api = {
   matches: () => call<{ matches: MatchSummary[] }>('GET', '/matches'),
   replay: (id: string) => call<{ record: MatchRecord; seat: PlayerId; playable: boolean }>('GET', `/matches/${id}/replay`),
   ratings: () => call<Ratings>('GET', '/ratings'),
+
+  story: () => call<{ chapters: ChapterStatus[]; clears: Record<string, number> }>('GET', '/story'),
+  startStory: (encounter: string) => call<{ attemptId: string; encounter: string; config: MatchConfig }>('POST', `/story/${encounter}/start`),
+  finishStory: (attemptId: string, commands: MatchRecord['commands']) =>
+    call<StoryResult>('POST', `/story/attempts/${attemptId}/finish`, { commands }),
+  achievements: () => call<{ achievements: AchievementStatus[] }>('GET', '/achievements'),
 };

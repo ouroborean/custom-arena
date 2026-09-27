@@ -7,4 +7,5 @@ export * from './generate.js';
 export * from './loadout.js';
 export * from './glicko2.js';
 export * from './economy.js';
+export * from './story.js';
 export { generateName } from './names.js';

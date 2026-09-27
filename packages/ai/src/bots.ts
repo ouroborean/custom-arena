@@ -79,7 +79,8 @@ function staticDamage(ops: readonly Op[]): number {
   return n;
 }
 
-function score(content: ContentBundle, s: GameState, me: PlayerId, cmd: QueueCommand): number {
+/** A quick static value for one queue option (damage, focus fire, healing need, cost). */
+export function scoreOption(content: ContentBundle, s: GameState, me: PlayerId, cmd: QueueCommand): number {
   const actor = s.units.find((u) => u.id === cmd.actor)!;
   const def: SkillDef = content.skills[actor.skills[cmd.slot]!.defId]!;
   const enemies = s.units.filter((u) => u.alive && u.owner !== me);
@@ -112,7 +113,7 @@ export function greedyBot(seed: number): Bot {
         let best: QueueCommand | null = null;
         let bestScore = 0;
         for (const o of options) {
-          const v = score(content, s, view.viewer, o) + nextInt(rng, 5);
+          const v = scoreOption(content, s, view.viewer, o) + nextInt(rng, 5);
           if (v > bestScore) {
             best = o;
             bestScore = v;

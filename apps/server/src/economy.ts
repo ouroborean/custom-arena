@@ -1,7 +1,7 @@
 // Wallets and match rewards on top of @arena/meta's economy rules (docs/equipment.md §3).
 // Spending is a conditional UPDATE, so a balance can never go negative, even under races.
 
-import { seedRng, type ContentBundle, type CurrencyAmounts, type PlayerId } from '@arena/engine';
+import { seedRng, type ContentBundle, type CurrencyAmounts, type GrantSpec, type PlayerId } from '@arena/engine';
 import { formatAmounts, matchReward, startingWallet, type Outcome, type Reward, type Wallet } from '@arena/meta';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { HttpError } from './app.js';
@@ -54,6 +54,24 @@ export async function spend(db: Db, content: ContentBundle, userId: string, cost
       .returning();
     if (rows.length === 0) throw new HttpError(402, `Not enough ${content.economy.currencies[kind]?.name ?? kind}: that costs ${formatAmounts(content, cost)}`);
   }
+}
+
+/** Pays a fixed grant (story, achievements, tutorial): currency and items, with `source` on the items. */
+export async function grant(db: Db, content: ContentBundle, userId: string, spec: GrantSpec | undefined, source: string): Promise<Reward> {
+  const reward: Reward = { currency: { ...spec?.currency }, items: [...(spec?.items ?? [])] };
+  await credit(db, content, userId, reward.currency);
+  if (reward.items.length) await db.insert(itemInstances).values(reward.items.map((itemId) => ({ userId, itemId, source })));
+  return reward;
+}
+
+/** Adds rewards together (for one response that pays several grants). */
+export function sumRewards(rs: Reward[]): Reward {
+  const out: Reward = { currency: {}, items: [] };
+  for (const r of rs) {
+    for (const [k, n] of Object.entries(r.currency)) out.currency[k] = (out.currency[k] ?? 0) + n;
+    out.items.push(...r.items);
+  }
+  return out;
 }
 
 /** Item drops the user has had from matches since the start of the current UTC day. */

@@ -6,8 +6,12 @@ import {
   variantId,
   type ClassDef,
   type Cond,
+  type AchievementDef,
+  type ChapterDef,
   type ContentBundle,
   type EconomyDef,
+  type EncounterDef,
+  type TutorialDef,
   type EffectDef,
   type ItemDef,
   type MinionDef,
@@ -18,8 +22,12 @@ import { z } from 'zod';
 import {
   classFileEntry,
   conditionFileEntry,
+  achievementFileEntry,
+  chapterFileEntry,
   economySchema,
   effectDefSchema,
+  encounterFileEntry,
+  tutorialFileEntry,
   itemFileEntry,
   macroFileEntry,
   minionFileEntry,
@@ -36,6 +44,12 @@ export interface RawContent {
   items: Record<string, unknown>;
   /** Top-level sections of the economy file(s): currencies, roll, rewards, … */
   economy: Record<string, unknown>;
+  encounters: Record<string, unknown>;
+  /** Story chapters by id (story*.yaml). */
+  story: Record<string, unknown>;
+  achievements: Record<string, unknown>;
+  /** Tutorial coach scripts by encounter id. */
+  tutorial: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -126,9 +140,36 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   }
   const economy: EconomyDef = eco.success ? withRecipeIds(eco.data) : EMPTY_ECONOMY;
 
-  const version = contentHash(canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy }));
-  const bundle: ContentBundle = { version, skills, statuses, minions, classes, macros, conditions, items, economy };
-  issues.push(...checkReferences(bundle), ...lintSkills(bundle), ...checkElements(bundle), ...checkEconomy(bundle));
+  const encounters = parseEntries('encounters', raw.encounters ?? {}, encounterFileEntry, issues) as Record<string, EncounterDef>;
+  const chapters = parseEntries('story', raw.story ?? {}, chapterFileEntry, issues) as Record<string, ChapterDef>;
+  const achievements = parseEntries('achievements', raw.achievements ?? {}, achievementFileEntry, issues) as Record<string, AchievementDef>;
+  const tutorial = parseEntries('tutorial', raw.tutorial ?? {}, tutorialFileEntry, issues, true) as Record<string, TutorialDef>;
+
+  const version = contentHash(
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial }),
+  );
+  const bundle: ContentBundle = {
+    version,
+    skills,
+    statuses,
+    minions,
+    classes,
+    macros,
+    conditions,
+    items,
+    economy,
+    encounters,
+    chapters,
+    achievements,
+    tutorial,
+  };
+  issues.push(
+    ...checkReferences(bundle),
+    ...lintSkills(bundle),
+    ...checkElements(bundle),
+    ...checkEconomy(bundle),
+    ...checkSinglePlayer(bundle),
+  );
   return { bundle, issues };
 }
 
@@ -136,6 +177,57 @@ const EMPTY_ECONOMY: EconomyDef = { currencies: {}, roll: { cost: {} }, rewards:
 
 function withRecipeIds(e: Omit<EconomyDef, 'recipes'> & { recipes: Record<string, Omit<EconomyDef['recipes'][string], 'id'>> }): EconomyDef {
   return { ...e, recipes: Object.fromEntries(Object.entries(e.recipes).map(([id, r]) => [id, { ...r, id }])) };
+}
+
+/** Encounters, chapters and achievements must point at classes, skills, statuses and items that exist. */
+export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
+  const grant = (where: string, g: { currency?: Record<string, number>; items?: string[] } | undefined) => {
+    for (const k of Object.keys(g?.currency ?? {})) if (!b.economy.currencies[k]) err(where, `unknown currency "${k}"`);
+    for (const i of g?.items ?? []) if (!b.items[i]) err(where, `unknown item "${i}"`);
+  };
+  const unit = (where: string, u: EncounterDef['enemies'][number]) => {
+    if (!b.classes[u.classId]) err(where, `unknown class "${u.classId}"`);
+    for (const s of u.skills ?? []) if (!b.skills[s]) err(where, `unknown skill "${s}"`);
+    for (const p of u.passives ?? []) if (!b.statuses[p]) err(where, `unknown status "${p}"`);
+  };
+  for (const e of Object.values(b.encounters)) {
+    if (e.enemies.length < 1 || e.enemies.length > 3) err(`encounters.${e.id}`, 'needs 1–3 enemies');
+    e.enemies.forEach((u, i) => unit(`encounters.${e.id}.enemies.${i}`, u));
+    e.playerTeam?.forEach((u, i) => unit(`encounters.${e.id}.playerTeam.${i}`, u));
+    for (const [i, r] of (e.ai.script ?? []).entries()) {
+      if (r.unit >= e.enemies.length) err(`encounters.${e.id}.ai.script.${i}`, `no enemy #${r.unit}`);
+    }
+    grant(`encounters.${e.id}.rewards.first`, e.rewards?.first);
+    grant(`encounters.${e.id}.rewards.repeat`, e.rewards?.repeat);
+  }
+  for (const c of Object.values(b.chapters)) {
+    for (const id of c.encounters) if (!b.encounters[id]) err(`story.${c.id}`, `unknown encounter "${id}"`);
+    if (c.requires && !b.chapters[c.requires]) err(`story.${c.id}`, `unknown chapter "${c.requires}"`);
+    grant(`story.${c.id}.reward`, c.reward);
+  }
+  for (const a of Object.values(b.achievements)) {
+    if (a.when.withClass && !b.classes[a.when.withClass]) err(`achievements.${a.id}`, `unknown class "${a.when.withClass}"`);
+    if (a.when.encounter && !b.encounters[a.when.encounter]) err(`achievements.${a.id}`, `unknown encounter "${a.when.encounter}"`);
+    if (a.when.chapter && !b.chapters[a.when.chapter]) err(`achievements.${a.id}`, `unknown chapter "${a.when.chapter}"`);
+    grant(`achievements.${a.id}.reward`, a.reward);
+  }
+  for (const t of Object.values(b.tutorial)) {
+    const enc = b.encounters[t.id];
+    if (!enc) {
+      err(`tutorial.${t.id}`, 'no encounter with this id');
+      continue;
+    }
+    if (!enc.playerTeam) err(`tutorial.${t.id}`, 'tutorial encounters need a fixed playerTeam');
+    t.steps.forEach((s, i) => {
+      const skill = s.expect && 'queue' in s.expect ? s.expect.queue.skill : typeof s.highlight === 'object' && 'skill' in s.highlight ? s.highlight.skill : null;
+      if (skill && !b.skills[skill] && !Object.keys(b.skills).some((id) => id.startsWith(`${skill}.`))) {
+        err(`tutorial.${t.id}.steps.${i}`, `unknown skill "${skill}"`);
+      }
+    });
+  }
+  return issues;
 }
 
 /** Currencies, drop tables and recipes must point at things that exist. */

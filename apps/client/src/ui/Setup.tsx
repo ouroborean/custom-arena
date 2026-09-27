@@ -84,7 +84,7 @@ export function Setup() {
   const [seed, setSeed] = useState(newSeed);
   const [config, setConfig] = useState<MatchConfig>(() => randomConfig(content, seed));
   const [mode, setMode] = useState<ModeKind>('vsBot');
-  const [bot, setBot] = useState<BotKind>('greedy');
+  const [bot, setBot] = useState<BotKind>('normal');
   const [human, setHuman] = useState<0 | 1>(0);
 
   const reroll = () => {
@@ -151,8 +151,9 @@ export function Setup() {
           <div className="control">
             <label htmlFor="bot">Bot</label>
             <select id="bot" value={bot} onChange={(e) => setBot(e.target.value as BotKind)}>
-              <option value="greedy">Greedy (normal)</option>
-              <option value="random">Random (easy)</option>
+              <option value="easy">Easy</option>
+              <option value="normal">Normal</option>
+              <option value="hard">Hard</option>
             </select>
           </div>
         )}

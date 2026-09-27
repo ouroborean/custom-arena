@@ -10,6 +10,7 @@
     "bot": "tsx scripts/bot-client.ts"
   },
   "dependencies": {
+    "@arena/ai": "0.1.0",
     "@arena/content": "0.1.0",
     "@arena/engine": "0.1.0",
     "@arena/meta": "0.1.0",
@@ -25,7 +26,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@arena/ai": "0.1.0",
     "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.11",

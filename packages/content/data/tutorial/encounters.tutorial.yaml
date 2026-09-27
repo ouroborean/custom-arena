@@ -1,0 +1,65 @@
+# Tutorial lessons (GDD §2.2): small fixed-team encounters with forced energy ("force this hand",
+# settings.fixedEnergy) and coach scripts in tutorial.lessons.yaml. They form the `tutorial`
+# chapter (story.tutorial.yaml), so unlocking, rewards and verification work like the story.
+
+tutorial_1:
+  name: "Energy and Skills"
+  description: "Learn how energy pays for skills, how the queue resolves, and what cooldowns are."
+  playerTeam:
+    - { name: "Recruit", classId: warrior, skills: [strike, smash], hp: 100 }
+  enemies:
+    - { name: "Training Dummy", classId: paladin, skills: [taunt], hp: 60 }
+  ai: { tier: easy }
+  settings:
+    fixedEnergy:
+      player: 0
+      turns:
+        - { S: 1, A: 0, I: 0, W: 0 }
+        - { S: 1, A: 1, I: 0, W: 0 }
+        - { S: 1, A: 1, I: 0, W: 0 }
+  rewards:
+    first: { currency: { gold: 50 } }
+
+tutorial_2:
+  name: "Statuses and Counters"
+  description: "Buffs, Debuffs, and Invisible counters that punish the enemy's attacks."
+  playerTeam:
+    - { name: "Squire", classId: knight, skills: [charge, riposte, shout], hp: 100 }
+    - { name: "Acolyte", classId: priest, skills: [heal, bless], hp: 100 }
+  enemies:
+    - { name: "Sparring Partner", classId: knight, skills: [strike], hp: 80 }
+    - { name: "Sparring Mage", classId: mage, skills: [bolt], hp: 70 }
+  ai:
+    tier: easy
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: strike }
+      - { when: { turn: 2 }, unit: 0, skill: strike, target: 0 }
+  settings:
+    fixedEnergy:
+      player: 0
+      turns:
+        - { S: 1, A: 0, I: 0, W: 1 }
+        - { S: 0, A: 1, I: 0, W: 1 }
+        - { S: 1, A: 1, I: 1, W: 1 }
+  rewards:
+    first: { currency: { gold: 50 }, items: [holy_shard] }
+
+tutorial_3:
+  name: "Elements"
+  description: "Infused skills change how a character plays. Here: Fire's Ignite and explosions."
+  playerTeam:
+    - { name: "Flame Warrior", classId: warrior, element: Fire, skills: [strike.fire, smash.fire], hp: 100 }
+    - { name: "Pyromancer", classId: mage, element: Fire, skills: [bolt.fire, blast.fire], hp: 100 }
+  enemies:
+    - { name: "Straw Dummy", classId: priest, skills: [bless], hp: 70 }
+    - { name: "Straw Target", classId: priest, skills: [bless], hp: 70 }
+  ai: { tier: easy }
+  settings:
+    fixedEnergy:
+      player: 0
+      turns:
+        - { S: 1, A: 0, I: 0, W: 0 }
+        - { S: 1, A: 1, I: 0, W: 0 }
+        - { S: 1, A: 0, I: 2, W: 0 }
+  rewards:
+    first: { currency: { gold: 100 }, items: [fire_shard] }

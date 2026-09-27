@@ -7,6 +7,8 @@ import { CharacterScreen } from './ui/CharacterScreen.js';
 import { History } from './ui/History.js';
 import { Home } from './ui/Home.js';
 import { Setup } from './ui/Setup.js';
+import { Story } from './ui/Story.js';
+import { Tutorial } from './ui/Tutorial.js';
 
 export function App() {
   const screen = useStore((s) => s.screen);
@@ -24,5 +26,7 @@ export function App() {
   if (status === 'signedOut') return <Account />;
   if (screen === 'character') return <CharacterScreen />;
   if (screen === 'history') return <History />;
+  if (screen === 'story') return <Story />;
+  if (screen === 'tutorial') return <Tutorial />;
   return <Home />;
 }

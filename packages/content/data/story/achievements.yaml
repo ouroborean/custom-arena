@@ -1,0 +1,124 @@
+# Achievements (GDD §8.4 "achievement predicates"): each counts finished matches that match `when`,
+# and pays its reward once when `count` is reached (in a row, with `streak`). Modes: casual, ranked,
+# private, story, tutorial. Numbers are first guesses.
+
+first_victory:
+  name: First Victory
+  description: Win a match of any kind.
+  when: { outcome: win }
+  count: 1
+  reward: { currency: { gold: 50 } }
+
+online_debut:
+  name: Arena Debut
+  description: Win a casual or ranked match.
+  when: { outcome: win, modes: [casual, ranked] }
+  count: 1
+  reward: { currency: { gold: 100 } }
+
+on_a_roll:
+  name: On a Roll
+  description: Win 3 casual or ranked matches in a row.
+  when: { outcome: win, modes: [casual, ranked] }
+  count: 3
+  streak: true
+  reward: { currency: { gold: 150 } }
+
+contender:
+  name: Contender
+  description: Win 10 ranked matches.
+  when: { outcome: win, modes: [ranked] }
+  count: 10
+  reward: { currency: { gold: 300 } }
+
+quick_work:
+  name: Quick Work
+  description: Win a match by turn 16.
+  when: { outcome: win, maxTurns: 16 }
+  count: 1
+  reward: { currency: { gold: 75 } }
+
+first_chapter:
+  name: Embers Doused
+  description: Defeat the Cinder Tyrant.
+  when: { outcome: win, encounter: embers_3 }
+  count: 1
+  reward: { currency: { gold: 100 } }
+
+story_complete:
+  name: Hero of the Ten Realms
+  description: Defeat the Mountain Heart, the last story boss.
+  when: { outcome: win, encounter: heartstone_3 }
+  count: 1
+  reward: { currency: { gold: 500 }, items: [emblem_of_the_aurora] }
+
+# Class mastery: 10 wins with a class on the team pays one of its class armors.
+warrior_path:
+  name: Warrior's Path
+  description: Win 10 matches with a Warrior on your team.
+  when: { outcome: win, withClass: warrior }
+  count: 10
+  reward: { items: [helmet_of_the_ancestors] }
+
+knight_path:
+  name: Knight's Oath
+  description: Win 10 matches with a Knight on your team.
+  when: { outcome: win, withClass: knight }
+  count: 10
+  reward: { items: [knights_buckler] }
+
+druid_path:
+  name: Druid's Circle
+  description: Win 10 matches with a Druid on your team.
+  when: { outcome: win, withClass: druid }
+  count: 10
+  reward: { items: [cloak_of_ancient_leaves] }
+
+ranger_path:
+  name: Ranger's Trail
+  description: Win 10 matches with a Ranger on your team.
+  when: { outcome: win, withClass: ranger }
+  count: 10
+  reward: { items: [boomerang_blade] }
+
+monk_path:
+  name: Monk's Discipline
+  description: Win 10 matches with a Monk on your team.
+  when: { outcome: win, withClass: monk }
+  count: 10
+  reward: { items: [visor_of_the_restful_spirit] }
+
+mage_path:
+  name: Mage's Study
+  description: Win 10 matches with a Mage on your team.
+  when: { outcome: win, withClass: mage }
+  count: 10
+  reward: { items: [high_wizards_hat] }
+
+warlock_path:
+  name: Warlock's Pact
+  description: Win 10 matches with a Warlock on your team.
+  when: { outcome: win, withClass: warlock }
+  count: 10
+  reward: { items: [blood_chalice] }
+
+rogue_path:
+  name: Rogue's Guile
+  description: Win 10 matches with a Rogue on your team.
+  when: { outcome: win, withClass: rogue }
+  count: 10
+  reward: { items: [mask_of_many_faces] }
+
+priest_path:
+  name: Priest's Vigil
+  description: Win 10 matches with a Priest on your team.
+  when: { outcome: win, withClass: priest }
+  count: 10
+  reward: { items: [robe_of_the_song] }
+
+paladin_path:
+  name: Paladin's Vow
+  description: Win 10 matches with a Paladin on your team.
+  when: { outcome: win, withClass: paladin }
+  count: 10
+  reward: { items: [golden_plate] }

@@ -17,7 +17,7 @@ const config = (p0: string[][], p1: string[][], seed = 3): MatchConfig => ({
 
 describe('LocalMatch', () => {
   it('runs the bot after the human ends their turn and records a replayable match', () => {
-    const m = new LocalMatch(content, config([['shot'], ['shot']], [['shot'], ['shot']]), { kind: 'vsBot', bot: 'greedy', human: 0 });
+    const m = new LocalMatch(content, config([['shot'], ['shot']], [['shot'], ['shot']]), { kind: 'vsBot', bot: 'normal', human: 0 });
     for (let i = 0; i < 6 && !m.finished; i++) {
       const a = m.availability(0).find((x) => x.targets.length > 0);
       if (a) m.command(0, { t: 'queue', actor: a.actor, slot: a.slot, targets: a.targets[0]! });
@@ -31,7 +31,7 @@ describe('LocalMatch', () => {
   });
 
   it('refuses commands for bot-controlled players', () => {
-    const m = new LocalMatch(content, config([['shot']], [['shot']]), { kind: 'vsBot', bot: 'random', human: 1 });
+    const m = new LocalMatch(content, config([['shot']], [['shot']]), { kind: 'vsBot', bot: 'easy', human: 1 });
     expect(() => m.command(0, { t: 'endTurn' })).toThrow(/bot/);
   });
 });
@@ -99,7 +99,7 @@ describe('store', () => {
   });
 
   it('vs bot: committing plays the bot turn and returns control to the human', () => {
-    useStore.getState().newMatch(content, config([['shot']], [['shot']]), { kind: 'vsBot', bot: 'greedy', human: 0 });
+    useStore.getState().newMatch(content, config([['shot']], [['shot']]), { kind: 'vsBot', bot: 'normal', human: 0 });
     useStore.getState().flush();
     useStore.getState().commit({});
     useStore.getState().flush();

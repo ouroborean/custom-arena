@@ -3,17 +3,18 @@
 A 3v3 turn-based arena strategy game. See [docs/GDD.md](docs/GDD.md) for the design,
 [docs/rules.md](docs/rules.md) for the formal ruleset, [docs/meta.md](docs/meta.md) for characters,
 equipment and the API, [docs/equipment.md](docs/equipment.md) for item passives and the economy,
-[docs/multiplayer.md](docs/multiplayer.md) for online play, and [docs/glossary.md](docs/glossary.md)
-for keywords.
+[docs/multiplayer.md](docs/multiplayer.md) for online play, [docs/single-player.md](docs/single-player.md)
+for bots, the story, achievements and the tutorial, and [docs/glossary.md](docs/glossary.md) for
+keywords.
 
 ## Layout
 
 ```
 packages/
   engine/    Pure, deterministic rules engine (no runtime deps). State + command → state + events.
-  content/   YAML game data (skills, statuses, minions, classes, items, economy) + Zod schemas, loader, validation.
-  ai/        Bots (random, greedy) and a match runner that records replays.
-  meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts, economy, Glicko-2.
+  content/   YAML game data (skills, statuses, minions, classes, items, economy, story, tutorial) + Zod schemas, loader, validation.
+  ai/        Bots (Easy/Normal/Hard, scripted encounters) and a match runner that records replays.
+  meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts, economy, story, achievements, Glicko-2.
   protocol/  WebSocket messages and turn bundles shared by server and client.
 apps/
   client/    React client (Vite): account, roster, loadouts, practice vs bot, and a sandbox.
@@ -34,6 +35,8 @@ npm run content:validate   # check all content files
 npm run sim                # one bot-vs-bot match with a full battle log
 npm run sim -- --games 2000            # aggregate results + per-skill win rates
 npm run sim -- --games 2000 --equip    # rolled characters in random loadouts, + per-item win rates
+npm run sim -- --bots normal,hard      # choose bots: easy | normal | hard | greedy | random
+npm run sim -- --story --games 20      # story difficulty curve (a Normal bot's win rate per encounter)
 npm run sim -- --seed 7 --save         # save replays/match-7.json
 npm run sim -- --replay replays/match-7.json
 npm run play               # play in the terminal against the greedy bot

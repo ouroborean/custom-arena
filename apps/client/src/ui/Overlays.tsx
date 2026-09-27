@@ -60,6 +60,7 @@ export function GameOverOverlay() {
   const seed = match.config?.seed ?? 0;
   const rating = online?.rating;
   const reward = online?.reward;
+  const story = kind === 'vsBot' ? match.mode.story : undefined;
 
   const download = () => {
     if (!record) return;
@@ -70,7 +71,7 @@ export function GameOverOverlay() {
     a.click();
     URL.revokeObjectURL(a.href);
   };
-  const local = kind === 'vsBot' || kind === 'hotseat' || kind === 'watch';
+  const local = (kind === 'vsBot' && !story) || kind === 'hotseat' || kind === 'watch';
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="over-title">
@@ -98,6 +99,7 @@ export function GameOverOverlay() {
             ))}
           </p>
         )}
+        {story && <StoryVerdict />}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
           {record && kind !== 'replay' && (
             <button type="button" className="btn" onClick={download}>
@@ -105,7 +107,7 @@ export function GameOverOverlay() {
             </button>
           )}
           <button type="button" className={`btn${local ? '' : ' primary'}`} autoFocus={!local} onClick={toSetup}>
-            {{ home: 'Home', history: 'Back to history', sandbox: 'New match' }[returnTo]}
+            {{ home: 'Home', history: 'Back to history', sandbox: 'New match', story: 'Back to the story', tutorial: 'Back to the tutorial' }[returnTo]}
           </button>
           {local && (
             <button type="button" className="btn primary" autoFocus onClick={rematch}>
@@ -114,6 +116,48 @@ export function GameOverOverlay() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** What the server made of a finished story attempt (it replays the match before paying out). */
+function StoryVerdict() {
+  const result = useStore((s) => s.storyResult);
+  if (!result || result.status === 'submitting') return <p className="muted">Checking the result with the server…</p>;
+  if (result.status === 'error') {
+    return (
+      <p className="notice error" role="alert">
+        The result couldn't be recorded: {result.message}
+      </p>
+    );
+  }
+  const r = result.result;
+  const earned = Object.values(r.reward.currency).some((n) => n > 0) || r.reward.items.length > 0;
+  return (
+    <div className="story-verdict">
+      {earned && (
+        <p className="reward">
+          Earned {formatAmounts(content, r.reward.currency)}
+          {r.reward.items.map((id, i) => (
+            <span key={`${id}${i}`}>
+              {' · '}
+              <b>{content.items[id]?.name ?? id}</b>
+            </span>
+          ))}
+        </p>
+      )}
+      {!earned && <p className="muted">Result recorded ({r.outcome}).</p>}
+      {r.chapterComplete && <p className="reward">{content.chapters[r.chapterComplete]?.name} complete!</p>}
+      {r.characters.map((c) => (
+        <p key={c.id} className="reward">
+          New character: <b>{c.name}</b>
+        </p>
+      ))}
+      {r.achievements.map((a) => (
+        <p key={a.id} className="reward">
+          Achievement: <b>{content.achievements[a.id]?.name ?? a.id}</b>
+        </p>
+      ))}
     </div>
   );
 }

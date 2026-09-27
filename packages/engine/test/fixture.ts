@@ -71,6 +71,10 @@ export function bundle(skills: SkillDef[], extra: Partial<ContentBundle> = {}): 
     items: extra.items ?? {},
     conditions: extra.conditions ?? {},
     economy: { currencies: {}, roll: { cost: {} }, rewards: {}, dailyDropCap: 0, dropTables: {}, recipes: {}, salvage: {} },
+    encounters: {},
+    chapters: {},
+    achievements: {},
+    tutorial: {},
   };
 }
 

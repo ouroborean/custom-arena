@@ -44,6 +44,8 @@ export type EndReason = MatchResult['reason'] | 'disconnect' | 'afk';
 export interface FinishOutcome {
   ratings: [RatingChange, RatingChange] | null;
   rewards: [MatchReward | null, MatchReward | null];
+  /** Achievements each seat completed. */
+  achievements?: [string[], string[]];
 }
 
 /** Persistence the room needs; the server backs it with Postgres, tests with memory. */
@@ -273,7 +275,16 @@ export class MatchRoom {
       for (const p of [0, 1] as const) {
         const rating = outcome?.ratings?.[p];
         const reward = outcome?.rewards[p];
-        this.conns[p]?.send({ t: 'match.end', matchId: this.id, result, reason, ...(rating ? { rating } : {}), ...(reward ? { reward } : {}) });
+        const achievements = outcome?.achievements?.[p];
+        this.conns[p]?.send({
+          t: 'match.end',
+          matchId: this.id,
+          result,
+          reason,
+          ...(rating ? { rating } : {}),
+          ...(reward ? { reward } : {}),
+          ...(achievements?.length ? { achievements } : {}),
+        });
       }
       this.o.onEnd?.(this);
     })();

@@ -1,0 +1,91 @@
+# Boss traits for story encounters: statuses on the boss for the whole match.
+
+boss_cinder_tyrant:
+  name: "Tyrant's Pyre"
+  kind: Neutral
+  description: "At the start of each of its turns, a random enemy is Ignited for 2 turns."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: { randomEnemy: 1 }, effect: ignite, duration: { enemyTurns: 2 } }
+
+boss_mire_queen:
+  name: "Queen's Venom"
+  kind: Neutral
+  description: "Its direct damage also gives the target 1 Toxin."
+  triggers:
+    - on: dealtDamage
+      when: { direct: true, byEnemy: true }
+      do:
+        - { op: apply, to: eventTarget, effect: toxin }
+
+boss_high_inquisitor:
+  name: "Inquisitor's Zeal"
+  kind: Neutral
+  description: "Heals 10 at the start of each of its turns."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: heal, to: bearer, amount: 10 }
+
+boss_frost_warden:
+  name: "Warden's Rime"
+  kind: Neutral
+  description: "Its icy armor takes 10 less Normal damage from every hit."
+  modifiers:
+    - { mod: damageTaken, amount: -10, armor: true, when: { types: [Normal] } }
+
+boss_tide_caller:
+  name: "Rising Tide"
+  kind: Neutral
+  description: "Gains 1 Renew at the start of each of its turns."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: bearer, effect: renew }
+
+boss_barrow_king:
+  name: "Undying Crown"
+  kind: Neutral
+  description: "Can't drop below 5 Health while another enemy character stands."
+  modifiers:
+    - mod: hpFloor
+      amount: 5
+      if: { any: { in: allAllies, cond: { and: [{ not: { isActor: it } }, { kind: { unit: it, is: character } }] } } }
+
+boss_storm_herald:
+  name: "Gathering Storm"
+  kind: Neutral
+  description: "Gains 1 Charge at the start of each of its turns."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: bearer, effect: charged }
+
+boss_gale_master:
+  name: "Master's Poise"
+  kind: Neutral
+  description: "Gains 1 Swiftness (until its next turn) at the start of each of its turns."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 1 } }
+
+boss_nightmare:
+  name: "Dread Gaze"
+  kind: Neutral
+  description: "Enemies that damage it are Blinded for 1 turn."
+  triggers:
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - { op: apply, to: eventSource, effect: blinded, duration: { enemyTurns: 1 } }
+
+boss_mountain_heart:
+  name: "Living Rock"
+  kind: Neutral
+  description: "Starts each of its turns with 5 Shield (lasting until its next turn)."
+  triggers:
+    - on: turnStart
+      do:
+        - { op: apply, to: bearer, effect: shield, value: 5, duration: { enemyTurns: 1 } }

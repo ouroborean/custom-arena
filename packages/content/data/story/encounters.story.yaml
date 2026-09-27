@@ -1,0 +1,393 @@
+# Story encounters (GDD §2.2): three per chapter — a skirmish, a battle and a boss.
+# Enemy kits come from their class and element (docs/single-player.md §2); bosses carry a trait
+# (statuses.bosses.yaml) and a short script. Check the curve after edits: npm run sim -- --story
+
+embers_1:
+  name: "Ash Raiders"
+  description: "Raiders from the ash wastes are burning the border towns. Two of them block the road."
+  enemies:
+      - { name: "Ash Raider", classId: mage, element: Fire, hp: 73, skillCount: 3 }
+      - { name: "Cinder Adept", classId: druid, element: Fire, hp: 73, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+embers_2:
+  name: "Flame Brute's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Flame Brute", classId: warrior, element: Fire, hp: 82, skillCount: 4 }
+      - { name: "Pyre Witch", classId: mage, element: Fire, hp: 82, skillCount: 4 }
+      - { name: "Scorch Hound", classId: druid, element: Fire, hp: 82, skillCount: 4 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 80 }, items: [fire_shard] }
+    repeat: { currency: { gold: 15 } }
+
+embers_3:
+  name: "The Cinder Tyrant"
+  description: "The Cinder Tyrant waits at the end of the road."
+  enemies:
+      - { name: "The Cinder Tyrant", classId: warrior, element: Fire, hp: 95, skillCount: 5, passives: [boss_cinder_tyrant] }
+      - { name: "Ember Guard", classId: mage, element: Fire, hp: 73, skillCount: 4 }
+      - { name: "Blaze Caller", classId: druid, element: Fire, hp: 73, skillCount: 4 }
+  ai:
+    tier: easy
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: strike }
+      - { when: { every: 3 }, unit: 0, skill: smash }
+  rewards:
+    first: { currency: { gold: 150 }, items: [crown_of_flames] }
+    repeat: { currency: { gold: 25 } }
+
+mire_1:
+  name: "Bog Stalkers"
+  description: "Something in the swamp is poisoning the wells. Two of them block the road."
+  enemies:
+      - { name: "Bog Stalker", classId: ranger, element: Poison, hp: 76, skillCount: 3 }
+      - { name: "Venom Archer", classId: warlock, element: Poison, hp: 76, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+mire_2:
+  name: "Fen Cutthroat's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Fen Cutthroat", classId: rogue, element: Poison, hp: 84, skillCount: 4 }
+      - { name: "Marsh Hexer", classId: ranger, element: Poison, hp: 84, skillCount: 4 }
+      - { name: "Spore Tracker", classId: warlock, element: Poison, hp: 84, skillCount: 4 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 80 }, items: [poison_shard] }
+    repeat: { currency: { gold: 15 } }
+
+mire_3:
+  name: "The Mire Queen"
+  description: "The Mire Queen waits at the end of the road."
+  enemies:
+      - { name: "The Mire Queen", classId: rogue, element: Poison, hp: 114, skillCount: 5, passives: [boss_mire_queen] }
+      - { name: "Leech Knife", classId: ranger, element: Poison, hp: 76, skillCount: 4 }
+      - { name: "Toad Sage", classId: warlock, element: Poison, hp: 76, skillCount: 4 }
+  ai:
+    tier: easy
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: stab }
+      - { when: { every: 3 }, unit: 0, skill: mislead }
+  rewards:
+    first: { currency: { gold: 150 }, items: [lotus_essence] }
+    repeat: { currency: { gold: 25 } }
+
+zealots_1:
+  name: "Zealots"
+  description: "An inquisition marches on anyone it calls unclean. Two of them block the road."
+  enemies:
+      - { name: "Zealot", classId: paladin, element: Holy, hp: 79, skillCount: 3 }
+      - { name: "Lay Sister", classId: monk, element: Holy, hp: 79, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+zealots_2:
+  name: "Templar's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Templar", classId: priest, element: Holy, hp: 86, skillCount: 4 }
+      - { name: "Confessor", classId: paladin, element: Holy, hp: 86, skillCount: 4 }
+      - { name: "Penitent", classId: monk, element: Holy, hp: 86, skillCount: 4 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 80 }, items: [holy_shard] }
+    repeat: { currency: { gold: 15 } }
+
+zealots_3:
+  name: "The High Inquisitor"
+  description: "The High Inquisitor waits at the end of the road."
+  enemies:
+      - { name: "The High Inquisitor", classId: priest, element: Holy, hp: 121, skillCount: 5, passives: [boss_high_inquisitor] }
+      - { name: "Shield of Faith", classId: paladin, element: Holy, hp: 79, skillCount: 4 }
+      - { name: "Censer Bearer", classId: monk, element: Holy, hp: 79, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: heal }
+      - { when: { every: 3 }, unit: 0, skill: bless }
+  rewards:
+    first: { currency: { gold: 150 }, items: [revered_crown] }
+    repeat: { currency: { gold: 25 } }
+
+frostreach_1:
+  name: "Rime Scouts"
+  description: "The northern pass has frozen shut, and its wardens let no one through. Two of them block the road."
+  enemies:
+      - { name: "Rime Scout", classId: mage, element: Ice, hp: 82, skillCount: 3 }
+      - { name: "Frost Acolyte", classId: ranger, element: Ice, hp: 82, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+frostreach_2:
+  name: "Glacier Knight's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Glacier Knight", classId: knight, element: Ice, hp: 88, skillCount: 4 }
+      - { name: "Snow Witch", classId: mage, element: Ice, hp: 88, skillCount: 4 }
+      - { name: "Ice Stalker", classId: ranger, element: Ice, hp: 88, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [ice_shard] }
+    repeat: { currency: { gold: 15 } }
+
+frostreach_3:
+  name: "The Frost Warden"
+  description: "The Frost Warden waits at the end of the road."
+  enemies:
+      - { name: "The Frost Warden", classId: knight, element: Ice, hp: 128, skillCount: 5, passives: [boss_frost_warden] }
+      - { name: "Hoarfrost Blade", classId: mage, element: Ice, hp: 82, skillCount: 4 }
+      - { name: "Sleet Archer", classId: ranger, element: Ice, hp: 82, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: charge }
+      - { when: { every: 3 }, unit: 0, skill: riposte }
+  rewards:
+    first: { currency: { gold: 150 }, items: [glacial_pendant] }
+    repeat: { currency: { gold: 25 } }
+
+tides_1:
+  name: "Corsairs"
+  description: "Pirates rule the archipelago and the sea seems to heal them. Two of them block the road."
+  enemies:
+      - { name: "Corsair", classId: monk, element: Water, hp: 85, skillCount: 3 }
+      - { name: "Wave Priest", classId: druid, element: Water, hp: 85, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+tides_2:
+  name: "Reef Brawler's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Reef Brawler", classId: priest, element: Water, hp: 90, skillCount: 4 }
+      - { name: "Tide Sister", classId: monk, element: Water, hp: 90, skillCount: 4 }
+      - { name: "Shark Tamer", classId: druid, element: Water, hp: 90, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [water_shard] }
+    repeat: { currency: { gold: 15 } }
+
+tides_3:
+  name: "The Tide Caller"
+  description: "The Tide Caller waits at the end of the road."
+  enemies:
+      - { name: "The Tide Caller", classId: priest, element: Water, hp: 135, skillCount: 5, passives: [boss_tide_caller] }
+      - { name: "Deckhand", classId: monk, element: Water, hp: 85, skillCount: 4 }
+      - { name: "Pearl Diver", classId: druid, element: Water, hp: 85, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: heal }
+      - { when: { every: 3 }, unit: 0, skill: bless }
+  rewards:
+    first: { currency: { gold: 150 }, items: [trident_of_the_deep] }
+    repeat: { currency: { gold: 25 } }
+
+barrow_1:
+  name: "Grave Robbers"
+  description: "The dead walk out of the old barrows at night. Two of them block the road."
+  enemies:
+      - { name: "Grave Robber", classId: rogue, element: Unholy, hp: 88, skillCount: 3 }
+      - { name: "Bone Caller", classId: knight, element: Unholy, hp: 88, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+barrow_2:
+  name: "Death Knight's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Death Knight", classId: warlock, element: Unholy, hp: 92, skillCount: 4 }
+      - { name: "Ghoul", classId: rogue, element: Unholy, hp: 92, skillCount: 4 }
+      - { name: "Corpse Priest", classId: knight, element: Unholy, hp: 92, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [unholy_shard] }
+    repeat: { currency: { gold: 15 } }
+
+barrow_3:
+  name: "The Barrow King"
+  description: "The Barrow King waits at the end of the road."
+  enemies:
+      - { name: "The Barrow King", classId: warlock, element: Unholy, hp: 142, skillCount: 5, passives: [boss_barrow_king] }
+      - { name: "Wight", classId: rogue, element: Unholy, hp: 88, skillCount: 4 }
+      - { name: "Crypt Keeper", classId: knight, element: Unholy, hp: 88, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: consume }
+      - { when: { every: 3 }, unit: 0, skill: summon }
+  rewards:
+    first: { currency: { gold: 150 }, items: [helm_of_the_damned] }
+    repeat: { currency: { gold: 25 } }
+
+stormfront_1:
+  name: "Spark Cultists"
+  description: "A storm cult is drawing lightning down on the plains. Two of them block the road."
+  enemies:
+      - { name: "Spark Cultist", classId: ranger, element: Lightning, hp: 91, skillCount: 3 }
+      - { name: "Storm Archer", classId: knight, element: Lightning, hp: 91, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+stormfront_2:
+  name: "Thunder Knight's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Thunder Knight", classId: mage, element: Lightning, hp: 94, skillCount: 4 }
+      - { name: "Static Mage", classId: ranger, element: Lightning, hp: 94, skillCount: 4 }
+      - { name: "Bolt Runner", classId: knight, element: Lightning, hp: 94, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [lightning_shard] }
+    repeat: { currency: { gold: 15 } }
+
+stormfront_3:
+  name: "The Storm Herald"
+  description: "The Storm Herald waits at the end of the road."
+  enemies:
+      - { name: "The Storm Herald", classId: mage, element: Lightning, hp: 149, skillCount: 5, passives: [boss_storm_herald] }
+      - { name: "Arc Warden", classId: ranger, element: Lightning, hp: 91, skillCount: 4 }
+      - { name: "Coil Priest", classId: knight, element: Lightning, hp: 91, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: bolt }
+      - { when: { every: 3 }, unit: 0, skill: blast }
+  rewards:
+    first: { currency: { gold: 150 }, items: [electroblade] }
+    repeat: { currency: { gold: 25 } }
+
+skyreach_1:
+  name: "Gale Novices"
+  description: "The monks of the high peaks are testing everyone who climbs. Two of them block the road."
+  enemies:
+      - { name: "Gale Novice", classId: rogue, element: Wind, hp: 94, skillCount: 3 }
+      - { name: "Sky Scout", classId: ranger, element: Wind, hp: 94, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+skyreach_2:
+  name: "Cloud Dancer's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Cloud Dancer", classId: monk, element: Wind, hp: 96, skillCount: 4 }
+      - { name: "Wind Blade", classId: rogue, element: Wind, hp: 96, skillCount: 4 }
+      - { name: "Kite Archer", classId: ranger, element: Wind, hp: 96, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [wind_shard] }
+    repeat: { currency: { gold: 15 } }
+
+skyreach_3:
+  name: "The Gale Master"
+  description: "The Gale Master waits at the end of the road."
+  enemies:
+      - { name: "The Gale Master", classId: monk, element: Wind, hp: 156, skillCount: 5, passives: [boss_gale_master] }
+      - { name: "Updraft", classId: rogue, element: Wind, hp: 94, skillCount: 4 }
+      - { name: "Whirling Adept", classId: ranger, element: Wind, hp: 94, skillCount: 4 }
+  ai:
+    tier: normal
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: maneuver }
+      - { when: { every: 3 }, unit: 0, skill: dance }
+  rewards:
+    first: { currency: { gold: 150 }, items: [winged_sandals] }
+    repeat: { currency: { gold: 25 } }
+
+nightfall_1:
+  name: "Cutpurses"
+  description: "Assassins are thinning the council one shadow at a time. Two of them block the road."
+  enemies:
+      - { name: "Cutpurse", classId: warlock, element: Shadow, hp: 97, skillCount: 3 }
+      - { name: "Shade Binder", classId: mage, element: Shadow, hp: 97, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+nightfall_2:
+  name: "Night Blade's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Night Blade", classId: rogue, element: Shadow, hp: 98, skillCount: 4 }
+      - { name: "Hex Mage", classId: warlock, element: Shadow, hp: 98, skillCount: 4 }
+      - { name: "Silent Knife", classId: mage, element: Shadow, hp: 98, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [shadow_shard] }
+    repeat: { currency: { gold: 15 } }
+
+nightfall_3:
+  name: "The Nightmare"
+  description: "The Nightmare waits at the end of the road."
+  enemies:
+      - { name: "The Nightmare", classId: rogue, element: Shadow, hp: 163, skillCount: 5, passives: [boss_nightmare] }
+      - { name: "Veil Assassin", classId: warlock, element: Shadow, hp: 97, skillCount: 4 }
+      - { name: "Dusk Weaver", classId: mage, element: Shadow, hp: 97, skillCount: 4 }
+  ai:
+    tier: hard
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: stab }
+      - { when: { every: 3 }, unit: 0, skill: mislead }
+  rewards:
+    first: { currency: { gold: 150 }, items: [cloak_of_night] }
+    repeat: { currency: { gold: 25 } }
+
+heartstone_1:
+  name: "Stone Druids"
+  description: "The mountain itself has woken, and its guardians with it. Two of them block the road."
+  enemies:
+      - { name: "Stone Druid", classId: paladin, element: Earth, hp: 100, skillCount: 3 }
+      - { name: "Rock Squire", classId: warrior, element: Earth, hp: 100, skillCount: 3 }
+  ai: { tier: easy }
+  rewards:
+    first: { currency: { gold: 50 } }
+    repeat: { currency: { gold: 10 } }
+
+heartstone_2:
+  name: "Boulder Brute's Band"
+  description: "A full war band stands in the way."
+  enemies:
+      - { name: "Boulder Brute", classId: druid, element: Earth, hp: 100, skillCount: 4 }
+      - { name: "Grove Keeper", classId: paladin, element: Earth, hp: 100, skillCount: 4 }
+      - { name: "Granite Knight", classId: warrior, element: Earth, hp: 100, skillCount: 4 }
+  ai: { tier: normal }
+  rewards:
+    first: { currency: { gold: 80 }, items: [earth_shard] }
+    repeat: { currency: { gold: 15 } }
+
+heartstone_3:
+  name: "The Mountain Heart"
+  description: "The Mountain Heart waits at the end of the road."
+  enemies:
+      - { name: "The Mountain Heart", classId: druid, element: Earth, hp: 150, skillCount: 5, passives: [boss_mountain_heart] }
+      - { name: "Crag Warden", classId: paladin, element: Earth, hp: 100, skillCount: 3 }
+      - { name: "Moss Shaman", classId: warrior, element: Earth, hp: 100, skillCount: 3 }
+  ai:
+    tier: hard
+    script:
+      - { when: { turn: 1 }, unit: 0, skill: rage }
+      - { when: { every: 3 }, unit: 0, skill: companion }
+  rewards:
+    first: { currency: { gold: 150 }, items: [earthcallers_hammer] }
+    repeat: { currency: { gold: 25 } }
