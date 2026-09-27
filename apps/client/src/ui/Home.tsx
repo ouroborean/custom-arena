@@ -7,6 +7,7 @@ import { canAfford, formatAmounts } from '@arena/meta';
 import { api, ApiError } from '../api.js';
 import { content } from '../content.js';
 import type { BotKind } from '../match/LocalMatch.js';
+import { useT } from '../i18n/index.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
@@ -15,6 +16,7 @@ import { OnlinePanel } from './OnlinePanel.js';
 import { CharacterCard, Portrait } from './Roster.js';
 
 export function Home() {
+  const t = useT();
   const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, signOut, contentMismatch, clearError } = useMeta();
   const rollCost = content.economy.roll.cost;
   const go = useStore((s) => s.go);
@@ -50,7 +52,7 @@ export function Home() {
       <div className="meta-header">
         <Brand />
         <div className="account-chip">
-          <span className="wallet" aria-label="Wallet">
+          <span className="wallet" aria-label={t('home.wallet')}>
             {Object.entries(content.economy.currencies).map(([id, c]) => (
               <span key={id} className="currency">
                 <b>{wallet[id] ?? 0}</b> {c.name}
@@ -59,32 +61,31 @@ export function Home() {
           </span>
           <span>{user?.displayName}</span>
           <button type="button" className="btn small" onClick={() => go('settings')}>
-            Settings
+            {t('nav.settings')}
           </button>
           <button type="button" className="btn small" onClick={() => void signOut()}>
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
       </div>
 
       {contentMismatch && (
         <p className="notice warn" role="status">
-          The server runs content {contentMismatch.slice(0, 8)} but this client has {content.version.slice(0, 8)}. Restart both from the same
-          checkout.
+          {t('home.contentMismatch', { server: contentMismatch.slice(0, 8), client: content.version.slice(0, 8) })}
         </p>
       )}
       {error && (
         <p className="notice error" role="alert">
           {error}{' '}
           <button type="button" className="btn small" onClick={clearError}>
-            OK
+            {t('common.ok')}
           </button>
         </p>
       )}
 
-      <section className="panel play-panel" aria-label="Play">
-        <div className="team-strip" aria-label="Active team">
-          <span className="panel-title">Active team</span>
+      <section className="panel play-panel" aria-label={t('home.play')}>
+        <div className="team-strip" aria-label={t('home.activeTeam')}>
+          <span className="panel-title">{t('home.activeTeam')}</span>
           <div className="team-slots">
             {[0, 1, 2].map((i) => {
               const c = teamChars[i];
@@ -95,46 +96,46 @@ export function Home() {
                 </button>
               ) : (
                 <div key={i} className="team-slot empty">
-                  Empty
+                  {t('home.emptySlot')}
                 </div>
               );
             })}
           </div>
           <button type="button" className="btn small" onClick={() => setPicking(picking ? null : [])}>
-            {picking ? 'Cancel' : 'Change team'}
+            {picking ? t('common.cancel') : t('home.changeTeam')}
           </button>
         </div>
         <div className="play-controls">
           <div className="control">
-            <label htmlFor="home-bot">Bot</label>
+            <label htmlFor="home-bot">{t('home.bot')}</label>
             <select id="home-bot" value={bot} onChange={(e) => setBot(e.target.value as BotKind)}>
-              <option value="easy">Easy</option>
-              <option value="normal">Normal</option>
-              <option value="hard">Hard</option>
+              <option value="easy">{t('bot.easy')}</option>
+              <option value="normal">{t('bot.normal')}</option>
+              <option value="hard">{t('bot.hard')}</option>
             </select>
           </div>
           <div className="control">
-            <span className="label">You play</span>
-            <div className="segmented" role="group" aria-label="Turn order">
+            <span className="label">{t('home.youPlay')}</span>
+            <div className="segmented" role="group" aria-label={t('home.turnOrder')}>
               <button type="button" aria-pressed={human === 0} onClick={() => setHuman(0)}>
-                First
+                {t('home.first')}
               </button>
               <button type="button" aria-pressed={human === 1} onClick={() => setHuman(1)}>
-                Second
+                {t('home.second')}
               </button>
             </div>
           </div>
           <button type="button" className="btn" onClick={() => go('tutorial')} disabled={busy}>
-            Tutorial
+            {t('nav.tutorial')}
           </button>
           <button type="button" className="btn primary" onClick={() => go('story')} disabled={busy}>
-            Story
+            {t('nav.story')}
           </button>
           <button type="button" className="btn primary" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
-            Practice vs bot
+            {t('home.practice')}
           </button>
           <button type="button" className="btn" onClick={() => go('sandbox')}>
-            Sandbox
+            {t('nav.sandbox')}
           </button>
         </div>
         {problem && (
@@ -153,21 +154,21 @@ export function Home() {
 
       <OnlinePanel teamReady={teamChars.length === 3} />
 
-      <section aria-label="Roster">
+      <section aria-label={t('home.roster')}>
         <div className="section-head">
           <h2>
-            Roster <span className="muted">{characters.length}/{maxRoster}</span>
+            {t('home.roster')} <span className="muted">{characters.length}/{maxRoster}</span>
           </h2>
           {picking ? (
             <>
-              <span className="muted">Pick 3 characters, in battle order ({picking.length}/3)</span>
+              <span className="muted">{t('home.pickTeam', { count: picking.length })}</span>
               <button
                 type="button"
                 className="btn primary"
                 disabled={picking.length !== 3 || busy}
                 onClick={() => void setTeam(picking).then(() => setPicking(null))}
               >
-                Save team
+                {t('home.saveTeam')}
               </button>
             </>
           ) : (
@@ -177,7 +178,7 @@ export function Home() {
               disabled={busy || characters.length >= maxRoster || !canAfford(wallet, rollCost)}
               onClick={() => void roll()}
             >
-              Roll a character ({formatAmounts(content, rollCost)})
+              {t('home.roll', { cost: formatAmounts(content, rollCost) })}
             </button>
           )}
         </div>

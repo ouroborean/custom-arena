@@ -1,5 +1,6 @@
 // Settings (GDD §9.1): per-device preferences — motion, battle speed, sound and language.
 
+import { CATALOGS, useT } from '../i18n/index.js';
 import { useSettings, type MotionPref } from '../settings.js';
 import { playCue } from '../sfx.js';
 import { useStore } from '../store.js';
@@ -31,6 +32,7 @@ function Segmented<T extends string | number>({
 }
 
 export function Settings() {
+  const t = useT();
   const go = useStore((s) => s.go);
   const s = useSettings();
   return (
@@ -38,34 +40,34 @@ export function Settings() {
       <div className="meta-header">
         <Brand />
         <button type="button" className="btn small" onClick={() => go('home')}>
-          Home
+          {t('common.home')}
         </button>
       </div>
-      <h1 className="page-title">Settings</h1>
-      <section className="panel settings" aria-label="Settings">
+      <h1 className="page-title">{t('settings.title')}</h1>
+      <section className="panel settings" aria-label={t('settings.title')}>
         <Segmented<MotionPref>
-          label="Motion"
+          label={t('settings.motion')}
           value={s.motion}
           options={[
-            { value: 'system', label: 'Like my device' },
-            { value: 'reduce', label: 'Reduced' },
-            { value: 'full', label: 'Full' },
+            { value: 'system', label: t('settings.motion.system') },
+            { value: 'reduce', label: t('settings.motion.reduce') },
+            { value: 'full', label: t('settings.motion.full') },
           ]}
           onChange={(motion) => s.update({ motion })}
         />
         <Segmented<0 | 1 | 2>
-          label="Battle playback"
+          label={t('settings.speed')}
           value={s.speed}
           options={[
             { value: 1, label: '1×' },
             { value: 2, label: '2×' },
-            { value: 0, label: 'Instant' },
+            { value: 0, label: t('settings.speed.instant') },
           ]}
           onChange={(speed) => s.update({ speed })}
         />
         <div className="control">
           <label htmlFor="settings-volume" className="label">
-            Sound effects
+            {t('settings.sound')}
           </label>
           <div className="volume">
             <input
@@ -80,19 +82,29 @@ export function Settings() {
             />
             <span className="muted">{Math.round(s.volume * 100)}%</span>
             <button type="button" className="btn small" aria-pressed={s.muted} onClick={() => s.update({ muted: !s.muted })}>
-              {s.muted ? 'Unmute' : 'Mute'}
+              {s.muted ? t('settings.unmute') : t('settings.mute')}
             </button>
             <button type="button" className="btn small" disabled={s.muted} onClick={() => playCue('victory')}>
-              Test
+              {t('settings.test')}
             </button>
           </div>
         </div>
-        <p className="muted">
-          Energy colors always have their own shapes (Strength ■, Agility ▲, Intelligence ◆, Wisdom ⬢, random ▢), so they never depend on
-          telling colors apart. Settings are saved on this device.
-        </p>
+        <div className="control">
+          <label htmlFor="settings-language" className="label">
+            {t('settings.language')}
+          </label>
+          <select id="settings-language" value={s.locale} onChange={(e) => s.update({ locale: e.target.value })}>
+            <option value="auto">{t('settings.language.auto')}</option>
+            {Object.entries(CATALOGS).map(([tag, c]) => (
+              <option key={tag} value={tag}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="muted">{t('settings.shapesNote')}</p>
         <button type="button" className="btn small" onClick={() => s.reset()}>
-          Reset to defaults
+          {t('settings.reset')}
         </button>
       </section>
     </div>
