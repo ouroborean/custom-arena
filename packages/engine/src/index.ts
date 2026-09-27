@@ -19,7 +19,7 @@ export { applyCommand, CommandError } from './commands.js';
 export { legalQueueCommands, skillAvailability, type QueueCommand, type SkillAvailability } from './legal.js';
 export { viewFor, redactEvents, effectDefinition, type PlayerView, type OpponentState } from './view.js';
 export { replay, stateFingerprint } from './replay.js';
-export { formatEvent, effectName } from './log.js';
+export { formatEvent, effectName, effectDefById } from './log.js';
 export { scripts, type ScriptFn, type Scope } from './ops.js';
 export { evaluateNamedCondition } from './conditions.js';
 

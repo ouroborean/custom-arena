@@ -16,6 +16,11 @@ import { api, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
 import { useMeta } from './meta.js';
 import { useSettings } from './settings.js';
+import { cueFor } from './match/cues.js';
+import { playCue } from './sfx.js';
+
+/** True while playback is being skipped to the end (no sound per event). */
+let fastForwarding = false;
 import type { MatchMode, MatchSession } from './match/session.js';
 import { isLogged, toFloat, toLogLine, type FloatText, type LogLine } from './match/playback.js';
 import type { ContentBundle } from '@arena/engine';
@@ -409,6 +414,9 @@ export const useStore = create<StoreState>((set, get) => {
       if (e.t === 'damage' || e.t === 'heal') hp[e.target] = e.hp;
       if (e.t === 'died') hp[e.unit] = 0;
       const float = toFloat(e, id++);
+      // Sound: each event as it plays; a fast-forward (instant playback) only keeps the ending.
+      const cue = cueFor(match.content, e, viewer);
+      if (cue && (!fastForwarding || e.t === 'gameOver')) playCue(cue);
       const units = match.view(viewer).units;
       const line = isLogged(e) ? toLogLine(match.content, units, e, id++) : null;
       const nextLogs: [LogLine[], LogLine[]] = [...logs];
@@ -424,7 +432,12 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     flush() {
-      while (get().pending.length > 0) get().step();
+      fastForwarding = true;
+      try {
+        while (get().pending.length > 0) get().step();
+      } finally {
+        fastForwarding = false;
+      }
     },
 
     afterPlayback() {

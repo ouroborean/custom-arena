@@ -10,7 +10,8 @@ import {
   type Unit,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { CostPips, elementClass, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
+import { portraitKey } from '../assets.js';
+import { CostPips, elementClass, PortraitArt, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
 
 // ---------------------------------------------------------------- shared pieces
 
@@ -201,6 +202,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
 
   const inner = (
     <>
+      <PortraitArt artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })} />
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
       {states && (

@@ -1,6 +1,7 @@
 // Settings (GDD §9.1): per-device preferences — motion, battle speed, sound and language.
 
 import { useSettings, type MotionPref } from '../settings.js';
+import { playCue } from '../sfx.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
 
@@ -62,6 +63,30 @@ export function Settings() {
           ]}
           onChange={(speed) => s.update({ speed })}
         />
+        <div className="control">
+          <label htmlFor="settings-volume" className="label">
+            Sound effects
+          </label>
+          <div className="volume">
+            <input
+              id="settings-volume"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={s.volume}
+              disabled={s.muted}
+              onChange={(e) => s.update({ volume: Number(e.target.value) })}
+            />
+            <span className="muted">{Math.round(s.volume * 100)}%</span>
+            <button type="button" className="btn small" aria-pressed={s.muted} onClick={() => s.update({ muted: !s.muted })}>
+              {s.muted ? 'Unmute' : 'Mute'}
+            </button>
+            <button type="button" className="btn small" disabled={s.muted} onClick={() => playCue('victory')}>
+              Test
+            </button>
+          </div>
+        </div>
         <p className="muted">
           Energy colors always have their own shapes (Strength ■, Agility ▲, Intelligence ◆, Wisdom ⬢, random ▢), so they never depend on
           telling colors apart. Settings are saved on this device.

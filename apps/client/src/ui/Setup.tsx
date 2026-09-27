@@ -4,7 +4,8 @@ import { seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
 import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
-import { classCode, CostPips, elementClass, portraitStyle, Tooltip } from './common.js';
+import { portraitKey } from '../assets.js';
+import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, Tooltip } from './common.js';
 
 const ELEMENTS = availableElements(content);
 
@@ -26,6 +27,7 @@ function CharacterEditor({
   return (
     <div className="char-editor">
       <div className={`portrait ${elementClass(spec.element)}`} style={portraitStyle(spec.classId ?? '')} aria-hidden>
+        <PortraitArt artKey={portraitKey({ classId: spec.classId ?? '', element: spec.element ?? 'None' })} />
         <span className="mono">{classCode(spec.classId ?? '')}</span>
       </div>
       <div className="body">

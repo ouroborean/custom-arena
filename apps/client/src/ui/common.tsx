@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
+import { portraitUrl, useAssets } from '../assets.js';
 import { useStore, type InspectTarget } from '../store.js';
 
 export function Tooltip({ content, children, block }: { content: ReactNode; children: ReactNode; block?: boolean }) {
@@ -332,6 +333,15 @@ export function skillCategory(def: SkillDef): SkillCategory {
 export const CATEGORY_LABEL: Record<SkillCategory, string> = { attack: 'Attack', control: 'Control', support: 'Support' };
 
 /** Flat two-tone diagonal split in the class color. */
+/** Portrait art from the manifest (drawn under the name tag), or nothing to keep the generated look. */
+export function PortraitArt({ artKey, portraitId }: { artKey: string; portraitId?: string }) {
+  const portraits = useAssets((s) => s.portraits);
+  const [broken, setBroken] = useState(false);
+  const url = portraitUrl(portraits, artKey, portraitId);
+  if (!url || broken) return null;
+  return <img className="portrait-art" src={url} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />;
+}
+
 export function portraitStyle(classOrDefId: string): CSSProperties {
   const h = hueFor(classOrDefId);
   return {

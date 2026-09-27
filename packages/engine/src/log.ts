@@ -13,20 +13,26 @@ function findInline(ops: readonly Op[], id: string): EffectDef | undefined {
   return undefined;
 }
 
-export function effectName(content: ContentBundle, defId: string): string {
+/** The definition behind an effect id: a named status, or an inline effect ("<skill>:<id>"). */
+export function effectDefById(content: ContentBundle, defId: string): EffectDef | undefined {
   const named = content.statuses[defId];
-  if (named) return named.name;
+  if (named) return named;
   const [owner, inlineId] = defId.split(':');
-  if (owner && inlineId) {
-    const skill = content.skills[owner];
-    const def = skill ? findInline(skill.ops, inlineId) : undefined;
-    if (def) return def.name;
-    for (const m of Object.values(content.minions)) {
-      for (const p of m.passives) if (typeof p !== 'string' && p.id === inlineId) return p.name;
-    }
-    if (inlineId === 'lifetime') return 'Summoned';
-    return inlineId;
+  if (!owner || !inlineId) return undefined;
+  const skill = content.skills[owner];
+  const def = skill ? findInline(skill.ops, inlineId) : undefined;
+  if (def) return def;
+  for (const m of Object.values(content.minions)) {
+    for (const p of m.passives) if (typeof p !== 'string' && p.id === inlineId) return p;
   }
+  return undefined;
+}
+
+export function effectName(content: ContentBundle, defId: string): string {
+  const def = effectDefById(content, defId);
+  if (def) return def.name;
+  const [owner, inlineId] = defId.split(':');
+  if (owner && inlineId) return inlineId === 'lifetime' ? 'Summoned' : inlineId;
   return defId;
 }
 
