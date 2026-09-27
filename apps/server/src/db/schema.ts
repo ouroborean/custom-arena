@@ -280,3 +280,22 @@ export const auditLog = pgTable(
   },
   (t) => [index('audit_user_idx').on(t.userId), index('audit_kind_idx').on(t.kind)],
 );
+
+/** Season-end rewards paid (docs/live-ops.md §4): one row per player per season, so a close-out pays at most once. */
+export const seasonRewards = pgTable(
+  'season_rewards',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: text('season_id').notNull(),
+    tier: text('tier').notNull(),
+    /** Final display rating. */
+    rating: integer('rating').notNull(),
+    currency: jsonb('currency').$type<Record<string, number>>().notNull(),
+    /** Item ids granted (their instances have source 'season:<id>'). */
+    items: jsonb('items').$type<string[]>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
+);

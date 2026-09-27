@@ -19,7 +19,7 @@ import { activeTeamSpecs } from '../routes/roster.js';
 import type { Clock, Timer } from './clock.js';
 import { Matchmaker, type QueueEntry } from './matchmaker.js';
 import { MatchRoom, type Connection } from './room.js';
-import { dbRoomStore, ratingOf, ratingQueue } from './store.js';
+import { dbRoomStore, queueRatingOf, ratingQueue } from './store.js';
 
 /** Seconds per turn in matchmade games. */
 export const QUEUE_TURN_SECONDS = 90;
@@ -132,7 +132,9 @@ export class MatchHub {
       case 'queue.join': {
         if (this.busy(uid)) return c.send({ t: 'error', code: 'already_busy', message: "You're already queued or playing" });
         const specs = await activeTeamSpecs(this.ctx, uid);
-        const { rating } = await ratingOf(this.ctx.db, uid, ratingQueue(msg.mode)!);
+        const queue = ratingQueue(msg.mode, this.ctx.seasons, this.clock.now());
+        if (!queue) return c.send({ t: 'error', code: 'off_season', message: 'Ranked is between seasons' });
+        const { rating } = await queueRatingOf(this.ctx.db, this.ctx.seasons, uid, queue);
         if (this.busy(uid) || this.clients.get(uid) !== c) return;
         const e = this.matchmaker.join({ userId: uid, displayName: c.user.displayName, mode: msg.mode, rating, specs });
         return c.send({ t: 'queue.status', mode: msg.mode, since: e.joinedAt });
@@ -260,7 +262,7 @@ export class MatchHub {
       ],
       timerSeconds: timer,
       clock: this.clock,
-      store: dbRoomStore(this.ctx.db, this.ctx.content, this.ctx.rollSeed),
+      store: dbRoomStore(this.ctx.db, this.ctx.content, this.ctx.rollSeed, this.ctx.seasons),
       onEnd: (r) => this.closeRoom(r),
       log: this.log,
     });

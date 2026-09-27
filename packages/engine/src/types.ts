@@ -143,6 +143,8 @@ export interface CharacterSpec {
   skills: string[];
   /** Status ids applied permanently at match start (equipment passives). */
   passives?: string[];
+  /** Equipped item ids, for match records and analytics (the engine ignores them). */
+  items?: string[];
 }
 
 export interface MatchConfig {

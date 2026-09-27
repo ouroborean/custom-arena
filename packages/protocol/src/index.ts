@@ -79,7 +79,9 @@ export type ErrorCode =
   | 'invalid_team'
   | 'no_such_code'
   | 'rate_limited'
-  | 'turn_rejected';
+  | 'turn_rejected'
+  /** Ranked queue while no season is running. */
+  | 'off_season';
 
 export interface OpponentInfo {
   displayName: string;

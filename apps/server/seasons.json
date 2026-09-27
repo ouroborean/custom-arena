@@ -1,0 +1,16 @@
+{
+  "_comment": "Ranked seasons (docs/live-ops.md §4). Season ids are rating queues: never rename or reuse one. Seasons run from start up to end; only the last may leave out its end. Close a finished season with `npm run season:close -w @arena/server -- <id>`. Reward numbers are first guesses to tune.",
+  "seasons": [
+    { "id": "ranked-s1", "name": "Season 1", "start": "2026-09-01T00:00:00Z", "end": "2026-12-01T00:00:00Z" },
+    { "id": "ranked-s2", "name": "Season 2", "start": "2026-12-01T00:00:00Z" }
+  ],
+  "softReset": { "keep": 0.5, "rd": 200 },
+  "minGames": 10,
+  "tiers": [
+    { "id": "bronze", "name": "Bronze", "min": 0, "reward": { "currency": { "gold": 100 } } },
+    { "id": "silver", "name": "Silver", "min": 1200, "reward": { "currency": { "gold": 200 } } },
+    { "id": "gold", "name": "Gold", "min": 1400, "reward": { "currency": { "gold": 350 } } },
+    { "id": "platinum", "name": "Platinum", "min": 1600, "reward": { "currency": { "gold": 500 } } },
+    { "id": "diamond", "name": "Diamond", "min": 1800, "reward": { "currency": { "gold": 750 } } }
+  ]
+}

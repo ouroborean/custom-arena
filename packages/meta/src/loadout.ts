@@ -48,6 +48,8 @@ export interface ResolvedLoadout {
   passiveItems: string[];
   /** Status ids of implemented passives, applied at match start. */
   passiveEffects: string[];
+  /** Every equipped item id (records and analytics). */
+  items: string[];
   usage: { skills: number; passives: number; infusions: number };
   problems: string[];
 }
@@ -154,7 +156,7 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
   if (usage.passives > b.passives) problems.push(`${usage.passives} item passives; ${rarity.name} characters can use ${b.passives}`);
   if (usage.infusions > b.infusions) problems.push(`${usage.infusions} equipment infusions; ${rarity.name} characters can use ${b.infusions}`);
 
-  return { skills, passiveItems, passiveEffects, usage, problems };
+  return { skills, passiveItems, passiveEffects, items: items.map((i) => i.def.id), usage, problems };
 }
 
 /**

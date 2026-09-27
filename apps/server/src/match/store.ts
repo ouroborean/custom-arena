@@ -1,20 +1,21 @@
 // Postgres persistence for match rooms: the replay log, results and Glicko-2 ratings.
 
-import { DEFAULT_RATING, rateMatch, type Rating } from '@arena/meta';
+import { DEFAULT_RATING, earlierSeasons, rateMatch, seasonAt, softReset, type Rating, type SeasonSchedule } from '@arena/meta';
 import type { ContentBundle, PlayerId } from '@arena/engine';
 import type { MatchKind, RatingChange } from '@arena/protocol';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { grantMatchRewards } from '../economy.js';
 import { matchFact, recordAchievements } from '../singleplayer.js';
 import { matchActions, matches, ratings } from '../db/schema.js';
 import type { EndReason, RoomStore } from './room.js';
 
-/** Ranked ratings are per season; casual has one hidden matchmaking rating. */
-export const RANKED_SEASON = 'ranked-s1';
-
-export function ratingQueue(kind: MatchKind): string | null {
-  return kind === 'ranked' ? RANKED_SEASON : kind === 'casual' ? 'casual' : null;
+/**
+ * The ratings queue a match counts toward: ranked ratings are per season (the one running at `at`,
+ * null between seasons); casual has one hidden matchmaking rating; private matches are unrated.
+ */
+export function ratingQueue(kind: MatchKind, seasons: SeasonSchedule, at: number): string | null {
+  return kind === 'ranked' ? (seasonAt(seasons, at)?.id ?? null) : kind === 'casual' ? 'casual' : null;
 }
 
 export async function ratingOf(db: Db, userId: string, queue: string): Promise<Rating & { games: number; wins: number }> {
@@ -25,8 +26,21 @@ export async function ratingOf(db: Db, userId: string, queue: string): Promise<R
   return row ? { rating: row.rating, rd: row.rd, vol: row.vol, games: row.games, wins: row.wins } : { ...DEFAULT_RATING, games: 0, wins: 0 };
 }
 
+/** A rating in a queue; a player's first games of a season start from a soft reset of their latest earlier season. */
+export async function queueRatingOf(db: Db, seasons: SeasonSchedule, userId: string, queue: string): Promise<Rating & { games: number; wins: number }> {
+  const r = await ratingOf(db, userId, queue);
+  const earlier = earlierSeasons(seasons, queue).map((s) => s.id);
+  if (r.games > 0 || earlier.length === 0) return r;
+  const rows = await db
+    .select()
+    .from(ratings)
+    .where(and(eq(ratings.userId, userId), inArray(ratings.queue, earlier)));
+  const prev = earlier.map((id) => rows.find((x) => x.queue === id)).find((x) => x !== undefined);
+  return prev ? { ...softReset(prev, seasons.softReset), games: 0, wins: 0 } : r;
+}
+
 /** Postgres-backed room persistence; `seed` feeds reward drop rolls. */
-export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number): RoomStore {
+export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number, seasons: SeasonSchedule): RoomStore {
   return {
     async appendActions(matchId, actions) {
       if (actions.length === 0) return;
@@ -38,10 +52,11 @@ export function dbRoomStore(db: Db, content: ContentBundle, seed: () => number):
       if (!m) return null;
       // Ratings and achievements apply once per match (rewards are keyed at-most-once separately).
       const firstFinish = m.status !== 'finished';
-      const queue = ratingQueue(m.kind as MatchKind);
+      // A ranked match rates into the season it started in.
+      const queue = ratingQueue(m.kind as MatchKind, seasons, m.startedAt.getTime());
       let changes: [RatingChange, RatingChange] | null = null;
       if (queue && firstFinish) {
-        const [a, b] = await Promise.all([ratingOf(db, m.p0User, queue), ratingOf(db, m.p1User, queue)]);
+        const [a, b] = await Promise.all([queueRatingOf(db, seasons, m.p0User, queue), queueRatingOf(db, seasons, m.p1User, queue)]);
         const score = r.winner === 0 ? 1 : r.winner === 1 ? 0 : 0.5;
         const [na, nb] = rateMatch(a, b, score);
         const upsert = async (userId: string, next: Rating, prev: { games: number; wins: number }, won: boolean) => {

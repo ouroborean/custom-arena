@@ -114,6 +114,16 @@ export const en = {
   'over.chapterComplete': '{chapter} complete!',
   'over.newCharacter': 'New character: {name}',
   'over.achievement': 'Achievement: {name}',
+  // ranked seasons
+  'season.ends': '{season} · ends {date}',
+  'season.open': '{season}',
+  'season.between': 'Ranked is between seasons',
+  'season.next': '{season} starts {date}',
+  'season.rating': 'Ranked {rating} ±{rd} · {wins}/{games} wins',
+  'season.tier': '{tier} tier',
+  'season.unranked': 'Unranked',
+  'season.placement': { one: '{count} placement game left', other: '{count} placement games left' },
+  'season.lastReward': '{season}: {tier} ({rating}) — {reward}',
 } as const;
 
 export type MessageKey = keyof typeof en;

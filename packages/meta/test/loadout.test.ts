@@ -111,6 +111,7 @@ describe('resolveLoadout', () => {
     expect(r.problems).toEqual([]);
     const spec = toCharacterSpec(rec, r);
     expect(spec.skills).toEqual(['strike.fire', 'smash.fire', 'titan.wind', 'charge.lightning']);
+    expect(spec.items).toEqual(['magma_hammer', 'storm_chaser']); // recorded for analytics
     const { state } = createMatch(content, { seed: 1, teams: [[spec], [spec]] });
     expect(state.units[0]!.skills.map((s) => s.defId)).toEqual(spec.skills);
   });

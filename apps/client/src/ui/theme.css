@@ -3085,3 +3085,28 @@ input[type="password"] {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* ------------------------------------------------------------ ranked seasons */
+
+.season-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.season-tier {
+  padding: 1px 8px;
+  background: var(--yellow);
+  color: var(--void);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.season-tier.none {
+  background: var(--line);
+  color: var(--text);
+}

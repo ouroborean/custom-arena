@@ -36,6 +36,13 @@
       "when": 1790461558141,
       "tag": "0004_single_player",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790471930827,
+      "tag": "0005_seasons",
+      "breakpoints": true
     }
   ]
 }

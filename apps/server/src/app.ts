@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import { ENGINE_VERSION, type ContentBundle } from '@arena/engine';
+import { OPEN_SCHEDULE, type SeasonSchedule } from '@arena/meta';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { SESSION_COOKIE, userForSession, type SessionUser } from './auth.js';
@@ -36,8 +37,10 @@ export interface AppOptions {
   rollSeed?: () => number;
   /** Enable POST /api/dev/grant (development only). */
   devGrants?: boolean;
-  /** Time source for match timers and matchmaking (tests pass a FakeClock). */
+  /** Time source for match timers, matchmaking and seasons (tests pass a FakeClock). */
   clock?: Clock;
+  /** Ranked seasons (default: one open-ended season, as before seasons were scheduled). */
+  seasons?: SeasonSchedule;
   /** Login/register attempts per IP per minute. */
   authRateLimit?: number;
   logger?: boolean;
@@ -51,6 +54,8 @@ export interface AppContext {
   rollSeed: () => number;
   devGrants: boolean;
   authRateLimit: number;
+  clock: Clock;
+  seasons: SeasonSchedule;
 }
 
 export class HttpError extends Error {
@@ -84,6 +89,8 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
     devGrants: opts.devGrants ?? false,
     authRateLimit: opts.authRateLimit ?? 20,
+    clock: opts.clock ?? realClock,
+    seasons: opts.seasons ?? OPEN_SCHEDULE,
   };
   const app = Fastify({ logger: opts.logger ?? false });
   await app.register(cookie);
@@ -122,7 +129,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(storyRoutes(ctx));
 
   // The match service (GDD §10.4): one WebSocket per signed-in user.
-  const hub = new MatchHub(ctx, opts.clock ?? realClock, (msg, err) => app.log.error({ err }, msg));
+  const hub = new MatchHub(ctx, ctx.clock, (msg, err) => app.log.error({ err }, msg));
   app.decorate('hub', hub);
   app.get('/api/ws', { websocket: true }, (socket, req) => {
     if (!req.user) return socket.close(4401, 'Sign in first');
