@@ -122,7 +122,7 @@ Passwords: Argon2id.
 | GET | `/api/achievements` | Achievement progress |
 | POST | `/api/dev/grant` | Development only: add an item to the inventory |
 | GET | `/api/matches`, `/api/matches/:id/replay` | Match history; replay records (see docs/multiplayer.md) |
-| GET | `/api/ratings` | Ranked season rating and casual record |
+| GET | `/api/ratings` | The running ranked season, rating, placement and tier, last season reward, and casual record |
 | GET (WebSocket) | `/api/ws` | The match service (docs/multiplayer.md) |
 
 Schema: `apps/server/src/db/schema.ts`; migrations in `src/db/migrations`

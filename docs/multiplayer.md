@@ -64,8 +64,8 @@ start (no ratings change).
 - **Teams:** the active team is validated when queueing (the same checks as practice), so an invalid
   loadout is caught before a match starts.
 - **Ratings:** Glicko-2 (tested against Glickman's worked example), one match per rating period.
-  Ranked has a visible season rating (`ranked-s1`); casual keeps a hidden rating used only for
-  pairing; private matches are unrated. A forfeit counts as a loss.
+  Ranked has a visible rating per season, soft-reset between seasons (docs/live-ops.md §4); casual
+  keeps a hidden rating used only for pairing; private matches are unrated. A forfeit counts as a loss.
 - The queue is in-process. Its interface (`join`, `leave`, `tick`) is small enough to move to Redis
   when the server runs as several processes (GDD §10.2).
 

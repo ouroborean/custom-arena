@@ -1032,7 +1032,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 - Implement equipment types A–L passives (they reuse the effect runtime), drop tables, crafting (shards → crystals), and currencies.
 - Balance simulator including equipment. Tune.
 
-### Phase 8: Polish, launch, and live ops (ongoing)
+### Phase 8: Polish, launch, and live ops (ongoing) — in progress: energy pip shapes, motion/speed/sound settings, screen-reader log, portrait and sound manifests, synthesized SFX, message catalogs with a pseudo-locale, pick/win-rate analytics, patch-note diffs, ranked seasons with soft resets and rewards, installable PWA with an offline sandbox ✅ (2026-09-26); art, translations and native shells pending; see docs/live-ops.md
 - Art pipeline and portrait manifest, VFX/SFX, accessibility (color-blind energy pip shapes!), and localization readiness.
 - Analytics (pick/win rates), a balance patch cadence, and seasons.
 - Desktop/mobile wrappers.

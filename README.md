@@ -4,8 +4,9 @@ A 3v3 turn-based arena strategy game. See [docs/GDD.md](docs/GDD.md) for the des
 [docs/rules.md](docs/rules.md) for the formal ruleset, [docs/meta.md](docs/meta.md) for characters,
 equipment and the API, [docs/equipment.md](docs/equipment.md) for item passives and the economy,
 [docs/multiplayer.md](docs/multiplayer.md) for online play, [docs/single-player.md](docs/single-player.md)
-for bots, the story, achievements and the tutorial, and [docs/glossary.md](docs/glossary.md) for
-keywords.
+for bots, the story, achievements and the tutorial, [docs/live-ops.md](docs/live-ops.md) for analytics,
+patches, seasons, localization, assets and the installable app, and [docs/glossary.md](docs/glossary.md)
+for keywords.
 
 ## Layout
 
@@ -17,8 +18,8 @@ packages/
   meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts, economy, story, achievements, Glicko-2.
   protocol/  WebSocket messages and turn bundles shared by server and client.
 apps/
-  client/    React client (Vite): account, roster, loadouts, practice vs bot, and a sandbox.
-  server/    API + match service (Fastify + Drizzle + WebSockets): auth, roster, equipment, matchmaking, rooms.
+  client/    React client (Vite, installable PWA): account, roster, loadouts, online play, story, tutorial, and a sandbox.
+  server/    API + match service (Fastify + Drizzle + WebSockets): auth, roster, equipment, matchmaking, rooms, seasons.
   cli/       Headless simulator and a terminal game against a bot.
 docs/        GDD, rules, glossary.
 ```
@@ -43,7 +44,12 @@ npm run play               # play in the terminal against the greedy bot
 npm run server             # API server at http://127.0.0.1:8787 (PGlite data in apps/server/.data)
 npm run dev                # client at http://localhost:5173, proxying /api (and the WebSocket) to the server
 npm run bot -w @arena/server -- --mode casual   # a bot that plays online, for testing alone
-npm run build              # production build of the client (apps/client/dist)
+npm run build              # production build of the client (apps/client/dist, with the service worker)
+npm run preview -w @arena/client       # serve that build at http://localhost:4173 (installable, works offline)
+npm run assets:check       # validate the portrait and sound manifests, and report art coverage
+npm run content:diff -- master         # draft patch notes: content changes since a git ref
+npm run analytics -w @arena/server     # pick and win rates from finished online matches
+npm run season:close -w @arena/server -- ranked-s1 --dry-run   # pay a finished season's rewards
 ```
 
 Run `npm run server` and `npm run dev` together for the full game; without the server, the client
