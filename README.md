@@ -24,6 +24,20 @@ apps/
 docs/        GDD, rules, glossary.
 ```
 
+## Playing locally (one click)
+
+On Windows, double-click one of these in the repository folder:
+
+- **Play.cmd**: starts the server and the client and opens the game at http://localhost:5173.
+- **Play (installable build).cmd**: the same with the production build, at http://localhost:4173. It
+  can be installed from the browser and runs offline.
+- **Online test bot.cmd**: an opponent for online play on your own. It joins the Casual queue, and
+  again after every match; press Casual on the home screen to play it.
+
+Press Q in the window (or close it) to stop; the database is closed cleanly. The first run installs
+dependencies. A server or client that's already running is reused. Full logs go to `.data/logs/`.
+Elsewhere, run `node scripts/launch.mjs` (add `--build` or `--bot`).
+
 ## Commands
 
 Requires Node 22+.

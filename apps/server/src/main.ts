@@ -29,13 +29,20 @@ const app = await buildApp({
   logger: true,
 });
 
+// Close the database cleanly however the server is stopped: an unclean stop can damage PGlite's data.
+let stopping = false;
 const shutdown = async () => {
+  if (stopping) return;
+  stopping = true;
   await app.close();
   await close();
   process.exit(0);
 };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+// SIGHUP: the console window was closed (Windows). disconnect: the launcher (scripts/launch.mjs) let go.
+process.on('SIGHUP', shutdown);
+process.on('disconnect', shutdown);
 
 if (aborted) app.log.warn(`${aborted} match(es) from a previous run were aborted`);
 const season = seasonAt(seasons, Date.now());
