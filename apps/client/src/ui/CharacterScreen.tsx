@@ -1,19 +1,14 @@
-// Character page: rename/retire, effective skills, the loadout editor (GDD §7.3, §8) and presets.
+// Character page: rename/retire, effective skills, the loadout editor (GDD §7.3, §8.3) and presets.
 // The loadout is validated live with the same @arena/meta rules the server enforces on save.
 
 import { useEffect, useMemo, useState } from 'react';
-import { RARITIES, resolveLoadout, SLOT_TYPES, type EquippedItem, type Loadout } from '@arena/meta';
+import { EQUIPMENT_SLOTS, RARITIES, resolveLoadout, type Loadout } from '@arena/meta';
 import { api, ApiError, type Character, type Preset } from '../api.js';
 import { content } from '../content.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
-import { elementClass } from './common.js';
+import { LoadoutEditor } from './LoadoutEditor.js';
 import { Portrait, RarityBadge, recordOf, SkillChips } from './Roster.js';
-
-type SlotRef = { key: 'mainHand' | 'offHand' | 'twoHanded' | 'body' } | { key: 'accessories' | 'sockets'; index: number };
-
-const SLOT_LABEL = { mainHand: 'Main hand', offHand: 'Off hand', twoHanded: 'Two-handed', body: 'Body', accessories: 'Accessory', sockets: 'Crystal socket' };
-const SLOT_KIND = { mainHand: 'mainHand', offHand: 'offHand', twoHanded: 'twoHanded', body: 'body', accessories: 'accessory', sockets: 'socket' } as const;
 
 /** JSON with sorted keys: the server's jsonb storage doesn't keep key order. */
 function canonical(v: unknown): string {
@@ -22,26 +17,6 @@ function canonical(v: unknown): string {
       ? Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
       : x,
   );
-}
-
-function getSlot(l: Loadout, ref: SlotRef): EquippedItem | undefined {
-  return 'index' in ref ? l[ref.key]?.[ref.index] : l[ref.key];
-}
-
-function setSlot(l: Loadout, ref: SlotRef, eq: EquippedItem | undefined): Loadout {
-  if (!('index' in ref)) {
-    const next = { ...l };
-    if (eq) next[ref.key] = eq;
-    else delete next[ref.key];
-    return next;
-  }
-  const list = [...(l[ref.key] ?? [])];
-  list[ref.index] = eq!;
-  const compact = list.filter(Boolean);
-  const next = { ...l };
-  if (compact.length) next[ref.key] = compact;
-  else delete next[ref.key];
-  return next;
 }
 
 export function CharacterScreen() {
@@ -59,11 +34,24 @@ export function CharacterScreen() {
       </div>
     );
   }
-  return <CharacterPage key={c.id} c={c} inventory={inventory} inTeam={team.includes(c.id)} busy={busy} onRename={rename} onRetire={retire} onSaved={refresh} />;
+  return (
+    <CharacterPage
+      key={c.id}
+      c={c}
+      characters={characters}
+      inventory={inventory}
+      inTeam={team.includes(c.id)}
+      busy={busy}
+      onRename={rename}
+      onRetire={retire}
+      onSaved={refresh}
+    />
+  );
 }
 
 function CharacterPage({
   c,
+  characters,
   inventory,
   inTeam,
   busy,
@@ -72,6 +60,7 @@ function CharacterPage({
   onSaved,
 }: {
   c: Character;
+  characters: Character[];
   inventory: ReturnType<typeof useMeta.getState>['inventory'];
   inTeam: boolean;
   busy: boolean;
@@ -87,23 +76,13 @@ function CharacterPage({
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const rarity = RARITIES[c.rarity];
-  const record = recordOf(c);
+  const record = useMemo(() => recordOf(c), [c]);
   const resolved = useMemo(() => resolveLoadout(content, record, draft), [record, draft]);
   const dirty = canonical(draft) !== canonical(c.loadout);
 
   useEffect(() => {
     api.presets(c.id).then((r) => setPresets(r.presets), () => setPresets([]));
   }, [c.id]);
-
-  const slots: SlotRef[] = [
-    { key: 'mainHand' },
-    { key: 'offHand' },
-    { key: 'twoHanded' },
-    { key: 'body' },
-    ...Array.from({ length: rarity.equipmentSlots }, (_, index) => ({ key: 'accessories' as const, index })),
-    ...Array.from({ length: rarity.freeSockets }, (_, index) => ({ key: 'sockets' as const, index })),
-  ];
-  const usedInDraft = new Set(slots.map((r) => getSlot(draft, r)?.instanceId).filter(Boolean));
 
   const save = async () => {
     setServerProblems([]);
@@ -165,8 +144,7 @@ function CharacterPage({
               {c.element} {content.classes[c.classId]?.name}
             </span>
             <span className="muted">
-              {rarity.equipmentSlots} accessory slots · {rarity.freeSockets} sockets · budget {b.skills} skills / {b.passives} passives / {b.infusions}{' '}
-              infusions
+              {EQUIPMENT_SLOTS} item slots · budget {b.skills} skills / {b.passives} passives / {b.infusions} infusions
             </span>
           </div>
           <SkillChips skills={resolved.problems.length ? c.skills : resolved.skills} />
@@ -188,7 +166,7 @@ function CharacterPage({
         <div className="section-head">
           <span className="panel-title">Loadout</span>
           <span className="muted">
-            Using {resolved.usage.skills}/{b.skills} skills · {resolved.usage.passives}/{b.passives} passives · {resolved.usage.infusions}/
+            {draft.items.length}/{EQUIPMENT_SLOTS} items · using {resolved.usage.skills}/{b.skills} skills · {resolved.usage.passives}/{b.passives} passives · {resolved.usage.infusions}/
             {b.infusions} infusions
           </span>
           <span style={{ flex: 1 }} />
@@ -207,107 +185,15 @@ function CharacterPage({
             ))}
           </ul>
         )}
-        <div className="slot-grid">
-          {slots.map((ref) => {
-            const kind = SLOT_KIND[ref.key];
-            const eq = getSlot(draft, ref);
-            const def = eq ? content.items[eq.itemId] : undefined;
-            const options = inventory.filter(
-              (i) =>
-                SLOT_TYPES[kind].includes(content.items[i.itemId]?.type ?? 'L') &&
-                (i.equippedOn === null || i.equippedOn === c.id) &&
-                (!usedInDraft.has(i.id) || i.id === eq?.instanceId),
-            );
-            const label = 'index' in ref ? `${SLOT_LABEL[ref.key]} ${ref.index + 1}` : SLOT_LABEL[ref.key];
-            return (
-              <div key={label} className={`slot-card ${def ? 'filled' : ''}`}>
-                <div className="slot-head">
-                  <span className="slot-label">{label}</span>
-                  <span className="muted">{SLOT_TYPES[kind].join(' · ')}</span>
-                </div>
-                <select
-                  aria-label={label}
-                  value={eq?.instanceId ?? ''}
-                  onChange={(e) => {
-                    const inst = inventory.find((i) => i.id === e.target.value);
-                    setDraft(setSlot(draft, ref, inst ? { itemId: inst.itemId, instanceId: inst.id } : undefined));
-                  }}
-                >
-                  <option value="">{options.length ? '— empty —' : '— no items —'}</option>
-                  {options.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {content.items[i.itemId]?.name} ({content.items[i.itemId]?.type})
-                    </option>
-                  ))}
-                </select>
-                {def && eq && (
-                  <div className="slot-detail">
-                    {def.skills.length > 0 && (
-                      <div className="muted">Grants {def.skills.map((s) => content.skills[s]?.name).join(', ')}</div>
-                    )}
-                    {def.infusions.map((inf, i) => {
-                      const unused = eq.unused?.includes(i) ?? false;
-                      const update = (next: Partial<EquippedItem>) => setDraft(setSlot(draft, ref, { ...eq, ...next }));
-                      return (
-                        <div key={i} className="infusion-row">
-                          <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span>
-                          {inf.target ? (
-                            <span>→ {content.skills[inf.target]?.name}</span>
-                          ) : (
-                            <select
-                              aria-label={`${def.name} ${inf.element} infusion target`}
-                              value={eq.targets?.[i] ?? ''}
-                              disabled={unused}
-                              onChange={(e) => {
-                                const targets = [...(eq.targets ?? [])];
-                                while (targets.length <= i) targets.push(null);
-                                targets[i] = e.target.value || null;
-                                update({ targets });
-                              }}
-                            >
-                              <option value="">choose a skill…</option>
-                              {resolved.skills.map((s) => (
-                                <option key={s.base} value={s.base}>
-                                  {content.skills[s.base]?.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                          <label className="check">
-                            <input
-                              type="checkbox"
-                              checked={unused}
-                              onChange={(e) => {
-                                const set = new Set(eq.unused ?? []);
-                                if (e.target.checked) set.add(i);
-                                else set.delete(i);
-                                const next = { ...eq, unused: [...set].sort() };
-                                if (next.unused.length === 0) delete (next as { unused?: number[] }).unused;
-                                setDraft(setSlot(draft, ref, next));
-                              }}
-                            />
-                            unused
-                          </label>
-                        </div>
-                      );
-                    })}
-                    {def.passive && (
-                      <p className="passive">
-                        <b>Passive</b> {def.passive}
-                        {def.passiveEffect ? (
-                          // The implementation's own wording spells out the rulings (docs/equipment.md).
-                          <span className="muted"> — in play: {content.statuses[def.passiveEffect]?.description}</span>
-                        ) : (
-                          <span className="muted"> (not active yet)</span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <LoadoutEditor
+          character={c}
+          record={record}
+          draft={draft}
+          onChange={setDraft}
+          resolved={resolved}
+          inventory={inventory}
+          characters={characters}
+        />
       </section>
 
       <section className="panel" aria-label="Presets">

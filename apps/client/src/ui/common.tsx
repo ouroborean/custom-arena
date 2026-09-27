@@ -314,6 +314,19 @@ export function skillCode(def: SkillDef): string {
   return SKILL_CODES[def.archetype] ?? consonantCode(def.name);
 }
 
+const MINOR_WORDS = new Set(['of', 'the', 'and', 'a', 'an']);
+
+/** A three-letter code that tells items apart: "Emblem of the Abyss" is EAB, "Holy Censer" HCN. */
+export function itemCode(name: string): string {
+  const words = name
+    .split(/[\s-]+/)
+    .map((w) => w.replace(/[^A-Za-z]/g, ''))
+    .filter((w) => w && !MINOR_WORDS.has(w.toLowerCase()));
+  if (words.length >= 3) return words.slice(0, 3).map((w) => w[0]!.toUpperCase()).join('');
+  if (words.length === 2) return words[0]![0]!.toUpperCase() + consonantCode(words[1]!).slice(0, 2);
+  return consonantCode(name);
+}
+
 export function statusCode(key: string, name: string): string {
   return STATUS_CODES[key] ?? consonantCode(name);
 }

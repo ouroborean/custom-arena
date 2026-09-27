@@ -59,7 +59,7 @@ describe('loadouts', () => {
     const target = freeSkill(c);
     const shard = await grant('ice_shard');
     const put = await call('PUT', `/api/characters/${c.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
+      loadout: { items: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
     });
     expect(put.statusCode).toBe(200);
     expect(put.json().resolved.skills.find((s: { base: string }) => s.base === target).infusion).toBe('Ice');
@@ -76,19 +76,19 @@ describe('loadouts', () => {
     const b = await account('thief@example.com');
     const shard = await a.grant('fire_shard');
     const steal = await b.call('PUT', `/api/characters/${b.chars[0]!.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'fire_shard', instanceId: shard, targets: [freeSkill(b.chars[0]!)] }] },
+      loadout: { items: [{ itemId: 'fire_shard', instanceId: shard, targets: [freeSkill(b.chars[0]!)] }] },
     });
     expect(steal.statusCode).toBe(400);
     expect(steal.json().problems[0]).toContain("don't own");
 
     const mine = await b.grant('fire_shard');
     const mismatch = await b.call('PUT', `/api/characters/${b.chars[0]!.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'ice_shard', instanceId: mine, targets: [freeSkill(b.chars[0]!)] }] },
+      loadout: { items: [{ itemId: 'ice_shard', instanceId: mine, targets: [freeSkill(b.chars[0]!)] }] },
     });
     expect(mismatch.json().problems.some((p: string) => p.includes('not ice_shard'))).toBe(true);
 
     const noTarget = await b.call('PUT', `/api/characters/${b.chars[0]!.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'fire_shard', instanceId: mine }] },
+      loadout: { items: [{ itemId: 'fire_shard', instanceId: mine }] },
     });
     expect(noTarget.json().problems.some((p: string) => p.includes('Choose a skill'))).toBe(true);
   });
@@ -96,7 +96,7 @@ describe('loadouts', () => {
   it('an item instance can only be equipped on one character', async () => {
     const { call, grant, chars } = await account('twice@example.com');
     const shard = await grant('wind_shard');
-    const on = (c: Character) => ({ loadout: { sockets: [{ itemId: 'wind_shard', instanceId: shard, targets: [freeSkill(c)] }] } });
+    const on = (c: Character) => ({ loadout: { items: [{ itemId: 'wind_shard', instanceId: shard, targets: [freeSkill(c)] }] } });
     expect((await call('PUT', `/api/characters/${chars[0]!.id}/loadout`, on(chars[0]!))).statusCode).toBe(200);
     const second = await call('PUT', `/api/characters/${chars[1]!.id}/loadout`, on(chars[1]!));
     expect(second.statusCode).toBe(400);
@@ -107,7 +107,7 @@ describe('loadouts', () => {
     const { call, grant, chars } = await account('presets@example.com');
     const c = chars[0]!;
     const shard = await grant('holy_shard');
-    const loadout = { sockets: [{ itemId: 'holy_shard', instanceId: shard, targets: [freeSkill(c)] }] };
+    const loadout = { items: [{ itemId: 'holy_shard', instanceId: shard, targets: [freeSkill(c)] }] };
     const saved = await call('POST', `/api/characters/${c.id}/presets`, { name: 'Holy', loadout });
     expect(saved.statusCode).toBe(201);
     const presetId = saved.json().preset.id;

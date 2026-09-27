@@ -23,13 +23,15 @@ Each skill has a base id, an optional infusion (element), a source (`native` or 
 
 ### 1.2 Rarity table
 
-| Rarity | Native skills | Default infusions | Accessory slots | Crystal sockets | Budget: skills / passives / infusions |
-|---|---|---|---|---|---|
-| Common | 3 | 1 | 2 | 1 | 1 / 1 / 2 |
-| Uncommon | 3 | 1–2 | 3 | 1 | 2 / 1 / 2 |
-| Rare | 4 | 1–2 | 3 | 2 | 2 / 2 / 3 |
-| Epic | 4 | 2–3 | 4 | 2 | 3 / 2 / 3 |
-| Legendary | 5 | 2–3 | 5 | 3 | 3 / 2 / 4 |
+| Rarity | Native skills | Default infusions | Budget: skills / passives / infusions |
+|---|---|---|---|
+| Common | 3 | 1 | 1 / 1 / 2 |
+| Uncommon | 3 | 1–2 | 2 / 1 / 2 |
+| Rare | 4 | 1–2 | 2 / 2 / 3 |
+| Epic | 4 | 2–3 | 3 / 2 / 3 |
+| Legendary | 5 | 2–3 | 3 / 2 / 4 |
+
+Every rarity has the same four equipment slots (§2.1).
 
 The budget caps how many **equipment-granted** skills, item passives and item infusions a character
 can use at once, regardless of which items supply them (the sheet's "3 skills 2 passives 4 element"
@@ -47,14 +49,27 @@ Each item grants skills, infusions and/or a passive (GDD §8.1).
 
 ### 2.1 Slots
 
-| Slot | Types | Notes |
-|---|---|---|
-| Main hand | A, C, D | |
-| Off hand | E | |
-| Two-handed | B | Replaces both hands. |
-| Body | F, G | G (class armor) is limited to its class. |
-| Accessories | H, J, L | Up to the rarity's accessory slots. |
-| Crystal sockets | I, K | Up to the rarity's sockets. |
+A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any item type fits any slot**
+(GDD §8.3, decided 2026-09-27). A loadout is a list of up to four equipped items:
+`{ items: [{ itemId, instanceId, targets?, unused? }, …] }`. The item types (A–L) are descriptive
+categories only. What limits a loadout is the rarity budget, the 5-skill cap, one infusion per skill,
+locked default infusions, class armor (type G fits only its class), and each owned copy being on one
+character at a time.
+
+Loadouts saved with the earlier typed slots (main hand, off hand, two-handed, body, accessories,
+sockets) were converted by migration 0006: items keep that order, and any past the fourth were
+unequipped (they stay in the inventory).
+
+**Equipping in the client** (`LoadoutEditor`): the four slots sit above a grid of the items the
+player owns (one tile per item, with a count of free copies), filtered by search, category (weapons,
+armor, trinkets, crystals), element and "only what fits".
+- **Hover card:** hovering or focusing a tile shows what the item grants (skill, infusions, passive and
+  its in-play wording), how many copies are owned and where, and whether it fits, or which rules
+  equipping it would break.
+- **Equipping:** clicking a tile equips it in the next free slot. To replace an item, select its slot
+  first; × removes an item.
+- **Aiming infusions:** chosen infusions are aimed at the first skill that can take them (`withItem`).
+  One that no skill can take is marked unused. Either can be changed under the slot.
 
 ### 2.2 Grants and resolution (`resolveLoadout`)
 

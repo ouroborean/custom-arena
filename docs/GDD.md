@@ -450,7 +450,7 @@ Character
   classId, baseElement
   rarity                → skillCount (3–5), upgradeCapacity
   skills[]              ordered list of { archetype, infusion: Element|None, source: Native|Equipment, locked: bool }
-  equipment[slot]       item instance ids
+  equipment[4]          up to 4 item instance ids, any types (§8.3)
   stats (record: wins, games, per-mode)
 ```
 
@@ -471,13 +471,16 @@ name = nameGenerator(class, baseElement)
 
 Proposed rarity table (to tune):
 
-| Rarity | Native skills | Default infusions | Equipment slots | Free infusion sockets |
-|---|---|---|---|---|
-| Common | 3 | 1 | 2 | 1 |
-| Uncommon | 3 | 1–2 | 3 | 1 |
-| Rare | 4 | 1–2 | 3 | 2 |
-| Epic | 4 | 2–3 | 4 | 2 |
-| Legendary | 5 | 2–3 | 5 | 3 |
+| Rarity | Native skills | Default infusions |
+|---|---|---|
+| Common | 3 | 1 |
+| Uncommon | 3 | 1–2 |
+| Rare | 4 | 1–2 |
+| Epic | 4 | 2–3 |
+| Legendary | 5 | 2–3 |
+
+Every rarity has the same **4 equipment slots** (§8.3); rarity sets the equipment budget instead
+(docs/meta.md §1.2).
 
 **Base element decision [OPEN]:** does the base element do anything beyond default infusions and portrait? One good cheap option: a small **affinity bonus**. For example, skills infused with the base element cost −1 GEN once per match, or the character counts as "X-infused" for equipment unlock requirements. Or it could be purely cosmetic.
 
@@ -516,7 +519,7 @@ All equipment reduces to a bundle of **grants**, which is how the engine should 
 
 ### 8.2 Equipment types (from *Structured Equipment*)
 
-| Type | Grants | Count | Proposed slot |
+| Type | Grants | Count | Category |
 |---|---|---|---|
 | A | 1 Skill + 1 Passive + 1 Element | 30 (one per skill) | Main Hand |
 | B | 2 Skills + 1 Passive | 20 (2 per class) | Two-Handed |
@@ -533,15 +536,20 @@ All equipment reduces to a bundle of **grants**, which is how the engine should 
 
 The sheet's note "I … 3 skills 2 passives 4 element" reads like a **slot-budget formula**: a fully kitted character totals at most 3 equipment-granted skills, 2 passives, and 4 infusions. That's an excellent balance lever. **Recommend adopting explicit budgets per character** (scaled by rarity) and validating them in the loadout validator, independent of which items supplied them.
 
-### 8.3 Proposed slot layout
+### 8.3 Slot layout (decided 2026-09-27)
 
-```
-Weapon:   [Main Hand (A | C | D)] + [Off Hand (E)]   — or —   [Two-Handed (B)]
-Armor:    [Body (F | G)]
-Accessory ×N (by rarity): H | I | J | K | L
-```
+Every character has **4 equipment slots, and any item type fits any slot**: two weapons, three
+shards, a two-handed weapon beside armor are all fine. There are no main-hand, off-hand, body,
+accessory or socket slots, and rarity doesn't change the slot count. The categories in §8.2 are
+descriptive only. What still limits a loadout:
 
-The layout is data-configurable (`slots.json`), so it can be tuned without code changes.
+- the rarity's **budget** of equipment-granted skills, item passives and infusions (§8.2 note);
+- the **5-skill cap**, **one infusion per skill** and **locked default infusions** (§7.3);
+- **class armor** (type G) only fits its class;
+- each owned copy of an item can be on one character at a time.
+
+This supersedes the earlier proposal (Main Hand + Off Hand or Two-Handed, Body, and rarity-scaled
+accessory and socket slots).
 
 ### 8.4 Acquisition
 
@@ -881,7 +889,6 @@ triggers:
 ```yaml
 id: equip.wind_katana
 type: A
-slot: MainHand
 grants:
   - skill: Strike
   - infusion: { element: Wind, archetype: Strike }
@@ -1062,6 +1069,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q15 | Cooldown clock | Ticks **only on the owner's turns**. CD 1 must stay unusable on the owner's following turn (internally `remaining = n + 1`). | §3.5 |
 | Q16 | Effects with no stated duration (e.g., Ignite) | **Permanent** until specifically ended (consumed, cleansed, or removed by a skill) | §3.8 |
 | Q17 | Wind Vortex redesign | Confirmed. See the new text in §14.2. | §14.2 |
+| Q18 | Equipment slots (2026-09-27) | **4 slots per character, any item type** in any slot; no typed slots, and rarity doesn't change the count. Budgets, the skill cap and class armor still apply. | §8.3 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 
@@ -1103,7 +1111,7 @@ These started as engineering defaults. The designer confirmed all of them, along
 | R7 | Energy exchange (5 → 1 chosen color) | Optional. Decide after playtests. |
 | R8 | Does base element matter mechanically? Are default infusions removable? | Cosmetic plus default infusions. Defaults are locked. |
 | R9 | Class pool table (§6.2) and the "at least 2 signatures" roll rule | First pass; review |
-| R10 | Rarity table (§7.2) and slot/budget numbers (§8.2–8.3) | First pass; to tune |
+| R10 | Rarity table (§7.2) and budget numbers (§8.2) | First pass; to tune. Slots are settled: 4, any type (§8.3). |
 
 ---
 

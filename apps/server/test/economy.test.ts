@@ -76,7 +76,7 @@ describe('crafting and salvage', () => {
     const shard = mixed[0]!;
     const target = c.skills.find((s) => !s.locked)!.base;
     const put = await a.call('PUT', `/api/characters/${c.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
+      loadout: { items: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
     });
     expect(put.statusCode).toBe(200);
     expect((await a.call('POST', `/api/inventory/${shard}/salvage`)).statusCode).toBe(409);

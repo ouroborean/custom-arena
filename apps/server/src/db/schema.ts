@@ -48,8 +48,8 @@ export const characters = pgTable(
     portraitId: text('portrait_id').notNull(),
     /** Ordered skill list; validated by @arena/meta (GDD §7.1 character_skills, kept as one document). */
     skills: jsonb('skills').$type<CharacterSkill[]>().notNull(),
-    /** Equipped items by slot (instance ids from item_instances); validated by @arena/meta. */
-    loadout: jsonb('loadout').$type<Loadout>().notNull().default({}),
+    /** Up to four equipped items, any types (instance ids from item_instances); validated by @arena/meta. */
+    loadout: jsonb('loadout').$type<Loadout>().notNull().default({ items: [] }),
     /** Content version the character was generated against. */
     contentVersion: text('content_version').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

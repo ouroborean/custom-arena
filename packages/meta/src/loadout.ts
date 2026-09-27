@@ -1,9 +1,13 @@
-// Equipment loadouts (GDD §7.3, §8): slot layout, skill/infusion/passive grants, budgets, and
-// resolution into the character's effective skill list. Validated on save and again at match start.
+// Equipment loadouts (GDD §7.3, §8): four slots that take any item, skill/infusion/passive grants,
+// budgets, and resolution into the character's effective skill list. Validated on save and again at
+// match start.
 
-import { nextInt, sample, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
+import { nextInt, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
 import type { CharacterRecord, CharacterSkill } from './character.js';
 import { MAX_SKILLS, RARITIES } from './rarity.js';
+
+/** Items a character can have equipped at once, of any types (GDD §8.3, decided 2026-09-27). */
+export const EQUIPMENT_SLOTS = 4;
 
 export interface EquippedItem {
   /** Content item id. */
@@ -20,25 +24,26 @@ export interface EquippedItem {
 }
 
 export interface Loadout {
-  mainHand?: EquippedItem;
-  offHand?: EquippedItem;
-  /** Replaces both hands. */
-  twoHanded?: EquippedItem;
-  body?: EquippedItem;
-  /** Up to the rarity's equipment slots. */
-  accessories?: EquippedItem[];
-  /** Crystals and shards; up to the rarity's free sockets. */
-  sockets?: EquippedItem[];
+  /** Up to EQUIPMENT_SLOTS items, in slot order. */
+  items: EquippedItem[];
 }
 
-/** Which item types each slot accepts (GDD §8.3). */
-export const SLOT_TYPES: Record<'mainHand' | 'offHand' | 'twoHanded' | 'body' | 'accessory' | 'socket', readonly ItemType[]> = {
-  mainHand: ['A', 'C', 'D'],
-  offHand: ['E'],
-  twoHanded: ['B'],
-  body: ['F', 'G'],
-  accessory: ['H', 'J', 'L'],
-  socket: ['I', 'K'],
+export const EMPTY_LOADOUT: Loadout = { items: [] };
+
+/** What each item type is, for display (the sheet's categories; any type fits any slot). */
+export const ITEM_TYPE_NAMES: Record<ItemType, string> = {
+  A: 'Weapon',
+  B: 'Two-handed weapon',
+  C: 'Exotic weapon',
+  D: 'Elemental weapon',
+  E: 'Off-hand',
+  F: 'Elemental armor',
+  G: 'Class armor',
+  H: 'Charm',
+  I: 'Perfect crystal',
+  J: 'Skill trinket',
+  K: 'Shard',
+  L: 'Trinket',
 };
 
 export interface ResolvedLoadout {
@@ -54,20 +59,6 @@ export interface ResolvedLoadout {
   problems: string[];
 }
 
-type SlotKey = keyof typeof SLOT_TYPES;
-
-/** Every equipped item with the slot it sits in, in resolution order. */
-export function equippedItems(l: Loadout): { slot: SlotKey; eq: EquippedItem }[] {
-  const out: { slot: SlotKey; eq: EquippedItem }[] = [];
-  if (l.twoHanded) out.push({ slot: 'twoHanded', eq: l.twoHanded });
-  if (l.mainHand) out.push({ slot: 'mainHand', eq: l.mainHand });
-  if (l.offHand) out.push({ slot: 'offHand', eq: l.offHand });
-  if (l.body) out.push({ slot: 'body', eq: l.body });
-  for (const eq of l.accessories ?? []) out.push({ slot: 'accessory', eq });
-  for (const eq of l.sockets ?? []) out.push({ slot: 'socket', eq });
-  return out;
-}
-
 export function resolveLoadout(content: ContentBundle, record: CharacterRecord, loadout: Loadout): ResolvedLoadout {
   const problems: string[] = [];
   const rarity = RARITIES[record.rarity];
@@ -75,29 +66,24 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
   const usage = { skills: 0, passives: 0, infusions: 0 };
   const passiveItems: string[] = [];
   const passiveEffects: string[] = [];
+  const equipped = loadout.items ?? [];
 
-  // Slot layout.
-  if (loadout.twoHanded && (loadout.mainHand || loadout.offHand)) problems.push('A two-handed item uses both hands');
-  const accessories = loadout.accessories ?? [];
-  const sockets = loadout.sockets ?? [];
-  if (accessories.length > rarity.equipmentSlots) problems.push(`${rarity.name} characters have ${rarity.equipmentSlots} accessory slots`);
-  if (sockets.length > rarity.freeSockets) problems.push(`${rarity.name} characters have ${rarity.freeSockets} crystal sockets`);
+  if (equipped.length > EQUIPMENT_SLOTS) problems.push(`A character can equip ${EQUIPMENT_SLOTS} items (this has ${equipped.length})`);
 
-  const items: { slot: SlotKey; eq: EquippedItem; def: ItemDef }[] = [];
+  const items: { eq: EquippedItem; def: ItemDef }[] = [];
   const instances = new Set<string>();
-  for (const { slot, eq } of equippedItems(loadout)) {
+  for (const eq of equipped) {
     const def = content.items[eq.itemId];
     if (!def) {
       problems.push(`Unknown item "${eq.itemId}"`);
       continue;
     }
-    if (!SLOT_TYPES[slot].includes(def.type)) problems.push(`${def.name} (type ${def.type}) doesn't fit the ${slot} slot`);
     if (def.classId && def.classId !== record.classId) problems.push(`${def.name} is ${content.classes[def.classId]?.name ?? def.classId} armor`);
     if (eq.instanceId) {
       if (instances.has(eq.instanceId)) problems.push(`${def.name} is equipped twice`);
       instances.add(eq.instanceId);
     }
-    items.push({ slot, eq, def });
+    items.push({ eq, def });
   }
 
   // Skill grants: added when missing (a skill the character already has counts as granted).
@@ -160,75 +146,72 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
 }
 
 /**
- * A random loadout the resolver accepts (balance simulations, bots): slots are filled in a random
- * order, each with a random fitting item that keeps the loadout valid; chosen infusions go to
- * random eligible skills. Slots may stay empty when nothing fits the budget.
+ * Targets for an item's player-chosen infusions when it joins `loadout`: for each, a skill that can
+ * take it (not locked, not already infused, has that element's variant), counting the skills the
+ * item itself grants. `choose` picks among the candidates (default: the first, in skill order).
  */
-export function randomLoadout(content: ContentBundle, record: CharacterRecord, rng: RngState, triesPerSlot = 8): Loadout {
-  const rarity = RARITIES[record.rarity];
-  const byType = (types: readonly ItemType[]) =>
-    Object.values(content.items)
-      .filter((i) => types.includes(i.type) && (!i.classId || i.classId === record.classId))
-      .sort((a, b) => (a.id < b.id ? -1 : 1));
-  type Slot = 'weapon' | 'offHand' | 'body' | 'accessory' | 'socket';
-  const slots: Slot[] = sample(
-    rng,
-    ['weapon', 'offHand', 'body', ...Array<Slot>(rarity.equipmentSlots).fill('accessory'), ...Array<Slot>(rarity.freeSockets).fill('socket')],
-    3 + rarity.equipmentSlots + rarity.freeSockets,
-  );
-  let loadout: Loadout = {};
-  for (const slot of slots) {
-    for (let t = 0; t < triesPerSlot; t++) {
-      const twoHanded = slot === 'weapon' && nextInt(rng, 3) === 0;
-      if (slot === 'offHand' && loadout.twoHanded) break;
-      const pool = byType(
-        slot === 'weapon' ? SLOT_TYPES[twoHanded ? 'twoHanded' : 'mainHand'] : slot === 'offHand' ? SLOT_TYPES.offHand : SLOT_TYPES[slot],
-      );
-      const def = pool[nextInt(rng, pool.length)];
-      if (!def) break;
-      const eq = equipWithTargets(content, record, loadout, def, rng);
-      const next: Loadout =
-        slot === 'weapon'
-          ? twoHanded
-            ? { ...withoutHands(loadout), twoHanded: eq }
-            : { ...loadout, mainHand: eq }
-          : slot === 'offHand'
-            ? { ...loadout, offHand: eq }
-            : slot === 'body'
-              ? { ...loadout, body: eq }
-              : slot === 'accessory'
-                ? { ...loadout, accessories: [...(loadout.accessories ?? []), eq] }
-                : { ...loadout, sockets: [...(loadout.sockets ?? []), eq] };
-      if (slot === 'weapon' && twoHanded && (loadout.mainHand || loadout.offHand)) continue;
-      if (resolveLoadout(content, record, next).problems.length === 0) {
-        loadout = next;
-        break;
-      }
-    }
-  }
-  return loadout;
-}
-
-function withoutHands(l: Loadout): Loadout {
-  const { mainHand: _m, offHand: _o, ...rest } = l;
-  return rest;
-}
-
-/** The item, with its player-chosen infusions aimed at random skills that can take them. */
-function equipWithTargets(content: ContentBundle, record: CharacterRecord, current: Loadout, def: ItemDef, rng: RngState): EquippedItem {
-  if (def.infusions.every((inf) => inf.target)) return { itemId: def.id };
-  const now = resolveLoadout(content, record, current).skills;
+export function infusionTargets(
+  content: ContentBundle,
+  record: CharacterRecord,
+  loadout: Loadout,
+  def: ItemDef,
+  choose: (candidates: string[]) => string | undefined = (c) => c[0],
+): (string | null)[] | undefined {
+  if (def.infusions.every((inf) => inf.target)) return undefined;
+  const now = resolveLoadout(content, record, loadout).skills;
   const bases = [...new Set([...now.map((s) => s.base), ...def.skills])];
-  const taken = new Set<string>();
-  const targets = def.infusions.map((inf) => {
+  const fixed = new Set(def.infusions.flatMap((inf) => (inf.target ? [inf.target] : [])));
+  const taken = new Set<string>(fixed);
+  return def.infusions.map((inf) => {
     if (inf.target) return null;
     const ok = bases.filter((b) => {
       const s = now.find((x) => x.base === b);
       return !taken.has(b) && !s?.locked && !s?.infusion && !!content.skills[variantId(b, inf.element)];
     });
-    const pick = ok[nextInt(rng, Math.max(1, ok.length))] ?? null;
+    const pick = choose(ok) ?? null;
     if (pick) taken.add(pick);
     return pick;
   });
-  return { itemId: def.id, targets };
+}
+
+/**
+ * `loadout` with an item added (at `slot`, replacing what's there, or in the next free slot). Its
+ * chosen infusions are aimed at skills that can take them; one that no skill can take is marked unused.
+ */
+export function withItem(
+  content: ContentBundle,
+  record: CharacterRecord,
+  loadout: Loadout,
+  item: { itemId: string; instanceId?: string },
+  slot?: number,
+): Loadout {
+  const def = content.items[item.itemId];
+  const items = [...(loadout.items ?? [])];
+  const at = slot !== undefined && slot < items.length ? slot : items.length;
+  const rest = { items: items.filter((_, i) => i !== at) };
+  const targets = def ? infusionTargets(content, record, rest, def) : undefined;
+  const unused = targets?.flatMap((t, i) => (t === null && !def!.infusions[i]!.target ? [i] : [])) ?? [];
+  const eq: EquippedItem = { ...item, ...(targets ? { targets } : {}), ...(unused.length ? { unused } : {}) };
+  items.splice(at, at < items.length ? 1 : 0, eq);
+  return { items };
+}
+
+/**
+ * A random loadout the resolver accepts (balance simulations, bots): random items for this class
+ * are tried one by one, each kept when the loadout stays valid, until the slots are full or the
+ * tries run out. Chosen infusions go to random eligible skills.
+ */
+export function randomLoadout(content: ContentBundle, record: CharacterRecord, rng: RngState, triesPerSlot = 8): Loadout {
+  const pool = Object.values(content.items)
+    .filter((i) => !i.classId || i.classId === record.classId)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  let loadout: Loadout = { items: [] };
+  for (let t = 0; t < EQUIPMENT_SLOTS * triesPerSlot && loadout.items.length < EQUIPMENT_SLOTS; t++) {
+    const def = pool[nextInt(rng, pool.length)];
+    if (!def) break;
+    const targets = infusionTargets(content, record, loadout, def, (c) => c[nextInt(rng, Math.max(1, c.length))]);
+    const next: Loadout = { items: [...loadout.items, { itemId: def.id, ...(targets ? { targets } : {}) }] };
+    if (resolveLoadout(content, record, next).problems.length === 0) loadout = next;
+  }
+  return loadout;
 }

@@ -43,6 +43,13 @@
       "when": 1790471930827,
       "tag": "0005_seasons",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790539539158,
+      "tag": "0006_equipment_slots",
+      "breakpoints": true
     }
   ]
 }

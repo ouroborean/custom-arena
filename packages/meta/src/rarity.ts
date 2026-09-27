@@ -11,10 +11,6 @@ export interface RarityDef {
   nativeSkills: number;
   /** Default (locked) infusions of the base element: [min, max], uniform. */
   defaultInfusions: [number, number];
-  /** Accessory-style equipment slots (GDD §8.3). */
-  equipmentSlots: number;
-  /** Free infusion sockets the player can fill with crystals and shards (types I, K). */
-  freeSockets: number;
   /**
    * Most equipment-granted skills, passives and infusions the character can use at once (GDD §8.2:
    * "3 skills 2 passives 4 element" for a fully kitted character, scaled down by rarity).
@@ -31,8 +27,6 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 50,
     nativeSkills: 3,
     defaultInfusions: [1, 1],
-    equipmentSlots: 2,
-    freeSockets: 1,
     budget: { skills: 1, passives: 1, infusions: 2 },
   },
   uncommon: {
@@ -41,8 +35,6 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 28,
     nativeSkills: 3,
     defaultInfusions: [1, 2],
-    equipmentSlots: 3,
-    freeSockets: 1,
     budget: { skills: 2, passives: 1, infusions: 2 },
   },
   rare: {
@@ -51,8 +43,6 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 14,
     nativeSkills: 4,
     defaultInfusions: [1, 2],
-    equipmentSlots: 3,
-    freeSockets: 2,
     budget: { skills: 2, passives: 2, infusions: 3 },
   },
   epic: {
@@ -61,8 +51,6 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 6,
     nativeSkills: 4,
     defaultInfusions: [2, 3],
-    equipmentSlots: 4,
-    freeSockets: 2,
     budget: { skills: 3, passives: 2, infusions: 3 },
   },
   legendary: {
@@ -71,8 +59,6 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 2,
     nativeSkills: 5,
     defaultInfusions: [2, 3],
-    equipmentSlots: 5,
-    freeSockets: 3,
     budget: { skills: 3, passives: 2, infusions: 4 },
   },
 };
