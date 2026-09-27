@@ -56,6 +56,10 @@ export const en = {
   'settings.shapesNote':
     'Energy colors always have their own shapes (Strength ■, Agility ▲, Intelligence ◆, Wisdom ⬢, random ▢), so they never depend on telling colors apart. Settings are saved on this device.',
   'settings.reset': 'Reset to defaults',
+  'settings.app': 'App',
+  'settings.install': 'Install Custom Arena',
+  'settings.installed': 'Installed: Custom Arena runs in its own window, and the sandbox works offline.',
+  'settings.installHint': "To install, use your browser's Install app or Add to Home Screen (on iPhone and iPad: Share → Add to Home Screen).",
 
   // tutorial
   'tutorial.title': 'Tutorial',

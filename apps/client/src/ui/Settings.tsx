@@ -1,6 +1,7 @@
 // Settings (GDD §9.1): per-device preferences — motion, battle speed, sound and language.
 
 import { CATALOGS, useT } from '../i18n/index.js';
+import { install, usePwa } from '../pwa.js';
 import { useSettings, type MotionPref } from '../settings.js';
 import { playCue } from '../sfx.js';
 import { useStore } from '../store.js';
@@ -29,6 +30,22 @@ function Segmented<T extends string | number>({
       </div>
     </div>
   );
+}
+
+function InstallControl() {
+  const t = useT();
+  const { prompt, installed } = usePwa();
+  if (installed) return <span className="muted">{t('settings.installed')}</span>;
+  if (prompt) {
+    return (
+      <div className="row-actions">
+        <button type="button" className="btn small" onClick={() => void install()}>
+          {t('settings.install')}
+        </button>
+      </div>
+    );
+  }
+  return <span className="muted">{t('settings.installHint')}</span>;
 }
 
 export function Settings() {
@@ -101,6 +118,10 @@ export function Settings() {
               </option>
             ))}
           </select>
+        </div>
+        <div className="control">
+          <span className="label">{t('settings.app')}</span>
+          <InstallControl />
         </div>
         <p className="muted">{t('settings.shapesNote')}</p>
         <button type="button" className="btn small" onClick={() => s.reset()}>

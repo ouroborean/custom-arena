@@ -2136,6 +2136,13 @@ select:focus {
     --slot-tile: 30px;
     gap: 5px;
   }
+  /* On phones an empty bench stays one slim row until the first minion arrives. */
+  .bench:not(:has(.slot.filled)) .slot.empty {
+    height: 36px;
+  }
+  .bench:not(:has(.slot.filled)) .slot.empty:nth-child(n + 3) {
+    display: none;
+  }
   .slot {
     padding: 4px;
   }

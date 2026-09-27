@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "assets:check": "tsx scripts/check-assets.ts"
+    "assets:check": "tsx scripts/check-assets.ts",
+    "icons": "tsx scripts/make-icons.ts"
   },
   "dependencies": {
     "@arena/ai": "0.1.0",
