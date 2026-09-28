@@ -794,6 +794,29 @@ export interface ContentBundle {
   achievements: Record<string, AchievementDef>;
   /** Tutorial coach scripts by encounter id. */
   tutorial: Record<string, TutorialDef>;
+  /** Fusion elements by id: what two infusions on one skill make (GDD §7.3). */
+  fusions: Record<string, FusionDef>;
+}
+
+/**
+ * A fusion element (the codex's "Fusion recipe matrix"): the element a skill takes with two
+ * infusions. The pair is unordered, and may be one element twice (Fire + Fire is Dragon).
+ */
+export interface FusionDef {
+  id: string;
+  name: string;
+  elements: [string, string];
+}
+
+/** The unordered key of an element pair: "Fire+Ice" for Fire + Ice or Ice + Fire. */
+export function fusionKey(a: string, b: string): string {
+  return a <= b ? `${a}+${b}` : `${b}+${a}`;
+}
+
+/** The fusion two elements make, if the content defines one. */
+export function fusionOf(content: ContentBundle, a: string, b: string): FusionDef | undefined {
+  const key = fusionKey(a, b);
+  return Object.values(content.fusions ?? {}).find((f) => fusionKey(f.elements[0], f.elements[1]) === key);
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

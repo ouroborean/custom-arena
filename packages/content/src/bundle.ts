@@ -2,6 +2,7 @@
 // also run in the browser or at server boot.
 
 import {
+  fusionKey,
   scripts,
   variantId,
   type ClassDef,
@@ -9,6 +10,7 @@ import {
   type AchievementDef,
   type ChapterDef,
   type ContentBundle,
+  type FusionDef,
   type EconomyDef,
   type EncounterDef,
   type TutorialDef,
@@ -27,6 +29,7 @@ import {
   economySchema,
   effectDefSchema,
   encounterFileEntry,
+  fusionFileEntry,
   tutorialFileEntry,
   itemFileEntry,
   macroFileEntry,
@@ -50,6 +53,8 @@ export interface RawContent {
   achievements: Record<string, unknown>;
   /** Tutorial coach scripts by encounter id. */
   tutorial: Record<string, unknown>;
+  /** Fusion elements by id (fusions*.yaml). */
+  fusions: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -144,9 +149,10 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const chapters = parseEntries('story', raw.story ?? {}, chapterFileEntry, issues) as Record<string, ChapterDef>;
   const achievements = parseEntries('achievements', raw.achievements ?? {}, achievementFileEntry, issues) as Record<string, AchievementDef>;
   const tutorial = parseEntries('tutorial', raw.tutorial ?? {}, tutorialFileEntry, issues, true) as Record<string, TutorialDef>;
+  const fusions = parseEntries('fusions', raw.fusions ?? {}, fusionFileEntry, issues) as Record<string, FusionDef>;
 
   const version = contentHash(
-    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial }),
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial, fusions }),
   );
   const bundle: ContentBundle = {
     version,
@@ -162,11 +168,13 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     chapters,
     achievements,
     tutorial,
+    fusions,
   };
   issues.push(
     ...checkReferences(bundle),
     ...lintSkills(bundle),
     ...checkElements(bundle),
+    ...checkFusions(bundle),
     ...checkEconomy(bundle),
     ...checkSinglePlayer(bundle),
   );
@@ -377,6 +385,31 @@ export function checkElements(b: ContentBundle): ContentIssue[] {
   for (const el of elements) {
     const missing = base.filter((s) => !b.skills[variantId(s.id, el)]).map((s) => s.id);
     if (missing.length) issues.push({ level: 'warning', where: `element ${el}`, message: `missing variants: ${missing.join(', ')}` });
+  }
+  return issues;
+}
+
+/**
+ * Fusions (GDD §7.3): each is made from two base elements, no pair makes two fusions, and a fusion
+ * isn't named like a base element. Every pair of base elements (one element twice included) should
+ * have a fusion: a gap is a warning, since the game only needs them once skills have fusion variants.
+ */
+export function checkFusions(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const elements = [...new Set(Object.values(b.skills).map((s) => s.element))].filter((e) => e !== 'None').sort();
+  const seen = new Map<string, string>();
+  for (const f of Object.values(b.fusions)) {
+    const where = `fusions.${f.id}`;
+    for (const el of f.elements) if (!elements.includes(el)) issues.push({ level: 'error', where, message: `unknown element "${el}"` });
+    if (elements.includes(f.name)) issues.push({ level: 'error', where, message: `"${f.name}" is a base element's name` });
+    const key = fusionKey(f.elements[0], f.elements[1]);
+    const other = seen.get(key);
+    if (other) issues.push({ level: 'error', where, message: `${f.elements.join(' + ')} already makes ${other}` });
+    seen.set(key, f.name);
+  }
+  if (Object.keys(b.fusions).length > 0) {
+    const missing = elements.flatMap((a, i) => elements.slice(i).filter((c) => !seen.has(fusionKey(a, c))).map((c) => `${a} + ${c}`));
+    if (missing.length) issues.push({ level: 'warning', where: 'fusions', message: `no fusion for ${missing.join(', ')}` });
   }
   return issues;
 }

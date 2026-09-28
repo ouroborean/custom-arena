@@ -488,7 +488,7 @@ Every rarity has the same **4 equipment slots** (§8.3); rarity sets the equipme
 
 - **The infusion pool (decided 2026-09-27).** Equipment's elemental infusions are never applied automatically, not even to a skill the same item grants. Every equipped item adds its elements to the character's **infusion pool**, and the player applies each one to a skill of their choice, which swaps that skill to its elemental variant. Unplaced infusions simply do nothing.
 - **Native infusions** (the base-element ones rolled at generation) stay **locked** on the skills they were rolled on: they can't be moved or removed (R8).
-- **Up to two infusions per skill**, counting a locked native one. Two infusions will turn a skill into a **Hybrid** element specific to the combination (more potent and specialized) **[PLANNED]**. No hybrid content exists yet, so for now a second infusion on a skill is reported as unavailable.
+- **Up to two infusions per skill**, counting a locked native one. Two infusions turn a skill into the **fusion element** of the pair (a Hybrid: more potent and specialized). The 55 fusions are data in `packages/content/data/elements/fusions.yaml`, taken from the Element Arena codex's "Fusion recipe matrix". The pair is unordered, and one element twice has its own fusion: Fire + Fire is Dragon, Fire + Ice is Apocalypse. **[PLANNED]** No skill has a fusion variant yet (they'd be ids like `strike.dragon`), so for now a second infusion is reported as unavailable, naming the fusion it would make.
 - **No infusion budget.** Rarity budgets cap equipment-granted skills and item passives only (§8.2).
 - **Adding a skill** via equipment is only possible when the character has < 5 skills. Removing that equipment removes the skill (and any infusion placed on it).
 - **Loadout validation** happens server-side on save and again at match start. Store loadouts as named presets.
@@ -545,7 +545,7 @@ accessory or socket slots, and rarity doesn't change the slot count. The categor
 descriptive only. What still limits a loadout:
 
 - the rarity's **budget** of equipment-granted skills and item passives (§8.2 note);
-- the **5-skill cap**, **up to two infusions per skill** (the second is a Hybrid, planned) and **locked native infusions** (§7.3);
+- the **5-skill cap**, **up to two infusions per skill** (two make a fusion element, planned) and **locked native infusions** (§7.3);
 - **class armor** (type G) only fits its class;
 - each owned copy of an item can be on one character at a time.
 
@@ -1071,7 +1071,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q16 | Effects with no stated duration (e.g., Ignite) | **Permanent** until specifically ended (consumed, cleansed, or removed by a skill) | §3.8 |
 | Q17 | Wind Vortex redesign | Confirmed. See the new text in §14.2. | §14.2 |
 | Q18 | Equipment slots (2026-09-27) | **4 slots per character, any item type** in any slot; no typed slots, and rarity doesn't change the count. Budgets, the skill cap and class armor still apply. | §8.3 |
-| Q19 | Equipment infusions (2026-09-27) | Equipment infusions go into a **pool**, and the player applies each to a skill of their choice; nothing is automatic, not even onto a skill the same item grants. **Native infusions stay locked.** **No infusion budget.** A skill can hold **up to two** infusions; two will make a **Hybrid** element (planned, not in the game yet). | §7.3, §8.1 |
+| Q19 | Equipment infusions (2026-09-27) | Equipment infusions go into a **pool**, and the player applies each to a skill of their choice; nothing is automatic, not even onto a skill the same item grants. **Native infusions stay locked.** **No infusion budget.** A skill can hold **up to two** infusions; two make the pair's **fusion** element (55, from the codex's fusion matrix; no skill has a fusion variant yet). | §7.3, §8.1 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 

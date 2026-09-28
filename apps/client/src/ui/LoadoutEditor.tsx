@@ -5,7 +5,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { ItemDef, ItemType } from '@arena/engine';
+import { fusionOf, type ItemDef, type ItemType } from '@arena/engine';
 import {
   canInfuse,
   EQUIPMENT_SLOTS,
@@ -346,7 +346,8 @@ function SlotGrants({ def }: { def: ItemDef }) {
 /**
  * The infusion pool and the character's skills: every infusion the equipment provides is put on a
  * skill by the player (nothing is automatic). A skill holds up to two, counting its locked native
- * infusion; a second makes a Hybrid, which isn't in the game yet, so that socket is shown but closed.
+ * infusion; a second makes the pair's fusion element, which isn't in the game yet, so that socket is
+ * shown but closed (its tooltip lists what the pool would make).
  */
 function InfusionPanel({
   record,
@@ -403,6 +404,30 @@ function InfusionPanel({
         ))}
       </div>
     </div>
+  );
+}
+
+/** The closed second socket: what a second infusion would make with this skill's first (fusions aren't in the game yet). */
+function FusionSocket({ first, pool }: { first: string | null; pool: string[] }) {
+  const made = first ? pool.map((el) => ({ el, fusion: fusionOf(content, first, el)?.name })).filter((x) => x.fusion) : [];
+  return (
+    <Tooltip
+      content={
+        <>
+          <h4>Fusion · coming later</h4>
+          <div>A second infusion turns the skill into the fusion of its two elements. No skill has a fusion version yet.</div>
+          {made.map(({ el, fusion }) => (
+            <div key={el} className="row">
+              {first} + {el} → {fusion}
+            </div>
+          ))}
+        </>
+      }
+    >
+      <span className="infusion-hybrid" tabIndex={0}>
+        {first ? '+ Fusion' : '2nd: Fusion'} · coming later
+      </span>
+    </Tooltip>
   );
 }
 
@@ -497,9 +522,7 @@ function SkillInfusions({
   }
   if (held < MAX_INFUSIONS_PER_SKILL) {
     sockets.push(
-      <span key="hybrid" className="infusion-hybrid" title="A second infusion makes a Hybrid element. Hybrids aren't in the game yet.">
-        {held === 0 ? '2nd: Hybrid' : '+ Hybrid'} · coming later
-      </span>,
+      <FusionSocket key="fusion" first={native ?? assigned[0]?.element ?? null} pool={pool} />,
     );
   }
   return (

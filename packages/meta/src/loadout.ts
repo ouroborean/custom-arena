@@ -2,7 +2,7 @@
 // the items provide, the player's choice of which skills those infusions go on, budgets, and
 // resolution into the character's effective skill list. Validated on save and again at match start.
 
-import { nextInt, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
+import { fusionOf, nextInt, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
 import type { CharacterRecord, CharacterSkill } from './character.js';
 import { MAX_SKILLS, RARITIES } from './rarity.js';
 
@@ -10,8 +10,8 @@ import { MAX_SKILLS, RARITIES } from './rarity.js';
 export const EQUIPMENT_SLOTS = 4;
 
 /**
- * Infusions one skill can hold, counting a locked native one (GDD §7.3). Two make a Hybrid element
- * (planned: no hybrid content exists yet, so a second infusion is reported as unavailable).
+ * Infusions one skill can hold, counting a locked native one (GDD §7.3). Two make the pair's fusion
+ * element (content `fusions`); no skill has a fusion variant yet, so a second is reported as unavailable.
  */
 export const MAX_INFUSIONS_PER_SKILL = 2;
 
@@ -74,18 +74,23 @@ export interface ResolvedLoadout {
   problems: string[];
 }
 
+/** The element a skill takes with these infusions: none, the one element, or the pair's fusion. */
+export function infusedElement(content: ContentBundle, elements: readonly string[]): string | null | undefined {
+  if (elements.length === 0) return null;
+  if (elements.length === 1) return elements[0]!;
+  return elements.length === 2 ? fusionOf(content, elements[0]!, elements[1]!)?.name : undefined;
+}
+
 /**
  * The skill def id for a base skill with these infusions, or undefined when the game has none. One
- * infusion gives the element's variant. Two will give a Hybrid element's variant; no hybrids are
- * defined yet, so that is always undefined for now (this is the place to add them).
+ * infusion gives the element's variant; two give the variant of their fusion element (strike.dragon
+ * for Fire + Fire), which no skill has yet.
  */
 export function infusedSkillId(content: ContentBundle, base: string, elements: readonly string[]): string | undefined {
-  if (elements.length === 0) return content.skills[base] ? base : undefined;
-  if (elements.length === 1) {
-    const id = variantId(base, elements[0]!);
-    return content.skills[id] ? id : undefined;
-  }
-  return undefined;
+  const element = infusedElement(content, elements);
+  if (element === undefined) return undefined;
+  const id = element === null ? base : variantId(base, element);
+  return content.skills[id] ? id : undefined;
 }
 
 /** The elements every equipped item adds to the pool. */
@@ -164,14 +169,17 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
     const elements = [...(skill.infusion ? [skill.infusion] : []), ...extra];
     const name = content.skills[base]?.name ?? base;
     if (!infusedSkillId(content, base, elements)) {
+      const fusion = elements.length > 1 ? infusedElement(content, elements) : undefined;
       problems.push(
-        elements.length > 1
-          ? `${name}: two infusions (${elements.join(' + ')}) make a Hybrid element, which isn't in the game yet`
-          : `There's no ${elements[0]} version of ${name}`,
+        elements.length === 1
+          ? `There's no ${elements[0]} version of ${name}`
+          : fusion
+            ? `${name}: ${elements.join(' + ')} make ${fusion}, and fusion elements aren't in the game yet`
+            : `${name}: ${elements.join(' + ')} don't make a fusion element`,
       );
       continue;
     }
-    skill.infusion = elements[0]!;
+    skill.infusion = infusedElement(content, elements)!;
     usage.infusions += extra.length;
   }
   const unassigned: Record<string, number> = {};
@@ -193,7 +201,7 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
 
 /**
  * Whether one more `element` infusion can go on `base` in this loadout: the pool has one left, the
- * skill has room, and the game has the resulting skill (so no Hybrids yet).
+ * skill has room, and the game has the resulting skill (so no fusions yet).
  */
 export function canInfuse(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string, element: string): boolean {
   const r = resolveLoadout(content, record, loadout);

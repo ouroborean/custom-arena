@@ -7,6 +7,7 @@ import {
   type ChapterDef,
   type ClassDef,
   type EncounterDef,
+  type FusionDef,
   type ItemDef,
   type TutorialDef,
   type Cond,
@@ -597,6 +598,12 @@ export const achievementFileEntry = z.strictObject({
   reward: grantSpec.optional(),
 });
 
+/** A fusion element: its name and the pair of base elements that makes it (fusions*.yaml). */
+export const fusionFileEntry = z.strictObject({
+  name: z.string().min(1),
+  elements: z.tuple([z.string().min(1), z.string().min(1)]),
+});
+
 // Compile-time checks that file entries + injected id produce the engine's types.
 type Assert<T extends true> = T;
 export type _SkillOk = Assert<z.output<typeof skillFileEntry> & { id: string } extends SkillDef ? true : false>;
@@ -607,3 +614,4 @@ export type _EncounterOk = Assert<z.output<typeof encounterFileEntry> & { id: st
 export type _ChapterOk = Assert<z.output<typeof chapterFileEntry> & { id: string } extends ChapterDef ? true : false>;
 export type _AchievementOk = Assert<z.output<typeof achievementFileEntry> & { id: string } extends AchievementDef ? true : false>;
 export type _TutorialOk = Assert<z.output<typeof tutorialFileEntry> extends TutorialDef ? true : false>;
+export type _FusionOk = Assert<z.output<typeof fusionFileEntry> & { id: string } extends FusionDef ? true : false>;

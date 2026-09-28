@@ -84,8 +84,11 @@ armor, trinkets, crystals), element and "only what fits".
     applied automatically, not even onto a skill the same item grants, and unplaced infusions do nothing.
   - **Native infusions** stay locked on the skills they were rolled on.
   - **Two per skill:** a skill holds up to `MAX_INFUSIONS_PER_SKILL` (2) infusions, counting a native
-    one. Two make a Hybrid element: `infusedSkillId` is where the combinations will resolve. There are
-    none yet, so a second infusion is reported as not in the game yet.
+    one. Two make the pair's fusion element (content `fusions`, `data/elements/fusions.yaml`: 55, one
+    per unordered pair, one element twice included; `fusionOf` looks one up in either order).
+    `infusedElement` gives the element a skill ends up with, and `infusedSkillId` the skill it becomes.
+    No skill has a fusion variant yet (`strike.dragon`, …), so a second infusion is reported with the
+    fusion it would make ("Smash: Ice + Wind make Winter, and fusion elements aren't in the game yet").
   - **Problems:** placing more of an element than the pool has, or on a skill the character doesn't
     have, is reported. `pruneInfusions` drops such placements when items change (`withItem`,
     `withoutItem`).

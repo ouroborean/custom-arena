@@ -7,6 +7,6 @@ const errors = issues.filter((i) => i.level === 'error').length;
 const warnings = issues.length - errors;
 console.log(
   `content ${bundle.version}: ${Object.keys(bundle.skills).length} skills, ${Object.keys(bundle.statuses).length} statuses, ` +
-    `${Object.keys(bundle.minions).length} minions, ${Object.keys(bundle.classes).length} classes, ${Object.keys(bundle.items).length} items — ${errors} errors, ${warnings} warnings`,
+    `${Object.keys(bundle.minions).length} minions, ${Object.keys(bundle.classes).length} classes, ${Object.keys(bundle.items).length} items, ${Object.keys(bundle.fusions).length} fusions — ${errors} errors, ${warnings} warnings`,
 );
 process.exit(errors ? 1 : 0);

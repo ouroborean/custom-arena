@@ -82,13 +82,13 @@ describe('resolveLoadout', () => {
     expect(crystal.problems).toEqual([]);
   });
 
-  it('a skill holds up to two infusions; two make a Hybrid, which the game has none of yet', () => {
-    // Strike already has its locked native Fire: a second infusion would be a Fire + Wind hybrid.
+  it('a skill holds up to two infusions; two make their fusion element, which no skill has yet', () => {
+    // Strike already has its locked native Fire: a second infusion would make Fire + Wind, Mechanic.
     const onLocked = resolveLoadout(content, warrior(), of(['wind_shard'], [{ skill: 'strike', element: 'Wind' }]));
-    expect(has(onLocked, 'Hybrid')).toBe(true);
+    expect(onLocked.problems).toEqual(["Strike: Fire + Wind make Mechanic, and fusion elements aren't in the game yet"]);
     expect(skillOf(onLocked, 'strike')?.infusion).toBe('Fire'); // the native infusion stays
     const two = resolveLoadout(content, warrior(), of(['ice_shard', 'wind_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Wind' }]));
-    expect(two.problems).toEqual(['Smash: two infusions (Ice + Wind) make a Hybrid element, which isn\'t in the game yet']);
+    expect(two.problems).toEqual(["Smash: Ice + Wind make Winter, and fusion elements aren't in the game yet"]);
     const three = resolveLoadout(
       content,
       warrior(),
@@ -145,6 +145,25 @@ describe('resolveLoadout', () => {
   });
 });
 
+describe('fusion elements', () => {
+  it('every pair of base elements makes one fusion, in either order', async () => {
+    const { fusionOf } = await import('@arena/engine');
+    const { infusedElement } = await import('../src/index.js');
+    expect(Object.keys(content.fusions)).toHaveLength(55);
+    expect(fusionOf(content, 'Fire', 'Ice')?.name).toBe('Apocalypse');
+    expect(fusionOf(content, 'Ice', 'Fire')?.name).toBe('Apocalypse');
+    expect(fusionOf(content, 'Fire', 'Fire')?.name).toBe('Dragon');
+    expect(fusionOf(content, 'Shadow', 'Shadow')?.name).toBe('Dimension');
+    expect(infusedElement(content, ['Holy', 'Unholy'])).toBe('Zealot');
+    expect(infusedElement(content, ['Earth'])).toBe('Earth');
+    expect(infusedElement(content, [])).toBeNull();
+    const elements = ['Fire', 'Ice', 'Water', 'Lightning', 'Wind', 'Poison', 'Earth', 'Holy', 'Unholy', 'Shadow'];
+    const names = new Set(elements.flatMap((a) => elements.map((b) => fusionOf(content, a, b)?.name)));
+    expect(names.size).toBe(55);
+    expect(names.has(undefined)).toBe(false);
+  });
+});
+
 describe('editing a loadout', () => {
   it('withItem fills the next free slot or replaces one; removing an item drops the infusions it supplied', () => {
     const rec = warrior('legendary', 4);
@@ -166,7 +185,7 @@ describe('editing a loadout', () => {
     const l = of(['ice_shard']);
     expect(canInfuse(content, rec, l, 'smash', 'Ice')).toBe(true);
     expect(canInfuse(content, rec, l, 'smash', 'Fire')).toBe(false); // none in the pool
-    expect(canInfuse(content, rec, l, 'strike', 'Ice')).toBe(false); // would be a Hybrid with its native Fire
+    expect(canInfuse(content, rec, l, 'strike', 'Ice')).toBe(false); // would be Apocalypse (Fire + Ice): no such skill yet
     expect(canInfuse(content, rec, { ...l, infusions: [{ skill: 'titan', element: 'Ice' }] }, 'smash', 'Ice')).toBe(false); // used up
   });
 });
