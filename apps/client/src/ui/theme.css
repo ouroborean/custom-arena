@@ -1771,8 +1771,18 @@ button.portrait.targetable {
 
 .alloc {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.alloc-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.alloc-label {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .alloc-cell {

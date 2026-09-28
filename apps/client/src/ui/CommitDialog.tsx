@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  autoAllocate,
   COLORS,
   effectDefinition,
   effectName,
@@ -16,6 +15,8 @@ import { describeAction, EnergyPip } from './common.js';
 import { ReorderList } from './ReorderList.js';
 
 const COLOR_NAMES = { S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' } as const;
+/** Short labels, so the four cells are the same width. */
+const COLOR_ABBR = { S: 'STR', A: 'AGI', I: 'INT', W: 'WIS' } as const;
 
 export function CommitDialog({ view, viewer, content }: { view: PlayerView; viewer: PlayerId; content: ContentBundle }) {
   const commit = useStore((s) => s.commit);
@@ -30,12 +31,16 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
 
   const [order, setOrder] = useState(queue);
   const [ticks, setTicks] = useState(ticking);
-  const [alloc, setAlloc] = useState<Energy>(() => autoAllocate(pool, reserved));
+  // Random costs are always paid by hand: nothing is pre-filled, so players learn what "random" means.
+  const [alloc, setAlloc] = useState<Energy>({ S: 0, A: 0, I: 0, W: 0 });
   const valid = isValidAllocation(pool, reserved, alloc);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const allocRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    confirmRef.current?.focus();
+    // With random costs to pay, start at the first + (the confirm button waits until they're paid).
+    const firstMore = allocRef.current?.querySelector<HTMLButtonElement>('button[data-more]:not(:disabled)');
+    (firstMore ?? confirmRef.current)?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -74,14 +79,15 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
             <h3>
               Pay random costs ({assigned}/{reserved.r})
             </h3>
-            <div className="alloc">
+            <p className="muted alloc-hint">Choose which spare energy pays for the random part of your skills' costs.</p>
+            <div className="alloc" ref={allocRef}>
               {COLORS.map((c) => {
                 const spare = pool[c] - reserved[c];
                 return (
                   <div className="alloc-cell" key={c}>
-                    <EnergyPip color={c} size={16} />
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      {COLOR_NAMES[c]} · {spare} spare
+                    <EnergyPip color={c} size={16} title={COLOR_NAMES[c]} />
+                    <span className="muted alloc-label" title={COLOR_NAMES[c]}>
+                      {COLOR_ABBR[c]} · {spare} spare
                     </span>
                     <div className="stepper">
                       <button type="button" className="icon-btn" aria-label={`Less ${COLOR_NAMES[c]}`} disabled={alloc[c] <= 0} onClick={() => bump(c, -1)}>
@@ -92,6 +98,7 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
                         type="button"
                         className="icon-btn"
                         aria-label={`More ${COLOR_NAMES[c]}`}
+                        data-more
                         disabled={alloc[c] >= spare || assigned >= reserved.r}
                         onClick={() => bump(c, 1)}
                       >

@@ -18,7 +18,7 @@ tutorial_1:
     - text: "Strike also gave you Might (+5 damage). Now you have two energy. Smash costs one Strength plus one random energy: any color can pay the random part. Queue Smash on the Dummy."
       highlight: { skill: smash }
       expect: { queue: { skill: smash, target: p1c0 } }
-    - text: "End your turn. With a random cost to pay you'll choose which color pays it, or keep the suggestion."
+    - text: "End your turn. You'll choose which color pays the random cost: press + under any color you have spare, then confirm."
       highlight: endTurn
       expect: { endTurn: true }
     - text: "Smash now has a cooldown: the number on its tile is how many of your turns it needs to recover. Strike has none. Finish the Dummy off!"
