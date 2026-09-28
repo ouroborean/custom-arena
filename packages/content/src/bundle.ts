@@ -322,14 +322,13 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
     }
   }
 
-  // Items: granted and targeted skills are base skills, elements exist, classes exist.
+  // Items: granted skills are base skills, elements exist, classes exist.
   const elements = new Set(Object.values(b.skills).map((s) => s.element));
   for (const it of Object.values(b.items)) {
     const where = `items.${it.id}`;
     for (const sk of it.skills) if (b.skills[sk]?.element !== 'None') err(where, `"${sk}" isn't a base skill`);
     for (const inf of it.infusions) {
       if (!elements.has(inf.element) || inf.element === 'None') err(where, `unknown element "${inf.element}"`);
-      if (inf.target && b.skills[inf.target]?.element !== 'None') err(where, `infusion target "${inf.target}" isn't a base skill`);
     }
     if (it.classId && !b.classes[it.classId]) err(where, `unknown class "${it.classId}"`);
     if (it.passiveEffect && !b.statuses[it.passiveEffect]) err(where, `unknown passive effect "${it.passiveEffect}"`);

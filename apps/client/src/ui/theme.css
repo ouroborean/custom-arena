@@ -2642,11 +2642,6 @@ input[type="password"] {
   flex-wrap: wrap;
 }
 
-.infusion-row select {
-  width: auto;
-  flex: 1;
-}
-
 .check {
   display: inline-flex;
   align-items: center;
@@ -3446,5 +3441,119 @@ input[type="password"] {
   .item-count,
   .item-here {
     top: 40px;
+  }
+}
+
+/* ------------------------------------------------------------ infusion pool */
+
+.infusion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--line);
+  background: var(--void);
+}
+
+.infusion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 12px;
+}
+
+.infusions-left {
+  color: var(--yellow);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.infusion-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-infusions {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.skill-infusions > .tip-wrap > .skill-chip {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.infusion-sockets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.infusion-native {
+  cursor: default;
+}
+
+.infusion-set {
+  cursor: pointer;
+  color: var(--el, var(--text));
+}
+
+.infusion-set:hover,
+.infusion-set:focus-visible {
+  background: var(--ink-3);
+}
+
+.infusion-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.infusion-option {
+  border: 2px dashed var(--el, var(--line-2));
+  background: transparent;
+  color: var(--el, var(--text));
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.infusion-option:hover:not(:disabled),
+.infusion-option:focus-visible {
+  border-style: solid;
+  background: var(--ink-3);
+}
+
+.infusion-option:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.infusion-hybrid,
+.infusion-open {
+  border: 2px dashed var(--line);
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+  cursor: help;
+}
+
+@media (max-width: 600px) {
+  .skill-infusions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
 }

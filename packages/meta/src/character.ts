@@ -10,7 +10,7 @@ export interface CharacterSkill {
   infusion: string | null;
   /** Native to the character, or granted by an equipped item. */
   source: 'native' | 'equipment';
-  /** Default infusions are locked (R8): they can't be removed or replaced. */
+  /** Default (native) infusions are locked (R8): they stay on this skill and can't be removed. */
   locked: boolean;
 }
 

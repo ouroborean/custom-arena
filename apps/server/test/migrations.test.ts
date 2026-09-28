@@ -41,7 +41,7 @@ describe('0006 equipment slots', () => {
         { ...base, loadout: sql`${JSON.stringify(legacy)}::jsonb` as never },
         { ...base, name: 'Twohander', loadout: sql`${JSON.stringify({ twoHanded: { itemId: 'soldier_greataxe', instanceId: 'j1' } })}::jsonb` as never },
         { ...base, name: 'Empty', loadout: sql`'{}'::jsonb` as never },
-        { ...base, name: 'New', loadout: { items: [{ itemId: 'ice_shard', instanceId: 'k1', targets: ['smash'] }] } },
+        { ...base, name: 'New', loadout: sql`${JSON.stringify({ items: [{ itemId: 'ice_shard', instanceId: 'k1', targets: ['smash'] }] })}::jsonb` as never },
       ])
       .returning();
     await dbh.db.insert(loadoutPresets).values({ characterId: rows[0]!.id, name: 'P', loadout: sql`${JSON.stringify({ sockets: [{ itemId: 'fire_shard' }] })}::jsonb` as never });
@@ -63,5 +63,32 @@ describe('0006 equipment slots', () => {
     expect(by('New')).toEqual({ items: [{ itemId: 'ice_shard', instanceId: 'k1', targets: ['smash'] }] }); // untouched
     const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, rows[0]!.id));
     expect(preset!.loadout).toEqual({ items: [{ itemId: 'fire_shard' }] });
+  });
+});
+
+describe('0007 infusion pool', () => {
+  it('drops per-item targets and starts every loadout with no infusions applied', async () => {
+    const [u] = await dbh.db.insert(users).values({ email: 'p@example.com', displayName: 'P', passwordHash: 'x' }).returning();
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const old = { items: [{ itemId: 'magma_hammer', instanceId: 'i1' }, { itemId: 'ice_crystal', instanceId: 'i2', targets: ['titan', null], unused: [1] }] };
+    const rows = await dbh.db
+      .insert(characters)
+      .values([
+        { ...base, loadout: sql`${JSON.stringify(old)}::jsonb` as never },
+        { ...base, name: 'Current', loadout: { items: [{ itemId: 'ice_shard', instanceId: 'k1' }], infusions: [{ skill: 'smash', element: 'Ice' }] } },
+      ])
+      .returning();
+    await dbh.db.insert(loadoutPresets).values({ characterId: rows[0]!.id, name: 'P', loadout: sql`${JSON.stringify({ items: [{ itemId: 'fire_shard', targets: ['smash'] }] })}::jsonb` as never });
+
+    for (const statement of dataStatements('0007_infusion_pool.sql')) await dbh.db.execute(sql.raw(statement));
+
+    const after = await dbh.db.select().from(characters).where(eq(characters.userId, u!.id));
+    expect(after.find((c) => c.name === 'Old')!.loadout).toEqual({
+      items: [{ itemId: 'magma_hammer', instanceId: 'i1' }, { itemId: 'ice_crystal', instanceId: 'i2' }],
+      infusions: [],
+    });
+    expect(after.find((c) => c.name === 'Current')!.loadout).toEqual({ items: [{ itemId: 'ice_shard', instanceId: 'k1' }], infusions: [{ skill: 'smash', element: 'Ice' }] });
+    const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, rows[0]!.id));
+    expect(preset!.loadout).toEqual({ items: [{ itemId: 'fire_shard' }], infusions: [] });
   });
 });

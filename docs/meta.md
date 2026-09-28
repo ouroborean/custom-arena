@@ -8,7 +8,7 @@ the server and the client); the server (`apps/server`) stores and validates; the
 
 A character record holds a name, class, base element, rarity, portrait id and an ordered skill list.
 Each skill has a base id, an optional infusion (element), a source (`native` or `equipment`) and a
-`locked` flag for default infusions (R8: they can't be removed or replaced).
+`locked` flag for default infusions (R8: they stay on the skill they were rolled on).
 
 ### 1.1 Rolling (`rollCharacter`)
 
@@ -23,19 +23,19 @@ Each skill has a base id, an optional infusion (element), a source (`native` or 
 
 ### 1.2 Rarity table
 
-| Rarity | Native skills | Default infusions | Budget: skills / passives / infusions |
+| Rarity | Native skills | Default infusions | Budget: skills / passives |
 |---|---|---|---|
-| Common | 3 | 1 | 1 / 1 / 2 |
-| Uncommon | 3 | 1–2 | 2 / 1 / 2 |
-| Rare | 4 | 1–2 | 2 / 2 / 3 |
-| Epic | 4 | 2–3 | 3 / 2 / 3 |
-| Legendary | 5 | 2–3 | 3 / 2 / 4 |
+| Common | 3 | 1 | 1 / 1 |
+| Uncommon | 3 | 1–2 | 2 / 1 |
+| Rare | 4 | 1–2 | 2 / 2 |
+| Epic | 4 | 2–3 | 3 / 2 |
+| Legendary | 5 | 2–3 | 3 / 2 |
 
 Every rarity has the same four equipment slots (§2.1).
 
-The budget caps how many **equipment-granted** skills, item passives and item infusions a character
-can use at once, regardless of which items supply them (the sheet's "3 skills 2 passives 4 element"
-note, GDD §8.2).
+The budget caps how many **equipment-granted** skills and item passives a character can use at once,
+regardless of which items supply them (the sheet's "3 skills 2 passives" note, GDD §8.2). Infusions
+have no budget (GDD §7.3, decided 2026-09-27).
 
 ## 2. Equipment
 
@@ -50,11 +50,11 @@ Each item grants skills, infusions and/or a passive (GDD §8.1).
 ### 2.1 Slots
 
 A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any item type fits any slot**
-(GDD §8.3, decided 2026-09-27). A loadout is a list of up to four equipped items:
-`{ items: [{ itemId, instanceId, targets?, unused? }, …] }`. The item types (A–L) are descriptive
-categories only. What limits a loadout is the rarity budget, the 5-skill cap, one infusion per skill,
-locked default infusions, class armor (type G fits only its class), and each owned copy being on one
-character at a time.
+(GDD §8.3, decided 2026-09-27). A loadout is up to four equipped items plus where their infusions
+go: `{ items: [{ itemId, instanceId }, …], infusions: [{ skill, element }, …] }` (§2.2). The item
+types (A–L) are descriptive categories only. What limits a loadout is the rarity budget, the 5-skill
+cap, the infusion rules (§2.2), class armor (type G fits only its class), and each owned copy being on
+one character at a time.
 
 Loadouts saved with the earlier typed slots (main hand, off hand, two-handed, body, accessories,
 sockets) were converted by migration 0006: items keep that order, and any past the fourth were
@@ -68,18 +68,31 @@ armor, trinkets, crystals), element and "only what fits".
   equipping it would break.
 - **Equipping:** clicking a tile equips it in the next free slot. To replace an item, select its slot
   first; × removes an item.
-- **Aiming infusions:** chosen infusions are aimed at the first skill that can take them (`withItem`).
-  One that no skill can take is marked unused. Either can be changed under the slot.
+- **Infusions panel:** between the slots and the grid, the pool (each element with how many are
+  placed) and every skill of the character. A skill shows its locked native infusion, the infusions
+  placed on it (× takes one off), buttons to place one of each pool element that has a version of the
+  skill (hover to preview the resulting skill), and its second, Hybrid socket (closed for now).
+  Removing an item takes off the infusions it supplied, and those on the skill it granted.
 
 ### 2.2 Grants and resolution (`resolveLoadout`)
 
 - **Skills:** an item's skills are added when the character lacks them; a skill it already has
   counts as granted. The 5-skill cap always applies.
-- **Infusions:** fixed-target infusions (A, E's first, F) infuse their named skill; the rest (C, D,
-  E's second, H, I, K) infuse a skill the player chooses (`targets[i]`). **One infusion per skill**;
-  a locked default infusion can't be replaced. Conflicts are reported, and the player resolves them
-  by marking an infusion `unused`.
-- **Budgets** per the rarity table; every problem is listed, not just the first.
+- **Infusions (GDD §7.3):**
+  - **The pool:** each equipped item adds its elements to the character's infusion pool
+    (`infusionPool`), and the loadout's `infusions` list says which skill each one goes on. Nothing is
+    applied automatically, not even onto a skill the same item grants, and unplaced infusions do nothing.
+  - **Native infusions** stay locked on the skills they were rolled on.
+  - **Two per skill:** a skill holds up to `MAX_INFUSIONS_PER_SKILL` (2) infusions, counting a native
+    one. Two make a Hybrid element: `infusedSkillId` is where the combinations will resolve. There are
+    none yet, so a second infusion is reported as not in the game yet.
+  - **Problems:** placing more of an element than the pool has, or on a skill the character doesn't
+    have, is reported. `pruneInfusions` drops such placements when items change (`withItem`,
+    `withoutItem`).
+  - **Saved data:** migration 0007 removed the old per-item targets, so loadouts saved before the pool
+    start with nothing placed.
+- **Budgets** per the rarity table (skills and passives; infusions have none); every problem is listed,
+  not just the first.
 - A loadout is validated when saved and again when the team becomes engine input (a loadout that
   became invalid blocks the match with a 409 listing the problems).
 

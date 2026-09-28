@@ -144,7 +144,7 @@ function CharacterPage({
               {c.element} {content.classes[c.classId]?.name}
             </span>
             <span className="muted">
-              {EQUIPMENT_SLOTS} item slots · budget {b.skills} skills / {b.passives} passives / {b.infusions} infusions
+              {EQUIPMENT_SLOTS} item slots · budget {b.skills} skills / {b.passives} passives
             </span>
           </div>
           <SkillChips skills={resolved.problems.length ? c.skills : resolved.skills} />
@@ -166,8 +166,8 @@ function CharacterPage({
         <div className="section-head">
           <span className="panel-title">Loadout</span>
           <span className="muted">
-            {draft.items.length}/{EQUIPMENT_SLOTS} items · using {resolved.usage.skills}/{b.skills} skills · {resolved.usage.passives}/{b.passives} passives · {resolved.usage.infusions}/
-            {b.infusions} infusions
+            {draft.items.length}/{EQUIPMENT_SLOTS} items · using {resolved.usage.skills}/{b.skills} skills · {resolved.usage.passives}/{b.passives} passives ·{' '}
+            {resolved.usage.infusions} infusions placed
           </span>
           <span style={{ flex: 1 }} />
           <button type="button" className="btn" disabled={!dirty} onClick={() => setDraft(c.loadout)}>

@@ -575,10 +575,9 @@ export interface ClassDef {
 /** Equipment types (GDD §8.2): which slot an item fits and what it grants. */
 export type ItemType = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
 
+/** An elemental infusion an item adds to its wearer's pool; the player chooses the skill it goes on. */
 export interface ItemInfusion {
   element: string;
-  /** The skill (base id) it infuses; omitted when the player chooses the target. */
-  target?: string;
 }
 
 /** An equipment item (GDD §8.1 grant model). Items never enter the engine directly: the loadout

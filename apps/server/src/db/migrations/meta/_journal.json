@@ -50,6 +50,13 @@
       "when": 1790539539158,
       "tag": "0006_equipment_slots",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790555529048,
+      "tag": "0007_infusion_pool",
+      "breakpoints": true
     }
   ]
 }

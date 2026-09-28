@@ -1,24 +1,30 @@
-// The loadout editor (GDD §8.3): four slots that take any item, over a grid of the items the player
-// owns. Hovering or focusing an item shows what it grants and whether it fits. Clicking an item
-// equips it in the next free slot; selecting a slot first makes the next item replace it.
+// The loadout editor (GDD §7.3, §8.3): four slots that take any item, the infusions the items add
+// to the pool (the player puts each on a skill), and a grid of the items the player owns. Hovering
+// or focusing an item shows what it grants and whether it fits. Clicking an item equips it in the
+// next free slot; selecting a slot first makes the next item replace it.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { ItemDef, ItemType } from '@arena/engine';
 import {
+  canInfuse,
   EQUIPMENT_SLOTS,
+  infusedSkillId,
   ITEM_TYPE_NAMES,
   itemElement,
+  MAX_INFUSIONS_PER_SKILL,
   resolveLoadout,
+  skillDefId,
   withItem,
+  withoutItem,
   type CharacterRecord,
-  type EquippedItem,
+  type CharacterSkill,
   type Loadout,
   type ResolvedLoadout,
 } from '@arena/meta';
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
-import { CostPips, elementClass, itemCode } from './common.js';
+import { CostPips, elementClass, itemCode, Tooltip } from './common.js';
 
 const GROUPS: { id: string; label: string; types: readonly ItemType[] }[] = [
   { id: 'all', label: 'All', types: [] },
@@ -51,13 +57,14 @@ type Fit =
 
 const skillName = (base: string) => content.skills[base]?.name ?? base;
 
-/** Usage the new loadout adds, as "+1 skill"-style notes. */
-function usageDelta(before: ResolvedLoadout['usage'], after: ResolvedLoadout['usage']): string[] {
+/** What equipping changes, as "+1 skill"-style notes: budget use, pool infusions, and applied ones it undoes. */
+function changeNotes(before: ResolvedLoadout, after: ResolvedLoadout, dropped: number): string[] {
   const out: string[] = [];
   const add = (n: number, one: string, many: string) => n > 0 && out.push(`+${n} ${n === 1 ? one : many}`);
-  add(after.skills - before.skills, 'skill', 'skills');
-  add(after.passives - before.passives, 'passive', 'passives');
-  add(after.infusions - before.infusions, 'infusion', 'infusions');
+  add(after.usage.skills - before.usage.skills, 'skill', 'skills');
+  add(after.usage.passives - before.usage.passives, 'passive', 'passives');
+  for (const [el, n] of Object.entries(after.pool)) add(n - (before.pool[el] ?? 0), `${el} infusion`, `${el} infusions`);
+  if (dropped > 0) out.push(`takes off ${dropped} applied infusion${dropped === 1 ? '' : 's'}`);
   return out;
 }
 
@@ -130,8 +137,9 @@ export function LoadoutEditor({
       } else {
         const next = withItem(content, record, draft, { itemId: def.id, instanceId: e.free[0]!.id }, selected ?? undefined);
         const r = resolveLoadout(content, record, next);
-        const problems = r.problems.filter((p) => !resolved.problems.includes(p) && !p.startsWith('Choose a skill'));
-        out.set(def.id, problems.length ? { kind: 'problems', problems } : { kind: 'ok', adds: usageDelta(resolved.usage, r.usage) });
+        const problems = r.problems.filter((p) => !resolved.problems.includes(p));
+        const dropped = draft.infusions.length - next.infusions.length;
+        out.set(def.id, problems.length ? { kind: 'problems', problems } : { kind: 'ok', adds: changeNotes(resolved, r, dropped) });
       }
     }
     return out;
@@ -159,9 +167,8 @@ export function LoadoutEditor({
     setHover(null);
   };
 
-  const updateSlot = (i: number, eq: EquippedItem) => onChange({ items: items.map((x, j) => (j === i ? eq : x)) });
   const removeSlot = (i: number) => {
-    onChange({ items: items.filter((_, j) => j !== i) });
+    onChange(withoutItem(content, record, draft, i));
     setSelected(null);
     setHover(null);
   };
@@ -198,9 +205,9 @@ export function LoadoutEditor({
                     setSelected(isSelected ? null : i);
                     setNotice(null);
                   }}
-                  onMouseEnter={(ev) => show(key, ev.currentTarget, <ItemDetails def={def} eq={eq} />)}
+                  onMouseEnter={(ev) => show(key, ev.currentTarget, <ItemDetails def={def} inSlot />)}
                   onMouseLeave={() => hide(key)}
-                  onFocus={(ev) => show(key, ev.currentTarget, <ItemDetails def={def} eq={eq} />)}
+                  onFocus={(ev) => show(key, ev.currentTarget, <ItemDetails def={def} inSlot />)}
                   onBlur={() => hide(key)}
                 >
                   <ItemGlyph def={def} />
@@ -216,7 +223,7 @@ export function LoadoutEditor({
                   ×
                 </button>
               </div>
-              <SlotGrants def={def} eq={eq} resolved={resolved} onChange={(next) => updateSlot(i, next)} />
+              <SlotGrants def={def} />
             </div>
           );
         })}
@@ -227,6 +234,8 @@ export function LoadoutEditor({
           {notice}
         </p>
       )}
+
+      <InfusionPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
 
       <div className="item-pool" aria-label="Your items">
         <div className="pool-filters">
@@ -313,56 +322,201 @@ function ItemGlyph({ def }: { def: ItemDef }) {
   );
 }
 
-/** Under an equipped item: what it grants, and its infusion targets (chosen ones can be changed). */
-function SlotGrants({ def, eq, resolved, onChange }: { def: ItemDef; eq: EquippedItem; resolved: ResolvedLoadout; onChange: (eq: EquippedItem) => void }) {
+/** Under an equipped item: what it grants. */
+function SlotGrants({ def }: { def: ItemDef }) {
   return (
     <div className="slot-detail">
       {def.skills.length > 0 && <div className="muted">Skill: {def.skills.map(skillName).join(', ')}</div>}
-      {def.infusions.map((inf, i) => {
-        const unused = eq.unused?.includes(i) ?? false;
-        return (
-          <div key={i} className="infusion-row">
-            <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span>
-            {inf.target ? (
-              <span>→ {skillName(inf.target)}</span>
-            ) : (
-              <select
-                aria-label={`${def.name} ${inf.element} infusion target`}
-                value={eq.targets?.[i] ?? ''}
-                disabled={unused}
-                onChange={(e) => {
-                  const targets = [...(eq.targets ?? [])];
-                  while (targets.length <= i) targets.push(null);
-                  targets[i] = e.target.value || null;
-                  onChange({ ...eq, targets });
-                }}
-              >
-                <option value="">choose a skill…</option>
-                {resolved.skills.map((s) => (
-                  <option key={s.base} value={s.base}>
-                    {skillName(s.base)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={unused}
-                onChange={(e) => {
-                  const set = new Set(eq.unused ?? []);
-                  if (e.target.checked) set.add(i);
-                  else set.delete(i);
-                  const { unused: _drop, ...rest } = eq;
-                  onChange(set.size ? { ...rest, unused: [...set].sort() } : rest);
-                }}
-              />
-              unused
-            </label>
-          </div>
-        );
-      })}
+      {def.infusions.length > 0 && (
+        <div className="infusion-row">
+          <span className="muted">Infusions:</span>
+          {def.infusions.map((inf, i) => (
+            <span key={i} className={`skill-chip ${elementClass(inf.element)}`}>
+              {inf.element}
+            </span>
+          ))}
+        </div>
+      )}
       {def.passive && <div className="muted">Passive{def.passiveEffect ? '' : ' (not active yet)'}: hover for details</div>}
+    </div>
+  );
+}
+
+/**
+ * The infusion pool and the character's skills: every infusion the equipment provides is put on a
+ * skill by the player (nothing is automatic). A skill holds up to two, counting its locked native
+ * infusion; a second makes a Hybrid, which isn't in the game yet, so that socket is shown but closed.
+ */
+function InfusionPanel({
+  record,
+  draft,
+  resolved,
+  onChange,
+}: {
+  record: CharacterRecord;
+  draft: Loadout;
+  resolved: ResolvedLoadout;
+  onChange: (next: Loadout) => void;
+}) {
+  const pool = Object.entries(resolved.pool).sort(([a], [b]) => a.localeCompare(b));
+  const total = pool.reduce((n, [, k]) => n + k, 0);
+  const left = Object.values(resolved.unassigned).reduce((n, k) => n + k, 0);
+  const assign = (skill: string, element: string) => onChange({ items: draft.items, infusions: [...draft.infusions, { skill, element }] });
+  const unassign = (index: number) => onChange({ items: draft.items, infusions: draft.infusions.filter((_, i) => i !== index) });
+  return (
+    <div className="infusion-panel" role="group" aria-label="Infusions">
+      <div className="infusion-head">
+        <span className="slot-label">Infusions</span>
+        {total === 0 ? (
+          <span className="muted">Items with elements add infusions here; you choose which skills they go on.</span>
+        ) : (
+          <>
+            <span className="muted">Pool:</span>
+            {pool.map(([el, n]) => (
+              <span key={el} className={`skill-chip ${elementClass(el)}`}>
+                {el} {n - (resolved.unassigned[el] ?? 0)}/{n}
+              </span>
+            ))}
+            <span className={left ? 'infusions-left' : 'muted'}>{left ? `${left} to place` : 'all placed'}</span>
+          </>
+        )}
+      </div>
+      <div className="infusion-skills">
+        {resolved.skills.map((s) => (
+          <SkillInfusions
+            key={s.base}
+            skill={s}
+            record={record}
+            draft={draft}
+            pool={pool.map(([el]) => el)}
+            unassigned={resolved.unassigned}
+            onAssign={(el) => assign(s.base, el)}
+            onUnassign={unassign}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkillInfusions({
+  skill,
+  record,
+  draft,
+  pool,
+  unassigned,
+  onAssign,
+  onUnassign,
+}: {
+  skill: CharacterSkill;
+  record: CharacterRecord;
+  draft: Loadout;
+  pool: string[];
+  unassigned: Record<string, number>;
+  onAssign: (element: string) => void;
+  onUnassign: (index: number) => void;
+}) {
+  const native = record.skills.find((r) => r.base === skill.base && r.source === 'native')?.infusion ?? null;
+  const assigned = draft.infusions.map((a, i) => ({ ...a, i })).filter((a) => a.skill === skill.base);
+  const held = (native ? 1 : 0) + assigned.length;
+  const current = content.skills[skillDefId(skill)] ?? content.skills[skill.base];
+  const sockets: ReactNode[] = [];
+  if (native) {
+    sockets.push(
+      <span key="native" className={`skill-chip infusion-native ${elementClass(native)}`} title="Rolled with this character: it stays on this skill">
+        {native} <span aria-label="locked">🔒</span>
+      </span>,
+    );
+  }
+  for (const a of assigned) {
+    sockets.push(
+      <button
+        key={`a${a.i}`}
+        type="button"
+        className={`skill-chip infusion-set ${elementClass(a.element)}`}
+        aria-label={`Take the ${a.element} infusion off ${current?.name ?? skill.base}`}
+        title="Take it off (it goes back to the pool)"
+        onClick={() => onUnassign(a.i)}
+      >
+        {a.element} ×
+      </button>,
+    );
+  }
+  if (held === 0) {
+    const options = pool.map((el) => ({ el, left: unassigned[el] ?? 0, ok: canInfuse(content, record, draft, skill.base, el) }));
+    sockets.push(
+      options.length === 0 ? (
+        <span key="open" className="infusion-open muted">
+          open
+        </span>
+      ) : (
+        <span key="open" className="infusion-options" role="group" aria-label={`Infuse ${current?.name ?? skill.base}`}>
+          {options.map(({ el, left, ok }) => {
+            const variant = content.skills[infusedSkillId(content, skill.base, [el]) ?? ''];
+            const button = (
+              <button
+                type="button"
+                className={`infusion-option ${elementClass(el)}`}
+                disabled={!ok}
+                aria-label={`Infuse with ${el}${variant ? `: becomes ${variant.name}` : ''}`}
+                onClick={() => onAssign(el)}
+              >
+                + {el}
+                {left > 1 && <span className="muted"> ×{left}</span>}
+              </button>
+            );
+            return variant && ok ? (
+              <Tooltip
+                key={el}
+                content={
+                  <>
+                    <h4>{variant.name}</h4>
+                    <div>{variant.description}</div>
+                    <div className="row">
+                      <CostPips cost={variant.cost} /> · cooldown {variant.cooldown}
+                    </div>
+                  </>
+                }
+              >
+                {button}
+              </Tooltip>
+            ) : (
+              <span key={el}>{button}</span>
+            );
+          })}
+        </span>
+      ),
+    );
+  }
+  if (held < MAX_INFUSIONS_PER_SKILL) {
+    sockets.push(
+      <span key="hybrid" className="infusion-hybrid" title="A second infusion makes a Hybrid element. Hybrids aren't in the game yet.">
+        {held === 0 ? '2nd: Hybrid' : '+ Hybrid'} · coming later
+      </span>,
+    );
+  }
+  return (
+    <div className="skill-infusions">
+      <Tooltip
+        content={
+          current && (
+            <>
+              <h4>{current.name}</h4>
+              <div>{current.description}</div>
+              <div className="row">
+                <CostPips cost={current.cost} /> · cooldown {current.cooldown}
+                {skill.source === 'equipment' && ' · from equipment'}
+              </div>
+            </>
+          )
+        }
+      >
+        <span className={`skill-chip ${elementClass(current?.element)}`} tabIndex={0}>
+          {current?.name ?? skill.base}
+          {current && <CostPips cost={current.cost} />}
+        </span>
+      </Tooltip>
+      <span className="infusion-sockets">{sockets}</span>
     </div>
   );
 }
@@ -370,13 +524,13 @@ function SlotGrants({ def, eq, resolved, onChange }: { def: ItemDef; eq: Equippe
 /** Everything about an item, for its hover card; with pool info when it's in the grid. */
 function ItemDetails({
   def,
-  eq,
+  inSlot,
   entry,
   fit,
   selected,
 }: {
   def: ItemDef;
-  eq?: EquippedItem;
+  inSlot?: boolean;
   entry?: PoolEntry;
   fit?: Fit;
   selected?: number | null;
@@ -404,9 +558,8 @@ function ItemDetails({
         })}
         {def.infusions.map((inf, i) => (
           <li key={`inf-${i}`}>
-            <b>Infuse</b> <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span>{' '}
-            {inf.target ? `→ ${skillName(inf.target)}` : eq?.targets?.[i] ? `→ ${skillName(eq.targets[i]!)} (your choice)` : '→ a skill you choose'}
-            {eq?.unused?.includes(i) && <span className="muted"> · unused</span>}
+            <b>Infusion</b> <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span> for your pool: you choose the
+            skill it goes on
           </li>
         ))}
         {def.passive && (
@@ -432,7 +585,7 @@ function ItemDetails({
         </div>
       )}
       {fit && <FitLine fit={fit} selected={selected ?? null} />}
-      {eq && <div className="item-card-line muted">Click to select this slot for replacing; × removes the item.</div>}
+      {inSlot && <div className="item-card-line muted">Click to select this slot for replacing; × removes the item.</div>}
     </>
   );
 }

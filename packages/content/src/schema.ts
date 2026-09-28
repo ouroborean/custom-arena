@@ -461,7 +461,7 @@ export const itemFileEntry = z.strictObject({
   name: z.string().min(1),
   type: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']),
   skills: z.array(z.string()).max(2).default([]),
-  infusions: z.array(z.strictObject({ element: z.string(), target: z.string().optional() })).max(2).default([]),
+  infusions: z.array(z.strictObject({ element: z.string() })).max(2).default([]),
   passive: z.string().optional(),
   passiveEffect: z.string().optional(),
   classId: z.string().optional(),

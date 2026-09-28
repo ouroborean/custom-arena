@@ -16,14 +16,12 @@ import { credit, inTransaction, spend, walletOf } from '../economy.js';
 
 type CharacterRow = typeof characters.$inferSelect;
 
-const Equipped = z.strictObject({
-  itemId: z.string(),
-  instanceId: z.uuid(),
-  targets: z.array(z.string().nullable()).max(2).optional(),
-  unused: z.array(z.number().int().min(0).max(1)).max(2).optional(),
+const Equipped = z.strictObject({ itemId: z.string(), instanceId: z.uuid() });
+/** Four slots, any item type (GDD §8.3), and which skills the items' infusions go on (§7.3). */
+export const LoadoutSchema = z.strictObject({
+  items: z.array(Equipped).max(EQUIPMENT_SLOTS),
+  infusions: z.array(z.strictObject({ skill: z.string(), element: z.string() })).max(EQUIPMENT_SLOTS * 2),
 });
-/** Four slots, any item type (GDD §8.3). */
-export const LoadoutSchema = z.strictObject({ items: z.array(Equipped).max(EQUIPMENT_SLOTS) });
 
 export const recordOf = (c: CharacterRow): CharacterRecord => ({
   name: c.name,

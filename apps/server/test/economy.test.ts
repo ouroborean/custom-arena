@@ -71,12 +71,12 @@ describe('crafting and salvage', () => {
     expect(await a.gold()).toBe(300);
     expect((await a.call('GET', '/api/inventory')).json().items.filter((i: { id: string }) => mixed.includes(i.id))).toHaveLength(3);
 
-    const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; locked: boolean }[] }[];
+    const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; infusion: string | null }[] }[];
     const c = chars[0]!;
     const shard = mixed[0]!;
-    const target = c.skills.find((s) => !s.locked)!.base;
+    const target = c.skills.find((s) => !s.infusion)!.base;
     const put = await a.call('PUT', `/api/characters/${c.id}/loadout`, {
-      loadout: { items: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
+      loadout: { items: [{ itemId: 'ice_shard', instanceId: shard }], infusions: [{ skill: target, element: 'Ice' }] },
     });
     expect(put.statusCode).toBe(200);
     expect((await a.call('POST', `/api/inventory/${shard}/salvage`)).statusCode).toBe(409);
