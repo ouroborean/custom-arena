@@ -1,13 +1,13 @@
 // Commands: the only way state changes after match creation (GDD §11.7).
 // `applyCommand` never mutates its input; it works on a clone and returns the new state + events.
 
-import { effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
+import { checkpoint, effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
 import type { ContentBundle } from './defs.js';
 import { autoAllocate, isPayable, isValidAllocation, sumCosts } from './energy.js';
 import { resolveTargets, unmetRequirement, useQueuedSkill } from './pipeline.js';
 import { cannotUseReason, modifiedCost } from './queries.js';
 import { checkGameOver, endTurn, finish } from './turn.js';
-import { COLORS, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
+import { COLORS, type ApplyOptions, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
 
 export class CommandError extends Error {
   constructor(
@@ -46,14 +46,14 @@ export function checkQueue(ctx: Ctx, player: PlayerId, cmd: Extract<Command, { t
   return null;
 }
 
-export function applyCommand(content: ContentBundle, state: GameState, player: PlayerId, cmd: Command): ApplyResult {
+export function applyCommand(content: ContentBundle, state: GameState, player: PlayerId, cmd: Command, opts: ApplyOptions = {}): ApplyResult {
   const s = structuredClone(state);
-  const ctx = makeCtx(s, content);
+  const ctx = makeCtx(s, content, opts.checkpoints);
   if (s.phase === 'finished') reject('finished', 'The match is over');
 
   if (cmd.t === 'surrender') {
     finish(ctx, { winner: other(player), reason: 'surrender' });
-    return { state: s, events: ctx.events };
+    return result(ctx);
   }
   if (player !== s.activePlayer) reject('not_your_turn', 'It is not your turn');
   const ps = s.players[player];
@@ -105,7 +105,11 @@ export function applyCommand(content: ContentBundle, state: GameState, player: P
       commitTurn(ctx, player, cmd.allocation);
       break;
   }
-  return { state: s, events: ctx.events };
+  return result(ctx);
+}
+
+function result(ctx: Ctx): ApplyResult {
+  return ctx.checkpoints ? { state: ctx.s, events: ctx.events, checkpoints: ctx.checkpoints } : { state: ctx.s, events: ctx.events };
 }
 
 function commitTurn(ctx: Ctx, player: PlayerId, allocation: Energy | undefined): void {
@@ -133,6 +137,7 @@ function commitTurn(ctx: Ctx, player: PlayerId, allocation: Energy | undefined):
 
   for (const q of [...ps.queue]) {
     useQueuedSkill(ctx, q);
+    checkpoint(ctx);
     if (checkGameOver(ctx)) return;
   }
   endTurn(ctx);

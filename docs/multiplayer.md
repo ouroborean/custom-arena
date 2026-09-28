@@ -34,7 +34,7 @@ full game state, clients get redacted views, and planning is local-first.
 | `welcome` | User, the match they're in (to resume), server time |
 | `queue.status`, `queue.left`, `private.created`, `private.cancelled` | Lobby state |
 | `match.start`, `match.sync` | A match began; full resync (view + missed events + deadline + presence) |
-| `match.events` | New redacted events and the resulting view |
+| `match.events` | New redacted events and the resulting view, plus `checkpoints`: the player's view after each skill, tick and turn boundary (`afterSeq` says which event it follows), so the client shows each outcome as it plays. Checkpoints aren't logged; a resync shows the current state. |
 | `match.presence` | Opponent disconnected / reconnected, forfeit time |
 | `match.turnRejected`, `match.end` | Rejection reason; result, end reason, ranked rating change |
 | `error` | `bad_message`, `already_busy`, `invalid_team` (with the loadout problems), `no_such_code`, `rate_limited`, … |

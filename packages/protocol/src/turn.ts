@@ -3,6 +3,7 @@
 import {
   applyCommand,
   CommandError,
+  type ApplyOptions,
   type Command,
   type ContentBundle,
   type Energy,
@@ -28,13 +29,15 @@ export interface AppliedTurn {
   events: GameEvent[];
   /** The engine commands the bundle expanded to, for the replay log. */
   commands: Command[];
+  /** States at the events' `checkpoint` markers, when asked for. */
+  checkpoints?: GameState[];
 }
 
 /**
  * Applies a bundle atomically (server side): queue each action in order, set the tick order, end
  * the turn. Throws CommandError on the first invalid step; the input state is never modified.
  */
-export function applyTurnBundle(content: ContentBundle, state: GameState, player: PlayerId, bundle: TurnBundle): AppliedTurn {
+export function applyTurnBundle(content: ContentBundle, state: GameState, player: PlayerId, bundle: TurnBundle, opts: ApplyOptions = {}): AppliedTurn {
   if (state.phase === 'finished') throw new CommandError('finished', 'The match is over');
   if (state.activePlayer !== player) throw new CommandError('not_your_turn', "It isn't your turn");
   if (bundle.turn !== state.turn) throw new CommandError('stale_turn', `That plan was for turn ${bundle.turn}; it's turn ${state.turn}`);
@@ -45,10 +48,14 @@ export function applyTurnBundle(content: ContentBundle, state: GameState, player
   ];
   let s = state;
   const events: GameEvent[] = [];
+  const checkpoints: GameState[] = [];
   for (const cmd of commands) {
-    const r = applyCommand(content, s, player, cmd);
+    const r = applyCommand(content, s, player, cmd, opts);
     s = r.state;
-    events.push(...r.events);
+    // Each command numbers its checkpoints from 0: renumber them into one list.
+    const offset = checkpoints.length;
+    events.push(...r.events.map((e) => (e.t === 'checkpoint' ? { ...e, n: e.n + offset } : e)));
+    checkpoints.push(...(r.checkpoints ?? []));
   }
-  return { state: s, events, commands };
+  return opts.checkpoints ? { state: s, events, commands, checkpoints } : { state: s, events, commands };
 }

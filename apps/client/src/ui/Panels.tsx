@@ -318,7 +318,8 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
   const other: PlayerId = viewer === 0 ? 1 : 0;
   const me = view.players[viewer];
   const energy = me.energy ?? { S: 0, A: 0, I: 0, W: 0 };
-  const queue = me.queue ?? [];
+  // While a turn plays out its queue has already been paid for: nothing is reserved.
+  const queue = playing ? [] : (me.queue ?? []);
   const reserved = sumCosts(queue.map((q) => q.cost));
   const total = COLORS.reduce((n, c) => n + energy[c], 0);
   const free = total - COLORS.reduce((n, c) => n + reserved[c], 0) - reserved.r;

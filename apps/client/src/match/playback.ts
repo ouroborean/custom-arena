@@ -69,6 +69,8 @@ export function delayFor(e: GameEvent): number {
     case 'energyGained':
     case 'turnEnd':
       return 120;
+    case 'checkpoint':
+      return 0;
     default:
       return 200;
   }
@@ -76,7 +78,7 @@ export function delayFor(e: GameEvent): number {
 
 /** Whether an event is worth a line in the battle log. */
 export function isLogged(e: GameEvent): boolean {
-  if (e.t === 'turnEnd') return false;
+  if (e.t === 'turnEnd' || e.t === 'checkpoint') return false;
   if (e.t === 'effectRemoved' && e.reason === 'died') return false;
   if (e.t === 'heal' && e.amount === 0) return false;
   return true;

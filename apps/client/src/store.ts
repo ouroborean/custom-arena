@@ -70,7 +70,7 @@ interface StoreState {
   targeting: Targeting | null;
   /** Events waiting to be played back for the current viewer. */
   pending: GameEvent[];
-  /** Snapshot shown while playback runs (statuses update when it finishes). */
+  /** The board shown while playback runs: it moves to each checkpoint (after every skill, tick…) as it plays. */
   displayView: PlayerView | null;
   displayHp: Record<string, number>;
   floats: FloatText[];
@@ -406,11 +406,29 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     step() {
-      const { pending, match, displayHp, floats, logs, viewer } = get();
+      const { pending, match, floats, logs, viewer } = get();
       if (!match || pending.length === 0) return;
-      const [e, ...rest] = pending as [GameEvent, ...GameEvent[]];
+      // Checkpoints aren't shown as events: they bring the board up to date (effects, minions,
+      // cooldowns…) at that point. Those just after an event show with it.
+      const checkpoints = (list: GameEvent[]) => {
+        let view: PlayerView | null = null;
+        let i = 0;
+        for (; list[i]?.t === 'checkpoint'; i++) {
+          const c = list[i] as Extract<GameEvent, { t: 'checkpoint' }>;
+          view = match.checkpointView?.(c.n, viewer) ?? view;
+        }
+        return { view, rest: list.slice(i) };
+      };
+      const hpOf = (v: PlayerView) => Object.fromEntries(v.units.map((u) => [u.id, u.hp]));
+      const lead = checkpoints(pending);
+      if (lead.rest.length === 0) {
+        set({ pending: [], ...(lead.view ? { displayView: lead.view, displayHp: hpOf(lead.view) } : {}) });
+        get().afterPlayback();
+        return;
+      }
+      const [e, ...after] = lead.rest as [GameEvent, ...GameEvent[]];
       let id = get().nextId;
-      const hp = { ...displayHp };
+      const hp = lead.view ? hpOf(lead.view) : { ...get().displayHp };
       if (e.t === 'damage' || e.t === 'heal') hp[e.target] = e.hp;
       if (e.t === 'died') hp[e.unit] = 0;
       const float = toFloat(e, id++);
@@ -421,14 +439,17 @@ export const useStore = create<StoreState>((set, get) => {
       const line = isLogged(e) ? toLogLine(match.content, units, e, id++) : null;
       const nextLogs: [LogLine[], LogLine[]] = [...logs];
       if (line) nextLogs[viewer] = [...logs[viewer], line];
+      const trail = checkpoints(after);
+      const view = trail.view ?? lead.view;
       set({
-        pending: rest,
-        displayHp: hp,
+        pending: trail.rest,
+        ...(view ? { displayView: view } : {}),
+        displayHp: trail.view ? hpOf(trail.view) : hp,
         floats: float ? [...floats, float] : floats,
         logs: nextLogs,
         nextId: id,
       });
-      if (rest.length === 0) get().afterPlayback();
+      if (trail.rest.length === 0) get().afterPlayback();
     },
 
     flush() {

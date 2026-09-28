@@ -1,7 +1,7 @@
 // Turn structure (GDD §3.3): start-of-turn energy, end-of-turn ticks, duration countdown,
 // cooldowns, win checks.
 
-import { effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
+import { checkpoint, effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
 import { removeEffect } from './effects.js';
 import { enqueueFor, enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
 import { energyGainBonus } from './queries.js';
@@ -50,6 +50,7 @@ export function startTurn(ctx: Ctx): void {
   for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);
   checkGameOver(ctx);
+  checkpoint(ctx);
 }
 
 function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
@@ -80,6 +81,7 @@ export function endTurn(ctx: Ctx): void {
       ctx.triggerQueue.push({ effect: e.id, spec, eventTarget: e.bearer });
     }
     flushTriggers(ctx);
+    checkpoint(ctx);
     if (checkGameOver(ctx)) return;
   }
 
@@ -97,6 +99,7 @@ export function endTurn(ctx: Ctx): void {
   }
   if (s.phase === 'finished') return;
   flushTriggers(ctx);
+  checkpoint(ctx);
   if (checkGameOver(ctx)) return;
 
   // c. The active player's cooldowns tick (owner's turns only, Q15).
@@ -110,6 +113,7 @@ export function endTurn(ctx: Ctx): void {
   ps.queue = [];
   ps.tickOrder = null;
   emit(ctx, { t: 'turnEnd', turn: s.turn, player: p });
+  checkpoint(ctx);
 
   // Stalling backstop (R3): both players at the turn limit → draw.
   if (s.players[0].turnsTaken >= s.settings.turnLimitPerPlayer && s.players[1].turnsTaken >= s.settings.turnLimitPerPlayer) {

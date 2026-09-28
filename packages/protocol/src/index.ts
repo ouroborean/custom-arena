@@ -94,6 +94,12 @@ export interface SeqEvent {
   event: GameEvent;
 }
 
+/** The board as it stood after event `afterSeq` (redacted for the recipient), for step-by-step playback. */
+export interface CheckpointView {
+  afterSeq: number;
+  view: PlayerView;
+}
+
 export interface RatingChange {
   before: number;
   after: number;
@@ -137,7 +143,7 @@ export type ServerMessage =
       opponentConnected: boolean;
     }
   /** New events (already redacted for this player) and the resulting view. */
-  | { t: 'match.events'; matchId: string; events: SeqEvent[]; seq: number; view: PlayerView; deadline: number | null }
+  | { t: 'match.events'; matchId: string; events: SeqEvent[]; seq: number; view: PlayerView; deadline: number | null; checkpoints?: CheckpointView[] }
   | { t: 'match.presence'; matchId: string; opponentConnected: boolean; forfeitAt: number | null }
   | { t: 'match.turnRejected'; matchId: string; reason: string }
   /** `reason`: the engine's, or the server's forfeit reason (disconnect, afk). */

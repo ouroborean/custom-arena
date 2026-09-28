@@ -219,7 +219,12 @@ export type EventBody =
   | { t: 'summoned'; unit: UnitId; defId: string; by: UnitId }
   | { t: 'died'; unit: UnitId }
   | { t: 'turnEnd'; turn: number; player: PlayerId }
-  | { t: 'gameOver'; result: MatchResult };
+  | { t: 'gameOver'; result: MatchResult }
+  /**
+   * A point worth showing the board at (after a skill resolves, a tick, the turn's end and start).
+   * Only emitted when checkpoints are asked for; `n` indexes ApplyResult.checkpoints.
+   */
+  | { t: 'checkpoint'; n: number };
 
 /** An event plus its visibility: `visibleTo` undefined = both players. */
 export type GameEvent = EventBody & { visibleTo?: PlayerId };
@@ -227,4 +232,14 @@ export type GameEvent = EventBody & { visibleTo?: PlayerId };
 export interface ApplyResult {
   state: GameState;
   events: GameEvent[];
+  /** The state at each `checkpoint` event, when asked for (ApplyOptions). */
+  checkpoints?: GameState[];
+}
+
+export interface ApplyOptions {
+  /**
+   * Snapshot the state at each point worth showing, so a client can play a turn back step by step
+   * rather than jumping to the end. Off by default: bots simulate thousands of turns without them.
+   */
+  checkpoints?: boolean;
 }

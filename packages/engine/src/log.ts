@@ -85,6 +85,8 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
       return `${name(e.unit)} is defeated`;
     case 'turnEnd':
       return `Player ${e.player + 1} ends turn ${e.turn}`;
+    case 'checkpoint':
+      return '';
     case 'gameOver':
       return e.result.winner === null ? `Match drawn (${e.result.reason})` : `Player ${e.result.winner + 1} wins (${e.result.reason})`;
   }

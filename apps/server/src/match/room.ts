@@ -19,7 +19,7 @@ import {
   type MatchResult,
   type PlayerId,
 } from '@arena/engine';
-import { applyTurnBundle, type MatchKind, type MatchReward, type OpponentInfo, type RatingChange, type SeqEvent, type ServerMessage, type TurnBundle } from '@arena/protocol';
+import { applyTurnBundle, type CheckpointView, type MatchKind, type MatchReward, type OpponentInfo, type RatingChange, type SeqEvent, type ServerMessage, type TurnBundle } from '@arena/protocol';
 import type { Clock, Timer } from './clock.js';
 
 /** How long a disconnected player has to come back before forfeiting. */
@@ -177,9 +177,9 @@ export class MatchRoom {
   submit(p: PlayerId, bundle: TurnBundle): boolean {
     if (this.ended) return false;
     try {
-      const applied = applyTurnBundle(this.o.content, this.state, p, bundle);
+      const applied = applyTurnBundle(this.o.content, this.state, p, bundle, { checkpoints: true });
       this.timeouts[p] = 0;
-      this.commit(p, applied.state, applied.events, applied.commands);
+      this.commit(p, applied.state, applied.events, applied.commands, undefined, applied.checkpoints);
       return true;
     } catch (e) {
       if (!(e instanceof CommandError)) throw e;
@@ -196,8 +196,8 @@ export class MatchRoom {
     if (this.ended) return;
     this.forfeitedBy = p;
     const cmd: Command = { t: 'surrender' };
-    const r = applyCommand(this.o.content, this.state, p, cmd);
-    this.commit(p, r.state, r.events, [cmd], reason);
+    const r = applyCommand(this.o.content, this.state, p, cmd, { checkpoints: true });
+    this.commit(p, r.state, r.events, [cmd], reason, r.checkpoints);
   }
 
   private onTimeout(): void {
@@ -209,32 +209,48 @@ export class MatchRoom {
     const empty: TurnBundle = { turn: this.state.turn, queue: [] };
     for (const bundle of draft ? [draft, empty] : [empty]) {
       try {
-        const a = applyTurnBundle(this.o.content, this.state, p, bundle);
-        return this.commit(p, a.state, a.events, a.commands);
+        const a = applyTurnBundle(this.o.content, this.state, p, bundle, { checkpoints: true });
+        return this.commit(p, a.state, a.events, a.commands, undefined, a.checkpoints);
       } catch (e) {
         if (!(e instanceof CommandError)) throw e;
       }
     }
   }
 
-  private commit(p: PlayerId, state: GameState, events: GameEvent[], commands: Command[], reason?: EndReason): void {
+  private commit(p: PlayerId, state: GameState, events: GameEvent[], commands: Command[], reason?: EndReason, checkpoints: GameState[] = []): void {
     this.state = state;
     const actions = commands.map((command) => ({ seq: ++this.actionSeq, player: p, command }));
     this.write(() => this.o.store.appendActions(this.id, actions));
     this.drafts[0] = this.drafts[1] = null;
     this.armTimer();
-    this.record(events);
+    this.record(events, checkpoints);
     if (state.phase === 'finished') this.end(reason ?? state.result?.reason ?? 'elimination');
   }
 
-  /** Redacts new events per player, appends them to the logs and sends them out. */
-  private record(events: GameEvent[]): void {
+  /**
+   * Redacts new events per player, appends them to the logs and sends them out, with the player's
+   * view at each checkpoint so their client can show the board skill by skill. Checkpoints aren't
+   * logged: a resync shows the current state.
+   */
+  private record(events: GameEvent[], checkpoints: GameState[] = []): void {
     for (const p of [0, 1] as const) {
       const mine: SeqEvent[] = [];
-      for (const event of redactEvents(events, p)) {
-        const e = { seq: this.logs[p].length + 1, event };
-        this.logs[p].push(e);
-        mine.push(e);
+      const views: CheckpointView[] = [];
+      for (const event of events) {
+        if (event.t === 'checkpoint') {
+          const state = checkpoints[event.n];
+          if (!state) continue;
+          const afterSeq = this.logs[p].length;
+          // Several checkpoints with nothing visible between them: only the last one shows.
+          if (views[views.length - 1]?.afterSeq === afterSeq) views.pop();
+          views.push({ afterSeq, view: viewFor(this.o.content, state, p) });
+          continue;
+        }
+        for (const visible of redactEvents([event], p)) {
+          const e = { seq: this.logs[p].length + 1, event: visible };
+          this.logs[p].push(e);
+          mine.push(e);
+        }
       }
       this.conns[p]?.send({
         t: 'match.events',
@@ -243,6 +259,7 @@ export class MatchRoom {
         seq: this.logs[p].length,
         view: viewFor(this.o.content, this.state, p),
         deadline: this.deadline,
+        ...(views.length ? { checkpoints: views } : {}),
       });
     }
   }

@@ -19,7 +19,7 @@ import {
   type SkillAvailability,
 } from '@arena/engine';
 import { bundleFromState, type ClientMessage, type MatchReward, type RatingChange, type ServerMessage } from '@arena/protocol';
-import type { MatchMode, MatchSession, OnlineInfo } from './session.js';
+import { Checkpoints, type MatchMode, type MatchSession, type OnlineInfo } from './session.js';
 
 export interface Link {
   send(msg: ClientMessage): void;
@@ -32,6 +32,7 @@ const DRAFT_DELAY_MS = 400;
 export class RemoteMatch implements MatchSession, OnlineInfo {
   /** Events that arrived before the battle screen was listening (e.g. the first sync). */
   private backlog: GameEvent[] = [];
+  private checkpoints: Checkpoints | null = null;
   private serverView: PlayerView | null = null;
   private plan: GameState | null = null;
   /** Highest event sequence number received. */
@@ -134,6 +135,10 @@ export class RemoteMatch implements MatchSession, OnlineInfo {
     return [];
   }
 
+  checkpointView(n: number, viewer: PlayerId): PlayerView | null {
+    return this.checkpoints?.view(n, viewer) ?? null;
+  }
+
   /** Server messages for this match. */
   handle(msg: ServerMessage): void {
     switch (msg.t) {
@@ -153,11 +158,21 @@ export class RemoteMatch implements MatchSession, OnlineInfo {
       case 'match.events': {
         const before = this.serverView ? this.view() : null;
         const fresh = msg.events.filter((e) => e.seq > this.seq);
+        // The board after each skill: slot the server's views in after the events they follow.
+        const views = msg.checkpoints ?? [];
+        const store = (this.checkpoints ??= new Checkpoints(this.content));
+        const events: GameEvent[] = [];
+        let i = 0;
+        const upTo = (seq: number) => {
+          for (; i < views.length && views[i]!.afterSeq <= seq; i++) events.push(store.add(views[i]!.view, this.you));
+        };
+        upTo(this.seq);
+        for (const e of fresh) {
+          events.push(e.event);
+          upTo(e.seq);
+        }
         this.accept(msg.view, msg.seq, msg.deadline);
-        this.deliver(
-          fresh.map((e) => e.event),
-          before,
-        );
+        this.deliver(events, before);
         return;
       }
       case 'match.turnRejected':

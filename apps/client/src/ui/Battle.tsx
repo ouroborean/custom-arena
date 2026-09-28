@@ -126,7 +126,7 @@ export function Battle() {
 
   return (
     <div className="battle">
-      <TopBar match={match} view={liveView} viewer={viewer} myTurn={myTurn} />
+      <TopBar match={match} view={view} viewer={viewer} myTurn={myTurn} />
 
       <main className="arena">
         {roster(viewer)}

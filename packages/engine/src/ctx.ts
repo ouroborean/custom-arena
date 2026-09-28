@@ -29,12 +29,21 @@ export interface Ctx {
   events: GameEvent[];
   triggerQueue: PendingTrigger[];
   flushing: boolean;
+  /** State snapshots for `checkpoint` events, or null when they weren't asked for. */
+  checkpoints: GameState[] | null;
 }
 
 export const MAX_TRIGGER_CHAIN = 64;
 
-export function makeCtx(s: GameState, c: ContentBundle): Ctx {
-  return { s, c, events: [], triggerQueue: [], flushing: false };
+export function makeCtx(s: GameState, c: ContentBundle, checkpoints = false): Ctx {
+  return { s, c, events: [], triggerQueue: [], flushing: false, checkpoints: checkpoints ? [] : null };
+}
+
+/** Snapshots the state for playback (when asked for) and marks the spot in the event stream. */
+export function checkpoint(ctx: Ctx): void {
+  if (!ctx.checkpoints) return;
+  ctx.checkpoints.push(structuredClone(ctx.s));
+  emit(ctx, { t: 'checkpoint', n: ctx.checkpoints.length - 1 });
 }
 
 export function emit(ctx: Ctx, body: EventBody, visibleTo?: PlayerId): void {
