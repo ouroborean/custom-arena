@@ -13,6 +13,7 @@ import {
   ITEM_TYPE_NAMES,
   itemElement,
   MAX_INFUSIONS_PER_SKILL,
+  MAX_SKILLS,
   resolveLoadout,
   skillDefId,
   withItem,
@@ -393,6 +394,12 @@ function InfusionPanel({
             onAssign={(el) => assign(s.base, el)}
             onUnassign={unassign}
           />
+        ))}
+        {/* Rows for the skill slots still open, so a granted skill doesn't move the grid below. */}
+        {Array.from({ length: Math.max(0, MAX_SKILLS - resolved.skills.length) }, (_, i) => (
+          <div key={`open-${i}`} className="skill-infusions open-skill" aria-hidden>
+            <span className="skill-chip">Open skill slot</span>
+          </div>
         ))}
       </div>
     </div>

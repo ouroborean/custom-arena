@@ -3081,15 +3081,40 @@ input[type="password"] {
   gap: 10px;
 }
 
+/* Every slot is the same height, so equipping never moves what's below; longer details scroll. */
 .equip-slot {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 8px;
   min-width: 0;
-  min-height: 84px;
+  height: 142px;
   border: 2px dashed var(--line);
   background: var(--void);
+}
+
+.equip-slot .slot-detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.equip-slot .slot-detail > * {
+  flex-shrink: 0;
+}
+
+/* One scrollbar style for the editor's scrolling areas: thin, flat, no arrows. */
+.equip-slot .slot-detail,
+.item-grid,
+.item-card {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+.equip-slot .slot-detail:hover,
+.item-grid:hover {
+  scrollbar-color: var(--muted) transparent;
 }
 
 .equip-slot.empty {
@@ -3116,6 +3141,7 @@ input[type="password"] {
 }
 
 .equip-slot-top {
+  flex: none;
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -3204,6 +3230,11 @@ input[type="password"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
+}
+
+.pool-filters .segmented {
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .pool-filters input[type='search'] {
@@ -3460,6 +3491,7 @@ input[type="password"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
+  min-height: 24px; /* the pool's chips, so it doesn't grow once an item adds some */
   font-size: 12px;
 }
 
@@ -3482,6 +3514,7 @@ input[type="password"] {
   grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+  height: 26px; /* skill rows and open-slot rows alike, so granting a skill moves nothing */
 }
 
 .skill-infusions > .tip-wrap > .skill-chip {
@@ -3555,5 +3588,13 @@ input[type="password"] {
   .skill-infusions {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
+    height: auto;
   }
+}
+
+.skill-infusions.open-skill .skill-chip {
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--faint);
+  cursor: default;
 }
