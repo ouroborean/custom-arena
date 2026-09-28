@@ -2,7 +2,7 @@
 
 import { CATALOGS, useT } from '../i18n/index.js';
 import { install, usePwa } from '../pwa.js';
-import { useSettings, type MotionPref } from '../settings.js';
+import { useSettings, type KeywordHelpPref, type MotionPref } from '../settings.js';
 import { playCue } from '../sfx.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
@@ -119,6 +119,18 @@ export function Settings() {
             ))}
           </select>
         </div>
+        <Segmented<KeywordHelpPref>
+          label={t('settings.keywords')}
+          value={s.keywordHelp}
+          options={[
+            { value: 'auto', label: t('settings.keywords.auto') },
+            { value: 'alt', label: t('settings.keywords.alt') },
+            { value: 'always', label: t('settings.keywords.always') },
+            { value: 'off', label: t('settings.keywords.off') },
+          ]}
+          onChange={(keywordHelp) => s.update({ keywordHelp })}
+        />
+        <p className="muted">{t('settings.keywordsNote')}</p>
         <div className="control">
           <span className="label">{t('settings.app')}</span>
           <InstallControl />

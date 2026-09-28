@@ -2,6 +2,10 @@
 
 Keywords used in skill text and in the engine. Content descriptions should use these exact words.
 
+The game explains keywords beside its tooltips (hold Alt, or always on touch screens; Settings →
+Keyword explanations). Its text comes from `packages/content/data/base/glossary.yaml`, which also
+lists the word forms that count as each keyword: keep the two in step.
+
 | Term | Meaning |
 |---|---|
 | **Affliction** | Damage type that ignores Armor and Shield, and gets through Invulnerable when indirect. |

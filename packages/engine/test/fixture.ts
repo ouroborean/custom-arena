@@ -75,6 +75,7 @@ export function bundle(skills: SkillDef[], extra: Partial<ContentBundle> = {}): 
     chapters: {},
     achievements: {},
     fusions: {},
+    glossary: {},
     tutorial: {},
   };
 }

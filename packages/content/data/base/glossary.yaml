@@ -1,0 +1,185 @@
+# Keywords the game explains beside tooltips (hold Alt; on touch screens, always): see docs/glossary.md.
+# `forms` are the exact, case-sensitive words that count as the keyword in a tooltip's text ("Chills",
+# "Chilled"); each form belongs to one keyword. A `status` keyword takes that status's name and
+# description unless it gives its own. A form followed by "skill"/"skills" ("your Charge skills")
+# names a skill, not the keyword, and isn't explained.
+
+# ---------------------------------------------------------------- damage
+
+normal_damage:
+  name: Normal damage
+  text: "The default damage type. Reduced by Armor, absorbed by Shield."
+  forms: [Normal damage]
+piercing:
+  name: Piercing
+  text: "Damage type that ignores Armor but is absorbed by Shield."
+  forms: [Piercing]
+affliction:
+  name: Affliction
+  text: "Damage type that ignores Armor and Shield, and gets through Invulnerable when indirect."
+  forms: [Affliction]
+direct_damage:
+  name: Direct damage
+  text: "Damage dealt by a skill's use (including delayed hits like Snipe). Gets Might, Weakness and Vulnerable, and triggers \"on direct damage\" effects."
+  forms: [direct damage, Direct damage]
+indirect_damage:
+  name: Indirect damage
+  text: "Damage from triggered or ticking effects."
+  forms: [indirect damage, Indirect damage]
+ticking:
+  name: Ticking effect
+  text: "An effect with an end-of-turn payload (damage or healing over time, Renew, a channel, a minion's attack). It fires at the end of its applier's turn, in the order that player chooses."
+  forms: [ticking, ticks]
+bypass:
+  name: Bypass
+  text: "Ignores Invulnerable and Isolated."
+  forms: [Bypass, Bypasses, Bypassing]
+counter:
+  name: Counter
+  text: "Negates a skill as it's used. Its cost stays paid, and its cooldown starts."
+  forms: [counter, counters, countered, Counter, Counters, Countered]
+reflect:
+  name: Reflect
+  text: "A counter that also applies the skill to its user (or the user's team, for skills that hit a whole team)."
+  forms: [reflect, reflects, reflected, Reflect, Reflects]
+
+# ---------------------------------------------------------------- skills
+
+harmful:
+  name: Harmful / Helpful
+  text: "Every skill is exactly one. Counters, Traps and Frostbitten key off Harmful."
+  forms: [Harmful, Helpful]
+strategic:
+  name: Strategic
+  text: "Skills that aren't explicitly directly damaging. Some stuns stop only Strategic or only non-Strategic skills."
+  forms: [Strategic, NonStrategic]
+channeled:
+  name: Channeled
+  text: "An ongoing skill effect on its user. It ends if the user is stunned, dies, or uses another skill."
+  forms: [Channeled]
+invisible:
+  name: Invisible
+  text: "Hidden from the opponent until it triggers or expires."
+  forms: [Invisible]
+hidden_target:
+  name: HiddenTarget
+  text: "The opponent sees the skill but not its target."
+  forms: [HiddenTarget]
+uncounterable:
+  name: Uncounterable
+  text: "Can't be countered or reflected."
+  forms: [Uncounterable]
+cooldown:
+  name: Cooldown
+  text: "How many of its owner's own turns a skill stays locked after use."
+  forms: [cooldown, cooldowns, Cooldown, Cooldowns, CD]
+random_energy:
+  name: Random energy
+  text: "A wildcard cost (GEN, shown as a dashed square) that you pay with any color when you end your turn."
+  forms: [GEN, random energy, random cost, random costs]
+buff_debuff:
+  name: Buff / Debuff
+  text: "Effect kinds: Buffs help their bearer, Debuffs hinder them. Immune blocks Debuffs."
+  forms: [Buff, Buffs, Debuff, Debuffs]
+minion:
+  name: Minion
+  text: "A summoned unit. It has Health and maybe skills, generates no energy, and pays for its skills from its owner's energy."
+  forms: [minion, minions, Minion, Minions]
+trap:
+  status: trap
+  text: "A hidden effect on an enemy that fires when they use a skill (usually a Harmful one). Trap N: they take N damage the next time they use a Harmful skill."
+  forms: [Trap, Traps]
+
+# ---------------------------------------------------------------- common effects
+
+might: { status: might }
+weakness: { status: weakness }
+vulnerable: { status: vulnerable }
+armor: { status: armor }
+shield: { status: shield }
+stunned: { status: stun, forms: [Stunned, Stuns, Stun] }
+sleep: { status: sleep, forms: [Sleep, Asleep, Sleeping, Chastise, Chastised] }
+invulnerable: { status: invulnerable, forms: [Invulnerable, Invulnerability] }
+untargetable: { status: untargetable }
+immune: { status: immune }
+ghosted: { status: ghosted }
+isolated: { status: isolated }
+shattered: { status: shattered, forms: [Shattered, Shatter, Shatters] }
+swiftness: { status: swiftness }
+intimidated: { status: intimidated, forms: [Intimidated, Intimidates] }
+focus: { status: focus }
+confusion: { status: confusion, forms: [Confusion, Confused] }
+mark: { status: mark, forms: [Mark, Marks, Marked] }
+taunted: { status: taunt, forms: [Taunted, Taunts, Taunt] }
+sanctify: { status: sanctify, forms: [Sanctify, Sanctifies, Sanctified] }
+renew: { status: renew }
+
+# ---------------------------------------------------------------- elements
+
+ignite: { status: ignite, element: Fire, forms: [Ignite, Ignites, Ignited] }
+scorched: { status: scorched, element: Fire }
+flameborn: { status: flameborn, element: Fire }
+explode:
+  name: Explode
+  text: "10 Affliction damage to every enemy of whoever caused it. Skips Invulnerable targets."
+  element: Fire
+  forms: [Explode, Explodes, Explosion, Explosions]
+
+anointed: { status: anointed, element: Holy, forms: [Anointed, Anoint, Anoints] }
+condemned: { status: condemned, element: Holy, forms: [Condemned, Condemns, Condemn] }
+
+frostbitten: { status: frostbitten, element: Ice }
+chilled: { status: chilled, element: Ice, forms: [Chilled, Chills, Chill] }
+numb: { status: numb, element: Ice, forms: [Numb, Numbs, Numbed] }
+frostborn: { status: frostborn, element: Ice }
+frost_debuff:
+  name: Frost debuff
+  text: "Frostbitten, Chilled or Numb."
+  element: Ice
+  forms: [Frost debuff, Frost debuffs]
+
+charged: { status: charged, element: Lightning, forms: [Charged, Charge] }
+sapped: { status: sapped, element: Lightning, forms: [Sapped, Saps] }
+stormborn: { status: stormborn, element: Lightning }
+conduit: { status: conduit, element: Lightning }
+
+toxin: { status: toxin, element: Poison }
+prey:
+  name: Prey
+  text: "A unit with more than 2 total stacks of Toxin, Weakness, Vulnerable and Confusion, or below 20 Health, or marked as Prey."
+  element: Poison
+  forms: [Prey]
+
+stealth: { status: stealth, element: Shadow, forms: [Stealth, Stealthed, Stealthy] }
+blinded: { status: blinded, element: Shadow, forms: [Blinded, Blinds, Blind] }
+
+horrified: { status: horrified, element: Unholy, forms: [Horrified, Horrifies, Horrify] }
+immortal: { status: immortal, element: Unholy, forms: [Immortal, Undying] }
+soul_fragment: { status: soul_fragment, element: Unholy, forms: [Soul Fragment, Soul Fragments] }
+lifesteal: { status: lifesteal, element: Unholy }
+
+flow: { status: flow, element: Water }
+
+rushing: { status: rushing, element: Wind, forms: [Rushing, Rush] }
+leaping: { status: leaping, element: Wind, forms: [Leaping, Leap, Leaps] }
+immobile:
+  name: Immobile
+  text: "A character with no mobility skills (Charge, Maneuver, Mislead, Dance) and no mobility buffs (Swiftness, Rushing, Leaping)."
+  element: Wind
+  forms: [Immobile]
+
+boulder:
+  name: Boulder
+  text: "A 45 Health minion with no skills, used as ammunition and as armor by Earth skills."
+  element: Earth
+  forms: [Boulder, Boulders]
+seedling:
+  name: Seedling
+  text: "A 15 Health minion whose Channel Earth gives its creator 1 Might and 1 Armor for good. Forest Stalkers count as Seedlings."
+  element: Earth
+  forms: [Seedling, Seedlings]
+channel_growth:
+  name: Channel Growth
+  text: "Every allied Seedling gets +10 max Health, then heals 10."
+  element: Earth
+  forms: [Channel Growth]

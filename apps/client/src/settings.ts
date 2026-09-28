@@ -1,10 +1,14 @@
-// Per-device preferences (GDD §9.1 Settings): motion, default battle speed, sound and language.
+// Per-device preferences (GDD §9.1 Settings): motion, default battle speed, sound, language and
+// keyword explanations.
 // They live in localStorage, which can be unavailable (private windows, blocked storage), so every
 // read and write is guarded and the defaults always work.
 
 import { create } from 'zustand';
 
 export type MotionPref = 'system' | 'reduce' | 'full';
+
+/** When tooltips explain their keywords: 'auto' is Alt with a mouse, always on touch screens. */
+export type KeywordHelpPref = 'auto' | 'alt' | 'always' | 'off';
 
 export interface Settings {
   motion: MotionPref;
@@ -15,9 +19,10 @@ export interface Settings {
   muted: boolean;
   /** UI language (BCP 47); 'auto' follows the browser. */
   locale: string;
+  keywordHelp: KeywordHelpPref;
 }
 
-export const DEFAULT_SETTINGS: Settings = { motion: 'system', speed: 1, volume: 0.6, muted: false, locale: 'auto' };
+export const DEFAULT_SETTINGS: Settings = { motion: 'system', speed: 1, volume: 0.6, muted: false, locale: 'auto', keywordHelp: 'auto' };
 
 const KEY = 'arena.settings.v1';
 
@@ -43,6 +48,13 @@ function save(s: Settings): void {
 export function reducedMotion(s: Settings): boolean {
   if (s.motion !== 'system') return s.motion === 'reduce';
   return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** How keyword explanations show: holding Alt, always, or never ('auto' decides by the device). */
+export function keywordHelpMode(s: Settings): 'alt' | 'always' | 'off' {
+  if (s.keywordHelp !== 'auto') return s.keywordHelp;
+  // No hover and usually no keyboard: there's no Alt to hold.
+  return typeof matchMedia !== 'undefined' && matchMedia('(hover: none)').matches ? 'always' : 'alt';
 }
 
 /** Mirrors the motion preference onto <html data-motion>, which the stylesheet honors. */

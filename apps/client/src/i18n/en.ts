@@ -56,6 +56,13 @@ export const en = {
   'settings.shapesNote':
     'Energy colors always have their own shapes (Strength ■, Agility ▲, Intelligence ◆, Wisdom ⬢, random ▢), so they never depend on telling colors apart. Settings are saved on this device.',
   'settings.reset': 'Reset to defaults',
+  'settings.keywords': 'Keyword explanations',
+  'settings.keywords.auto': 'Like my device',
+  'settings.keywords.alt': 'Hold Alt',
+  'settings.keywords.always': 'Always',
+  'settings.keywords.off': 'Off',
+  'settings.keywordsNote':
+    'Cards beside any tooltip that explain the keywords it uses. "Like my device" means holding Alt with a mouse, and always on touch screens.',
   'settings.app': 'App',
   'settings.install': 'Install Custom Arena',
   'settings.installed': 'Installed: Custom Arena runs in its own window, and the sandbox works offline.',
@@ -118,6 +125,10 @@ export const en = {
   'over.chapterComplete': '{chapter} complete!',
   'over.newCharacter': 'New character: {name}',
   'over.achievement': 'Achievement: {name}',
+  // keyword explanations beside tooltips
+  'keywords.title': 'Keywords',
+  'keywords.hint': { one: 'Hold Alt · {count} keyword', other: 'Hold Alt · {count} keywords' },
+  'keywords.via': 'Mentioned by {name}',
   // ranked seasons
   'season.ends': '{season} · ends {date}',
   'season.open': '{season}',

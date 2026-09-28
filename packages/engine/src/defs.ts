@@ -796,6 +796,23 @@ export interface ContentBundle {
   tutorial: Record<string, TutorialDef>;
   /** Fusion elements by id: what two infusions on one skill make (GDD §7.3). */
   fusions: Record<string, FusionDef>;
+  /** Keywords the client explains beside tooltips (hold Alt), by id. */
+  glossary: Record<string, GlossaryDef>;
+}
+
+/**
+ * A keyword the game explains (docs/glossary.md). `forms` are the exact, case-sensitive words that
+ * count as it in text ("Chills", "Chilled"); a status keyword takes the status's own wording.
+ */
+export interface GlossaryDef {
+  id: string;
+  name: string;
+  text: string;
+  forms: string[];
+  /** The element it belongs to, if any (for the explanation's color). */
+  element?: string;
+  /** The status it explains, if any. */
+  status?: string;
 }
 
 /**

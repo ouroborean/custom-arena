@@ -598,6 +598,18 @@ export const achievementFileEntry = z.strictObject({
   reward: grantSpec.optional(),
 });
 
+/**
+ * A keyword (glossary*.yaml). A `status` keyword defaults to that status's name and description;
+ * `forms` default to the name.
+ */
+export const glossaryFileEntry = z.strictObject({
+  name: z.string().min(1).optional(),
+  text: z.string().min(1).optional(),
+  status: z.string().min(1).optional(),
+  forms: z.array(z.string().min(1)).min(1).optional(),
+  element: z.string().min(1).optional(),
+});
+
 /** A fusion element: its name and the pair of base elements that makes it (fusions*.yaml). */
 export const fusionFileEntry = z.strictObject({
   name: z.string().min(1),

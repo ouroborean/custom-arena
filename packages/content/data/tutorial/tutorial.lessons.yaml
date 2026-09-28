@@ -26,7 +26,7 @@ tutorial_1:
 
 tutorial_2:
   steps:
-    - text: "Effects on characters are Buffs (good) or Debuffs (bad). Hover or tap one to read exactly what it does and how long it lasts."
+    - text: "Effects on characters are Buffs (good) or Debuffs (bad). Hover or tap one to read exactly what it does and how long it lasts. Hold Alt while a card is open to have its keywords explained (on touch screens they show by themselves)."
     - text: "Charge hits hard and gives the Squire Focus, which makes his next skill cost one less. Queue Charge on the Sparring Partner."
       highlight: { skill: charge }
       expect: { queue: { skill: charge, target: p1c0 } }

@@ -11,6 +11,7 @@ import {
   type ChapterDef,
   type ContentBundle,
   type FusionDef,
+  type GlossaryDef,
   type EconomyDef,
   type EncounterDef,
   type TutorialDef,
@@ -30,6 +31,7 @@ import {
   effectDefSchema,
   encounterFileEntry,
   fusionFileEntry,
+  glossaryFileEntry,
   tutorialFileEntry,
   itemFileEntry,
   macroFileEntry,
@@ -55,6 +57,8 @@ export interface RawContent {
   tutorial: Record<string, unknown>;
   /** Fusion elements by id (fusions*.yaml). */
   fusions: Record<string, unknown>;
+  /** Keywords by id (glossary*.yaml). */
+  glossary: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -150,9 +154,10 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const achievements = parseEntries('achievements', raw.achievements ?? {}, achievementFileEntry, issues) as Record<string, AchievementDef>;
   const tutorial = parseEntries('tutorial', raw.tutorial ?? {}, tutorialFileEntry, issues, true) as Record<string, TutorialDef>;
   const fusions = parseEntries('fusions', raw.fusions ?? {}, fusionFileEntry, issues) as Record<string, FusionDef>;
+  const glossary = resolveGlossary(parseEntries('glossary', raw.glossary ?? {}, glossaryFileEntry, issues), statuses, issues);
 
   const version = contentHash(
-    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial, fusions }),
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial, fusions, glossary }),
   );
   const bundle: ContentBundle = {
     version,
@@ -169,12 +174,14 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     achievements,
     tutorial,
     fusions,
+    glossary,
   };
   issues.push(
     ...checkReferences(bundle),
     ...lintSkills(bundle),
     ...checkElements(bundle),
     ...checkFusions(bundle),
+    ...checkGlossary(bundle),
     ...checkEconomy(bundle),
     ...checkSinglePlayer(bundle),
   );
@@ -385,6 +392,52 @@ export function checkElements(b: ContentBundle): ContentIssue[] {
   for (const el of elements) {
     const missing = base.filter((s) => !b.skills[variantId(s.id, el)]).map((s) => s.id);
     if (missing.length) issues.push({ level: 'warning', where: `element ${el}`, message: `missing variants: ${missing.join(', ')}` });
+  }
+  return issues;
+}
+
+/** Glossary entries with their defaults filled in from the statuses they explain. */
+function resolveGlossary(
+  entries: Record<string, z.output<typeof glossaryFileEntry> & { id: string }>,
+  statuses: Record<string, EffectDef>,
+  issues: ContentIssue[],
+): Record<string, GlossaryDef> {
+  const out: Record<string, GlossaryDef> = {};
+  for (const e of Object.values(entries)) {
+    const where = `glossary.${e.id}`;
+    const status = e.status ? statuses[e.status] : undefined;
+    if (e.status && !status) issues.push({ level: 'error', where, message: `unknown status "${e.status}"` });
+    const name = e.name ?? status?.name;
+    const text = e.text ?? status?.description;
+    if (!name || !text) {
+      issues.push({ level: 'error', where, message: 'needs a name and text, or a status that has them' });
+      continue;
+    }
+    out[e.id] = {
+      id: e.id,
+      name,
+      text,
+      forms: e.forms ?? [name],
+      ...(e.element ? { element: e.element } : {}),
+      ...(e.status ? { status: e.status } : {}),
+    };
+  }
+  return out;
+}
+
+/** Keywords: each word form belongs to one keyword, and elements exist. */
+export function checkGlossary(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const elements = new Set(Object.values(b.skills).map((s) => s.element));
+  const owner = new Map<string, string>();
+  for (const g of Object.values(b.glossary)) {
+    const where = `glossary.${g.id}`;
+    if (g.element && !elements.has(g.element)) issues.push({ level: 'error', where, message: `unknown element "${g.element}"` });
+    for (const f of g.forms) {
+      const other = owner.get(f);
+      if (other) issues.push({ level: 'error', where, message: `"${f}" already means ${other}` });
+      owner.set(f, g.id);
+    }
   }
   return issues;
 }

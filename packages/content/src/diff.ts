@@ -27,7 +27,7 @@ export interface CategoryDiff {
 export interface ContentDiff {
   before: string;
   after: string;
-  categories: Record<'skills' | 'statuses' | 'minions' | 'items' | 'encounters' | 'chapters' | 'achievements' | 'tutorial' | 'fusions', CategoryDiff>;
+  categories: Record<'skills' | 'statuses' | 'minions' | 'items' | 'encounters' | 'chapters' | 'achievements' | 'tutorial' | 'fusions' | 'glossary', CategoryDiff>;
   /** Economy sections that changed (currencies, rewards, drop tables, …). */
   economy: string[];
 }
@@ -95,6 +95,7 @@ export function diffBundles(before: ContentBundle, after: ContentBundle): Conten
       achievements: diffRecords(before.achievements, after.achievements, (d) => ({ name: d.name, description: d.description })),
       tutorial: diffRecords(before.tutorial, after.tutorial),
       fusions: diffRecords(before.fusions ?? {}, after.fusions ?? {}, (d) => ({ name: d.name, elements: d.elements.join(' + ') })),
+      glossary: diffRecords(before.glossary ?? {}, after.glossary ?? {}, (d) => ({ name: d.name, description: d.text })),
     },
     economy,
   };
@@ -110,6 +111,7 @@ const TITLES: Record<keyof ContentDiff['categories'], string> = {
   achievements: 'Achievements',
   tutorial: 'Tutorial',
   fusions: 'Fusion elements',
+  glossary: 'Keywords',
 };
 
 /** Patch notes in Markdown, drafted from a diff (edit before publishing). */
