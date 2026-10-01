@@ -639,8 +639,7 @@ describe('Blood skills', () => {
     expect(a.reject(() => a.use(A2, 'shot', B1))).toBe('cannot_act');
   });
 
-  // BUG: "Stunned for 1 turn" — the crash is applied on the enemy's turn with 3 ticks, so the ally also misses their second turn after it.
-  it.fails('Blood Doping: the crash lasts only 1 of the ally\'s turns', () => {
+  it('Blood Doping: the crash lasts only 1 of the ally\'s turns', () => {
     const a = arena({ p0: [['bless.blood'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bless.blood', A2).end().pass(5);
     a.use(A2, 'shot', B1).end();

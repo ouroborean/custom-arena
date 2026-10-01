@@ -33,6 +33,10 @@ export interface Ctx {
   entangling?: boolean;
   /** Set while a skill resolves (Alchemy's Catalyst only doubles skills). */
   inSkill?: boolean;
+  /** state.seq when the current skill use began: effects newer than this were applied by it. */
+  useStartSeq?: number;
+  /** Set while end-of-turn expiries resolve, after the countdown (durations applied then lose a tick). */
+  pastTick?: boolean;
   /** Nested castSkill depth (Mirror's Mimic can't copy a copy forever). */
   castDepth?: number;
   /** State snapshots for `checkpoint` events, or null when they weren't asked for. */

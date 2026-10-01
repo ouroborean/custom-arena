@@ -100,7 +100,11 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
     return null;
   }
 
-  const duration = compileDuration(a.duration, source.owner, ctx.s.activePlayer);
+  const compiled = compileDuration(a.duration, source.owner, ctx.s.activePlayer);
+  // Applied after this turn's countdown (by an effect expiring): turn-based durations already missed that
+  // tick. Raw tick counts are taken as written.
+  const turnBased = a.duration !== undefined && a.duration !== 'permanent' && ('enemyTurns' in a.duration || 'ownTurns' in a.duration);
+  const duration = compiled !== null && ctx.pastTick && turnBased ? Math.max(1, compiled - 1) : compiled;
 
   // Swiftness-style negation: consume one stack of the negating effect instead.
   const negator = modsOn(ctx.s, ctx.c, bearer.id, 'negateNext').find(({ spec }) => spec.effect === def.id);

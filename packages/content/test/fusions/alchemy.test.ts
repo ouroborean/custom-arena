@@ -187,9 +187,7 @@ describe('Alchemy skills', () => {
     expect([before - a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2)]).toEqual([30 + 10, 90, 100, 100]);
   });
 
-  // BUG: the Explosion watcher ("Volatile Vial") is itself a Debuff, so a cleanse that removes the Ignite
-  // removes the watcher too and nothing Explodes.
-  it.fails('Vial Toss: a cleanse that removes the Ignite also sets off the Explosion', () => {
+  it('Vial Toss: a cleanse that removes the Ignite also sets off the Explosion', () => {
     const a = arena({ p0: [['shot.alchemy'], ['shot']], p1: [['rage.wind'], ['shot']] });
     a.use(A1, 'shot.alchemy', B1).end();
     a.use(B1, 'rage.wind').end(); // cleanses the Ignite
@@ -421,14 +419,13 @@ describe('Alchemy skills', () => {
     expect(a.hp(B2)).toBeLessThanOrEqual(50);
   });
 
-  // BUG: the Helpful skill is countered, but its targets take no 15 Affliction and gain no Weakness.
-  it.fails('Inversion Circle: a Helpful skill is countered; its targets take 15 Affliction and are Weakened for 1 turn', () => {
+  it('Inversion Circle: a Helpful skill is countered; its targets take 15 Affliction and are Weakened for 1 turn', () => {
     const a = arena({ p0: [['mislead.alchemy']], p1: [['heal'], ['shot']] });
     a.setHp(B2, 50).use(A1, 'mislead.alchemy', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false); // Invisible
     a.use(B1, 'heal', B2).end();
     expect([a.hp(B2), a.stacks(B2, 'weakness')]).toEqual([35, 1]);
-    a.pass(1);
+    a.pass(2); // applied on their own turn, it lasts through their next one (rules §8.1)
     expect(a.has(B2, 'weakness')).toBe(false);
   });
 
@@ -459,9 +456,7 @@ describe('Alchemy skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
   });
 
-  // BUG: the Draught's own Catalyst is spent by the Draught itself (doubling its pending boon timer), so the
-  // boons arrive a turn late, at the end of the enemy's second turn, and are never doubled.
-  it.fails('Quickening Draught: Catalyst now; next turn 1 Might, 2 Swiftness, 1 Focus, doubled if the Catalyst is unspent', () => {
+  it('Quickening Draught: Catalyst now; next turn 1 Might, 2 Swiftness, 1 Focus, doubled if the Catalyst is unspent', () => {
     const a = arena({ p0: [['dance.alchemy']], p1: [['shot']] });
     a.use(A1, 'dance.alchemy').end();
     expect([a.has(A1, 'catalyst'), a.has(A1, 'might')]).toEqual([true, false]);
@@ -469,9 +464,7 @@ describe('Alchemy skills', () => {
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.stacks(A1, 'focus')]).toEqual([2, 4, 2]);
   });
 
-  // BUG: (same as above) the Catalyst is already gone, so the enemy's hit isn't doubled, and no boons arrive
-  // at the start of the user's next turn.
-  it.fails('Quickening Draught: if the Catalyst was spent, the boons are not doubled; they last 3 turns', () => {
+  it('Quickening Draught: if the Catalyst was spent, the boons are not doubled; they last 3 turns', () => {
     const a = arena({ p0: [['dance.alchemy']], p1: [['shot']] });
     a.use(A1, 'dance.alchemy').end();
     a.use(B1, 'shot', A1).end(); // the Catalyst doubles this hit and is spent
@@ -514,8 +507,7 @@ describe('Alchemy skills', () => {
     expect([a.has(B1, 'swiftness'), a.has(B1, 'immune'), a.has(B1, 'scorched')]).toEqual([false, false, true]);
   });
 
-  // BUG: Reagent Brand's own Catalyst is spent by Reagent Brand itself (it doubles the brand it applies next).
-  it.fails('Reagent Brand: 15 and Catalyst, which its own hit does not spend', () => {
+  it('Reagent Brand: 15 and Catalyst, which its own hit does not spend', () => {
     const a = arena({ p0: [['smite.alchemy']], p1: [['shot']] });
     a.use(A1, 'smite.alchemy', B1).end();
     expect([a.hp(B1), a.has(B1, 'catalyst_debuff')]).toEqual([85, true]);
@@ -528,8 +520,7 @@ describe('Alchemy skills', () => {
     expect([a.hp(B1), a.has(B1, 'catalyst_debuff')]).toEqual([100 - 15 - 30 - 30, true]);
   });
 
-  // BUG: its own Catalyst doubles the rider's duration, so it still re-applies Catalyst on the user's next turn.
-  it.fails('Reagent Brand: the re-Catalyst rider is over after 1 turn', () => {
+  it('Reagent Brand: the re-Catalyst rider is over after 1 turn', () => {
     const a = arena({ p0: [['smite.alchemy'], ['shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'smite.alchemy', B1).end().pass(1);
     a.use(A2, 'shot', B1).end();

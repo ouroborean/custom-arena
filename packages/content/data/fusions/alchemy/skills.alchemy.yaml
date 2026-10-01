@@ -160,7 +160,7 @@ shot.alchemy:
       effect:
         id: vial_toss
         name: Volatile Vial
-        kind: Debuff
+        kind: Neutral
         element: Alchemy
         description: If the bearer's Ignite is gone at the end of the applier's turn, they Explode.
         triggers:

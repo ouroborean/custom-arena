@@ -116,13 +116,19 @@ export function endTurn(ctx: Ctx): void {
     e.duration -= 1;
     if (e.duration <= 0) expired.push(e);
   }
-  for (const e of expired) {
-    if (!s.effects.includes(e)) continue;
-    expireEffect(ctx, e);
-    checkGameOver(ctx);
+  // Effects applied from here on (by what expires) have already missed this turn's countdown.
+  ctx.pastTick = true;
+  try {
+    for (const e of expired) {
+      if (!s.effects.includes(e)) continue;
+      expireEffect(ctx, e);
+      checkGameOver(ctx);
+    }
+    if (s.phase === 'finished') return;
+    flushTriggers(ctx);
+  } finally {
+    ctx.pastTick = false;
   }
-  if (s.phase === 'finished') return;
-  flushTriggers(ctx);
   checkpoint(ctx);
   if (checkGameOver(ctx)) return;
 

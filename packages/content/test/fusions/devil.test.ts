@@ -169,9 +169,7 @@ describe('Devil skills', () => {
     expect([a.hp(A1), counts(a, A1, 'horrified'), contracts(a, A1)]).toEqual([70, true, 0]);
   });
 
-  // BUG: the price's "Horrified for 2 turns" (given as the Contract expires at the end of turn 6) lasts through
-  // turn 11 — one turn too long, because it's applied after that turn's duration tick.
-  it.fails('Faustian Fury: the price\'s Horrified lasts 2 turns', () => {
+  it('Faustian Fury: the price\'s Horrified lasts 2 turns', () => {
     const a = arena({ p0: [['rage.devil']], p1: [['shot']] });
     a.use(A1, 'rage.devil').end().pass(5);
     expect(counts(a, A1, 'horrified')).toBe(true);

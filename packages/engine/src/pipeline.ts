@@ -361,12 +361,15 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   );
   const wasInSkill = ctx.inSkill;
   ctx.inSkill = true;
+  const wasStart = ctx.useStartSeq;
+  ctx.useStartSeq = ctx.s.seq;
   const wasUsing = actor.counters.usingSlot;
   actor.counters.usingSlot = slotIndex;
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
     ctx.inSkill = wasInSkill;
+    ctx.useStartSeq = wasStart;
     if (wasUsing === undefined) delete actor.counters.usingSlot;
     else actor.counters.usingSlot = wasUsing;
     // Alchemy's Catalyst: spent once the skill it doubled has resolved.
