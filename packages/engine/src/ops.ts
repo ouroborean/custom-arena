@@ -122,6 +122,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       if (!b) return [];
       return livingUnits(ctx.s, b.owner).filter((u) => u.id !== b.id);
     }
+    case 'randomAnyEnemy':
+      return sample(ctx.s.rng, ctx.s.units.filter((u) => u.alive && isEnemy(actor, u)), 1);
     case 'randomBearerAlly': {
       const b = one(ctx, sc.bearer)[0];
       if (!b) return [];

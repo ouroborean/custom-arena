@@ -59,7 +59,8 @@ export type NamedSelector =
   | 'summonerLastAttacker' // the last enemy who damaged the actor's summoner (Night's Rime Revenant)
   | 'primaryPartners' // units Entangled with the first target (Dimension)
   | 'bearerAllies' // the bearer's living allies, not the bearer
-  | 'randomBearerAlly'; // one random living ally of the bearer, not the bearer (Spore spreading)
+  | 'randomBearerAlly' // one random living ally of the bearer, not the bearer (Spore spreading)
+  | 'randomAnyEnemy'; // one random living enemy, Stealthed or not (Vigilante's Searchlight)
 
 export type Selector =
   | NamedSelector
@@ -661,6 +662,8 @@ export interface TriggerSpec {
     shield?: boolean;
     /** Intercepting skillUsed / skillTargeted: only skills whose listed cost totals at least this. */
     costAtLeast?: number;
+    /** Intercepting skillUsed: only skills with any of these tags (Vigilante's Sting Operation). */
+    anyTags?: string[];
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';

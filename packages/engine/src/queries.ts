@@ -256,12 +256,15 @@ export function damageTakenBonus(
   target: Unit,
   type: DamageType,
   direct: boolean,
+  skill?: SkillDef,
 ): { other: number; armor: number; mul: number } {
   let other = 0;
   let armor = 0;
   let mul = 1;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'damageTaken')) {
     if (spec.atLeast !== undefined) continue; // see thresholdReduction
+    // Vigilante's Exposed: only that element's skills hit harder.
+    if (spec.elements && !(skill && spec.elements.includes(skill.element))) continue;
     if (!damageWhenMatches(spec.when, type, direct)) continue;
     if (spec.mul !== undefined) mul *= spec.mul;
     const v = spec.value !== undefined ? evalValue(ctx, spec.value, bearerScope(target.id)) : scaled(spec.amount, spec.perStack, effect);

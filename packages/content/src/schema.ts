@@ -83,6 +83,7 @@ const namedSelector = z.enum([
   'primaryPartners',
   'bearerAllies',
   'randomBearerAlly',
+  'randomAnyEnemy',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -455,6 +456,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         reflected: z.boolean().optional(),
         shield: z.boolean().optional(),
         costAtLeast: z.number().int().min(1).optional(),
+        anyTags: z.array(z.string()).optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),

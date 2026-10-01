@@ -172,7 +172,8 @@ function interceptorFor(
   const matches = (spec: TriggerSpec) =>
     (spec.when?.harmful ?? true) === harmful &&
     (spec.when?.strategic === undefined || spec.when.strategic === strategic) &&
-    (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast);
+    (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast) &&
+    (spec.when?.anyTags === undefined || spec.when.anyTags.some((t) => effectiveTags(ctx, actor, def).includes(t as (typeof def.tags)[number])));
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {

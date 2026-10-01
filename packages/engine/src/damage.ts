@@ -108,7 +108,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   const heals = enemy && a.direct && modsOn(ctx.s, ctx.c, target.id, 'healFromDirectDamage').length > 0;
 
   const shattered = hasNoArmorOrShield(ctx, target);
-  const taken = a.raw ? { other: 0, armor: 0, mul: 1 } : damageTakenBonus(ctx, target, a.type, a.direct);
+  const taken = a.raw ? { other: 0, armor: 0, mul: 1 } : damageTakenBonus(ctx, target, a.type, a.direct, a.skill ? ctx.c.skills[a.skill] : undefined);
   const dealt = a.raw
     ? { bonus: 0, mul: 1 }
     : damageDealtBonus(ctx, source, a.type, a.direct, a.skill ? ctx.c.skills[a.skill] : undefined, target);

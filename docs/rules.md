@@ -1719,3 +1719,29 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Sermon of Dread | Simplified: Horrified enemies are Condemned once. |
 | Shield of Martyrs | Simplified: an ally's death gives the user 2 Fervor. |
 | Strike Me Down | Any killer of the user takes the damage. |
+
+### 21.54 Vigilante (Holy + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Exposed** | Debuff: `immuneToEffects` Stealth, Invulnerable, Untargetable (any it has end when Exposed lands), and the Invisible effects it owns are revealed (`reveal by`). Vigilante-element skills deal +10 direct damage to it (`damageTaken` now honours the modifier `elements` filter). |
+| Watcher in the Dark | The kit's "Guardian in the Dark", renamed: "Guardian" is a retired word the content lint rejects. |
+| Street Justice | Simplified: Exposed first if the target was the last enemy to damage the user. |
+| Round Up the Gang | Simplified: 25 to each other enemy carrying any Buff. |
+| Pursuit / Tip Off | Next skill Stealthy via `skillTags`, until a skill is used. |
+| Caught Red-Handed | Each ally gets their own hidden counter. |
+| The Hunt Begins | Simplified: skills are Stealthy while any enemy is Exposed. |
+| Searchlight | Selector `randomAnyEnemy` (Stealthed included). Simplified: only Stealth (not Invisible effects) triggers the Exposure. |
+| From the Rooftops | A hidden watcher counts Stealth gained and Invisible skills used during the channel. |
+| Sting Operation | New trigger filter `anyTags` for intercepting skillUsed. |
+| Safe Passage | `cannotUseSkills harmful` for 3 ticks (through the user's next turn). |
+| Bloodhound's Scent | Exposed bound to the Bloodhound; a new Scent ends the previous one. |
+| Floodlight | Hits every enemy, Stealthed ones included; only Stealth or Invulnerable cause the Exposure. |
+| Interrogation | Simplified: Invisible effects are revealed and end, with no extra healing per effect. |
+| Night Patrol | Enemies are watched (counter `patrolled` = turn of their last Harmful skill). |
+| Quiet Verdict | Simplified: it still ends the user's Stealth. |
+| Setup | Counter → Condemned + `setup_watch` (2 turns): an ally of theirs who gives them a Buff is Exposed. |
+| Mask On | +10 as a follow-up hit, not direct. |
+| Full Sentence / Sweep the Streets | Checked when the bearer uses a skill while Condemned. |
+| Reinforced Trenchcoat | `boostShields −10` per Debuff prevented. |
+| Nightwarden | `ownEffectEnded` on the user's own Stealth. |

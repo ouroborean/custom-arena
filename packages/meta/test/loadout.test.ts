@@ -87,9 +87,9 @@ describe('resolveLoadout', () => {
     const onLocked = resolveLoadout(content, warrior(), of(['wind_shard'], [{ skill: 'strike', element: 'Wind' }]));
     expect(onLocked.problems).toEqual([]);
     expect(skillOf(onLocked, 'strike')?.infusion).toBe('Mechanic');
-    // Holy + Shadow (Vigilante) isn't implemented yet. (Revisit once every fusion kit is in.)
     const two = resolveLoadout(content, warrior(), of(['holy_shard', 'shadow_shard'], [{ skill: 'smash', element: 'Holy' }, { skill: 'smash', element: 'Shadow' }]));
-    expect(two.problems).toEqual(["Smash: Holy + Shadow make Vigilante, and fusion elements aren't in the game yet"]);
+    expect(two.problems).toEqual([]);
+    expect(skillOf(two, 'smash')?.infusion).toBe('Vigilante');
     const three = resolveLoadout(
       content,
       warrior(),
