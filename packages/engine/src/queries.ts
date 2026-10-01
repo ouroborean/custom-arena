@@ -167,7 +167,7 @@ export function canTarget(ctx: Ctx, source: Unit, target: Unit, bypassing: boole
 
 /** Boomerang Blade: the source's skills Bypass against a target it marked. */
 export function exposedTo(ctx: Ctx, source: Unit, target: Unit): boolean {
-  return modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ effect }) => effect.source === source.id);
+  return modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ spec, effect }) => (spec.anyEnemy ? isEnemy(source, target) : effect.source === source.id));
 }
 
 /** Taunt sources that constrain `u`'s enemy targeting (the effect's source must be the target). */

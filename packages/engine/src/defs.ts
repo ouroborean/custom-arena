@@ -54,7 +54,8 @@ export type NamedSelector =
   | 'weakestAlly' // the actor's living, targetable character ally (or self) with the least HP
   | 'weakestEnemy' // the actor's targetable enemy character with the least HP
   | 'strongestEnemy' // the actor's targetable enemy character with the most HP
-  | 'lastAttacker'; // the last enemy who damaged the actor (if still alive)
+  | 'lastAttacker' // the last enemy who damaged the actor (if still alive)
+  | 'primaryPartners'; // units Entangled with the first target (Dimension)
 
 export type Selector =
   | NamedSelector
@@ -233,6 +234,9 @@ export type Op =
   | { op: 'shareEffects'; a: Selector; b: Selector; kind: EffectKind }
   /** Moves `from`'s effects (of `kind`, or these keys) onto `to`, keeping stacks, value and time left. */
   | { op: 'moveEffects'; from: Selector; to: Selector; kind?: EffectKind; effects?: string[] }
+  /** Links the selected units (2 or more) with `effect` (a status with entangleLink) in one new group. */
+  /** `with` adds more units to the same group (e.g. a random ally of the target). */
+  | { op: 'entangle'; to: Selector; with?: Selector; effect: string; duration?: DurationSpec }
   /**
    * Reveals hidden effects: every one applied by a unit in `by`, or (`event`) the effect the
    * triggering event is about (Ocean's Whalesong).
@@ -435,6 +439,17 @@ export type ModifierSpec = ModifierBase &
   /** Evil's Unhallowed: healing the bearer would receive deals that much Affliction damage instead. */
   | { mod: 'invertHealing' }
   /**
+   * Dimension's Banished: the bearer is out of the fight. No damage, no ticks or countdowns on its
+   * effects (other than the Banished effect itself), no turn-start triggers. Pair it with
+   * cannotUseSkills and untargetable in the status.
+   */
+  | { mod: 'banished' }
+  /**
+   * Dimension's Entangled: effects applied to the bearer are applied to every unit sharing this
+   * effect's link group too (only these kinds, if given). Made by the `entangle` op.
+   */
+  | { mod: 'entangleLink'; kinds?: EffectKind[] }
+  /**
    * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
    * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.
    */
@@ -460,7 +475,8 @@ export type ModifierSpec = ModifierBase &
   /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
   | { mod: 'redirectDamage' }
   /** Skills of this effect's source Bypass against the bearer. */
-  | { mod: 'exposed' }
+  /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
+  | { mod: 'exposed'; anyEnemy?: boolean }
   /** Raises the bearer's max (and current) Health while the effect lasts. */
   | { mod: 'maxHp'; amount: number }
   /** Multiplies the bearer's Armor. */
@@ -622,7 +638,9 @@ export type SkillTag =
   /** Cloud: the skill hangs in the air and lands at the start of its user's next turn. */
   | 'Drift'
   /** Divine: can target any unit; Harmful when aimed at an enemy, Helpful when aimed at an ally. */
-  | 'Radiant';
+  | 'Radiant'
+  /** Dimension's Folded Moment: doesn't use up the character's action this turn. */
+  | 'FreeAction';
 
 export interface SkillDef {
   id: string;

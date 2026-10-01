@@ -1,0 +1,10 @@
+# Dimension keywords (docs/glossary.md).
+
+banished:
+  status: banished
+  forms: [Banished, Banishes, Banish]
+  element: Dimension
+entangled:
+  status: entangled
+  forms: [Entangled, Entangle, Entangles]
+  element: Dimension

@@ -34,6 +34,32 @@ export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
 }
 
 export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
+  const r = applyEffectOnce(ctx, a);
+  if (r && !ctx.entangling) spreadEntangled(ctx, a, r);
+  return r;
+}
+
+/** Dimension's Entangled: an effect applied to a linked unit is applied to its partners too. */
+function spreadEntangled(ctx: Ctx, a: ApplyArgs, applied: EffectInstance): void {
+  if ((effectDef(ctx.c, applied).modifiers ?? []).some((m) => m.mod === 'entangleLink')) return;
+  const partners = new Set<string>();
+  for (const { spec, effect } of modsOn(ctx.s, ctx.c, a.bearer.id, 'entangleLink')) {
+    if (spec.kinds && !spec.kinds.includes(a.def.kind)) continue;
+    for (const x of ctx.s.effects) if (x.data.group === effect.data.group && x.bearer !== a.bearer.id) partners.add(x.bearer);
+  }
+  if (partners.size === 0) return;
+  ctx.entangling = true;
+  try {
+    for (const id of partners) {
+      const u = findUnit(ctx.s, id);
+      if (u?.alive) applyEffectOnce(ctx, { ...a, bearer: u });
+    }
+  } finally {
+    ctx.entangling = false;
+  }
+}
+
+function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   const { def, bearer, source } = a;
   if (!bearer.alive) return null;
   // "Any target that attempts to become Invulnerable" (Emblem of the Blackout): heard before any block.

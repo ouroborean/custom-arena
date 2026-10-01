@@ -898,3 +898,21 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Wail of the Damned | Unhallowed until the end of the enemies' next turn; anyone healed meanwhile (the heal hurts) is also Horrified. |
 | Wretched Bulwark | 10 Affliction from each Unhallowed or Horrified enemy, +10 Shield each. |
 | Lord of Souls | `protectEffects` keeps the user's Fragments from being spent or removed. |
+
+### 21.10 Dimension (Shadow + Shadow)
+
+| Term | Ruling |
+|---|---|
+| Banished | Out of the fight until the end of the bearer's next turn: can't act, can't be targeted by either side, takes no damage; its effects neither tick nor count down (turnStart triggers skip it). On an enemy it's a Debuff (`banished`), on the user's side a Buff (`banished_ally`, counts as `banished`). Banishing interrupts the unit's channels. |
+| Entangled | A link group made by the `entangle` op. An effect applied to one member is applied once to each other member (no re-spreading). `entangled_buffs` only passes Buffs. A death breaks the bearer out of the group. |
+| Folded Moment | FreeAction: one free-action skill plus one normal skill can be queued in a turn. |
+| Phase Lunge | Stealth arrives at the start of the user's next turn; any enemy targeting skill first cancels it. |
+| Void Walker | Any of the user's non-Stealthy skills used while Stealthed Blinds its enemy targets. |
+| Event Horizon | Counters the bearer's first non-Harmful skill; its primary target is Banished. |
+| Step Between | No last attacker: only the user is Banished. |
+| Crossfold | Each turn: a random ally's random Debuff goes to a random enemy, and a random enemy's random Buff goes to a random ally. |
+| Phase Lock | A damage wake-up Banishes instead (Sleep is already gone). |
+| Unfold / Safe Harbor | The payoff is an onExpire on a frozen companion effect, so it fires when Banished ends. |
+| Tangled Fates | Each skill the bearer uses gives them 1 Confusion, which Entangled spreads to the partner (one direction, simplified). |
+| Pocket Arena | Everyone else, minions included, is Banished for the rest of this turn and the enemies' next. |
+| Faceless Void | Partner is the ally character with the least HP; Armor and Immune spread through the link. |

@@ -78,6 +78,7 @@ const namedSelector = z.enum([
   'weakestEnemy',
   'strongestEnemy',
   'lastAttacker',
+  'primaryPartners',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -235,7 +236,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('keepChannels') }),
   mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
   mod({ mod: z.literal('redirectDamage') }),
-  mod({ mod: z.literal('exposed') }),
+  mod({ mod: z.literal('exposed'), anyEnemy: z.boolean().optional() }),
   mod({ mod: z.literal('maxHp'), amount: z.number().int() }),
   mod({ mod: z.literal('armorMul'), mul: z.number().min(0) }),
   mod({ mod: z.literal('stackCap'), effect: z.string(), max: z.number().int().min(2) }),
@@ -257,6 +258,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('adaptiveHide') }),
   mod({ mod: z.literal('shareDamage') }),
   mod({ mod: z.literal('invertHealing') }),
+  mod({ mod: z.literal('banished') }),
+  mod({ mod: z.literal('entangleLink'), kinds: z.array(effectKind).optional() }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 
@@ -311,6 +314,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema, on: selectorSchema.optional() }),
     z.strictObject({ op: z.literal('transformMinion'), to: selectorSchema, minion: z.string() }),
     z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
+    z.strictObject({ op: z.literal('entangle'), to: selectorSchema, with: selectorSchema.optional(), effect: z.string(), duration: durationSchema.optional() }),
     z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
     z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional(), end: z.boolean().optional() }),
     z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
@@ -455,6 +459,7 @@ const skillTag = z.enum([
   'Stealthy',
   'Drift',
   'Radiant',
+  'FreeAction',
 ]);
 
 /** Skills are keyed by id in the file; the loader injects `id`. */

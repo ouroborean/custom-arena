@@ -117,6 +117,15 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
     case 'weakestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'primaryPartners': {
+      const p = sc.targets[0];
+      if (!p) return [];
+      const groups = new Set(
+        modsOn(ctx.s, ctx.c, p, 'entangleLink').map(({ effect }) => effect.data.group),
+      );
+      const ids = new Set(ctx.s.effects.filter((x) => groups.has(x.data.group) && x.bearer !== p).map((x) => x.bearer));
+      return [...ids].flatMap((id) => one(ctx, id)).filter((u) => u.alive);
+    }
     case 'lastAttacker': {
       const u = actor.lastAttacker ? findUnit(ctx.s, actor.lastAttacker) : undefined;
       return u?.alive ? [u] : [];
@@ -487,6 +496,19 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'interrupt':
       for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
       return;
+    case 'entangle': {
+      const units = [...new Set([...select(ctx, op.to, sc), ...(op.with ? select(ctx, op.with, sc) : [])])];
+      if (units.length < 2) return;
+      const group = nextId(ctx, 'g');
+      const def = resolveEffectDef(ctx.c, op.effect);
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return;
+      for (const u of units) {
+        const e = applyEffect(ctx, { def, inline: false, bearer: u, source: actor, sourceSkill: sc.skill, duration });
+        if (e) e.data.group = group;
+      }
+      return;
+    }
     case 'moveEffects': {
       const from = select(ctx, op.from, sc)[0];
       const to = select(ctx, op.to, sc)[0];

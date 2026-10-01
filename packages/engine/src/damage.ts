@@ -71,6 +71,12 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     if (minions.length > 0) return dealDamage(ctx, { ...a, target: minions[nextInt(ctx.s.rng, minions.length)]! });
   }
 
+  // Dimension's Banished: out of the fight, nothing reaches them.
+  if (modsOn(ctx.s, ctx.c, target.id, 'banished').length > 0) {
+    emit(ctx, { t: 'damageBlocked', source: source.id, target: target.id, reason: 'banished' });
+    return 0;
+  }
+
   // Life's Common Root: the hit is split evenly across every unit on that side that shares it.
   if (!a.split && modsOn(ctx.s, ctx.c, target.id, 'shareDamage').length > 0) {
     const group = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && modsOn(ctx.s, ctx.c, u.id, 'shareDamage').length > 0);
@@ -295,7 +301,10 @@ export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void
   // "When an ally dies…": everyone hears it, with what the unit carried at the time.
   broadcastSignal(ctx, 'died', killer ?? u, { target: u, snapshot: effectsOn(ctx.s, u.id).slice(), eventSkill: skill });
   interruptChannels(ctx, u, 'death');
+  // Dimension's Entangled: a death breaks every link it was part of.
+  const groups = new Set(modsOn(ctx.s, ctx.c, u.id, 'entangleLink').map(({ effect }) => effect.data.group));
   for (const e of effectsOn(ctx.s, u.id)) removeEffect(ctx, e, 'died');
+  for (const e of ctx.s.effects.filter((x) => x.data.group !== undefined && groups.has(x.data.group))) removeEffect(ctx, e, 'removed');
   // Auras granted by this unit (e.g. a minion's gift to its owner) end with it.
   for (const e of ctx.s.effects.filter((x) => x.data.boundTo === u.id)) removeEffect(ctx, e, 'removed');
 }

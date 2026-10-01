@@ -29,6 +29,8 @@ export interface Ctx {
   events: GameEvent[];
   triggerQueue: PendingTrigger[];
   flushing: boolean;
+  /** Set while Entangled copies are being applied, so they don't spread again. */
+  entangling?: boolean;
   /** State snapshots for `checkpoint` events, or null when they weren't asked for. */
   checkpoints: GameState[] | null;
 }

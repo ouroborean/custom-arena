@@ -4,7 +4,7 @@
 import { checkpoint, effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
 import { removeEffect } from './effects.js';
 import { enqueueFor, enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
-import { energyGainBonus } from './queries.js';
+import { energyGainBonus, modsOn } from './queries.js';
 import { landDrifting } from './pipeline.js';
 import { pick } from './rng.js';
 import { COLORS, type EffectInstance, type Energy } from './types.js';
@@ -50,10 +50,21 @@ export function startTurn(ctx: Ctx): void {
 
   // Cloud's Drift: last turn's drifting skills land now.
   landDrifting(ctx);
-  for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
+  for (const u of ctx.s.units) if (u.alive && u.owner === p && !isBanished(ctx, u.id)) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);
   checkGameOver(ctx);
   checkpoint(ctx);
+}
+
+/** Dimension's Banished: the unit is out of the fight. */
+function isBanished(ctx: Ctx, unitId: string): boolean {
+  return modsOn(ctx.s, ctx.c, unitId, 'banished').length > 0;
+}
+
+/** Effects on a Banished unit neither tick nor count down (except the Banished effect itself). */
+function frozen(ctx: Ctx, e: EffectInstance): boolean {
+  if (!isBanished(ctx, e.bearer)) return false;
+  return !(effectDef(ctx.c, e).modifiers ?? []).some((m) => m.mod === 'banished');
 }
 
 function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
@@ -63,7 +74,7 @@ function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
 /** The active player's ticking effects, in their chosen order (then application order). */
 export function tickingEffects(ctx: Ctx): EffectInstance[] {
   const p = ctx.s.activePlayer;
-  const mine = ctx.s.effects.filter((e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e));
+  const mine = ctx.s.effects.filter((e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e) && !frozen(ctx, e));
   const order = ctx.s.players[p].tickOrder ?? [];
   const rank = (e: EffectInstance) => {
     const i = order.indexOf(e.id);
@@ -91,7 +102,7 @@ export function endTurn(ctx: Ctx): void {
   // b. Every effect on the board counts down; those reaching 0 expire (Q1).
   const expired: EffectInstance[] = [];
   for (const e of s.effects) {
-    if (e.duration === null) continue;
+    if (e.duration === null || frozen(ctx, e)) continue;
     e.duration -= 1;
     if (e.duration <= 0) expired.push(e);
   }

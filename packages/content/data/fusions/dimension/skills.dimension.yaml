@@ -1,0 +1,698 @@
+# The 30 Dimension (Shadow + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Keywords: Banished (out of the fight until the end of their next turn) and Entangled (effects
+# applied to one linked unit land on its partners too; the `entangle` op makes a link group).
+
+strike.dimension:
+  archetype: Strike
+  element: Dimension
+  name: Folded Moment
+  description: >-
+    Deals 10 damage to target enemy. Time folds: this doesn't use up the user's turn, so they can use
+    another skill this turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic, FreeAction]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+smash.dimension:
+  archetype: Smash
+  element: Dimension
+  name: Implosion
+  description: Deals 30 damage to target enemy and 20 to their allies; then the user is Banished.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30 }
+    - { op: damage, to: primaryAllies, amount: 20 }
+    - { op: interrupt, to: actor }
+    - { op: apply, to: actor, effect: banished_ally, duration: { raw: 3 } }
+
+charge.dimension:
+  archetype: Charge
+  element: Dimension
+  name: Phase Lunge
+  description: >-
+    Deals 15 damage to target enemy, Bypassing. The user gains Stealth at the start of their next
+    turn unless an enemy targets them first.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Bypass]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, bypass: true }
+    - op: apply
+      to: actor
+      duration: { raw: 2 }
+      effect:
+        id: phase_lunge
+        name: Phasing
+        kind: Buff
+        element: Dimension
+        description: Gains Stealth at the start of the bearer's next turn unless an enemy targets them first.
+        triggers:
+          - on: skillTargeted
+            when: { side: enemy }
+            do:
+              - { op: removeSelf }
+        onExpire:
+          - { op: macro, id: gain_stealth }
+
+riposte.dimension:
+  archetype: Riposte
+  element: Dimension
+  name: Pocket Dimension
+  description: For 1 turn, counters the first Harmful skill used on the user, and its user is Banished. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pocket_dimension
+        name: Pocket Dimension
+        kind: Buff
+        element: Dimension
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Banishes its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: interrupt, to: eventSource }
+              - { op: apply, to: eventSource, effect: banished, duration: { raw: 3 } }
+
+rage.dimension:
+  archetype: Rage
+  element: Dimension
+  name: Void Walker
+  description: >-
+    For 3 turns, the user gains 1 Might and Immune. Each time a skill of theirs ends their Stealth,
+    its targets are Blinded for 1 turn. Stealthy.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: void_walker
+        name: Void Walker
+        kind: Buff
+        element: Dimension
+        description: A skill that ends the bearer's Stealth Blinds its targets for 1 turn.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: stealth } }, { not: { eventSkill: { tags: [Stealthy] } } }] }
+                then:
+                  - { op: apply, to: { filter: eventTargets, where: { isEnemy: it } }, effect: blinded, duration: { enemyTurns: 1 } }
+
+shot.dimension:
+  archetype: Shot
+  element: Dimension
+  name: Echo Shard
+  description: >-
+    Deals 10 Piercing damage to target enemy. If they're Entangled, their partners take it too; if
+    not, they're Entangled with a random ally for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: entangled } }
+      then:
+        - { op: damage, to: primary, amount: 10, type: Piercing }
+        - { op: damage, to: primaryPartners, amount: 10, type: Piercing }
+      else:
+        - { op: damage, to: primary, amount: 10, type: Piercing }
+        - { op: entangle, to: primary, with: { randomEnemy: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
+
+snipe.dimension:
+  archetype: Snipe
+  element: Dimension
+  name: Through the Rift
+  description: >-
+    On the following turn, deals 40 damage to target enemy. Channeling and landing it don't end the
+    user's Stealth. The target of this skill is invisible. Channeled, Stealthy.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Stealthy]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: through_the_rift
+        name: Through the Rift (aiming)
+        kind: Neutral
+        element: Dimension
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+
+trap.dimension:
+  archetype: Trap
+  element: Dimension
+  name: Event Horizon
+  description: For 2 turns, the first time target enemy uses a Helpful skill, its target is Banished instead of helped. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: event_horizon
+        name: Event Horizon
+        kind: Debuff
+        element: Dimension
+        visibility: hidden
+        description: The bearer's first Helpful skill is countered, and its target is Banished.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              - { op: interrupt, to: eventPrimary }
+              - { op: apply, to: eventPrimary, effect: banished, duration: { raw: 3 } }
+
+maneuver.dimension:
+  archetype: Maneuver
+  element: Dimension
+  name: Step Between
+  description: The user is Banished, and so is the last enemy who damaged them.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: interrupt, to: lastAttacker }
+    - { op: apply, to: lastAttacker, effect: banished, duration: { raw: 2 } }
+    - { op: interrupt, to: actor }
+    - { op: apply, to: actor, effect: banished_ally, duration: { raw: 3 } }
+
+companion.dimension:
+  archetype: Companion
+  element: Dimension
+  name: Void Stalker
+  description: >-
+    Summons a Void Stalker (30 HP) permanently. Tether (r): target enemy and a random ally of theirs
+    are Entangled for 2 turns. Rend (r): 10 Piercing damage, and Entangled partners take it too.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: void_stalker }
+
+bolt.dimension:
+  archetype: Bolt
+  element: Dimension
+  name: Dark Matter
+  description: >-
+    Target enemy is Entangled with a random ally for 2 turns, then takes 20 damage and is Blinded for
+    2 turns (so both are).
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: entangle, to: primary, with: { randomEnemy: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+
+blast.dimension:
+  archetype: Blast
+  element: Dimension
+  name: Singularity
+  description: Deals 25 damage to all enemies; then the one with the most HP is Banished.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: interrupt, to: strongestEnemy }
+    - { op: apply, to: strongestEnemy, effect: banished, duration: { raw: 2 } }
+
+consume.dimension:
+  archetype: Consume
+  element: Dimension
+  name: Sever
+  description: >-
+    Deals 5 Affliction damage to all enemies. Blinded ones take 10 more, and each Blind moves to a
+    random enemy who isn't Blinded.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      type: Affliction
+      amount: { if: { has: { unit: it, effect: blinded } }, then: 15, else: 5 }
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: blinded } } }
+      do:
+        - { op: removeEffect, from: it, effect: blinded }
+        - { op: apply, to: { randomEnemy: 1, exclude: it, where: { not: { has: { unit: it, effect: blinded } } } }, effect: blinded, duration: { enemyTurns: 1 } }
+
+summon.dimension:
+  archetype: Summon
+  element: Dimension
+  name: Rift
+  description: >-
+    Summons a Rift (20 HP) for 3 turns. Shunt (I): target enemy is Isolated for 1 turn, or Banished if they already were.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: rift, duration: { enemyTurns: 3 } }
+
+channel.dimension:
+  archetype: Channel
+  element: Dimension
+  name: Crossfold
+  description: >-
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and a random
+    ally's Debuff trades places with a random enemy's Buff. Channeled.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: crossfold
+        name: Crossfold
+        kind: Neutral
+        element: Dimension
+        interruptible: true
+        description: Each turn, 10 damage to all enemies, and a Debuff and a Buff trade sides.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - { op: stealRandom, from: { randomAlly: 1, where: { hasKind: { unit: it, kind: Debuff } } }, to: { randomEnemy: 1 }, kind: Debuff }
+              - { op: stealRandom, from: { randomEnemy: 1, where: { hasKind: { unit: it, kind: Buff } } }, to: { randomAlly: 1 }, kind: Buff }
+
+stab.dimension:
+  archetype: Stab
+  element: Dimension
+  name: Unwatched Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Knifing an Isolated target,
+    alone and unwatched, gives the user Stealth.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: isolated } }
+      then:
+        - { op: macro, id: gain_stealth }
+
+ravage.dimension:
+  archetype: Ravage
+  element: Dimension
+  name: Rend Space
+  description: Deals 25 Piercing damage to target enemy; any Blind or Isolation on them lasts 2 turns longer.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: extendEffects, on: primary, effects: [blinded, isolated], by: 4 }
+
+mislead.dimension:
+  archetype: Mislead
+  element: Dimension
+  name: Crossed Doors
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they're Entangled with a
+    random ally for 2 turns; then they're Isolated for 1 turn, so both are. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: crossed_doors
+        name: Crossed Doors
+        kind: Debuff
+        element: Dimension
+        visibility: hidden
+        description: The bearer's first Harmful skill is countered; they're Entangled with an ally and Isolated.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: entangle, to: bearer, with: { randomEnemy: 1, exclude: bearer }, effect: entangled, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
+
+stun.dimension:
+  archetype: Stun
+  element: Dimension
+  name: Phase Lock
+  description: Deals 10 damage to target enemy, and they fall Asleep. If damage wakes them, they're Banished instead.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: phase_lock
+        name: Phase Lock
+        kind: Debuff
+        element: Dimension
+        description: If damage wakes the bearer, they're Banished instead.
+        triggers:
+          - on: damaged
+            when: { wakes: true }
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: sleep } } }
+                then:
+                  - { op: apply, to: bearer, effect: banished, duration: { raw: 2 } }
+                  - { op: removeSelf }
+
+dance.dimension:
+  archetype: Dance
+  element: Dimension
+  name: Unfold
+  description: The user is Banished. When they return, they gain Stealth, and Ghosted and 1 Focus for 2 turns.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: interrupt, to: actor }
+    - op: apply
+      to: actor
+      effect: banished_ally
+      duration: { raw: 3 }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: unfold
+        name: Unfolding
+        kind: Buff
+        element: Dimension
+        description: When the bearer returns, they gain Stealth, Ghosted and 1 Focus.
+        modifiers:
+          - { mod: banished }
+        onExpire:
+          - { op: macro, id: gain_stealth }
+          - { op: apply, to: bearer, effect: ghosted, duration: { enemyTurns: 2 } }
+          - { op: apply, to: bearer, effect: focus, duration: { enemyTurns: 2 } }
+
+heal.dimension:
+  archetype: Heal
+  element: Dimension
+  name: Safe Harbor
+  description: Target ally is Banished. When they return, they heal 30 and lose their Debuffs.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: interrupt, to: primary }
+    - { op: apply, to: primary, effect: banished_ally, duration: { raw: 3 } }
+    - op: apply
+      to: primary
+      duration: { raw: 3 }
+      effect:
+        id: safe_harbor
+        name: Safe Harbor
+        kind: Buff
+        element: Dimension
+        description: When the bearer returns, they heal 30 and lose their Debuffs.
+        modifiers:
+          - { mod: banished }
+        onExpire:
+          - { op: heal, to: bearer, amount: 30 }
+          - { op: removeKind, from: bearer, kind: Debuff }
+
+bless.dimension:
+  archetype: Bless
+  element: Dimension
+  name: Twin Veil
+  description: Target ally and a random other ally are Entangled for 2 turns; then target ally gains Stealth.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: entangle, to: primary, with: { randomAlly: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
+
+curse.dimension:
+  archetype: Curse
+  element: Dimension
+  name: Tangled Fates
+  description: >-
+    Target enemy and a random ally of theirs are Entangled for 3 turns. Each time either uses a
+    skill, the other gains 1 Confusion, so both do.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: entangle, to: primary, with: { randomEnemy: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tangled_fates
+        name: Tangled Fates
+        kind: Debuff
+        element: Dimension
+        description: Each skill the bearer uses gives them (and their Entangled partner) 1 Confusion.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: confusion, duration: { enemyTurns: 1 } }
+
+smite.dimension:
+  archetype: Smite
+  element: Dimension
+  name: Void Brand
+  description: >-
+    Deals 10 damage to target enemy. For 2 turns, the user's side can target them even if they're
+    Stealthed, Untargetable or Invulnerable.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: void_brand
+        name: Void Brand
+        kind: Debuff
+        element: Dimension
+        description: Every enemy of the bearer can target them past Untargetable and Invulnerable.
+        modifiers:
+          - { mod: exposed, anyEnemy: true }
+
+prayer.dimension:
+  archetype: Prayer
+  element: Dimension
+  name: Lifeline Weave
+  description: All allies heal 20 and are Entangled together for 2 turns, but only Buffs pass through this link.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: entangle, to: targets, effect: entangled_buffs, duration: { enemyTurns: 2 } }
+
+cleave.dimension:
+  archetype: Cleave
+  element: Dimension
+  name: Shear
+  description: Deals 10 damage to all enemies, repeated at the start of the user's next turn if they're still Stealthed. Stealthy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }
+    - op: apply
+      to: actor
+      duration: { raw: 2 }
+      effect:
+        id: shear
+        name: Shear
+        kind: Neutral
+        element: Dimension
+        description: Cuts again at the start of the user's next turn if they're still Stealthed.
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: stealth } }
+            then:
+              - { op: damage, to: allEnemies, amount: 10 }
+
+shout.dimension:
+  archetype: Shout
+  element: Dimension
+  name: Dislocation
+  description: All enemies are Entangled together for 2 turns, then Blinded for 1 turn.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: entangle, to: targets, effect: entangled, duration: { enemyTurns: 2 } }
+    - { op: apply, to: targets, effect: blinded, duration: { enemyTurns: 1 } }
+
+withstand.dimension:
+  archetype: Withstand
+  element: Dimension
+  name: Pocket Ward
+  description: >-
+    The user gains 25 Shield for 1 turn. Damage it absorbs is folded across: the ally with the least
+    HP gains that much Shield for 1 turn.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pocket_ward
+        name: Pocket Ward
+        kind: Buff
+        element: Dimension
+        shield: true
+        description: What this Shield absorbs becomes Shield on the ally with the least HP.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: apply, to: weakestAlly, effect: shield, value: { eventAmount: true }, duration: { enemyTurns: 1 } }
+
+taunt.dimension:
+  archetype: Taunt
+  element: Dimension
+  name: Pocket Arena
+  description: >-
+    Target enemy is Taunted by the user for 1 turn, and every other unit on both sides, minions
+    included, is Banished: the two fight alone.
+  cost: r
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
+    - { op: interrupt, to: { filter: allUnits, exclude: primary, where: { not: { isActor: it } } } }
+    - { op: apply, to: { filter: allEnemies, exclude: primary, where: { not: { isActor: it } } }, effect: banished, duration: { raw: 2 } }
+    - { op: apply, to: { filter: allAllies, exclude: actor, where: { not: { isActor: it } } }, effect: banished_ally, duration: { raw: 2 } }
+
+titan.dimension:
+  archetype: Titan
+  element: Dimension
+  name: Faceless Void
+  description: >-
+    For 3 turns, the user is Entangled with the ally with the least HP, then gains 2 Armor and
+    Immune, so that ally does too.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: entangle, to: actor, with: { filter: allAllies, exclude: actor, where: { kind: { unit: it, is: character } } }, effect: entangled, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+void_stalker_tether:
+  archetype: Minion
+  element: Dimension
+  name: Tether
+  description: Target enemy and a random ally of theirs are Entangled for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: entangle, to: primary, with: { randomEnemy: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
+
+void_stalker_rend:
+  archetype: Minion
+  element: Dimension
+  name: Rend
+  description: Deals 10 Piercing damage to target enemy, and their Entangled partners take it too.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - { op: damage, to: primaryPartners, amount: 10, type: Piercing }
+
+rift_shunt:
+  archetype: Minion
+  element: Dimension
+  name: Shunt
+  description: Target enemy is Isolated for 1 turn, or Banished if they already were.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: isolated } }
+      then:
+        - { op: interrupt, to: primary }
+        - { op: apply, to: primary, effect: banished, duration: { raw: 2 } }
+      else:
+        - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 1 } }

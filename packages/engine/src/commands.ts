@@ -29,12 +29,15 @@ export function checkQueue(ctx: Ctx, player: PlayerId, cmd: Extract<Command, { t
   const actor = findUnit(s, cmd.actor);
   if (!actor || actor.owner !== player) return new CommandError('bad_actor', 'Not your unit');
   if (!actor.alive) return new CommandError('bad_actor', `${actor.name} is dead`);
-  if (s.players[player].queue.some((q) => q.actor === actor.id)) {
-    return new CommandError('already_queued', `${actor.name} already has a queued skill`);
-  }
   const slot = actor.skills[cmd.slot];
   if (!slot) return new CommandError('bad_slot', 'No such skill');
   const def = skillDef(ctx.c, slot.defId);
+  // One skill per character per turn, plus one FreeAction skill (Dimension's Folded Moment).
+  const free = def.tags.includes('FreeAction');
+  const queued = s.players[player].queue.filter((q) => q.actor === actor.id);
+  if (queued.some((q) => skillDef(ctx.c, actor.skills[q.slot]!.defId).tags.includes('FreeAction') === free)) {
+    return new CommandError('already_queued', `${actor.name} already has a queued skill`);
+  }
   if (slot.cooldown > 0) return new CommandError('on_cooldown', `${def.name} is on cooldown (${slot.cooldown})`);
   const blocked = cannotUseReason(ctx, actor, def) ?? unmetRequirement(ctx, actor, def);
   if (blocked) return new CommandError('cannot_act', `${actor.name} can't use ${def.name}: ${blocked}`);
