@@ -289,8 +289,8 @@ consume.mist:
           - { lastDamage: true }
           - if:
               and:
-                - { compare: { value: { counterOf: { unit: primary, name: "c:healed_turn" } }, atLeast: 1 } }
-                - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: primary, name: "c:healed_turn" } }] }] }, atMost: 2 } }
+                - { compare: { value: { counterOf: { unit: primary, name: healed_turn } }, atLeast: 1 } }
+                - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: primary, name: healed_turn } }] }] }, atMost: 2 } }
             then: 20
             else: 0
 

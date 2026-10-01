@@ -218,7 +218,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const targets = fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets));
   // Blood's Blood Price: the random costs are paid in HP now (it fails if that would kill).
   const blood = bloodPriceHp(ctx, actor, def);
-  actor.counters.blood_paid = blood;
+  actor.counters['c:blood_paid'] = blood;
   if (blood > 0) {
     if (blood >= actor.hp) return fail(ctx, actor, def, 'Blood Price would kill', false);
     dealDamage(ctx, { source: actor, target: actor, amount: blood, type: 'Affliction', direct: false, bypass: true, raw: true });
@@ -227,6 +227,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   if (def.tags.includes('Drift') || modsOn(ctx.s, ctx.c, actor.id, 'driftSkills').length > 0) {
     if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
     actor.counters.actedTurn = ctx.s.turn;
+    actor.counters['c:actedTurn'] = ctx.s.turn;
     (ctx.s.drifting ??= []).push({ actor: actor.id, slot: action.slot, defId: def.id, targets });
     emit(ctx, { t: 'skillDrifting', actor: actor.id, skill: def.id, targets });
     return;
@@ -286,7 +287,7 @@ function fogTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): Un
   if (legal.length === 0) return targets;
   const pick = legal[nextInt(ctx.s.rng, legal.length)]!;
   if (pick.id !== first.id) {
-    first.counters.fog_redirect_turn = ctx.s.turn;
+    first.counters['c:fog_redirect_turn'] = ctx.s.turn;
     broadcastSignal(ctx, 'fog_redirect', first, { target: actor });
   }
   return [pick.id];
@@ -297,6 +298,7 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   const tags = effectiveTags(ctx, actor, def);
   // "Allies that acted before you this turn" (equipment).
   actor.counters.actedTurn = ctx.s.turn;
+  actor.counters['c:actedTurn'] = ctx.s.turn; // readable from content
 
   // 3. Cooldown starts, and using a skill ends the user's other channels (Q6), unless equipment says otherwise.
   const slot = actor.skills[slotIndex];
@@ -345,6 +347,7 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     // Uses per skill (Ocean's Crest and Trough alternate on it).
     actor.counters[`uses:${def.id}`] = (actor.counters[`uses:${def.id}`] ?? 0) + 1;
     actor.counters.lastSlot = slotIndex;
+    actor.counters['c:lastSlot'] = slotIndex; // readable from content
     for (const e of ending) removeEffect(ctx, e, 'consumed');
     for (const e of stealthed) {
       if (!ctx.s.effects.includes(e)) continue;

@@ -1,0 +1,80 @@
+# Nomad (Wind + Earth) statuses, from the "Fusion Spec Kits" design doc.
+
+trek:
+  name: Trek
+  kind: Neutral
+  element: Nomad
+  stacking: merge
+  maxStacks: 3
+  description: >-
+    Max 3. +1 at the end of each of the bearer's turns in which they used a different skill than on their
+    previous turn; repeating a skill, or using none, resets it.
+
+# Fusion passive (every Nomad character): keeps Trek.
+nomad_trek:
+  name: Wanderer
+  kind: Neutral
+  element: Nomad
+  stacking: unique
+  description: Tracks this character's Trek.
+  triggers:
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - { op: setCounter, name: hit_turn, on: bearer, value: { turn: true } }
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: dune_colossus } } }
+          then:
+            - op: if
+              cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: actedTurn } }] }] }, atMost: 0 } }
+              then:
+                - op: if
+                  cond:
+                    or:
+                      - { compare: { value: { sum: [{ counterOf: { unit: bearer, name: lastSlot } }, { mul: [-1, { counterOf: { unit: bearer, name: trek_prev_slot } }] }] }, atLeast: 1 } }
+                      - { compare: { value: { sum: [{ counterOf: { unit: bearer, name: lastSlot } }, { mul: [-1, { counterOf: { unit: bearer, name: trek_prev_slot } }] }] }, atMost: -1 } }
+                      - { compare: { value: { counterOf: { unit: bearer, name: trek_started } }, atMost: 0 } }
+                  then:
+                    - { op: forEach, in: bearer, do: [{ op: macro, id: gain_trek }] }
+                  else:
+                    - op: if
+                      cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: knife_turn } }] }] }, atLeast: 1 } }
+                      then: [{ op: forEach, in: bearer, do: [{ op: macro, id: reset_trek }] }]
+                - { op: setCounter, name: trek_prev_slot, on: bearer, value: { counterOf: { unit: bearer, name: lastSlot } } }
+                - { op: setCounter, name: trek_started, on: bearer, value: 1 }
+              else:
+                - op: if
+                  cond: { not: { any: { in: allAllies, cond: { minion: { unit: it, types: [pack_camel] } } } } }
+                  then: [{ op: forEach, in: bearer, do: [{ op: macro, id: reset_trek }] }]
+
+# Mirage: counters the next Harmful skill, lets the one after through, and so on.
+mirage:
+  name: Mirage
+  kind: Debuff
+  element: Nomad
+  stacking: unique
+  visibility: hidden
+  description: The bearer's next Harmful skill is countered; the one after lands.
+  triggers:
+    - on: skillUsed
+      when: { harmful: true }
+      intercept: counter
+      do:
+        - { op: apply, to: bearer, effect: mirage_lull, duration: { raw: 4 } }
+        - { op: removeSelf }
+
+mirage_lull:
+  name: Mirage
+  kind: Debuff
+  element: Nomad
+  stacking: unique
+  visibility: hidden
+  description: The bearer's next Harmful skill lands; the one after is countered.
+  triggers:
+    - on: skillResolved
+      when: { harmful: true }
+      do:
+        - { op: apply, to: bearer, effect: mirage, duration: { raw: 4 } }
+        - { op: removeSelf }

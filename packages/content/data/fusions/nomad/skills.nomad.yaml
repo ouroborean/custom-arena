@@ -1,0 +1,715 @@
+# The 30 Nomad (Wind + Earth) variants, from the "Fusion Spec Kits" design doc.
+# Trek (Neutral, max 3) is kept by the Wanderer passive: it compares the skill slot used each turn with the
+# one before. `gain_trek` / `reset_trek` send `trek_rose` / `trek_reset` signals.
+
+strike.nomad:
+  archetype: Strike
+  element: Nomad
+  name: Wayfarer's Blow
+  description: Deals 15 damage to target enemy. The user spends all their Trek for 10 more per Trek spent.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [15, { mul: [10, { stacks: { unit: actor, effect: trek } }] }] } }
+    - { op: removeEffect, from: actor, effect: trek }
+
+smash.nomad:
+  archetype: Smash
+  element: Nomad
+  name: Dune Crash
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. At 3 Trek, each one hit is also buried: they lose
+    their mobility buffs and are Isolated for 1 turn.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: trek } }, atLeast: 3 } }
+      then:
+        - { op: removeEffect, from: allEnemies, effect: swiftness }
+        - { op: removeEffect, from: allEnemies, effect: rushing }
+        - { op: removeEffect, from: allEnemies, effect: leaping }
+        - { op: apply, to: allEnemies, effect: isolated, duration: { enemyTurns: 1 } }
+
+charge.nomad:
+  archetype: Charge
+  element: Nomad
+  name: Break Camp
+  description: >-
+    The user begins Rushing. If they have an allied Boulder or Seedling, they pack one up: it's removed, and
+    they gain 2 Trek.
+  cost: nc
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: rushing }
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder, seedling] } } }
+      do:
+        - { op: kill, to: it }
+        - { op: forEach, in: actor, do: [{ op: macro, id: gain_trek }, { op: macro, id: gain_trek }] }
+
+riposte.nomad:
+  archetype: Riposte
+  element: Nomad
+  name: Stone and Sand
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Taunted for 1 turn by a Boulder
+    the user creates. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: stone_and_sand
+        name: Stone and Sand
+        kind: Buff
+        element: Nomad
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Taunts its user toward a Boulder.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: summon, minion: boulder }
+              - { op: apply, to: eventSource, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+
+rage.nomad:
+  archetype: Rage
+  element: Nomad
+  name: Wanderlust
+  description: >-
+    For 3 turns, the user is Immune, and each time their Trek rises they gain 1 Might, which lasts until their
+    Trek next resets.
+  cost: W
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: wanderlust
+        name: Wanderlust
+        kind: Buff
+        element: Nomad
+        description: Each Trek gained also gives 1 Might until the Trek resets.
+        triggers:
+          - on: signal
+            signal: trek_rose
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then:
+                  - op: apply
+                    to: bearer
+                    effect:
+                      id: wanderlust_might
+                      name: Wanderlust
+                      kind: Buff
+                      element: Nomad
+                      countsAs: [might]
+                      description: +5 direct damage until the bearer's Trek resets.
+                      modifiers:
+                        - { mod: damageDealt, amount: 5, when: { direct: true } }
+                      triggers:
+                        - on: signal
+                          signal: trek_reset
+                          when: { side: ally }
+                          do:
+                            - { op: if, cond: { isActor: eventSource }, then: [{ op: removeSelf }] }
+
+shot.nomad:
+  archetype: Shot
+  element: Nomad
+  name: Sling Stone
+  description: Deals 15 damage to target enemy. The user Leaps if no enemy has damaged them since their last turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond:
+        or:
+          - { compare: { value: { counter: hit_turn }, atMost: 0 } }
+          - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: hit_turn }] }] }, atLeast: 2 } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: leap }] }]
+
+snipe.nomad:
+  archetype: Snipe
+  element: Nomad
+  name: Haboob
+  description: On the following turn, deals 25 Piercing damage to the enemy team. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: haboob
+        name: Haboob
+        kind: Neutral
+        element: Nomad
+        interruptible: true
+        description: Breaks over the enemy team at the end of the following turn.
+        onExpire:
+          - { op: damage, to: allEnemies, amount: 25, type: Piercing }
+
+trap.nomad:
+  archetype: Trap
+  element: Nomad
+  name: Sinking Sands
+  description: >-
+    For 3 turns, target enemy has a Trap of 15, which grows by 10 each time the user's Trek rises. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      value: 15
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sinking_sands
+        name: Trap
+        kind: Debuff
+        element: Nomad
+        visibility: hidden
+        countsAs: [trap]
+        description: The bearer takes the sands' damage the next time they use a Harmful skill.
+        triggers:
+          - on: signal
+            signal: trek_rose
+            when: { side: enemy }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then: [{ op: setCounter, name: sinking_sands, on: bearer, value: { sum: [{ counterOf: { unit: bearer, name: sinking_sands } }, 10] } }]
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { sum: [{ effectValue: true }, { counterOf: { unit: bearer, name: sinking_sands } }] } }
+              - { op: setCounter, name: sinking_sands, on: bearer, value: 0 }
+
+maneuver.nomad:
+  archetype: Maneuver
+  element: Nomad
+  name: Dune Leap
+  description: The user Leaps. If their Trek is 0, it becomes 2.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: if
+      cond: { not: { has: { unit: actor, effect: trek } } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: gain_trek }, { op: macro, id: gain_trek }] }]
+
+companion.nomad:
+  archetype: Companion
+  element: Nomad
+  name: Pack Camel
+  description: >-
+    Summons a Pack Camel (50 HP) permanently; while it stands, a turn in which the user uses no skill doesn't
+    reset their Trek. Kick (r): 15 damage.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: pack_camel }
+
+bolt.nomad:
+  archetype: Bolt
+  element: Nomad
+  name: Spotter's Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. An allied minion's hit on them meanwhile deals
+    10 more.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spotters_bolt
+        name: Spotted
+        kind: Debuff
+        element: Nomad
+        description: Hits from the applier's minions deal 10 more.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { kind: { unit: eventSource, is: minion } }
+                then: [{ op: damage, to: bearer, amount: 10, direct: false }]
+
+blast.nomad:
+  archetype: Blast
+  element: Nomad
+  name: Dust Devil
+  description: >-
+    Deals 20 damage to all enemies; each one hit loses 1 mobility buff, and the user gains 1 Trek per buff
+    removed.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - op: forEach
+      in:
+        filter: targets
+        where: { or: [{ has: { unit: it, effect: rushing } }, { has: { unit: it, effect: leaping } }, { has: { unit: it, effect: swiftness } }] }
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: rushing } }
+          then: [{ op: removeEffect, from: it, effect: rushing }]
+          else:
+            - op: if
+              cond: { has: { unit: it, effect: leaping } }
+              then: [{ op: removeEffect, from: it, effect: leaping }]
+              else: [{ op: removeStacks, from: it, effect: swiftness, amount: 1 }]
+        - { op: forEach, in: actor, do: [{ op: macro, id: gain_trek }] }
+
+consume.nomad:
+  archetype: Consume
+  element: Nomad
+  name: Trail Rations
+  description: 5 damage to target enemy, healing the user for it. Every ally of the user heals 20.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - { op: heal, to: allAllies, amount: 20 }
+
+summon.nomad:
+  archetype: Summon
+  element: Nomad
+  name: Pack Mule
+  description: >-
+    Summons a Pack Mule (25 HP) for 3 turns. At the end of each of the user's turns, it stores 1 unspent energy
+    (max 3); when it leaves, the user's player gets it all back.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: pack_mule, duration: { enemyTurns: 3 } }
+
+channel.nomad:
+  archetype: Channel
+  element: Nomad
+  name: The Long Road
+  description: >-
+    At the end of each of the user's turns, deals 10 damage to all enemies; it continues only while their Trek
+    keeps rising, up to 4 turns. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: setCounter, name: long_road_start, value: { turn: true } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: the_long_road
+        name: The Long Road
+        kind: Neutral
+        element: Nomad
+        interruptible: true
+        description: Each turn, 10 damage to all enemies, while the bearer's Trek keeps rising.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: if
+                cond:
+                  and:
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: long_road_start }] }] }, atLeast: 1 } }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: trek_rose_turn }] }] }, atLeast: 1 } }
+                then: [{ op: removeSelf }]
+
+stab.nomad:
+  archetype: Stab
+  element: Nomad
+  name: Traveler's Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Using it twice in a row doesn't reset
+    Trek.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: setCounter, name: knife_turn, value: { turn: true } }
+
+ravage.nomad:
+  archetype: Ravage
+  element: Nomad
+  name: Scour
+  description: >-
+    The user gives up all their mobility buffs; then 25 Piercing damage to target enemy, +10 for each one given
+    up.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: scoured, value: { count: { effects: [swiftness, rushing, leaping], in: actor } } }
+    - { op: removeEffect, from: actor, effect: swiftness }
+    - { op: removeEffect, from: actor, effect: rushing }
+    - { op: removeEffect, from: actor, effect: leaping }
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [25, { mul: [10, { var: scoured }] }] } }
+
+mislead.nomad:
+  archetype: Mislead
+  element: Nomad
+  name: Mirage
+  description: >-
+    For 4 turns, target enemy's Harmful skills flicker: the next one is countered, the one after lands, the one
+    after that is countered, and so on. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: mirage, duration: { enemyTurns: 4 } }
+
+stun.nomad:
+  archetype: Stun
+  element: Nomad
+  name: Grit in the Eyes
+  description: >-
+    Deals 10 damage to target enemy, who is Stunned for 1 turn; Swiftness can't stop it: they lose all their
+    Swiftness.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: removeEffect, from: primary, effect: swiftness }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.nomad:
+  archetype: Dance
+  element: Nomad
+  name: Endless Journey
+  description: For 3 turns, the user's Trek can't reset; while it's at 3, their skills cost 1 less.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: endless_journey
+        name: Endless Journey
+        kind: Buff
+        element: Nomad
+        description: Trek can't reset; at 3 Trek, skills cost 1 less.
+        modifiers:
+          - { mod: costGeneric, amount: -1, if: { compare: { value: { stacks: { unit: actor, effect: trek } }, atLeast: 3 } } }
+
+heal.nomad:
+  archetype: Heal
+  element: Nomad
+  name: Waterskin
+  description: Target ally heals 20, or 35 if they used a skill since the user's last turn.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: heal
+      to: primary
+      amount:
+        if: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: primary, name: actedTurn } }] }] }, atMost: 1 } }
+        then: 35
+        else: 20
+
+bless.nomad:
+  archetype: Bless
+  element: Nomad
+  name: Cairn Blessing
+  description: >-
+    Target ally gains 1 Might for 3 turns. Each time they use a mobility skill meanwhile, the user creates a
+    Boulder.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cairn_blessing
+        name: Cairn Blessing
+        kind: Buff
+        element: Nomad
+        description: Each mobility skill the bearer uses raises a Boulder for the applier.
+        triggers:
+          - on: skillUsed
+            when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
+            do:
+              - { op: summon, minion: boulder }
+
+curse.nomad:
+  archetype: Curse
+  element: Nomad
+  name: Dust in the Wind
+  description: >-
+    Target enemy gains 1 Confusion for 2 turns. If the user has an allied Boulder, they crumble it into the
+    wind and vault off it: the target gains 1 more Confusion, and the user Leaps.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+      do:
+        - { op: kill, to: it }
+        - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+        - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+
+smite.nomad:
+  archetype: Smite
+  element: Nomad
+  name: Waymarker
+  description: >-
+    Deals 20 damage to target enemy. Until the user's Trek next resets (up to 3 turns), allies who damage them
+    heal 10.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: waymarker
+        name: Waymarker
+        kind: Debuff
+        element: Nomad
+        description: The applier's allies who damage the bearer heal 10, until the applier's Trek resets.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: heal, to: eventSource, amount: 10 }
+          - on: signal
+            signal: trek_reset
+            when: { side: enemy }
+            do:
+              - { op: if, cond: { isActor: eventSource }, then: [{ op: removeSelf }] }
+
+prayer.nomad:
+  archetype: Prayer
+  element: Nomad
+  name: Campfire Song
+  description: >-
+    All allies heal 15 and gain 10 Shield for 1 turn. The user makes camp: their Trek resets, and allies heal 10
+    more per Trek it had.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: set, var: camp, value: { stacks: { unit: actor, effect: trek } } }
+    - { op: heal, to: targets, amount: { sum: [15, { mul: [10, { var: camp }] }] } }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: reset_trek }] }
+
+cleave.nomad:
+  archetype: Cleave
+  element: Nomad
+  name: Sweeping Sands
+  description: Deals 20 damage to target enemy and 15 to a random other enemy. Costs 1 less while the user has no Trek.
+  cost: Ar
+  costAdjust: { if: { has: { unit: actor, effect: trek } }, then: 0, else: -1 }
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+shout.nomad:
+  archetype: Shout
+  element: Nomad
+  name: Call of the Caravan
+  description: >-
+    All enemies are Intimidated for 2 turns, and the user creates a Boulder. Each time an enemy damages that
+    Boulder, their Intimidation lasts 1 turn longer.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: summon, minion: boulder }
+    - op: apply
+      to: lastSummoned
+      effect:
+        id: caravan_boulder
+        name: Caravan
+        kind: Neutral
+        element: Nomad
+        description: Enemies who damage this Boulder stay Intimidated longer.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: extendEffects, on: eventSource, effects: [intimidated], by: 2 }
+
+withstand.nomad:
+  archetype: Withstand
+  element: Nomad
+  name: Quiet Camp
+  description: >-
+    The user gains 25 Shield for 1 turn. If nothing hits it, every ally heals 15 at the start of the user's
+    next turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: quiet_camp
+        name: Quiet Camp
+        kind: Buff
+        element: Nomad
+        shield: true
+        description: A Shield; untouched, every ally heals 15 when it ends.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: setFlag, flag: hit }
+        onExpire:
+          - op: if
+            cond: { not: { flag: hit } }
+            then: [{ op: heal, to: allAllies, amount: 15 }]
+
+taunt.nomad:
+  archetype: Taunt
+  element: Nomad
+  name: Challenge in the Sand
+  description: >-
+    Target enemy is Taunted by the user for 2 turns; each time they damage the user during it, the user's Trek
+    rises by 1.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: challenge_in_the_sand
+        name: Challenge in the Sand
+        kind: Buff
+        element: Nomad
+        description: Each hit from the Taunted enemy raises the bearer's Trek.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
+                then: [{ op: forEach, in: bearer, do: [{ op: macro, id: gain_trek }] }]
+
+titan.nomad:
+  archetype: Titan
+  element: Nomad
+  name: Colossus of the Dunes
+  description: >-
+    For 3 turns, the user gains 3 Armor and Immune and their Trek is frozen, but they're Immobile: they lose
+    their mobility buffs and can't gain any.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: removeEffect, from: actor, effect: swiftness }
+    - { op: removeEffect, from: actor, effect: rushing }
+    - { op: removeEffect, from: actor, effect: leaping }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dune_colossus
+        name: Colossus of the Dunes
+        kind: Buff
+        element: Nomad
+        countsAs: [low_ceiling]
+        description: Trek frozen; Immobile, and can't gain mobility buffs.
+        modifiers:
+          - { mod: immuneToEffects, effects: [swiftness, rushing, leaping] }
+
+# Minion skills.
+
+pack_camel_kick:
+  archetype: Minion
+  element: Nomad
+  name: Kick
+  description: Deals 15 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }

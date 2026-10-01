@@ -131,7 +131,7 @@ export function endTurn(ctx: Ctx): void {
       slot.cooldown = Math.max(0, before - extra);
       if (before > 0 && slot.cooldown === 0) thawed++;
     }
-    u.counters.thawed = thawed;
+    u.counters['c:thawed'] = thawed;
   }
 
   const ps = s.players[p];

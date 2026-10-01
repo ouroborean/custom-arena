@@ -1464,3 +1464,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Fae Laughter | All enemies are Charmed until the first of them resolves a skill. |
 | Gossamer Veil | Simplified: when the Shield is gone, everyone who struck it is Charmed (no fallback). |
 | Faerie Queen | Applies to single-target skills aimed at the user. |
+
+### 21.42 Nomad (Wind + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Trek** | Neutral, max 3, kept by the Wanderer passive: at the end of the character's turn, if they used a skill in a different slot than on their last turn with a skill, +1 (`gain_trek`, signal `trek_rose`); the same slot resets it (`reset_trek`, signal `trek_reset`), unless it was Traveler's Knife; a turn with no skill resets it unless a Pack Camel stands. Endless Journey blocks resets; Colossus of the Dunes freezes it. |
+| Engine counters | The engine's own per-unit counters are now also written under the `c:` names content reads (`actedTurn`, `lastSlot`, `thawed`, `blood_paid`, `fog_redirect_turn`, `revived_turn`), fixing Spring Thaw, Veiled Strike, Blood Price payback and Raise the Fallen. |
+| Wanderlust | Each Trek gained gives a Might-like Buff that ends when that Trek resets. |
+| Sling Stone | The passive stamps the turn the user was last hit by an enemy. |
+| Haboob | Simplified: no extra damage for repeated skills. |
+| Sinking Sands | Its own Trap (counts as Trap): +10 each time the user's Trek rises. |
+| Spotter's Bolt | Simplified: allied minions' hits on the target deal 10 more. |
+| Trail Rations | Simplified: every ally heals 20. |
+| Pack Mule | Simplified: it returns its stored energy whenever it leaves, killed or not. |
+| The Long Road | Ends at the end of a turn in which the user's Trek didn't rise (not the turn it started). |
+| Mirage | Two alternating hidden statuses: one counters, the next lets a skill through. |
+| Waterskin | Simplified: 35 if the ally used a skill in the last round. |
+| Waymarker | Ends early when the user's Trek resets. |
+| Colossus of the Dunes | Counts as Low Ceiling (Immobile) and immune to mobility buffs. |
