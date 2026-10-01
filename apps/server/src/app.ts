@@ -37,6 +37,8 @@ export interface AppOptions {
   rollSeed?: () => number;
   /** Enable POST /api/dev/grant (development only). */
   devGrants?: boolean;
+  /** Testing: every account owns all equipment (see ServerConfig.allItems). */
+  allItems?: boolean;
   /** Time source for match timers, matchmaking and seasons (tests pass a FakeClock). */
   clock?: Clock;
   /** Ranked seasons (default: one open-ended season, as before seasons were scheduled). */
@@ -53,6 +55,7 @@ export interface AppContext {
   secureCookies: boolean;
   rollSeed: () => number;
   devGrants: boolean;
+  allItems: boolean;
   authRateLimit: number;
   clock: Clock;
   seasons: SeasonSchedule;
@@ -88,6 +91,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     secureCookies: opts.secureCookies ?? false,
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
     devGrants: opts.devGrants ?? false,
+    allItems: opts.allItems ?? false,
     authRateLimit: opts.authRateLimit ?? 20,
     clock: opts.clock ?? realClock,
     seasons: opts.seasons ?? OPEN_SCHEDULE,
