@@ -1,0 +1,11 @@
+# Current actions.
+
+# A hit on `it` conducts: every other Soaked unit on its side takes `zap` (indirect, so it doesn't
+# conduct again).
+conduct:
+  - op: if
+    cond: { isEnemy: it }
+    then:
+      - { op: damage, to: { filter: allEnemies, exclude: it, where: { has: { unit: it, effect: soaked } } }, amount: { var: zap }, direct: false }
+    else:
+      - { op: damage, to: { filter: allAllies, exclude: it, where: { has: { unit: it, effect: soaked } } }, amount: { var: zap }, direct: false }

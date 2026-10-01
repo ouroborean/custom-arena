@@ -1226,3 +1226,17 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Hidden Moon | Stealthed allies who hit the target get their next skill counted as Stealthy (Ritual's Veiled by Smoke). |
 | Crescent Cleave | Simplified: the splash prefers a random enemy with Dusk. |
 | Sleeping Giant | Its own Dormant variant: 20 Shield per turn, and every enemy gains Dusk 2 when it wakes. |
+
+### 21.28 Current (Water + Lightning)
+
+| Term | Ruling |
+|---|---|
+| **Soaked** | Debuff. The Conductor passive (every Current character) gives their Current skills' direct hits +5 against Soaked units (new modifier filter `elements`). When a single-target (new `eventSkill.single`) Current skill, or an Overflow ally's skill, directly damages a Soaked unit, macro `conduct` deals the same amount (indirect, so it doesn't chain) to every other Soaked unit on that side. |
+| Breakdown Surge | Simplified: each enemy with a Shield or Armor before the hit takes 10 Affliction at the start of the user's next turn. |
+| Galvanic Fury | The user's single-target hits also strike other Sapped (non-Soaked) enemies for the same amount. |
+| Conductor's Lance | Simplified: it conducts as usual, and the user gains 1 Charge per other Soaked enemy; their Soak doesn't end. |
+| Electric Rain / Still Water | Their channel and counter hits conduct explicitly. |
+| Still Spring | Each turn, a stack of Renew is added back after it ticks. |
+| Overflow | +5 to Soaked enemies and conducting single-target hits for 3 turns. |
+| Waterlogged | Each indirect hit on them adds 1 Confusion (max 3). |
+| Backwash Lure | Any healing the user receives (not only Renew) strikes the enemy they Taunted. |

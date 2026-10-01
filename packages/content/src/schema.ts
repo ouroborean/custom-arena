@@ -122,6 +122,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
         costAtLeast: z.number().optional(),
         tags: z.array(z.string()).optional(),
         elements: z.array(z.string()).optional(),
+        single: z.boolean().optional(),
       }),
     }),
     z.strictObject({ channeling: selectorSchema }),
@@ -190,6 +191,7 @@ const modBase = {
   if: z.lazy(() => condSchema).optional(),
   archetypes: z.array(z.string()).optional(),
   skillsWith: z.array(z.string()).optional(),
+  elements: z.array(z.string()).optional(),
 };
 const mod = <T extends z.ZodRawShape>(shape: T) => z.strictObject({ ...shape, ...modBase });
 

@@ -162,7 +162,8 @@ export type Cond =
   /** `effects`: instead, an effect the actor applied with one of these keys (or counting as one). */
   | { eventTargetHad: { archetypes?: string[]; effects?: string[] } }
   /** The skill behind the event (or in scope) matches. */
-  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[]; elements?: string[] } }
+  /** `single`: only single-target skills (target enemy, ally or any). */
+  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[]; elements?: string[]; single?: boolean } }
   /** The unit is channeling (carries an interruptible effect). */
   | { channeling: Selector }
   /** The unit can't use at least some skills (Stun, Sleep, …). */
@@ -383,6 +384,8 @@ export interface ModifierBase {
   archetypes?: string[];
   /** Only for skills with one of these tags (e.g. Helpful). */
   skillsWith?: SkillTag[];
+  /** Only for skills of these elements (Current's Soaked bonus). */
+  elements?: string[];
 }
 
 export type ModifierSpec = ModifierBase &

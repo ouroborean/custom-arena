@@ -43,7 +43,8 @@ export function modsFor<K extends ModifierSpec['mod']>(
   return modsOn(ctx.s, ctx.c, bearer, kind).filter(
     ({ spec }) =>
       (!spec.archetypes || (!!skill && spec.archetypes.includes(skill.archetype))) &&
-      (!spec.skillsWith || (!!skill && spec.skillsWith.some((t) => skill.tags.includes(t)))),
+      (!spec.skillsWith || (!!skill && spec.skillsWith.some((t) => skill.tags.includes(t)))) &&
+      (!spec.elements || (!!skill && spec.elements.includes(skill.element))),
   );
 }
 

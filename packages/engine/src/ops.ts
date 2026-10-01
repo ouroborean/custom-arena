@@ -374,6 +374,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (c.eventSkill.costAtLeast !== undefined && costTotal(d.cost) < c.eventSkill.costAtLeast) return false;
     if (c.eventSkill.tags && !c.eventSkill.tags.some((t) => d.tags.includes(t))) return false;
     if (c.eventSkill.elements && !c.eventSkill.elements.includes(d.element)) return false;
+    if (c.eventSkill.single !== undefined && c.eventSkill.single !== ['enemy', 'ally', 'any'].includes(d.target)) return false;
     return true;
   }
   if ('channeling' in c) {

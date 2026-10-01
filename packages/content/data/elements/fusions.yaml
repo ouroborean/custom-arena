@@ -29,7 +29,7 @@ night:        { name: Night,       elements: [Ice, Shadow] }
 
 # Water + …
 ocean:        { name: Ocean,       elements: [Water, Water] }
-current:      { name: Current,     elements: [Water, Lightning] }
+current:      { name: Current,     elements: [Water, Lightning], passives: [current_conductor] }
 mist:         { name: Mist,        elements: [Water, Wind] }
 serum:        { name: Serum,       elements: [Water, Poison] }
 slime:        { name: Slime,       elements: [Water, Earth] }

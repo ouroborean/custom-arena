@@ -1,0 +1,11 @@
+# Current keywords (docs/glossary.md).
+
+soaked:
+  status: soaked
+  element: Current
+  forms: [Soaked, Soak, Soaks]
+conduct:
+  name: Conduct
+  text: When a single-target Current skill damages a Soaked unit, every other Soaked unit on that side takes the same damage.
+  element: Current
+  forms: [conduct, conducts, conducted]
