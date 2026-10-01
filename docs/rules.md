@@ -952,3 +952,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Lure Flask | The user heals half of each hit from the enemy they Taunted. |
 | The Great Work | Permanent; a Neutral effect gives Immune to Buffs. |
 | moveEffects | Now moves effects from every unit in `from` (Circle of Extremes). |
+
+### 21.13 Plasma (Fire + Lightning)
+
+| Term | Ruling |
+|---|---|
+| **Heat** | A Neutral status (`heat`, max 5, merging) so it shows and can't be cleansed. Each Plasma skill writes its +5 per Heat into its damage. The fusion passive (Plasma Core) gives 1 Heat whenever the character gains Charge, and Melts Down at the end of their own turn with 5 Heat. |
+| **Melt Down** | Macro `meltdown`: 20 Affliction to the user (or, with Heat Exchange, 20 healing to every ally), 20 Affliction and 1 Sapped to every enemy, Heat to 0. |
+| **Vent** | Macro `vent`: stores the Heat in `vented` and clears it. A Vent skill vents first, so its damage bonus counts the Heat it vented. |
+| Coronal Slam / Arc Spark / Superheated Bolt | Companion Debuffs on Ignited enemies that act each time the Ignite ticks (at the end of the user's turn) and end when it's gone. |
+| Coilgun | The shot fires when the user next uses a skill (a companion effect), or when 3 turns pass. Each turn held adds 15. |
+| Thermite Seal | Triggers after the heal lands (no pre-heal hook). |
+| Heat Shimmer | The extra tick is at the start of the bearer's turns. |
+| Star Core / Supercharge | Built on `negateNext` with 99 stacks (with an `if` for Star Core's 3 Heat). |
+| Brownout | Simplified: while Confused, the bearer generates 1 less energy each turn. |
+| Flare Beacon | +1 Taunt turn if any Heat was vented, and 1 Sapped per 2. |
+| Reactor Core | Armor computed live from Heat (−5 Normal damage per Heat). |
+| Jumper Sparks | The Charge goes to a random ally character. |

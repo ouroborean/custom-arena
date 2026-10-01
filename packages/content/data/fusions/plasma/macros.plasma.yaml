@@ -1,0 +1,20 @@
+# Plasma actions (actor = the Plasma character).
+
+# Melt Down: the actor takes 20 Affliction (unless Heat Exchange turns that into healing for every
+# ally), every enemy takes 20 Affliction and is Sapped, and Heat returns to 0.
+meltdown:
+  - op: if
+    cond: { has: { unit: actor, effect: heat_exchange } }
+    then:
+      - { op: heal, to: allAllies, amount: 20 }
+      - { op: removeEffect, from: actor, effect: heat_exchange }
+    else:
+      - { op: damage, to: actor, amount: 20, type: Affliction, direct: false }
+  - { op: damage, to: allEnemies, amount: 20, type: Affliction, direct: false }
+  - { op: apply, to: allEnemies, effect: sapped }
+  - { op: removeEffect, from: actor, effect: heat }
+
+# Vent: removes all the actor's Heat; how much is in the variable `vented`.
+vent:
+  - { op: set, var: vented, value: { stacks: { unit: actor, effect: heat } } }
+  - { op: removeEffect, from: actor, effect: heat }

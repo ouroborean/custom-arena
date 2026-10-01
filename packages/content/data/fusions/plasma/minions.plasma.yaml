@@ -1,0 +1,33 @@
+# Plasma minions.
+
+ball_lightning:
+  name: Ball Lightning
+  hp: 25
+  passives:
+    - id: ball_lightning_arc
+      name: Ball Lightning
+      kind: Neutral
+      element: Plasma
+      description: At the end of its owner's turn, deals 10 damage to a random enemy and gives its summoner 1 Heat.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+            - { op: apply, to: summoner, effect: heat }
+  skills: [ball_lightning_detonate]
+
+jumper_spark:
+  name: Jumper Spark
+  hp: 10
+  passives:
+    - id: jumper_spark_arc
+      name: Jumper Spark
+      kind: Neutral
+      element: Plasma
+      description: At the end of its owner's turn, deals 10 damage to a random enemy and gives a random ally 1 Charge.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+            - { op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: charged }
+  skills: []

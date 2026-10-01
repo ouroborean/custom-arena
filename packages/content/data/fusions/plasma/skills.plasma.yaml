@@ -1,0 +1,775 @@
+# The 30 Plasma (Fire + Lightning) variants, from the "Fusion Spec Kits" design doc.
+# Heat is the `heat` status (max 5); every Plasma skill adds 5 damage per Heat (written into each
+# damage amount, the &hb value). Vent is the `vent` macro: it sets `vented` and clears the Heat, and
+# a Vent skill's damage counts the Heat it vented. Melt Down lives in the fusion passive.
+
+strike.plasma:
+  archetype: Strike
+  element: Plasma
+  name: Searing Jolt
+  description: >-
+    Deals 20 damage to target enemy. +1 Heat; or, if the user already has 4 or more, Vent instead
+    for 5 more damage per Heat removed.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: heat } }, atLeast: 4 } }
+      then:
+        - { op: macro, id: vent }
+        - { op: damage, to: primary, amount: { sum: [20, { mul: [10, { var: vented }] }] } }
+      else:
+        - { op: damage, to: primary, amount: { sum: [20, &hb { mul: [5, { stacks: { unit: actor, effect: heat } }] }] } }
+        - { op: apply, to: actor, effect: heat }
+
+smash.plasma:
+  archetype: Smash
+  element: Plasma
+  name: Coronal Slam
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Until they end, the Ignites on every enemy
+    it hits deal double.
+  cost: SS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [25, *hb] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [15, *hb] } }
+    - op: apply
+      to: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
+      effect:
+        id: coronal_slam
+        name: Coronal Slam
+        kind: Debuff
+        element: Plasma
+        description: The bearer's Ignite deals double (an extra 5 each time it ticks) until it ends.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: ignite } }
+                then:
+                  - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+                else:
+                  - { op: removeSelf }
+
+charge.plasma:
+  archetype: Charge
+  element: Plasma
+  name: Spark Rush
+  description: >-
+    Deals 15 damage to target enemy. Vent: the user's next skill costs 1 less per 2 Heat removed.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - { op: damage, to: primary, amount: { sum: [15, { mul: [5, { var: vented }] }] } }
+    - { op: apply, to: actor, effect: focus, stacks: { div: [{ var: vented }, 2] }, until: { skillUsed: {} } }
+
+riposte.plasma:
+  archetype: Riposte
+  element: Plasma
+  name: Discharge Ward
+  description: >-
+    For 1 turn, counters the next Harmful skill used on the user. Vent: its user takes 10 Affliction
+    damage per Heat removed and is Ignited. Invisible.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: discharge_ward
+        name: Discharge Ward
+        kind: Buff
+        element: Plasma
+        visibility: hidden
+        description: Counters the next Harmful skill used on the bearer and vents their Heat into its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: macro, id: vent }
+              - { op: damage, to: eventSource, amount: { mul: [10, { var: vented }] }, type: Affliction }
+              - { op: apply, to: eventSource, effect: ignite }
+
+rage.plasma:
+  archetype: Rage
+  element: Plasma
+  name: Critical Mass
+  description: >-
+    For 3 turns, the user gains Stormborn and Flameborn and can't Melt Down; if they end it at 5 Heat,
+    they Melt Down then. +2 Heat.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: critical_mass
+        name: Critical Mass
+        kind: Buff
+        element: Plasma
+        description: The bearer can't Melt Down; at 5 Heat when this ends, they Melt Down then.
+        onExpire:
+          - op: if
+            cond: { compare: { value: { stacks: { unit: bearer, effect: heat } }, atLeast: 5 } }
+            then:
+              - { op: macro, id: meltdown }
+    - { op: apply, to: actor, effect: heat, stacks: 2 }
+
+shot.plasma:
+  archetype: Shot
+  element: Plasma
+  name: Arc Spark
+  description: Deals 15 damage to target enemy and Ignites them. Each time this Ignite ticks, the user gains 1 Charge.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [15, *hb] } }
+    - { op: apply, to: primary, effect: ignite }
+    - op: apply
+      to: primary
+      effect:
+        id: arc_spark
+        name: Arc Spark
+        kind: Debuff
+        element: Plasma
+        description: Each time the bearer's Ignite ticks, the applier gains 1 Charge.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: ignite } }
+                then:
+                  - { op: apply, to: actor, effect: charged }
+                else:
+                  - { op: removeSelf }
+
+snipe.plasma:
+  archetype: Snipe
+  element: Plasma
+  name: Coilgun
+  description: >-
+    For up to 3 turns, the user charges the coil. When the channel ends (the user uses another skill,
+    or 3 turns pass), it deals 30 Piercing damage to target enemy, +15 for each turn it was held. The
+    target of this skill is invisible. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: setCounter, name: coilgun, value: 0 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: coilgun
+        name: Coilgun (charging)
+        kind: Neutral
+        element: Plasma
+        visibility: hiddenTarget
+        interruptible: true
+        description: Each turn held adds 15 damage to the shot.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: setCounter, name: coilgun, value: { sum: [{ counter: coilgun }, 1] } }
+        onExpire:
+          - { op: removeEffect, from: bearer, effect: coilgun_release }
+          - { op: damage, to: effectTargets, amount: { sum: [30, { mul: [15, { counter: coilgun }] }] }, type: Piercing }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: coilgun_release
+        name: Coilgun
+        kind: Neutral
+        element: Plasma
+        visibility: hiddenTarget
+        description: The coil fires when the bearer uses another skill.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - op: if
+                cond: { compare: { value: { counter: coilgun }, atLeast: 1 } }
+                then:
+                  - { op: damage, to: effectTargets, amount: { sum: [30, { mul: [15, { counter: coilgun }] }] }, type: Piercing }
+
+trap.plasma:
+  archetype: Trap
+  element: Plasma
+  name: Thermite Seal
+  description: >-
+    For 3 turns, the first time target enemy is healed, they're Scorched for 2 turns and they
+    Explode. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: thermite_seal
+        name: Thermite Seal
+        kind: Debuff
+        element: Plasma
+        visibility: hidden
+        description: The first time the bearer is healed, they're Scorched and Explode.
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: scorched, duration: { enemyTurns: 2 } }
+              - { op: macro, id: explode }
+
+maneuver.plasma:
+  archetype: Maneuver
+  element: Plasma
+  name: Heat Sink
+  description: >-
+    The user becomes Invulnerable for 1 turn. Vent: they gain 10 Shield per Heat removed, for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: macro, id: vent }
+    - op: if
+      cond: { compare: { value: { var: vented }, atLeast: 1 } }
+      then:
+        - { op: apply, to: actor, effect: shield, value: { mul: [10, { var: vented }] }, duration: { enemyTurns: 1 } }
+
+companion.plasma:
+  archetype: Companion
+  element: Plasma
+  name: Ball Lightning
+  description: >-
+    Summons a Ball Lightning (25 HP) permanently. At the end of each of your turns, it deals 10 damage
+    to a random enemy and gives the user 1 Heat. Detonate (r): it dies, dealing 20 damage to all
+    enemies and Sapping them.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: ball_lightning }
+
+bolt.plasma:
+  archetype: Bolt
+  element: Plasma
+  name: Superheated Bolt
+  description: >-
+    Deals 20 damage to target enemy and Ignites them. This Ignite deals 5 more per Heat the user has
+    when it's applied. +1 Heat.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [20, *hb] } }
+    - { op: apply, to: primary, effect: ignite }
+    - op: apply
+      to: primary
+      value: { stacks: { unit: actor, effect: heat } }
+      effect:
+        id: superheated
+        name: Superheated
+        kind: Debuff
+        element: Plasma
+        description: The bearer's Ignite deals 5 more per stored Heat each time it ticks.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: ignite } }
+                then:
+                  - { op: damage, to: bearer, amount: { mul: [5, { effectValue: true }] }, type: Affliction, direct: false }
+                else:
+                  - { op: removeSelf }
+    - { op: apply, to: actor, effect: heat }
+
+blast.plasma:
+  archetype: Blast
+  element: Plasma
+  name: Overload Burst
+  description: Deals 20 damage to all enemies. The user Melts Down at the end of this turn, whatever their Heat.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: { sum: [20, *hb] } }
+    - op: apply
+      to: actor
+      duration: { raw: 1 }
+      effect:
+        id: overload_burst
+        name: Overload
+        kind: Neutral
+        element: Plasma
+        description: Melts Down at the end of this turn.
+        onExpire:
+          - { op: macro, id: meltdown }
+
+consume.plasma:
+  archetype: Consume
+  element: Plasma
+  name: Coolant Draw
+  description: >-
+    Deals 10 damage to target enemy and Saps them. Vent: the user heals 10 per Heat removed.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [5, { var: vented }] }] } }
+    - { op: apply, to: primary, effect: sapped }
+    - { op: heal, to: actor, amount: { mul: [10, { var: vented }] } }
+
+summon.plasma:
+  archetype: Summon
+  element: Plasma
+  name: Jumper Sparks
+  description: >-
+    Summons 2 Jumper Sparks (10 HP) for 3 turns. At the end of each of your turns, each deals 10
+    damage to a random enemy and gives a random ally 1 Charge.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: jumper_spark, count: 2, duration: { enemyTurns: 3 } }
+
+channel.plasma:
+  archetype: Channel
+  element: Plasma
+  name: Arc Furnace
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and the
+    user spends 1 Charge, if they have any, to make every enemy's Ignite tick at once. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: arc_furnace
+        name: Arc Furnace
+        kind: Neutral
+        element: Plasma
+        interruptible: true
+        description: Each turn, 10 damage to all enemies; 1 Charge makes every enemy's Ignite tick.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: { sum: [10, { mul: [5, { stacks: { unit: bearer, effect: heat } }] }] } }
+              - op: if
+                cond: { has: { unit: bearer, effect: charged } }
+                then:
+                  - { op: removeStacks, from: bearer, effect: charged, amount: 1 }
+                  - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }, amount: 5, type: Affliction, direct: false }
+
+stab.plasma:
+  archetype: Stab
+  element: Plasma
+  name: Hot Wire
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Vent: that threshold rises
+    by 10 HP per Heat removed.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - op: damage
+      to: primary
+      amount:
+        sum:
+          - { mul: [5, { var: vented }] }
+          - if: { compare: { value: { sum: [{ hp: primary }, { mul: [-10, { var: vented }] }] }, atMost: 60 } }
+            then: 20
+            else: 10
+
+ravage.plasma:
+  archetype: Ravage
+  element: Plasma
+  name: Plasma Cutter
+  description: >-
+    Deals 20 Piercing damage to target enemy, +10 for each Charge the user spends on it (all of it).
+    Each Charge spent becomes 1 Heat.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: spent, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [20, { mul: [10, { var: spent }] }, *hb] } }
+    - { op: apply, to: actor, effect: heat, stacks: { var: spent } }
+
+mislead.plasma:
+  archetype: Mislead
+  element: Plasma
+  name: Heat Shimmer
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Ignited. For 2 turns,
+    that Ignite also ticks at the start of their own turns. Invisible.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: heat_shimmer
+        name: Heat Shimmer
+        kind: Debuff
+        element: Plasma
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and Ignites them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: ignite }
+              - op: apply
+                to: bearer
+                duration: { enemyTurns: 2 }
+                effect:
+                  id: heat_shimmer_burn
+                  name: Shimmering Burn
+                  kind: Debuff
+                  element: Plasma
+                  description: The bearer's Ignite also ticks at the start of their turns.
+                  triggers:
+                    - on: turnStart
+                      do:
+                        - op: if
+                          cond: { has: { unit: bearer, effect: ignite } }
+                          then:
+                            - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+
+stun.plasma:
+  archetype: Stun
+  element: Plasma
+  name: Short Circuit
+  description: >-
+    Deals 15 damage to target enemy and stuns their non-Strategic skills for 1 turn. Vent: for every 2
+    Heat removed, a random other enemy is stunned the same way.
+  cost: AA
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - { op: damage, to: primary, amount: { sum: [15, { mul: [5, { var: vented }] }] } }
+    - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }
+    - op: repeat
+      times: { div: [{ var: vented }, 2] }
+      do:
+        - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: stun_ns, duration: { enemyTurns: 1 } }
+
+dance.plasma:
+  archetype: Dance
+  element: Plasma
+  name: Star Core
+  description: >-
+    For 3 turns, the user gains 1 Might and Stormborn, and can't be Stunned while they have 3 or more
+    Heat.
+  cost: SA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      stacks: 99
+      duration: { enemyTurns: 3 }
+      effect:
+        id: star_core
+        name: Star Core
+        kind: Buff
+        element: Plasma
+        description: Stuns don't land on the bearer while they have 3 or more Heat.
+        modifiers:
+          - { mod: negateNext, effect: stun, if: { compare: { value: { stacks: { unit: actor, effect: heat } }, atLeast: 3 } } }
+          - { mod: negateNext, effect: stun_ns, if: { compare: { value: { stacks: { unit: actor, effect: heat } }, atLeast: 3 } } }
+          - { mod: negateNext, effect: stun_s, if: { compare: { value: { stacks: { unit: actor, effect: heat } }, atLeast: 3 } } }
+
+heal.plasma:
+  archetype: Heal
+  element: Plasma
+  name: Cauterizing Shock
+  description: >-
+    Target ally heals 20. Vent: they gain 1 Charge per 2 Heat removed.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: macro, id: vent }
+    - { op: apply, to: primary, effect: charged, stacks: { div: [{ var: vented }, 2] } }
+
+bless.plasma:
+  archetype: Bless
+  element: Plasma
+  name: Supercharge
+  description: >-
+    Target ally's Charge fills to 3 at once, and they gain 1 Might for 3 turns. For those 3 turns,
+    they can't gain Charge.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: charged, stacks: 3 }
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      stacks: 99
+      duration: { enemyTurns: 3 }
+      effect:
+        id: supercharge
+        name: Supercharged
+        kind: Neutral
+        element: Plasma
+        description: Can't gain Charge.
+        modifiers:
+          - { mod: negateNext, effect: charged }
+
+curse.plasma:
+  archetype: Curse
+  element: Plasma
+  name: Brownout
+  description: >-
+    Target enemy is Sapped and Confused for 2 turns. While they're Confused, they generate 1 less
+    energy every turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: sapped }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: brownout
+        name: Brownout
+        kind: Debuff
+        element: Plasma
+        description: While Confused, the bearer generates 1 less energy each turn.
+        modifiers:
+          - { mod: energyGain, amount: -1, if: { has: { unit: actor, effect: confusion } } }
+
+smite.plasma:
+  archetype: Smite
+  element: Plasma
+  name: Quench Brand
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Vent: the Sanctify heals 5 more
+    per Heat removed.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [5, { var: vented }] }] } }
+    - op: apply
+      to: primary
+      value: { var: vented }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: quench_brand
+        name: Sanctify
+        kind: Debuff
+        element: Plasma
+        countsAs: [sanctify]
+        description: When the bearer takes direct damage, the damager heals 15, plus 5 per Heat vented.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - { op: heal, to: eventSource, amount: { sum: [15, { mul: [5, { effectValue: true }] }] } }
+
+prayer.plasma:
+  archetype: Prayer
+  element: Plasma
+  name: Heat Exchange
+  description: >-
+    All allies heal 15 and gain 10 Shield for 1 turn. If the user Melts Down before their next turn,
+    the Meltdown heals every ally 20 and doesn't hurt the user.
+  cost: SS
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: heat_exchange
+        name: Heat Exchange
+        kind: Buff
+        element: Plasma
+        description: The bearer's next Meltdown heals every ally 20 instead of hurting them.
+
+cleave.plasma:
+  archetype: Cleave
+  element: Plasma
+  name: Breaker Arc
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Any channel either of them holds
+    is broken, and neither can start one until the user's next turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [20, *hb] } }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: { sum: [15, *hb] } }
+        - { op: interrupt, to: it }
+        - { op: apply, to: it, effect: breaker_arc, duration: { raw: 2 } }
+    - { op: interrupt, to: primary }
+    - { op: apply, to: primary, effect: breaker_arc, duration: { raw: 2 } }
+
+shout.plasma:
+  archetype: Shout
+  element: Plasma
+  name: Grid Collapse
+  description: >-
+    All enemies are Intimidated for 2 turns, and every minion in the battle, on both sides, is
+    Stunned for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { filter: allUnits, where: { kind: { unit: it, is: minion } } }, effect: stun, duration: { enemyTurns: 2 } }
+
+withstand.plasma:
+  archetype: Withstand
+  element: Plasma
+  name: Overcharged Barrier
+  description: >-
+    The user gains 50 Shield for 1 turn. The surge costs them: their next skill costs 2 more energy.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 50, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: overcharge_surge
+        name: Surge
+        kind: Neutral
+        element: Plasma
+        description: The bearer's next skill costs 2 more energy.
+        modifiers:
+          - { mod: costGeneric, amount: 2 }
+
+taunt.plasma:
+  archetype: Taunt
+  element: Plasma
+  name: Flare Beacon
+  description: >-
+    Target enemy is Taunted by the user for 1 turn. Vent: 1 more turn if any Heat was removed, and 1
+    Sapped per 2 Heat removed.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: macro, id: vent }
+    - op: apply
+      to: primary
+      effect: taunt
+      duration:
+        enemyTurns: { if: { compare: { value: { var: vented }, atLeast: 1 } }, then: 2, else: 1 }
+    - { op: apply, to: primary, effect: sapped, stacks: { div: [{ var: vented }, 2] } }
+
+titan.plasma:
+  archetype: Titan
+  element: Plasma
+  name: Reactor Core
+  description: For 3 turns, the user gains Immune and 1 Armor per Heat they have, checked as each hit lands.
+  cost: Wr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: reactor_core
+        name: Reactor Core
+        kind: Buff
+        element: Plasma
+        description: 1 Armor per Heat the bearer has (−5 Normal damage taken each).
+        modifiers:
+          - { mod: damageTaken, amount: 0, armor: true, when: { types: [Normal] }, value: { mul: [-5, { stacks: { unit: actor, effect: heat } }] } }
+
+# Minion skills.
+
+ball_lightning_detonate:
+  archetype: Minion
+  element: Plasma
+  name: Detonate
+  description: The Ball Lightning dies, dealing 20 damage to all enemies and Sapping them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: sapped }
+    - { op: kill, to: actor }
