@@ -1,0 +1,30 @@
+# Prism minions.
+
+lumen_elk:
+  name: Lumen Elk
+  hp: 45
+  skills: [lumen_elk_antler_glow, lumen_elk_gore]
+
+hovering_prism:
+  name: Hovering Prism
+  hp: 10
+  # While it stands, the summoner's direct hits Refract.
+  onSummon:
+    - op: apply
+      to: summoner
+      bindTo: actor
+      effect:
+        id: hovering_prism
+        name: Hovering Prism
+        kind: Buff
+        element: Prism
+        description: The bearer's direct hits Refract to a random other enemy at half strength (not with Lens).
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: lens } } }
+                then:
+                  - { op: damage, to: { randomEnemy: 1, exclude: eventTarget }, amount: { mul: [5, { div: [{ eventAmount: true }, 10] }] }, direct: false }
+  skills: []

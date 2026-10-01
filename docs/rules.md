@@ -1169,3 +1169,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Jotun Sweep | Simplified: 10 and Frostbitten to a random other enemy (no "used a Harmful Strategic skill" tracking). |
 | Frozen Rampart | Simplified: no redirect from allied minions. |
 | Old Feud | Removes the user's earlier Old Feud mark; the Taunt itself is permanent. |
+
+### 21.25 Prism (Ice + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Refract** | Written into each skill: half strength (damage rounded down to 5) on a random other unit of the target's side, skipped while the user has Lens. |
+| **Lens** | Buff gained until the user's next skill (`gain_lens`): direct damage ×1.5, and that skill doesn't Refract. Simplified: healing isn't boosted. |
+| Lightspeed | The next skill is free (`freeSkills`) and gets +2 cooldown. |
+| Spectrum Ward | The countered skill becomes 15 damage to a random ally of its user. |
+| Burning Glass | The enemy the user last damaged carries a Focused mark; hitting them again within 3 ticks grants Lens. |
+| Standing Decree | The Condemnation is reapplied at the end of each of the user's turns while the trap lasts. |
+| Afterglow | Simplified: the last skill comes off cooldown, and the user's next skill (from their next turn) costs nothing; no automatic repeat. |
+| Hovering Prism | While it stands, the user's direct hits on enemies refract 5 per 10 dealt to a random other enemy (any skill, not only single-target). |
+| Colorless Nova | Simplified: a random Buff, not the longest. |
+| Dispersion | Each turn refracts to one more random enemy (5 damage and Sanctify each). |
+| Diffused Light | Refracts 20 to the ally with the least HP, if that isn't the target. |
+| Beacon of Mercy | Compares the weakest targetable enemy with the weakest ally. |
+| Frozen Gleam | Simplified: a 2-turn Taunt. |
+| Colossus of Light | Direct hits on the user are halved; the amount they take strikes a random enemy. |

@@ -1,0 +1,5 @@
+# Prism actions.
+
+# The actor gains Lens until their next skill.
+gain_lens:
+  - { op: apply, to: it, effect: lens, until: { skillUsed: {} } }

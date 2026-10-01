@@ -1,0 +1,12 @@
+# Prism keywords (docs/glossary.md).
+
+lens:
+  status: lens
+  element: Prism
+refract:
+  name: Refract
+  text: >-
+    A Refracting skill also affects one more random unit on its target's side at half strength (half
+    damage, healing or stacks, rounded down to 5 or 1; durations unchanged).
+  element: Prism
+  forms: [Refract, Refracts, Refracting]
