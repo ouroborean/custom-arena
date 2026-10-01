@@ -65,7 +65,7 @@ assassin:     { name: Assassin,    elements: [Poison, Shadow] }
 life:         { name: Life,        elements: [Earth, Earth], passives: [life_grove] }
 sanctuary:    { name: Sanctuary,   elements: [Earth, Holy] }
 grave:        { name: Grave,       elements: [Earth, Unholy], passives: [grave_keeper] }
-moon:         { name: Moon,        elements: [Earth, Shadow] }
+moon:         { name: Moon,        elements: [Earth, Shadow], passives: [lunar_cycle] }
 
 # Holy + …
 divine:       { name: Divine,      elements: [Holy, Holy] }

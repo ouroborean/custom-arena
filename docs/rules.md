@@ -1674,3 +1674,26 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Requiem | Value `recentDeaths`: deaths on either side in the last 2 turns. |
 | Grudge Beyond the Grave | The Ghoul rises at once and Taunts for 1 turn. |
 | Lord of the Grave | Only minions present when it's used become Immortal. |
+
+### 21.52 Moon (Earth + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Lunar Cycle** | Fusion passive `lunar_cycle`: counter `phase` (0 New, 1 Waxing, 2 Full, 3 Waning) on each Moon character, advanced at the end of their turns (macro `advance_moon`, which signals `full_moon` / `new_moon`). Named conditions `moon_new` … `moon_waning`. Simplified: each Moon character has their own cycle. "At the start of the Full Moon" = when it's reached at the end of the Moon side's turn. |
+| Moonstone Fist / Feral Maw | The passive gives Moon Strikes the Stealthy tag at New Moon, and Moon Ravages at Full Moon. |
+| Quickening Quake | Each allied Seedling's Channel Earth: the user gains 1 Might and 1 Armor, and `channel_earth` is signalled. |
+| Turn Beast | Simplified: lasts 4 turns (a full cycle); at Full Moon, +10 damage (2 more Might) and Immune to Debuffs. |
+| Hunter's Moon | Channel damage isn't stopped by Invulnerable. |
+| Eclipse | Counter `eclipse`: the next advance moves two phases. |
+| Silver Bolt | Simplified: can't regain Stealth for 3 turns. |
+| Moon Moths | Simplified: Blinded enemies are Taunted by a Moth for 1 turn. |
+| Lunar Lullaby | Lasts 4 − phase turns; at the `new_moon` signal every enemy sleeps 1 turn. |
+| Silver Severance | Simplified: Isolated for 2 turns. |
+| False Moonlight | Simplified: Isolated for 3 turns, whether or not the Boulder stands. |
+| Lunacy | Simplified: Asleep 2 turns at Full Moon; damage still wakes. |
+| Borrowed Moonlight | Raw HP loss, never below 1. |
+| Moonveil | Lasts up to 3 turns; ends once the ally is no longer Stealthed. |
+| Tidal Lock | Applied at the end of the user's turns, for the enemy's next turn. |
+| Crescent Lull | `wakes: false` hits; Sleep extended by 1 turn (2 ticks). |
+| Cairn Ward | Inline Shield; the Boulder is summoned at 45 HP and loses the difference. |
+| Wandering Light | The passed Taunt lasts 1 turn. |

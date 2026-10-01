@@ -1,0 +1,13 @@
+# Moon minions.
+
+lunar_wolf:
+  name: Lunar Wolf
+  hp: 35
+  onSummon:
+    - { op: apply, to: actor, effect: wolf_howl }
+  skills: [wolf_moonfang]
+
+moon_moth:
+  name: Moon Moth
+  hp: 10
+  skills: [moth_flutter]

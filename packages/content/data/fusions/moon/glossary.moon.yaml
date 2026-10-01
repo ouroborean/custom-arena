@@ -1,0 +1,6 @@
+# Moon keywords (docs/glossary.md).
+
+lunar_cycle:
+  status: lunar_cycle
+  element: Moon
+  forms: [Lunar Cycle, New Moon, Waxing, Full Moon, Waning]
