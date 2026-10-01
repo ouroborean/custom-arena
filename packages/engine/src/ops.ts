@@ -998,6 +998,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           if (op.skill && slot.defId !== op.skill) return false;
           if (op.archetypes && !op.archetypes.includes(archetypeOf(ctx.c, slot.defId) ?? '')) return false;
           if (op.exceptEvent && slot.defId === sc.eventSkill) return false;
+          if (op.onlyEvent && slot.defId !== sc.eventSkill) return false;
           return true;
         }),
       );

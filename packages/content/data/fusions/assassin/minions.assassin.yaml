@@ -1,0 +1,18 @@
+# Assassin minions.
+
+shadow_viper:
+  name: Shadow Viper
+  hp: 25
+  skills: [viper_venom_fang, viper_seek_the_mark]
+
+hired_blade:
+  name: Hired Blade
+  hp: 20
+  # Whoever kills the Blade gains its side's Death Mark.
+  onDeath:
+    - op: forEach
+      in: lastAttacker
+      do:
+        - { op: removeEffect, from: allEnemies, effect: death_mark }
+        - { op: apply, to: it, effect: death_mark, value: 25, from: summoner }
+  skills: [blade_shank]

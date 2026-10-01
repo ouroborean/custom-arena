@@ -1606,3 +1606,29 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Bone Carapace | When a hit leaves the user with no Shield, the user gains a Soul Fragment. |
 | Carrion Stench | Damage taken −10 per hit and healing ×0 until the user's next turn. |
 | Plague Lord | Counted when used: an inline Buff with `maxHp +5 perStack`, 1 stack per Withered on enemies. |
+
+### 21.49 Assassin (Poison + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Death Mark** | Hidden Debuff whose value is its execute threshold (25; raised to at most 40). A direct hit from an Assassin-element skill (or a Subcontracted ally's skill) from the marker's side deals 10 more, and if the bearer is then at or below the threshold they're executed (signal `mark_executed`). Simplified: one Death Mark per side; placing one (macro `place_mark`) removes any other. |
+| Throatcut / Fulfill the Contract | "Executes your Death Mark" = the target had it and is dead after the hit. |
+| Coordinated Strike | Stealthy; Toxin stacks = Stealthed allies counted before the hits. |
+| Stalk | Simplified: the Mark lasts 2 turns, Stealth or not. |
+| Garrote Wire | Value `skillCooldown` of the countered skill. |
+| Open Contract | Simplified: each execution gives 1 Might and 1 Swiftness for 2 turns instead of extending the Rage. |
+| The Long Shot | Executes at 40 HP after the hit if the target carried the Mark. |
+| Covering Smoke | Stealthed allies' skills gain the Stealthy tag for 1 turn. |
+| Whispered Names | Status `whispered_names` (4 stacks = the original plus 3 passes) goes with the Mark; the first direct hit passes Mark + whisper to a random other enemy. |
+| Poison Smoke | A moved Mark resets to threshold 25. |
+| Hired Blade | Its killer is the last enemy who damaged it. |
+| Open Season | While the channel lasts, the Mark's threshold is at least 35. |
+| Stiletto | Threshold +5 (max 40) before the hit. |
+| Unseen Knife | Simplified: against a Blinded or Sleeping target, the user gains Stealth for 1 turn. |
+| Poisoned Lure | The 2 Toxin come when the Lure runs out untriggered. |
+| Knockout Poison | Simplified: Asleep for 1 turn, or 2 with 4+ Toxin; damage still wakes them. |
+| Mark for Death | Threshold = 25 + 5 per Toxin when placed (max 40). |
+| Serpent's Communion | Gives Evolution's Hormesis for 2 turns. |
+| Hidden Mail | An inline hidden Shield; each enemy hit raises that skill's cooldown (`adjustCooldowns onlyEvent`). |
+| Whisper from the Dark | A normal Taunt by the user, Stealthy. |
+| Guildmaster | Simplified: every enemy gains a Death Mark for 3 turns. |

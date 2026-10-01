@@ -403,6 +403,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       skill: z.string().optional(),
       archetypes: z.array(z.string()).optional(),
       exceptEvent: z.boolean().optional(),
+      onlyEvent: z.boolean().optional(),
       random: z.boolean().optional(),
     }),
     z

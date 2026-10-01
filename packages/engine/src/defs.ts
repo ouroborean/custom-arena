@@ -355,6 +355,7 @@ export type Op =
       archetypes?: string[];
       /** Skip the skill behind the event (e.g. the Dance that was just used). */
       exceptEvent?: boolean;
+      onlyEvent?: boolean;
       /** Only one of the matching skills on cooldown, chosen at random. */
       random?: boolean;
     }

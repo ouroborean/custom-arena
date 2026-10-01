@@ -1,0 +1,6 @@
+# Assassin keywords (docs/glossary.md).
+
+death_mark:
+  status: death_mark
+  element: Assassin
+  forms: [Death Mark, Death Marks]

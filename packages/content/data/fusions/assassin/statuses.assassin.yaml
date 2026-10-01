@@ -1,0 +1,65 @@
+# Assassin (Poison + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+
+# Death Mark: its value is the execute threshold (25, never above 40). Actor = the Assassin who placed it.
+death_mark:
+  name: Death Mark
+  kind: Debuff
+  element: Assassin
+  stacking: unique
+  visibility: hidden
+  description: >-
+    Assassin skills from the marker's side deal the bearer 10 more, and one that leaves them at or below the
+    Mark's threshold (25 HP) executes them.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond:
+            and:
+              - { not: { isEnemy: eventSource } }
+              - or:
+                  - { eventSkill: { elements: [Assassin] } }
+                  - { has: { unit: eventSource, effect: subcontract } }
+          then:
+            - { op: damage, to: bearer, amount: 10, direct: false }
+            - op: set
+              var: threshold
+              value:
+                if: { and: [{ has: { unit: actor, effect: open_season } }, { compare: { value: { effectValue: true }, atMost: 34 } }] }
+                then: 35
+                else: { effectValue: true }
+            - op: if
+              cond: { compare: { value: { sum: [{ hp: bearer }, { mul: [-1, { var: threshold }] }] }, atMost: 0 } }
+              then:
+                - { op: signal, name: mark_executed }
+                - { op: kill, to: bearer }
+
+# Subcontract: the bearer's skills count as Assassin skills against Death Marks.
+subcontract:
+  name: Subcontract
+  kind: Buff
+  element: Assassin
+  stacking: unique
+  description: The bearer's skills count as Assassin skills against Death Marks.
+
+# Whispered Names: when the bearer is hit directly, the name passes to a random other enemy (up to 3 times).
+whispered_names:
+  name: Whispered Names
+  kind: Debuff
+  element: Assassin
+  stacking: unique
+  description: When the bearer's Mark is spent, a random other enemy is Marked for 1 turn and the whisper passes on.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      consume: true
+      do:
+        - op: if
+          cond: { compare: { value: { effectStacks: true }, atLeast: 2 } }
+          then:
+            - op: forEach
+              in: { randomEnemy: 1, exclude: bearer }
+              do:
+                - { op: apply, to: it, effect: mark, duration: { enemyTurns: 1 } }
+                - { op: apply, to: it, effect: whispered_names, stacks: { sum: [{ effectStacks: true }, -1] }, duration: { enemyTurns: 1 } }
