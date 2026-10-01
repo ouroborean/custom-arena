@@ -217,6 +217,8 @@ export type Op =
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
+  /** Every fallen character on the actor's side returns with `hp` HP and no effects (Phoenix's Second Dawn). */
+  | { op: 'revive'; hp: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
   | { op: 'interrupt'; to: Selector }
   /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */

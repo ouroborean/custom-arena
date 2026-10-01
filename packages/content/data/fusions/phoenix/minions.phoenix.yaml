@@ -1,0 +1,30 @@
+# Phoenix minions.
+
+phoenix_chick:
+  name: Phoenix Chick
+  hp: 15
+  skills: [phoenix_chick_peck]
+  # The first time it dies, it rises at the end of its creator's next turn as a Firebird.
+  onDeath:
+    - op: apply
+      to: summoner
+      from: summoner
+      duration: { raw: 2 }
+      effect:
+        id: firebird_egg
+        name: Firebird Egg
+        kind: Neutral
+        element: Phoenix
+        description: A Firebird hatches from the Phoenix Chick's ashes when this ends.
+        onExpire:
+          - { op: summon, minion: firebird }
+
+firebird:
+  name: Firebird
+  hp: 30
+  skills: [firebird_peck]
+
+ember_spirit:
+  name: Ember Spirit
+  hp: 20
+  skills: [ember_spirit_waver]

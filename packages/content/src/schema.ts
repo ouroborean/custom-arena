@@ -313,6 +313,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('revive'), hp: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
     z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema, on: selectorSchema.optional() }),

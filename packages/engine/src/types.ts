@@ -230,6 +230,7 @@ export type EventBody =
   | { t: 'effectRevealed'; effect: EffectId; defId: string; bearer: UnitId; source: UnitId }
   | { t: 'summoned'; unit: UnitId; defId: string; by: UnitId }
   | { t: 'died'; unit: UnitId }
+  | { t: 'revived'; unit: UnitId; hp: number }
   | { t: 'turnEnd'; turn: number; player: PlayerId }
   | { t: 'gameOver'; result: MatchResult }
   /**

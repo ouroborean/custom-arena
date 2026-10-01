@@ -659,6 +659,13 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
       }
       return;
+    case 'revive':
+      for (const u of ctx.s.units.filter((x) => !x.alive && x.kind === 'character' && x.owner === actor.owner)) {
+        u.alive = true;
+        u.hp = Math.min(op.hp, u.maxHp);
+        emit(ctx, { t: 'revived', unit: u.id, hp: u.hp });
+      }
+      return;
     case 'addMaxHp':
       for (const t of select(ctx, op.to, sc)) {
         t.maxHp = Math.max(1, t.maxHp + withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)));

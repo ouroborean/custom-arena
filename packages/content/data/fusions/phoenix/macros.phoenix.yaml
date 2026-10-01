@@ -1,0 +1,36 @@
+# Phoenix actions.
+
+# `it` rises from Ashes: back to 25 HP (40 with Undying Phoenix), and a Pyreheart Fury or Undying
+# Phoenix on them starts over.
+rise:
+  - op: if
+    cond: { has: { unit: it, effect: ashes } }
+    then:
+      - { op: removeEffect, from: it, effect: ashes }
+      - op: heal
+        to: it
+        raw: true
+        amount: { sum: [{ if: { has: { unit: it, effect: undying_phoenix } }, then: 40, else: 25 }, { mul: [-1, { hp: it }] }] }
+      - { op: setCounter, name: risen, value: 1, on: it }
+      - op: if
+        cond: { has: { unit: it, effect: pyreheart_fury } }
+        then:
+          - { op: extendEffects, on: it, effects: [pyreheart_fury, might, immune], by: 6 }
+          - { op: apply, to: it, effect: rebirth, duration: { enemyTurns: 3 } }
+      - op: if
+        cond: { has: { unit: it, effect: undying_phoenix } }
+        then:
+          - { op: extendEffects, on: it, effects: [undying_phoenix, armor, immune], by: 6 }
+          - { op: apply, to: it, effect: rebirth, duration: { enemyTurns: 3 } }
+
+# Kindle on the primary target: on an enemy, `burn` damage and Ignite; on an ally, that much healing
+# and 2 Renew. Set `burn` first.
+kindle:
+  - op: if
+    cond: { isEnemy: primary }
+    then:
+      - { op: damage, to: primary, amount: { var: burn } }
+      - { op: apply, to: primary, effect: ignite }
+    else:
+      - { op: heal, to: primary, amount: { var: burn } }
+      - { op: apply, to: primary, effect: renew, stacks: 2 }

@@ -1024,3 +1024,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Heliotrope | One inline Buff (+5 direct damage, heals 5 each turn) that moves to the ally with the least HP at the start of the user's turns. |
 | Drought | While Scorched, whatever healing the bearer gets also goes to a random ally of the user (the denied half). |
 | High Noon | Other enemies get a Debuff the user is invulnerable to (`invulnerableTo`). |
+
+### 21.17 Phoenix (Fire + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Kindle** | Kindle skills are Radiant (target anyone; Harmful only on an enemy) and run macro `kindle` with `burn`: on an enemy, that damage and Ignite; on an ally, that healing and 2 Renew. |
+| **Rebirth / Ashes** | Rebirth holds the bearer at 1 HP (`hpFloor`); a hit that leaves them at 1 ends it and puts them in Ashes (Neutral: Untargetable by both sides, takes no damage, can't drop below 1). At the start of their next turn, macro `rise` brings them to 25 HP (40 with Undying Phoenix). Ashes doesn't stop channels, so Sunfall Lance still lands. Simplified: a hit leaving them at exactly 1 HP also counts as dying. |
+| Pyreheart Fury / Undying Phoenix | Rising extends the Rage or Titan (and its Might/Armor and Immune) by 3 turns and gives a fresh 3-turn Rebirth. |
+| Wingbeat | Allies in Ashes rise at the end of this turn. |
+| Smoldering Nest | Fires when the bearer's damage leaves a unit dead or in Ashes. |
+| Phoenix Chick | `onDeath` leaves its creator a 2-tick egg that hatches a Firebird. |
+| Blinding Plumage | Simplified: a 3-turn Stun on a Condemned target. |
+| Dance of Embers | Counts direct damage from the user's Radiant skills. |
+| Phoenix Blessing | Its own Rebirth (counts as Rebirth) that heals 25 if it expires unused. |
+| Cinders of Doubt | For 2 turns, each Weakness, Vulnerable or Confusion the target gains lasts 1 turn longer. |
+| Sanctified Pyre | Each direct hit on the Sanctified target (which heals the attacker) makes its Ignite burn. |
+| Second Dawn | New `revive` op and `revived` event: fallen characters on the user's side return with 20 HP and no effects. |
+| Cocoon of Flame | Shield and a can't-act effect for 3 ticks (through the user's next turn); what's left heals every ally. |
+| Blazing Challenge | Each hit from the Taunted enemy gives 1 Focus for the next skill (any skill, not only Kindle). |

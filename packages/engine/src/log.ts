@@ -87,6 +87,8 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
       return `${name(e.by)} summons ${name(e.unit)}`;
     case 'died':
       return `${name(e.unit)} is defeated`;
+    case 'revived':
+      return `${name(e.unit)} returns with ${e.hp} HP`;
     case 'turnEnd':
       return `Player ${e.player + 1} ends turn ${e.turn}`;
     case 'checkpoint':
