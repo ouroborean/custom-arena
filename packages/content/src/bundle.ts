@@ -495,17 +495,28 @@ export function lintSkills(b: ContentBundle): ContentIssue[] {
     const where = `skills.${s.id}`;
     const strat = s.tags.includes('Strategic');
     if (strat === s.tags.includes('NonStrategic')) err(where, 'must be tagged exactly one of Strategic / NonStrategic (Q4)');
-    if (s.tags.includes('Harmful') === s.tags.includes('Helpful')) err(where, 'must be tagged exactly one of Harmful / Helpful');
+    // Divine's Radiant skills are neither: their target decides (Harmful on enemies, Helpful on allies).
+    if (s.tags.includes('Radiant')) {
+      if (s.tags.includes('Harmful') || s.tags.includes('Helpful')) err(where, 'a Radiant skill is neither Harmful nor Helpful');
+      if (s.target !== 'any') err(where, 'a Radiant skill targets any unit');
+    } else if (s.tags.includes('Harmful') === s.tags.includes('Helpful')) err(where, 'must be tagged exactly one of Harmful / Helpful');
     if ((s.target === 'enemy' || s.target === 'allEnemies') && s.tags.includes('Helpful')) {
       warn(where, 'targets enemies but is tagged Helpful');
     }
 
     // Strategic = "not explicitly directly damaging": compare the tag with the skill's direct damage.
     let direct = false;
-    walkOps(s.ops, (op, inInline) => {
-      if (op.op !== 'damage') return;
-      if (!inInline && op.direct !== false) direct = true;
-    });
+    const scanDirect = (ops: readonly Op[], seen: Set<string>) =>
+      walkOps(ops, (op, inInline) => {
+        // Macros count as part of the skill (Divine's Radiant halves live in macros).
+        if (op.op === 'macro' && !inInline && !seen.has(op.id)) {
+          seen.add(op.id);
+          scanDirect(b.macros[op.id] ?? [], seen);
+        }
+        if (op.op !== 'damage') return;
+        if (!inInline && op.direct !== false) direct = true;
+      });
+    scanDirect(s.ops, new Set());
     // Delayed payloads (onExpire) of the skill's own effects are direct too.
     walkOps(s.ops, (op) => {
       if (op.op === 'apply' && typeof op.effect !== 'string') {

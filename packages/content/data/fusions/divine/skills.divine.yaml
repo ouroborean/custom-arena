@@ -1,0 +1,755 @@
+# The 30 Divine (Holy + Holy) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.divine".
+# Keywords: Radiant (the `Radiant` tag: target any unit, Harmful on enemies, Helpful on allies) and
+# Exalted (counts as Anointed; Radiant skills also reach the other side).
+# Radiant pattern: on an enemy, the enemy part on them (and, if Exalted, the ally part on the ally with
+# the least HP); on an ally, the ally part on them (and, if Exalted, the enemy part on a random enemy).
+
+strike.divine:
+  archetype: Strike
+  element: Divine
+  name: Hand of Heaven
+  description: >-
+    Radiant. Enemy: 20 damage. Ally: heals 20. If its last use was on the other side, 10 more, and
+    the user is Anointed until the end of their next turn.
+  cost: S
+  cooldown: 0
+  tags: [Radiant, NonStrategic]
+  target: any
+  ops:
+    - op: set
+      var: switched
+      value:
+        if:
+          or:
+            - { and: [{ isEnemy: primary }, { compare: { value: { counter: hand_of_heaven }, atLeast: 2 } }] }
+            - { and: [{ not: { isEnemy: primary } }, { compare: { value: { counter: hand_of_heaven }, atLeast: 1 } }, { compare: { value: { counter: hand_of_heaven }, atMost: 1 } }] }
+        then: 10
+        else: 0
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: damage, to: primary, amount: { sum: [20, { var: switched }] } }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: heal, to: weakestAlly, amount: { sum: [20, { var: switched }] } }] }
+        - { op: setCounter, name: hand_of_heaven, value: 1 }
+      else:
+        - { op: heal, to: primary, amount: { sum: [20, { var: switched }] } }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: damage, to: { randomEnemy: 1 }, amount: { sum: [20, { var: switched }] } }] }
+        - { op: setCounter, name: hand_of_heaven, value: 2 }
+    - op: if
+      cond: { compare: { value: { var: switched }, atLeast: 1 } }
+      then:
+        - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+
+smash.divine:
+  archetype: Smash
+  element: Divine
+  name: Heaven's Hammer
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. If the user is Exalted, it's spent to
+    bring the Hammer down on both sides: every ally also heals 25.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: if
+      cond: { has: { unit: actor, effect: exalted } }
+      then:
+        - { op: removeEffect, from: actor, effect: exalted }
+        - { op: heal, to: allAllies, amount: 25 }
+
+charge.divine:
+  archetype: Charge
+  element: Divine
+  name: Crusader's Advance
+  description: >-
+    Deals 15 damage to target enemy, and the user gets 1 Focus for their next skill. If the target
+    is Condemned, it triggers now, and the user is Anointed until the end of their next turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: if
+      cond: { has: { unit: primary, effect: condemned } }
+      then:
+        - { op: removeEffect, from: primary, effect: condemned }
+        - op: random
+          options:
+            - [{ op: apply, to: primary, effect: weakness }]
+            - [{ op: apply, to: primary, effect: vulnerable }]
+            - [{ op: apply, to: primary, effect: confusion }]
+        - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+
+riposte.divine:
+  archetype: Riposte
+  element: Divine
+  name: Absolution
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, and the ally with the least HP
+    heals the damage it would have dealt. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: absolution
+        name: Absolution
+        kind: Buff
+        element: Divine
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer; their weakest ally heals 20.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: heal, to: weakestAlly, amount: 20 }
+
+rage.divine:
+  archetype: Rage
+  element: Divine
+  name: Apotheosis
+  description: >-
+    For 3 turns, the user is Exalted. Each time they damage an enemy, the ally with the least HP
+    heals 10; each time they heal an ally, a random enemy takes 10.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: exalted, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: apotheosis
+        name: Apotheosis
+        kind: Buff
+        element: Divine
+        description: Direct damage to an enemy heals the weakest ally 10; each heal hits a random enemy for 10.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: heal, to: weakestAlly, amount: 10 }
+          - on: healDone
+            do:
+              - { op: damage, to: { randomEnemy: 1 }, amount: 10, direct: false }
+
+shot.divine:
+  archetype: Shot
+  element: Divine
+  name: Lightray
+  description: >-
+    Radiant. Enemy: 15 damage; until the user's next turn, allies who damage them heal 5. Ally: heals
+    15; until then, enemies who damage them are Condemned.
+  cost: r
+  cooldown: 0
+  tags: [Radiant, NonStrategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: lightray_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: lightray_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: lightray_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: lightray_enemy_it }] }] }
+
+snipe.divine:
+  archetype: Snipe
+  element: Divine
+  name: Spear of Heaven
+  description: >-
+    On the following turn, deals 45 damage to target enemy, and they're Sanctified for 2 turns. Each
+    ally healed by that Sanctify is Anointed until the end of their next turn. The target of this
+    skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spear_of_heaven
+        name: Spear of Heaven (aiming)
+        kind: Neutral
+        element: Divine
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes at the end of the following turn unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 45 }
+          - op: apply
+            to: effectTargets
+            duration: { enemyTurns: 2 }
+            effect:
+              id: spear_sanctify
+              name: Sanctified (Spear of Heaven)
+              kind: Debuff
+              element: Divine
+              countsAs: [sanctify]
+              description: When the bearer takes direct damage, the damager heals 15 and is Anointed until the end of their next turn.
+              triggers:
+                - on: damaged
+                  when: { direct: true }
+                  do:
+                    - { op: heal, to: eventSource, amount: 15 }
+                    - { op: apply, to: eventSource, effect: anointed, duration: { raw: 3 } }
+
+trap.divine:
+  archetype: Trap
+  element: Divine
+  name: Sacred Tithe
+  description: >-
+    For 3 turns, the first Helpful skill target enemy uses is diverted: its effects land on the
+    user's ally with the least HP instead. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sacred_tithe
+        name: Sacred Tithe
+        kind: Debuff
+        element: Divine
+        visibility: hidden
+        description: The bearer's first Helpful skill is diverted to the tither's ally with the least HP.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              - { op: castSkill, eventSkill: true, on: weakestAlly, as: actor }
+
+maneuver.divine:
+  archetype: Maneuver
+  element: Divine
+  name: Seclusion
+  description: >-
+    The user becomes Invulnerable for 1 turn. If they're Anointed, it's spent, and they're Exalted
+    until the end of their next turn.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - { op: removeEffect, from: actor, effect: anointed }
+        - { op: apply, to: actor, effect: exalted, duration: { raw: 3 } }
+
+companion.divine:
+  archetype: Companion
+  element: Divine
+  name: Seraph
+  description: >-
+    Summons a Seraph (40 HP) permanently. Burning Light (W): 15 damage to target enemy, and they're
+    Condemned. Whenever a Condemn it applied triggers, the Seraph Sanctifies that enemy for 1 turn.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: seraph }
+
+bolt.divine:
+  archetype: Bolt
+  element: Divine
+  name: Revelation
+  description: >-
+    Deals 20 damage to target enemy and Marks them for 1 turn. Every Invisible effect in the battle
+    is revealed and ends, on both sides, the user's own included.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: reveal, by: allUnits, end: true }
+
+blast.divine:
+  archetype: Blast
+  element: Divine
+  name: Glory
+  description: >-
+    Deals 25 Piercing damage to all enemies. The user is Exalted for 1 turn, plus 1 more turn for
+    each enemy it leaves below half HP (max 3 turns).
+  cost: IW
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25, type: Piercing }
+    - op: set
+      var: glory
+      value: { sum: [1, { countOf: { filter: allEnemies, where: { compare: { value: { sum: [{ missingHp: it }, { mul: [-1, { hp: it }] }] }, atLeast: 1 } } } }] }
+    - op: apply
+      to: actor
+      effect: exalted
+      duration: { enemyTurns: { if: { compare: { value: { var: glory }, atLeast: 3 } }, then: 3, else: { var: glory } } }
+
+consume.divine:
+  archetype: Consume
+  element: Divine
+  name: Ascend
+  description: >-
+    Deals 5 damage to target enemy; the user heals 10. If they're Sanctified, it's spent and the
+    user is Exalted for 2 turns; otherwise they're Sanctified for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 10 }
+    - op: if
+      cond: { has: { unit: actor, effect: sanctify } }
+      then:
+        - { op: removeEffect, from: actor, effect: sanctify }
+        - { op: apply, to: actor, effect: exalted, duration: { enemyTurns: 2 } }
+      else:
+        - { op: apply, to: actor, effect: sanctify, duration: { enemyTurns: 2 } }
+
+summon.divine:
+  archetype: Summon
+  element: Divine
+  name: Harbinger
+  description: >-
+    Summons a Harbinger (20 HP) for 3 turns. While it lives, the user is Exalted. Trumpet (W): 10 damage to all enemies.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: harbinger, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: exalted, bindTo: lastSummoned }
+
+channel.divine:
+  archetype: Channel
+  element: Divine
+  name: Unending Light
+  description: >-
+    For 2 turns, at the end of each of the user's turns, a random enemy who isn't Sanctified takes 10
+    damage and is Sanctified for 1 turn; then every ally heals 5 per Sanctified enemy. Channeled.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: unending_light
+        name: Unending Light
+        kind: Neutral
+        element: Divine
+        interruptible: true
+        description: Sanctifies a random enemy each turn and heals allies per Sanctified enemy.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in: { randomEnemy: 1, where: { not: { has: { unit: it, effect: sanctify } } } }
+                do:
+                  - { op: damage, to: it, amount: 10 }
+                  - { op: apply, to: it, effect: sanctify, duration: { enemyTurns: 1 } }
+              - op: heal
+                to: allAllies
+                amount: { mul: [5, { countOf: { filter: allEnemies, where: { has: { unit: it, effect: sanctify } } } }] }
+
+stab.divine:
+  archetype: Stab
+  element: Divine
+  name: Even Scales
+  description: >-
+    Radiant. Enemy: 10 damage, or 20 if they have more HP than the user. Ally: heals 10, or 20 if
+    they have less HP than the user.
+  cost: A
+  cooldown: 0
+  tags: [Radiant, NonStrategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: scales_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: scales_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: scales_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: scales_enemy_it }] }] }
+
+ravage.divine:
+  archetype: Ravage
+  element: Divine
+  name: Unfailing Grace
+  description: Deals 25 Piercing damage to target enemy. Until the end of the user's next turn, their skills don't spend their Anointed.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: unfailing_grace
+        name: Unfailing Grace
+        kind: Buff
+        element: Divine
+        description: The bearer's Anointed isn't spent.
+        modifiers:
+          - { mod: protectEffects, effects: [anointed] }
+
+mislead.divine:
+  archetype: Mislead
+  element: Divine
+  name: Divine Intervention
+  description: >-
+    Radiant, for 1 turn. Enemy: if they use a Harmful skill, it's countered. Ally: the first Harmful
+    skill used on them is countered. Either way, the countered skill's user is Condemned. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Radiant, Strategic, Invisible]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: intervention_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: intervention_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: intervention_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: intervention_enemy_it }] }] }
+
+stun.divine:
+  archetype: Stun
+  element: Divine
+  name: Awe
+  description: >-
+    Radiant. Enemy: Stunned for 1 turn if Condemned, otherwise Condemned. Ally: loses all Stuns.
+  cost: r
+  cooldown: 1
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: awe_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: awe_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: awe_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: awe_enemy_it }] }] }
+
+dance.divine:
+  archetype: Dance
+  element: Divine
+  name: Transfiguration
+  description: >-
+    For 2 turns, the user is Invulnerable and Immune and their healing is doubled, but they can only
+    use Helpful skills.
+  cost: AA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: transfiguration
+        name: Transfiguration
+        kind: Neutral
+        element: Divine
+        description: The bearer's healing is doubled, and they can only use Helpful skills.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: true }
+        triggers:
+          - on: healDone
+            do:
+              - { op: heal, to: eventTarget, amount: { eventAmount: true }, quiet: true }
+
+heal.divine:
+  archetype: Heal
+  element: Divine
+  name: Miracle
+  description: Target ally heals to full HP and loses all their Debuffs.
+  cost: nc
+  cooldown: 6
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: { missingHp: primary } }
+    - { op: removeKind, from: primary, kind: Debuff }
+
+bless.divine:
+  archetype: Bless
+  element: Divine
+  name: Consecrate
+  description: >-
+    Radiant. Ally: Exalted until the end of their next turn, and 1 Might for 3 turns. Enemy: they
+    lose Anointed and Exalted, and can't gain either for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: consecrate_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: consecrate_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: consecrate_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: consecrate_enemy_it }] }] }
+
+curse.divine:
+  archetype: Curse
+  element: Divine
+  name: Anathema
+  description: >-
+    Radiant. Enemy: Condemned and Sanctified for 2 turns. Ally: loses their Condemn, Weakness,
+    Vulnerable and Confusion.
+  cost: A
+  cooldown: 2
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: anathema_enemy_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: weakestAlly, do: [{ op: macro, id: anathema_ally_it }] }] }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: anathema_ally_it }] }
+        - { op: if, cond: { has: { unit: actor, effect: exalted } }, then: [{ op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: anathema_enemy_it }] }] }
+
+smite.divine:
+  archetype: Smite
+  element: Divine
+  name: Karmic Light
+  description: >-
+    Deals 15 damage to target enemy, and they're Sanctified for 2 turns. Its healing goes to the
+    ally with the least HP instead of the damager.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: karmic_light
+        name: Sanctified (Karmic Light)
+        kind: Debuff
+        element: Divine
+        countsAs: [sanctify]
+        description: When the bearer takes direct damage, the caster's ally with the least HP heals 15.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - { op: heal, to: weakestAlly, amount: 15 }
+
+prayer.divine:
+  archetype: Prayer
+  element: Divine
+  name: Benediction
+  description: >-
+    All allies heal 20 and gain 10 Shield. Healing past an ally's max HP instead deals that much
+    damage to a random enemy.
+  cost: WW
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: heal, to: it, amount: 20 }
+        - op: if
+          cond: { compare: { value: { lastOverheal: true }, atLeast: 1 } }
+          then:
+            - { op: damage, to: { randomEnemy: 1 }, amount: { lastOverheal: true }, direct: false }
+    - { op: apply, to: targets, effect: shield, value: 10 }
+
+cleave.divine:
+  archetype: Cleave
+  element: Divine
+  name: Twin Radiance
+  description: >-
+    Radiant. Hits the target and one random unit on the other side: enemies take 15 damage, allies
+    heal 15.
+  cost: S
+  cooldown: 1
+  tags: [Radiant, NonStrategic]
+  target: any
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: heal, to: { randomAlly: 1 }, amount: 15 }
+      else:
+        - { op: heal, to: primary, amount: 15 }
+        - { op: damage, to: { randomEnemy: 1 }, amount: 15 }
+
+shout.divine:
+  archetype: Shout
+  element: Divine
+  name: Truce of God
+  description: For 1 turn, no unit on either side can use Harmful skills. Bypass.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic, Bypass]
+  target: none
+  ops:
+    - op: apply
+      to: allUnits
+      duration: { enemyTurns: 1 }
+      effect:
+        id: truce_of_god
+        name: Truce of God
+        kind: Neutral
+        element: Divine
+        description: Can't use Harmful skills.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: true }
+
+withstand.divine:
+  archetype: Withstand
+  element: Divine
+  name: Aegis of Faith
+  description: The user gains 25 Shield for 2 turns, and is Anointed while any of it remains.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: aegis_of_faith
+        name: Aegis of Faith
+        kind: Buff
+        element: Divine
+        shield: true
+        description: While any of this Shield remains, the bearer is Anointed.
+    - { op: apply, to: actor, effect: anointed, linkTo: aegis_of_faith, duration: { enemyTurns: 2 } }
+
+taunt.divine:
+  archetype: Taunt
+  element: Divine
+  name: Beacon
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Each time they damage the user, the user is
+    Exalted until the end of their next turn.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: beacon
+        name: Beacon
+        kind: Debuff
+        element: Divine
+        description: Each time the bearer damages the Beacon, it's Exalted until the end of its next turn.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isEventTarget: actor }
+                then:
+                  - { op: apply, to: actor, effect: exalted, duration: { raw: 3 } }
+
+titan.divine:
+  archetype: Titan
+  element: Divine
+  name: Avatar
+  description: >-
+    For 3 turns, the user is Exalted and gains 2 Armor. Whenever they Condemn an enemy, a random ally
+    is Anointed until the end of their next turn.
+  cost: Wr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: exalted, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: avatar
+        name: Avatar
+        kind: Buff
+        element: Divine
+        description: Each Condemn the bearer applies Anoints a random ally until the end of their next turn.
+        triggers:
+          - on: effectApplied
+            when: { effects: [condemned], toEnemy: true }
+            do:
+              - { op: apply, to: { randomAlly: 1 }, effect: anointed, duration: { raw: 3 } }
+
+# Minion skills.
+
+seraph_burning_light:
+  archetype: Minion
+  element: Divine
+  name: Burning Light
+  description: Deals 15 damage to target enemy and Condemns them.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: condemned }
+
+harbinger_trumpet:
+  archetype: Minion
+  element: Divine
+  name: Trumpet
+  description: Deals 10 damage to all enemies.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 10 }

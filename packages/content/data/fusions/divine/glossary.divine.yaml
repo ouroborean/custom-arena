@@ -1,0 +1,11 @@
+# Divine keywords (docs/glossary.md).
+
+exalted:
+  status: exalted
+  forms: [Exalted]
+  element: Divine
+radiant:
+  name: Radiant
+  text: "A Radiant skill can target any unit and says what it does to an ally and to an enemy. It counts as Helpful on allies and Harmful on enemies, for counters and Traps."
+  forms: [Radiant]
+  element: Divine

@@ -237,7 +237,8 @@ export type Op =
    * Reveals hidden effects: every one applied by a unit in `by`, or (`event`) the effect the
    * triggering event is about (Ocean's Whalesong).
    */
-  | { op: 'reveal'; by?: Selector; event?: boolean }
+  /** `end`: hidden effects found this way also end (Divine's Revelation). */
+  | { op: 'reveal'; by?: Selector; event?: boolean; end?: boolean }
   /**
    * Adds `amount` to the targets' Shield effect `effect` (a Shield status id), up to `max`; a new
    * one is made if they have none. A negative amount drains it, ending it at 0 (Ocean's Brimming).
@@ -617,7 +618,9 @@ export type SkillTag =
   | 'UsableWhileStunned'
   | 'Stealthy'
   /** Cloud: the skill hangs in the air and lands at the start of its user's next turn. */
-  | 'Drift';
+  | 'Drift'
+  /** Divine: can target any unit; Harmful when aimed at an enemy, Helpful when aimed at an ally. */
+  | 'Radiant';
 
 export interface SkillDef {
   id: string;

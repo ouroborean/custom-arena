@@ -1,0 +1,12 @@
+# Divine (Holy + Holy) statuses, from the "Fusion Spec Kits" design doc.
+# Radiant is the `Radiant` skill tag: the skill targets any unit and is Harmful only on an enemy.
+
+exalted:
+  name: Exalted
+  kind: Buff
+  element: Divine
+  stacking: unique
+  countsAs: [anointed]
+  description: >-
+    Counts as Anointed. The bearer's Radiant skills reach both sides: used on an ally, they also hit
+    a random enemy; used on an enemy, they also help the ally with the least HP.

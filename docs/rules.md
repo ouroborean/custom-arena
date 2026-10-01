@@ -839,3 +839,32 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Call of the Grove | Blooms every allied unbloomed Seedling and heals every allied minion to full. |
 | Warden Oak | **Renamed** from the doc's "Guardian Oak": content lint forbids "Guardian" (the retired class). A random allied minion (or the user) Taunts; allied Seedlings that survive it Bloom. |
 | Ancient Treant | Armor equal to the user's minion count, and allied minions are Untargetable. |
+
+### 21.8 Divine (Holy + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Radiant** | A new skill tag: the skill targets any unit and is neither Harmful nor Helpful in its tags. A use is Harmful when its first target is an enemy and Helpful otherwise, for counters, Traps and "uses a Harmful skill" triggers. **Simplified:** "can't use Harmful skills" doesn't block Radiant skills. Radiant halves live in macros (`<skill>_enemy_it`, `<skill>_ally_it`); the content lint now follows macros. |
+| **Exalted** | Counts as Anointed (`countsAs`). While Exalted, a Radiant skill on an enemy also gives its ally part to the user's weakest ally, and one on an ally also gives its enemy part to a random enemy. |
+
+| Skill | Ruling |
+|---|---|
+| Hand of Heaven | The user remembers which side they last used it on (counter); switching sides adds 10 and Anoints them until the end of their next turn. |
+| Crusader's Advance | A Condemned target's Condemn triggers at once (random Weakness, Vulnerable or Confusion). |
+| Absolution | **Simplified:** the weakest ally heals 20 (the prevented damage isn't computed). |
+| Apotheosis | Direct damage to an enemy heals the weakest ally 10; each heal the user does deals 10 indirect damage to a random enemy (no loop, since that damage is indirect). |
+| Spear of Heaven | Its Sanctify (counts as Sanctify) also Anoints each damager it heals. |
+| Sacred Tithe | Counters the enemy's first Helpful skill and casts it as the user on their weakest ally. |
+| Seraph | Sanctifies an enemy when a Condemn the Seraph applied triggers (`ownEffectTriggered`), not any Condemn. |
+| Revelation | `reveal` with the new `end` option: every hidden effect on the field is revealed and removed. |
+| Glory | Exalted for 1 turn plus 1 per enemy below half HP (missing HP more than current), max 3. |
+| Harbinger | The user's Exalted is bound to the Harbinger. |
+| Unending Light | A 2-turn channel. |
+| Unfailing Grace | `protectEffects` keeps the user's Anointed until the end of their next turn. |
+| Transfiguration | Each heal the user does is repeated once (doubling it); they can't use Harmful skills. |
+| Consecrate | The enemy part removes Anointed and Exalted and strips either if gained during the next 2 turns. |
+| Karmic Light | Its Sanctify (counts as Sanctify) heals the user's weakest ally instead of the damager. |
+| Benediction | Overflow from each ally's heal hits a random enemy as indirect damage. |
+| Twin Radiance | The other side's unit is random (not the weakest). |
+| Truce of God | Every unit can't use Harmful skills for 1 turn. |
+| Aegis of Faith | The Anointed is linked to the Shield and ends with it. |

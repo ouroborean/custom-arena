@@ -311,7 +311,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('transformMinion'), to: selectorSchema, minion: z.string() }),
     z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
-    z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional() }),
+    z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional(), end: z.boolean().optional() }),
     z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
     z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: valueSchema }),
@@ -453,6 +453,7 @@ const skillTag = z.enum([
   'UsableWhileStunned',
   'Stealthy',
   'Drift',
+  'Radiant',
 ]);
 
 /** Skills are keyed by id in the file; the loader injects `id`. */

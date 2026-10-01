@@ -151,13 +151,20 @@ export function unmetRequirement(ctx: Ctx, actor: Unit, def: SkillDef): string |
   return ok ? null : 'requirement not met';
 }
 
+/** Is this use Harmful? A Radiant skill is Harmful only when its first target is an enemy (Divine). */
+export function harmfulUse(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): boolean {
+  if (!def.tags.includes('Radiant')) return def.tags.includes('Harmful');
+  const first = targets[0] === undefined ? undefined : findUnit(ctx.s, targets[0]);
+  return !!first && isEnemy(actor, first);
+}
+
 function interceptorFor(
   ctx: Ctx,
   actor: Unit,
   def: SkillDef,
   targets: UnitId[],
 ): { effect: EffectInstance; spec: TriggerSpec } | null {
-  const harmful = def.tags.includes('Harmful');
+  const harmful = harmfulUse(ctx, actor, def, targets);
   const strategic = def.tags.includes('Strategic');
   // Counters catch Harmful skills unless they say otherwise (Dunk: Helpful; Riverbend: Strategic).
   const matches = (spec: TriggerSpec) =>
@@ -252,7 +259,7 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
 }
 
 export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[], opts: { landing?: boolean } = {}): void {
-  const harmful = def.tags.includes('Harmful');
+  const harmful = harmfulUse(ctx, actor, def, targets);
   const tags = effectiveTags(ctx, actor, def);
   // "Allies that acted before you this turn" (equipment).
   actor.counters.actedTurn = ctx.s.turn;
