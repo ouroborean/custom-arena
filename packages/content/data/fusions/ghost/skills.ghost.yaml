@@ -1,0 +1,787 @@
+# The 30 Ghost (Wind + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# Spectral: no Normal damage. Haunt: 10 Affliction at the end of its applier's turn, then it drifts
+# to a random ally of its bearer (macro `haunt_drift`).
+
+strike.ghost:
+  archetype: Strike
+  element: Ghost
+  name: Phantom Blade
+  description: >-
+    Deals 25 damage to target enemy, who is Haunted for 1 turn. A Haunt already on them ticks now and doesn't
+    drift this turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { has: { unit: primary, effect: haunt } }
+      then:
+        - { op: damage, to: primary, amount: 10, type: Affliction, direct: false }
+        - { op: setCounter, name: haunt_pinned, on: primary, value: { turn: true } }
+      else:
+        - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 1 } }
+
+smash.ghost:
+  archetype: Smash
+  element: Ghost
+  name: Poltergeist Crash
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies, and the target is Haunted for 2 turns. If they
+    already were, the Haunt splits: a second one lands on a random ally of theirs.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: haunt } }
+      then: [{ op: apply, to: { randomEnemy: 1, exclude: primary, where: { kind: { unit: it, is: character } } }, effect: haunt, duration: { enemyTurns: 2 } }]
+    - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 2 } }
+
+charge.ghost:
+  archetype: Charge
+  element: Ghost
+  name: Walk Through Walls
+  description: The user is Spectral until they next use a skill, and that skill Bypasses.
+  cost: nc
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: walk_through_walls
+        name: Spectral
+        kind: Buff
+        element: Ghost
+        countsAs: [spectral]
+        description: No Normal damage until the bearer's next skill, which Bypasses.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0, when: { types: [Normal] } }
+          - { mod: skillTags, add: [Bypass] }
+
+riposte.ghost:
+  archetype: Riposte
+  element: Ghost
+  name: Vengeful Spirit
+  description: >-
+    For 1 turn, the user is Spectral, and the first enemy to use a Harmful skill on them takes 15 Affliction
+    damage. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: spectral, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: vengeful_spirit
+        name: Vengeful Spirit
+        kind: Buff
+        element: Ghost
+        visibility: hidden
+        description: The first enemy to strike the bearer is hurt in return.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            consume: true
+            do:
+              - { op: damage, to: eventSource, amount: 15, type: Affliction }
+
+rage.ghost:
+  archetype: Rage
+  element: Ghost
+  name: Unfinished Business
+  description: >-
+    For 3 turns, the user is Immortal, and each Debuff they would gain becomes 1 Might instead. Usable while
+    Stunned.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic, UsableWhileStunned]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: unfinished_business
+        name: Unfinished Business
+        kind: Buff
+        element: Ghost
+        description: Each Debuff the bearer would gain becomes 1 Might.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: apply, to: bearer, effect: might, linkTo: unfinished_business }
+
+shot.ghost:
+  archetype: Shot
+  element: Ghost
+  name: Phantom Pain
+  description: >-
+    Deals 10 damage to target enemy. For 2 turns, whenever one of their allies takes direct damage, they take 5
+    Affliction damage too.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primaryAllies
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: phantom_pain
+        name: Phantom Pain
+        kind: Debuff
+        element: Ghost
+        description: Direct damage to the bearer also hurts the haunted one.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - { op: damage, to: effectTargets, amount: 5, type: Affliction, direct: false }
+
+snipe.ghost:
+  archetype: Snipe
+  element: Ghost
+  name: Grave Omen
+  description: >-
+    The user is Spectral until it lands; on the following turn, 35 Piercing damage to target enemy. The target
+    of this skill is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grave_omen
+        name: Grave Omen (aiming)
+        kind: Neutral
+        element: Ghost
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 35, type: Piercing }
+    - { op: apply, to: actor, effect: spectral, duration: { enemyTurns: 1 }, linkTo: grave_omen }
+
+trap.ghost:
+  archetype: Trap
+  element: Ghost
+  name: Hangman's Noose
+  description: >-
+    For 2 turns, the first time target enemy gains a Buff, it's removed, and they're Haunted for 3 turns.
+    Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hangmans_noose
+        name: Hangman's Noose
+        kind: Debuff
+        element: Ghost
+        visibility: hidden
+        description: The bearer's first Buff is torn away, and they're Haunted.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            consume: true
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: apply, to: bearer, effect: haunt, duration: { enemyTurns: 3 } }
+
+maneuver.ghost:
+  archetype: Maneuver
+  element: Ghost
+  name: Fade
+  description: The user becomes Spectral for 2 turns; it ends early if they deal damage.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: fade
+        name: Spectral
+        kind: Buff
+        element: Ghost
+        countsAs: [spectral]
+        description: No Normal damage; ends if the bearer deals damage.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0, when: { types: [Normal] } }
+        triggers:
+          - on: dealtDamage
+            do:
+              - { op: removeSelf }
+
+companion.ghost:
+  archetype: Companion
+  element: Ghost
+  name: Poltergeist
+  description: >-
+    Summons a Poltergeist (30 HP, always Spectral) permanently. Rattle (S): 10 Affliction damage, and Haunted
+    for 2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: poltergeist }
+
+bolt.ghost:
+  archetype: Bolt
+  element: Ghost
+  name: Reaping Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. When the Mark is spent, the user drains a Soul
+    Fragment from them.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: reaping_bolt
+        name: Reaping Bolt
+        kind: Neutral
+        element: Ghost
+        description: When the Mark is spent, the bearer drains a Soul Fragment.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [mark], reason: [consumed, removed] }
+            consume: true
+            do:
+              - { op: removeStacks, from: eventTarget, effect: soul_fragment, amount: 1 }
+              - { op: apply, to: bearer, effect: soul_fragment }
+
+blast.ghost:
+  archetype: Blast
+  element: Ghost
+  name: Spirit Storm
+  description: >-
+    Deals 20 damage to all enemies, +10 for each character on either side who has died this battle (max +40).
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      amount:
+        sum:
+          - 20
+          - if: { compare: { value: { sum: [{ deadCount: enemies }, { deadCount: allies }] }, atLeast: 4 } }
+            then: 40
+            else: { mul: [10, { sum: [{ deadCount: enemies }, { deadCount: allies }] }] }
+
+consume.ghost:
+  archetype: Consume
+  element: Ghost
+  name: Steal Breath
+  description: >-
+    Deals 5 damage to target enemy, who is Haunted for 2 turns; that Haunt's damage heals the user wherever it
+    drifts.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: breath_haunt
+        name: Haunt
+        kind: Debuff
+        element: Ghost
+        countsAs: [haunt]
+        description: A Haunt whose damage heals the one who sent it.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+              - { op: heal, to: actor, amount: { lastDamage: true } }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: haunt_drift }] }
+
+summon.ghost:
+  archetype: Summon
+  element: Ghost
+  name: Wraiths
+  description: >-
+    Summons 2 Wraiths (10 HP) for 3 turns; when a Wraith dies, its killer is Haunted for 2 turns. Cold Grasp (nc):
+    5 Affliction damage.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: wraith, count: 2, duration: { enemyTurns: 3 } }
+
+channel.ghost:
+  archetype: Channel
+  element: Ghost
+  name: Restless Dead
+  description: >-
+    For 2 turns, 10 damage to all enemies at the end of each of the user's turns. A random enemy is Haunted for 3
+    turns, and each time that Haunt drifts, the user gains a Soul Fragment. Channeled.
+  cost: AS
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: restless_dead
+        name: Restless Dead
+        kind: Neutral
+        element: Ghost
+        interruptible: true
+        description: Each turn, 10 damage to all enemies.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+    - op: apply
+      to: { randomEnemy: 1, where: { kind: { unit: it, is: character } } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: restless_haunt
+        name: Haunt
+        kind: Debuff
+        element: Ghost
+        countsAs: [haunt]
+        description: A Haunt that feeds the sender a Soul Fragment each time it drifts.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+              - { op: apply, to: actor, effect: soul_fragment }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: haunt_drift }] }
+
+stab.ghost:
+  archetype: Stab
+  element: Ghost
+  name: Through the Veil
+  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Bypass.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Bypass]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+
+ravage.ghost:
+  archetype: Ravage
+  element: Ghost
+  name: Rend the Living
+  description: >-
+    Deals 30 Piercing damage to target enemy. For 2 turns, a Horrify on them also stops them from being healed.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: rend_the_living
+        name: Rend the Living
+        kind: Debuff
+        element: Ghost
+        description: While Horrified, the bearer can't be healed.
+        modifiers:
+          - { mod: healingReceived, mul: 0, if: { has: { unit: actor, effect: horrified } } }
+
+mislead.ghost:
+  archetype: Mislead
+  element: Ghost
+  name: Night Terror
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, all its targets are Spectral against it, so its Normal
+    damage passes through them; its user is then Horrified for 2 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: night_terror
+        name: Night Terror
+        kind: Debuff
+        element: Ghost
+        visibility: hidden
+        description: The bearer's next Harmful skill passes through its targets, and they're Horrified.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: { filter: eventTargets, where: { not: { isEnemy: it } } }, effect: spectral, duration: { raw: 1 } }
+              - { op: apply, to: bearer, effect: horrified, duration: { enemyTurns: 2 } }
+
+stun.ghost:
+  archetype: Stun
+  element: Ghost
+  name: Frozen with Fear
+  description: >-
+    Target enemy is Stunned for 1 turn and Haunted for 2 turns; the first ally of theirs it drifts to is Stunned
+    for 1 turn too.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: frozen_with_fear
+        name: Frozen with Fear
+        kind: Debuff
+        element: Ghost
+        description: The first ally the Haunt drifts to is Stunned too.
+
+dance.ghost:
+  archetype: Dance
+  element: Ghost
+  name: Ghostly Waltz
+  description: For 3 turns, the user is Spectral and gains 1 Might and 2 Swiftness, but can't be healed.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: spectral, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: ghostly_waltz
+        name: Ghostly Waltz
+        kind: Neutral
+        element: Ghost
+        description: The bearer can't be healed.
+        modifiers:
+          - { mod: healingReceived, mul: 0 }
+
+heal.ghost:
+  archetype: Heal
+  element: Ghost
+  name: Soul Transfer
+  description: >-
+    Target ally heals 15, +10 per Soul Fragment the user spends, up to 2; with 2 spent, the ally also Leaps.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: set
+      var: souls
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 2 } }, then: 2, else: { stacks: { unit: actor, effect: soul_fragment } } }
+    - { op: removeStacks, from: actor, effect: soul_fragment, amount: 2 }
+    - { op: heal, to: primary, amount: { sum: [15, { mul: [10, { var: souls }] }] } }
+    - op: if
+      cond: { compare: { value: { var: souls }, atLeast: 2 } }
+      then: [{ op: forEach, in: primary, do: [{ op: macro, id: leap }] }]
+
+bless.ghost:
+  archetype: Bless
+  element: Ghost
+  name: Spirit Form
+  description: >-
+    Target ally is Spectral for 2 turns; each Harmful skill an enemy uses on them gives the user a Soul Fragment.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: spectral, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: spirit_form
+        name: Spirit Form
+        kind: Buff
+        element: Ghost
+        description: Each Harmful skill an enemy uses on the bearer feeds the applier a Soul Fragment.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            do:
+              - { op: apply, to: actor, effect: soul_fragment }
+
+curse.ghost:
+  archetype: Curse
+  element: Ghost
+  name: Spirit Mark
+  description: >-
+    Target enemy is Haunted for 3 turns; each ally it drifts to is Horrified for 1 turn as it arrives.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: spirit_mark, duration: { enemyTurns: 3 } }
+
+smite.ghost:
+  archetype: Smite
+  element: Ghost
+  name: Unnerving Touch
+  description: >-
+    Deals 20 damage to target enemy, who is Horrified for 1 turn. Each Helpful skill used on them meanwhile gives
+    the user 1 Swiftness instead.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: unnerving_touch
+        name: Unnerving Touch
+        kind: Debuff
+        element: Ghost
+        description: Each Helpful skill used on the bearer gives the applier 1 Swiftness.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: false }
+            do:
+              - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 1 } }
+
+prayer.ghost:
+  archetype: Prayer
+  element: Ghost
+  name: Dirge of Spirits
+  description: All allies heal 20. For 2 turns, each ally's Swiftness also shrugs off a Taunt, spending 1 stack.
+  cost: Arr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: apply
+      to: targets
+      stacks: 99
+      duration: { enemyTurns: 2 }
+      effect:
+        id: dirge_of_spirits
+        name: Dirge of Spirits
+        kind: Buff
+        element: Ghost
+        description: Swiftness shrugs off Taunts too, 1 stack each.
+        modifiers:
+          - { mod: negateNext, effect: taunt, if: { has: { unit: actor, effect: swiftness } } }
+        triggers:
+          - on: incomingNegated
+            do:
+              - { op: removeStacks, from: bearer, effect: swiftness, amount: 1 }
+
+cleave.ghost:
+  archetype: Cleave
+  element: Ghost
+  name: Phantom Sweep
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy; whichever of them has more HP is Isolated
+    for 1 turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: if
+          cond: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { hp: primary }] }] }, atLeast: 1 } }
+          then: [{ op: apply, to: it, effect: isolated, duration: { enemyTurns: 1 } }]
+          else: [{ op: apply, to: primary, effect: isolated, duration: { enemyTurns: 1 } }]
+
+shout.ghost:
+  archetype: Shout
+  element: Ghost
+  name: Keening
+  description: >-
+    All enemies are Intimidated for 2 turns. For as long, the user's side's Rushing doesn't end after a turn in
+    which they used no skill.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: allAllies, effect: idle_updraft, duration: { enemyTurns: 2 } }
+
+withstand.ghost:
+  archetype: Withstand
+  element: Ghost
+  name: Ectoplasmic Shield
+  description: The user gains 20 Shield for 1 turn; when it breaks, they become Spectral for 1 turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ectoplasmic_shield
+        name: Ectoplasmic Shield
+        kind: Buff
+        element: Ghost
+        shield: true
+        description: A Shield; when it breaks, the bearer becomes Spectral.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ectoplasmic_watch
+        name: Ectoplasmic Shield
+        kind: Neutral
+        element: Ghost
+        description: When the Shield breaks, the bearer becomes Spectral for 1 turn.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [ectoplasmic_shield], reason: [depleted] }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: spectral, duration: { enemyTurns: 1 } }
+
+taunt.ghost:
+  archetype: Taunt
+  element: Ghost
+  name: Beckoning Spirit
+  description: Target enemy is Taunted by the user for 2 turns; while Taunted, their Normal damage can't hurt the user.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: beckoner, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: beckoning_spirit
+        name: Beckoning Spirit
+        kind: Debuff
+        element: Ghost
+        description: While Taunted, the bearer's Normal damage can't hurt the spirit who beckoned.
+        modifiers:
+          - { mod: damageDealt, amount: 0, mul: 0, when: { types: [Normal] }, target: { has: { unit: it, effect: beckoner } }, if: { has: { unit: actor, effect: taunt } } }
+
+titan.ghost:
+  archetype: Titan
+  element: Ghost
+  name: Second Haunting
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune. The first time they would die meanwhile, they vanish instead
+    and return at the start of their next turn with 30 HP.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: second_haunting
+        name: Second Haunting
+        kind: Buff
+        element: Ghost
+        description: The first time the bearer would die, they vanish and return next turn with 30 HP.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: apply, to: bearer, effect: vanished }
+
+# Minion skills.
+
+poltergeist_rattle:
+  archetype: Minion
+  element: Ghost
+  name: Rattle
+  description: Deals 10 Affliction damage to target enemy, who is Haunted for 2 turns.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }
+    - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 2 } }
+
+wraith_cold_grasp:
+  archetype: Minion
+  element: Ghost
+  name: Cold Grasp
+  description: Deals 5 Affliction damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Affliction }

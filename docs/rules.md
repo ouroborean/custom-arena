@@ -1500,3 +1500,23 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Wings of Respite | While an ally of theirs has Swiftness, Stuns on the user's allies are negated, each costing the user 1 Swiftness. |
 | Fallen Grace | Mobility buffs they'd gain are removed (`eventEffect.remove`) and they're Condemned. |
 | Seraphic Form | Each single-target Helpful skill resolved is recast on every other ally (castSkill depth guard applies). |
+
+### 21.44 Ghost (Wind + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Spectral** | Buff: Normal damage taken ×0. |
+| **Haunt** | Debuff: 10 Affliction at the end of its applier's turn, then macro `haunt_drift` moves it (with any riders: Spirit Mark, Frozen with Fear) to a random allied character of the bearer, if any, and sends `haunt_drift`. Phantom Blade pins it for the turn. |
+| Vengeful Spirit | Simplified: the first enemy to use a Harmful skill on the user takes 15 Affliction (Normal damage that passes through deals 0, so it can't be measured). |
+| Unfinished Business | Debuffs they'd gain are removed as they land, each becoming 1 Might tied to the Rage. |
+| Phantom Pain | The target's allies carry a link: direct damage to them deals the target 5 Affliction. |
+| Hangman's Noose | The first Buff they gain is removed (`eventEffect.remove`) and they're Haunted. |
+| Steal Breath / Restless Dead | Haunt variants (counting as Haunt): one heals the user for its damage, the other gives a Soul Fragment each time it drifts. |
+| Through the Veil | Simplified: Bypass (it doesn't ignore Taunt or reach Stealthed units). |
+| Night Terror | The skill's targets are Spectral for the rest of that turn, then its user is Horrified. |
+| Spirit Form | Simplified: each Harmful skill an enemy uses on the ally gives the user a Soul Fragment. |
+| Unnerving Touch | Simplified: each Helpful skill used on them gives the user 1 Swiftness. |
+| Dirge of Spirits | While an ally has Swiftness, Taunts on them are negated, each costing 1 Swiftness. |
+| Keening | Gives the user's side Cloud's Idle Updraft for 2 turns. |
+| Beckoning Spirit | While Taunted, the enemy's Normal damage to the user (marked Beckoning) is ×0. |
+| Second Haunting | The user vanishes (untargetable, no damage) and returns with 30 HP at the start of their next turn. |
