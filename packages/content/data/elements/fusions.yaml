@@ -39,7 +39,7 @@ mirror:       { name: Mirror,      elements: [Water, Shadow] }
 
 # Lightning + …
 thunder:      { name: Thunder,     elements: [Lightning, Lightning] }
-storm:        { name: Storm,       elements: [Lightning, Wind] }
+storm:        { name: Storm,       elements: [Lightning, Wind], passives: [storm_heart] }
 battery:      { name: Battery,     elements: [Lightning, Poison] }
 magnet:       { name: Magnet,      elements: [Lightning, Earth] }
 vengeance:    { name: Vengeance,   elements: [Lightning, Holy] }

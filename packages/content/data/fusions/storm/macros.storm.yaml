@@ -1,0 +1,9 @@
+# Storm actions, run on `it`.
+
+# +1 Tempest; at 5, the Eye of the Storm.
+gain_tempest:
+  - { op: apply, to: it, effect: tempest }
+  - op: if
+    cond: { and: [{ compare: { value: { stacks: { unit: it, effect: tempest } }, atLeast: 5 } }, { not: { has: { unit: it, effect: eye_of_the_storm } } }] }
+    then:
+      - { op: apply, to: it, effect: eye_of_the_storm }

@@ -1,0 +1,14 @@
+# Storm minions (their skills are Storm skills, so they feed the team's Tempest).
+
+storm_roc:
+  name: Storm Roc
+  hp: 40
+  skills: [storm_roc_gale_wing, storm_roc_thunder_talon]
+
+squall_cloud:
+  name: Squall Cloud
+  hp: 20
+  # When it expires (or falls), it breaks: 5 damage per Tempest to all enemies.
+  onDeath:
+    - { op: damage, to: allEnemies, amount: { mul: [5, { stacks: { unit: summoner, effect: tempest } }] }, direct: false }
+  skills: [squall_cloud_rumble]

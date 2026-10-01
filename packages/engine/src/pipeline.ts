@@ -316,6 +316,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     },
     privateTo,
   );
+  // "Each time your team uses a Storm skill": every skill use is heard by its element (Storm's Tempest).
+  broadcastSignal(ctx, `used:${def.element}`, actor, { eventSkill: def.id });
 
   // "Until the bearer uses a skill" effects apply to this use, then end once it has resolved.
   // Only effects that existed before this use qualify (not ones the skill itself applies).

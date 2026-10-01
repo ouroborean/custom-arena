@@ -1347,3 +1347,17 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Silvered Guard | The Mimic copies the user's last attacker's last skill. |
 | Mocking Reflection | Each Harmful skill the Taunted enemy resolves is Mimicked back at them. |
 | Mirror of the Faceless | New `copyEffects`: the enemy's Buffs are copied once (not refreshed each turn). |
+
+### 21.35 Storm (Lightning + Wind)
+
+| Term | Ruling |
+|---|---|
+| **Tempest** | The pipeline now broadcasts `used:<element>` for every skill use. Each Storm character's Storm Heart passive hears `used:Storm` from their side (minions included) and gains 1 Tempest (Neutral, max 5); at the end of their turn with no Storm skill used, −1 (not during Song of the Storm). Simplified: Tempest is tracked on each Storm character, not once per team. |
+| **Eye of the Storm** | At 5, a Buff: the bearer's next Storm skill (not Storm Warning) also hits every enemy it didn't target for 15, and Tempest drops by 2. Simplified: a flat 15, not the skill's own damage and effects. |
+| Squall Strike | Simplified: +5 per Tempest (max +15). |
+| Downburst | Simplified: 1 Swiftness at the start of each of the user's turns for 2 turns. |
+| Storm Rider / Tailwind | While active, the bearer's non-Storm skills send `used:Storm` too. |
+| Summit Strike | Bypassing 25 Piercing on the enemy with the most HP (it can't reach Stealthed or Untargetable enemies). |
+| Mending Arc | 25 to the target, 15 to the other ally with the least HP, 5 to the rest. |
+| Shearing Gale | Simplified: Leaping's +5 applies as usual, and the Leap still ends. |
+| Static Lure | Simplified: while Taunted and Sapped, 1 less energy each turn. |

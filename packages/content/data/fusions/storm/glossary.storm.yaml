@@ -1,0 +1,8 @@
+# Storm keywords (docs/glossary.md).
+
+tempest:
+  status: tempest
+  element: Storm
+eye_of_the_storm:
+  status: eye_of_the_storm
+  element: Storm
