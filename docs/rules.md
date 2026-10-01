@@ -1410,3 +1410,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Spark of Mercy | Uses `energyFromEffect` (Charge turning into energy). |
 | Gathering Oath | Simplified: every ally's Charge moves to the user. |
 | Arc of Justice | Condemnation is triggered by hand: removed, and a random Weakness, Vulnerable or Confusion applied. |
+
+### 21.39 Reanimation (Lightning + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Galvanized** | Buff with an HP floor of 1 while the bearer hasn't been Reanimated (`reanimated` counter). A hit that leaves them at 1 ends it and puts them in Reanimating (untargetable, can't act, takes no damage) until the end of the turn; then macro `reanimate`: back to 30 HP, Reanimated, once per match. Simplified: a hit leaving them at exactly 1 HP also counts as dying. |
+| **Reanimated** | Permanent: healing received ×0 (raw heals still work), immune to Renew, 5 HP lost at the end of their turns (Deadhand skips one). |
+| Death Current / Chain of Souls | A kill is detected by the enemy dead count rising (characters only). |
+| Dead Man's Switch | If the user is Galvanized when it's cast, it Reflects (and spends Galvanized) instead of countering. |
+| Soul Dynamo | Simplified: Charge that reaches 3 also gives a Soul Fragment. |
+| Bone Zap | The user drains the Soul Fragment when the Mark is spent (whoever spends it). |
+| Flesh Golem | Its own once-only HP floor: it returns at 20 HP, Reanimated, on the spot. |
+| Necrobolt | +10 per round since the user returned, up to 30 (`reanimated_turn`). |
+| Patchwork Revenant | Simplified: always Gnash (no copied skill from the last unit to die). |
+| Twitching Dance | Simplified: each direct hit while at full HP or Reanimated gives 1 Charge. |
+| Raise the Fallen | `revive` now stamps `revived_turn`; everyone revived this way is Reanimated (simplified: including characters who were Reanimated before). |
+| Lure the Living | Simplified: a 2-turn Taunt; the Horrify happens if the user truly dies meanwhile. |

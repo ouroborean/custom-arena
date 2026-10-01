@@ -1,0 +1,31 @@
+# Reanimation minions.
+
+flesh_golem:
+  name: Flesh Golem
+  hp: 40
+  passives:
+    - id: flesh_golem_stitches
+      name: Stitched Together
+      kind: Neutral
+      element: Reanimation
+      description: The first time it dies, it returns with 20 HP, Reanimated.
+      modifiers:
+        - { mod: hpFloor, amount: 1, if: { compare: { value: { counterOf: { unit: actor, name: reanimated } }, atMost: 0 } } }
+      triggers:
+        - on: damaged
+          do:
+            - op: if
+              cond:
+                and:
+                  - { hpAtMost: { unit: bearer, value: 1 } }
+                  - { compare: { value: { counterOf: { unit: bearer, name: reanimated } }, atMost: 0 } }
+              then:
+                - { op: setCounter, name: reanimated, value: 1, on: bearer }
+                - { op: heal, to: bearer, amount: 19, raw: true, quiet: true }
+                - { op: apply, to: bearer, effect: reanimated }
+  skills: [flesh_golem_slam]
+
+patchwork_revenant:
+  name: Patchwork Revenant
+  hp: 25
+  skills: [patchwork_revenant_gnash]

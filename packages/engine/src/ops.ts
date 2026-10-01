@@ -770,6 +770,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       for (const u of ctx.s.units.filter((x) => !x.alive && x.kind === 'character' && x.owner === actor.owner)) {
         u.alive = true;
         u.hp = Math.min(op.hp, u.maxHp);
+        u.counters.revived_turn = ctx.s.turn;
         emit(ctx, { t: 'revived', unit: u.id, hp: u.hp });
       }
       return;

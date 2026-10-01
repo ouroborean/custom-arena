@@ -1,0 +1,63 @@
+# Reanimation (Lightning + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Galvanized: a hit that would kill the bearer (once per match) leaves them Reanimating instead.
+galvanized:
+  name: Galvanized
+  kind: Buff
+  element: Reanimation
+  stacking: unique
+  description: >-
+    If the bearer dies while Galvanized, they return at the end of that turn with 30 HP, Reanimated. Each
+    character can be Reanimated once per match.
+  modifiers:
+    - { mod: hpFloor, amount: 1, if: { compare: { value: { counterOf: { unit: actor, name: reanimated } }, atMost: 0 } } }
+  triggers:
+    - on: damaged
+      do:
+        - op: if
+          cond:
+            and:
+              - { hpAtMost: { unit: bearer, value: 1 } }
+              - { compare: { value: { counterOf: { unit: bearer, name: reanimated } }, atMost: 0 } }
+          then:
+            - { op: removeSelf }
+            - { op: apply, to: bearer, effect: reanimating, duration: { raw: 1 } }
+
+reanimating:
+  name: Reanimating
+  kind: Neutral
+  element: Reanimation
+  stacking: unique
+  description: Struck down; returns at the end of this turn, Reanimated.
+  modifiers:
+    - { mod: cannotUseSkills }
+    - { mod: untargetable, by: enemies, bypassable: false }
+    - { mod: untargetable, by: allies, bypassable: false }
+    - { mod: damageTaken, amount: 0, mul: 0 }
+    - { mod: hpFloor, amount: 1 }
+  onExpire:
+    - { op: forEach, in: bearer, do: [{ op: macro, id: reanimate }] }
+
+reanimated:
+  name: Reanimated
+  kind: Neutral
+  element: Reanimation
+  stacking: unique
+  description: Back for good, but can't be healed or gain Renew, and loses 5 HP at the end of each of their turns.
+  modifiers:
+    - { mod: healingReceived, mul: 0 }
+    - { mod: immuneToEffects, effects: [renew] }
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: deadhand_reprieve } }
+          then: [{ op: removeEffect, from: bearer, effect: deadhand_reprieve }]
+          else: [{ op: damage, to: bearer, amount: 5, raw: true, type: Affliction, direct: false }]
+
+deadhand_reprieve:
+  name: Reprieve
+  kind: Buff
+  element: Reanimation
+  stacking: unique
+  description: The next 5 HP loss from Reanimated is skipped.
