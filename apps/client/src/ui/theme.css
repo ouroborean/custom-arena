@@ -2595,6 +2595,14 @@ input[type="password"] {
   background: #ff8a00;
 }
 
+/* A skill's icon at the front of its chip (roster, character, loadout and sandbox screens). */
+.skill-chip .chip-glyph {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-left: -3px;
+}
+
 .skill-chip.from-equipment {
   border-style: dashed;
 }

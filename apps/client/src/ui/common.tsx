@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
-import { portraitUrl, useAssets } from '../assets.js';
+import { portraitUrl, skillIconUrl, useAssets } from '../assets.js';
 import { useStore, type InspectTarget } from '../store.js';
 
 export function Tooltip({ content, children, block }: { content: ReactNode; children: ReactNode; block?: boolean }) {
@@ -357,6 +357,16 @@ export function glyphPaint(element: string | undefined, content: ContentBundle):
 export function Glyph({ url, paint }: { url: string; paint: string }) {
   const mask = `url("${url}")`;
   return <span className="glyph" aria-hidden style={{ background: paint, maskImage: mask, WebkitMaskImage: mask }} />;
+}
+
+/** A skill's icon at text size, for skill chips outside battle; nothing when the skill has none. */
+export function SkillGlyph({ def, content }: { def: SkillDef; content: ContentBundle }) {
+  const url = skillIconUrl(useAssets((s) => s.icons), def);
+  return url ? (
+    <span className="chip-glyph">
+      <Glyph url={url} paint={glyphPaint(def.element, content)} />
+    </span>
+  ) : null;
 }
 
 export type SkillCategory = 'attack' | 'control' | 'support';

@@ -4,7 +4,7 @@ import { resolveLoadout, RARITIES, skillDefId, type CharacterRecord, type Charac
 import type { Character } from '../api.js';
 import { content } from '../content.js';
 import { portraitKey } from '../assets.js';
-import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, Tooltip } from './common.js';
+import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, SkillGlyph, Tooltip } from './common.js';
 
 export const recordOf = (c: Character): CharacterRecord => ({
   name: c.name,
@@ -46,6 +46,7 @@ export function SkillChips({ skills }: { skills: CharacterSkill[] }) {
             }
           >
             <span className={`skill-chip ${elementClass(d.element)} ${s.source === 'equipment' ? 'from-equipment' : ''}`} tabIndex={0}>
+              <SkillGlyph def={d} content={content} />
               {d.name}
               <CostPips cost={d.cost} />
             </span>

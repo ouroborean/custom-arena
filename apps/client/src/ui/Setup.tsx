@@ -5,7 +5,7 @@ import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
 import { portraitKey } from '../assets.js';
-import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, Tooltip } from './common.js';
+import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, SkillGlyph, Tooltip } from './common.js';
 
 const ELEMENTS = availableElements(content);
 
@@ -68,6 +68,7 @@ function CharacterEditor({
                 }
               >
                 <span className={`skill-chip ${elementClass(d.element)}`} tabIndex={0}>
+                  <SkillGlyph def={d} content={content} />
                   {d.name}
                   <CostPips cost={d.cost} />
                 </span>
