@@ -74,15 +74,27 @@ riposte.curse:
         kind: Buff
         element: Curse
         visibility: hidden
-        description: Counters Harmful skills from Hexed enemies, and the first from anyone else.
+        description: Counters every Harmful skill a Hexed enemy uses on the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, sourceIs: hexed }
+            intercept: counter
+    # Applied second, so a Hexed attacker meets the ward above first and this one is kept for anyone else.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hex_ward_first
+        name: Hex Ward
+        kind: Buff
+        element: Curse
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
-            do:
-              - op: if
-                cond: { not: { check: { cond: hexed, unit: eventSource } } }
-                then: [{ op: removeSelf }]
+            consume: true
 
 rage.curse:
   archetype: Rage
@@ -639,9 +651,10 @@ withstand.curse:
   name: Shrouded Ward
   description: >-
     The user gains 20 Shield for 1 turn. While any of it remains, their skills don't end their Stealth.
+    Stealthy.
   cost: A
   cooldown: 2
-  tags: [Helpful, Strategic]
+  tags: [Helpful, Strategic, Stealthy]
   target: self
   ops:
     - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 1 } }

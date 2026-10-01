@@ -666,6 +666,8 @@ export interface TriggerSpec {
     costAtLeast?: number;
     /** Intercepting skillUsed: only skills with any of these tags (Vigilante's Sting Operation). */
     anyTags?: string[];
+    /** Intercepting skillUsed / skillTargeted: only when the skill's user meets this named condition. */
+    sourceIs?: string;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';

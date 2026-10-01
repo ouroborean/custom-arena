@@ -213,9 +213,7 @@ describe('Current skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([60, 100]);
   });
 
-  // BUG: "they and every Soaked enemy take 15 ... each one hit is Sapped": the un-Soaked target is hit twice
-  // (30 damage) and gains 2 Sapped.
-  it.fails('Live Wire: the first Harmful skill the target uses hits them and every Soaked enemy for 15 and Saps each', () => {
+  it('Live Wire: the first Harmful skill the target uses hits them and every Soaked enemy for 15 and Saps each', () => {
     const a = arena({ p0: [['trap.current']], p1: three(), passives: COND });
     soak(a, B2);
     const seen = seenByB(a, B1);
@@ -457,9 +455,7 @@ describe('Current skills', () => {
     expect(a.hp(A2)).toBe(80);
   });
 
-  // BUG: "for 2 turns, their Renew heals without losing stacks": after the 2nd protected tick only 1 Renew is
-  // left (the added-back stack is a separate instance, and both instances lose a stack on that tick).
-  it.fails('Still Spring: still 2 Renew after both protected turns, then it decays normally', () => {
+  it('Still Spring: still 2 Renew after both protected turns, then it decays normally', () => {
     const a = arena({ p0: [['heal.current'], ['shot']], p1: three(), passives: COND });
     a.setHp(A2, 40).use(A1, 'heal.current', A2).end().pass(2);
     expect([a.hp(A2), a.stacks(A2, 'renew')]).toEqual([80, 2]);

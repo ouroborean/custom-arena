@@ -413,9 +413,7 @@ describe('Devil skills', () => {
     expect([a.hp(B1), contracts(a, B1)]).toEqual([45, 0]);
   });
 
-  // SPEC: "those [Buffs] become a Contract: they keep them for 1 turn, then pay" — read as the Buffs being lost
-  // when the Contract ends; the implementation leaves them in place after the price is paid. Which is intended?
-  it.fails('Hellraze: the converted Buffs are gone once the Contract ends', () => {
+  it('Hellraze: the converted Buffs are gone once the Contract ends', () => {
     const a = arena({ p0: [['ravage.devil']], p1: [['shot']] });
     a.give(B1, 'armor', { stacks: 1 }).give(B1, 'swiftness');
     a.use(A1, 'ravage.devil', B1).end().pass(1);

@@ -215,9 +215,7 @@ describe('Curse skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // SPEC: the description counters "every Harmful skill … by a Hexed enemy, and the first one from anyone else";
-  // the ruling says one from an un-Hexed enemy ends the ward. Tested per the description.
-  it.fails('Hex Ward: a Hexed enemy is still countered after an un-Hexed one was', () => {
+  it('Hex Ward: a Hexed enemy is still countered after an un-Hexed one was', () => {
     const a = arena({ p0: [['riposte.curse']], p1: [['shot'], ['shot']] });
     a.use(A1, 'riposte.curse').end();
     a.give(B2, 'hex_pain', { source: A1, duration: 10 });
@@ -660,8 +658,7 @@ describe('Curse skills', () => {
     expect(shieldOn(a, A1)).toBe(0);
   });
 
-  // BUG: "While any of it remains, their skills don't end their Stealth" — using Shrouded Ward itself (Shield up) ends the Stealth
-  it.fails("Shrouded Ward: while the Shield holds, the user's skills don't end their Stealth", () => {
+  it("Shrouded Ward: while the Shield holds, the user's skills don't end their Stealth", () => {
     const a = arena({ p0: [['bless.shadow', 'withstand.curse']], p1: [['shot']] });
     a.use(A1, 'bless.shadow', A1).end().pass(1).use(A1, 'withstand.curse').end();
     expect(a.has(A1, 'stealth')).toBe(true);

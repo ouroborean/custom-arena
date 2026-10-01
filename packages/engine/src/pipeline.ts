@@ -172,7 +172,8 @@ function interceptorFor(
     (spec.when?.strategic === undefined || spec.when.strategic === strategic) &&
     (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast) &&
     (spec.when?.archetypes === undefined || spec.when.archetypes.includes(def.archetype)) &&
-    (spec.when?.anyTags === undefined || spec.when.anyTags.some((t) => effectiveTags(ctx, actor, def).includes(t as (typeof def.tags)[number])));
+    (spec.when?.anyTags === undefined || spec.when.anyTags.some((t) => effectiveTags(ctx, actor, def).includes(t as (typeof def.tags)[number]))) &&
+    (spec.when?.sourceIs === undefined || sourceIs(ctx, spec.when.sourceIs, actor));
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
@@ -190,6 +191,13 @@ function interceptorFor(
   }
   found.sort((a, b) => a.effect.seq - b.effect.seq);
   return found[0] ?? null;
+}
+
+/** A named condition about the skill's user (`when.sourceIs`, e.g. Curse's Hex Ward: `hexed`). */
+function sourceIs(ctx: Ctx, name: string, u: Unit): boolean {
+  const cond = ctx.c.conditions[name];
+  if (!cond) throw new Error(`Unknown condition ${name}`);
+  return evalCond(ctx, cond, { actor: u.id, it: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: false, bypass: false });
 }
 
 /** Executes one queued action. Energy was already paid at commit. */

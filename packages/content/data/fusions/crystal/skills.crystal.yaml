@@ -706,7 +706,7 @@ taunt.crystal:
         name: Flawless Challenge
         kind: Buff
         element: Crystal
-        description: Diamond. Each hit of more than 15 from an enemy the bearer Taunted extends that Taunt by 1 turn.
+        description: Diamond. Each capped hit from an enemy the bearer Taunted extends that Taunt (and this) by 1 turn.
         modifiers:
           - { mod: maxHpLossPerHit, amount: 15 }
         triggers:
@@ -716,10 +716,11 @@ taunt.crystal:
               - op: if
                 cond:
                   and:
-                    - { compare: { value: { eventAmount: true }, atLeast: 16 } }
+                    - { compare: { value: { counterOf: { unit: bearer, name: hit_capped } }, atLeast: 1 } }
                     - { has: { unit: eventSource, effect: taunt, mine: true } }
                 then:
                   - { op: extendEffects, on: eventSource, effects: [taunt], by: 2 }
+                  - { op: extendSelf, by: 2 }
 
 titan.crystal:
   archetype: Titan

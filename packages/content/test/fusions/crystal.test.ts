@@ -448,8 +448,7 @@ describe('Crystal skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: Flawless Challenge says each hit it caps extends the Taunt by 1 turn; a capped 25 hit doesn't extend it.
-  it.fails('Flawless Challenge: each capped hit extends the Taunt by 1 turn', () => {
+  it('Flawless Challenge: each capped hit extends the Taunt by 1 turn', () => {
     const run = (skill: string) => {
       const a = arena({ p0: [['taunt.crystal']], p1: [[skill]] });
       a.use(A1, 'taunt.crystal', B1).end().use(B1, skill, A1).end();

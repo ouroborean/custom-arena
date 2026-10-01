@@ -458,6 +458,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         shield: z.boolean().optional(),
         costAtLeast: z.number().int().min(1).optional(),
         anyTags: z.array(z.string()).optional(),
+        sourceIs: z.string().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
