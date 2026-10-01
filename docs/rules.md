@@ -1272,3 +1272,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Flushing Drip | Any healing (not only Renew) flushes a Debuff. |
 | Clotting Agent | Simplified: a normal Shield, plus 10 less Affliction from each hit. |
 | Bitter Tonic | Any healing on the user's allies (not only Renew) gives the Taunted enemy 1 Toxin. |
+
+### 21.31 Slime (Water + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Oozes** | Minion `ooze` (20 HP, Slap). Its passive Splits it when it survives enemy damage with 10+ HP and the side has fewer than 4 Oozes: a new Ooze with half its HP appears, it keeps the rest, and an `ooze_split` signal goes out. `make_ooze` creates one with `ooze_hp` HP (if under 4). Its onDeath sends `ooze_died` (and bursts during Burst Bubble). |
+| **Engulf** | `engulfed` (Debuff): Stunned, 5 Affliction at the end of its applier's turns, 3 turns; applied from the holding Ooze and bound to it, so it ends when that Ooze dies. `engulf_new` makes an Ooze that Engulfs `it`. |
+| Plunging Fist | Simplified: the user's Oozes heal 10 (not just the holder). |
+| Slime Roll | Simplified: Rod-of-Domination-style redirect of damage to a random allied minion for 1 turn. |
+| Gel Parry | The Ooze has 10 HP per energy the countered skill cost (10 to 40). |
+| Gel Snare | The heal is taken back, and an Ooze with that much HP (10 to 40) Engulfs them. |
+| Digest | Simplified: a flat 20 Affliction when Engulfed. |
+| Primordial Pool | Counts `ooze_died` signals and re-forms that many Oozes (10 HP) each turn. |
+| Slick Shimmy | Simplified: the user's Debuffs are removed at the end of each of their turns. |
+| Irrigate / Fertile Silt | Any healing on the ally (not only Renew) counts. |
+| Settling Silt | Simplified: Stuns on them can't be removed (Swiftness still works). |
+| Quagmire | Simplified: +1 random cost on all their skills. |
+| Quivering Wall | Melts by lowering all the user's Shields by 10 each turn. |
+| Gelatinous Giant | Each enemy hit while the user has 20+ HP splits off an Ooze with a quarter of their HP, which they lose. |

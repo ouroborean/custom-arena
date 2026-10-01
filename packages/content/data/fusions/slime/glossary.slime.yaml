@@ -1,0 +1,13 @@
+# Slime keywords (docs/glossary.md).
+
+engulfed:
+  status: engulfed
+  element: Slime
+  forms: [Engulfed, Engulf, Engulfs]
+ooze:
+  name: Ooze
+  text: >-
+    A minion that Splits: when it takes damage and survives with 10 or more HP, a new Ooze appears and
+    the two share its remaining HP (max 4 per side). New Oozes have 20 HP and Slap (nc), 5 damage.
+  element: Slime
+  forms: [Ooze, Oozes, Split, Splits]

@@ -1,0 +1,76 @@
+# Slime minions. Oozes Split when they survive damage with 10 or more HP (max 4 per side).
+
+ooze:
+  name: Ooze
+  hp: 20
+  tags: [ooze]
+  passives:
+    - id: ooze_split
+      name: Split
+      kind: Neutral
+      element: Slime
+      description: When it survives damage with 10 or more HP, it Splits into two Oozes sharing its HP.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - op: if
+              cond:
+                and:
+                  - { hpAbove: { unit: bearer, value: 9 } }
+                  - { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }, atMost: 3 } }
+              then:
+                - { op: set, var: half, value: { div: [{ hp: bearer }, 2] } }
+                - { op: summon, minion: ooze }
+                - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ var: half }, -20] } }
+                - { op: heal, to: lastSummoned, amount: 999, raw: true }
+                - { op: damage, to: bearer, amount: { sum: [{ hp: bearer }, { mul: [-1, { var: half }] }] }, raw: true, type: Affliction, direct: false }
+                - { op: signal, name: ooze_split }
+  onDeath:
+    - { op: signal, name: ooze_died }
+    # Burst Bubble: an allied Ooze bursts when it dies.
+    - op: if
+      cond: { any: { in: allAllies, cond: { has: { unit: it, effect: burst_bubble } } } }
+      then:
+        - { op: damage, to: allEnemies, amount: 10, direct: false }
+  skills: [ooze_slap]
+
+great_ooze:
+  name: Great Ooze
+  hp: 50
+  passives:
+    - id: great_ooze_feed
+      name: Great Ooze
+      kind: Neutral
+      element: Slime
+      description: Heals 10 at the end of each turn it holds an enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { any: { in: allEnemies, cond: { has: { unit: it, effect: engulfed, mine: true } } } }
+              then: [{ op: heal, to: bearer, amount: 10 }]
+  skills: [great_ooze_swallow]
+
+slime_mother:
+  name: Slime Mother
+  hp: 30
+  onSummon:
+    - { op: setCounter, name: mother, value: 0 }
+  passives:
+    - id: slime_mother_brood
+      name: Slime Mother
+      kind: Neutral
+      element: Slime
+      description: If she lasts all 3 turns, she leaves 2 Oozes.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: setCounter, name: mother, value: { sum: [{ counter: mother }, 1] } }
+            - op: if
+              cond: { compare: { value: { counter: mother }, atLeast: 3 } }
+              then:
+                - { op: set, var: ooze_hp, value: 20 }
+                - { op: macro, id: make_ooze }
+                - { op: macro, id: make_ooze }
+  skills: [slime_mother_gloop]
