@@ -6,7 +6,7 @@
 
 # Fire + …
 dragon:       { name: Dragon,      elements: [Fire, Fire], passives: [wyrm_heart] }
-apocalypse:   { name: Apocalypse,  elements: [Fire, Ice] }
+apocalypse:   { name: Apocalypse,  elements: [Fire, Ice], passives: [thermal_shock] }
 alchemy:      { name: Alchemy,     elements: [Fire, Water] }
 plasma:       { name: Plasma,      elements: [Fire, Lightning] }
 mechanic:     { name: Mechanic,    elements: [Fire, Wind] }

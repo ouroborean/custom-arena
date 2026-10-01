@@ -1,0 +1,885 @@
+# The 30 Apocalypse (Fire + Ice) variants, from the "Fusion Spec Kits" design doc.
+# Thermal Shock lives in the fusion passive (statuses.apocalypse.yaml): the Fire and Frost debuffs an
+# Apocalypse character applies to enemies Shock them when the kinds meet.
+
+strike.apocalypse:
+  archetype: Strike
+  element: Apocalypse
+  name: Tempering Blow
+  description: >-
+    Deals 20 damage to target enemy. They're Ignited if they have a Frost debuff, otherwise
+    Frostbitten for 1 turn.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond:
+        or:
+          - { has: { unit: primary, effect: frostbitten } }
+          - { has: { unit: primary, effect: chilled } }
+          - { has: { unit: primary, effect: numb } }
+      then:
+        - { op: apply, to: primary, effect: ignite }
+      else:
+        - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 1 } }
+
+smash.apocalypse:
+  archetype: Smash
+  element: Apocalypse
+  name: Worldbreaker
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies, then the target gains Frostfire. If that
+    Thermal Shocks them, each of their allies with a Fire or Frost debuff is Shocked too.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: if
+      cond:
+        and:
+          - { not: { has: { unit: primary, effect: thermal_shocked } } }
+          - or:
+              - { has: { unit: primary, effect: ignite, exact: true } }
+              - { has: { unit: primary, effect: scorched } }
+              - { has: { unit: primary, effect: frostbitten } }
+              - { has: { unit: primary, effect: chilled, exact: true } }
+              - { has: { unit: primary, effect: numb } }
+      then:
+        - { op: apply, to: primary, effect: frostfire }
+        - op: forEach
+          in:
+            filter: primaryAllies
+            where:
+              or:
+                - { has: { unit: it, effect: ignite } }
+                - { has: { unit: it, effect: scorched } }
+                - { has: { unit: it, effect: frostbitten } }
+                - { has: { unit: it, effect: chilled } }
+                - { has: { unit: it, effect: numb } }
+          do:
+            - { op: macro, id: thermal_check }
+      else:
+        - { op: apply, to: primary, effect: frostfire }
+
+charge.apocalypse:
+  archetype: Charge
+  element: Apocalypse
+  name: Coldsnap Dash
+  description: >-
+    Deals 15 damage to target enemy, and the user gets 1 Focus for their next skill. If that skill
+    hits a Chilled enemy, the cold cracks their Ignite: it ticks twice at once.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: coldsnap
+        name: Coldsnap
+        kind: Buff
+        element: Apocalypse
+        description: The bearer's next skill makes each Chilled, Ignited enemy it targets burn twice at once.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - op: forEach
+                in:
+                  filter: eventTargets
+                  where: { and: [{ isEnemy: it }, { has: { unit: it, effect: chilled } }, { has: { unit: it, effect: ignite } }] }
+                do:
+                  - { op: damage, to: it, amount: 10, type: Affliction }
+
+riposte.apocalypse:
+  archetype: Riposte
+  element: Apocalypse
+  name: Twin Spines
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user. Its user gains Frostfire and is Thermal
+    Shocked the next time they use a skill. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: twin_spines
+        name: Twin Spines
+        kind: Buff
+        element: Apocalypse
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; their users gain Frostfire and a delayed Thermal Shock.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: frostfire }
+              - op: apply
+                to: eventSource
+                duration: { enemyTurns: 2 }
+                effect:
+                  id: twin_spines_sting
+                  name: Twin Spines
+                  kind: Debuff
+                  element: Apocalypse
+                  description: Thermal Shocked the next time the bearer uses a skill.
+                  triggers:
+                    - on: skillUsed
+                      consume: true
+                      do:
+                        - op: forEach
+                          in: bearer
+                          do:
+                            - { op: macro, id: thermal_check }
+
+rage.apocalypse:
+  archetype: Rage
+  element: Apocalypse
+  name: Ragnarok
+  description: >-
+    For 4 turns, the user swings between extremes: 3 Might on their first and third turns, and 3
+    Armor and Immune on their second and fourth.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: setCounter, name: ragnarok, value: 1 }
+    - { op: apply, to: actor, effect: might, stacks: 3, duration: { raw: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: ragnarok
+        name: Ragnarok
+        kind: Buff
+        element: Apocalypse
+        description: Alternates 3 Might and 3 Armor with Immune at the start of each of the bearer's turns.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: setCounter, name: ragnarok, value: { sum: [{ counter: ragnarok }, 1] } }
+              - op: if
+                cond: { compare: { value: { counter: ragnarok }, atLeast: 3 } }
+                then:
+                  - op: if
+                    cond: { compare: { value: { counter: ragnarok }, atLeast: 4 } }
+                    then:
+                      - { op: apply, to: bearer, effect: armor, stacks: 3, duration: { raw: 2 } }
+                      - { op: apply, to: bearer, effect: immune, duration: { raw: 2 } }
+                    else:
+                      - { op: apply, to: bearer, effect: might, stacks: 3, duration: { raw: 2 } }
+                else:
+                  - { op: apply, to: bearer, effect: armor, stacks: 3, duration: { raw: 2 } }
+                  - { op: apply, to: bearer, effect: immune, duration: { raw: 2 } }
+
+shot.apocalypse:
+  archetype: Shot
+  element: Apocalypse
+  name: Sleetspark
+  description: >-
+    Deals 15 damage to target enemy, who gains Frostfire. If they have no Buffs, they're also Numbed
+    for 1 turn, Thermal Shocking them.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: frostfire }
+    - op: if
+      cond: { not: { hasKind: { unit: primary, kind: Buff } } }
+      then:
+        - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 1 } }
+
+snipe.apocalypse:
+  archetype: Snipe
+  element: Apocalypse
+  name: Comet of Ruin
+  description: >-
+    On the following turn, deals 45 damage to target enemy. If they gain a Fire or Frost debuff
+    first, it lands at once and Thermal Shocks them. The target of this skill is invisible.
+    Channeled.
+  cost: AIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: comet_of_ruin
+        name: Comet of Ruin (falling)
+        kind: Neutral
+        element: Apocalypse
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 45 }
+    - op: apply
+      to: primary
+      linkTo: comet_of_ruin
+      duration: { enemyTurns: 1 }
+      effect:
+        id: comet_of_ruin_mark
+        name: Comet of Ruin
+        kind: Debuff
+        element: Apocalypse
+        visibility: hidden
+        description: If the bearer gains a Fire or Frost debuff, the comet lands at once and Thermal Shocks them.
+        triggers:
+          - on: effectGained
+            when: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb] }
+            consume: true
+            do:
+              - { op: removeEffect, from: actor, effect: comet_of_ruin }
+              - { op: damage, to: bearer, amount: 45 }
+              - op: forEach
+                in: bearer
+                do:
+                  - { op: macro, id: thermal_check }
+
+trap.apocalypse:
+  archetype: Trap
+  element: Apocalypse
+  name: Cracking Floe
+  description: >-
+    For 3 turns, the first time target enemy falls to 50 HP or less, the ice cracks under them: they
+    take 20 Piercing damage and are Stunned for 1 turn. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cracking_floe
+        name: Cracking Floe
+        kind: Debuff
+        element: Apocalypse
+        visibility: hidden
+        description: The first time the bearer falls to 50 HP or less, they take 20 Piercing damage and are Stunned.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 50 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: damage, to: bearer, amount: 20, type: Piercing }
+                  - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+maneuver.apocalypse:
+  archetype: Maneuver
+  element: Apocalypse
+  name: Steamstep
+  description: >-
+    The user becomes Invulnerable for 1 turn, and for 1 more turn after that, Invulnerable to enemies
+    with a Fire debuff.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: steamstep
+        name: Steamstep
+        kind: Buff
+        element: Apocalypse
+        description: Invulnerable to enemies with a Fire debuff.
+        modifiers:
+          - { mod: invulnerableTo, sourceHas: [ignite, scorched, frostfire] }
+
+companion.apocalypse:
+  archetype: Companion
+  element: Apocalypse
+  name: Rimeflame Salamander
+  description: >-
+    Summons a Rimeflame Salamander (35 HP) permanently. At the end of each of your turns, it gives a
+    random enemy Frostfire. When it dies, every enemy with Frostfire is Thermal Shocked.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: rimeflame_salamander }
+
+bolt.apocalypse:
+  archetype: Bolt
+  element: Apocalypse
+  name: Paradox Bolt
+  description: >-
+    Deals 20 damage to target enemy, who gains Frostfire. If they were already Thermal Shocked this
+    turn, the Frostfire Shocks them again.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: primary, effect: thermal_shocked } }
+      then:
+        - { op: apply, to: primary, effect: frostfire }
+        - op: forEach
+          in: primary
+          do:
+            - { op: macro, id: thermal_shock }
+      else:
+        - { op: apply, to: primary, effect: frostfire }
+
+blast.apocalypse:
+  archetype: Blast
+  element: Apocalypse
+  name: Fimbulfire
+  description: >-
+    Deals 20 damage to all enemies. Each Ignite on them turns into Frostfire, Thermal Shocking its
+    bearer.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: ignite, exact: true } } }
+      do:
+        - { op: removeEffect, from: it, effect: ignite }
+        - { op: apply, to: it, effect: frostfire }
+        - { op: macro, id: thermal_check }
+
+consume.apocalypse:
+  archetype: Consume
+  element: Apocalypse
+  name: Equilibrium
+  description: >-
+    Deals 10 damage to target enemy, healing the user as much. If they have both a Fire and a Frost
+    debuff (Frostfire counts as both), they're Thermal Shocked and the user heals 20 more.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: if
+      cond:
+        and:
+          - or:
+              - { has: { unit: primary, effect: ignite } }
+              - { has: { unit: primary, effect: scorched } }
+          - or:
+              - { has: { unit: primary, effect: frostbitten } }
+              - { has: { unit: primary, effect: chilled } }
+              - { has: { unit: primary, effect: numb } }
+      then:
+        - op: forEach
+          in: primary
+          do:
+            - { op: macro, id: thermal_check }
+        - { op: heal, to: actor, amount: 20 }
+
+summon.apocalypse:
+  archetype: Summon
+  element: Apocalypse
+  name: Twilight Jotunn
+  description: >-
+    Summons a Twilight Jotunn (60 HP) for 3 turns. At the end of each of your turns, it deals 25
+    damage to a random enemy. While it stands, the user is Stunned; Swiftness can't stop it.
+  cost: Sr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: twilight_jotunn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      bindTo: lastSummoned
+      duration: { enemyTurns: 3 }
+      effect:
+        id: jotunn_bond
+        name: Jotunn's Bond
+        kind: Neutral
+        element: Apocalypse
+        description: Stunned while the Twilight Jotunn stands.
+        modifiers:
+          - { mod: cannotUseSkills }
+
+channel.apocalypse:
+  archetype: Channel
+  element: Apocalypse
+  name: Seasons' End
+  description: >-
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies. The first
+    Ignites them all; the second Chills them all for 1 turn; the third makes every Ignited enemy
+    Explode. Channeled.
+  cost: II
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: setCounter, name: seasons_end, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: seasons_end
+        name: Seasons' End
+        kind: Neutral
+        element: Apocalypse
+        interruptible: true
+        description: Each turn, 10 damage to all enemies, then Ignite, Chill, and finally Explosions.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: setCounter, name: seasons_end, value: { sum: [{ counter: seasons_end }, 1] } }
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: if
+                cond: { compare: { value: { counter: seasons_end }, atMost: 1 } }
+                then:
+                  - { op: apply, to: allEnemies, effect: ignite }
+                else:
+                  - op: if
+                    cond: { compare: { value: { counter: seasons_end }, atMost: 2 } }
+                    then:
+                      - { op: apply, to: allEnemies, effect: chilled, duration: { enemyTurns: 1 } }
+                    else:
+                      - op: forEach
+                        in: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
+                        do:
+                          - { op: macro, id: explode }
+
+stab.apocalypse:
+  archetype: Stab
+  element: Apocalypse
+  name: Twin Needle
+  description: >-
+    Deals 10 damage to target enemy, who gains Frostfire. Against targets at or below 60 HP, it's 20
+    damage, and their Frostfire ticks at once.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { hpAtMost: { unit: primary, value: 60 } }
+      then:
+        - { op: damage, to: primary, amount: 20 }
+        - { op: apply, to: primary, effect: frostfire }
+        - { op: damage, to: primary, amount: 5, type: Affliction, direct: false }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: primary, effect: frostfire }
+
+ravage.apocalypse:
+  archetype: Ravage
+  element: Apocalypse
+  name: Twofold Ruin
+  description: >-
+    Deals 20 Affliction damage to target enemy, +10 for each Fire or Frost debuff they have. Then
+    those debuffs are removed.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Affliction
+      amount: { sum: [20, { mul: [10, { count: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb], in: primary } }] }] }
+    - { op: removeEffect, from: primary, effect: ignite }
+    - { op: removeEffect, from: primary, effect: scorched }
+    - { op: removeEffect, from: primary, effect: frostfire }
+    - { op: removeEffect, from: primary, effect: frostbitten }
+    - { op: removeEffect, from: primary, effect: chilled }
+    - { op: removeEffect, from: primary, effect: numb }
+
+mislead.apocalypse:
+  archetype: Mislead
+  element: Apocalypse
+  name: Shimmering Air
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they gain Frostfire. A
+    Helpful skill Scorches and Numbs them for 1 turn instead. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shimmering_air
+        name: Shimmering Air
+        kind: Debuff
+        element: Apocalypse
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and Frostfires them; a Helpful one Scorches and Numbs them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: frostfire }
+          - on: skillUsed
+            when: { harmful: false }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: scorched, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: numb, duration: { enemyTurns: 1 } }
+
+stun.apocalypse:
+  archetype: Stun
+  element: Apocalypse
+  name: Hoarfire Hold
+  description: >-
+    Deals 15 damage to target enemy, who gains Frostfire and is Stunned for 1 turn. If the Frostfire
+    is still on them when the Stun ends, it's consumed to Stun them 1 more turn.
+  cost: AS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: frostfire }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hoarfire_hold
+        name: Hoarfire Hold
+        kind: Debuff
+        element: Apocalypse
+        description: When the Stun ends, a remaining Frostfire is consumed to Stun the bearer 1 more turn.
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: frostfire, exact: true } }
+            then:
+              - { op: removeEffect, from: bearer, effect: frostfire }
+              - { op: apply, to: bearer, effect: stun, duration: { raw: 2 } }
+
+dance.apocalypse:
+  archetype: Dance
+  element: Apocalypse
+  name: White Flame Waltz
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and 1 Focus, and Explodes at the end of each of their
+    turns in which they dealt damage.
+  cost: AS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: white_flame_waltz
+        name: White Flame Waltz
+        kind: Buff
+        element: Apocalypse
+        description: The bearer Explodes at the end of each of their turns in which they dealt damage.
+        triggers:
+          - on: dealtDamage
+            do:
+              - { op: setFlag, flag: dealt }
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { flag: dealt }
+                then:
+                  - { op: macro, id: explode }
+                  - { op: setFlag, flag: dealt, value: false }
+
+heal.apocalypse:
+  archetype: Heal
+  element: Apocalypse
+  name: Frozen Remedy
+  description: >-
+    Target ally heals 35 at the end of the enemy's next turn. If a hit would kill them before then,
+    the heal lands first, at once.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frozen_remedy
+        name: Frozen Remedy
+        kind: Buff
+        element: Apocalypse
+        description: Heals 35 when this ends; a hit that would kill the bearer first triggers it at once.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: heal, to: bearer, amount: 35 }
+        onExpire:
+          - { op: heal, to: bearer, amount: 35 }
+
+bless.apocalypse:
+  archetype: Bless
+  element: Apocalypse
+  name: Tempered
+  description: >-
+    For 3 turns, target ally gains 1 Might, and their direct damage deals 10 more to Shattered
+    enemies.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tempered
+        name: Tempered
+        kind: Buff
+        element: Apocalypse
+        description: The bearer's direct damage deals 10 more to Shattered enemies.
+        modifiers:
+          - { mod: damageDealt, amount: 10, when: { direct: true }, target: { has: { unit: it, effect: shattered } } }
+
+curse.apocalypse:
+  archetype: Curse
+  element: Apocalypse
+  name: Heat Death
+  description: >-
+    Target enemy gains Frostfire, then 1 Confusion for 2 turns per Fire or Frost debuff they have,
+    Frostfire included (max 3).
+  cost: IW
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: frostfire }
+    - op: apply
+      to: primary
+      effect: confusion
+      duration: { enemyTurns: 2 }
+      stacks:
+        if: { compare: { value: { count: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb], in: primary } }, atLeast: 3 } }
+        then: 3
+        else: { count: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb], in: primary } }
+
+smite.apocalypse:
+  archetype: Smite
+  element: Apocalypse
+  name: Rimebrand
+  description: >-
+    Deals 15 damage to target enemy, who's Sanctified for 1 turn. For 2 turns, each Explosion that
+    hits them also Frostbites them for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: rimebrand
+        name: Rimebrand
+        kind: Debuff
+        element: Apocalypse
+        description: Each Explosion from the bearer's enemies Frostbites them for 1 turn.
+        triggers:
+          - on: signal
+            signal: explosion
+            when: { side: enemy }
+            do:
+              - { op: apply, to: bearer, effect: frostbitten, duration: { enemyTurns: 1 } }
+
+prayer.apocalypse:
+  archetype: Prayer
+  element: Apocalypse
+  name: Fimbul Vigil
+  description: >-
+    All allies heal 20 and gain 10 Shield. For 2 turns, Chilled enemies' skills also cost 1 more
+    random energy.
+  cost: SI
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: fimbul_vigil
+        name: Fimbul Vigil
+        kind: Debuff
+        element: Apocalypse
+        description: While Chilled, the bearer's skills cost 1 more random energy.
+        modifiers:
+          - { mod: costGeneric, amount: 1, if: { has: { unit: it, effect: chilled } } }
+
+cleave.apocalypse:
+  archetype: Cleave
+  element: Apocalypse
+  name: Split Horizon
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy, who also gains copies of the
+    target's Fire and Frost debuffs.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: if
+          cond: { has: { unit: primary, effect: ignite, exact: true } }
+          then: [{ op: apply, to: it, effect: ignite }]
+        - op: if
+          cond: { has: { unit: primary, effect: frostfire } }
+          then: [{ op: apply, to: it, effect: frostfire }]
+        - op: if
+          cond: { has: { unit: primary, effect: scorched } }
+          then: [{ op: apply, to: it, effect: scorched, duration: { enemyTurns: 1 } }]
+        - op: if
+          cond: { has: { unit: primary, effect: frostbitten } }
+          then: [{ op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }]
+        - op: if
+          cond: { has: { unit: primary, effect: chilled, exact: true } }
+          then: [{ op: apply, to: it, effect: chilled, duration: { enemyTurns: 1 } }]
+        - op: if
+          cond: { has: { unit: primary, effect: numb } }
+          then: [{ op: apply, to: it, effect: numb, duration: { enemyTurns: 1 } }]
+
+shout.apocalypse:
+  archetype: Shout
+  element: Apocalypse
+  name: Long Night's Toll
+  description: >-
+    All enemies are Intimidated for 2 turns, and a random one gains Frostfire. For as long, each
+    enemy with Frostfire is Intimidated twice over.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { randomEnemy: 1 }, effect: frostfire }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: long_nights_toll
+        name: Long Night's Toll
+        kind: Debuff
+        element: Apocalypse
+        description: While the bearer has Frostfire, their cooldowns increase by 1 more.
+        modifiers:
+          - { mod: cooldownOnUse, amount: 1, if: { has: { unit: it, effect: frostfire } } }
+
+withstand.apocalypse:
+  archetype: Withstand
+  element: Apocalypse
+  name: Heart of the Glacier
+  description: The user gains 25 Shield for 2 turns, and is Frostborn while any of it remains.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: heart_of_the_glacier
+        name: Heart of the Glacier
+        kind: Buff
+        element: Apocalypse
+        shield: true
+        description: A Shield; the bearer is Frostborn while any of it remains.
+    - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 }, linkTo: heart_of_the_glacier }
+
+taunt.apocalypse:
+  archetype: Taunt
+  element: Apocalypse
+  name: Circle of Extremes
+  description: >-
+    Target enemy is Taunted by the user for 2 turns, and every Fire and Frost debuff on their allies
+    moves onto them.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: moveEffects, from: primaryAllies, to: primary, effects: [ignite, scorched, frostfire, frostbitten, chilled, numb] }
+
+titan.apocalypse:
+  archetype: Titan
+  element: Apocalypse
+  name: Twilight Colossus
+  description: For 3 turns, the user gains 3 Armor and Immune, and enemies who damage them gain Frostfire.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: twilight_colossus
+        name: Twilight Colossus
+        kind: Buff
+        element: Apocalypse
+        description: Enemies who damage the bearer gain Frostfire.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventSource, effect: frostfire }

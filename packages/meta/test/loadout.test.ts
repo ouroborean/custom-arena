@@ -185,7 +185,7 @@ describe('editing a loadout', () => {
     const l = of(['ice_shard']);
     expect(canInfuse(content, rec, l, 'smash', 'Ice')).toBe(true);
     expect(canInfuse(content, rec, l, 'smash', 'Fire')).toBe(false); // none in the pool
-    expect(canInfuse(content, rec, l, 'strike', 'Ice')).toBe(false); // would be Apocalypse (Fire + Ice): no such skill yet
+    expect(canInfuse(content, rec, l, 'strike', 'Ice')).toBe(true); // Fire + Ice: Apocalypse's Tempering Blow
     expect(canInfuse(content, rec, { ...l, infusions: [{ skill: 'titan', element: 'Ice' }] }, 'smash', 'Ice')).toBe(false); // used up
   });
 });

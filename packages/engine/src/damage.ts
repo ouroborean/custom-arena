@@ -5,7 +5,7 @@
 //                               "on direct damage" effects; triggered and ticking damage does not.
 
 import { archetypeOf, effectDef, effectsOn, emit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
-import { broadcastSignal, enqueueFor } from './ops.js';
+import { broadcastSignal, enqueueFor, runOps } from './ops.js';
 import { applyEffect, interruptChannels, removeEffect } from './effects.js';
 import {
   blocksIndirectDamage,
@@ -301,6 +301,10 @@ export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void
   // "When an ally dies…": everyone hears it, with what the unit carried at the time.
   broadcastSignal(ctx, 'died', killer ?? u, { target: u, snapshot: effectsOn(ctx.s, u.id).slice(), eventSkill: skill });
   interruptChannels(ctx, u, 'death');
+  const onDeath = u.kind === 'minion' ? ctx.c.minions[u.defId]?.onDeath : undefined;
+  if (onDeath?.length) {
+    runOps(ctx, onDeath, { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: false, bypass: false });
+  }
   // Dimension's Entangled: a death breaks every link it was part of.
   const groups = new Set(modsOn(ctx.s, ctx.c, u.id, 'entangleLink').map(({ effect }) => effect.data.group));
   for (const e of effectsOn(ctx.s, u.id)) removeEffect(ctx, e, 'died');

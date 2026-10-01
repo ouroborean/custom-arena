@@ -118,7 +118,8 @@ export type Value =
 
 export type Cond =
   /** `mine`: only an instance the actor applied. */
-  | { has: { unit: Selector; effect: string; mine?: boolean } }
+  /** `exact`: statuses that only count as this one (countsAs) don't match. */
+  | { has: { unit: Selector; effect: string; mine?: boolean; exact?: boolean } }
   /** `mine`: only effects the actor applied. */
   | { hasFromArchetype: { unit: Selector; archetype: string; mine?: boolean } }
   | { hpAtMost: { unit: Selector; value: number } }
@@ -674,6 +675,8 @@ export interface MinionDef {
   passives: (string | EffectDef)[];
   /** Ops run once when summoned, with the minion as the actor (e.g. grant its owner an aura). */
   onSummon?: Op[];
+  /** Ops run once when it dies, with the (dead) minion as the actor (Apocalypse's Salamander). */
+  onDeath?: Op[];
   /** Extra minion types it counts as (Earth: Forest Stalker counts as a Seedling). */
   tags?: string[];
 }

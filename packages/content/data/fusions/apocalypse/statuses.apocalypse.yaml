@@ -1,0 +1,73 @@
+# Apocalypse (Fire + Ice) statuses, from the "Fusion Spec Kits" design doc.
+# Fire debuffs: Ignite, Scorched, Frostfire. Frost debuffs: Frostbitten, Chilled, Numb, Frostfire.
+
+frostfire:
+  name: Frostfire
+  kind: Debuff
+  element: Apocalypse
+  stacking: unique
+  countsAs: [ignite, chilled]
+  description: >-
+    Counts as both an Ignite and Chilled. Takes 5 Affliction damage at the end of the applier's turn,
+    and can't have skill costs reduced.
+  modifiers:
+    - { mod: noCostReduction }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: 5, type: Affliction }
+        - { op: macro, id: burn_aftermath }
+
+# Marks a unit Thermal Shocked this turn (once per unit per turn).
+thermal_shocked:
+  name: Thermal Shocked
+  kind: Neutral
+  element: Apocalypse
+  stacking: unique
+  description: Already Thermal Shocked this turn.
+
+# Fusion passive (every Apocalypse character): the Fire and Frost debuffs this character applies to
+# enemies Thermal Shock them when they meet a debuff of the other kind.
+thermal_shock:
+  name: Thermal Shock
+  kind: Neutral
+  element: Apocalypse
+  stacking: unique
+  description: >-
+    When this character gives an enemy with a Fire debuff a Frost debuff, or the reverse, that enemy
+    takes 15 Piercing damage and is Shattered for 1 turn (once per unit per turn).
+  triggers:
+    - on: effectApplied
+      when: { effects: [ignite, scorched], toEnemy: true }
+      do:
+        - op: forEach
+          in: eventTarget
+          do:
+            - op: if
+              cond:
+                or:
+                  - { has: { unit: it, effect: frostbitten } }
+                  - { has: { unit: it, effect: chilled } }
+                  - { has: { unit: it, effect: numb } }
+              then:
+                - { op: macro, id: thermal_check }
+    - on: effectApplied
+      when: { effects: [frostbitten, chilled, numb], toEnemy: true }
+      do:
+        - op: forEach
+          in: eventTarget
+          do:
+            - op: if
+              cond:
+                or:
+                  - { has: { unit: it, effect: ignite } }
+                  - { has: { unit: it, effect: scorched } }
+              then:
+                - { op: macro, id: thermal_check }
+    - on: effectApplied
+      when: { effects: [frostfire], toEnemy: true }
+      do:
+        - op: forEach
+          in: eventTarget
+          do:
+            - { op: macro, id: frostfire_shock_check }

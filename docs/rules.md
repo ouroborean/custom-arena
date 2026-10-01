@@ -916,3 +916,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Tangled Fates | Each skill the bearer uses gives them 1 Confusion, which Entangled spreads to the partner (one direction, simplified). |
 | Pocket Arena | Everyone else, minions included, is Banished for the rest of this turn and the enemies' next. |
 | Faceless Void | Partner is the ally character with the least HP; Armor and Immune spread through the link. |
+
+### 21.11 Apocalypse (Fire + Ice)
+
+| Term | Ruling |
+|---|---|
+| **Thermal Shock** | Lives in the fusion passive: when an Apocalypse character gives an enemy a Fire debuff while it has a Frost debuff (or the reverse), it Shocks: 15 Piercing (indirect) and Shattered for 1 turn, once per unit per turn (a `thermal_shocked` marker until the end of the turn). Other units' applications don't Shock unless a skill says so (the Salamander checks its own). |
+| **Frostfire** | Counts as Ignite and Chilled (`countsAs`), so Ignite and Chilled checks see it; its own 5 Affliction tick runs Fire's burn aftermath. New `exact` on `has` skips statuses that only count as the key. Frostfire on its own doesn't Shock; any other Fire or Frost debuff added later does. |
+| Worldbreaker | "If that Shocks them" is checked before the Frostfire lands (they have another Fire/Frost debuff and weren't Shocked this turn). |
+| Coldsnap Dash | The cracked Ignite deals one extra 10 Affliction to each Chilled, Ignited enemy the next skill targets. |
+| Ragnarok | The cast turn is the first (3 Might now); each turn's buff lasts until the start of the user's next turn. |
+| Comet of Ruin | A hidden mark on the target, linked to the channel: gaining a Fire/Frost debuff ends the channel and lands the 45 at once. |
+| Rimeflame Salamander | New minion `onDeath` ops (the dead minion is the actor). |
+| Twilight Jotunn | The stun is a Neutral, inline effect bound to the Jotunn, so Swiftness and cleanses don't touch it. |
+| Twin Needle | The extra tick is 5 Affliction. |
+| Frozen Remedy | A floor of 1 HP while it lasts; a hit that reaches 1 heals 35 at once and ends it. |
+| Long Night's Toll | Frostfired enemies' skills get +1 more cooldown on use. |
+| Heart of the Glacier | Frostborn is linked to the Shield and ends with it. |

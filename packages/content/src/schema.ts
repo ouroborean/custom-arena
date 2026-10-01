@@ -92,7 +92,7 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
 
 export const condSchema: z.ZodType<Cond> = z.lazy(() =>
   z.union([
-    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string(), mine: z.boolean().optional() }) }),
+    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string(), mine: z.boolean().optional(), exact: z.boolean().optional() }) }),
     z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string(), mine: z.boolean().optional() }) }),
     z.strictObject({ hpAtMost: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({ hpAbove: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
@@ -486,6 +486,7 @@ export const minionFileEntry = z.strictObject({
   skills: z.array(z.string()).default([]),
   passives: z.array(z.union([z.string(), effectDefSchema])).default([]),
   onSummon: z.array(opSchema).optional(),
+  onDeath: z.array(opSchema).optional(),
   tags: z.array(z.string()).optional(),
 });
 
