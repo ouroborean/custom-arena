@@ -1,0 +1,20 @@
+# Dragon actions. The "_it" macros act on `it` (use them inside forEach).
+
+# Gives `it` Dragonfire: Ignited first if they weren't, so it always rides on an Ignite.
+dragonfire_it:
+  - { op: apply, to: it, effect: ignite }
+  - { op: apply, to: it, effect: dragonfire }
+
+# "Ignited, or Dragonfire if they already were."
+ignite_or_dragonfire_it:
+  - op: if
+    cond: { has: { unit: it, effect: ignite } }
+    then:
+      - { op: apply, to: it, effect: dragonfire }
+    else:
+      - { op: apply, to: it, effect: ignite }
+
+# Breath: spends all the user's Hoard. Sets `breath` to the bonus damage for each target.
+breath:
+  - { op: set, var: breath, value: { mul: [5, { stacks: { unit: actor, effect: hoard } }] } }
+  - { op: removeEffect, from: actor, effect: hoard }

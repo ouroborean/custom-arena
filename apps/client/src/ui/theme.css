@@ -3691,3 +3691,170 @@ input[type="password"] {
   text-decoration: underline;
   text-decoration-color: var(--yellow);
 }
+
+/* Fusion elements: their two parents' colors mixed (a pure fusion is its element's color). */
+.el-dragon {
+  --el: var(--el-fire);
+}
+.el-apocalypse {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-ice));
+}
+.el-alchemy {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-water));
+}
+.el-plasma {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-lightning));
+}
+.el-mechanic {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-wind));
+}
+.el-brimstone {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-poison));
+}
+.el-sun {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-earth));
+}
+.el-phoenix {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-holy));
+}
+.el-devil {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-unholy));
+}
+.el-ritual {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-shadow));
+}
+.el-crystal {
+  --el: var(--el-ice);
+}
+.el-glacier {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-water));
+}
+.el-aurora {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-lightning));
+}
+.el-winter {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-wind));
+}
+.el-stasis {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-poison));
+}
+.el-myth {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-earth));
+}
+.el-prism {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-holy));
+}
+.el-lich {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-unholy));
+}
+.el-night {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-shadow));
+}
+.el-ocean {
+  --el: var(--el-water);
+}
+.el-current {
+  --el: color-mix(in srgb, var(--el-water), var(--el-lightning));
+}
+.el-mist {
+  --el: color-mix(in srgb, var(--el-water), var(--el-wind));
+}
+.el-serum {
+  --el: color-mix(in srgb, var(--el-water), var(--el-poison));
+}
+.el-slime {
+  --el: color-mix(in srgb, var(--el-water), var(--el-earth));
+}
+.el-anointment {
+  --el: color-mix(in srgb, var(--el-water), var(--el-holy));
+}
+.el-blood {
+  --el: color-mix(in srgb, var(--el-water), var(--el-unholy));
+}
+.el-mirror {
+  --el: color-mix(in srgb, var(--el-water), var(--el-shadow));
+}
+.el-thunder {
+  --el: var(--el-lightning);
+}
+.el-storm {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-wind));
+}
+.el-battery {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-poison));
+}
+.el-magnet {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-earth));
+}
+.el-vengeance {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-holy));
+}
+.el-reanimation {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-unholy));
+}
+.el-ion {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-shadow));
+}
+.el-cloud {
+  --el: var(--el-wind);
+}
+.el-faerie {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-poison));
+}
+.el-nomad {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-earth));
+}
+.el-angel {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-holy));
+}
+.el-ghost {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-unholy));
+}
+.el-ninja {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-shadow));
+}
+.el-evolution {
+  --el: var(--el-poison);
+}
+.el-spore {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-earth));
+}
+.el-antidote {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-holy));
+}
+.el-blight {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-unholy));
+}
+.el-assassin {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-shadow));
+}
+.el-life {
+  --el: var(--el-earth);
+}
+.el-sanctuary {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-holy));
+}
+.el-grave {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-unholy));
+}
+.el-moon {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-shadow));
+}
+.el-divine {
+  --el: var(--el-holy);
+}
+.el-zealot {
+  --el: color-mix(in srgb, var(--el-holy), var(--el-unholy));
+}
+.el-vigilante {
+  --el: color-mix(in srgb, var(--el-holy), var(--el-shadow));
+}
+.el-evil {
+  --el: var(--el-unholy);
+}
+.el-curse {
+  --el: color-mix(in srgb, var(--el-unholy), var(--el-shadow));
+}
+.el-dimension {
+  --el: var(--el-shadow);
+}

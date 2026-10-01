@@ -615,3 +615,46 @@ Content: `packages/content/data/earth/`. Themes are Armor, Healing and Minions. 
 - Conditions and values: `minion`, `isEnemy` and `hasShield` conditions, and the `hp` value.
 - Ops: `from` on damage ops, `addMaxHp`, and `scaleShields`.
 - Costs: skill-level `costAdjust`.
+
+## 21. Fusion kits
+
+Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusion skill is its own variant, `<base>.<fusion>` (`strike.dragon`). The kits come from the "Fusion Spec Kits" design doc (its site mirrors it). Content lives in `packages/content/data/fusions/<fusion>/`. These are first implementations, built for coverage: each kit's rulings and simplifications are listed here, and its behavior tests come in a later pass. `fusion-smoke.test.ts` casts every fusion skill and plays on to prove it runs.
+
+### 21.0 Shared machinery
+
+| Term | Ruling |
+|---|---|
+| **Fusion passives** | A fusion can list `passives` (statuses) in `fusions.yaml`. Every character with at least one of its skills carries them from the start, like equipment passives. Kits use this for their resources and rules. |
+| **New targets** | `weakestAlly` (the actor's targetable character ally, or self, with the least HP), `weakestEnemy` and `strongestEnemy` (the targetable enemy character with the least or most HP). Ties go to the earliest in team order. |
+| **interrupt** | A new op that ends the targets' channels, as a Stun would. |
+| **costAtLeast** | Intercepting triggers can catch only skills whose listed cost totals at least this. |
+| **Validation** | A skill whose element is a fusion's name is a fusion skill, not a new base element. |
+
+### 21.1 Dragon (Fire + Fire)
+
+| Term | Ruling |
+|---|---|
+| **Dragonfire** | Rides on an Ignite: a unit with Dragonfire always has an Ignite too, so every "if Ignited" check anywhere still sees it. While both are on a unit, the Ignite is silent and Dragonfire burns for 10 Affliction at the end of its applier's turn. If the Ignite is removed, the Dragonfire goes out at its next tick. Removing Dragonfire alone (Fang) leaves the Ignite. |
+| **Hoard** | The passive Wyrm's Heart (every Dragon character): each time an Ignite or Dragonfire the character applied deals damage, they gain 1 Hoard (max 6, merging). This lives in Fire's `burn_aftermath` macro, which Ignite and Dragonfire run after each burn. Hoard's Armor is computed from its stacks (1 per 2; 1 per Hoard during Elder Wyrm) and only reduces Normal damage, like Armor. |
+| **Breath** | A macro: the bonus is 5 × the user's Hoard, then all Hoard is removed, before the damage lands. |
+
+| Skill | Ruling |
+|---|---|
+| Tail Sweep | Interrupts and gives Dragonfire to every enemy channeling at the time, not only those it hit. |
+| Dragon's Descent | Until the user's next skill resolves, each Ignite they apply also gets Dragonfire. |
+| Dragon's Toll | Gains Hoard equal to the countered skill's listed cost total. |
+| Skyfall Breath | The circling user is Untargetable by enemies (Bypass gets through) until it lands or is interrupted. |
+| Gilded Bait | The first Buff gained is ended at once. **Simplified:** the Dragonfire it gives can still be removed. |
+| Burning Wake | While it lasts, the user's Ignites and Dragonfire also burn at the start of their bearer's turn. |
+| Wyrmbolt | The target's Ignite (or Dragonfire) burns twice at once, each burn counting for Hoard and Flameborn. |
+| Dragon Egg | The egg has a 3-turn Hatching timer. If the egg is alive when it runs out, a permanent Wyrmling appears and the egg is removed. |
+| Molten Maw | **Simplified:** any indirect damage the target takes while Ignited counts as their Ignite burning. |
+| Covetous Eye | Placed on every enemy. **Simplified:** each enemy's first qualifying skill is countered, not only the first one overall. The thief gains 1 energy at their next generation, and the robbed player generates 1 less at theirs. |
+| Warming Wings | Each burn heals the user's ally with the least HP (the user included) for the damage dealt. |
+| Hearthfire | Spends up to 3 Hoard, one at a time, for 10 healing each. |
+| Dragonblood | The ally's direct damage to enemies Ignites the target (the ally is the applier), or adds Dragonfire if they're already Ignited. |
+| Slag | Removes the base Armor and Shield statuses. Shields from other skills stay. |
+| Pyre Brand | The Scorch and a 1-turn marker are applied together. When the marker ends, the target Explodes if still Ignited. |
+| Dragon's Slumber | The user Sleeps for up to 3 turns. At the end of each of their turns while asleep, all allies heal 20. Waking ends it. |
+| Wyrm's Domain | Placed on each ally. Every Harmful skill aimed at one of them by an enemy the user hasn't Taunted deals that enemy 10 damage, once per ally targeted. |
+| Elder Wyrm | Hoard gives 1 Armor per stack while it lasts. |

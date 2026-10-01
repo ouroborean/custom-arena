@@ -74,6 +74,9 @@ const namedSelector = z.enum([
   'eventPrimary',
   'allUnits',
   'lastSummoned',
+  'weakestAlly',
+  'weakestEnemy',
+  'strongestEnemy',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -282,6 +285,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
     z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
     z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),
@@ -378,6 +382,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(),
         reflected: z.boolean().optional(),
         shield: z.boolean().optional(),
+        costAtLeast: z.number().int().min(1).optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
@@ -614,6 +619,7 @@ export const glossaryFileEntry = z.strictObject({
 export const fusionFileEntry = z.strictObject({
   name: z.string().min(1),
   elements: z.tuple([z.string().min(1), z.string().min(1)]),
+  passives: z.array(z.string().min(1)).optional(),
 });
 
 // Compile-time checks that file entries + injected id produce the engine's types.

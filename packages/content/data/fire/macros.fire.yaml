@@ -3,6 +3,22 @@
 # "Explode": a triggered Explosion deals 10 Affliction damage to the enemy team (the enemies of
 # whoever caused it). Invulnerable targets are not damaged — an explicit exception to the
 # Affliction rule (Q14). Flameborn allies react to the "explosion" signal.
+# After an Ignite (or Dragonfire) burns, in its scope (actor = whoever applied it): Flameborn
+# heals the applier; Dragon's Hoard and Warming Wings react to the applier's burns.
+burn_aftermath:
+  - op: if
+    cond: { has: { unit: actor, effect: flameborn } }
+    then:
+      - { op: heal, to: actor, amount: { lastDamage: true } }
+  - op: if
+    cond: { and: [{ has: { unit: actor, effect: wyrm_heart } }, { compare: { value: { lastDamage: true }, atLeast: 1 } }] }
+    then:
+      - { op: apply, to: actor, effect: hoard }
+  - op: if
+    cond: { and: [{ has: { unit: actor, effect: warming_wings } }, { compare: { value: { lastDamage: true }, atLeast: 1 } }] }
+    then:
+      - { op: heal, to: weakestAlly, amount: { lastDamage: true } }
+
 explode:
   - { op: damage, to: allEnemies, amount: 10, type: Affliction, direct: false, respectsInvulnerable: true }
   - { op: signal, name: explosion }

@@ -69,6 +69,14 @@ export function createMatch(content: ContentBundle, config: MatchConfig): ApplyR
       for (const id of spec.passives ?? []) {
         applyEffect(ctx, { def: resolveEffectDef(content, id), inline: false, bearer: u, source: u, duration: 'permanent' });
       }
+      // Fusion passives: a kit's rule for anyone carrying one of its skills (once per fusion).
+      const elements = new Set(spec.skills.map((id) => content.skills[id]?.element));
+      for (const f of Object.values(content.fusions ?? {})) {
+        if (!elements.has(f.name)) continue;
+        for (const id of f.passives ?? []) {
+          applyEffect(ctx, { def: resolveEffectDef(content, id), inline: false, bearer: u, source: u, duration: 'permanent' });
+        }
+      }
     }),
   );
   // "At the start of battle" passives.

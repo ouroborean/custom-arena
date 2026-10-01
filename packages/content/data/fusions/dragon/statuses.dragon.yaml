@@ -1,0 +1,81 @@
+# Dragon (Fire + Fire) statuses, from the "Fusion Spec Kits" design doc.
+# Dragonfire rides on an Ignite: the unit keeps its Ignite (so everything that checks for Ignite
+# still sees it), and the Ignite stops burning while Dragonfire burns for 10 in its place.
+
+dragonfire:
+  name: Dragonfire
+  kind: Debuff
+  element: Dragon
+  stacking: unique
+  description: >-
+    Counts as Ignite, but deals 10 Affliction damage at the end of its applier's turn instead of 5.
+    Applied to an Ignited unit, it upgrades the Ignite.
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: ignite } }
+          then:
+            - { op: damage, to: bearer, amount: 10, type: Affliction }
+            - { op: macro, id: burn_aftermath }
+          # Its Ignite was removed: Dragonfire goes out with it.
+          else:
+            - { op: removeSelf }
+    - on: turnStart
+      do:
+        - op: if
+          cond: { and: [{ has: { unit: actor, effect: burning_wake } }, { has: { unit: bearer, effect: ignite } }] }
+          then:
+            - { op: damage, to: bearer, amount: 10, type: Affliction }
+            - { op: macro, id: burn_aftermath }
+
+# Fusion passive: every character with a Dragon skill. Their burns fill their Hoard (see the Fire
+# macro burn_aftermath).
+wyrm_heart:
+  name: Wyrm's Heart
+  kind: Neutral
+  element: Dragon
+  stacking: unique
+  description: Each time an Ignite or Dragonfire this character applied deals damage, they gain 1 Hoard.
+
+hoard:
+  name: Hoard
+  kind: Buff
+  element: Dragon
+  stacking: merge
+  maxStacks: 6
+  description: >-
+    Max 6. Every 2 Hoard gives 1 Armor (every 1 during Elder Wyrm). Breath skills spend all of it
+    for 5 more damage per Hoard to each target.
+  modifiers:
+    - mod: damageTaken
+      amount: -5
+      armor: true
+      when: { types: [Normal] }
+      value:
+        mul:
+          - -5
+          - if: { has: { unit: actor, effect: elder_wyrm } }
+            then: { stacks: { unit: actor, effect: hoard } }
+            else: { div: [{ stacks: { unit: actor, effect: hoard } }, 2] }
+
+burning_wake:
+  name: Burning Wake
+  kind: Buff
+  element: Dragon
+  stacking: unique
+  description: Each Ignite the bearer applied also burns at the start of its bearer's turn.
+
+warming_wings:
+  name: Warming Wings
+  kind: Buff
+  element: Dragon
+  stacking: unique
+  description: Each time an Ignite the bearer applied deals damage, their ally with the least HP heals as much.
+
+elder_wyrm:
+  name: Elder Wyrm
+  kind: Buff
+  element: Dragon
+  stacking: unique
+  description: Every Hoard gives 1 Armor instead of every 2.

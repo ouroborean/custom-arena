@@ -20,7 +20,7 @@ import {
 import { dealDamage, heal, killUnit } from './damage.js';
 import { costTotal } from './energy.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
-import { applyEffect, removeEffect, revealEffect } from './effects.js';
+import { applyEffect, interruptChannels, removeEffect, revealEffect } from './effects.js';
 import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
 import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
@@ -109,7 +109,21 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return sc.lastSummoned ? one(ctx, sc.lastSummoned) : [];
     case 'allUnits':
       return ctx.s.units.filter((u) => u.alive);
+    // Fusion kits: "the ally with the least HP", "the enemy with the least / most HP" (characters
+    // only; ties go to the earliest in team order).
+    case 'weakestAlly':
+      return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'weakestEnemy':
+      return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'strongestEnemy':
+      return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'max');
   }
+}
+
+function extremeHp(units: Unit[], pick: 'min' | 'max'): Unit[] {
+  let best: Unit | undefined;
+  for (const u of units) if (!best || (pick === 'min' ? u.hp < best.hp : u.hp > best.hp)) best = u;
+  return best ? [best] : [];
 }
 
 export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
@@ -431,6 +445,9 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'kill':
       for (const t of select(ctx, op.to, sc)) killUnit(ctx, t, actor, sc.skill?.id);
+      return;
+    case 'interrupt':
+      for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
       return;
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {

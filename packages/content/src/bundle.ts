@@ -449,10 +449,17 @@ export function checkGlossary(b: ContentBundle): ContentIssue[] {
  */
 export function checkFusions(b: ContentBundle): ContentIssue[] {
   const issues: ContentIssue[] = [];
-  const elements = [...new Set(Object.values(b.skills).map((s) => s.element))].filter((e) => e !== 'None').sort();
+  // Base elements: every skill element except None and the fusions' own names (fusion kits). A
+  // name that some pair is made from stays a base element, so a fusion can't hide one.
+  const fusionNames = new Set(Object.values(b.fusions).map((f) => f.name));
+  const pairElements = new Set(Object.values(b.fusions).flatMap((f) => f.elements));
+  const elements = [...new Set(Object.values(b.skills).map((s) => s.element))]
+    .filter((e) => e !== 'None' && (!fusionNames.has(e) || pairElements.has(e)))
+    .sort();
   const seen = new Map<string, string>();
   for (const f of Object.values(b.fusions)) {
     const where = `fusions.${f.id}`;
+    for (const id of f.passives ?? []) if (!b.statuses[id]) issues.push({ level: 'error', where, message: `unknown passive status "${id}"` });
     for (const el of f.elements) if (!elements.includes(el)) issues.push({ level: 'error', where, message: `unknown element "${el}"` });
     if (elements.includes(f.name)) issues.push({ level: 'error', where, message: `"${f.name}" is a base element's name` });
     const key = fusionKey(f.elements[0], f.elements[1]);

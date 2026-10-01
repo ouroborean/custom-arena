@@ -10,7 +10,7 @@ describe('fusions', () => {
   it('the 10 base elements make 55 fusions, with no gaps or duplicates', () => {
     expect(Object.keys(content.fusions)).toHaveLength(55);
     expect(checkFusions(content)).toEqual([]);
-    expect(content.fusions.dragon).toEqual({ id: 'dragon', name: 'Dragon', elements: ['Fire', 'Fire'] });
+    expect(content.fusions.dragon).toEqual({ id: 'dragon', name: 'Dragon', elements: ['Fire', 'Fire'], passives: ['wyrm_heart'] });
   });
 
   it('reports unknown elements, a pair used twice, base-element names and gaps', () => {
@@ -29,6 +29,7 @@ describe('fusions', () => {
     expect(messages).toContain('error fusions.steam: unknown element "Vapor"');
     expect(messages).toContain('error fusions.twin: Ice + Fire already makes Apocalypse');
     expect(messages).toContain('error fusions.fire2: "Fire" is a base element\'s name');
-    expect(messages).toContain('warning fusions: no fusion for Fire + Fire');
+    // With Dragon dropped, its kit's skills look like a base element too, so the gap list is longer.
+    expect(messages.some((m) => m.startsWith('warning fusions: no fusion for') && m.includes('Fire + Fire'))).toBe(true);
   });
 });

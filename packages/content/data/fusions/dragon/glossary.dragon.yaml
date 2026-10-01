@@ -1,0 +1,15 @@
+# Dragon keywords (docs/glossary.md).
+
+dragonfire:
+  status: dragonfire
+  forms: [Dragonfire]
+  element: Dragon
+hoard:
+  status: hoard
+  forms: [Hoard]
+  element: Dragon
+breath:
+  name: Breath
+  text: "Spends all the user's Hoard: each target takes 5 more damage per Hoard spent."
+  forms: [Breath]
+  element: Dragon

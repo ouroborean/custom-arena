@@ -50,7 +50,10 @@ export type NamedSelector =
   | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
   | 'eventPrimary' // the first of eventTargets (the triggering skill's primary target)
   | 'allUnits' // every living unit on both sides
-  | 'lastSummoned'; // the unit the most recent summon op created
+  | 'lastSummoned' // the unit the most recent summon op created
+  | 'weakestAlly' // the actor's living, targetable character ally (or self) with the least HP
+  | 'weakestEnemy' // the actor's targetable enemy character with the least HP
+  | 'strongestEnemy'; // the actor's targetable enemy character with the most HP
 
 export type Selector =
   | NamedSelector
@@ -192,6 +195,8 @@ export type Op =
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
+  /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
+  | { op: 'interrupt'; to: Selector }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
@@ -468,6 +473,8 @@ export interface TriggerSpec {
     reflected?: boolean;
     /** effectGained / effectApplied: only Shield effects. */
     shield?: boolean;
+    /** Intercepting skillUsed / skillTargeted: only skills whose listed cost totals at least this. */
+    costAtLeast?: number;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
@@ -823,6 +830,11 @@ export interface FusionDef {
   id: string;
   name: string;
   elements: [string, string];
+  /**
+   * Status ids every character with at least one of this fusion's skills carries from the start
+   * (a kit's resource or rule, such as Dragon's Hoard keeper).
+   */
+  passives?: string[];
 }
 
 /** The unordered key of an element pair: "Fire+Ice" for Fire + Ice or Ice + Fire. */

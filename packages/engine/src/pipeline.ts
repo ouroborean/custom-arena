@@ -156,7 +156,9 @@ function interceptorFor(
   const strategic = def.tags.includes('Strategic');
   // Counters catch Harmful skills unless they say otherwise (Dunk: Helpful; Riverbend: Strategic).
   const matches = (spec: TriggerSpec) =>
-    (spec.when?.harmful ?? true) === harmful && (spec.when?.strategic === undefined || spec.when.strategic === strategic);
+    (spec.when?.harmful ?? true) === harmful &&
+    (spec.when?.strategic === undefined || spec.when.strategic === strategic) &&
+    (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast);
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
