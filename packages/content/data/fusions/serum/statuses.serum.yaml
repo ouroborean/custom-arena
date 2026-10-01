@@ -1,0 +1,24 @@
+# Serum (Water + Poison) statuses, from the "Fusion Spec Kits" design doc.
+
+dose:
+  name: Dose
+  kind: Buff
+  element: Serum
+  stacking: merge
+  description: >-
+    At the end of its applier's turn, the bearer heals 5 per stack. At 4 Dose, they Overdose: 10
+    Affliction damage per stack, and all Dose is lost.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: heal, to: bearer, amount: { mul: [5, { effectStacks: true }] } }
+    - on: effectGained
+      effect: dose
+      do:
+        - op: if
+          cond:
+            and:
+              - { compare: { value: { totalStacks: { in: bearer, effect: dose } }, atLeast: 4 } }
+              - { not: { has: { unit: bearer, effect: mutagen } } }
+          then:
+            - { op: forEach, in: bearer, do: [{ op: macro, id: overdose }] }

@@ -1,0 +1,10 @@
+# Serum keywords (docs/glossary.md).
+
+dose:
+  status: dose
+  element: Serum
+overdose:
+  name: Overdose
+  text: A unit that reaches 4 Dose Overdoses, taking 10 Affliction per stack and losing all Dose.
+  element: Serum
+  forms: [Overdose, Overdoses]

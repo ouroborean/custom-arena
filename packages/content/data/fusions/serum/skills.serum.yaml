@@ -1,0 +1,752 @@
+# The 30 Serum (Water + Poison) variants, from the "Fusion Spec Kits" design doc.
+# Dose (a merging Buff) heals each turn; at 4 total the bearer Overdoses (macro `overdose`).
+
+strike.serum:
+  archetype: Strike
+  element: Serum
+  name: Hypodermic Strike
+  description: Deals 20 damage to target enemy, +5 per Dose they have. Then they gain 2 Dose.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [5, { totalStacks: { in: primary, effect: dose } }] }] } }
+    - { op: apply, to: primary, effect: dose, stacks: 2 }
+
+smash.serum:
+  archetype: Smash
+  element: Serum
+  name: Shattering Vial
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Each enemy hit who already has Dose gains 2
+    more; the rest gain 1.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: forEach
+      in: allEnemies
+      do:
+        - { op: apply, to: it, effect: dose, stacks: { if: { has: { unit: it, effect: dose } }, then: 2, else: 1 } }
+
+charge.serum:
+  archetype: Charge
+  element: Serum
+  name: Stim Rush
+  description: >-
+    Deals 15 damage to target enemy. The user gains 1 Focus, and the next skill they use has its cooldown
+    cut by 1.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: stim_rush
+        name: Stim Rush
+        kind: Buff
+        element: Serum
+        description: The bearer's next skill costs 1 less and its cooldown is 1 shorter.
+        modifiers:
+          - { mod: costGeneric, amount: -1 }
+          - { mod: cooldownOnUse, amount: -1 }
+
+riposte.serum:
+  archetype: Riposte
+  element: Serum
+  name: Reactive Serum
+  description: For 1 turn, counters any Harmful skill used on the user; its user gains 3 Dose. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: reactive_serum
+        name: Reactive Serum
+        kind: Buff
+        element: Serum
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; their users gain 3 Dose.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: dose, stacks: 3 }
+
+rage.serum:
+  archetype: Rage
+  element: Serum
+  name: Stimulant Binge
+  description: >-
+    For 3 turns, the user gains Immune and 1 Might at the start of each of their turns (max 3). If they
+    use no damaging skill on a turn, it ends and they take 20 Affliction damage.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: setCounter, name: binge_turn, value: { turn: true } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: stimulant_binge
+        name: Stimulant Binge
+        kind: Buff
+        element: Serum
+        description: Immune, and 1 Might each turn (max 3); a turn without a damaging skill ends it painfully.
+        modifiers:
+          - { mod: immuneTo, kind: Debuff }
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: might } }, atMost: 2 } }
+                then: [{ op: apply, to: bearer, effect: might, linkTo: stimulant_binge }]
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - { op: setFlag, flag: dealt }
+          - on: turnEnd
+            do:
+              - op: if
+                cond:
+                  and:
+                    - { not: { flag: dealt } }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: binge_turn }] }] }, atLeast: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: damage, to: bearer, amount: 20, type: Affliction, direct: false }
+              - { op: setFlag, flag: dealt, value: false }
+
+shot.serum:
+  archetype: Shot
+  element: Serum
+  name: Purging Dart
+  description: >-
+    Deals 5 Piercing damage to target enemy, +10 for each Debuff on the user. Those Debuffs are drawn out
+    with the dart and end.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [5, { mul: [10, { kindCount: { unit: actor, kind: Debuff } }] }] } }
+    - { op: removeKind, from: actor, kind: Debuff }
+
+snipe.serum:
+  archetype: Snipe
+  element: Serum
+  name: Lethal Dose
+  description: >-
+    On the following turn, deals 20 Affliction damage to target enemy, and they gain enough Dose to reach
+    4. The target of this skill is invisible. Channeled, Uncounterable.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: lethal_dose
+        name: Lethal Dose (aiming)
+        kind: Neutral
+        element: Serum
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn and doses them to 4.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: damage, to: it, amount: 20, type: Affliction }
+              - { op: apply, to: it, effect: dose, stacks: { sum: [4, { mul: [-1, { totalStacks: { in: it, effect: dose } }] }] } }
+
+trap.serum:
+  archetype: Trap
+  element: Serum
+  name: Tainted Supply
+  description: For 3 turns, each time target enemy is healed, they gain 1 Dose. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tainted_supply
+        name: Tainted Supply
+        kind: Debuff
+        element: Serum
+        visibility: hidden
+        description: Each time the bearer is healed, they gain 1 Dose.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: bearer, effect: dose }
+
+maneuver.serum:
+  archetype: Maneuver
+  element: Serum
+  name: Stimulant
+  description: >-
+    The user becomes Invulnerable for 1 turn. Their Dose moves to a random enemy; if they had none, they
+    gain 2. Unstunnable.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic, Unstunnable]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { has: { unit: actor, effect: dose } }
+      then:
+        - { op: moveEffects, from: actor, to: { randomEnemy: 1 }, effects: [dose] }
+      else:
+        - { op: apply, to: actor, effect: dose, stacks: 2 }
+
+companion.serum:
+  archetype: Companion
+  element: Serum
+  name: Giant Leech
+  description: >-
+    Summons a Giant Leech (25 HP) permanently. Latch (r): 5 Piercing damage and 1 Dose. Bloodletting (rr):
+    target ally loses 2 Dose and heals 10.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: giant_leech }
+
+bolt.serum:
+  archetype: Bolt
+  element: Serum
+  name: Pressurized Dose
+  description: Deals 20 damage to target enemy, who gains 2 Dose. While they have Dose, they count as Prey.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: dose, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: pressurized
+        name: Pressurized
+        kind: Debuff
+        element: Serum
+        description: While the bearer has Dose, they count as Prey.
+
+blast.serum:
+  archetype: Blast
+  element: Serum
+  name: Acid Rain
+  description: >-
+    Deals 20 damage to all enemies, and each gains 1 Dose. Then all Dose on the enemy team pools on one
+    enemy who has it.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: dose }
+    - op: forEach
+      in: { randomEnemy: 1, where: { has: { unit: it, effect: dose } } }
+      do:
+        - { op: moveEffects, from: { filter: allEnemies, exclude: it, where: { has: { unit: it, effect: dose } } }, to: it, effects: [dose] }
+
+consume.serum:
+  archetype: Consume
+  element: Serum
+  name: Extraction
+  description: >-
+    Removes all Dose from target unit: an enemy takes 10 Affliction damage per stack; an ally heals 10 per
+    stack.
+  cost: r
+  cooldown: 2
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - { op: set, var: extracted, value: { totalStacks: { in: primary, effect: dose } } }
+    - { op: removeEffect, from: primary, effect: dose }
+    - op: if
+      cond: { isEnemy: primary }
+      then: [{ op: damage, to: primary, amount: { mul: [10, { var: extracted }] }, type: Affliction, direct: false }]
+      else: [{ op: heal, to: primary, amount: { mul: [10, { var: extracted }] } }]
+
+summon.serum:
+  archetype: Summon
+  element: Serum
+  name: Spriggan Nurse
+  description: >-
+    Summons a Spriggan Nurse (15 HP) for 3 turns. Titrate (W): target ally gains 1 Dose; if they have 3, a
+    random enemy gains 2 instead.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: spriggan_nurse, duration: { enemyTurns: 3 } }
+
+channel.serum:
+  archetype: Channel
+  element: Serum
+  name: Drip
+  description: >-
+    For up to 4 turns, at the end of each of the user's turns, target enemy gains 1 Dose and takes 5
+    Affliction damage per Dose they have. It ends when they Overdose. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, Strategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 4 }
+      effect:
+        id: drip
+        name: Drip
+        kind: Neutral
+        element: Serum
+        interruptible: true
+        description: Each turn, the target gains 1 Dose and takes 5 Affliction per Dose; ends when they Overdose.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in: effectTargets
+                do:
+                  - { op: apply, to: it, effect: dose }
+                  - op: if
+                    cond: { has: { unit: it, effect: dose } }
+                    then:
+                      - { op: damage, to: it, amount: { mul: [5, { totalStacks: { in: it, effect: dose } }] }, type: Affliction, direct: false }
+                    else:
+                      - { op: removeSelf }
+
+stab.serum:
+  archetype: Stab
+  element: Serum
+  name: Microdose
+  description: >-
+    Deals 5 damage to target enemy now and at the start of each of their next 3 turns. Each dose is 15
+    instead while they're at or below 60 HP.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 15, else: 5 } }
+    - op: apply
+      to: primary
+      duration: { raw: 6 }
+      effect:
+        id: microdose
+        name: Microdose
+        kind: Debuff
+        element: Serum
+        description: At the start of each of the bearer's turns, 5 damage (15 at or below 60 HP).
+        triggers:
+          - on: turnStart
+            do:
+              - { op: damage, to: bearer, amount: { if: { hpAtMost: { unit: bearer, value: 60 } }, then: 15, else: 5 }, direct: false }
+
+ravage.serum:
+  archetype: Ravage
+  element: Serum
+  name: Toxic Injection
+  description: >-
+    Deals 25 Piercing damage to target enemy. For 2 turns, their Toxin also ticks at the start of each of
+    their turns.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: toxic_injection
+        name: Toxic Injection
+        kind: Debuff
+        element: Serum
+        description: The bearer's Toxin also ticks at the start of their turns.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: damage, to: bearer, amount: { mul: [5, { totalStacks: { in: bearer, effect: toxin } }] }, type: Affliction, direct: false }
+
+mislead.serum:
+  archetype: Mislead
+  element: Serum
+  name: Placebo
+  description: >-
+    For 1 turn, if target enemy uses a Helpful skill, it's countered, and each of its targets gains 2
+    Dose. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: placebo
+        name: Placebo
+        kind: Debuff
+        element: Serum
+        visibility: hidden
+        description: The bearer's next Helpful skill is countered, and its targets gain 2 Dose.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventTargets, effect: dose, stacks: 2 }
+
+stun.serum:
+  archetype: Stun
+  element: Serum
+  name: Sedative
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn, +1 turn per 2 Dose they have (max 3
+    turns).
+  cost: I
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      effect: stun
+      duration:
+        enemyTurns:
+          if: { compare: { value: { totalStacks: { in: primary, effect: dose } }, atLeast: 4 } }
+          then: 3
+          else: { sum: [1, { div: [{ totalStacks: { in: primary, effect: dose } }, 2] }] }
+
+dance.serum:
+  archetype: Dance
+  element: Serum
+  name: Rebalance
+  description: All Toxin on allies turns into Renew, and all Renew on enemies turns into Toxin.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: forEach
+      in: allAllies
+      do:
+        - { op: set, var: shift, value: { totalStacks: { in: it, effect: toxin } } }
+        - { op: removeEffect, from: it, effect: toxin }
+        - { op: apply, to: it, effect: renew, stacks: { var: shift } }
+    - op: forEach
+      in: allEnemies
+      do:
+        - { op: set, var: shift, value: { totalStacks: { in: it, effect: renew } } }
+        - { op: removeEffect, from: it, effect: renew }
+        - { op: apply, to: it, effect: toxin, stacks: { var: shift } }
+
+heal.serum:
+  archetype: Heal
+  element: Serum
+  name: Remedy
+  description: Target unit heals 25. An ally gains 1 Dose; an enemy gains 3.
+  cost: W
+  cooldown: 1
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: dose, stacks: { if: { isEnemy: primary }, then: 3, else: 1 } }
+
+bless.serum:
+  archetype: Bless
+  element: Serum
+  name: Flushing Drip
+  description: >-
+    For 3 turns, target ally gains 1 Might and 1 Renew. Each time they're healed meanwhile, they lose 1
+    Debuff.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: renew }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: flushing_drip
+        name: Flushing Drip
+        kind: Buff
+        element: Serum
+        description: Each heal flushes 1 Debuff.
+        triggers:
+          - on: healed
+            do:
+              - { op: removeRandom, from: bearer, kind: Debuff }
+
+curse.serum:
+  archetype: Curse
+  element: Serum
+  name: Weak Constitution
+  description: >-
+    Target enemy is Confused for 2 turns. For as long, any Weakness on them makes them Prey, however few
+    stacks they have.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: weak_constitution
+        name: Weak Constitution
+        kind: Debuff
+        element: Serum
+        description: Any Weakness makes the bearer Prey.
+
+smite.serum:
+  archetype: Smite
+  element: Serum
+  name: Mercy Dose
+  description: >-
+    Deals 15 damage to target enemy, who is Sanctified for 1 turn. For 1 turn, an ally who damages them
+    executes them if it leaves them below 15 HP.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mercy_dose
+        name: Mercy Dose
+        kind: Debuff
+        element: Serum
+        description: An ally of the applier who leaves the bearer below 15 HP executes them.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 14 } }
+                then: [{ op: kill, to: bearer }]
+
+prayer.serum:
+  archetype: Prayer
+  element: Serum
+  name: Tonic Round
+  description: All allies heal 10 per Dose they have (at least 10) and lose 1 Dose. All enemies gain 1 Dose.
+  cost: Ir
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: heal, to: it, amount: { if: { has: { unit: it, effect: dose } }, then: { mul: [10, { totalStacks: { in: it, effect: dose } }] }, else: 10 } }
+        - { op: removeStacks, from: it, effect: dose, amount: 1 }
+    - { op: apply, to: allEnemies, effect: dose }
+
+cleave.serum:
+  archetype: Cleave
+  element: Serum
+  name: Lashing Spray
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy, who gains as many Dose as the target
+    has.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: apply, to: it, effect: dose, stacks: { totalStacks: { in: primary, effect: dose } } }
+
+shout.serum:
+  archetype: Shout
+  element: Serum
+  name: Bad Batch
+  description: >-
+    Every unit that has Dose gains 1 more, allies included. If no enemy has Dose, every enemy gains 1
+    instead.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: if
+      cond: { compare: { value: { countOf: { filter: targets, where: { has: { unit: it, effect: dose } } } }, atLeast: 1 } }
+      then:
+        - { op: apply, to: { filter: allUnits, where: { has: { unit: it, effect: dose } } }, effect: dose }
+      else:
+        - { op: apply, to: targets, effect: dose }
+
+withstand.serum:
+  archetype: Withstand
+  element: Serum
+  name: Clotting Agent
+  description: >-
+    The user gains 30 Shield for 2 turns, and meanwhile takes 10 less Affliction damage from each hit.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 30, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: clotting_agent
+        name: Clotting Agent
+        kind: Buff
+        element: Serum
+        description: 10 less Affliction damage from each hit.
+        modifiers:
+          - { mod: damageTaken, amount: -10, when: { types: [Affliction] } }
+
+taunt.serum:
+  archetype: Taunt
+  element: Serum
+  name: Bitter Tonic
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Meanwhile, each time an ally of the user is healed,
+    the Taunted enemy gains 1 Toxin.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: allAllies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bitter_tonic
+        name: Bitter Tonic
+        kind: Buff
+        element: Serum
+        description: Each time the bearer is healed, the enemy the applier Taunted gains 1 Toxin.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: taunt, mine: true } } }, effect: toxin }
+
+titan.serum:
+  archetype: Titan
+  element: Serum
+  name: Mutagen
+  description: >-
+    The user gains 3 Dose and can't Overdose for 3 turns; meanwhile, 2 Might and 2 Armor. When it ends,
+    they Overdose if they have 4 or more.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: mutagen
+        name: Mutagen
+        kind: Buff
+        element: Serum
+        description: Can't Overdose; at 4 or more Dose when this ends, they Overdose.
+        onExpire:
+          - op: if
+            cond: { compare: { value: { totalStacks: { in: bearer, effect: dose } }, atLeast: 4 } }
+            then:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: overdose }] }
+    - { op: apply, to: actor, effect: dose, stacks: 3 }
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+giant_leech_latch:
+  archetype: Minion
+  element: Serum
+  name: Latch
+  description: Deals 5 Piercing damage to target enemy, who gains 1 Dose.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: dose }
+
+giant_leech_bloodletting:
+  archetype: Minion
+  element: Serum
+  name: Bloodletting
+  description: Target ally loses 2 Dose and heals 10.
+  cost: rr
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: removeStacks, from: primary, effect: dose, amount: 2 }
+    - { op: heal, to: primary, amount: 10 }
+
+spriggan_nurse_titrate:
+  archetype: Minion
+  element: Serum
+  name: Titrate
+  description: Target ally gains 1 Dose; if they have 3, a random enemy gains 2 instead.
+  cost: W
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: if
+      cond: { compare: { value: { totalStacks: { in: primary, effect: dose } }, atLeast: 3 } }
+      then: [{ op: apply, to: { randomEnemy: 1 }, effect: dose, stacks: 2 }]
+      else: [{ op: apply, to: primary, effect: dose }]

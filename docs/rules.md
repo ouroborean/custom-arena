@@ -1257,3 +1257,18 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Stolen Wind | Simplified: the user takes all mobility buffs from both enemies hit. |
 | Foghorn | Simplified: for 1 turn, Harmful skills aimed at the user are reflected. |
 | Voice in the Fog | A hidden `forceTarget` Debuff. |
+
+### 21.30 Serum (Water + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Dose** | A merging Buff (so Horrified blocks it and Immune doesn't): 5 healing per stack at the end of its applier's turn. When the bearer's total Dose reaches 4 (not during Mutagen), macro `overdose`: 10 Affliction per stack, all Dose removed, an `overdose` signal. |
+| Prey hooks | Pressurized Dose (while they have Dose) and Weak Constitution (any Weakness) join Poison's `prey` condition. |
+| Stimulant Binge | Immune to Debuffs and +1 Might each turn (max 3); a later turn without a direct hit ends it with 20 Affliction. |
+| Acid Rain | The pooled Dose goes to a random enemy who has Dose (not necessarily the most). |
+| Extraction / Remedy | Radiant: on an enemy or an ally. |
+| Microdose | Ticks at the start of each of the target's next 3 turns. |
+| Toxic Injection | Simplified: Toxin also ticks at the start of their turns. |
+| Flushing Drip | Any healing (not only Renew) flushes a Debuff. |
+| Clotting Agent | Simplified: a normal Shield, plus 10 less Affliction from each hit. |
+| Bitter Tonic | Any healing on the user's allies (not only Renew) gives the Taunted enemy 1 Toxin. |

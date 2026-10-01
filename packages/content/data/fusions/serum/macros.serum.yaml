@@ -1,0 +1,8 @@
+# Serum actions, run on `it`.
+
+# Overdose: 10 Affliction per Dose, and all Dose is lost.
+overdose:
+  - { op: set, var: od, value: { totalStacks: { in: it, effect: dose } } }
+  - { op: removeEffect, from: it, effect: dose }
+  - { op: damage, to: it, amount: { mul: [10, { var: od }] }, type: Affliction, direct: false }
+  - { op: signal, name: overdose }
