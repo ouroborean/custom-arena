@@ -235,6 +235,23 @@ export type Op =
   | { op: 'shareEffects'; a: Selector; b: Selector; kind: EffectKind }
   /** Moves `from`'s effects (of `kind`, or these keys) onto `to`, keeping stacks, value and time left. */
   | { op: 'moveEffects'; from: Selector; to: Selector; kind?: EffectKind; effects?: string[] }
+  /**
+   * Alchemy's Transmute: turns effects on each unit into others, stack for stack, keeping time left.
+   * On the actor's enemies: Might → Weakness, Armor → Vulnerable, Focus → Confusion, Renew →
+   * Weakness. On allies the reverse, and other Debuffs become Renew. `effects` limits it to these
+   * keys, `kind` to one kind, `count` to that many random instances per unit, `event` to the event's
+   * effect; `removeUnmatched` removes matching effects with no recipe. The stacks converted are
+   * stored in the variable `transmuted`.
+   */
+  | {
+      op: 'transmute';
+      on: Selector;
+      effects?: string[];
+      kind?: EffectKind;
+      count?: number;
+      event?: boolean;
+      removeUnmatched?: boolean;
+    }
   /** Links the selected units (2 or more) with `effect` (a status with entangleLink) in one new group. */
   /** `with` adds more units to the same group (e.g. a random ally of the target). */
   | { op: 'entangle'; to: Selector; with?: Selector; effect: string; duration?: DurationSpec }
@@ -445,6 +462,13 @@ export type ModifierSpec = ModifierBase &
    * cannotUseSkills and untargetable in the status.
    */
   | { mod: 'banished' }
+  /**
+   * Alchemy's Catalyst: the next skill that affects the bearer is doubled for them (damage, healing,
+   * and the stacks and duration of effects it applies). Ends once that skill has resolved.
+   */
+  | { mod: 'catalyst' }
+  /** The bearer's Normal damage is dealt as Piercing (Alchemy's Universal Solvent). */
+  | { mod: 'normalAsPiercing' }
   /**
    * Dimension's Entangled: effects applied to the bearer are applied to every unit sharing this
    * effect's link group too (only these kinds, if given). Made by the `entangle` op.

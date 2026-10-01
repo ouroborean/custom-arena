@@ -1,0 +1,10 @@
+# Alchemy actions.
+
+# Gives `it` Catalyst for 2 turns: the Buff on the actor's side, the Debuff on enemies.
+give_catalyst:
+  - op: if
+    cond: { isEnemy: it }
+    then:
+      - { op: apply, to: it, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+    else:
+      - { op: apply, to: it, effect: catalyst, duration: { enemyTurns: 2 } }

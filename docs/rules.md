@@ -933,3 +933,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Frozen Remedy | A floor of 1 HP while it lasts; a hit that reaches 1 heals 35 at once and ends it. |
 | Long Night's Toll | Frostfired enemies' skills get +1 more cooldown on use. |
 | Heart of the Glacier | Frostborn is linked to the Shield and ends with it. |
+
+### 21.12 Alchemy (Fire + Water)
+
+| Term | Ruling |
+|---|---|
+| **Transmute** | New `transmute` op, recipes by the unit's side relative to the actor (enemy: Might → Weakness, Armor → Vulnerable, Focus → Confusion, Renew → Weakness; ally: the reverse, other Debuffs → Renew). Stack for stack, keeping time left; everything leaves before the new effects land. Stores the stacks converted in the variable `transmuted`. |
+| **Catalyst** | `catalyst` (Buff) / `catalyst_debuff` (Debuff), 2 turns. While a skill resolves, its damage and healing on the bearer double, as do the stacks and duration of what it applies (not another Catalyst); the Catalyst ends once that skill has resolved. Triggers firing during the skill count as part of it. |
+| Kiln Crash | Simplified: while Scorched, the bearer's Shield is halved at the end of each of the user's turns (no Shield-gain modifier yet). |
+| Vial Toss | Checked at the end of the user's turns: if the Ignite is gone, they Explode (Explosions hit the user's enemies). |
+| Volatile Compound | "They Explode" hits their side (an Explosion caused by the trap's owner). |
+| Homunculus | The ally's gain is simplified to 1 Renew. |
+| Essence Extraction | Tracked per enemy (`essence_taken`); an enemy's HP is capped at their new max. |
+| Slow Distillation | The boil-off happens only if it runs the full 4 turns. |
+| Probing Lancet | Simplified to Uncounterable (no Flow bonus). |
+| Inversion Circle | Simplified: the Helpful skill is countered; its targets take 15 Affliction and are Weakened for 1 turn. |
+| Universal Solvent | New `normalAsPiercing` modifier. |
+| Lure Flask | The user heals half of each hit from the enemy they Taunted. |
+| The Great Work | Permanent; a Neutral effect gives Immune to Buffs. |
+| moveEffects | Now moves effects from every unit in `from` (Circle of Extremes). |

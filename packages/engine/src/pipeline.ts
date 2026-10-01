@@ -298,9 +298,14 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
       !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')) &&
       !(e.until.skillUsed.archetypes && !e.until.skillUsed.archetypes.includes(def.archetype)),
   );
+  const wasInSkill = ctx.inSkill;
+  ctx.inSkill = true;
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
+    ctx.inSkill = wasInSkill;
+    // Alchemy's Catalyst: spent once the skill it doubled has resolved.
+    for (const e of ctx.s.effects.filter((x) => x.data.catalyzed)) removeEffect(ctx, e, 'consumed');
     // Uses per skill (Ocean's Crest and Trough alternate on it).
     actor.counters[`uses:${def.id}`] = (actor.counters[`uses:${def.id}`] ?? 0) + 1;
     actor.counters.lastSlot = slotIndex;

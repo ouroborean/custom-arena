@@ -31,6 +31,8 @@ export interface Ctx {
   flushing: boolean;
   /** Set while Entangled copies are being applied, so they don't spread again. */
   entangling?: boolean;
+  /** Set while a skill resolves (Alchemy's Catalyst only doubles skills). */
+  inSkill?: boolean;
   /** State snapshots for `checkpoint` events, or null when they weren't asked for. */
   checkpoints: GameState[] | null;
 }

@@ -259,6 +259,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('shareDamage') }),
   mod({ mod: z.literal('invertHealing') }),
   mod({ mod: z.literal('banished') }),
+  mod({ mod: z.literal('catalyst') }),
+  mod({ mod: z.literal('normalAsPiercing') }),
   mod({ mod: z.literal('entangleLink'), kinds: z.array(effectKind).optional() }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
@@ -316,6 +318,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('entangle'), to: selectorSchema, with: selectorSchema.optional(), effect: z.string(), duration: durationSchema.optional() }),
     z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
+    z.strictObject({ op: z.literal('transmute'), on: selectorSchema, effects: z.array(z.string()).optional(), kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), count: z.number().int().min(1).optional(), event: z.boolean().optional(), removeUnmatched: z.boolean().optional() }),
     z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional(), end: z.boolean().optional() }),
     z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),

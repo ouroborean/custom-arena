@@ -416,12 +416,12 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       // The skill "dealing" it: the one being used, or the one that applied the ticking/delayed effect.
       const damageSkill = sc.skill?.id ?? sc.self?.sourceSkill;
       for (const t of select(ctx, op.to, sc)) {
-        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)) * catalyze(ctx, t);
         const dealt = dealDamage(ctx, {
           source: dealer,
           target: t,
           amount,
-          type: op.type ?? 'Normal',
+          type: (op.type ?? 'Normal') === 'Normal' && modsOn(ctx.s, ctx.c, dealer.id, 'normalAsPiercing').length > 0 ? 'Piercing' : (op.type ?? 'Normal'),
           direct: op.direct ?? sc.direct,
           bypass: op.bypass ?? sc.bypass,
           ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
@@ -436,7 +436,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'heal':
       for (const t of select(ctx, op.to, sc)) {
-        const want = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const want = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)) * catalyze(ctx, t);
         const room = t.maxHp - t.hp;
         heal(ctx, actor, t, want, { raw: op.raw, quiet: op.quiet });
         sc.lastOverheal = Math.max(0, want - room);
@@ -460,8 +460,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (duration === null) return; // e.g. "1 turn per 15 missing health" with too little missing
       for (const t of select(ctx, op.to, sc)) {
         withIt(sc, t.id, () => {
-          const stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
+          let stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
           if (stacks <= 0) return; // "1 Might per Ignite" with no Ignites applies nothing
+          // Catalyst doubles what a skill applies, but not another Catalyst.
+          const doubled = (def.modifiers ?? []).some((m) => m.mod === 'catalyst') ? 1 : catalyze(ctx, t);
+          stacks *= doubled;
           applyEffect(ctx, {
             def,
             inline: typeof op.effect !== 'string',
@@ -470,7 +473,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             sourceSkill: sc.skill,
             stacks,
             value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
-            duration,
+            duration: doubled > 1 && duration ? doubleDuration(duration) : duration,
             targets: remembered,
             until: op.until,
             boundTo,
@@ -511,10 +514,9 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'moveEffects': {
-      const from = select(ctx, op.from, sc)[0];
       const to = select(ctx, op.to, sc)[0];
-      if (!from || !to || from === to) return;
-      const moving = effectsOn(ctx.s, from.id).filter(
+      if (!to) return;
+      const moving = select(ctx, op.from, sc).filter((u) => u !== to).flatMap((from) => effectsOn(ctx.s, from.id)).filter(
         (e) => (op.kind ? effectDef(ctx.c, e).kind === op.kind : true) && (op.effects ? op.effects.includes(effectKeyOf(e)) : true),
       );
       for (const e of moving) {
@@ -530,6 +532,42 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         });
         removeEffect(ctx, e, 'removed');
       }
+      return;
+    }
+    case 'transmute': {
+      let total = 0;
+      const event = op.event ? ctx.s.effects.find((x) => x.id === sc.eventEffect) : undefined;
+      for (const u of select(ctx, op.on, sc)) {
+        const recipes = isEnemy(actor, u) ? TRANSMUTE_ENEMY : TRANSMUTE_ALLY;
+        let pool = effectsOn(ctx.s, u.id).filter(
+          (e) =>
+            (!op.event || e === event) &&
+            (!op.effects || op.effects.includes(effectKeyOf(e))) &&
+            (!op.kind || effectDef(ctx.c, e).kind === op.kind) &&
+            !isProtected(ctx, e),
+        );
+        const recipeFor = (e: EffectInstance): string | undefined =>
+          recipes[effectKeyOf(e)] ?? (!isEnemy(actor, u) && effectDef(ctx.c, e).kind === 'Debuff' ? 'renew' : undefined);
+        if (!op.removeUnmatched) pool = pool.filter((e) => recipeFor(e) !== undefined);
+        if (op.count !== undefined) pool = sample(ctx.s.rng, pool, op.count);
+        // Everything leaves first, so a removed Immune doesn't block the new Debuffs.
+        const recipesNow = pool.map((e) => [e, recipeFor(e)] as const);
+        for (const e of pool) removeEffect(ctx, e, 'removed');
+        for (const [e, into] of recipesNow) {
+          if (!into || !ctx.c.statuses[into]) continue;
+          applyEffect(ctx, {
+            def: ctx.c.statuses[into]!,
+            inline: false,
+            bearer: u,
+            source: actor,
+            sourceSkill: sc.skill,
+            stacks: e.stacks,
+            duration: e.duration === null ? 'permanent' : { raw: e.duration },
+          });
+          total += e.stacks;
+        }
+      }
+      sc.vars.transmuted = total;
       return;
     }
     case 'shareEffects': {
@@ -1180,3 +1218,26 @@ export function enqueueTriggers(
   }
 }
 
+
+/** Alchemy's Transmute recipes, by the unit's side relative to the actor. */
+const TRANSMUTE_ENEMY: Record<string, string> = { might: 'weakness', armor: 'vulnerable', focus: 'confusion', renew: 'weakness' };
+const TRANSMUTE_ALLY: Record<string, string> = { weakness: 'might', vulnerable: 'armor', confusion: 'focus' };
+
+/**
+ * Alchemy's Catalyst: 2 while a skill resolves and `t` carries a Catalyst (which is marked spent,
+ * to end when the skill has resolved), else 1.
+ */
+function catalyze(ctx: Ctx, t: Unit): number {
+  if (!ctx.inSkill) return 1;
+  const cat = modsOn(ctx.s, ctx.c, t.id, 'catalyst')[0];
+  if (!cat) return 1;
+  cat.effect.data.catalyzed = true;
+  return 2;
+}
+
+function doubleDuration(d: ResolvedDuration): ResolvedDuration {
+  if (d === 'permanent' || 'thisTurn' in d) return d;
+  if ('enemyTurns' in d) return { enemyTurns: d.enemyTurns * 2 };
+  if ('ownTurns' in d) return { ownTurns: d.ownTurns * 2 };
+  return { raw: d.raw * 2 };
+}
