@@ -255,6 +255,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
+    // Uses per skill (Ocean's Crest and Trough alternate on it).
+    actor.counters[`uses:${def.id}`] = (actor.counters[`uses:${def.id}`] ?? 0) + 1;
     for (const e of ending) removeEffect(ctx, e, 'consumed');
     for (const e of stealthed) {
       if (!ctx.s.effects.includes(e)) continue;

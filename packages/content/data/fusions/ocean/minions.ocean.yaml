@@ -1,0 +1,11 @@
+# Ocean minions.
+
+kraken:
+  name: Kraken
+  hp: 40
+  skills: [kraken_tentacles]
+
+jellyfish:
+  name: Jellyfish
+  hp: 10
+  skills: [jellyfish_stinging_bell]

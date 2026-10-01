@@ -691,3 +691,30 @@ Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusio
 | Diamond Colossus | Diamond and Immune; on expiry every enemy gains 2 Brittle. |
 
 Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifiers; `effectData` and `kindCount` values; the `removeShields` op; and `damaged` triggers now carry the hit's size as `eventAmount`.
+
+### 21.3 Ocean (Water + Water)
+
+| Term | Ruling |
+|---|---|
+| **Crest and Trough** | The engine counts each unit's uses of each skill (`uses:<skill>` counters, countered uses included). The new `crest` condition is true when the count so far is even, so the first use is the Crest form and they alternate. Minions count their own uses (Kraken). **Not yet shown in the client.** |
+| **Brimming** | Base Renew now reports its overflow (new `lastOverheal` value). On a Brimming unit, the overflow goes into a single Brimming Shield (new `growShield` op), capped at 30. Chorus of Tides uses the same Shield. |
+
+| Skill | Ruling |
+|---|---|
+| Swell | The user stores the turn of their last Trough (new `setCounter` op and `counter` / `turn` values). Crest adds 5 per own turn since then (or since the start), up to 20. Trough's Flow lasts until the end of the user's next turn. |
+| Relentless Surf | Uses `extendEffects` with an `onceKey`, so each Stunned enemy's Stuns grow only once. |
+| Spindrift | Already Brimming: spends up to 20 of the Brimming Shield as extra damage, instead of gaining Renew and Brimming. |
+| Undercurrent | Trough: each time the target heals someone, the user's ally with the least HP heals as much. |
+| Brine Bolt | The first direct hit from the user's side that finds the Mark gone (spent) gives its dealer 2 Renew and Brimming. |
+| Ebbing Toll | **Simplified:** each skill the target uses while Confused heals the user 10 per Confusion stack, as if they paid it. |
+| Jellyfish Bloom | For 3 turns, any enemy who kills one of the user's Jellyfish (the `died` signal) is Stunned for 1 turn. |
+| Slack Water | Allies carry a linked status while it channels; base Renew skips its stack loss on them. |
+| Breaker Swell | The user's Stun lasts through their next turn. |
+| Siren's Lure | Crest counters Harmful skills; Trough counters Helpful ones. |
+| Maelstrom | Trough: Stunned enemies' Stuns (any kind) grow by 1 turn; the rest gain 1 Confusion for 2 turns. |
+| Tidepool | Overflow becomes 2 Renew per full 10. |
+| Brine Haze | Allies carry a status that adds 1 Confusion (2 turns) to the target each time they gain Renew. |
+| Crosscurrent | Trough uses the new `shareEffects` op: each target gains copies of the other's Debuffs as they stood. |
+| Whalesong | New `reveal` op: every hidden effect the enemies applied is revealed. For 2 turns, each effect they apply is revealed as it's made. |
+| Returning Wave | When the Shield expires unbroken, what's left is split evenly, as indirect damage, among the living enemies. |
+| Leviathan Form | The bite goes to the targetable enemy character with the least HP. |

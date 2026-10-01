@@ -37,6 +37,8 @@ export interface Scope {
   it?: UnitId;
   vars: Record<string, number | boolean>;
   lastDamage: number;
+  /** Healing the most recent heal op couldn't give (target full). */
+  lastOverheal?: number;
   lastDamaged: UnitId[];
   lastSummoned?: UnitId;
   /** Default for damage ops: true for a skill's own ops, false for triggers and ticks. */
@@ -163,6 +165,14 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('lastDamage' in v) return sc.lastDamage;
   if ('effectValue' in v) return sc.self?.value ?? 0;
+  if ('timesUsed' in v) return timesUsed(ctx, sc);
+  if ('counter' in v) return unit(ctx, sc.actor).counters[`c:${v.counter}`] ?? 0;
+  if ('turn' in v) return ctx.s.turn;
+  if ('lastOverheal' in v) return sc.lastOverheal ?? 0;
+  if ('effectValueOf' in v) {
+    const u = select(ctx, v.effectValueOf.unit, sc)[0];
+    return u ? effectsOn(ctx.s, u.id).filter((e) => effectKeyOf(e) === v.effectValueOf.effect).reduce((n, e) => n + e.value, 0) : 0;
+  }
   if ('effectData' in v) {
     const d = sc.self?.data[v.effectData];
     return typeof d === 'number' ? d : 0;
@@ -333,7 +343,14 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     // Blocks limited to certain skills (an Ice Hammer's Taunt lock) don't count.
     return !!u && modsOn(ctx.s, ctx.c, u.id, 'cannotUseSkills').some(({ spec }) => !spec.archetypes && !spec.skillsWith);
   }
+  if ('crest' in c) return timesUsed(ctx, sc) % 2 === 0;
   return !!sc.vars[c.varTrue];
+}
+
+/** How many times the actor has used the skill in scope before this use. */
+function timesUsed(ctx: Ctx, sc: Scope): number {
+  const id = sc.skill?.id;
+  return id ? (unit(ctx, sc.actor).counters[`uses:${id}`] ?? 0) : 0;
 }
 
 // ---------------------------------------------------------------- ops
@@ -399,7 +416,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'heal':
       for (const t of select(ctx, op.to, sc)) {
-        heal(ctx, actor, t, withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)), { raw: op.raw, quiet: op.quiet });
+        const want = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const room = t.maxHp - t.hp;
+        heal(ctx, actor, t, want, { raw: op.raw, quiet: op.quiet });
+        sc.lastOverheal = Math.max(0, want - room);
       }
       return;
     case 'apply': {
@@ -457,6 +477,59 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'interrupt':
       for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
       return;
+    case 'shareEffects': {
+      const ua = select(ctx, op.a, sc)[0];
+      const ub = select(ctx, op.b, sc)[0];
+      if (!ua || !ub || ua === ub) return;
+      const snap = (u: Unit) => effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === op.kind);
+      const fromA = snap(ua);
+      const fromB = snap(ub);
+      const copy = (e: EffectInstance, to: Unit) => {
+        const src = findUnit(ctx.s, e.source) ?? actor;
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: to,
+          source: src,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+      };
+      for (const e of fromA) copy(e, ub);
+      for (const e of fromB) copy(e, ua);
+      return;
+    }
+    case 'reveal': {
+      if (op.event) {
+        const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+        if (e) revealEffect(ctx, e);
+      }
+      if (op.by) {
+        const ids = new Set(select(ctx, op.by, sc).map((u) => u.id));
+        for (const e of ctx.s.effects.filter((x) => ids.has(x.source))) revealEffect(ctx, e);
+      }
+      return;
+    }
+    case 'setCounter':
+      actor.counters[`c:${op.name}`] = evalValue(ctx, op.value, sc);
+      return;
+    case 'growShield': {
+      const def = resolveEffectDef(ctx.c, op.effect);
+      const max = op.max ?? Number.POSITIVE_INFINITY;
+      for (const t of select(ctx, op.to, sc)) {
+        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const e = effectsOn(ctx.s, t.id).find((x) => effectKeyOf(x) === op.effect);
+        if (e) {
+          e.value = Math.min(max, e.value + amount);
+          if (e.value <= 0) removeEffect(ctx, e, 'depleted');
+        } else if (amount > 0) {
+          applyEffect(ctx, { def, inline: false, bearer: t, source: actor, sourceSkill: sc.skill, value: Math.min(max, amount), duration: 'permanent' });
+        }
+      }
+      return;
+    }
     case 'removeShields':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) removeEffect(ctx, e, 'removed');

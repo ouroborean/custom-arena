@@ -73,6 +73,16 @@ export type Value =
   | { effectData: string }
   /** How many effects of this kind the unit carries. */
   | { kindCount: { unit: Selector; kind: EffectKind } }
+  /** How many times the actor used this skill before this use (Ocean's Crest and Trough, Myth). */
+  | { timesUsed: true }
+  /** A number the actor stored with setCounter (0 if never set). */
+  | { counter: string }
+  /** The current turn number. */
+  | { turn: true }
+  /** Healing the most recent heal op couldn't give because the target was full (Ocean's Brimming). */
+  | { lastOverheal: true }
+  /** The summed value (Shield left) of a unit's effects with this key. */
+  | { effectValueOf: { unit: Selector; effect: string } }
   | { stacks: { unit: Selector; effect: string } }
   /** Number of active effect instances with these keys, on `in` (default: the whole board). */
   | { count: { effects: string[]; in?: Selector } }
@@ -149,7 +159,9 @@ export type Cond =
   | { or: Cond[] }
   | { not: Cond }
   | { flag: string }
-  | { varTrue: string };
+  | { varTrue: string }
+  /** Ocean: this skill is in its Crest form (the actor has used it an even number of times). */
+  | { crest: true };
 
 // ---------------------------------------------------------------- ops
 
@@ -203,6 +215,23 @@ export type Op =
   | { op: 'interrupt'; to: Selector }
   /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */
   | { op: 'removeShields'; from: Selector }
+  /** Stores a number on the actor, read back with the `counter` value. */
+  | { op: 'setCounter'; name: string; value: Value }
+  /**
+   * `a` and `b` (one unit each) each gain copies of the other's effects of `kind`, as they stood
+   * before this op, with the same stacks, value and time left (Ocean's Crosscurrent).
+   */
+  | { op: 'shareEffects'; a: Selector; b: Selector; kind: EffectKind }
+  /**
+   * Reveals hidden effects: every one applied by a unit in `by`, or (`event`) the effect the
+   * triggering event is about (Ocean's Whalesong).
+   */
+  | { op: 'reveal'; by?: Selector; event?: boolean }
+  /**
+   * Adds `amount` to the targets' Shield effect `effect` (a Shield status id), up to `max`; a new
+   * one is made if they have none. A negative amount drains it, ending it at 0 (Ocean's Brimming).
+   */
+  | { op: 'growShield'; to: Selector; effect: string; amount: Value; max?: number }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
