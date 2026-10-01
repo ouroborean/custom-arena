@@ -1,0 +1,13 @@
+# Ninja keywords (docs/glossary.md).
+
+shadow_clone:
+  name: Shadow Clone
+  text: >-
+    A 5 HP minion (max 3) that lasts until hit. Each Harmful skill the Ninja uses deals each enemy it hits 5
+    Piercing per Clone (Flurry), and a Clone takes the first single-target enemy skill aimed at the Ninja each
+    turn (Substitution).
+  element: Ninja
+  forms: [Clone, Clones, Shadow Clone, Shadow Clones]
+substitution:
+  status: substitution
+  element: Ninja

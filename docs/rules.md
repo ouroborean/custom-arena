@@ -1520,3 +1520,23 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Keening | Gives the user's side Cloud's Idle Updraft for 2 turns. |
 | Beckoning Spirit | While Taunted, the enemy's Normal damage to the user (marked Beckoning) is ×0. |
 | Second Haunting | The user vanishes (untargetable, no damage) and returns with 30 HP at the start of their next turn. |
+
+### 21.45 Ninja (Wind + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Shadow Clone** | 5 HP minion (macro `make_clone`, at most 3). On summon it gives its Ninja **Substitution** (bound to the clone); on death it sends `clone_destroyed`. |
+| **Substitution** | Ward (counts as Warded): the first enemy skill on the bearer each turn is redirected to the Clone. |
+| **Flurry** (passive) | Each Harmful skill the Ninja resolves deals each enemy target 5 Piercing per allied Clone (not direct). |
+| Whirlwind of Blades | At 3 Clones, each Clone deals 10 to a random enemy (not direct) and is destroyed. |
+| Log Trick / Feint | Counters; the Clones' strike back is 10 Piercing per Clone to the countered user. |
+| Hidden Needle | Channel: on natural expiry, the target loses half their current HP as Affliction. |
+| Paper Seal | Each Buff gained is shortened by 2 duration ticks (1 turn) and deals 10 Piercing. |
+| Pinning Kunai / Track | "Can't gain" uses `immuneToEffects` (Swiftness, Rushing, Leaping / Stealth). |
+| Pressure Point | Ending Rushing or Leaping adds 1 cooldown to the target's Charge, Maneuver, Mislead and Dance. |
+| Shadow Dance | While a Clone exists, the user's next skill is Stealthy; each non-Stealthy skill used destroys a random Clone. |
+| Cloak of Shadows | Each Clone also Substitutes for the ally for 2 turns (bound to the Clone). |
+| Blinding Dust | Simplified: no target scatter, just Blinded and Confusion. |
+| Scatter | Each ally targeted by an enemy skill gains Stealth for 1 turn (once per ally). |
+| Smoke Bomb | Every character on both sides, the user included, gains Stealth for 2 turns. |
+| Mocking Shadows | Each skill the Taunted enemy uses deals them 5 Piercing per Clone of the applier's side. |

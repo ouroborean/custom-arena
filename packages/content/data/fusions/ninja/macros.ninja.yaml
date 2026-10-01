@@ -1,0 +1,8 @@
+# Ninja actions (actor = the Ninja).
+
+# Creates a Shadow Clone (max 3).
+make_clone:
+  - op: if
+    cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }, atMost: 2 } }
+    then:
+      - { op: summon, minion: shadow_clone }

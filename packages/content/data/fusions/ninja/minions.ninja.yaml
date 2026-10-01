@@ -1,0 +1,15 @@
+# Ninja minions.
+
+shadow_clone:
+  name: Shadow Clone
+  hp: 5
+  onSummon:
+    - { op: apply, to: summoner, effect: substitution, bindTo: actor }
+  onDeath:
+    - { op: signal, name: clone_destroyed }
+  skills: []
+
+ninken:
+  name: Ninken
+  hp: 30
+  skills: [ninken_snap, ninken_track]

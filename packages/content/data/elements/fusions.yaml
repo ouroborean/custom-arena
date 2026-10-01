@@ -52,7 +52,7 @@ faerie:       { name: Faerie,      elements: [Wind, Poison] }
 nomad:        { name: Nomad,       elements: [Wind, Earth], passives: [nomad_trek] }
 angel:        { name: Angel,       elements: [Wind, Holy] }
 ghost:        { name: Ghost,       elements: [Wind, Unholy] }
-ninja:        { name: Ninja,       elements: [Wind, Shadow] }
+ninja:        { name: Ninja,       elements: [Wind, Shadow], passives: [ninja_flurry] }
 
 # Poison + …
 evolution:    { name: Evolution,   elements: [Poison, Poison] }
