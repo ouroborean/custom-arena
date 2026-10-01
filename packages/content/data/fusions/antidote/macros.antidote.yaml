@@ -1,0 +1,28 @@
+# Antidote actions. Purge: `it` loses a random Debuff, and an enemy takes 10 Affliction per stack lost.
+
+# Purges one Debuff from `it` onto the skill's primary target.
+purge_one_to_primary:
+  - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+  - { op: removeRandom, from: it, kind: Debuff }
+  - { op: set, var: purged, value: { sum: [{ var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] } }
+  - op: if
+    cond: { compare: { value: { var: purged }, atLeast: 1 } }
+    then: [{ op: damage, to: primary, amount: { mul: [10, { var: purged }] }, type: Affliction, direct: false }]
+
+# Purges one Debuff from `it` onto a random enemy.
+purge_one_to_random:
+  - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+  - { op: removeRandom, from: it, kind: Debuff }
+  - { op: set, var: purged, value: { sum: [{ var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] } }
+  - op: if
+    cond: { compare: { value: { var: purged }, atLeast: 1 } }
+    then: [{ op: damage, to: { randomEnemy: 1 }, amount: { mul: [10, { var: purged }] }, type: Affliction, direct: false }]
+
+# Purges all of `it`'s Debuffs onto random enemies (10 Affliction per stack, each to a random enemy).
+purge_all_to_random:
+  - { op: set, var: purged, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+  - { op: removeKind, from: it, kind: Debuff }
+  - op: repeat
+    times: { var: purged }
+    do:
+      - { op: damage, to: { randomEnemy: 1 }, amount: 10, type: Affliction, direct: false }

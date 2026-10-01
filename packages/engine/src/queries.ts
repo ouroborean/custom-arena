@@ -21,9 +21,12 @@ export function modsOn<K extends ModifierSpec['mod']>(
   const effects = effectsOn(s, bearer);
   // Ion's Suppressed: the bearer's Buffs have no effect (their modifiers are ignored).
   const suppressed = effects.some((e) => (effectDef(c, e).modifiers ?? []).some((m) => m.mod === 'suppressBuffs'));
+  // Antidote's Immune Response: the bearer's Debuffs have no effect.
+  const cured = effects.some((e) => (effectDef(c, e).modifiers ?? []).some((m) => m.mod === 'suppressDebuffs'));
   for (const e of effects) {
     const def = effectDef(c, e);
     if (suppressed && def.kind === 'Buff') continue;
+    if (cured && def.kind === 'Debuff') continue;
     for (const m of def.modifiers ?? []) {
       if (m.mod !== kind) continue;
       // Conditional modifiers (equipment: "while at or above 80 Health") are checked for the bearer.

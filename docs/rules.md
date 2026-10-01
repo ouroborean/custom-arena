@@ -1562,3 +1562,24 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Spore Whirl | Simplified: the second target is a random other enemy with Spores, not the one with the most. |
 | Carrion Bloom | Simplified: checked at the end of the user's turns, not the moment they become Prey. |
 | Fester Pod | Prey also counts any 3+ Debuff effects while Fester Pod lasts. |
+
+### 21.47 Antidote (Poison + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Inoculated** | Buff: the next Debuff that lands is removed at once (for a merging Debuff, the whole stack), and the bearer gains **Immunity** to that Debuff's key for 3 turns (op `immunize`, status `immunity` with `immuneToEffects fromData`). |
+| **Purge** | Macros `purge_one_to_primary` / `purge_one_to_random` / `purge_all_to_random`: removes a random Debuff (or all) from `it` and deals 10 Affliction per stack removed (value `kindCount … stacks: true`), not direct. |
+| Shared Absolution | Status `shared_absolution`: while Sanctified, a direct hit also heals the user's other characters 15. |
+| Quickened Venom | Each skill the target uses ticks their Toxin (5 Affliction per stack). |
+| Acquired Tolerance | Simplified: the counter Inoculates the user (rather than immunity to each Debuff the skill carried). |
+| Immune Response | Modifier `suppressDebuffs`: the bearer's Debuffs neither modify nor tick (their other triggers, like Mark, still fire). |
+| Remedy Dart | Simplified: Inoculates the user's most wounded ally. |
+| Long Diagnosis | A hidden Neutral counter on the target counts Debuffs gained during the channel. |
+| Countervenom | Simplified: the Debuff is removed and the bearer takes a flat 10 Affliction. |
+| Quarantine | Simplified: only enemies who target the user become Prey. |
+| Long Treatment | Simplified: a random ally with Debuffs loses one and becomes Inoculated. |
+| Find the Wound | Added to the Prey condition. |
+| Twilight Sleep | Both are Asleep and Invulnerable for 2 turns. |
+| Clean Bill of Health | Simplified: all the user's cooldowns drop, Clean Bill's own included. |
+| Crisis of Conscience | Each skill the target uses re-applies Condemned after it resolves. |
+| Healing Liturgy | Only Debuffs from enemies; `immunize` gives every ally Immunity to that Debuff. |

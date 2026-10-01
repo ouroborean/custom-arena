@@ -78,7 +78,7 @@ export type Value =
   /** A number the executing effect tracks in its data (e.g. "prevented" for Diamond). */
   | { effectData: string }
   /** How many effects of this kind the unit carries. */
-  | { kindCount: { unit: Selector; kind: EffectKind } }
+  | { kindCount: { unit: Selector; kind: EffectKind; stacks?: boolean } }
   /** How many times the actor used this skill before this use (Ocean's Crest and Trough, Myth). */
   | { timesUsed: true }
   /** A number the actor stored with setCounter (0 if never set). */
@@ -340,6 +340,8 @@ export type Op =
   | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean; remove?: boolean }
   /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
   | { op: 'copyEventEffect'; to: Selector; noChain?: boolean }
+  /** Applies status `immunity` keyed to `effect` (default: the event's effect), for Antidote's Inoculated. */
+  | { op: 'immunize'; to: Selector; effect?: string; duration?: DurationSpec }
   /** Removes `count` (default 1) random effects of a kind from each selected unit. */
   | { op: 'removeRandom'; from: Selector; kind: EffectKind; count?: number }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
@@ -508,7 +510,7 @@ export type ModifierSpec = ModifierBase &
   /** The bearer's Normal damage is dealt as Piercing (Alchemy's Universal Solvent). */
   | { mod: 'normalAsPiercing' }
   /** The bearer can't gain these effects (Mechanic's Contraptions: Stun, Sleep, Confusion, Renew). */
-  | { mod: 'immuneToEffects'; effects: string[] }
+  | { mod: 'immuneToEffects'; effects: string[]; fromData?: boolean }
   /** Glacier's Icebound: the bearer's cooldowns don't tick down. */
   | { mod: 'freezeCooldowns' }
   /** Stasis's Suspended: the bearer's other effects don't tick, count down or fire turn-start triggers. */
@@ -519,6 +521,7 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'bloodPrice' }
   /** Ion's Suppressed: the bearer's Buffs' modifiers have no effect. */
   | { mod: 'suppressBuffs' }
+  | { mod: 'suppressDebuffs' }
   /** Faerie's Charmed: single-target skills pick any other living unit (`own`: only the bearer's allies). */
   | { mod: 'charmed'; own?: boolean }
   /** Angel's Ward: the first Harmful single-target skill each turn aimed at the bearer goes to this effect's source. */

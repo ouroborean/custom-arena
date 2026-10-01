@@ -67,6 +67,11 @@ function frozen(ctx: Ctx, e: EffectInstance): boolean {
   return !(effectDef(ctx.c, e).modifiers ?? []).some((m) => m.mod === 'banished' || m.mod === 'suspendEffects');
 }
 
+/** Antidote's Immune Response: the bearer's Debuffs don't tick. */
+function debuffSuppressed(ctx: Ctx, e: EffectInstance): boolean {
+  return effectDef(ctx.c, e).kind === 'Debuff' && modsOn(ctx.s, ctx.c, e.bearer, 'suppressDebuffs').length > 0;
+}
+
 function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
   return (effectDef(ctx.c, e).triggers ?? []).some((t) => t.on === 'turnEnd');
 }
@@ -74,7 +79,9 @@ function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
 /** The active player's ticking effects, in their chosen order (then application order). */
 export function tickingEffects(ctx: Ctx): EffectInstance[] {
   const p = ctx.s.activePlayer;
-  const mine = ctx.s.effects.filter((e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e) && !frozen(ctx, e));
+  const mine = ctx.s.effects.filter(
+    (e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e) && !frozen(ctx, e) && !debuffSuppressed(ctx, e),
+  );
   const order = ctx.s.players[p].tickOrder ?? [];
   const rank = (e: EffectInstance) => {
     const i = order.indexOf(e.id);

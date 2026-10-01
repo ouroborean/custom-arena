@@ -1,0 +1,771 @@
+# The 30 Antidote (Poison + Holy) variants, from the "Fusion Spec Kits" design doc.
+# Inoculated (status `inoculated`) and Purge (macros `purge_*`).
+
+strike.antidote:
+  archetype: Strike
+  element: Antidote
+  name: Cleansing Blow
+  description: Deals 20 damage to target enemy; the user Purges one of their own Debuffs onto the target.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: forEach, in: actor, do: [{ op: macro, id: purge_one_to_primary }] }
+
+smash.antidote:
+  archetype: Smash
+  element: Antidote
+  name: Shared Absolution
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. Until the user's next turn, Sanctify on any of them
+    heals every ally of the damager, not only the damager.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: apply, to: primary, effect: shared_absolution, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primaryAllies, effect: shared_absolution, duration: { enemyTurns: 1 } }
+
+charge.antidote:
+  archetype: Charge
+  element: Antidote
+  name: Quickened Venom
+  description: >-
+    Deals 15 damage to target enemy. Until the end of their next turn, their Toxin also ticks each time they use
+    a skill.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: quickened_venom
+        name: Quickened Venom
+        kind: Debuff
+        element: Antidote
+        description: The bearer's Toxin ticks each time they use a skill.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: toxin } }
+                then:
+                  - { op: damage, to: bearer, amount: { mul: [5, { stacks: { unit: bearer, effect: toxin } }] }, type: Affliction, direct: false }
+
+riposte.antidote:
+  archetype: Riposte
+  element: Antidote
+  name: Acquired Tolerance
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, who then becomes Inoculated. Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: acquired_tolerance
+        name: Acquired Tolerance
+        kind: Buff
+        element: Antidote
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, who then becomes Inoculated.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: inoculated }
+
+rage.antidote:
+  archetype: Rage
+  element: Antidote
+  name: Immune Response
+  description: >-
+    For 3 turns, the user gains 2 Might and their Debuffs have no effect. When it ends, they Purge all of them
+    onto random enemies.
+  cost: A
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: immune_response
+        name: Immune Response
+        kind: Buff
+        element: Antidote
+        description: The bearer's Debuffs have no effect. When this ends, they're Purged onto random enemies.
+        modifiers:
+          - { mod: suppressDebuffs }
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: purge_all_to_random }] }
+
+shot.antidote:
+  archetype: Shot
+  element: Antidote
+  name: Remedy Dart
+  description: Deals 15 damage to target enemy, and the user's most wounded ally is Inoculated.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: weakestAlly, effect: inoculated }
+
+snipe.antidote:
+  archetype: Snipe
+  element: Antidote
+  name: Long Diagnosis
+  description: >-
+    In 3 turns, deals 20 damage to target enemy, plus 15 for each Debuff they gained meanwhile (max 60 more).
+    The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: diagnosis_chart
+        name: Diagnosis
+        kind: Neutral
+        element: Antidote
+        visibility: hidden
+        description: Counts the Debuffs the bearer gains.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - { op: addStacksSelf, amount: 1 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: long_diagnosis
+        name: Long Diagnosis
+        kind: Neutral
+        element: Antidote
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 20 damage plus 15 per Debuff gained meanwhile (max 60 more).
+        onExpire:
+          - { op: set, var: found, value: { sum: [{ stacks: { unit: effectTargets, effect: diagnosis_chart } }, -1] } }
+          - op: damage
+            to: effectTargets
+            amount: { sum: [20, { if: { compare: { value: { var: found }, atLeast: 4 } }, then: 60, else: { mul: [15, { var: found }] } }] }
+
+trap.antidote:
+  archetype: Trap
+  element: Antidote
+  name: Countervenom
+  description: >-
+    For 3 turns, the first time target enemy gives one of the user's allies a Debuff, it's Purged at once, onto
+    them. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: countervenom
+        name: Countervenom
+        kind: Debuff
+        element: Antidote
+        visibility: hidden
+        description: The first Debuff the bearer gives an enemy is Purged at once, onto them.
+        triggers:
+          - on: effectApplied
+            when: { kind: Debuff, toEnemy: true }
+            consume: true
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+
+maneuver.antidote:
+  archetype: Maneuver
+  element: Antidote
+  name: Quarantine
+  description: >-
+    The user becomes Invulnerable for 1 turn. Every enemy who uses a Harmful skill on them meanwhile counts as
+    Prey for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: quarantine
+        name: Quarantine
+        kind: Buff
+        element: Antidote
+        description: Each enemy who uses a Harmful skill on the bearer counts as Prey for 2 turns.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            do:
+              - { op: apply, to: eventSource, effect: prey, duration: { enemyTurns: 2 } }
+
+companion.antidote:
+  archetype: Companion
+  element: Antidote
+  name: Asclepian Serpent
+  description: >-
+    Summons an Asclepian Serpent (40 HP) permanently. Cure (W): Purges one Debuff from target ally. Serpent's Kiss
+    (r): 5 Piercing damage and 1 Toxin.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: asclepian_serpent }
+
+bolt.antidote:
+  archetype: Bolt
+  element: Antidote
+  name: Neutralize
+  description: >-
+    Deals 25 damage to target enemy and Marks them for 1 turn. Until the end of their next turn, their Buffs have
+    no effect.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: neutralized
+        name: Neutralized
+        kind: Debuff
+        element: Antidote
+        description: The bearer's Buffs have no effect.
+        modifiers:
+          - { mod: suppressBuffs }
+
+blast.antidote:
+  archetype: Blast
+  element: Antidote
+  name: Holy Wash
+  description: Deals 15 damage to all enemies. Then each ally Purges 1 Debuff, and each Purge hits every enemy.
+  cost: IW
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - op: forEach
+      in: allAllies
+      do:
+        - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+        - { op: removeRandom, from: it, kind: Debuff }
+        - { op: set, var: purged, value: { sum: [{ var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] } }
+        - op: if
+          cond: { compare: { value: { var: purged }, atLeast: 1 } }
+          then: [{ op: damage, to: allEnemies, amount: { mul: [10, { var: purged }] }, type: Affliction, direct: false }]
+
+consume.antidote:
+  archetype: Consume
+  element: Antidote
+  name: Draw the Venom
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it; a random ally with Toxin Purges all of it onto them.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - op: forEach
+      in: { randomAlly: 1, where: { has: { unit: it, effect: toxin } } }
+      do:
+        - { op: set, var: venom, value: { stacks: { unit: it, effect: toxin } } }
+        - { op: removeEffect, from: it, effect: toxin }
+        - { op: damage, to: primary, amount: { mul: [10, { var: venom }] }, type: Affliction, direct: false }
+
+summon.antidote:
+  archetype: Summon
+  element: Antidote
+  name: Apothecary
+  description: >-
+    Summons an Apothecary (15 HP) for 3 turns. Milk Venom (r): 10 damage to target enemy; if they have Toxin, a
+    random ally is Inoculated.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: apothecary, duration: { enemyTurns: 3 } }
+
+channel.antidote:
+  archetype: Channel
+  element: Antidote
+  name: Long Treatment
+  description: >-
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and a random ally with
+    Debuffs loses 1 and is Inoculated. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: long_treatment
+        name: Long Treatment
+        kind: Neutral
+        element: Antidote
+        interruptible: true
+        description: Each turn, 10 damage to all enemies, and an ally with Debuffs loses 1 and is Inoculated.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: forEach
+                in: { randomAlly: 1, where: { hasKind: { unit: it, kind: Debuff } } }
+                do:
+                  - { op: removeRandom, from: it, kind: Debuff }
+                  - { op: apply, to: it, effect: inoculated }
+
+stab.antidote:
+  archetype: Stab
+  element: Antidote
+  name: Find the Wound
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. For 2 turns, being at or below 60 HP makes them
+    Prey.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - { op: apply, to: primary, effect: find_the_wound, duration: { enemyTurns: 2 } }
+
+ravage.antidote:
+  archetype: Ravage
+  element: Antidote
+  name: Tempered Blade
+  description: >-
+    Deals 25 Piercing damage to target enemy. If the user is Inoculated, they spend it for 15 more damage; if not,
+    they become Inoculated.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: inoculated } }
+      then:
+        - { op: removeEffect, from: actor, effect: inoculated }
+        - { op: damage, to: primary, amount: 40, type: Piercing }
+      else:
+        - { op: damage, to: primary, amount: 25, type: Piercing }
+        - { op: apply, to: actor, effect: inoculated }
+
+mislead.antidote:
+  archetype: Mislead
+  element: Antidote
+  name: False Symptom
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each of its targets Purges 1 Debuff onto
+    them. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: false_symptom
+        name: False Symptom
+        kind: Debuff
+        element: Antidote
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and each of its targets Purges 1 Debuff onto them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: forEach
+                in: eventTargets
+                do:
+                  - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+                  - { op: removeRandom, from: it, kind: Debuff }
+                  - { op: set, var: purged, value: { sum: [{ var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] } }
+                  - op: if
+                    cond: { compare: { value: { var: purged }, atLeast: 1 } }
+                    then: [{ op: damage, to: bearer, amount: { mul: [10, { var: purged }] }, type: Affliction, direct: false }]
+
+stun.antidote:
+  archetype: Stun
+  element: Antidote
+  name: Twilight Sleep
+  description: >-
+    Target enemy and the user fall Asleep for 2 turns. Neither can take damage meanwhile, so nothing wakes them
+    early.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: invulnerable, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 2 } }
+
+dance.antidote:
+  archetype: Dance
+  element: Antidote
+  name: Clean Bill of Health
+  description: >-
+    For 3 turns, the user gains 1 Might, 2 Swiftness and 1 Focus. At the end of each of their turns, if they have
+    no Debuffs, their cooldowns drop by 1.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: clean_bill
+        name: Clean Bill of Health
+        kind: Buff
+        element: Antidote
+        description: At the end of each of the bearer's turns, with no Debuffs, their cooldowns drop by 1.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { not: { hasKind: { unit: bearer, kind: Debuff } } }
+                then: [{ op: adjustCooldowns, to: bearer, by: -1 }]
+
+heal.antidote:
+  archetype: Heal
+  element: Antidote
+  name: Antivenom
+  description: >-
+    Target ally heals 25 and is Inoculated. If that stops a Debuff, its source takes 10 Affliction.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: antivenom }
+    - { op: apply, to: primary, effect: inoculated }
+
+bless.antidote:
+  archetype: Bless
+  element: Antidote
+  name: Vaccinate
+  description: >-
+    Target ally gains 1 Toxin. For 3 turns, they're immune to further Toxin and gain 1 Might and 1 Renew.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: toxin }
+    - { op: immunize, to: primary, effect: toxin, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: renew }
+
+curse.antidote:
+  archetype: Curse
+  element: Antidote
+  name: Crisis of Conscience
+  description: >-
+    Target enemy is Confused for 2 turns and Condemned. Until the Confusion ends, their Condemned returns after it
+    resolves, so every skill they use costs them another random Debuff.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: condemned }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: crisis_of_conscience
+        name: Crisis of Conscience
+        kind: Debuff
+        element: Antidote
+        description: Each skill the bearer uses Condemns them again.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: condemned }
+
+smite.antidote:
+  archetype: Smite
+  element: Antidote
+  name: Theriac Brand
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Their poison sweetens it: the Sanctify heals
+    5 more per Toxin on them.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: theriac_brand
+        name: Theriac Brand
+        kind: Debuff
+        element: Antidote
+        description: While Sanctified, each direct hit on the bearer heals the damager 5 more per Toxin on them.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: sanctify } }, { has: { unit: bearer, effect: toxin } }] }
+                then:
+                  - { op: heal, to: eventSource, amount: { mul: [5, { stacks: { unit: bearer, effect: toxin } }] } }
+
+prayer.antidote:
+  archetype: Prayer
+  element: Antidote
+  name: Healing Liturgy
+  description: >-
+    All allies heal 20 and gain 10 Shield. For 2 turns, when an enemy gives one of them a Debuff, every ally
+    becomes immune to it for 3 turns.
+  cost: WA
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: healing_liturgy
+        name: Healing Liturgy
+        kind: Buff
+        element: Antidote
+        description: When an enemy gives the bearer a Debuff, every ally becomes immune to it for 3 turns.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - op: if
+                cond: { isEnemy: eventSource }
+                then: [{ op: immunize, to: allAllies, duration: { enemyTurns: 3 } }]
+
+cleave.antidote:
+  archetype: Cleave
+  element: Antidote
+  name: Twin Fangs
+  description: >-
+    Deals 20 damage to target enemy and 10 to a random other enemy. If one of them is Condemned, the other is
+    marked as Prey for 2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - op: if
+          cond: { has: { unit: primary, effect: condemned } }
+          then: [{ op: apply, to: it, effect: prey, duration: { enemyTurns: 2 } }]
+        - op: if
+          cond: { has: { unit: it, effect: condemned } }
+          then: [{ op: apply, to: primary, effect: prey, duration: { enemyTurns: 2 } }]
+
+shout.antidote:
+  archetype: Shout
+  element: Antidote
+  name: Sterilize
+  description: >-
+    Every ally loses 1 Debuff. All enemies are Intimidated for 2 turns, with 1 stack per Debuff stack removed
+    (at least 1).
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: sterilized, value: 0 }
+    - op: forEach
+      in: allAllies
+      do:
+        - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+        - { op: removeRandom, from: it, kind: Debuff }
+        - op: set
+          var: sterilized
+          value: { sum: [{ var: sterilized }, { var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] }
+    - op: apply
+      to: targets
+      effect: intimidated
+      stacks: { if: { compare: { value: { var: sterilized }, atLeast: 1 } }, then: { var: sterilized }, else: 1 }
+      duration: { enemyTurns: 2 }
+
+withstand.antidote:
+  archetype: Withstand
+  element: Antidote
+  name: Hardened Constitution
+  description: >-
+    The user Purges all their Debuffs onto random enemies, then gains 20 Shield for 1 turn, +10 per Debuff
+    Purged.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: purge_all_to_random }] }
+    - { op: apply, to: actor, effect: shield, value: { sum: [20, { mul: [10, { var: purged }] }] }, duration: { enemyTurns: 1 } }
+
+taunt.antidote:
+  archetype: Taunt
+  element: Antidote
+  name: Turn the Other Cheek
+  description: >-
+    Target enemy is Taunted for 2 turns. Each time they hit the user meanwhile, the user is Anointed until the end
+    of their next turn.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: other_cheek
+        name: Turn the Other Cheek
+        kind: Debuff
+        element: Antidote
+        description: Each time the bearer hits the applier, the applier is Anointed.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then: [{ op: apply, to: actor, effect: anointed, duration: { raw: 3 } }]
+
+titan.antidote:
+  archetype: Titan
+  element: Antidote
+  name: Living Cure
+  description: >-
+    For 3 turns, the user gains 2 Armor and becomes Inoculated at the start of each of their turns.
+  cost: W
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: living_cure
+        name: Living Cure
+        kind: Buff
+        element: Antidote
+        description: The bearer becomes Inoculated at the start of each of their turns.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: inoculated }
+
+# Minion skills.
+
+serpent_cure:
+  archetype: Minion
+  element: Antidote
+  name: Cure
+  description: Target ally Purges one Debuff onto a random enemy.
+  cost: W
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: forEach, in: primary, do: [{ op: macro, id: purge_one_to_random }] }
+
+serpent_kiss:
+  archetype: Minion
+  element: Antidote
+  name: Serpent's Kiss
+  description: Deals 5 Piercing damage to target enemy, who gains 1 Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin, from: summoner }
+
+apothecary_milk_venom:
+  archetype: Minion
+  element: Antidote
+  name: Milk Venom
+  description: Deals 10 damage to target enemy; if they have Toxin, a random ally is Inoculated.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: toxin } }
+      then: [{ op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: inoculated }]

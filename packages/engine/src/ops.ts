@@ -216,7 +216,9 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('kindCount' in v) {
     const u = select(ctx, v.kindCount.unit, sc)[0];
-    return u ? effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === v.kindCount.kind).length : 0;
+    if (!u) return 0;
+    const of = effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === v.kindCount.kind);
+    return v.kindCount.stacks ? of.reduce((n, e) => n + e.stacks, 0) : of.length;
   }
   if ('effectStacks' in v) return sc.self?.stacks ?? 0;
   if ('stacks' in v) {
@@ -880,6 +882,18 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (op.extendBy && e.duration !== null) e.duration += op.extendBy;
       if (op.expireNow && effectDef(ctx.c, e).onExpire) expireEffect(ctx, e);
       if (op.remove) removeEffect(ctx, e, 'removed');
+      return;
+    }
+    case 'immunize': {
+      const ev = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+      const key = op.effect ?? (ev ? effectKeyOf(ev) : undefined);
+      if (!key) return;
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return;
+      for (const t of select(ctx, op.to, sc)) {
+        const e = applyEffect(ctx, { def: resolveEffectDef(ctx.c, 'immunity'), inline: false, bearer: t, source: actor, sourceSkill: sc.skill, duration });
+        if (e) e.data.immuneKey = key;
+      }
       return;
     }
     case 'copyEventEffect': {

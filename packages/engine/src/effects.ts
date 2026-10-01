@@ -85,7 +85,11 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   }
 
   // Mechanic's Contraptions (and similar): can't gain these effects at all.
-  if (modsOn(ctx.s, ctx.c, bearer.id, 'immuneToEffects').some(({ spec }) => spec.effects.includes(def.id))) {
+  if (
+    modsOn(ctx.s, ctx.c, bearer.id, 'immuneToEffects').some(({ spec, effect }) =>
+      spec.fromData ? effect.data.immuneKey === def.id : spec.effects.includes(def.id),
+    )
+  ) {
     emit(ctx, { t: 'effectBlocked', defId: def.id, bearer: bearer.id, reason: 'immune' }, privateTo);
     return null;
   }
