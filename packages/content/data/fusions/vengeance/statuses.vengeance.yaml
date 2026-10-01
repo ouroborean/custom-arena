@@ -1,0 +1,59 @@
+# Vengeance (Lightning + Holy) statuses, from the "Fusion Spec Kits" design doc.
+
+vow:
+  name: Vow
+  kind: Buff
+  element: Vengeance
+  stacking: unique
+  description: Each time an enemy damages the bearer with a skill, they gain 1 Wrath.
+  triggers:
+    - on: damaged
+      when: { byEnemy: true, direct: true }
+      do:
+        - { op: apply, to: bearer, effect: wrath }
+
+wrath:
+  name: Wrath
+  kind: Buff
+  element: Vengeance
+  stacking: merge
+  maxStacks: 3
+  description: >-
+    Max 3, kept until spent. The bearer's next direct damage deals 10 more per Wrath (to each target), and
+    spending it gives 1 Charge per stack.
+  modifiers:
+    - { mod: damageDealt, amount: 0, when: { direct: true }, value: { mul: [10, { stacks: { unit: actor, effect: wrath } }] } }
+  triggers:
+    - on: dealtDamage
+      when: { direct: true }
+      do:
+        - { op: setFlag, flag: struck }
+    - on: skillResolved
+      do:
+        - op: if
+          cond:
+            and:
+              - { flag: struck }
+              - { not: { has: { unit: bearer, effect: sworn_vengeance } } }
+              - { not: { eventSkill: { archetypes: [Strike], elements: [Vengeance] } } }
+          then:
+            - { op: apply, to: bearer, effect: charged, stacks: { effectStacks: true } }
+            - { op: removeSelf }
+        - { op: setFlag, flag: struck, value: false }
+
+# Fusion passive (every Vengeance character): remembers the damage each enemy dealt them since their
+# last turn (Found Wanting).
+vengeance_ledger:
+  name: Ledger of Wrongs
+  kind: Neutral
+  element: Vengeance
+  stacking: unique
+  description: Remembers the damage each enemy dealt this character since their last turn.
+  triggers:
+    - on: damaged
+      when: { byEnemy: true }
+      do:
+        - { op: setCounter, name: wronged, on: eventSource, value: { sum: [{ counterOf: { unit: eventSource, name: wronged } }, { eventAmount: true }] } }
+    - on: turnEnd
+      do:
+        - { op: setCounter, name: wronged, on: allEnemies, value: 0 }

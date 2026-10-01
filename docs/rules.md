@@ -1393,3 +1393,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Rebound Plate | Enemies who strike the Shield are marked; when it expires, one Debuff is Repelled onto each. |
 | Opposite Poles | A `targetExclude` keeps every other enemy out of the user's reach. |
 | Iron Colossus | Armor from the absorbed Boulders' total HP (1 per 15); the Boulder that falls away has 10 HP per stack. |
+
+### 21.38 Vengeance (Lightning + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Vow** | Buff: each direct enemy hit on the bearer gives 1 Wrath. |
+| **Wrath** | Merging Buff, max 3: +10 direct damage per stack; after a skill of theirs deals direct damage, it's spent for 1 Charge per stack (not during Sworn Vengeance, and not by Avenging Blow). |
+| Ledger of Wrongs | Fusion passive: counts the damage each enemy deals the character, reset at the end of their turn (Found Wanting). Simplified: only damage dealt to the user counts. |
+| Avenging Blow | New `isPrimary` condition: Wrath if the target is the user's last attacker. |
+| Heaven's Rebuke | While it lasts, a skill used by a Condemned enemy it hit adds one more random Weakness, Vulnerable or Confusion. |
+| Spear of the Fallen | A `died` signal for one of the user's allies ends the channel and lands 80 Piercing at once. |
+| Grounded Point | Simplified: if the user's Charge is full, it fills to 3 again when the timer ends at the start of their next turn. |
+| Swift Reprisal | The counter-strike adds the user's Wrath and spends it. |
+| Chastening Shock | The Stun lands the next time they use a skill (when Condemned triggers). |
+| Spark of Mercy | Uses `energyFromEffect` (Charge turning into energy). |
+| Gathering Oath | Simplified: every ally's Charge moves to the user. |
+| Arc of Justice | Condemnation is triggered by hand: removed, and a random Weakness, Vulnerable or Confusion applied. |

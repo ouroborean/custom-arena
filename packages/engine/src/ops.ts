@@ -314,6 +314,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
   if ('isActor' in c) return select(ctx, c.isActor, sc)[0]?.id === sc.actor;
+  if ('isPrimary' in c) return !!sc.targets[0] && select(ctx, c.isPrimary, sc)[0]?.id === sc.targets[0];
   if ('isEnemy' in c) {
     const u = select(ctx, c.isEnemy, sc)[0];
     return !!u && isEnemy(unit(ctx, sc.actor), u);

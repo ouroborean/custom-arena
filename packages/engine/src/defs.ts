@@ -144,6 +144,8 @@ export type Cond =
   | { hasKind: { unit: Selector; kind: EffectKind } }
   /** The selected unit is the actor (e.g. a targetFilter excluding the user). */
   | { isActor: Selector }
+  /** The selected unit is the first target of the skill in scope. */
+  | { isPrimary: Selector }
   /** The selected unit is an enemy of the actor. */
   | { isEnemy: Selector }
   /** The unit is a minion, optionally of one of these types (minion id or tag); `mine`: summoned by the actor. */

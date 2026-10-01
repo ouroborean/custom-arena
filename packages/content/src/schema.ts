@@ -104,6 +104,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ isActor: selectorSchema }),
+    z.strictObject({ isPrimary: selectorSchema }),
     z.strictObject({ isEnemy: selectorSchema }),
     z.strictObject({
       minion: z.strictObject({

@@ -42,7 +42,7 @@ thunder:      { name: Thunder,     elements: [Lightning, Lightning] }
 storm:        { name: Storm,       elements: [Lightning, Wind], passives: [storm_heart] }
 battery:      { name: Battery,     elements: [Lightning, Poison], passives: [battery_core] }
 magnet:       { name: Magnet,      elements: [Lightning, Earth] }
-vengeance:    { name: Vengeance,   elements: [Lightning, Holy] }
+vengeance:    { name: Vengeance,   elements: [Lightning, Holy], passives: [vengeance_ledger] }
 reanimation:  { name: Reanimation, elements: [Lightning, Unholy] }
 ion:          { name: Ion,         elements: [Lightning, Shadow] }
 

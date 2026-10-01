@@ -1,0 +1,16 @@
+# Vengeance minions.
+
+storm_griffin:
+  name: Storm Griffin
+  hp: 45
+  passives: [vow]
+  skills: [storm_griffin_righteous_strike]
+
+herald_of_vengeance:
+  name: Herald of Vengeance
+  hp: 20
+  passives: [vow]
+  # When it dies or expires, its summoner gains its Wrath.
+  onDeath:
+    - { op: apply, to: summoner, effect: wrath, stacks: { stacks: { unit: actor, effect: wrath } } }
+  skills: [herald_of_vengeance_denounce]
