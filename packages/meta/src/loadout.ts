@@ -11,7 +11,7 @@ export const EQUIPMENT_SLOTS = 4;
 
 /**
  * Infusions one skill can hold, counting a locked native one (GDD §7.3). Two make the pair's fusion
- * element (content `fusions`); no skill has a fusion variant yet, so a second is reported as unavailable.
+ * element (content `fusions`), and the skill becomes its fusion version (strike.dragon for Fire + Fire).
  */
 export const MAX_INFUSIONS_PER_SKILL = 2;
 
@@ -84,7 +84,7 @@ export function infusedElement(content: ContentBundle, elements: readonly string
 /**
  * The skill def id for a base skill with these infusions, or undefined when the game has none. One
  * infusion gives the element's variant; two give the variant of their fusion element (strike.dragon
- * for Fire + Fire), which no skill has yet.
+ * for Fire + Fire).
  */
 export function infusedSkillId(content: ContentBundle, base: string, elements: readonly string[]): string | undefined {
   const element = infusedElement(content, elements);
@@ -174,7 +174,7 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
         elements.length === 1
           ? `There's no ${elements[0]} version of ${name}`
           : fusion
-            ? `${name}: ${elements.join(' + ')} make ${fusion}, and fusion elements aren't in the game yet`
+            ? `${name}: ${elements.join(' + ')} make ${fusion}, and there's no ${fusion} version of it`
             : `${name}: ${elements.join(' + ')} don't make a fusion element`,
       );
       continue;
@@ -201,15 +201,18 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
 
 /**
  * Whether one more `element` infusion can go on `base` in this loadout: the pool has one left, the
- * skill has room, and the game has the resulting skill (so no fusions yet).
+ * skill has room, and the game has the resulting skill (its element version, or with a second
+ * infusion its fusion version).
  */
 export function canInfuse(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string, element: string): boolean {
   const r = resolveLoadout(content, record, loadout);
-  if (!r.unassigned[element]) return false;
-  const skill = r.skills.find((s) => s.base === base);
-  if (!skill) return false;
-  const elements = [...(skill.infusion ? [skill.infusion] : [])];
-  return elements.length < MAX_INFUSIONS_PER_SKILL && !!infusedSkillId(content, base, [...elements, element]);
+  if (!r.unassigned[element] || !r.skills.some((s) => s.base === base)) return false;
+  // Count what the skill holds from the record and the assignments: the resolved skill only shows the
+  // element they make (two infusions resolve to one fusion name).
+  const native = record.skills.find((s) => s.base === base && s.source === 'native')?.infusion;
+  const held = (loadout.infusions ?? []).filter((a) => a.skill === base).map((a) => a.element);
+  const elements = [...(native ? [native] : []), ...held, element];
+  return elements.length <= MAX_INFUSIONS_PER_SKILL && !!infusedSkillId(content, base, elements);
 }
 
 /** Drops assignments that no longer hold: their skill is gone, or the pool no longer has the element. */

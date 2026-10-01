@@ -189,6 +189,16 @@ describe('editing a loadout', () => {
     expect(canInfuse(content, rec, l, 'strike', 'Ice')).toBe(true); // Fire + Ice: Apocalypse's Tempering Blow
     expect(canInfuse(content, rec, { ...l, infusions: [{ skill: 'titan', element: 'Ice' }] }, 'smash', 'Ice')).toBe(false); // used up
   });
+
+  it('canInfuse: a second infusion makes the fusion; a skill holding two takes no third', () => {
+    const rec = warrior();
+    const l = of(['holy_shard', 'shadow_shard', 'ice_shard']);
+    const oneOn = { ...l, infusions: [{ skill: 'smash', element: 'Holy' }] };
+    expect(canInfuse(content, rec, oneOn, 'smash', 'Shadow')).toBe(true); // Holy + Shadow: Vigilante
+    const twoOn = { ...l, infusions: [...oneOn.infusions, { skill: 'smash', element: 'Shadow' }] };
+    expect(canInfuse(content, rec, twoOn, 'smash', 'Ice')).toBe(false); // full
+    expect(canInfuse(content, rec, { ...l, infusions: [{ skill: 'strike', element: 'Holy' }] }, 'strike', 'Ice')).toBe(false); // native Fire + Holy: full
+  });
 });
 
 describe('randomLoadout', () => {

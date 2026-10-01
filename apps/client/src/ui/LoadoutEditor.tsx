@@ -346,8 +346,7 @@ function SlotGrants({ def }: { def: ItemDef }) {
 /**
  * The infusion pool and the character's skills: every infusion the equipment provides is put on a
  * skill by the player (nothing is automatic). A skill holds up to two, counting its locked native
- * infusion; a second makes the pair's fusion element, which isn't in the game yet, so that socket is
- * shown but closed (its tooltip lists what the pool would make).
+ * infusion; a second turns it into the fusion version of the pair (Fire + Ice: Apocalypse).
  */
 function InfusionPanel({
   record,
@@ -407,30 +406,6 @@ function InfusionPanel({
   );
 }
 
-/** The closed second socket: what a second infusion would make with this skill's first (fusions aren't in the game yet). */
-function FusionSocket({ first, pool }: { first: string | null; pool: string[] }) {
-  const made = first ? pool.map((el) => ({ el, fusion: fusionOf(content, first, el)?.name })).filter((x) => x.fusion) : [];
-  return (
-    <Tooltip
-      content={
-        <>
-          <h4>Fusion · coming later</h4>
-          <div>A second infusion turns the skill into the fusion of its two elements. No skill has a fusion version yet.</div>
-          {made.map(({ el, fusion }) => (
-            <div key={el} className="row">
-              {first} + {el} → {fusion}
-            </div>
-          ))}
-        </>
-      }
-    >
-      <span className="infusion-hybrid" tabIndex={0}>
-        {first ? '+ Fusion' : '2nd: Fusion'} · coming later
-      </span>
-    </Tooltip>
-  );
-}
-
 function SkillInfusions({
   skill,
   record,
@@ -474,7 +449,10 @@ function SkillInfusions({
       </button>,
     );
   }
-  if (held === 0) {
+  // Room for another: with none held it gives the element's version; with one, the pair's fusion.
+  const first = native ?? assigned[0]?.element ?? null;
+  const elements = [...(native ? [native] : []), ...assigned.map((a) => a.element)];
+  if (held < MAX_INFUSIONS_PER_SKILL && (held === 0 || pool.length > 0)) {
     const options = pool.map((el) => ({ el, left: unassigned[el] ?? 0, ok: canInfuse(content, record, draft, skill.base, el) }));
     sockets.push(
       options.length === 0 ? (
@@ -484,7 +462,8 @@ function SkillInfusions({
       ) : (
         <span key="open" className="infusion-options" role="group" aria-label={`Infuse ${current?.name ?? skill.base}`}>
           {options.map(({ el, left, ok }) => {
-            const variant = content.skills[infusedSkillId(content, skill.base, [el]) ?? ''];
+            const variant = content.skills[infusedSkillId(content, skill.base, [...elements, el]) ?? ''];
+            const fusion = first ? fusionOf(content, first, el)?.name : undefined;
             const button = (
               <button
                 type="button"
@@ -494,6 +473,7 @@ function SkillInfusions({
                 onClick={() => onAssign(el)}
               >
                 + {el}
+                {fusion && <> → {fusion}</>}
                 {left > 1 && <span className="muted"> ×{left}</span>}
               </button>
             );
@@ -518,11 +498,6 @@ function SkillInfusions({
           })}
         </span>
       ),
-    );
-  }
-  if (held < MAX_INFUSIONS_PER_SKILL) {
-    sockets.push(
-      <FusionSocket key="fusion" first={native ?? assigned[0]?.element ?? null} pool={pool} />,
     );
   }
   return (
