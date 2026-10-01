@@ -110,6 +110,10 @@ export type Value =
   | { skillCooldown: true }
   /** How many of the (first) selected unit's skills are on cooldown. */
   | { skillsOnCooldown: Selector }
+  /** Energy banked by the (first) selected unit's player; `colors`: how many colors they hold instead. */
+  | { energyOf: { unit: Selector; colors?: boolean } }
+  /** Summed HP of the selected units. */
+  | { totalHp: Selector }
   /** Dead characters on the actor's enemy / own side. */
   | { deadCount: 'enemies' | 'allies' }
   /** The actor's other characters that have used a skill this turn. */
@@ -226,6 +230,10 @@ export type Op =
   | { op: 'revive'; hp: number }
   /** Swaps the longest remaining cooldown of `a` with that of `b` (the actor's skill being used is skipped). */
   | { op: 'swapCooldowns'; a: Selector; b: Selector }
+  /** Aurora's Dazzled: `count` random energies of the (first) unit's player change to another color. */
+  | { op: 'shiftEnergy'; of: Selector; count?: number }
+  /** Aurora's Drink the Light: the unit's player loses 1 energy of the color they hold most; the actor's gains it. */
+  | { op: 'stealEnergy'; from: Selector }
   /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
   | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */

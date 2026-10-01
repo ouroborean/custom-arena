@@ -1,0 +1,754 @@
+# The 30 Aurora (Ice + Lightning) variants, from the "Fusion Spec Kits" design doc.
+# Shimmer lets a unit pay colored costs with any color; Dazzled shifts an energy's color each turn.
+
+strike.aurora:
+  archetype: Strike
+  element: Aurora
+  name: Polar Jolt
+  description: >-
+    Deals 15 damage to target enemy, +5 per Charge the user has. Then 1 of that Charge is spent to give
+    the user Shimmer until the end of their next turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [15, { mul: [5, { stacks: { unit: actor, effect: charged } }] }] } }
+    - op: if
+      cond: { has: { unit: actor, effect: charged } }
+      then:
+        - { op: removeStacks, from: actor, effect: charged, amount: 1 }
+        - { op: apply, to: actor, effect: shimmer, duration: { raw: 3 } }
+
+smash.aurora:
+  archetype: Smash
+  element: Aurora
+  name: Hoarfrost Crash
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. Until the end of the user's next turn, Frost
+    debuffs on everyone it hits last and can't be removed.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: extendEffects, on: targets, effects: [frostbitten, chilled, numb, frostfire], by: 3, onceKey: hoarfrost_crash }
+    - { op: extendEffects, on: primaryAllies, effects: [frostbitten, chilled, numb, frostfire], by: 3, onceKey: hoarfrost_crash }
+    - op: apply
+      to: primary
+      duration: { raw: 3 }
+      effect: &hoarfrost
+        id: hoarfrost_crash
+        name: Hoarfrost
+        kind: Debuff
+        element: Aurora
+        description: Frost debuffs on the bearer can't be removed.
+        modifiers:
+          - { mod: protectEffects, effects: [frostbitten, chilled, numb, frostfire] }
+    - { op: apply, to: primaryAllies, duration: { raw: 3 }, effect: *hoarfrost }
+
+charge.aurora:
+  archetype: Charge
+  element: Aurora
+  name: Streak of Light
+  description: >-
+    Deals 15 damage to target enemy. The user has Shimmer for their next skill, which deals 10 more if
+    it hits this enemy too.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: shimmer, until: { skillUsed: {} } }
+    - op: apply
+      to: primary
+      duration: { raw: 3 }
+      effect:
+        id: streaked
+        name: Streaked
+        kind: Debuff
+        element: Aurora
+        description: The Streak of Light user's next skill deals 10 more to the bearer.
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: streak_of_light
+        name: Streak of Light
+        kind: Buff
+        element: Aurora
+        description: The bearer's next skill deals 10 more to the enemy they streaked.
+        modifiers:
+          - { mod: damageDealt, amount: 10, when: { direct: true }, target: { has: { unit: it, effect: streaked } } }
+
+riposte.aurora:
+  archetype: Riposte
+  element: Aurora
+  name: Magnetic Veil
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user. Its user is Sapped twice, and their
+    Sapped can't be removed for 3 turns. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: magnetic_veil
+        name: Magnetic Veil
+        kind: Buff
+        element: Aurora
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Saps its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: sapped, stacks: 2 }
+              - op: apply
+                to: eventSource
+                duration: { enemyTurns: 3 }
+                effect:
+                  id: magnetized
+                  name: Magnetized
+                  kind: Debuff
+                  element: Aurora
+                  description: The bearer's Sapped can't be removed.
+                  modifiers:
+                    - { mod: protectEffects, effects: [sapped] }
+
+rage.aurora:
+  archetype: Rage
+  element: Aurora
+  name: Polar Storm
+  description: >-
+    For 3 turns, the user gains Stormborn and 1 Might. Whenever their Charge reaches 3, every enemy is
+    Dazzled for 1 turn.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: polar_storm
+        name: Polar Storm
+        kind: Buff
+        element: Aurora
+        description: Whenever the bearer's Charge reaches 3, every enemy is Dazzled for 1 turn.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+                then:
+                  - { op: apply, to: allEnemies, effect: dazzled, duration: { enemyTurns: 1 } }
+
+shot.aurora:
+  archetype: Shot
+  element: Aurora
+  name: Glimmer
+  description: Deals 10 damage to target enemy, 20 if they were already Dazzled, and Dazzles them for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: it, effect: dazzled } }, then: 20, else: 10 } }
+    - { op: apply, to: primary, effect: dazzled, duration: { enemyTurns: 2 } }
+
+snipe.aurora:
+  archetype: Snipe
+  element: Aurora
+  name: Polar Lance
+  description: >-
+    Target enemy is Chilled until it lands on the following turn, and Sapped once for each energy their
+    skills cost meanwhile. Then 35 Piercing damage. Channeled.
+  cost: AIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: polar_lance
+        name: Polar Lance (aiming)
+        kind: Neutral
+        element: Aurora
+        interruptible: true
+        description: Strikes its target at the end of the following turn.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 35, type: Piercing }
+    - op: apply
+      to: primary
+      linkTo: polar_lance
+      duration: { enemyTurns: 1 }
+      effect:
+        id: polar_lance_mark
+        name: Polar Lance
+        kind: Debuff
+        element: Aurora
+        description: Each energy the bearer's skills cost Saps them once.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: sapped, stacks: { skillCost: true } }
+
+trap.aurora:
+  archetype: Trap
+  element: Aurora
+  name: Rime Snare
+  description: >-
+    For 3 turns, the first time target enemy has a Frost debuff at the end of the user's turn, it lasts 2
+    more turns and they take 15 Piercing damage. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: rime_snare
+        name: Rime Snare
+        kind: Debuff
+        element: Aurora
+        visibility: hidden
+        description: The first Frost debuff on the bearer is held 2 turns longer, and they take 15 Piercing.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond:
+                  or:
+                    - { has: { unit: bearer, effect: frostbitten } }
+                    - { has: { unit: bearer, effect: chilled } }
+                    - { has: { unit: bearer, effect: numb } }
+                then:
+                  - { op: removeSelf }
+                  - { op: extendEffects, on: bearer, effects: [frostbitten, chilled, numb, frostfire], by: 4 }
+                  - { op: damage, to: bearer, amount: 15, type: Piercing }
+
+maneuver.aurora:
+  archetype: Maneuver
+  element: Aurora
+  name: Vanishing Light
+  description: >-
+    The user becomes Invulnerable for 1 turn. Their Sapped turns into as much Charge; if they're Chilled,
+    it ends and they gain Shimmer for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: set, var: sap, value: { stacks: { unit: actor, effect: sapped } } }
+    - { op: removeEffect, from: actor, effect: sapped }
+    - { op: apply, to: actor, effect: charged, stacks: { var: sap } }
+    - op: if
+      cond: { has: { unit: actor, effect: chilled } }
+      then:
+        - { op: removeEffect, from: actor, effect: chilled }
+        - { op: apply, to: actor, effect: shimmer, duration: { enemyTurns: 2 } }
+
+companion.aurora:
+  archetype: Companion
+  element: Aurora
+  name: Aurora Fox
+  description: >-
+    Summons an Aurora Fox (30 HP, Stormborn) permanently. Foxfire (r): 10 damage to target enemy, +5 per
+    Charge the Fox has, and Dazzled for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: aurora_fox }
+
+bolt.aurora:
+  archetype: Bolt
+  element: Aurora
+  name: Flickerbolt
+  description: >-
+    Deals 20 damage to target enemy. If the user has Shimmer, it ends and this deals 15 more; if not, the
+    user gains Shimmer for their next skill.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: shimmer } }
+      then:
+        - { op: removeEffect, from: actor, effect: shimmer }
+        - { op: damage, to: primary, amount: 35 }
+      else:
+        - { op: damage, to: primary, amount: 20 }
+        - { op: apply, to: actor, effect: shimmer, until: { skillUsed: {} } }
+
+blast.aurora:
+  archetype: Blast
+  element: Aurora
+  name: Borealis
+  description: Deals 25 damage to all enemies. Chilled ones are Dazzled for 2 turns; the rest are Chilled for 1 turn.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: chilled } }
+          then: [{ op: apply, to: it, effect: dazzled, duration: { enemyTurns: 2 } }]
+          else: [{ op: apply, to: it, effect: chilled, duration: { enemyTurns: 1 } }]
+
+consume.aurora:
+  archetype: Consume
+  element: Aurora
+  name: Drink the Light
+  description: >-
+    Deals 5 damage to target enemy. Their player loses 1 energy of the color they hold most, and the
+    user's player gains it.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: stealEnergy, from: primary }
+
+summon.aurora:
+  archetype: Summon
+  element: Aurora
+  name: Stray Aurora
+  description: >-
+    Summons a Stray Aurora (30 HP) for 3 turns. At the end of each of your turns, it deals 15 damage to a
+    random unit on whichever side has more total HP.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: stray_aurora, duration: { enemyTurns: 3 } }
+
+channel.aurora:
+  archetype: Channel
+  element: Aurora
+  name: Skyglow
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, deals 5 damage to all enemies, and every
+    ally has Shimmer. It ends early if the user takes direct damage. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: apply, to: allAllies, effect: shimmer, duration: { raw: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: skyglow
+        name: Skyglow
+        kind: Neutral
+        element: Aurora
+        interruptible: true
+        description: Each turn, 5 damage to all enemies and Shimmer for every ally; direct damage ends it.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5 }
+              - { op: apply, to: allAllies, effect: shimmer, duration: { raw: 2 } }
+          - on: damaged
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: removeSelf }
+
+stab.aurora:
+  archetype: Stab
+  element: Aurora
+  name: Shock Icicle
+  description: >-
+    Deals 10 damage to target enemy, or 25 if their player has 1 or no energy left. Either way, they're
+    Dazzled for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { compare: { value: { energyOf: { unit: primary } }, atMost: 1 } }, then: 25, else: 10 }
+    - { op: apply, to: primary, effect: dazzled, duration: { enemyTurns: 1 } }
+
+ravage.aurora:
+  archetype: Ravage
+  element: Aurora
+  name: Grounding Rend
+  description: >-
+    Deals 25 Piercing damage to target enemy. All the user's Charge pours into them: they're Sapped once
+    for each Charge spent.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: set, var: grounded, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: apply, to: primary, effect: sapped, stacks: { var: grounded } }
+
+mislead.aurora:
+  archetype: Mislead
+  element: Aurora
+  name: Ghost Lights
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they're Dazzled for 1 turn, +1
+    per energy it cost. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ghost_lights
+        name: Ghost Lights
+        kind: Debuff
+        element: Aurora
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they're Dazzled by its cost.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: dazzled, duration: { enemyTurns: { sum: [1, { skillCost: true }] } } }
+
+stun.aurora:
+  archetype: Stun
+  element: Aurora
+  name: Lightshow
+  description: >-
+    Deals 15 damage to target enemy. For 2 turns, their non-Strategic skills (those that deal direct
+    damage) are stunned.
+  cost: AA
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 2 } }
+
+dance.aurora:
+  archetype: Dance
+  element: Aurora
+  name: Dance of Lights
+  description: >-
+    For 3 turns, the user gains Shimmer, and each skill they use gives them 1 Charge; every second one
+    also gives 1 Swiftness.
+  cost: SA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shimmer, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dance_of_lights
+        name: Dance of Lights
+        kind: Buff
+        element: Aurora
+        description: Each skill the bearer uses gives 1 Charge; every second one, 1 Swiftness too.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: charged }
+              - op: if
+                cond: { flag: second }
+                then:
+                  - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 2 } }
+                  - { op: setFlag, flag: second, value: false }
+                else:
+                  - { op: setFlag, flag: second }
+
+heal.aurora:
+  archetype: Heal
+  element: Aurora
+  name: Glow of the Long Night
+  description: >-
+    Target ally heals 15. At the start of the user's next turn, they heal 5 more for each Frost debuff on
+    the enemy team (max 30).
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: glow_of_the_long_night
+        name: Glow of the Long Night
+        kind: Buff
+        element: Aurora
+        description: Heals 5 per Frost debuff on the enemy team (max 30) when this ends.
+        onExpire:
+          - op: heal
+            to: bearer
+            amount:
+              if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire], in: allEnemies } }, atLeast: 6 } }
+              then: 30
+              else: { mul: [5, { count: { effects: [frostbitten, chilled, numb, frostfire], in: allEnemies } }] }
+
+bless.aurora:
+  archetype: Bless
+  element: Aurora
+  name: Shimmering Veil
+  description: Target ally gains Shimmer for 2 turns, and all of the user's Charge moves to them.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: shimmer, duration: { enemyTurns: 2 } }
+    - { op: moveEffects, from: actor, to: primary, effects: [charged] }
+
+curse.aurora:
+  archetype: Curse
+  element: Aurora
+  name: Color Drain
+  description: >-
+    Target enemy is Dazzled for 2 turns. Each time it changes one of their player's energies, they're
+    also Sapped.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: dazzled, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: color_drain
+        name: Color Drain
+        kind: Debuff
+        element: Aurora
+        description: Each Dazzle shift also Saps the bearer.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: dazzled } }
+                then:
+                  - { op: apply, to: bearer, effect: sapped }
+
+smite.aurora:
+  archetype: Smite
+  element: Aurora
+  name: Lodestar
+  description: >-
+    Deals 15 damage to target enemy and Dazzles them for 1 turn. For 1 turn, each ally who damages them
+    extends it by 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: dazzled, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: lodestar
+        name: Lodestar
+        kind: Debuff
+        element: Aurora
+        description: Each of the applier's allies who damages the bearer extends their Dazzle by 1 turn.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: extendEffects, on: bearer, effects: [dazzled], by: 2 }
+
+prayer.aurora:
+  archetype: Prayer
+  element: Aurora
+  name: Polar Dawn
+  description: >-
+    All allies heal 15 and gain 10 Shield for 1 turn. Every skill on cooldown on the user's side comes 1
+    turn closer to ready.
+  cost: WW
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - { op: adjustCooldowns, to: allAllies, by: -1, exceptCurrent: true }
+
+cleave.aurora:
+  archetype: Cleave
+  element: Aurora
+  name: Arc of Lights
+  description: Deals 20 damage to target enemy. It arcs for 10 to a random other enemy, Dazzling them for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: apply, to: it, effect: dazzled, duration: { enemyTurns: 1 } }
+
+shout.aurora:
+  archetype: Shout
+  element: Aurora
+  name: Polar Static
+  description: >-
+    All enemies are Intimidated for 2 turns. The user gains 1 Charge for each Frost debuff among them
+    (max 3).
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      effect: charged
+      stacks:
+        if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire], in: targets } }, atLeast: 3 } }
+        then: 3
+        else: { count: { effects: [frostbitten, chilled, numb, frostfire], in: targets } }
+
+withstand.aurora:
+  archetype: Withstand
+  element: Aurora
+  name: Ice Cage
+  description: The user gains 25 Shield for 2 turns, and has Shimmer while any of it remains.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: ice_cage
+        name: Ice Cage
+        kind: Buff
+        element: Aurora
+        shield: true
+        description: A Shield; the bearer has Shimmer while any of it remains.
+    - { op: apply, to: actor, effect: shimmer, duration: { enemyTurns: 2 }, linkTo: ice_cage }
+
+taunt.aurora:
+  archetype: Taunt
+  element: Aurora
+  name: Polar Beacon
+  description: Target enemy is Taunted by the user for 2 turns. While Taunted, each Sapped they gain counts as 2.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: polar_beacon
+        name: Polar Beacon
+        kind: Debuff
+        element: Aurora
+        description: While Taunted, each Sapped the bearer gains counts as 2.
+        triggers:
+          - on: effectGained
+            effect: sapped
+            do:
+              - op: if
+                cond: { flag: doubling }
+                then:
+                  - { op: setFlag, flag: doubling, value: false }
+                else:
+                  - op: if
+                    cond: { has: { unit: bearer, effect: taunt } }
+                    then:
+                      - { op: setFlag, flag: doubling }
+                      - { op: apply, to: bearer, effect: sapped }
+
+titan.aurora:
+  archetype: Titan
+  element: Aurora
+  name: Heavenlight Armor
+  description: >-
+    For 3 turns, the user gains Shimmer and Immune, and 1 Armor for each color among their player's
+    energies.
+  cost: Wr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shimmer, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heavenlight_armor
+        name: Heavenlight Armor
+        kind: Buff
+        element: Aurora
+        description: 1 Armor per color among the bearer's player's energies.
+        modifiers:
+          - { mod: damageTaken, amount: 0, armor: true, when: { types: [Normal] }, value: { mul: [-5, { energyOf: { unit: actor, colors: true } }] } }
+
+# Minion skills.
+
+aurora_fox_foxfire:
+  archetype: Minion
+  element: Aurora
+  name: Foxfire
+  description: Deals 10 damage to target enemy, +5 per Charge the Fox has, and Dazzles them for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [5, { stacks: { unit: actor, effect: charged } }] }] } }
+    - { op: apply, to: primary, effect: dazzled, duration: { enemyTurns: 1 } }

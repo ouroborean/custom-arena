@@ -1095,3 +1095,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Frozen in Time | Simplified: Icebound for 2 turns keeps their cooldowns where they are, and they rise by 1. |
 | Calving | Simplified: the two share all their Debuffs once (`shareEffects`). |
 | Advancing Glacier | The Ice Tongue counts its own turns. |
+
+### 21.21 Aurora (Ice + Lightning)
+
+| Term | Ruling |
+|---|---|
+| **Shimmer** | The existing `costToRandom` modifier: every pip of the bearer's costs is paid as random energy. |
+| **Dazzled** | At the start of each of the bearer's turns, new op `shiftEnergy`: one random energy of their player becomes another color (shown as an `energyGained` event with -1/+1). |
+| New ops / values | `stealEnergy` (Drink the Light: 1 of the enemy player's most-held color), `energyOf` (a unit's player's energy, or how many colors they hold), `totalHp`. |
+| Hoarfrost Crash | Frost debuffs on everyone hit last 3 ticks longer (once) and can't be removed meanwhile. |
+| Streak of Light | The target is marked Streaked; the user's next skill deals 10 more to Streaked enemies. |
+| Polar Lance | The target is Chilled for the wait, and each of their skills meanwhile Saps them once per energy it cost. |
+| Rime Snare | Simplified: the first time the target has a Frost debuff at the end of the user's turn, those debuffs last 2 turns longer and they take 15 Piercing. |
+| Stray Aurora | Simplified: it's the user's minion (enemies target it normally). It hits a random enemy if the enemies' side has more total HP, else a random ally. |
+| Shock Icicle | Simplified: 25 if the target's player has 1 or no energy. |
+| Lightshow | Simplified: their non-Strategic skills are stunned for 2 turns. |
+| Dance of Lights | Simplified: each skill gives 1 Charge, every second one also 1 Swiftness. |
+| Color Drain | Each turn they start Dazzled, they're also Sapped. |
+| Arc of Lights | The arc goes to a random other enemy. |
+| Polar Beacon | While Taunted, each Sapped gained adds one more. |

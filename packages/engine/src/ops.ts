@@ -234,6 +234,13 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     return d ? costTotal(d.cost) : 0;
   }
   if ('skillCooldown' in v) return scopeSkill(ctx, sc)?.cooldown ?? 0;
+  if ('energyOf' in v) {
+    const u = select(ctx, v.energyOf.unit, sc)[0];
+    if (!u) return 0;
+    const pool = ctx.s.players[u.owner].energy;
+    return v.energyOf.colors ? COLORS.filter((c) => pool[c] > 0).length : COLORS.reduce((n, c) => n + pool[c], 0);
+  }
+  if ('totalHp' in v) return select(ctx, v.totalHp, sc).reduce((n, u) => n + u.hp, 0);
   if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
   if ('deadCount' in v) {
     const me = unit(ctx, sc.actor);
@@ -674,6 +681,36 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         }
       }
       return;
+    case 'shiftEnergy': {
+      const u = select(ctx, op.of, sc)[0];
+      if (!u) return;
+      const pool = ctx.s.players[u.owner].energy;
+      for (let i = 0; i < (op.count ?? 1); i++) {
+        const held = COLORS.flatMap((c) => Array<typeof c>(pool[c]).fill(c));
+        if (held.length === 0) return;
+        const from = pick(ctx.s.rng, held);
+        const to = pick(ctx.s.rng, COLORS.filter((c) => c !== from));
+        pool[from] -= 1;
+        pool[to] += 1;
+        const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+        gained[from] = -1;
+        gained[to] = 1;
+        emit(ctx, { t: 'energyGained', player: u.owner, gained }, u.owner);
+      }
+      return;
+    }
+    case 'stealEnergy': {
+      const u = select(ctx, op.from, sc)[0];
+      if (!u || u.owner === actor.owner) return;
+      const pool = ctx.s.players[u.owner].energy;
+      const most = COLORS.reduce((best, c) => (pool[c] > pool[best] ? c : best), COLORS[0]!);
+      if (pool[most] <= 0) return;
+      pool[most] -= 1;
+      ctx.s.players[actor.owner].energy[most] += 1;
+      emit(ctx, { t: 'energyGained', player: u.owner, gained: { S: 0, A: 0, I: 0, W: 0, [most]: -1 } }, u.owner);
+      emit(ctx, { t: 'energyGained', player: actor.owner, gained: { S: 0, A: 0, I: 0, W: 0, [most]: 1 } }, actor.owner);
+      return;
+    }
     case 'swapCooldowns': {
       const longest = (u: Unit | undefined) =>
         u?.skills

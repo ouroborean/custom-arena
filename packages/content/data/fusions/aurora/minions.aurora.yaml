@@ -1,0 +1,27 @@
+# Aurora minions.
+
+aurora_fox:
+  name: Aurora Fox
+  hp: 30
+  passives: [stormborn]
+  skills: [aurora_fox_foxfire]
+
+stray_aurora:
+  name: Stray Aurora
+  hp: 30
+  passives:
+    - id: stray_aurora_drift
+      name: Stray Aurora
+      kind: Neutral
+      element: Aurora
+      description: At the end of its owner's turn, deals 15 damage to a random unit on whichever side has more total HP.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { compare: { value: { sum: [{ totalHp: allEnemies }, { mul: [-1, { totalHp: allAllies }] }] }, atLeast: 1 } }
+              then:
+                - { op: damage, to: { randomEnemy: 1 }, amount: 15 }
+              else:
+                - { op: damage, to: { randomAlly: 1, exclude: actor }, amount: 15, direct: false }
+  skills: []
