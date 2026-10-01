@@ -5,14 +5,14 @@
 # infusions on one skill are still reported as not in the game (they'd be ids like strike.dragon).
 
 # Fire + …
-dragon:       { name: Dragon,      elements: [Fire, Fire] }
+dragon:       { name: Dragon,      elements: [Fire, Fire], passives: [wyrm_heart] }
 apocalypse:   { name: Apocalypse,  elements: [Fire, Ice] }
 alchemy:      { name: Alchemy,     elements: [Fire, Water] }
 plasma:       { name: Plasma,      elements: [Fire, Lightning] }
 mechanic:     { name: Mechanic,    elements: [Fire, Wind] }
 brimstone:    { name: Brimstone,   elements: [Fire, Poison] }
 sun:          { name: Sun,         elements: [Fire, Earth] }
-judgment:     { name: Judgment,    elements: [Fire, Holy] }
+phoenix:      { name: Phoenix,     elements: [Fire, Holy] }
 devil:        { name: Devil,       elements: [Fire, Unholy] }
 ritual:       { name: Ritual,      elements: [Fire, Shadow] }
 
