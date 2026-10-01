@@ -1,0 +1,59 @@
+# Lich minions.
+
+phylactery:
+  name: Phylactery
+  hp: 30
+  onSummon:
+    - { op: apply, to: summoner, effect: phylactery_bond, bindTo: actor }
+  passives:
+    - id: phylactery_jar
+      name: Phylactery
+      kind: Neutral
+      element: Lich
+      description: 2 Armor. Damage to it ends its creator's Retreat to the Vessel; during Archlich, its attackers are Soulfrosted.
+      modifiers:
+        - { mod: damageTaken, amount: -10, armor: true, when: { types: [Normal] } }
+      triggers:
+        - on: damaged
+          do:
+            - { op: removeEffect, from: summoner, effect: vessel_retreat }
+            - op: if
+              cond: { and: [{ has: { unit: summoner, effect: archlich } }, { isEnemy: eventSource }] }
+              then:
+                - { op: apply, to: eventSource, from: summoner, effect: soulfrost, duration: { enemyTurns: 2 } }
+  skills: []
+
+frost_wight:
+  name: Frost Wight
+  hp: 30
+  passives:
+    - id: frost_wight_soul
+      name: Frost Wight
+      kind: Neutral
+      element: Lich
+      description: When a hit would kill it, its creator spends a Soul Fragment instead and it's left at 1 HP.
+      modifiers:
+        - { mod: hpFloor, amount: 1, if: { has: { unit: summoner, effect: soul_fragment } } }
+      triggers:
+        - on: damaged
+          do:
+            - op: if
+              cond: { hpAtMost: { unit: bearer, value: 1 } }
+              then:
+                - { op: removeStacks, from: summoner, effect: soul_fragment, amount: 1 }
+  skills: [frost_wight_rime_claw]
+
+skeletal_mage:
+  name: Skeletal Mage
+  hp: 25
+  passives:
+    - id: skeletal_mage_chill
+      name: Skeletal Mage
+      kind: Neutral
+      element: Lich
+      description: While it stands, Frost debuffs on enemies don't count down.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: extendEffects, on: allEnemies, effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], by: 2 }
+  skills: [skeletal_mage_bone_chill]

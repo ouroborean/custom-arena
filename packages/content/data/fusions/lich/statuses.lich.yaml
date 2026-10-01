@@ -1,0 +1,28 @@
+# Lich (Ice + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Soulfrost (a Frost debuff): direct damage to the bearer gives its applier a Soul Fragment, once per turn.
+soulfrost:
+  name: Soulfrost
+  kind: Debuff
+  element: Lich
+  stacking: unique
+  description: When the bearer takes direct damage, whoever applied this gains a Soul Fragment (once per turn).
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: soulfrost_turn } }] }] }, atLeast: 1 } }
+          then:
+            - { op: setCounter, name: soulfrost_turn, on: bearer, value: { turn: true } }
+            - { op: apply, to: actor, effect: soul_fragment }
+
+# While its Phylactery stands, the creator's HP can't drop below 1.
+phylactery_bond:
+  name: Phylactery
+  kind: Neutral
+  element: Lich
+  stacking: unique
+  description: The bearer's soul is in a jar; while it stands, their HP can't drop below 1.
+  modifiers:
+    - { mod: hpFloor, amount: 1 }

@@ -1188,3 +1188,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Beacon of Mercy | Compares the weakest targetable enemy with the weakest ally. |
 | Frozen Gleam | Simplified: a 2-turn Taunt. |
 | Colossus of Light | Direct hits on the user are halved; the amount they take strikes a random enemy. |
+
+### 21.26 Lich (Ice + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Phylactery** | A minion (30 HP, 2 Armor) whose onSummon gives its creator `phylactery_bond` (HP floor 1), bound to it. `make_phylactery` creates one or restores it to full; `feed_phylactery` heals it by `feed` or creates one with that max HP. One per Lich is kept by these macros. |
+| **Soulfrost** | Debuff (counted in Frost-debuff lists here): direct damage to the bearer gives its applier 1 Soul Fragment, once per turn (a per-bearer turn counter). Winter of Souls and Heart of Ice use their own variants that count as Soulfrost. |
+| Chill Stride | Simplified: 1 Focus (not 2 when the next skill targets a Soulfrosted enemy). |
+| Hidden Vessel | The counter goes on the user and every allied minion. |
+| Death's Icicle | A kill is detected by damage reaching the target's HP. |
+| Retreat to the Vessel | An Invulnerable-like Buff that the Phylactery's own damaged trigger removes. |
+| Frost Wight | Its HP floor of 1 applies while its creator has a Soul Fragment; a hit that leaves it at 1 spends one. |
+| Soul Siphon | Simplified: 1 Soul Fragment drained (taken from them if they have one), +1 if they were Soulfrosted. |
+| Skeletal Mage | Pushes the enemies' Frost debuffs out each turn so they don't count down. |
+| Deathly Pallor | Healing above 60 HP is taken back at once. |
+| Embalm | Each turn, the ally's other Buffs (not Might) are pushed back out. |
+| Touch of the Grave | Immune to Buffs; each Helpful skill used on them gives the user a Soul Fragment (up to 3). |
+| Hoarded Life | The absorbed damage is counted; when the Shield ends for any reason, it feeds the Phylactery (at least 10). |
+| Guarded Urn | The Taunt comes from the Phylactery; the Taunted enemy's damage to Phylacteries is halved. |
