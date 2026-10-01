@@ -562,7 +562,7 @@ export type ModifierSpec = ModifierBase &
   /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
   | { mod: 'exposed'; anyEnemy?: boolean }
   /** Raises the bearer's max (and current) Health while the effect lasts. */
-  | { mod: 'maxHp'; amount: number }
+  | { mod: 'maxHp'; amount: number; perStack?: boolean }
   /** Multiplies the bearer's Armor. */
   | { mod: 'armorMul'; mul: number }
   /** A non-stacking effect the bearer applies can stack up to `max` (Emblem of the Inferno: Ignite). */

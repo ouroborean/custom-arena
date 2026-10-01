@@ -145,12 +145,14 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
       (e) => effectKey(e) === def.id && (!merge || e.sourceOwner === source.owner),
     );
     if (existing) {
+      const before = existing.stacks;
       existing.duration =
         existing.duration === null || duration === null ? null : Math.max(existing.duration, duration);
       existing.stacks = merge ? existing.stacks + stacks : Math.max(existing.stacks, stacks);
       if (cap) existing.stacks = Math.min(existing.stacks + stacks, Math.max(existing.stacks, cap.spec.max));
       if (def.maxStacks !== undefined) existing.stacks = Math.min(existing.stacks, def.maxStacks);
       existing.value = Math.max(existing.value, value);
+      restack(ctx, existing, before);
       existing.source = source.id;
       existing.sourceOwner = source.owner;
       emit(
@@ -201,11 +203,7 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   }
   ctx.s.effects.push(inst);
   // Bonus max Health comes with as much current Health.
-  const bonusHp = maxHpBonus(def);
-  if (bonusHp !== 0) {
-    bearer.maxHp += bonusHp;
-    bearer.hp += bonusHp;
-  }
+  shiftMaxHp(bearer, maxHpBonus(def, inst.stacks));
   emit(
     ctx,
     {
@@ -228,8 +226,23 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   return inst;
 }
 
-function maxHpBonus(def: EffectDef): number {
-  return (def.modifiers ?? []).reduce((n, m) => (m.mod === 'maxHp' ? n + m.amount : n), 0);
+function maxHpBonus(def: EffectDef, stacks = 1): number {
+  return (def.modifiers ?? []).reduce((n, m) => (m.mod === 'maxHp' ? n + m.amount * (m.perStack ? stacks : 1) : n), 0);
+}
+
+/** Shifts max Health by `delta`: a rise comes with as much current Health, a fall caps it (Blight's Withered). */
+function shiftMaxHp(bearer: Unit, delta: number): void {
+  if (delta === 0) return;
+  bearer.maxHp = Math.max(1, bearer.maxHp + delta);
+  bearer.hp = delta > 0 ? bearer.hp + delta : Math.min(bearer.hp, bearer.maxHp);
+}
+
+/** After an effect's stacks changed from `before`: per-stack max Health modifiers follow. */
+export function restack(ctx: Ctx, e: EffectInstance, before: number): void {
+  const def = effectDef(ctx.c, e);
+  const bearer = findUnit(ctx.s, e.bearer);
+  if (!bearer?.alive) return;
+  shiftMaxHp(bearer, maxHpBonus(def, Math.max(0, e.stacks)) - maxHpBonus(def, before));
 }
 
 /**
@@ -284,7 +297,7 @@ export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason):
   }
   emit(ctx, { t: 'effectRemoved', effect: e.id, defId: e.defId, bearer: e.bearer, reason }, privateTo);
   // Bonus max Health goes away; current Health is capped, never lowered otherwise.
-  const bonusHp = maxHpBonus(effectDef(ctx.c, e));
+  const bonusHp = maxHpBonus(effectDef(ctx.c, e), Math.max(0, e.stacks));
   const bearer = findUnit(ctx.s, e.bearer);
   if (bonusHp !== 0 && bearer?.alive) {
     bearer.maxHp -= bonusHp;

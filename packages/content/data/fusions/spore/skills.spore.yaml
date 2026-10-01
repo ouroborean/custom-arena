@@ -235,8 +235,7 @@ bolt.spore:
   element: Spore
   name: Binding Hypha
   description: >-
-    Deals 20 damage to target enemy and Marks them for 1 turn. Until the Mark is spent, their Toxin can't be
-    removed.
+    Deals 20 damage to target enemy and Marks them for 1 turn. For as long, their Toxin can't be removed.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -246,7 +245,6 @@ bolt.spore:
     - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
     - op: apply
       to: primary
-      linkTo: mark
       duration: { enemyTurns: 1 }
       effect:
         id: binding_hypha

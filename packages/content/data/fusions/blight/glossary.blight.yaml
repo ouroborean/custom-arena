@@ -1,0 +1,11 @@
+# Blight keywords (docs/glossary.md).
+
+withered:
+  status: withered
+  element: Blight
+  forms: [Withered, Wither, Withers]
+festering:
+  name: Festering
+  text: While a unit is Withered, their Toxin gains 1 stack at the end of each of the Withered's applier's turns.
+  element: Blight
+  forms: [Festering]

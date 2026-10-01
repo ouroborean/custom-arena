@@ -20,7 +20,7 @@ import {
 import { dealDamage, heal, killUnit } from './damage.js';
 import { costTotal } from './energy.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
-import { applyEffect, interruptChannels, isProtected, removeEffect, revealEffect } from './effects.js';
+import { applyEffect, interruptChannels, isProtected, removeEffect, restack, revealEffect } from './effects.js';
 import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
 import { COLORS, type EffectInstance, type Energy, type SkillSlot, type Unit, type UnitId } from './types.js';
@@ -933,6 +933,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           if (left <= 0 || effectKeyOf(e) !== op.effect || isProtected(ctx, e)) continue;
           const take = Math.min(e.stacks, left);
           e.stacks -= take;
+          restack(ctx, e, e.stacks + take);
           left -= take;
           if (e.stacks <= 0) removeEffect(ctx, e, 'consumed');
         }
@@ -1045,6 +1046,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'addStacksSelf':
       if (sc.self) {
         sc.self.stacks += op.amount;
+        restack(ctx, sc.self, sc.self.stacks - op.amount);
         if (sc.self.stacks <= 0) removeEffect(ctx, sc.self, 'consumed');
       }
       return;

@@ -250,7 +250,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
   mod({ mod: z.literal('redirectDamage') }),
   mod({ mod: z.literal('exposed'), anyEnemy: z.boolean().optional() }),
-  mod({ mod: z.literal('maxHp'), amount: z.number().int() }),
+  mod({ mod: z.literal('maxHp'), amount: z.number().int(), perStack: z.boolean().optional() }),
   mod({ mod: z.literal('armorMul'), mul: z.number().min(0) }),
   mod({ mod: z.literal('stackCap'), effect: z.string(), max: z.number().int().min(2) }),
   mod({ mod: z.literal('skillTags'), add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() }),

@@ -1553,7 +1553,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Tainted Hands | Fires when the Helpful skill resolves. |
 | Spore Molt | Simplified: one Spore per Debuff effect shed, not per stack. |
 | Sporeling | Grows whenever a Mushroom sprouts for its side, from anyone. |
-| Binding Hypha | `protectEffects: [toxin]`, linked to the Mark. |
+| Binding Hypha | Simplified: `protectEffects: [toxin]` for 1 turn, the Mark's duration, even if the Mark is spent sooner. |
 | Rooted Rhythm | Simplified: only minions on the field when it's used are covered. |
 | Compost Bed | Value `minionsLost`: allied minions that died in the last 2 turns (engine counter `c:died_turn`). |
 | Mycorrhizal Bond | Copies use `copyEventEffect` with `noChain`, so they don't echo back. |
@@ -1583,3 +1583,26 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Clean Bill of Health | Simplified: all the user's cooldowns drop, Clean Bill's own included. |
 | Crisis of Conscience | Each skill the target uses re-applies Condemned after it resolves. |
 | Healing Liturgy | Only Debuffs from enemies; `immunize` gives every ally Immunity to that Debuff. |
+
+### 21.48 Blight (Poison + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Withered** | Debuff, merging per side, max 5, permanent. Modifier `maxHp -5 perStack`: each stack change moves max HP (a rise also restores HP; a fall caps HP). Cleansing restores the max HP but not the lost HP. |
+| **Festering** | Part of Withered: at the end of the applier's turn, a Withered unit that has Toxin gains 1 Toxin. |
+| Dread Lunge | Inline Debuff counting as Horrified (no Buff block), ending when the user next uses a skill. |
+| Festering Spite | Simplified: the countered skill's user gains a flat 2 Withered. |
+| Dread Spittle | Conditional `immuneTo Buff` while they have 2+ Toxin; it doesn't count as Horrified. |
+| Rotten Remedy | The healing lands, then is undone as raw Affliction damage; Withered = healing ÷ 10, rounded down. |
+| Seep Away | Simplified: at the start of the user's next turn, their Toxin on each enemy ticks once more. |
+| Plague Bolt | `protectEffects: [withered]` while Horrified, for 1 turn. |
+| Leveling Plague | The gaps are measured before the lowest-HP enemy is hit. |
+| Plague Imp | Its Rotbolt tags targets (`imp_bitten`); when it dies, they Wither. Simplified: only on death, not on expiry. |
+| Long Decay | Duration counted when used. |
+| Rot Waltz | The first target, if an enemy, Withers when the skill resolves. |
+| Vulture's Blessing | Checked when the ally's skill resolves. |
+| Touch of Decay | Simplified: Confusion lasts 3 turns, not until the Withered is cleansed. |
+| Communion of Rot | Each enemy character loses 15 HP (raw Affliction). Allies heal 2 × the actual total ÷ the number of allied characters. |
+| Bone Carapace | When a hit leaves the user with no Shield, the user gains a Soul Fragment. |
+| Carrion Stench | Damage taken −10 per hit and healing ×0 until the user's next turn. |
+| Plague Lord | Counted when used: an inline Buff with `maxHp +5 perStack`, 1 stack per Withered on enemies. |
