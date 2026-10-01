@@ -1291,3 +1291,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Quagmire | Simplified: +1 random cost on all their skills. |
 | Quivering Wall | Melts by lowering all the user's Shields by 10 each turn. |
 | Gelatinous Giant | Each enemy hit while the user has 20+ HP splits off an Ooze with a quarter of their HP, which they lose. |
+
+### 21.32 Anointment (Water + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Unction** | Merging Buff: at the end of its applier's turn, one stack goes to remove a random Debuff (if any) and heal 10 (every ally during Living Font). |
+| **Chrism** | Buff counting as Anointed: each Helpful skill its bearer resolves Anoints the other allies it targeted until the end of their next turn. Pilgrim's Rush, Chrismation and River of Grace hook the same moment (Focus, Might, Chrism). |
+| Cascade of Grace | Spending Anointed (or Chrism) cuts the other cooldowns by 2 if there are 2+ enemies, else 1. |
+| Calm Waters | The counter sits on the user and every Anointed ally; the first to fire removes the rest. |
+| Font Ward | Each Debuff the enemy applies to the user's side hurts them 15 and gives its target 1 Unction. |
+| Baptismal Font | Its onSummon gives every unit a Debuff immunity bound to it. |
+| Scouring Current | Simplified: while the user has Flow, enemies they hit are Shattered for 1 turn (from the next hit on). |
+| Turned to Grace | Simplified: the countered skill's targets heal 20. |
+| Submission | A mark on the target, and allies who are Anointed deal it 10 more. |
+| Holy Oil | Simplified: immune to Debuffs, and each Harmful skill used on them gives 1 Unction. |
+| Offertory | Each skill they use while Confused gives the user's player 1 energy per Confusion stack. |
+| Shield of the Font | All Unction is spent at once: that many Debuffs removed, 15 Shield per stack for 1 turn. |

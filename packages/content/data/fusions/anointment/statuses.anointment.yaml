@@ -1,0 +1,44 @@
+# Anointment (Water + Holy) statuses, from the "Fusion Spec Kits" design doc.
+
+unction:
+  name: Unction
+  kind: Buff
+  element: Anointment
+  stacking: merge
+  description: At the end of the applier's turn, one stack is used up to remove one of the bearer's Debuffs and heal them 10.
+  triggers:
+    - on: turnEnd
+      do:
+        # Living Font: the Unction cleanses and heals every ally instead.
+        - op: if
+          cond: { has: { unit: bearer, effect: living_font } }
+          then:
+            - { op: removeRandom, from: { filter: allAllies, where: { kind: { unit: it, is: character } } }, kind: Debuff }
+            - { op: heal, to: allAllies, amount: 10 }
+          else:
+            - { op: removeRandom, from: bearer, kind: Debuff }
+            - { op: heal, to: bearer, amount: 10 }
+        - { op: addStacksSelf, amount: -1 }
+
+chrism:
+  name: Chrism
+  kind: Buff
+  element: Anointment
+  stacking: unique
+  countsAs: [anointed]
+  description: >-
+    Counts as Anointed. When the bearer uses a Helpful skill on an ally, that ally is Anointed until the
+    end of their next turn.
+  triggers:
+    - on: skillResolved
+      when: { harmful: false }
+      do:
+        - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: anointed, duration: { raw: 3 } }
+
+# Submission's mark: Anointed allies of the applier deal 10 more to the bearer.
+submission:
+  name: Submission
+  kind: Debuff
+  element: Anointment
+  stacking: unique
+  description: Anointed enemies of the bearer deal 10 more damage to them.

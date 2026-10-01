@@ -1,0 +1,24 @@
+# Anointment minions.
+
+sacred_koi:
+  name: Sacred Koi
+  hp: 35
+  skills: [sacred_koi_golden_leap, sacred_koi_tail_slap]
+
+baptismal_font:
+  name: Baptismal Font
+  hp: 25
+  # While it stands, no unit on either side can gain Debuffs.
+  onSummon:
+    - op: apply
+      to: allUnits
+      bindTo: actor
+      effect:
+        id: baptismal_font_grace
+        name: Baptismal Font
+        kind: Neutral
+        element: Anointment
+        description: Can't gain Debuffs while the Baptismal Font stands.
+        modifiers:
+          - { mod: immuneTo, kind: Debuff }
+  skills: [baptismal_font_pour]
