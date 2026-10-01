@@ -24,6 +24,26 @@ apps/
 docs/        GDD, rules, glossary.
 ```
 
+## Getting started
+
+**Prerequisites:**
+- [Node.js](https://nodejs.org/) 22 or newer, which includes npm. `.nvmrc` pins 22 for nvm users.
+- Git.
+- *Optional:* Python 3 with Pillow (`pip install pillow`), only to rebuild the skill and status icons
+  (`python icons/_build-client-icons.py`).
+
+Nothing else is needed. The database is an embedded PGlite instance created on first run, so there's
+no PostgreSQL to install, and every other dependency comes from npm.
+
+```bash
+git clone https://github.com/ouroborean/custom-arena.git
+cd custom-arena
+npm ci                     # install the exact locked dependencies
+npm run ci                 # optional: confirm everything passes
+```
+
+Then start the game with one of the launchers below, or `node scripts/launch.mjs` on any platform.
+
 ## Playing locally (one click)
 
 On Windows, double-click one of these in the repository folder:
