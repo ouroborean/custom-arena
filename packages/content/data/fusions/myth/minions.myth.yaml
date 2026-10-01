@@ -11,7 +11,8 @@ mammoth:
       effect:
         id: mammoth_chill
         name: Mammoth's Chill
-        kind: Debuff
+        # Neutral, so a cleanse can't strip it before the Frost debuffs it protects.
+        kind: Neutral
         element: Myth
         description: Frost debuffs on the bearer can't be removed while the Mammoth stands.
         modifiers:

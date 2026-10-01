@@ -64,7 +64,8 @@ charge.myth:
         - op: forEach
           in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
           do:
-            - { op: damage, to: primary, amount: { sum: [15, { div: [{ hp: it }, 2] }] } }
+            - { op: set, var: boulderHp, value: { hp: it } }
+            - { op: damage, to: primary, amount: { sum: [15, { div: [{ var: boulderHp }, 2] }] } }
             - op: if
               cond: { not: { has: { unit: actor, effect: mythic } } }
               then: [{ op: kill, to: it }]
@@ -434,6 +435,10 @@ ravage.myth:
             - { compare: { value: { sum: [{ hp: primary }, { mul: [-1, { hp: actor }] }] }, atLeast: 1 } }
         then: 45
         else: 25
+    # A kill: 1 more Legend on top of Saga's own.
+    - op: if
+      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }]
 
 mislead.myth:
   archetype: Mislead

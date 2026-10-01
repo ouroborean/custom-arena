@@ -767,8 +767,7 @@ describe('Sun skills', () => {
     expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  // BUG: "it ticks once now" — the immediate tick deals 0 damage and heals 0; only the end-of-turn tick lands.
-  it.fails('Dawn Chorus: every allied minion gains 1 Corona and it ticks once now', () => {
+  it('Dawn Chorus: every allied minion gains 1 Corona and it ticks once now', () => {
     const a = arena({ p0: [['shout.sun', 'charge.sun']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.sun', B1).end().pass(1);
     const st = minions(a, 0, 'sunstone')[0]!;

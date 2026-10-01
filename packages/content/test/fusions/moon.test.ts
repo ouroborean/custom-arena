@@ -210,8 +210,7 @@ describe('Moon skills', () => {
     expect(a.hp(B1)).toBe(60);
   });
 
-  // BUG: Hunter's Moon says "Bypassing Invulnerable"; an Invulnerable target is "unaffected (untargetable)".
-  it.fails("Hunter's Moon: Bypasses Invulnerable", () => {
+  it("Hunter's Moon: Bypasses Invulnerable", () => {
     const a = moon({ p0: [['snipe.moon']], p1: [['shot']] });
     a.use(A1, 'snipe.moon', B1).end();
     a.give(B1, 'invulnerable', { duration: 2 }).end();
@@ -377,16 +376,13 @@ describe('Moon skills', () => {
     expect(a.hp(B1)).toBe(left); // it's over
   });
 
-  // BUG: ruling §21.52 says Lunar Lullaby "lasts 4 − phase turns" (from New Moon: game turns 1, 3, 5, 7), but the
-  // New Moon ends it before its last tick: 3 ticks (70), not 4 (60).
-  it.fails('Lunar Lullaby: from New Moon it ticks on 4 turns', () => {
+  it('Lunar Lullaby: from New Moon it ticks on 4 turns', () => {
     const a = moon({ p0: [['channel.moon']], p1: [['shot']] });
     a.use(A1, 'channel.moon').end().pass(6);
     expect(a.hp(B1)).toBe(60);
   });
 
-  // BUG: same as above: started at the Full Moon it should last 2 turns (4 − 2), but ticks only once.
-  it.fails('Lunar Lullaby: started at the Full Moon, it ticks on 2 turns', () => {
+  it('Lunar Lullaby: started at the Full Moon, it ticks on 2 turns', () => {
     const a = moon({ p0: [['channel.moon']], p1: [['shot']] });
     a.pass(4).use(A1, 'channel.moon').end().pass(4);
     expect(a.hp(B1)).toBe(80);

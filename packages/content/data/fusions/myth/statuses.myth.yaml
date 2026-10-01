@@ -27,13 +27,14 @@ saga:
   element: Myth
   stacking: unique
   description: >-
-    Gains 1 Legend each time this character uses a Myth skill or kills an enemy or minion; at 3, they
-    become Mythic.
+    Gains 1 Legend each time this character uses a Myth skill (except Awakened Giant) or kills an enemy or
+    minion; at 3, they become Mythic.
   triggers:
     - on: skillUsed
       do:
+        # Awakened Giant (the Myth Titan) spends Legends rather than earning one.
         - op: if
-          cond: { eventSkill: { elements: [Myth] } }
+          cond: { and: [{ eventSkill: { elements: [Myth] } }, { not: { eventSkill: { archetypes: [Titan] } } }] }
           then:
             - { op: forEach, in: bearer, do: [{ op: macro, id: gain_legend }] }
     - on: signal

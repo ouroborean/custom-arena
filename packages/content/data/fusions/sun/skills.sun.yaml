@@ -689,8 +689,9 @@ shout.sun:
       in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
       do:
         - { op: macro, id: gain_corona }
-        - { op: damage, to: allEnemies, amount: { mul: [5, { stacks: { unit: it, effect: corona } }] }, type: Affliction, direct: false }
-        - { op: heal, to: allAllies, amount: { mul: [5, { stacks: { unit: it, effect: corona } }] } }
+        - { op: set, var: glow, value: { mul: [5, { stacks: { unit: it, effect: corona } }] } }
+        - { op: damage, to: allEnemies, amount: { var: glow }, type: Affliction, direct: false }
+        - { op: heal, to: allAllies, amount: { var: glow } }
 
 withstand.sun:
   archetype: Withstand

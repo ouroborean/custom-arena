@@ -136,8 +136,7 @@ describe('Myth skills', () => {
     expect([a.hp(B1), minions(a, 0, 'boulder').length]).toEqual([85, 1]);
   });
 
-  // BUG: Mammoth Charge: "destroyed to add half its HP to the hit" (30 HP Boulder: 15 + 15) vs the hit deals 57 whatever the Boulder's HP
-  it.fails("Mammoth Charge: with a Boulder, it's destroyed to add half its HP to the hit", () => {
+  it("Mammoth Charge: with a Boulder, it's destroyed to add half its HP to the hit", () => {
     const a = arena({ p0: [['charge.myth']], p1: [['shot']] });
     a.use(A1, 'charge.myth', B1).end().pass(5);
     const boulder = minions(a, 0, 'boulder')[0]!;
@@ -299,8 +298,7 @@ describe('Myth skills', () => {
     expect(a.has(B1, 'frostbitten')).toBe(true);
   });
 
-  // BUG: Mammoth: "Frost debuffs on enemies can't be removed" vs a remove-all-Debuffs cleanse strips the protecting Debuff first, then the Frost debuff
-  it.fails("Mammoth: while it stands, enemies' Frost debuffs survive a cleanse", () => {
+  it("Mammoth: while it stands, enemies' Frost debuffs survive a cleanse", () => {
     const a = arena({ p0: [['companion.myth']], p1: [['rage.wind']] });
     a.use(A1, 'companion.myth').end();
     a.give(B1, 'frostbitten', { source: A1 }).give(B1, 'weakness', { source: A1 });
@@ -462,8 +460,7 @@ describe('Myth skills', () => {
     expect(a.hp(B1)).toBe(15);
   });
 
-  // SPEC: does Giant-Slayer's "1 more Legend" on a kill stack with Saga's own per-kill Legend (3 in all), or is it that same Legend (2 in all, which is what happens)?
-  it.fails('Giant-Slayer: a kill gives 1 more Legend on top of the Saga (3 in all: Mythic)', () => {
+  it('Giant-Slayer: a kill gives 1 more Legend on top of the Saga (3 in all: Mythic)', () => {
     const a = arena({ p0: [['ravage.myth']], p1: [['shot'], ['shot']], passives: SAGA });
     a.setHp(B1, 20).use(A1, 'ravage.myth', B1).end();
     expect([a.unit(B1).alive, a.has(A1, 'mythic')]).toEqual([false, true]);
@@ -733,8 +730,7 @@ describe('Myth skills', () => {
     expect(a.has(A1, 'confusion')).toBe(false);
   });
 
-  // BUG: Awakened Giant: "3 turns +1 per Legend they had" vs Saga's Legend for using it is counted first: 0 banked gives 4 turns, and 2 banked hit 3, trigger the normal Mythic and are consumed, so it's 3 turns
-  it.fails('Awakened Giant: 3 turns, +1 per Legend the user had', () => {
+  it('Awakened Giant: 3 turns, +1 per Legend the user had', () => {
     const a = arena({ p0: [['titan.myth']], p1: [['shot']] });
     a.use(A1, 'titan.myth').end();
     expect(dur(a, A1, 'mythic')).toBe(2 * 3 - 1);

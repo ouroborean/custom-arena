@@ -166,6 +166,7 @@ snipe.moon:
         onExpire:
           - op: damage
             to: effectTargets
+            bypass: true
             amount: { if: { check: { cond: moon_full, unit: actor } }, then: 60, else: 40 }
           - op: if
             cond: { check: { cond: moon_waning, unit: actor } }
@@ -350,10 +351,12 @@ channel.moon:
           - on: turnEnd
             do:
               - { op: damage, to: allEnemies, amount: 10 }
+          # The New Moon is announced before this turn's tick, so the last tick happens here.
           - on: signal
             signal: new_moon
             when: { side: ally }
             do:
+              - { op: damage, to: allEnemies, amount: 10 }
               - { op: apply, to: allEnemies, effect: sleep, duration: { enemyTurns: 1 } }
               - { op: removeSelf }
 
