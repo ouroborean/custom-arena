@@ -173,6 +173,7 @@ function interceptorFor(
     (spec.when?.harmful ?? true) === harmful &&
     (spec.when?.strategic === undefined || spec.when.strategic === strategic) &&
     (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast) &&
+    (spec.when?.archetypes === undefined || spec.when.archetypes.includes(def.archetype)) &&
     (spec.when?.anyTags === undefined || spec.when.anyTags.some((t) => effectiveTags(ctx, actor, def).includes(t as (typeof def.tags)[number])));
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
@@ -416,7 +417,7 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
       effect: effect.defId,
       reflected: spec.intercept === 'reflect',
     });
-    runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id });
+    runTrigger(ctx, effect, { effect: effect.id, spec, eventSource: actor.id, eventTarget: reflector.id, eventTargets: targets, eventSkill: def.id });
     // The user's equipment hears its skill was stopped; so does everyone else's (Mask of Many Faces).
     enqueueFor(ctx, actor.id, 'countered', {
       eventSource: reflector.id,

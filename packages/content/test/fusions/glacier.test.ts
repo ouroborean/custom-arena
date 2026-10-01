@@ -130,16 +130,14 @@ describe('Glacier skills', () => {
     expect(a.hp(A1)).toBe(85); // smash countered; only the first, so the shot lands
   });
 
-  // BUG: text says Meltwater for 1 turn per turn of the countered skill's cooldown (Smash, cd 2 → 2 turns); no Meltwater is gained at all
-  it.fails('Pressure Ridge: the user gains Meltwater for 1 turn per turn of the countered skill’s cooldown', () => {
+  it('Pressure Ridge: the user gains Meltwater for 1 turn per turn of the countered skill’s cooldown', () => {
     const a = arena({ p0: [['riposte.glacier']], p1: [['smash']] });
     a.use(A1, 'riposte.glacier').end().use(B1, 'smash', A1).end();
     expect(a.has(A1, 'meltwater')).toBe(true);
     expect(appliedDur(a, A1, 'meltwater')).toBe(5); // 2 turns, applied on the enemy's turn
   });
 
-  // BUG: text says Meltwater for 1 turn per turn of cooldown, max 3 (Crevasse, cd 4 → 3 turns); no Meltwater is gained
-  it.fails('Pressure Ridge: Meltwater is capped at 3 turns', () => {
+  it('Pressure Ridge: Meltwater is capped at 3 turns', () => {
     const b = arena({ p0: [['riposte.glacier']], p1: [['trap.glacier']] });
     b.use(A1, 'riposte.glacier').end().use(B1, 'trap.glacier', A1).end();
     expect(appliedDur(b, A1, 'meltwater')).toBe(7); // 3 turns
@@ -385,15 +383,13 @@ describe('Glacier skills', () => {
     expect([a.hp(A1), a.has(B1, 'icebound')]).toEqual([100, true]);
   });
 
-  // BUG: text says Icebound 1 turn per turn of the countered skill's cooldown (Smash, cd 2 → 2 turns); it's always 1 turn
-  it.fails('Thin Ice: Icebound lasts 1 turn per turn of the countered skill’s cooldown', () => {
+  it('Thin Ice: Icebound lasts 1 turn per turn of the countered skill’s cooldown', () => {
     const a = arena({ p0: [['mislead.glacier']], p1: [['smash']] });
     a.use(A1, 'mislead.glacier', B1).end().use(B1, 'smash', A1).end();
     expect(appliedDur(a, B1, 'icebound')).toBe(5); // 2 turns, applied on their turn
   });
 
-  // BUG: text says 1 turn per turn of cooldown, max 3 (Crevasse, cd 4 → 3 turns); it's 1 turn
-  it.fails('Thin Ice: Icebound is capped at 3 turns', () => {
+  it('Thin Ice: Icebound is capped at 3 turns', () => {
     const a = arena({ p0: [['mislead.glacier']], p1: [['trap.glacier']] });
     a.use(A1, 'mislead.glacier', B1).end().use(B1, 'trap.glacier', A1).end();
     expect(appliedDur(a, B1, 'icebound')).toBe(7);

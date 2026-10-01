@@ -346,8 +346,7 @@ describe('Reanimation skills', () => {
     expect([a.hp(A2), a.hp(A3)]).toEqual([100, 85]);
   });
 
-  // BUG: "each ally it targeted is Galvanized for 2 turns" — the skill is countered, but no ally is Galvanized.
-  it.fails('Lazarus Trick: counters the target\'s Harmful skill; each ally it targeted is Galvanized for 2 turns', () => {
+  it('Lazarus Trick: counters the target\'s Harmful skill; each ally it targeted is Galvanized for 2 turns', () => {
     const a = arena({ p0: [['mislead.reanimation'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'mislead.reanimation', B1).end().use(B1, 'shot', A2).use(B2, 'shot', A3).end();
     expect([a.hp(A2), a.has(A2, 'galvanized'), a.hp(A3), a.has(A3, 'galvanized')]).toEqual([100, true, 85, false]);

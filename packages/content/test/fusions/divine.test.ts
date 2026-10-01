@@ -342,8 +342,7 @@ describe('Divine skills', () => {
     expect(sanctified(a, B1)).toBe(false);
   });
 
-  // BUG: Sacred Tithe counters the Helpful skill but never recasts it on the tither's weakest ally (A2 stays at 50).
-  it.fails("Sacred Tithe: the enemy's first Helpful skill lands on the user's weakest ally instead", () => {
+  it("Sacred Tithe: the enemy's first Helpful skill lands on the user's weakest ally instead", () => {
     const a = arena({ p0: [['trap.divine'], ['shot'], ['shot']], p1: [['heal', 'prayer'], ['shot']] });
     a.setHp(A2, 50).setHp(A3, 70).setHp(B2, 50).use(A1, 'trap.divine', B1).end();
     expect(hiddenFromB(a, B1)).toBe(true); // Invisible

@@ -123,8 +123,7 @@ describe('Dragon skills', () => {
     expect(a.hp(A1)).toBe(100);
   });
 
-  // BUG: Dragon's Toll says the user gains 1 Hoard per energy each countered skill cost; they gain none.
-  it.fails('Dragon\'s Toll: 1 Hoard per energy each countered skill cost', () => {
+  it('Dragon\'s Toll: 1 Hoard per energy each countered skill cost', () => {
     const a = arena({ p0: [['riposte.dragon']], p1: [['smash'], ['shot']] });
     a.use(A1, 'riposte.dragon').end();
     a.use(B1, 'smash', A1).use(B2, 'shot', A1).end(); // Sr (2) + r (1)

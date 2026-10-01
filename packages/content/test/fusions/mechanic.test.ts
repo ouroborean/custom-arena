@@ -398,8 +398,7 @@ describe('Mechanic skills', () => {
     expect([a.hp(A1), a.has(B1, 'stun')]).toEqual([100, true]);
   });
 
-  // BUG: any skill backfires (a Shot is countered and Stuns its user), not only mobility skills.
-  it.fails('Sabotage: non-mobility skills are unaffected', () => {
+  it('Sabotage: non-mobility skills are unaffected', () => {
     const a = arena({ p0: [['curse.mechanic']], p1: [['charge', 'shot']] });
     a.use(A1, 'curse.mechanic', B1).end().use(B1, 'shot', A1).end();
     expect([a.hp(A1), a.has(B1, 'stun')]).toEqual([85, false]);

@@ -289,8 +289,7 @@ describe('Dimension skills', () => {
     expect(a.has(A1, 'stealth')).toBe(true);
   });
 
-  // BUG: Event Horizon says the Helpful skill's target is Banished instead of helped; the skill is countered but nobody is Banished.
-  it.fails('Event Horizon: the trapped enemy\'s first Helpful skill Banishes its target instead of helping', () => {
+  it('Event Horizon: the trapped enemy\'s first Helpful skill Banishes its target instead of helping', () => {
     const a = arena({ p0: [['trap.dimension'], ['shot']], p1: [['heal', 'bless'], ['shot'], ['shot']] });
     a.use(A1, 'trap.dimension', B1).use(A2, 'shot', B2).end();
     a.use(B1, 'heal', B2).end();

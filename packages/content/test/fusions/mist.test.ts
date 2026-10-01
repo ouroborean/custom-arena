@@ -387,8 +387,7 @@ describe('Mist skills', () => {
     expect(c.hp(B1)).toBe(75);
   });
 
-  // BUG: "each unit it targeted gains Fog for 2 turns": the skill is countered but its target gains no Fog.
-  it.fails('Lost in the Fog: counters the target\'s Harmful skill; each unit it targeted gains Fog for 2 turns', () => {
+  it('Lost in the Fog: counters the target\'s Harmful skill; each unit it targeted gains Fog for 2 turns', () => {
     const a = arena({ p0: three(['mislead.mist']), p1: three() });
     const seen = seenByB(a, B1);
     a.use(A1, 'mislead.mist', B1).end();

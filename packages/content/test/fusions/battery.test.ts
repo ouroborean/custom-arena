@@ -166,8 +166,7 @@ describe('Battery skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: "the user stores 1 Cell for each energy that skill cost" — the counter fires but no Cells are stored.
-  it.fails('Capacitor: counters the next Harmful skill on the user and stores 1 Cell per energy it cost', () => {
+  it('Capacitor: counters the next Harmful skill on the user and stores 1 Cell per energy it cost', () => {
     const a = arena({ p0: [['riposte.battery']], p1: [['smash'], ['shot']] });
     const smashCost = Object.values(content.skills.smash!.cost).reduce((x, y) => x + y, 0);
     a.use(A1, 'riposte.battery').end();

@@ -374,8 +374,7 @@ describe('Serum skills', () => {
     expect(a.hp(B2)).toBe(50);
   });
 
-  // BUG: "each of its targets gains 2 Dose": the Helpful skill is countered but its target gains no Dose.
-  it.fails('Placebo: each target of the countered skill gains 2 Dose', () => {
+  it('Placebo: each target of the countered skill gains 2 Dose', () => {
     const a = arena({ p0: [['mislead.serum']], p1: [['heal'], ['shot'], ['shot']] });
     a.use(A1, 'mislead.serum', B1).end().setHp(B2, 50).use(B1, 'heal', B2).end();
     expect(dose(a, B2)).toBe(2);

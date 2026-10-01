@@ -353,8 +353,7 @@ describe('Antidote skills', () => {
     expect([a.hp(B1), a.has(A1, 'inoculated')]).toEqual([35, false]);
   });
 
-  // BUG: "each of its targets Purges 1 Debuff onto them" — the skill is countered but the target keeps its Debuff and the user takes nothing.
-  it.fails('False Symptom: a Harmful skill is countered, and each of its targets Purges 1 Debuff onto its user', () => {
+  it('False Symptom: a Harmful skill is countered, and each of its targets Purges 1 Debuff onto its user', () => {
     const a = arena({ p0: [['mislead.antidote']], p1: [['shot']] });
     a.give(A1, 'weakness', { source: B1 });
     a.use(A1, 'mislead.antidote', B1).end().use(B1, 'shot', A1).end();

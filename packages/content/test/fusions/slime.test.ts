@@ -208,8 +208,7 @@ describe('Slime skills', () => {
     expect(a.hp(A1)).toBe(85); // only the first is countered
   });
 
-  // BUG: "an Ooze with 10 HP per energy the skill cost": a countered Smash (Sr, 2 energy) makes a 10 HP Ooze, not 20.
-  it.fails('Gel Parry: a 2-energy skill makes a 20 HP Ooze', () => {
+  it('Gel Parry: a 2-energy skill makes a 20 HP Ooze', () => {
     const a = arena({ p0: [['riposte.slime']], p1: [['smash'], ['shot'], ['shot']] });
     a.use(A1, 'riposte.slime').end().use(B1, 'smash', A1).end();
     expect(oozeHp(a)).toEqual([20]);
@@ -436,8 +435,7 @@ describe('Slime skills', () => {
     expect([a.hp(A1), engulfed(a, B1), oozeHp(a)]).toEqual([100, true, [10]]);
   });
 
-  // BUG: "an Ooze with 10 HP per energy the skill cost": a countered Smash (Sr, 2 energy) makes a 10 HP Ooze, not 20.
-  it.fails('Gulp: a 2-energy skill makes a 20 HP Ooze', () => {
+  it('Gulp: a 2-energy skill makes a 20 HP Ooze', () => {
     const a = arena({ p0: [['mislead.slime']], p1: [['smash'], ['shot'], ['shot']] });
     a.use(A1, 'mislead.slime', B1).end().use(B1, 'smash', A1).end();
     expect([a.hp(A1), engulfed(a, B1), oozeHp(a)]).toEqual([100, true, [20]]);

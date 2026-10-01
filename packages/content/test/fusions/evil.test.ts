@@ -577,8 +577,7 @@ describe('Evil skills', () => {
     expect(a.hp(B2)).toBeLessThanOrEqual(50);
   });
 
-  // BUG: Waking Nightmare (ruling: the countered skill's targets take 20 Affliction) counters the heal but deals nothing
-  it.fails('Waking Nightmare: the countered skill\'s targets take 20 Affliction instead', () => {
+  it('Waking Nightmare: the countered skill\'s targets take 20 Affliction instead', () => {
     const a = arena({ p0: [['mislead.evil']], p1: [['heal'], ['shot']] });
     a.setHp(B2, 50).give(B2, 'shield', { value: 30 }).use(A1, 'mislead.evil', B1).end();
     a.use(B1, 'heal', B2).end();

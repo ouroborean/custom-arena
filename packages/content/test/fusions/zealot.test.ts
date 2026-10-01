@@ -562,8 +562,7 @@ describe('Zealot skills', () => {
     expect(buffs(B2)).toBe(1);
   });
 
-  // BUG: "each of its targets heals 10 per Fervor the user has" — the skill is countered but the target isn't healed
-  it.fails('Willing Martyrs: Invisible; counters the target\'s Harmful skill and heals its targets 10 per Fervor', () => {
+  it('Willing Martyrs: Invisible; counters the target\'s Harmful skill and heals its targets 10 per Fervor', () => {
     const a = arena({ p0: [['mislead.zealot'], ['shot']], p1: [['shot']] });
     a.give(A1, 'fervor', { stacks: 2 }).setHp(A2, 50).use(A1, 'mislead.zealot', B1).end();
     expect(hiddenFromOpponent(a, B1, 1)).toBe(true);

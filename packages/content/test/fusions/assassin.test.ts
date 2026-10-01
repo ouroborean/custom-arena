@@ -144,8 +144,7 @@ describe('Assassin skills', () => {
     a.use(B1, 'shot', A1);
   });
 
-  // BUG: "Stunned for 1 turn, or 2 if the countered skill has a cooldown of 3 or more" — a countered Taunt (CD 3) Stuns for only 1 turn.
-  it.fails('Garrote Wire: 2 turns if the countered skill has a cooldown of 3 or more', () => {
+  it('Garrote Wire: 2 turns if the countered skill has a cooldown of 3 or more', () => {
     const a = arena({ p0: [['riposte.assassin']], p1: [['taunt', 'shot']] });
     a.use(A1, 'riposte.assassin').end().use(B1, 'taunt', A1).end().pass(1);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');

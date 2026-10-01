@@ -387,8 +387,7 @@ describe('Aurora skills', () => {
     expect([a.hp(A1), a.has(B1, 'dazzled')]).toEqual([100, true]);
   });
 
-  // BUG: text says Dazzled for 1 turn +1 per energy the countered skill cost (Smash Sr → 3 turns, Shot r → 2); it's always 1 turn
-  it.fails('Ghost Lights: Dazzled 1 turn +1 per energy the countered skill cost', () => {
+  it('Ghost Lights: Dazzled 1 turn +1 per energy the countered skill cost', () => {
     const a = arena({ p0: [['mislead.aurora']], p1: [['smash']] });
     a.use(A1, 'mislead.aurora', B1).end().use(B1, 'smash', A1).end();
     expect(appliedDur(a, B1, 'dazzled')).toBe(7);

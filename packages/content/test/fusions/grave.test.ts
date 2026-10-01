@@ -445,8 +445,7 @@ describe('Grave skills', () => {
     expect(a.hp(A1)).toBe(100);
   });
 
-  // BUG: Premature Burial says the countered skill is "buried: its cooldown rises by 3"; its cooldown is unchanged.
-  it.fails("Premature Burial: the countered skill's cooldown rises by 3", () => {
+  it("Premature Burial: the countered skill's cooldown rises by 3", () => {
     const a = grave({ p0: [['mislead.grave']], p1: [['smash']] });
     a.use(A1, 'mislead.grave', B1).end().use(B1, 'smash', A1).end();
     const ctrl = grave({ p0: [['shot']], p1: [['smash']] });

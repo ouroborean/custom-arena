@@ -695,16 +695,14 @@ describe('Anointment skills', () => {
       expect(a.log().some((l) => l.includes('countered by'))).toBe(true);
     });
 
-    // BUG: "its targets heal 20 instead" (ruling: the countered skill's targets heal 20), but they don't heal at all.
-    it.fails('the countered skill’s target heals 20 instead', () => {
+    it('the countered skill’s target heals 20 instead', () => {
       const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['shot']] });
       a.setHp(A2, 50).use(A1, 'mislead.anointment', B1).end();
       a.use(B1, 'shot', A2).end();
       expect(a.hp(A2)).toBe(70);
     });
 
-    // BUG: an AoE countered by Turned to Grace should heal every target 20; nobody heals.
-    it.fails('an AoE countered heals every target 20', () => {
+    it('an AoE countered heals every target 20', () => {
       const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['blast']] });
       a.setHp(A1, 50).setHp(A2, 50).use(A1, 'mislead.anointment', B1).end();
       a.use(B1, 'blast').end();

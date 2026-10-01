@@ -325,8 +325,7 @@ describe('Prism skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([100, 100]);
   });
 
-  // BUG: Caught Light: "every unit it targeted gains Lens" vs no one gains Lens when the counter fires
-  it.fails('Caught Light: every unit the countered skill targeted gains Lens', () => {
+  it('Caught Light: every unit the countered skill targeted gains Lens', () => {
     const a = arena({ p0: [['mislead.prism'], ['shot']], p1: [['blast']] });
     a.use(A1, 'mislead.prism', B1).end();
     expect(seenByFoe(a, B1)).toEqual([]);
@@ -334,8 +333,7 @@ describe('Prism skills', () => {
     expect([a.hp(A1), a.hp(A2), a.has(A1, 'lens'), a.has(A2, 'lens')]).toEqual([100, 100, true, true]);
   });
 
-  // BUG: Caught Light: "every unit it targeted gains Lens" vs no one gains Lens when the counter fires
-  it.fails('Caught Light: a single-target skill gives Lens only to its target; lasts 1 turn', () => {
+  it('Caught Light: a single-target skill gives Lens only to its target; lasts 1 turn', () => {
     const a = arena({ p0: [['mislead.prism'], ['shot']], p1: [['shot']] });
     a.use(A1, 'mislead.prism', B1).end();
     a.use(B1, 'shot', A2).end();

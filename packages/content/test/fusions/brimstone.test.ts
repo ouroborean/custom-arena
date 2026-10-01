@@ -299,8 +299,7 @@ describe('Brimstone skills', () => {
     expect([a.hp(B1), toxin(a, B1)]).toEqual([50, 0]);
   });
 
-  // BUG: the skill is countered but its user gains no Sulfur (a 2-energy Smash should give 2).
-  it.fails('Choking Fumes: a Harmful skill is countered and its user gains 1 Sulfur per energy it cost', () => {
+  it('Choking Fumes: a Harmful skill is countered and its user gains 1 Sulfur per energy it cost', () => {
     const a = arena({ p0: [['mislead.brimstone']], p1: [['smash']] });
     a.use(A1, 'mislead.brimstone', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false); // Invisible

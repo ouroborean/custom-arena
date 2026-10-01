@@ -527,8 +527,7 @@ describe('Blood skills', () => {
     expect([a.has(B1, 'hemorrhage'), a.has(B2, 'hemorrhage')]).toEqual([false, false]);
   });
 
-  // BUG: the countered Smash (Sr, 2 energy) should cost its user 20 HP; they lose 0 ("deals 0 indirect Affliction").
-  it.fails('Red Herring: invisible; counters a Harmful skill and the user pays its cost again, 10 HP per energy', () => {
+  it('Red Herring: invisible; counters a Harmful skill and the user pays its cost again, 10 HP per energy', () => {
     const a = arena({ p0: [['mislead.blood']], p1: [['smash']] });
     a.use(A1, 'mislead.blood', B1).end();
     expect(a.hp(A1)).toBe(90);
@@ -537,8 +536,7 @@ describe('Blood skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([90, 80]);
   });
 
-  // BUG: same as above for a 1-energy Shot: 10 HP expected, 0 paid.
-  it.fails('Red Herring: a countered 1-energy Shot costs its user 10 HP', () => {
+  it('Red Herring: a countered 1-energy Shot costs its user 10 HP', () => {
     const a = arena({ p0: [['mislead.blood']], p1: [['shot']] });
     a.use(A1, 'mislead.blood', B1).end();
     a.use(B1, 'shot', A1).end();

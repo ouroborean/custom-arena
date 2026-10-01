@@ -217,8 +217,7 @@ describe('Winter skills', () => {
     expect([a.hp(A1), a.hp(B1), a.has(B1, 'snowbound')]).toEqual([100, 85, true]);
   });
 
-  // BUG: text says only mobility skills set it off; a plain Shot is countered (15 Piercing + Snowbound)
-  it.fails('Snare of Frost: non-mobility skills don’t set it off', () => {
+  it('Snare of Frost: non-mobility skills don’t set it off', () => {
     const a = arena({ p0: [['trap.winter']], p1: [['shot']] });
     a.use(A1, 'trap.winter', B1).end().use(B1, 'shot', A1).end();
     expect([a.hp(A1), a.hp(B1), a.has(B1, 'snowbound')]).toEqual([85, 100, false]);

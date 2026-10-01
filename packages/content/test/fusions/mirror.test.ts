@@ -300,8 +300,7 @@ describe('Mirror skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([100, 100]);
   });
 
-  // BUG: "its effects land on a random unit of yours instead" — the Helpful skill is countered, but never recast on the user's side (castSkill eventSkill gets no skill inside a counter intercept).
-  it.fails("False Reflection: the target's first Helpful skill lands on the user's side instead", () => {
+  it("False Reflection: the target's first Helpful skill lands on the user's side instead", () => {
     const a = arena({ p0: [['trap.mirror']], p1: [['heal']] });
     a.setHp(A1, 50).setHp(B1, 50).use(A1, 'trap.mirror', B1).end();
     a.use(B1, 'heal', B1).end();
@@ -536,8 +535,7 @@ describe('Mirror skills', () => {
     expect(a.hp(A1)).toBe(100);
   });
 
-  // BUG: "it's countered and the user Mimics it" — the counter fires, but the Mimic does nothing (castSkill eventSkill gets no skill inside a counter intercept).
-  it.fails("Stolen Shape: the target's Harmful skill is countered and the user Mimics it", () => {
+  it("Stolen Shape: the target's Harmful skill is countered and the user Mimics it", () => {
     const a = arena({ p0: [['mislead.mirror']], p1: [['smash']] });
     a.use(A1, 'mislead.mirror', B1).end();
     a.use(B1, 'smash', A1).end();
@@ -631,8 +629,7 @@ describe('Mirror skills', () => {
     expect(a.hp(B1)).toBe(50);
   });
 
-  // BUG: "landing on that ally instead" — the Helpful skill is countered, but never recast on the ally (castSkill eventSkill gets no skill inside a counter intercept).
-  it.fails("Mirrored Mending: the next Helpful skill an enemy uses lands on that ally instead", () => {
+  it("Mirrored Mending: the next Helpful skill an enemy uses lands on that ally instead", () => {
     const a = arena({ p0: [['heal.mirror'], ['shot']], p1: [['shot'], ['heal']] });
     a.setHp(A2, 50).setHp(B1, 50).use(A1, 'heal.mirror', A2).end();
     a.use(B2, 'heal', B1).end();

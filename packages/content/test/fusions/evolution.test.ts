@@ -619,8 +619,7 @@ describe('Evolution skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: Stage II should give 1 Toxin per energy the countered skill cost; the skill is countered but no Toxin is given.
-  it.fails('Warning Colors II: 1 Toxin per energy the countered skill cost', () => {
+  it('Warning Colors II: 1 Toxin per energy the countered skill cost', () => {
     const a = arena({ p0: [['mislead.evolution']], p1: [['smash']] });
     evolveTo(a, A1, 'mislead.evolution', 2, B1);
     a.use(A1, 'mislead.evolution', B1).end();
@@ -628,8 +627,7 @@ describe('Evolution skills', () => {
     expect([a.hp(A1), a.stacks(B1, 'toxin')]).toEqual([100, 2]);
   });
 
-  // BUG: at Stage III the trigger (any enemy) counters, but gives no Toxin (Stage II's per-energy Toxin is missing).
-  it.fails("Warning Colors III: visible, and any enemy's Harmful skill triggers it", () => {
+  it("Warning Colors III: visible, and any enemy's Harmful skill triggers it", () => {
     const a = arena({ p0: [['mislead.evolution']], p1: [['shot'], ['shot']] });
     evolveTo(a, A1, 'mislead.evolution', 3, B1);
     a.use(A1, 'mislead.evolution', B1).end();

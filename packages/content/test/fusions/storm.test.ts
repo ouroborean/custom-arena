@@ -253,8 +253,7 @@ describe('Storm skills', () => {
     expect(a.stacks(A1, 'charged')).toBe(c);
   });
 
-  // BUG: "its user is Sapped once for each energy it cost" — the counter fires, but no Sapped is applied.
-  it.fails('Grounded Arc: counters the first Harmful skill on the user and Saps its user once per energy it cost', () => {
+  it('Grounded Arc: counters the first Harmful skill on the user and Saps its user once per energy it cost', () => {
     const a = arena({ p0: [['riposte.storm']], p1: [['smash'], ['shot']] });
     const smashCost = Object.values(content.skills.smash!.cost).reduce((x, y) => x + y, 0);
     a.use(A1, 'riposte.storm').end();

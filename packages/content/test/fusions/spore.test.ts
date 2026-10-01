@@ -171,8 +171,7 @@ describe('Spore skills', () => {
     expect([spores(a, B1), spores(a, B2)]).toEqual([1, 0]);
   });
 
-  // BUG: "1 Spore per target the skill had" — a countered Blast on 2 targets gives its user only 1 Spore.
-  it.fails('Bursting Cap: an AoE skill with 2 targets gives its user 2 Spores', () => {
+  it('Bursting Cap: an AoE skill with 2 targets gives its user 2 Spores', () => {
     const a = arena({ p0: [['riposte.spore'], ['shot']], p1: [['blast']] });
     a.use(A1, 'riposte.spore').end().use(B1, 'blast').end();
     expect([a.hp(A1), a.hp(A2), spores(a, B1)]).toEqual([100, 100, 2]);

@@ -303,8 +303,7 @@ describe('Blight skills', () => {
     expect([a.hp(B1), withered(a, B1)]).toEqual([70, 0]);
   });
 
-  // BUG: "each unit it would have helped gains 1 Withered" — the Helpful skill is countered but nobody gains Withered.
-  it.fails('Tainted Offering: a Helpful skill is countered; each unit it would have helped gains 1 Withered', () => {
+  it('Tainted Offering: a Helpful skill is countered; each unit it would have helped gains 1 Withered', () => {
     const a = arena({ p0: [['mislead.blight']], p1: [['heal'], ['shot']] });
     a.use(A1, 'mislead.blight', B1).end();
     a.setHp(B2, 50).use(B1, 'heal', B2).end();
