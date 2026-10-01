@@ -156,10 +156,12 @@ export function cooldownOnUse(ctx: Ctx, u: Unit, def: SkillDef): number {
 export function cannotUseReason(ctx: Ctx, u: Unit, def: SkillDef): string | null {
   if (!u.alive) return 'dead';
   const tags = effectiveTags(ctx, u, def);
-  if (tags.includes('UsableWhileStunned') || tags.includes('Unstunnable')) return null;
+  const unstunnable = tags.includes('UsableWhileStunned') || tags.includes('Unstunnable');
   const cls = skillClass(def);
   const harmful = def.tags.includes('Harmful');
   for (const { spec } of modsFor(ctx, u.id, 'cannotUseSkills', def)) {
+    // Brimstone's Asphyxiate: some Stuns even stop Unstunnable skills.
+    if (unstunnable && !spec.evenUnstunnable) continue;
     if (spec.classes && !spec.classes.includes(cls)) continue;
     if (spec.harmful !== undefined && spec.harmful !== harmful) continue;
     return 'stunned';

@@ -323,8 +323,7 @@ describe('Curse skills', () => {
     expect(a.has(A1, 'invulnerable')).toBe(false);
   });
 
-  // BUG: "their Lifesteal also heals them for damage their minions deal" — the Cat's Scratch heals the Lifesteal user nothing
-  it.fails("Familiar's Cover: the user's Lifesteal also heals them for their minions' damage", () => {
+  it("Familiar's Cover: the user's Lifesteal also heals them for their minions' damage", () => {
     const a = arena({ p0: [['companion.curse', 'maneuver.curse']], p1: [['shot']] });
     a.use(A1, 'companion.curse').end().pass(1);
     const cat = minion(a, 'black_cat');

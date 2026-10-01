@@ -228,7 +228,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional(), min: z.number().int().min(0).optional() }),
   mod({ mod: z.literal('untargetable'), by: z.enum(['enemies', 'allies']), bypassable: z.boolean() }),
   mod({ mod: z.literal('blockIndirectDamage') }),
-  mod({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional() }),
+  mod({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional(), evenUnstunnable: z.boolean().optional() }),
   mod({ mod: z.literal('noCostReduction') }),
   mod({ mod: z.literal('cannotApplyBuffs') }),
   mod({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),

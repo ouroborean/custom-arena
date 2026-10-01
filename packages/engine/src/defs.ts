@@ -447,7 +447,7 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'untargetable'; by: 'enemies' | 'allies'; bypassable: boolean }
   | { mod: 'blockIndirectDamage' }
   /** Stun. `classes` limits it to Strategic / non-Strategic skills; `harmful` to Harmful (true) or Helpful (false) ones. */
-  | { mod: 'cannotUseSkills'; classes?: SkillClass[]; harmful?: boolean }
+  | { mod: 'cannotUseSkills'; classes?: SkillClass[]; harmful?: boolean; evenUnstunnable?: boolean }
   /** The bearer's costs can't be reduced (Chilled). */
   | { mod: 'noCostReduction' }
   /** The bearer can't apply Buffs, to anyone (Numb). */

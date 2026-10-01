@@ -535,9 +535,7 @@ describe('Phoenix skills', () => {
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.stacks(A1, 'focus')]).toEqual([0, 0, 0]);
   });
 
-  // BUG: "each Kindle skill they use on an enemy also heals the user's ally with the least HP for half its damage"
-  // — a 20-damage Firebrand Talon during the Dance heals nobody.
-  it.fails('Dance of Embers: a Kindle on an enemy heals the weakest ally for half its damage', () => {
+  it('Dance of Embers: a Kindle on an enemy heals the weakest ally for half its damage', () => {
     const a = arena({ p0: [['dance.phoenix', 'strike.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
     a.give(B1, 'armor'); // cancels the Dance's Might: the Talon deals 20
     a.use(A1, 'dance.phoenix').end().pass(1);

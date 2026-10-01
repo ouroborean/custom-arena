@@ -609,8 +609,8 @@ cleave.blood:
   element: Blood
   name: Leeching Sweep
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. For 2 turns, the user's Lifesteal also
-    heals them for their ticking and Affliction damage.
+    Deals 25 damage to target enemy and 15 to a random other enemy. For 2 turns, the user's Lifesteal heals
+    them twice over for their ticking and Affliction damage.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -626,7 +626,7 @@ cleave.blood:
         name: Leeching Sweep
         kind: Buff
         element: Blood
-        description: While the bearer has Lifesteal, their indirect damage heals them too.
+        description: While the bearer has Lifesteal, their indirect damage heals them a second time.
         triggers:
           - on: dealtDamage
             when: { direct: false, byEnemy: true }

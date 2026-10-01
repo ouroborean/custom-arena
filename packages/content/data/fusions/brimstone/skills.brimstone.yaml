@@ -455,9 +455,9 @@ stun.brimstone:
         name: Asphyxiated
         kind: Neutral
         element: Brimstone
-        description: Stunned; Swiftness and Immune can't stop it.
+        description: Stunned; Swiftness, Immune and Unstunnable can't stop it.
         modifiers:
-          - { mod: cannotUseSkills }
+          - { mod: cannotUseSkills, evenUnstunnable: true }
 
 dance.brimstone:
   archetype: Dance

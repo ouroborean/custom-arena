@@ -33,8 +33,7 @@ describe('Prism keywords', () => {
     expect([a.hp(B2), a.hp(B3)].sort((x, y) => x - y)).toEqual([90, 100]);
   });
 
-  // BUG: Hovering Prism: "the user's direct hits Refract to a random other enemy at half strength" vs the refracted hit deals 0
-  it.fails('Refract: the refracted damage rounds down to a multiple of 5', () => {
+  it('Refract: the refracted damage rounds down to a multiple of 5', () => {
     const a = arena({ p0: [['summon.prism', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'summon.prism').end().pass(1).use(A1, 'shot', B1).end(); // 15 refracts as 5
     expect([a.hp(B1), a.hp(B2)]).toEqual([85, 95]);
@@ -258,8 +257,7 @@ describe('Prism skills', () => {
     expect(minions(a, 0, 'hovering_prism')).toHaveLength(0);
   });
 
-  // BUG: Hovering Prism: "the user's direct hits Refract to a random other enemy at half strength" vs the refracted hit deals 0
-  it.fails('Hovering Prism: the user’s direct hits Refract to another enemy at half strength', () => {
+  it('Hovering Prism: the user’s direct hits Refract to another enemy at half strength', () => {
     const a = arena({ p0: [['summon.prism', 'strike']], p1: [['shot'], ['shot']] });
     a.use(A1, 'summon.prism').end();
     const prism = minions(a, 0, 'hovering_prism')[0]!;

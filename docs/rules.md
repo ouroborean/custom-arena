@@ -1323,7 +1323,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Blood Doping | The crash is a Neutral inline stun, so Swiftness can't stop it. |
 | Blood Chant | Simplified: until the user's next turn, the other allies pay their own random costs in HP. |
 | Clotting Ward | Lasts until the start of the user's next turn, and their Renew heals once more at that moment. |
-| Leeching Sweep | While the user has Lifesteal, their indirect damage to enemies also heals them. |
+| Leeching Sweep | While the user has Lifesteal, their indirect damage to enemies heals them a second time (see §21.56). |
 
 ### 21.34 Mirror (Water + Shadow)
 

@@ -205,7 +205,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   // Anyone can listen for damage anywhere (Blood Chalice).
   broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
   for (const { e, take } of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill, take);
-  // The bearer's other effects hear it too ("when their Shield breaks…": Wall of Bones, Bone Carapace).
+  // The bearer's other effects hear it too ("when their Shield breaks...": Wall of Bones, Bone Carapace).
   if (hitShields.length > 0) {
     const absorbedTotal = hitShields.reduce((n, h) => n + h.take, 0);
     for (const e of effectsOn(ctx.s, target.id)) {
@@ -214,7 +214,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     }
   }
   if (source !== target) {
-    for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);
+    for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill, remaining);
   }
   if (enemy) target.lastAttacker = source.id;
   if (enemy && a.direct && a.skill && modsOn(ctx.s, ctx.c, target.id, 'adaptiveHide').length > 0) {
@@ -283,7 +283,6 @@ function enqueueOn(
   }
 }
 
-/** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
 /** The summoner whose HP an `hpLink` minion shares, if it's alive. */
 function hpLinkOf(ctx: Ctx, u: Unit): Unit | undefined {
   if (!u.summonedBy || modsOn(ctx.s, ctx.c, u.id, 'hpLink').length === 0) return undefined;
@@ -291,6 +290,7 @@ function hpLinkOf(ctx: Ctx, u: Unit): Unit | undefined {
   return s?.alive ? s : undefined;
 }
 
+/** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
 export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number, opts: { raw?: boolean | undefined; quiet?: boolean | undefined } = {}): number {
   if (!target.alive || amount <= 0) return 0;
   const linked = hpLinkOf(ctx, target);

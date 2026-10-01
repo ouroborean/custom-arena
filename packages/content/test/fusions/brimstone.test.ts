@@ -324,8 +324,7 @@ describe('Brimstone skills', () => {
     expect(a.state.players[1].queue).toHaveLength(1);
   });
 
-  // BUG: the target can still use an Unstunnable skill (Choking Pall) while Asphyxiated.
-  it.fails('Asphyxiate: Unstunnable skills are stopped too', () => {
+  it('Asphyxiate: Unstunnable skills are stopped too', () => {
     const a = arena({ p0: [['stun.brimstone']], p1: [['maneuver.brimstone']] });
     a.use(A1, 'stun.brimstone', B1).end();
     expect(a.reject(() => a.use(B1, 'maneuver.brimstone'))).toBe('cannot_act');
@@ -354,16 +353,13 @@ describe('Brimstone skills', () => {
   });
 
   // §21.15 narrows the text's "all the Affliction damage" to "all indirect damage the bearer deals to enemies".
-  // BUG: the Crest heals for none of it: a Toxin tick from the ally heals nothing.
-  it.fails('Brimfire Crest: the ally heals for the indirect damage they deal (Toxin tick)', () => {
+  it('Brimfire Crest: the ally heals for the indirect damage they deal (Toxin tick)', () => {
     const a = arena({ p0: [['bless.brimstone'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).give(B1, 'toxin', { stacks: 2, source: A2 }).use(A1, 'bless.brimstone', A2).end();
     expect([a.hp(B1), a.hp(A2)]).toEqual([90, 60]);
   });
 
-  // BUG: with the Crest, the ally's own Ignite ticks heal nothing (Flameborn's Ignite healing is switched off and
-  // the Crest doesn't replace it).
-  it.fails('Brimfire Crest: the ally still heals for their own Ignite ticks', () => {
+  it('Brimfire Crest: the ally still heals for their own Ignite ticks', () => {
     const a = arena({ p0: [['bless.brimstone'], ['strike.fire']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'bless.brimstone', A2).use(A2, 'strike.fire', B1).end();
     expect(a.hp(A2)).toBe(55);

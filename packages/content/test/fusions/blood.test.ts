@@ -708,11 +708,11 @@ describe('Blood skills', () => {
     expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85]);
   });
 
-  it('Leeching Sweep: with Lifesteal, the user\'s ticking/Affliction damage heals them too', () => {
+  it('Leeching Sweep: with Lifesteal, the user\'s ticking/Affliction damage heals them twice over', () => {
     const a = arena({ p0: [['cleave.blood']], p1: [['shot'], ['shot']] });
     a.give(A1, 'lifesteal').give(B1, 'hemorrhage', { stacks: 2, source: A1 }).setHp(A1, 30).use(A1, 'cleave.blood', B1).end();
-    // 40 stolen by the hits, 10 by the Hemorrhage tick.
-    expect(a.hp(A1)).toBe(80);
+    // 40 stolen by the hits; the 10-damage Hemorrhage tick heals 10 (Lifesteal) + 10 (the Sweep).
+    expect(a.hp(A1)).toBe(90);
   });
 
   it('Leeching Sweep: without Lifesteal, ticks don\'t heal', () => {

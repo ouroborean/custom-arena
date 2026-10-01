@@ -178,8 +178,7 @@ describe('Current skills', () => {
     expect([a.stacks(A1, 'might'), a.has(A1, 'immune')]).toEqual([0, false]);
   });
 
-  // BUG: text/ruling say other Sapped enemies take the same amount as the hit; the conduct fires for 0 damage.
-  it.fails('Galvanic Fury: the user\'s single-target hits also strike other Sapped enemies for the same amount', () => {
+  it('Galvanic Fury: the user\'s single-target hits also strike other Sapped enemies for the same amount', () => {
     const a = arena({ p0: [['rage.current', 'shot']], p1: three(), passives: COND });
     a.give(B2, 'sapped', { source: A1 });
     a.use(A1, 'rage.current').end().pass(1);

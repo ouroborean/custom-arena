@@ -444,8 +444,7 @@ describe('Vengeance skills', () => {
     expect(a.has(B1, 'confusion')).toBe(false);
   });
 
-  // BUG: "each time they deal damage, they take half of it back as Affliction" — the payback is computed as 0.
-  it.fails('Karmic Debt: Confused for 2 turns; each time they deal damage, they take half back as Affliction', () => {
+  it('Karmic Debt: Confused for 2 turns; each time they deal damage, they take half back as Affliction', () => {
     const a = arena({ p0: [['curse.vengeance']], p1: [['strike']] });
     a.use(A1, 'curse.vengeance', B1).end();
     expect(a.has(B1, 'confusion')).toBe(true);
