@@ -1,0 +1,40 @@
+# Stasis (Ice + Poison) statuses, from the "Fusion Spec Kits" design doc.
+
+# Suspended: the bearer's other effects don't tick or count down. When it ends, they Thaw.
+suspended:
+  name: Suspended
+  kind: Debuff
+  element: Stasis
+  stacking: unique
+  description: >-
+    The bearer's effects don't tick, lose duration or deal damage while it lasts. When it ends, they
+    Thaw: their Toxin deals its damage at once, doubled.
+  modifiers:
+    - { mod: suspendEffects }
+  onExpire:
+    - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
+
+# The same, on the user's side (a Buff: their Buffs hold).
+suspended_ally:
+  name: Suspended
+  kind: Buff
+  element: Stasis
+  stacking: unique
+  countsAs: [suspended]
+  description: >-
+    The bearer's effects don't tick or lose duration while it lasts, so their Buffs hold. When it
+    ends, they Thaw: their Toxin deals its damage at once, doubled.
+  modifiers:
+    - { mod: suspendEffects }
+  onExpire:
+    - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
+
+# Frozen Instant's held damage: half lands when it runs out.
+frozen_instant_hit:
+  name: Frozen Instant
+  kind: Neutral
+  element: Stasis
+  stacking: independent
+  description: When this runs out, the bearer takes half its value as Affliction damage.
+  onExpire:
+    - { op: damage, to: bearer, amount: { div: [{ effectValue: true }, 2] }, type: Affliction, direct: false }

@@ -1,0 +1,15 @@
+# Stasis actions, run on `it`.
+
+# Thaw: `it`'s Toxin deals its damage at once, doubled (10 Affliction per stack).
+thaw:
+  - op: if
+    cond: { has: { unit: it, effect: toxin } }
+    then:
+      - { op: damage, to: it, amount: { mul: [10, { totalStacks: { in: it, effect: toxin } }] }, type: Affliction, direct: false }
+
+# Suspends `it` for 1 turn: the Debuff on enemies, the Buff on allies.
+suspend:
+  - op: if
+    cond: { isEnemy: it }
+    then: [{ op: apply, to: it, effect: suspended, duration: { enemyTurns: 1 } }]
+    else: [{ op: apply, to: it, effect: suspended_ally, duration: { enemyTurns: 1 } }]

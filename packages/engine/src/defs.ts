@@ -495,6 +495,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'immuneToEffects'; effects: string[] }
   /** Glacier's Icebound: the bearer's cooldowns don't tick down. */
   | { mod: 'freezeCooldowns' }
+  /** Stasis's Suspended: the bearer's other effects don't tick, count down or fire turn-start triggers. */
+  | { mod: 'suspendEffects' }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**

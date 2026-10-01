@@ -1131,3 +1131,19 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Rime Mantle | While Frostborn, Frost debuffs they apply get 1 more turn (`eventEffect`). |
 | Frostfeather | The second hit from an ally (any ally) Snowbinds them. |
 | Dead of Winter | Healing modifiers ×0 on every unit (raw heals, such as Repair, still work). |
+
+### 21.23 Stasis (Ice + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Suspended** | New `suspendEffects` modifier, handled like Banished's freeze: the bearer's other effects don't tick, count down or fire turn-start triggers (the bearer still acts and takes damage). `suspended` (Debuff) on enemies, `suspended_ally` (Buff) on the user's side. |
+| **Thaw** | Suspended's onExpire runs macro `thaw`: 10 Affliction per Toxin stack at once. The `expire` op Thaws early (Frozen Fang, Crack the Ice). |
+| Frozen Stomp | The splash (5 per Toxin stack, half the Thaw) goes to each allied character of the target when the Suspension ends. |
+| Freezing Lunge | Every enemy gets Poison's `prey` mark through the user's next turn. |
+| Stopped Clock | Simplified: cooldowns are cut to 0 meanwhile; when it ends, every skill of theirs gets +2 cooldown. |
+| Nine Winters | Enemies carry a linked Suspension while it channels; a companion effect makes them all Thaw when it ends or breaks. |
+| Chilling Acid | At the end of each of the user's turns, a Toxined target is Chilled (or its Chill extended). |
+| Cold Shelter | Simplified: Frostborn for 2 turns. |
+| Serpent's Measure | Each enemy with Toxin at the end of the user's turns is marked Prey until their next turn. |
+| Frozen Quarry | Added to Poison's `prey` condition: Frost debuffs count toward the stack total. |
+| Frozen Instant | Uses `deferHits`: each hit is held and lands 3 turns later, halved, as Affliction (not all at once when it ends). |

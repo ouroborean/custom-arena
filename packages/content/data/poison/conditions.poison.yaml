@@ -12,6 +12,10 @@ prey:
     - { and: [{ has: { unit: it, effect: delirium } }, { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 1 } }] }
     # Brimstone: Acrid Orb (while Marked) and Scent of Cinders (while Ignited or Scorched).
     - { and: [{ has: { unit: it, effect: acrid_orb } }, { has: { unit: it, effect: mark } }] }
+    # Stasis: Frozen Quarry makes Frost debuffs count toward it.
+    - and:
+        - { has: { unit: it, effect: frozen_quarry } }
+        - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, frostbitten, chilled, numb], moreThan: 2 } }
     - and:
         - { has: { unit: it, effect: cinder_scent } }
         - { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }

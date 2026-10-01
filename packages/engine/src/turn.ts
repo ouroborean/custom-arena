@@ -58,13 +58,13 @@ export function startTurn(ctx: Ctx): void {
 
 /** Dimension's Banished: the unit is out of the fight. */
 function isBanished(ctx: Ctx, unitId: string): boolean {
-  return modsOn(ctx.s, ctx.c, unitId, 'banished').length > 0;
+  return modsOn(ctx.s, ctx.c, unitId, 'banished').length > 0 || modsOn(ctx.s, ctx.c, unitId, 'suspendEffects').length > 0;
 }
 
 /** Effects on a Banished unit neither tick nor count down (except the Banished effect itself). */
 function frozen(ctx: Ctx, e: EffectInstance): boolean {
   if (!isBanished(ctx, e.bearer)) return false;
-  return !(effectDef(ctx.c, e).modifiers ?? []).some((m) => m.mod === 'banished');
+  return !(effectDef(ctx.c, e).modifiers ?? []).some((m) => m.mod === 'banished' || m.mod === 'suspendEffects');
 }
 
 function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {

@@ -1,0 +1,27 @@
+# Stasis minions.
+
+ice_spider:
+  name: Ice Spider
+  hp: 30
+  skills: [ice_spider_frost_web, ice_spider_frozen_fang]
+
+cryo_sprite:
+  name: Cryo Sprite
+  hp: 15
+  onSummon:
+    - { op: setCounter, name: cryo, value: 0 }
+  passives:
+    - id: cryo_sprite_watch
+      name: Cryo Sprite
+      kind: Neutral
+      element: Stasis
+      description: At the end of its owner's third turn, every enemy with Toxin is Suspended for 1 turn.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: setCounter, name: cryo, value: { sum: [{ counter: cryo }, 1] } }
+            - op: if
+              cond: { compare: { value: { counter: cryo }, atLeast: 3 } }
+              then:
+                - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: toxin } } }, effect: suspended, duration: { enemyTurns: 1 } }
+  skills: [cryo_sprite_rime_sting]
