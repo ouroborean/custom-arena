@@ -111,9 +111,7 @@ describe('Blight skills', () => {
     expect([withered(a, B3), a.stacks(B3, 'toxin')]).toEqual([0, 1]);
   });
 
-  // BUG: "the user's next skill treats them as Horrified" — the Dread mark expires at the end of the enemy's turn
-  // (and is also spent by the target's own skill), so the user's next skill, a turn later, never sees it.
-  it.fails('Dread Lunge: 15; the next skill treats the target as Horrified', () => {
+  it('Dread Lunge: 15; the next skill treats the target as Horrified', () => {
     const a = arena({ p0: [['charge.blight', 'strike.unholy']], p1: [['rage']] });
     a.use(A1, 'charge.blight', B1).end();
     expect(a.hp(B1)).toBe(85);

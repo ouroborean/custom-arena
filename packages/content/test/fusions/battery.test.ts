@@ -139,9 +139,7 @@ describe('Battery skills', () => {
     expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([1, 1, 1]);
   });
 
-  // BUG: "generates 2 less next turn" — the penalty expires at the end of the enemy turn, before the player's next
-  // energy generation, so the next turn's energy is not reduced.
-  it.fails('Jump Start: 15; the player gains 2 random energy now and generates 2 less next turn', () => {
+  it('Jump Start: 15; the player gains 2 random energy now and generates 2 less next turn', () => {
     const a = arena({ p0: [['charge.battery'], ['shot'], ['shot']], p1: [['shot']], richEnergy: false });
     a.state.players[0].energy = { S: 3, A: 0, I: 0, W: 0 };
     a.use(A1, 'charge.battery', B1).end();

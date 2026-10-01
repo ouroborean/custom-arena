@@ -44,7 +44,8 @@ charge.blight:
   element: Blight
   name: Dread Lunge
   description: >-
-    Deals 15 damage to target enemy. The user's next skill treats them as Horrified, whether they are or not.
+    Deals 15 damage to target enemy. Until the end of the user's next turn, they count as Horrified, whether
+    they are or not.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -53,15 +54,14 @@ charge.blight:
     - { op: damage, to: primary, amount: 15 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
-      until: { skillUsed: {} }
+      duration: { ownTurns: 1 }
       effect:
         id: dread_lunge
         name: Dread
         kind: Debuff
         element: Blight
         countsAs: [horrified]
-        description: Counts as Horrified for the applier's next skill.
+        description: Counts as Horrified.
 
 riposte.blight:
   archetype: Riposte

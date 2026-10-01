@@ -51,7 +51,7 @@ charge.battery:
     - { op: gainEnergy, amount: 2 }
     - op: apply
       to: actor
-      duration: { raw: 2 }
+      duration: { ownTurns: 1 }
       effect:
         id: jump_start
         name: Jump Start

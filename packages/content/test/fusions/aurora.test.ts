@@ -213,8 +213,7 @@ describe('Aurora skills', () => {
     expect([a.hp(B1), a.has(B1, 'sapped')]).toEqual([65, false]);
   });
 
-  // BUG: text says Invisible; the untriggered snare shows as revealed to the target's player after the user's turn ends
-  it.fails('Rime Snare: Invisible to the target’s player until it fires', () => {
+  it('Rime Snare: Invisible to the target’s player until it fires', () => {
     const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
     a.use(A1, 'trap.aurora', B1).end();
     expect([a.hp(B1), hidden(a, B1, 1)]).toEqual([100, true]);

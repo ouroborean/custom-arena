@@ -370,9 +370,11 @@ ravage.assassin:
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    # Checked before the hit, which wakes a Sleeper.
+    - { op: set, var: unseen, value: { if: { or: [{ has: { unit: primary, effect: blinded } }, { has: { unit: primary, effect: sleep } }] }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 25, type: Piercing }
     - op: if
-      cond: { or: [{ has: { unit: primary, effect: blinded } }, { has: { unit: primary, effect: sleep } }] }
+      cond: { varTrue: unseen }
       then: [{ op: apply, to: actor, effect: stealth, duration: { enemyTurns: 1 } }]
 
 mislead.assassin:

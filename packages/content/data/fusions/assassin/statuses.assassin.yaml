@@ -22,7 +22,7 @@ death_mark:
                   - { eventSkill: { elements: [Assassin] } }
                   - { has: { unit: eventSource, effect: subcontract } }
           then:
-            - { op: damage, to: bearer, amount: 10, direct: false }
+            - { op: damage, to: bearer, amount: 10, type: Piercing, direct: false }
             - op: set
               var: threshold
               value:

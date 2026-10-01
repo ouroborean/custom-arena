@@ -93,10 +93,8 @@ function resolveTargetsRaw(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitI
     }
     case 'enemy': {
       let id = declared[0];
-      const forced = forcedTargets(ctx, actor).filter((f) => {
-        const fu = findUnit(ctx.s, f);
-        return !!fu && canTarget(ctx, actor, fu, bypass);
-      });
+      // A Taunt holds even while its source can't be targeted: then there's no legal enemy target at all.
+      const forced = forcedTargets(ctx, actor).filter((f) => !!findUnit(ctx.s, f)?.alive);
       if (forced.length > 0 && (id === undefined || !forced.includes(id))) {
         if (strict) return { ok: false, reason: 'taunted' };
         id = forced[0];

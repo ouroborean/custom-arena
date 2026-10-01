@@ -237,9 +237,7 @@ describe('Assassin skills', () => {
     expect([marked(a, B1), marked(a, B2)]).toEqual([true, false]);
   });
 
-  // BUG: the Death Mark gives Assassin-element skills from the marker's side +10 — the Viper's Seek the Mark
-  // (an Assassin skill) deals its bearer only the flat 15.
-  it.fails("Shadow Viper: Seek the Mark hits your Death Mark's bearer for 15 Piercing (+10), whoever was targeted", () => {
+  it("Shadow Viper: Seek the Mark hits your Death Mark's bearer for 15 Piercing (+10), whoever was targeted", () => {
     const a = arena({ p0: [['companion.assassin'], ['charge.assassin']], p1: [['shot'], ['shot']] });
     a.use(A1, 'companion.assassin').use(A2, 'charge.assassin', B2).end().pass(1);
     const v = minions(a, 0, 'shadow_viper')[0]!;
@@ -386,9 +384,7 @@ describe('Assassin skills', () => {
     expect(b.has(A1, 'stealth')).toBe(false);
   });
 
-  // BUG: "Against a Blinded or Sleeping target, the user slips into Stealth" — against a Sleeping target it doesn't
-  // (the hit seems to wake them before the check).
-  it.fails('Unseen Knife: against a Sleeping target too', () => {
+  it('Unseen Knife: against a Sleeping target too', () => {
     const a = arena({ p0: [['ravage.assassin']], p1: [['shot']] });
     a.give(B1, 'sleep', { source: A1 }).use(A1, 'ravage.assassin', B1).end();
     expect(a.has(A1, 'stealth')).toBe(true);
@@ -556,9 +552,7 @@ describe('Assassin skills', () => {
     expect(a.has(B1, 'taunt')).toBe(false);
   });
 
-  // SPEC: "Taunted ... even while the user is Stealthed and can't be targeted" — read as: the enemy can target no one
-  // else; the engine lets a Taunted enemy pick other targets while the taunter is untargetable.
-  it.fails("Whisper from the Dark: while the Stealthed user can't be targeted, the Taunted enemy can't target anyone else", () => {
+  it("Whisper from the Dark: while the Stealthed user can't be targeted, the Taunted enemy can't target anyone else", () => {
     const a = arena({ p0: [['taunt.assassin'], ['shot']], p1: [['shot']] });
     a.give(A1, 'stealth', { duration: 4 }).use(A1, 'taunt.assassin', B1).end();
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');

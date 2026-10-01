@@ -1312,7 +1312,8 @@ export function mutedTrap(ctx: Ctx, e: EffectInstance, spec: TriggerSpec): boole
 
 export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void {
   if (mutedTrap(ctx, e, p.spec)) return;
-  revealEffect(ctx, e);
+  // A hidden effect's routine turn checks don't give it away; reacting to something does.
+  if (!PERIODIC.has(p.spec.on)) revealEffect(ctx, e);
   const sc: Scope = {
     actor: e.source,
     targets: e.targets,

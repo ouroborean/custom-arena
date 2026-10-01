@@ -83,7 +83,7 @@ charge.apocalypse:
     - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
     - op: apply
       to: actor
-      duration: { enemyTurns: 1 }
+      duration: { ownTurns: 1 }
       effect:
         id: coldsnap
         name: Coldsnap
@@ -610,6 +610,7 @@ dance.apocalypse:
         description: The bearer Explodes at the end of each of their turns in which they dealt damage.
         triggers:
           - on: dealtDamage
+            when: { direct: true }
             do:
               - { op: setFlag, flag: dealt }
           - on: turnEnd

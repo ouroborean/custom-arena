@@ -188,9 +188,7 @@ describe('Apocalypse skills', () => {
     expect(a.has(A1, 'focus')).toBe(false);
   });
 
-  // BUG: the crack rider ("Coldsnap") expires at the end of the enemy's turn while the Focus stays, so the
-  // user's next skill (always on a later turn) never cracks the Ignite.
-  it.fails('Coldsnap Dash: the next skill hitting a Chilled, Ignited enemy cracks the Ignite (10 extra Affliction)', () => {
+  it('Coldsnap Dash: the next skill hitting a Chilled, Ignited enemy cracks the Ignite (10 extra Affliction)', () => {
     const a = ap([['charge.apocalypse', 'shot']], [['shot'], ['shot']]);
     a.give(B1, 'chilled', { source: B1 }).give(B1, 'ignite', { source: B1 }); // ticks on B's turns
     a.use(A1, 'charge.apocalypse', B2).end().pass(1);
@@ -529,8 +527,7 @@ describe('Apocalypse skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
-  // BUG: once the user has dealt damage, they Explode at the end of every later turn too, even with no damage dealt.
-  it.fails('White Flame Waltz: a later turn without damage does not Explode', () => {
+  it('White Flame Waltz: a later turn without damage does not Explode', () => {
     const a = ap([['dance.apocalypse', 'shot', 'heal']], [['shot'], ['shot']]);
     a.use(A1, 'dance.apocalypse').end().pass(1).use(A1, 'shot', B1).end();
     a.pass(1).use(A1, 'heal', A1).end();

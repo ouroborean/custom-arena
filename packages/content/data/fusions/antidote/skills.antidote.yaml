@@ -144,7 +144,7 @@ snipe.antidote:
   ops:
     - op: apply
       to: primary
-      duration: { enemyTurns: 3 }
+      duration: { enemyTurns: 4 }
       effect:
         id: diagnosis_chart
         name: Diagnosis
@@ -170,7 +170,13 @@ snipe.antidote:
         interruptible: true
         description: When this runs out, its target takes 20 damage plus 15 per Debuff gained meanwhile (max 60 more).
         onExpire:
-          - { op: set, var: found, value: { sum: [{ stacks: { unit: effectTargets, effect: diagnosis_chart } }, -1] } }
+          - op: set
+            var: found
+            value:
+              if: { has: { unit: effectTargets, effect: diagnosis_chart } }
+              then: { sum: [{ stacks: { unit: effectTargets, effect: diagnosis_chart } }, -1] }
+              else: 0
+          - { op: removeEffect, from: effectTargets, effect: diagnosis_chart }
           - op: damage
             to: effectTargets
             amount: { sum: [20, { if: { compare: { value: { var: found }, atLeast: 4 } }, then: 60, else: { mul: [15, { var: found }] } }] }

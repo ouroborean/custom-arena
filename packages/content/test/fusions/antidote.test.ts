@@ -187,8 +187,7 @@ describe('Antidote skills', () => {
     ]);
   });
 
-  // BUG: "20 damage, plus 15 for each Debuff they gained" — it lands for a flat 5, with or without Debuffs gained.
-  it.fails('Long Diagnosis: in 3 turns, 20 +15 per Debuff the target gained meanwhile', () => {
+  it('Long Diagnosis: in 3 turns, 20 +15 per Debuff the target gained meanwhile', () => {
     const a = arena({ p0: [['snipe.antidote'], ['trap.holy'], ['curse']], p1: [['shot']] });
     a.use(A1, 'snipe.antidote', B1).end().pass(1);
     a.use(A2, 'trap.holy', B1).use(A3, 'curse', B1).end();
@@ -197,15 +196,13 @@ describe('Antidote skills', () => {
     expect(a.hp(B1)).toBe(50);
   });
 
-  // BUG: same as above — 5 instead of 20.
-  it.fails('Long Diagnosis: with no Debuffs gained, just 20', () => {
+  it('Long Diagnosis: with no Debuffs gained, just 20', () => {
     const a = arena({ p0: [['snipe.antidote']], p1: [['shot']] });
     a.use(A1, 'snipe.antidote', B1).end().pass(6);
     expect(a.hp(B1)).toBe(80);
   });
 
-  // BUG: same as above — 5 instead of 80.
-  it.fails('Long Diagnosis: the bonus is at most 60', () => {
+  it('Long Diagnosis: the bonus is at most 60', () => {
     const a = arena({
       p0: [['snipe.antidote'], ['trap.holy', 'curse.unholy'], ['curse', 'shout']],
       p1: [['shot']],

@@ -45,8 +45,7 @@ describe('Night keywords', () => {
     expect(midnightTurn(a)).toBe(10); // turns 2, 4, 6, 8 pass; Midnight on 10
   });
 
-  // BUG: Dusk: "hidden" ("the enemy sees none") vs the Dusk is marked revealed as soon as it's applied, so the bearer's side sees it
-  it.fails("Dusk is hidden from the bearer's side", () => {
+  it("Dusk is hidden from the bearer's side", () => {
     const a = arena({ p0: [['shot.night']], p1: [['shot']] });
     a.use(A1, 'shot.night', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1 && e.defId === 'dusk')).toBe(false);
@@ -498,8 +497,7 @@ describe('Night skills', () => {
     expect(a.hp(A2)).toBe(85);
   });
 
-  // BUG: Feigned Sleep: "the Taunted enemy has no one they may target" vs while the taunter is Dormant, the Taunted enemy can target the user's allies
-  it.fails('Feigned Sleep: while the user sleeps, the Taunted enemy has no one they may target', () => {
+  it('Feigned Sleep: while the user sleeps, the Taunted enemy has no one they may target', () => {
     const a = arena({ p0: [['taunt.night'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.night', B1).end();
     expect([a.has(B1, 'taunt'), dormant(a, A1)]).toEqual([true, true]);
