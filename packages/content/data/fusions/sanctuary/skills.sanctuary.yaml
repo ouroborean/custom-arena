@@ -53,7 +53,7 @@ charge.sanctuary:
     - { op: damage, to: primary, amount: 15 }
     - op: if
       cond: { any: { in: allAllies, cond: { hasShield: it } } }
-      then: [{ op: apply, to: actor, effect: anointed, duration: { raw: 3 } }]
+      then: [{ op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }]
 
 riposte.sanctuary:
   archetype: Riposte

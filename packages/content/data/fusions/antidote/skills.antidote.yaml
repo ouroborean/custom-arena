@@ -700,7 +700,7 @@ taunt.antidote:
             do:
               - op: if
                 cond: { isActor: eventTarget }
-                then: [{ op: apply, to: actor, effect: anointed, duration: { raw: 3 } }]
+                then: [{ op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }]
 
 titan.antidote:
   archetype: Titan

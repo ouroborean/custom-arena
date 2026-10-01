@@ -38,7 +38,7 @@ strike.divine:
     - op: if
       cond: { compare: { value: { var: switched }, atLeast: 1 } }
       then:
-        - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+        - { op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }
 
 smash.divine:
   archetype: Smash
@@ -83,7 +83,7 @@ charge.divine:
             - [{ op: apply, to: primary, effect: weakness }]
             - [{ op: apply, to: primary, effect: vulnerable }]
             - [{ op: apply, to: primary, effect: confusion }]
-        - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+        - { op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }
 
 riposte.divine:
   archetype: Riposte
@@ -209,7 +209,7 @@ snipe.divine:
                   when: { direct: true }
                   do:
                     - { op: heal, to: eventSource, amount: 15 }
-                    - { op: apply, to: eventSource, effect: anointed, duration: { raw: 3 } }
+                    - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
 
 trap.divine:
   archetype: Trap
@@ -258,7 +258,7 @@ maneuver.divine:
       cond: { has: { unit: actor, effect: anointed } }
       then:
         - { op: removeEffect, from: actor, effect: anointed }
-        - { op: apply, to: actor, effect: exalted, duration: { raw: 3 } }
+        - { op: apply, to: actor, effect: exalted, duration: { ownTurns: 1 } }
 
 companion.divine:
   archetype: Companion
@@ -696,7 +696,7 @@ taunt.divine:
               - op: if
                 cond: { isEventTarget: actor }
                 then:
-                  - { op: apply, to: actor, effect: exalted, duration: { raw: 3 } }
+                  - { op: apply, to: actor, effect: exalted, duration: { ownTurns: 1 } }
 
 titan.divine:
   archetype: Titan
@@ -725,7 +725,7 @@ titan.divine:
           - on: effectApplied
             when: { effects: [condemned], toEnemy: true }
             do:
-              - { op: apply, to: { randomAlly: 1 }, effect: anointed, duration: { raw: 3 } }
+              - { op: apply, to: { randomAlly: 1 }, effect: anointed, duration: { ownTurns: 1 } }
 
 # Minion skills.
 

@@ -33,7 +33,7 @@ chrism:
     - on: skillResolved
       when: { harmful: false }
       do:
-        - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: anointed, duration: { raw: 3 } }
+        - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: anointed, duration: { ownTurns: 1 } }
 
 # Submission's mark: Anointed allies of the applier deal 10 more to the bearer.
 submission:

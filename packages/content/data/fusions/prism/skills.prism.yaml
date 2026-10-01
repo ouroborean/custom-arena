@@ -568,7 +568,7 @@ bless.prism:
       cond: { has: { unit: primary, effect: anointed } }
       then:
         - { op: forEach, in: primary, do: [{ op: macro, id: gain_lens }] }
-    - { op: apply, to: primary, effect: anointed, duration: { raw: 3 } }
+    - { op: apply, to: primary, effect: anointed, duration: { ownTurns: 1 } }
 
 curse.prism:
   archetype: Curse

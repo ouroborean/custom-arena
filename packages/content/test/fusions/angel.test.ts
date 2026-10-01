@@ -155,9 +155,7 @@ describe('Angel skills', () => {
     expect(d).toBeGreaterThan(0);
   });
 
-  // BUG: the damager heals twice (15 from the Sanctify + 15 from Quill's team heal); the text says the Sanctify
-  // heals the whole team instead of just the damager, i.e. 15 each
-  it.fails('Quill of Light: 15; a Sanctify on the target then heals the damager\'s whole team', () => {
+  it('Quill of Light: 15; a Sanctify on the target then heals the damager\'s whole team', () => {
     const a = arena({ p0: [['shot.angel'], ['smite'], ['shot']], p1: [['shot']] });
     a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50);
     a.use(A1, 'shot.angel', B1).use(A2, 'smite', B1).use(A3, 'shot', B1).end();
@@ -355,9 +353,7 @@ describe('Angel skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  // BUG: the dive's Leaping gives its +5 to the Feather's hit but isn't spent by it (Leaping ends once a skill's
-  // direct hit resolves), so the user's next damaging skill gets +5 again
-  it.fails('Piercing Feather: the dive\'s Leaping is spent by the Feather\'s own hit', () => {
+  it('Piercing Feather: the dive\'s Leaping is spent by the Feather\'s own hit', () => {
     const a = arena({ p0: [['stab.angel']], p1: [['shot']] });
     a.give(A1, 'anointed').use(A1, 'stab.angel', B1).end();
     expect(a.has(A1, 'leaping')).toBe(false);

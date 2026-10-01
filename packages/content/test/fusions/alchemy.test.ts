@@ -513,8 +513,7 @@ describe('Alchemy skills', () => {
     expect([a.hp(B1), a.has(B1, 'catalyst_debuff')]).toEqual([85, true]);
   });
 
-  // BUG: (as above) the first ally hit isn't doubled, and the last re-applied Catalyst is spent by its own skill.
-  it.fails('Reagent Brand: 15 and Catalyst; for 1 turn each ally skill that damages them gives Catalyst again', () => {
+  it('Reagent Brand: 15 and Catalyst; for 1 turn each ally skill that damages them gives Catalyst again', () => {
     const a = arena({ p0: [['smite.alchemy'], ['shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'smite.alchemy', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
     expect([a.hp(B1), a.has(B1, 'catalyst_debuff')]).toEqual([100 - 15 - 30 - 30, true]);

@@ -291,7 +291,7 @@ bolt.vigilante:
             when: { direct: true, fromSide: ally }
             consume: true
             do:
-              - { op: apply, to: eventSource, effect: anointed, duration: { raw: 3 } }
+              - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
 
 blast.vigilante:
   archetype: Blast
@@ -783,7 +783,7 @@ titan.vigilante:
             do:
               - op: if
                 cond: { eventTargetIs: bearer }
-                then: [{ op: apply, to: bearer, effect: anointed, duration: { raw: 3 } }]
+                then: [{ op: apply, to: bearer, effect: anointed, duration: { ownTurns: 1 } }]
 
 # Minion skills.
 

@@ -217,9 +217,7 @@ describe('Phoenix skills', () => {
     expect(a.has(A1, 'anointed')).toBe(true);
   });
 
-  // BUG: "Anointed until the end of their next turn" — Anointed from a counter on the enemy's turn 2 is still up
-  // after the user's turn 3 ends (it lasts through the enemy's turn 4).
-  it.fails('Searing Rebuttal: the Anointed ends at the end of the user\'s next turn', () => {
+  it('Searing Rebuttal: the Anointed ends at the end of the user\'s next turn', () => {
     const a = arena({ p0: [['riposte.phoenix'], ['shot']], p1: [['shot']] });
     a.give(B1, 'ignite', { source: A2 });
     a.use(A1, 'riposte.phoenix').end().use(B1, 'shot', A1).end();

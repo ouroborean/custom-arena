@@ -718,8 +718,7 @@ describe('Vigilante skills', () => {
     expect(a.has(A1, 'anointed')).toBe(true);
   });
 
-  // BUG: "Anointed until the end of their next turn" — Stealth ending on turn 5 leaves Anointed into turn 8 (one turn too long)
-  it.fails("Nightwarden: the Anointed ends with the user's next turn", () => {
+  it("Nightwarden: the Anointed ends with the user's next turn", () => {
     const a = arena({ p0: [['titan.vigilante', 'dance.vigilante', 'shot']], p1: [['shot']] });
     a.use(A1, 'titan.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
     a.use(A1, 'shot', B1).end().pass(2);

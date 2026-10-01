@@ -1410,7 +1410,9 @@ const TRANSMUTE_ALLY: Record<string, string> = { weakness: 'might', vulnerable: 
 function catalyze(ctx: Ctx, t: Unit): number {
   if (!ctx.inSkill) return 1;
   // A Catalyst the current skill itself applied waits for the next skill.
-  const cat = modsOn(ctx.s, ctx.c, t.id, 'catalyst').find(({ effect }) => ctx.useStartSeq === undefined || effect.seq <= ctx.useStartSeq);
+  const cat = modsOn(ctx.s, ctx.c, t.id, 'catalyst').find(
+    ({ effect }) => ctx.useStartSeq === undefined || (Number(effect.data.armedAt ?? effect.seq)) <= ctx.useStartSeq,
+  );
   if (!cat) return 1;
   cat.effect.data.catalyzed = true;
   return 2;

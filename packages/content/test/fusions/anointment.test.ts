@@ -229,10 +229,12 @@ describe('Anointment skills', () => {
   });
 
   describe("Pilgrim's Rush", () => {
-    it('15 damage, and the user has Chrism until their next turn', () => {
+    it('15 damage, and the user has Chrism until the end of their next turn', () => {
       const a = arena({ p0: [['charge.anointment'], ['shot']], p1: [['shot']] });
       a.use(A1, 'charge.anointment', B1).end();
       expect(a.hp(B1)).toBe(85);
+      expect(a.has(A1, 'chrism')).toBe(true);
+      a.end();
       expect(a.has(A1, 'chrism')).toBe(true);
       a.end();
       expect(a.has(A1, 'chrism')).toBe(false);
@@ -244,10 +246,7 @@ describe('Anointment skills', () => {
       expect(a.hp(B1)).toBe(100 - 15 - 30);
     });
 
-    // SPEC: the Chrism lasts only "until the user's next turn", and the user can't act on the opponent's turn,
-    // so "each ally they Anoint through it also gets 1 Focus" can never happen. Is it meant to last through
-    // the user's next turn?
-    it.fails('an ally Anointed through it (on the user’s next turn) also gets 1 Focus', () => {
+    it('an ally Anointed through it (on the user’s next turn) also gets 1 Focus', () => {
       const a = arena({ p0: [['charge.anointment', 'heal'], ['shot']], p1: [['shot']] });
       a.use(A1, 'charge.anointment', B1).end().pass(1);
       a.use(A1, 'heal', A2).end();
@@ -888,9 +887,7 @@ describe('Anointment skills', () => {
       expect(a.log().some((l) => l.includes('A1 gains Confusion'))).toBe(true);
     });
 
-    // BUG: "gains 1 Unction for each" Debuff taken on, but the Debuffs taken from the last ally in team
-    // order give no Unction (here 3 Debuffs taken, only 2 Unction gained).
-    it.fails('all allies heal 20; the user takes on their Debuffs and gains 1 Unction for each', () => {
+    it('all allies heal 20; the user takes on their Debuffs and gains 1 Unction for each', () => {
       const a = arena({ p0: [['prayer.anointment'], ['shot'], ['shot']], p1: [['shot']] });
       for (const id of [A1, A2, A3]) a.setHp(id, 50);
       a.give(A2, 'confusion').give(A2, 'intimidated').give(A3, 'vulnerable').give(B1, 'weakness');
@@ -990,9 +987,7 @@ describe('Anointment skills', () => {
       expect(a.has(A1, 'chrism')).toBe(true);
     });
 
-    // BUG: Chrism gained on the opponent's turn should last "until the end of their next turn" (the user's
-    // next turn), but it survives through the following opponent turn as well.
-    it.fails('that Chrism ends at the end of the user’s next turn', () => {
+    it('that Chrism ends at the end of the user’s next turn', () => {
       const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot']] });
       a.use(A1, 'taunt.anointment', B1).end();
       a.use(B1, 'shot', A1).end();

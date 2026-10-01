@@ -157,6 +157,12 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
       if (cap) existing.stacks = Math.min(existing.stacks + stacks, Math.max(existing.stacks, cap.spec.max));
       if (def.maxStacks !== undefined) existing.stacks = Math.min(existing.stacks, def.maxStacks);
       existing.value = Math.max(existing.value, value);
+      // A Catalyst spent by the skill in progress is re-armed by being applied again, for the next skill.
+      if (existing.data.catalyzed) {
+        delete existing.data.catalyzed;
+        ctx.s.seq += 1;
+        existing.data.armedAt = ctx.s.seq;
+      }
       restack(ctx, existing, before);
       existing.source = source.id;
       existing.sourceOwner = source.owner;

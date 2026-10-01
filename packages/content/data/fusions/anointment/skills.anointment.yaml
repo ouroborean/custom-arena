@@ -44,18 +44,18 @@ charge.anointment:
   element: Anointment
   name: Pilgrim's Rush
   description: >-
-    Deals 15 damage to target enemy. Until the user's next turn, they have Chrism, and each ally they
-    Anoint through it also gets 1 Focus for their next skill.
+    Deals 15 damage to target enemy. Until the end of the user's next turn, they have Chrism, and each ally
+    they Anoint through it also gets 1 Focus for their next skill.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: actor, effect: chrism, duration: { raw: 2 } }
+    - { op: apply, to: actor, effect: chrism, duration: { ownTurns: 1 } }
     - op: apply
       to: actor
-      duration: { raw: 2 }
+      duration: { ownTurns: 1 }
       effect:
         id: pilgrims_rush
         name: Pilgrim's Rush
@@ -471,7 +471,7 @@ dance.anointment:
           - on: skillResolved
             when: { harmful: false }
             do:
-              - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: chrism, duration: { raw: 3 } }
+              - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: chrism, duration: { ownTurns: 1 } }
 
 heal.anointment:
   archetype: Heal
@@ -560,7 +560,7 @@ smite.anointment:
       then:
         - { op: removeEffect, from: actor, effect: anointed }
         - { op: removeEffect, from: actor, effect: chrism }
-        - { op: apply, to: weakestAlly, effect: chrism, duration: { raw: 3 } }
+        - { op: apply, to: weakestAlly, effect: chrism, duration: { ownTurns: 1 } }
 
 prayer.anointment:
   archetype: Prayer
@@ -576,7 +576,8 @@ prayer.anointment:
     - op: forEach
       in: { filter: targets, where: { not: { isActor: it } } }
       do:
-        - { op: apply, to: actor, effect: unction, stacks: { kindCount: { unit: it, kind: Debuff } } }
+        - { op: set, var: sins, value: { kindCount: { unit: it, kind: Debuff } } }
+        - { op: apply, to: actor, effect: unction, stacks: { var: sins } }
         - { op: moveEffects, from: it, to: actor, kind: Debuff }
 
 cleave.anointment:
@@ -657,7 +658,7 @@ taunt.anointment:
             do:
               - op: if
                 cond: { has: { unit: eventSource, effect: taunt, mine: true } }
-                then: [{ op: apply, to: bearer, effect: chrism, duration: { raw: 3 } }]
+                then: [{ op: apply, to: bearer, effect: chrism, duration: { ownTurns: 1 } }]
 
 titan.anointment:
   archetype: Titan
@@ -700,8 +701,8 @@ sacred_koi_golden_leap:
   ops:
     - op: if
       cond: { has: { unit: primary, effect: anointed } }
-      then: [{ op: apply, to: primary, effect: chrism, duration: { raw: 3 } }]
-      else: [{ op: apply, to: primary, effect: anointed, duration: { raw: 3 } }]
+      then: [{ op: apply, to: primary, effect: chrism, duration: { ownTurns: 1 } }]
+      else: [{ op: apply, to: primary, effect: anointed, duration: { ownTurns: 1 } }]
 
 sacred_koi_tail_slap:
   archetype: Minion

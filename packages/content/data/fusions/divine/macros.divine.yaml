@@ -96,7 +96,7 @@ awe_ally_it:
   - { op: removeEffect, from: it, effect: stun_s }
 
 consecrate_ally_it:
-  - { op: apply, to: it, effect: exalted, duration: { raw: 3 } }
+  - { op: apply, to: it, effect: exalted, duration: { ownTurns: 1 } }
   - { op: apply, to: it, effect: might, duration: { enemyTurns: 3 } }
 
 consecrate_enemy_it:

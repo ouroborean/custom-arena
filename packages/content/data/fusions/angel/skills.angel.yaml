@@ -160,7 +160,8 @@ shot.angel:
               - op: if
                 cond: { has: { unit: bearer, effect: sanctify } }
                 then:
-                  - { op: heal, to: { filter: allUnits, where: { and: [{ not: { isEnemy: it } }, { not: { isEventTarget: it } }] } }, amount: 15 }
+                  # The Sanctify already healed the damager; the rest of their team heals too.
+                  - { op: heal, to: { filter: allUnits, where: { not: { isEnemy: it } }, exclude: eventSource }, amount: 15 }
 
 snipe.angel:
   archetype: Snipe
@@ -409,9 +410,14 @@ stab.angel:
       then:
         - { op: removeEffect, from: actor, effect: anointed }
         - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+        - { op: set, var: dove, value: true }
     - op: damage
       to: primary
       amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    # The dive's Leap is spent by this hit (it was made mid-skill, too new to end itself).
+    - op: if
+      cond: { varTrue: dove }
+      then: [{ op: removeEffect, from: actor, effect: leaping }]
 
 ravage.angel:
   archetype: Ravage
@@ -497,7 +503,7 @@ stun.angel:
             consume: true
             do:
               - { op: heal, to: eventSource, amount: 15 }
-              - { op: apply, to: eventSource, effect: anointed, duration: { raw: 3 } }
+              - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
 
 dance.angel:
   archetype: Dance

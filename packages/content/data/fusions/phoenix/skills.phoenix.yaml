@@ -92,7 +92,7 @@ riposte.phoenix:
                 cond: { has: { unit: eventSource, effect: ignite } }
                 then:
                   - { op: forEach, in: eventSource, do: [{ op: macro, id: ignite_tick }] }
-                  - { op: apply, to: bearer, effect: anointed, duration: { raw: 3 } }
+                  - { op: apply, to: bearer, effect: anointed, duration: { ownTurns: 1 } }
 
 rage.phoenix:
   archetype: Rage
@@ -212,7 +212,7 @@ maneuver.phoenix:
   target: self
   ops:
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+    - { op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }
     # Purifying: the user's Condemned is spent on this use without its Debuff (condemn_fired).
     - op: if
       cond: { check: { cond: condemn_fired, unit: actor } }
