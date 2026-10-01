@@ -1,0 +1,14 @@
+# Grave (Earth + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Fusion passive (every Grave character): +1 Grave (counter `graves`, max 6) whenever anyone dies.
+grave_keeper:
+  name: Gravekeeper
+  kind: Neutral
+  element: Grave
+  stacking: unique
+  description: Whenever any unit or minion dies, on either side, this character gains 1 Grave (max 6).
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - { op: macro, id: dig }

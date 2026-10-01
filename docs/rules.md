@@ -1653,3 +1653,24 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Excommunicate | Simplified: Isolated for 3 turns, plus Condemned. |
 | Shieldbearer's Sweep | Simplified: Sanctify still heals; the damager also gains 15 Shield for 1 turn. |
 | Cornerstone Psalm | +10 max HP first, then heal 15. |
+
+### 21.51 Grave (Earth + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Graves** | Counter `graves` (max 6) on each Grave character, from the fusion passive `grave_keeper`: +1 on every `died` signal, either side. Simplified: each Grave character keeps their own count, not one per team. |
+| **Raise** | Macros `spend_1` / `spend_2` set var `spent`; `raise_spent` summons that many Skeletons (20 HP, Rattle Blade nc 10). Ghoul: 30 HP, Gnaw r 10 + heals 10. Undead are tagged `undead`, and their deaths dig Graves like any other. |
+| Tomb Rush | Generic cost −1 per Grave spent on the next skill. |
+| Grave Burrower | Simplified: a death before it lands makes it land at once. |
+| Open Grave | Checks that the killer carries an Open Grave. |
+| Bury Yourself | Spending happens when the Invulnerable turn ends. |
+| Ghoul Gravedigger | Works with its creator's Graves. |
+| Deathbolt | Fragments spent before the hit; "kills them" = the target is gone afterwards. |
+| Marrow Draught | Raw Affliction to every minion; the user heals the HP actually lost. Strategic, since it deals no direct damage. |
+| Premature Burial | Simplified: the countered skill's cooldown rises by 3, rather than "until a unit dies". |
+| Graveside Vigil | An inline Shield of 5 per Grave (max 25) for 1 turn; nothing if there are no Graves. |
+| Epitaph | A watcher on the user: when the ally dies, `copyEffects fromSnapshot` gives the user's living allies their Buffs (cond `eventTargetIs`). |
+| Bitter Soil | Simplified: each Helpful skill they use while Horrified sprouts a Seedling. |
+| Requiem | Value `recentDeaths`: deaths on either side in the last 2 turns. |
+| Grudge Beyond the Grave | The Ghoul rises at once and Taunts for 1 turn. |
+| Lord of the Grave | Only minions present when it's used become Immortal. |

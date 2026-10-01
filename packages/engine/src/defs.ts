@@ -121,6 +121,8 @@ export type Value =
   | { deadCount: 'enemies' | 'allies' }
   /** Allied minions that died since the actor's side last started a turn (Spore's Compost Bed). */
   | { minionsLost: true }
+  /** Units on either side that died since the actor's side last started a turn (Grave's Requiem). */
+  | { recentDeaths: true }
   /** The actor's other characters that have used a skill this turn. */
   | { alliesActed: true }
   /** The amount carried by the event (healing received). */
@@ -162,6 +164,7 @@ export type Cond =
   | { compare: { value: Value; atLeast?: number; atMost?: number } }
   /** The unit is one of the event's targets (the skill that caused the event). */
   | { isEventTarget: Selector }
+  | { eventTargetIs: Selector } // the single event target (a 'died' signal's dead unit)
   /** An effect the actor applied from a skill of this archetype is on the board (e.g. an active Taunt). */
   | { appliedFromArchetype: string }
   /** At the time of the event, its unit carried an effect the actor applied from one of these archetypes. */
@@ -247,7 +250,7 @@ export type Op =
   /** Mirror's Inverted Echo: skills on cooldown become ready, ready ones go on cooldown for `ready` turns. */
   | { op: 'invertCooldowns'; on: Selector; ready: number }
   /** Gives `to` copies of `from`'s effects of `kind` (same stacks, value and time left). */
-  | { op: 'copyEffects'; from: Selector; to: Selector; kind: EffectKind }
+  | { op: 'copyEffects'; fromSnapshot?: boolean; from: Selector; to: Selector; kind: EffectKind }
   /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
   | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */

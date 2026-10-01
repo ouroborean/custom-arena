@@ -1,0 +1,782 @@
+# The 30 Grave (Earth + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# Graves (counter `graves`, passive `grave_keeper`) and Raise (macros `spend_*` + `raise_spent`).
+
+strike.grave:
+  archetype: Strike
+  element: Grave
+  name: Gravedigger's Spade
+  description: >-
+    Deals 20 damage to target enemy. The user spends 1 Grave, if they have one, for 10 more; with none, they dig 1
+    Grave instead.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: spend_1 }
+    - op: if
+      cond: { varTrue: spent }
+      then: [{ op: damage, to: primary, amount: 30 }]
+      else:
+        - { op: damage, to: primary, amount: 20 }
+        - { op: macro, id: dig }
+
+smash.grave:
+  archetype: Smash
+  element: Grave
+  name: Split the Earth
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. If the user has a Boulder, one is ground into the
+    blow, and the user drains a Soul Fragment from each enemy hit.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: if
+      cond: { any: { in: allAllies, cond: { minion: { unit: it, types: [boulder] } } } }
+      then:
+        - { op: kill, to: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } } }
+        - { op: apply, to: actor, effect: soul_fragment, stacks: { sum: [1, { countOf: primaryAllies }] } }
+
+charge.grave:
+  archetype: Charge
+  element: Grave
+  name: Tomb Rush
+  description: >-
+    Deals 15 damage to target enemy. The user spends up to 2 Graves, and their next skill costs 1 less per Grave
+    spent.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: macro, id: spend_2 }
+    - op: apply
+      to: actor
+      stacks: { var: spent }
+      until: { skillUsed: {} }
+      effect:
+        id: tomb_rush
+        name: Tomb Rush
+        kind: Buff
+        element: Grave
+        description: The bearer's next skill costs 1 less per stack.
+        modifiers:
+          - { mod: costGeneric, amount: -1, perStack: true }
+
+riposte.grave:
+  archetype: Riposte
+  element: Grave
+  name: Grasping Hands
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; a Skeleton claws up for the user, spending no
+    Grave, and Taunts its user for 1 turn. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grasping_hands
+        name: Grasping Hands
+        kind: Buff
+        element: Grave
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer; a Skeleton rises and Taunts its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: summon, minion: skeleton }
+              - { op: apply, to: eventSource, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+
+rage.grave:
+  archetype: Rage
+  element: Grave
+  name: Call the Dead
+  description: >-
+    Raise: the user spends up to 2 Graves for as many Skeletons. For 3 turns, they're Immune and gain 1 Might
+    whenever one of their minions dies.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: macro, id: spend_2 }
+    - { op: macro, id: raise_spent }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: call_the_dead
+        name: Call the Dead
+        kind: Buff
+        element: Grave
+        description: Each allied minion that dies gives the bearer 1 Might.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { and: [{ kind: { unit: eventTarget, is: minion } }, { not: { isEnemy: eventTarget } }] }
+                then: [{ op: apply, to: bearer, effect: might, linkTo: call_the_dead }]
+
+shot.grave:
+  archetype: Shot
+  element: Grave
+  name: Barrow Stone
+  description: >-
+    Deals 15 damage to target enemy. Until the user's next turn, the next allied minion to die leaves a Boulder
+    where it fell.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: barrow_stone
+        name: Barrow Stone
+        kind: Buff
+        element: Grave
+        description: The next allied minion to die leaves a Boulder.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { and: [{ kind: { unit: eventTarget, is: minion } }, { not: { isEnemy: eventTarget } }] }
+                then:
+                  - { op: summon, minion: boulder }
+                  - { op: removeSelf }
+
+snipe.grave:
+  archetype: Snipe
+  element: Grave
+  name: Grave Burrower
+  description: >-
+    In 2 turns, deals 55 damage to target enemy. If any unit or minion dies before then, it bursts out at once
+    instead. Channeled.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: grave_burrower
+        name: Grave Burrower
+        kind: Neutral
+        element: Grave
+        interruptible: true
+        description: When this runs out, or when anyone dies first, its target takes 55 damage.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - { op: damage, to: effectTargets, amount: 55 }
+              - { op: removeSelf }
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 55 }
+
+trap.grave:
+  archetype: Trap
+  element: Grave
+  name: Open Grave
+  description: >-
+    For 2 turns, if target enemy kills a unit or minion, they're Stunned for 1 turn and the fallen rises for the
+    user as a Skeleton, spending no Grave. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: open_grave
+        name: Open Grave
+        kind: Debuff
+        element: Grave
+        visibility: hidden
+        description: If the bearer kills anyone, they're Stunned and the fallen rises for the applier as a Skeleton.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: open_grave } }
+                then:
+                  - { op: apply, to: eventSource, effect: stun, duration: { enemyTurns: 1 } }
+                  - { op: summon, minion: skeleton }
+                  - { op: removeSelf }
+
+maneuver.grave:
+  archetype: Maneuver
+  element: Grave
+  name: Bury Yourself
+  description: >-
+    The user becomes Invulnerable for 1 turn. When it ends, they spend up to 2 Graves and rise with 15 Shield per
+    Grave spent.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: bury_yourself
+        name: Buried
+        kind: Neutral
+        element: Grave
+        description: When this runs out, the bearer spends up to 2 Graves for 15 Shield each.
+        onExpire:
+          - { op: macro, id: spend_2 }
+          - op: if
+            cond: { varTrue: spent }
+            then: [{ op: apply, to: actor, effect: shield, value: { mul: [15, { var: spent }] }, duration: { enemyTurns: 1 } }]
+
+companion.grave:
+  archetype: Companion
+  element: Grave
+  name: Ghoul Gravedigger
+  description: >-
+    Summons a Ghoul Gravedigger (40 HP) permanently. Gnaw (nc): 10 damage, and it heals 10. Unearth (r): spends 2
+    of the user's Graves to Raise a Skeleton; with fewer, it digs 1 Grave.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: ghoul_gravedigger }
+
+bolt.grave:
+  archetype: Bolt
+  element: Grave
+  name: Deathbolt
+  description: >-
+    Deals 20 damage to target enemy, +10 for each Soul Fragment the user spends, up to 3. If it kills them, the
+    spent fragments return to the user, with 1 more.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: souls
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 3 } }, then: 3, else: { stacks: { unit: actor, effect: soul_fragment } } }
+    - { op: repeat, times: { var: souls }, do: [{ op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }] }
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [10, { var: souls }] }] } }
+    - op: if
+      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
+      then: [{ op: apply, to: actor, effect: soul_fragment, stacks: { sum: [{ var: souls }, 1] } }]
+
+blast.grave:
+  archetype: Blast
+  element: Grave
+  name: Uprising
+  description: >-
+    Raise: the user spends up to 2 Graves for as many Skeletons, each bursting out under a random enemy for 15
+    damage. Then deals 20 damage to all enemies.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: macro, id: spend_2 }
+    - op: repeat
+      times: { var: spent }
+      do:
+        - { op: summon, minion: skeleton }
+        - { op: damage, to: { randomEnemy: 1 }, amount: 15 }
+    - { op: damage, to: targets, amount: 20 }
+
+consume.grave:
+  archetype: Consume
+  element: Grave
+  name: Marrow Draught
+  description: >-
+    Drains 10 HP from every minion on both sides; the user heals the total. Minions that die leave Graves as usual.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: drained, value: 0 }
+    - op: forEach
+      in: { filter: allUnits, where: { kind: { unit: it, is: minion } } }
+      do:
+        - { op: set, var: had, value: { hp: it } }
+        - { op: damage, to: it, amount: 10, type: Affliction, raw: true, direct: false }
+        - { op: set, var: drained, value: { sum: [{ var: drained }, { var: had }, { mul: [-1, { hp: it }] }] } }
+    - { op: heal, to: actor, amount: { var: drained } }
+
+summon.grave:
+  archetype: Summon
+  element: Grave
+  name: Raise Skeletons
+  description: >-
+    Raise: the user spends up to 2 Graves for as many Skeletons. With no Graves, the user digs 1 instead.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: macro, id: spend_2 }
+    - op: if
+      cond: { varTrue: spent }
+      then: [{ op: macro, id: raise_spent }]
+      else: [{ op: macro, id: dig }]
+
+channel.grave:
+  archetype: Channel
+  element: Grave
+  name: Necropolis
+  description: >-
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies. Any unit or minion that
+    dies meanwhile rises for the user as a Skeleton. Channeled.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: necropolis
+        name: Necropolis
+        kind: Neutral
+        element: Grave
+        interruptible: true
+        description: Each turn, 10 damage to all enemies; each death raises a Skeleton for the bearer.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+          - on: signal
+            signal: died
+            do:
+              - { op: summon, minion: skeleton }
+
+stab.grave:
+  archetype: Stab
+  element: Grave
+  name: Last Rites
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. If that leaves them at 15 HP or less, the user spends
+    2 Graves, if they have them, to kill them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { and: [{ hpAtMost: { unit: primary, value: 15 } }, { compare: { value: { counter: graves }, atLeast: 2 } }] }
+      then:
+        - { op: macro, id: spend_2 }
+        - { op: kill, to: primary }
+
+ravage.grave:
+  archetype: Ravage
+  element: Grave
+  name: Deathless Drill
+  description: >-
+    Deals 25 Piercing damage to target enemy. While the user is Immortal, it also costs them 20 HP and deals 20
+    more.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: immortal } }
+      then:
+        - { op: damage, to: actor, amount: 20, raw: true, direct: false }
+        - { op: damage, to: primary, amount: 45, type: Piercing }
+      else:
+        - { op: damage, to: primary, amount: 25, type: Piercing }
+
+mislead.grave:
+  archetype: Mislead
+  element: Grave
+  name: Premature Burial
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and buried: its cooldown rises by 3.
+    Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: premature_burial
+        name: Premature Burial
+        kind: Debuff
+        element: Grave
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and buried (+3 cooldown).
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: adjustCooldowns, to: bearer, by: 3, onlyEvent: true }
+
+stun.grave:
+  archetype: Stun
+  element: Grave
+  name: Buried Alive
+  description: >-
+    Target enemy is Stunned for 1 turn, plus 1 more turn for each Grave the user spends, up to 2.
+  cost: Ar
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: macro, id: spend_2 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: { sum: [1, { var: spent }] } } }
+
+dance.grave:
+  archetype: Dance
+  element: Grave
+  name: Graveside Vigil
+  description: >-
+    The user gains 5 Shield per Grave, up to 25. If they already had Shield from this skill, they dig 1 Grave
+    first.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: graveside_vigil } }
+      then: [{ op: macro, id: dig }]
+    - op: if
+      cond: { compare: { value: { counter: graves }, atLeast: 1 } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          value: { if: { compare: { value: { counter: graves }, atLeast: 5 } }, then: 25, else: { mul: [5, { counter: graves }] } }
+          effect:
+            id: graveside_vigil
+            name: Graveside Vigil
+            kind: Buff
+            element: Grave
+            shield: true
+            description: Absorbs damage.
+
+heal.grave:
+  archetype: Heal
+  element: Grave
+  name: Feast of the Fallen
+  description: >-
+    Spends 1 Grave: target ally heals 30. With no Grave to spend, they heal 10.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: macro, id: spend_1 }
+    - { op: heal, to: primary, amount: { if: { varTrue: spent }, then: 30, else: 10 } }
+
+bless.grave:
+  archetype: Bless
+  element: Grave
+  name: Epitaph
+  description: >-
+    Target ally gains 1 Might for 3 turns. If they die meanwhile, each of their allies gains a copy of every Buff
+    they had, for its remaining duration.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: epitaph
+        name: Epitaph
+        kind: Neutral
+        element: Grave
+        description: If the inscribed ally dies, their allies each gain a copy of every Buff they had.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { eventTargetIs: effectTargets }
+                then:
+                  - { op: copyEffects, from: eventTarget, to: allAllies, kind: Buff, fromSnapshot: true }
+                  - { op: removeSelf }
+
+curse.grave:
+  archetype: Curse
+  element: Grave
+  name: Bitter Soil
+  description: >-
+    Target enemy is Confused for 2 turns. Meanwhile, each Helpful skill they use while Horrified sprouts a Seedling
+    for the user.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bitter_soil
+        name: Bitter Soil
+        kind: Debuff
+        element: Grave
+        description: Each Helpful skill the bearer uses while Horrified sprouts a Seedling for the applier.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: horrified } }
+                then: [{ op: summon, minion: seedling }]
+
+smite.grave:
+  archetype: Smite
+  element: Grave
+  name: Grave Marker
+  description: >-
+    Deals 20 damage to target enemy. For 2 turns, each time they're healed, the user drains a Soul Fragment from
+    them.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: grave_marker
+        name: Grave Marker
+        kind: Debuff
+        element: Grave
+        description: Each time the bearer is healed, the applier gains a Soul Fragment.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: actor, effect: soul_fragment }
+
+prayer.grave:
+  archetype: Prayer
+  element: Grave
+  name: Requiem
+  description: >-
+    All allies heal 20 and gain 10 Shield, and heal 10 more for each unit or minion that died since the user's
+    last turn.
+  cost: Srr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: { sum: [20, { mul: [10, { recentDeaths: true }] }] } }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+
+cleave.grave:
+  archetype: Cleave
+  element: Grave
+  name: Reaper's Row
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Then every minion on the field, on both sides,
+    takes 15 damage.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: damage, to: { filter: allUnits, where: { kind: { unit: it, is: minion } } }, amount: 15, direct: false }
+
+shout.grave:
+  archetype: Shout
+  element: Grave
+  name: Tolling Bell
+  description: All units on both sides except the user are Intimidated for 2 turns.
+  cost: nc
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: { filter: allUnits, where: { not: { isActor: it } } }, effect: intimidated, duration: { enemyTurns: 2 } }
+
+withstand.grave:
+  archetype: Withstand
+  element: Grave
+  name: Wall of Bones
+  description: >-
+    The user gains 25 Shield for 2 turns. When it breaks, a Skeleton rises from the bones for the user, spending no
+    Grave.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: wall_of_bones
+        name: Wall of Bones
+        kind: Buff
+        element: Grave
+        description: When the bearer's Shield breaks, a Skeleton rises.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - op: if
+                cond: { not: { hasShield: bearer } }
+                then:
+                  - { op: summon, minion: skeleton }
+                  - { op: removeSelf }
+
+taunt.grave:
+  archetype: Taunt
+  element: Grave
+  name: Grudge Beyond the Grave
+  description: >-
+    Taunts target enemy for 2 turns. If the user dies meanwhile, they rise as a Ghoul, spending no Grave, and the
+    Taunt carries on to it.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: grudge
+        name: Grudge Beyond the Grave
+        kind: Debuff
+        element: Grave
+        description: If the applier dies, they rise as a Ghoul that Taunts the bearer.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { eventTargetIs: actor }
+                then:
+                  - { op: summon, minion: ghoul }
+                  - { op: apply, to: bearer, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+                  - { op: removeSelf }
+
+titan.grave:
+  archetype: Titan
+  element: Grave
+  name: Lord of the Grave
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and their minions are Immortal.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: { filter: allAllies, where: { kind: { unit: it, is: minion } } }, effect: immortal, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+skeleton_rattle_blade:
+  archetype: Minion
+  element: Grave
+  name: Rattle Blade
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+ghoul_gnaw:
+  archetype: Minion
+  element: Grave
+  name: Gnaw
+  description: Deals 10 damage to target enemy, and the Ghoul heals 10.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: heal, to: actor, amount: 10 }
+
+gravedigger_gnaw:
+  archetype: Minion
+  element: Grave
+  name: Gnaw
+  description: Deals 10 damage to target enemy, and the Ghoul heals 10.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: heal, to: actor, amount: 10 }
+
+gravedigger_unearth:
+  archetype: Minion
+  element: Grave
+  name: Unearth
+  description: Spends 2 of its creator's Graves to Raise a Skeleton; with fewer, it digs them 1 Grave.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { compare: { value: { counterOf: { unit: summoner, name: graves } }, atLeast: 2 } }
+      then:
+        - { op: setCounter, name: graves, on: summoner, value: { sum: [{ counterOf: { unit: summoner, name: graves } }, -2] } }
+        - { op: summon, minion: skeleton }
+      else:
+        - op: setCounter
+          name: graves
+          on: summoner
+          value: { sum: [{ counterOf: { unit: summoner, name: graves } }, 1] }

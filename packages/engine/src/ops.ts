@@ -259,6 +259,9 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('totalHp' in v) return select(ctx, v.totalHp, sc).reduce((n, u) => n + u.hp, 0);
   if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
+  if ('recentDeaths' in v) {
+    return ctx.s.units.filter((u) => !u.alive && (u.counters['c:died_turn'] ?? -9) >= ctx.s.turn - 2).length;
+  }
   if ('minionsLost' in v) {
     const me = unit(ctx, sc.actor);
     return ctx.s.units.filter(
@@ -370,6 +373,10 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('or' in c) return c.or.some((x) => evalCond(ctx, x, sc));
   if ('not' in c) return !evalCond(ctx, c.not, sc);
   if ('flag' in c) return !!sc.self?.data[c.flag];
+  if ('eventTargetIs' in c) {
+    const u = select(ctx, c.eventTargetIs, sc)[0];
+    return !!u && sc.eventTarget === u.id;
+  }
   if ('isEventTarget' in c) {
     const u = select(ctx, c.isEventTarget, sc)[0];
     return !!u && (sc.eventTargets ?? []).includes(u.id);
@@ -760,7 +767,8 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (!from) return;
       for (const to of select(ctx, op.to, sc)) {
         if (to === from) continue;
-        for (const e of effectsOn(ctx.s, from.id).filter((x) => effectDef(ctx.c, x).kind === op.kind)) {
+        const pool = op.fromSnapshot ? (sc.snapshot ?? []) : effectsOn(ctx.s, from.id);
+        for (const e of pool.filter((x) => effectDef(ctx.c, x).kind === op.kind)) {
           applyEffect(ctx, {
             def: effectDef(ctx.c, e),
             inline: !!e.inline,
