@@ -1,0 +1,769 @@
+# The 30 Thunder (Lightning + Lightning) variants, from the "Fusion Spec Kits" design doc.
+# Keywords: Resound (an echo for half the damage before the user's next turn, +1 Charge each) and
+# Deafened (the bearer's counters, reflects and Traps can't trigger).
+
+strike.thunder:
+  archetype: Strike
+  element: Thunder
+  name: Clap
+  description: Deals 15 damage to target enemy. It Resounds twice, at the start of each of the user's next 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: macro, id: resound_it }
+        - op: apply
+          to: it
+          value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] }
+          duration: { raw: 4 }
+          effect: resound_echo
+
+smash.thunder:
+  archetype: Smash
+  element: Thunder
+  name: Rolling Thunder
+  description: Deals 25 damage to target enemy. Resound, and the echo also hits each of their allies.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: damage, to: it, amount: 25 }
+        - op: apply
+          to: it
+          remember: it
+          value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] }
+          duration: { raw: 2 }
+          effect: resound_echo_wide
+
+charge.thunder:
+  archetype: Charge
+  element: Thunder
+  name: Sonic Boom
+  description: >-
+    Deals 15 damage to target enemy, and the user gains 1 Focus for their next skill. If that
+    skill hits them, they're Deafened for 2 turns before it lands.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sonic_boom
+        name: Sonic Boom
+        kind: Debuff
+        element: Thunder
+        description: If the applier's next skill targets the bearer, they're Deafened for 2 turns before it lands.
+        triggers:
+          - on: skillTargeted
+            when: { side: enemy }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: deafened, duration: { enemyTurns: 2 } }
+
+riposte.thunder:
+  archetype: Riposte
+  element: Thunder
+  name: Answering Peal
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Deafened for 2 turns
+    and Sapped. Invisible.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: answering_peal
+        name: Answering Peal
+        kind: Buff
+        element: Thunder
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, Deafening and Sapping its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: deafened, duration: { enemyTurns: 2 } }
+              - { op: apply, to: eventSource, effect: sapped }
+
+rage.thunder:
+  archetype: Rage
+  element: Thunder
+  name: Heaven's Anger
+  description: For 3 turns, the user gains 1 Might and Immune, and each time they gain Charge, a random enemy takes 10 damage.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heavens_anger
+        name: Heaven's Anger
+        kind: Buff
+        element: Thunder
+        description: Each time the bearer gains Charge, a random enemy takes 10 damage.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - { op: damage, to: { randomEnemy: 1 }, amount: 10, direct: false }
+
+shot.thunder:
+  archetype: Shot
+  element: Thunder
+  name: Backflash
+  description: >-
+    Deals 15 damage to target enemy. The strike arcs back along their Sapped: they lose all of it,
+    and the user gains 1 Charge per stack.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: set, var: sap, value: { stacks: { unit: primary, effect: sapped } } }
+    - { op: removeEffect, from: primary, effect: sapped }
+    - { op: apply, to: actor, effect: charged, stacks: { var: sap } }
+
+snipe.thunder:
+  archetype: Snipe
+  element: Thunder
+  name: Thunderbolt
+  description: >-
+    The flash: deals 10 damage to target enemy now, and they're Deafened for 1 turn. The thunder:
+    40 Piercing damage to them on the following turn. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: deafened, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: thunderbolt
+        name: Thunderbolt (rolling in)
+        kind: Neutral
+        element: Thunder
+        interruptible: true
+        description: The thunder lands at the end of the following turn unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40, type: Piercing }
+
+trap.thunder:
+  archetype: Trap
+  element: Thunder
+  name: Storm Snare
+  description: >-
+    For 2 turns, the first time one of target enemy's counters, reflects or Traps would trigger, it
+    fails, and they take 25 damage and are Deafened for 2 turns. If nothing triggers it, they're
+    Sapped when it ends. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: storm_snare
+        name: Storm Snare
+        kind: Debuff
+        element: Thunder
+        visibility: hidden
+        description: The bearer's next counter, reflect or Trap fails, and they take 25 damage and are Deafened.
+        modifiers:
+          - { mod: muteTraps }
+        triggers:
+          - on: signal
+            signal: trapMuted
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: storm_snare } }
+                then:
+                  - { op: damage, to: bearer, amount: 25, direct: false }
+                  - { op: apply, to: bearer, effect: deafened, duration: { enemyTurns: 2 } }
+                  - { op: removeSelf }
+        onExpire:
+          - { op: apply, to: bearer, effect: sapped }
+
+maneuver.thunder:
+  archetype: Maneuver
+  element: Thunder
+  name: Second Flash
+  description: The user becomes Invulnerable for 1 turn, and the last skill they used before this comes off cooldown.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: resetCooldown, lastUsed: true }
+
+companion.thunder:
+  archetype: Companion
+  element: Thunder
+  name: Thunderbird
+  description: >-
+    Summons a Thunderbird (30 HP) permanently. Wingclap (Sr): 10 damage to all enemies, Resound.
+    When it dies, every enemy is Deafened for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: thunderbird }
+    - op: apply
+      to: actor
+      effect:
+        id: thunderbird_bond
+        name: Thunderbird
+        kind: Neutral
+        element: Thunder
+        description: When the bearer's Thunderbird dies, every enemy is Deafened for 1 turn.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [thunderbird], mine: true } }
+                then:
+                  - { op: apply, to: allEnemies, effect: deafened, duration: { enemyTurns: 1 } }
+
+bolt.thunder:
+  archetype: Bolt
+  element: Thunder
+  name: Thundercrack
+  description: Deals 25 damage to target enemy and Marks them for 1 turn. The hit that spends the Mark Resounds, whoever it's from.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: thundercrack
+        name: Thundercrack
+        kind: Debuff
+        element: Thunder
+        description: The hit that spends the bearer's Mark Resounds.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: mark } } }
+                then:
+                  - op: apply
+                    to: bearer
+                    from: eventSource
+                    value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
+                    duration: { raw: 2 }
+                    effect: resound_echo
+                  - { op: removeSelf }
+
+blast.thunder:
+  archetype: Blast
+  element: Thunder
+  name: Skyquake
+  description: >-
+    Deals 20 damage to all enemies. Resound. The user spends all their Charge, and the echo repeats
+    once more for each Charge spent, a turn apart.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: charge, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - op: forEach
+      in: targets
+      do:
+        - { op: damage, to: it, amount: 20 }
+        - { op: set, var: echo, value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] } }
+        - { op: apply, to: it, value: { var: echo }, duration: { raw: 2 }, effect: resound_echo }
+        - { op: set, var: later, value: 2 }
+        - op: repeat
+          times: { var: charge }
+          do:
+            - { op: set, var: later, value: { sum: [{ var: later }, 2] } }
+            - { op: apply, to: it, value: { var: echo }, duration: { raw: { var: later } }, effect: resound_echo }
+
+consume.thunder:
+  archetype: Consume
+  element: Thunder
+  name: Ground Out
+  description: >-
+    Deals 5 damage to target enemy. All Charge on the enemy side is grounded: it's removed, and the user heals 10 per Charge.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: set, var: grounded, value: { totalStacks: { in: allEnemies, effect: charged } } }
+    - { op: removeEffect, from: allEnemies, effect: charged }
+    - { op: heal, to: actor, amount: { mul: [10, { var: grounded }] } }
+
+summon.thunder:
+  archetype: Summon
+  element: Thunder
+  name: Thunderhead
+  description: >-
+    Summons a Thunderhead (25 HP) for 3 turns. At the end of each of your turns, it strikes the
+    unit with the most Charge on the field, either side, for 20 damage (a random enemy if no one
+    has any).
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: thunderhead, duration: { enemyTurns: 3 } }
+
+channel.thunder:
+  archetype: Channel
+  element: Thunder
+  name: Drumroll
+  description: >-
+    For up to 3 turns, nothing lands. When it ends, every enemy takes 10 damage per turn it lasted,
+    and it Resounds. Channeled.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: drumroll
+        name: Drumroll
+        kind: Neutral
+        element: Thunder
+        interruptible: true
+        description: When it ends, every enemy takes 30 damage, and it Resounds.
+        onExpire:
+          - op: forEach
+            in: allEnemies
+            do:
+              - { op: damage, to: it, amount: 30 }
+              - { op: macro, id: resound_it }
+
+stab.thunder:
+  archetype: Stab
+  element: Thunder
+  name: Thunder Spike
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The user discharges all
+    their Charge into them: 1 Sapped per Charge spent.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: set, var: charge, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: apply, to: primary, effect: sapped, stacks: { var: charge } }
+
+ravage.thunder:
+  archetype: Ravage
+  element: Thunder
+  name: Leaking Rend
+  description: >-
+    Deals 25 Piercing damage to target enemy. For 2 turns, their Sapped can't be removed, and it
+    takes effect at 2 stacks instead of 3.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: leaking_rend
+        name: Leaking Rend
+        kind: Debuff
+        element: Thunder
+        description: Sapped takes effect at 2 stacks.
+        modifiers:
+          - mod: energyGain
+            amount: -1
+            if: { compare: { value: { stacks: { unit: actor, effect: sapped } }, atLeast: 2 } }
+        triggers:
+          # Energy is generated before turn-start triggers: the 2 Sapped are spent after costing 1.
+          - on: turnStart
+            do:
+              - op: if
+                cond: { and: [{ compare: { value: { stacks: { unit: bearer, effect: sapped } }, atLeast: 2 } }, { not: { compare: { value: { stacks: { unit: bearer, effect: sapped } }, atLeast: 3 } } }] }
+                then:
+                  - { op: removeEffect, from: bearer, effect: sapped }
+
+mislead.thunder:
+  archetype: Mislead
+  element: Thunder
+  name: Hush
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they and all their allies
+    are Deafened for 1 turn. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hush
+        name: Hush
+        kind: Debuff
+        element: Thunder
+        visibility: hidden
+        description: The bearer's Harmful skills are countered, and their whole team is Deafened for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: allEnemies, effect: deafened, duration: { enemyTurns: 1 } }
+
+stun.thunder:
+  archetype: Stun
+  element: Thunder
+  name: Concussion
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn. Resound; the echo also stuns their
+    Strategic skills for 1 turn.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: apply
+          to: it
+          value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] }
+          duration: { raw: 2 }
+          effect: resound_echo_stun
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.thunder:
+  archetype: Dance
+  element: Thunder
+  name: Deafening Cadence
+  description: >-
+    For 4 turns, the user gains 2 Swiftness and 1 Focus, and each enemy they damage is Deafened for
+    1 turn. Each time a Deafened enemy's counter, reflect or Trap fails to trigger, the user gains 1
+    Charge.
+  cost: SA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: deafening_cadence
+        name: Deafening Cadence
+        kind: Buff
+        element: Thunder
+        description: Deafens each enemy the bearer damages for 1 turn; gains 1 Charge each time an enemy's counter or Trap fails.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventTarget, effect: deafened, duration: { enemyTurns: 1 } }
+          - on: signal
+            signal: trapMuted
+            when: { side: enemy }
+            do:
+              - { op: apply, to: bearer, effect: charged }
+
+heal.thunder:
+  archetype: Heal
+  element: Thunder
+  name: Overcapacity
+  description: >-
+    Target ally heals 20. For 2 turns, their Charge can build past 3 to 5; at 5, it's spent and
+    they generate 2 extra energy next turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: overcapacity, duration: { enemyTurns: 2 } }
+
+bless.thunder:
+  archetype: Bless
+  element: Thunder
+  name: Grounding Touch
+  description: >-
+    For 2 turns, each time target ally damages an enemy, one of the ally's Sapped stacks moves onto
+    that enemy; if the ally has none, the enemy gains 1 Sapped.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: grounding_touch
+        name: Grounding Touch
+        kind: Buff
+        element: Thunder
+        description: Each enemy the bearer damages takes one of the bearer's Sapped (or gains 1 Sapped).
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sapped } }
+                then:
+                  - { op: removeStacks, from: bearer, effect: sapped, amount: 1 }
+              - { op: apply, to: eventTarget, effect: sapped }
+
+curse.thunder:
+  archetype: Curse
+  element: Thunder
+  name: Eardrum Burst
+  description: Target enemy is Deafened for 2 turns, and gains 1 Sapped for each skill they use during it.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: deafened, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: eardrum_burst
+        name: Eardrum Burst
+        kind: Debuff
+        element: Thunder
+        description: Gains 1 Sapped for each skill the bearer uses.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: sapped }
+
+smite.thunder:
+  archetype: Smite
+  element: Thunder
+  name: Tolling Bolt
+  description: Deals 20 damage to target enemy. For 1 turn, each time an ally damages them, every enemy takes 5 damage.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tolling_bolt
+        name: Tolling Bolt
+        kind: Debuff
+        element: Thunder
+        description: Each time the applier's side damages the bearer, every one of the bearer's side takes 5 damage.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: damage, to: allEnemies, amount: 5, direct: false }
+
+prayer.thunder:
+  archetype: Prayer
+  element: Thunder
+  name: Rolling Hymn
+  description: >-
+    All allies heal 15. Until the user's next turn, each skill an enemy uses rolls back as an echo:
+    all allies heal 10 more.
+  cost: WW
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - op: apply
+      to: allEnemies
+      duration: { raw: 2 }
+      effect:
+        id: rolling_hymn
+        name: Rolling Hymn
+        kind: Debuff
+        element: Thunder
+        description: Each skill the bearer uses heals the hymn-singer's allies 10.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: heal, to: allAllies, amount: 10 }
+
+cleave.thunder:
+  archetype: Cleave
+  element: Thunder
+  name: Forked Peal
+  description: Deals 25 damage to target enemy. Resound, but the echo forks to a random other enemy instead, at full strength.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: damage, to: it, amount: 25 }
+        - { op: apply, to: it, value: { lastDamage: true }, duration: { raw: 2 }, effect: resound_echo_fork }
+
+shout.thunder:
+  archetype: Shout
+  element: Thunder
+  name: Deafening Roar
+  description: All enemies are Deafened for 2 turns, and any of them channeling a skill stops.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: deafened, duration: { enemyTurns: 2 } }
+    - { op: interrupt, to: targets }
+
+withstand.thunder:
+  archetype: Withstand
+  element: Thunder
+  name: Thunder Cage
+  description: >-
+    The user gains 25 Shield for 2 turns. Damage it absorbs echoes back: at the start of the user's
+    next turn, each attacker takes half of what they dealt to it.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: thunder_cage
+        name: Thunder Cage
+        kind: Buff
+        element: Thunder
+        shield: true
+        description: Damage this Shield absorbs echoes back at its attacker for half.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - op: apply
+                to: eventSource
+                value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
+                duration: { raw: 2 }
+                effect: resound_echo
+
+taunt.thunder:
+  archetype: Taunt
+  element: Thunder
+  name: Challenge Peal
+  description: >-
+    Taunts target enemy for 2 turns. The peal deafens the rest of their team: every other enemy is
+    Deafened for as long.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primaryAllies, effect: deafened, duration: { enemyTurns: 2 } }
+
+titan.thunder:
+  archetype: Titan
+  element: Thunder
+  name: Stormspire
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and draws the storm: enemy skills that would hit
+    more than one of the user's allies hit only the user instead.
+  cost: Wr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: stormspire
+        name: Stormspire
+        kind: Buff
+        element: Thunder
+        description: Enemy skills aimed at all of the bearer's side hit only the bearer.
+        modifiers:
+          - { mod: absorbAoE }
+
+# Minion skills.
+
+thunderbird_wingclap:
+  archetype: Minion
+  element: Thunder
+  name: Wingclap
+  description: Deals 10 damage to all enemies. Resound.
+  cost: Sr
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: macro, id: resound_it }

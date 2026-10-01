@@ -718,3 +718,28 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Whalesong | New `reveal` op: every hidden effect the enemies applied is revealed. For 2 turns, each effect they apply is revealed as it's made. |
 | Returning Wave | When the Shield expires unbroken, what's left is split evenly, as indirect damage, among the living enemies. |
 | Leviathan Form | The bite goes to the targetable enemy character with the least HP. |
+
+### 21.4 Thunder (Lightning + Lightning)
+
+| Term | Ruling |
+|---|---|
+| **Resound** | An "Echo" effect on each unit damaged, valued at half that damage rounded up to 5. It lands when it runs out, at the end of the enemy's turn, just before the user's next turn: the echo is indirect damage, and the echo's owner gains 1 Charge. |
+| **Deafened** | New `muteTraps` modifier: intercepting triggers (counters, reflects) and Trap effects *applied by* the bearer don't fire. Each muted attempt broadcasts the `trapMuted` signal from the bearer. |
+
+| Skill | Ruling |
+|---|---|
+| Clap | Two echoes, one before each of the user's next 2 turns. |
+| Rolling Thunder | The echo also hits the target's allies. |
+| Sonic Boom | **Simplified:** the next enemy skill aimed at the target (from the user's side) Deafens them for 2 turns first. |
+| Storm Snare | A hidden `muteTraps` status: the target's first counter, reflect or Trap fails, and they take 25 and are Deafened for 2 turns. If it runs out unused, they're Sapped. |
+| Second Flash | The engine remembers each unit's last skill slot; the new `resetCooldown` `lastUsed` clears it. |
+| Thunderbird | A permanent status on the user Deafens every enemy for 1 turn when their Thunderbird dies. Wingclap's echoes give the Thunderbird the Charge. |
+| Thundercrack | The direct hit that finds the Mark gone Resounds, with the echo's owner being whoever hit. |
+| Skyquake | The user's Charge is spent first. Each target gets an echo before the next turn, plus one more per Charge, a turn apart. |
+| Thunderhead | Strikes every unit tied for the most Charge (3, then 2, then 1); a random enemy if no one has any. |
+| Drumroll | Lands only when it runs its full 3 turns: 30 to each enemy, with Resound. Interrupted, nothing lands. |
+| Leaking Rend | **Simplified:** at 2 Sapped, the target generates 1 less energy and the Sapped is spent; it can still be removed. |
+| Overcapacity | Charged gets a `stackCap` of 5 and pays 2 energy at 5 (instead of 1 at 3) while it lasts. |
+| Rolling Hymn | Until the user's next turn, each skill an enemy uses heals all the user's allies 10. |
+| Thunder Cage | Each hit on the Shield echoes half of what it absorbed back at its attacker (the `shieldDamaged` trigger now carries the amount). |
+| Stormspire | New `absorbAoE` modifier: an enemy skill that targets all of the user's side is retargeted to the user alone. Splash from single-target skills isn't redirected. |

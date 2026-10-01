@@ -1,0 +1,11 @@
+# Thunder keywords (docs/glossary.md).
+
+deafened:
+  status: deafened
+  forms: [Deafened, Deafens, Deafen]
+  element: Thunder
+resound:
+  name: Resound
+  text: "Each unit the skill damaged takes half that damage again (rounded up to 5) at the start of the user's next turn, and the user gains 1 Charge per echo."
+  forms: [Resound, Resounds]
+  element: Thunder

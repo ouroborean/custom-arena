@@ -257,7 +257,8 @@ export type Op =
   /** The actor's player gains random-colored energy. */
   | { op: 'gainEnergy'; amount: number }
   /** A skill comes off cooldown: the skill being used, or the actor's skill with this id. */
-  | { op: 'resetCooldown'; skill?: string; archetypes?: string[] }
+  /** `lastUsed`: the skill the actor used before this one (Thunder's Second Flash). */
+  | { op: 'resetCooldown'; skill?: string; archetypes?: string[]; lastUsed?: boolean }
   /**
    * Uses a skill without cost or cooldown (GDD §11.5 meta ops): a content skill id, or the actor's
    * own skill of an archetype. Single-target skills hit each unit of `on`; self and AoE skills
@@ -401,6 +402,10 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'maxHpLossPerTurn'; amount: number }
   /** Hits on the bearer use the Shield this effect is linked to first (Crystal's Latticework). */
   | { mod: 'borrowShield' }
+  /** Thunder's Deafened: counters, reflects and Traps the bearer applied can't trigger. */
+  | { mod: 'muteTraps' }
+  /** Thunder's Stormspire: enemy skills aimed at all of the bearer's side hit only the bearer. */
+  | { mod: 'absorbAoE' }
   /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
   | { mod: 'hpFloor'; amount: number }
   /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */

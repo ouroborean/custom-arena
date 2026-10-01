@@ -104,7 +104,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
 
   let remaining = amount;
   let absorbed = 0;
-  const hitShields: EffectInstance[] = [];
+  const hitShields: { e: EffectInstance; take: number }[] = [];
   if (a.type !== 'Affliction' && !shattered) {
     // The bearer's own Shields, then any Shield they borrow (Crystal's Latticework).
     const borrowed = modsOn(ctx.s, ctx.c, target.id, 'borrowShield')
@@ -117,7 +117,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
       e.value -= take;
       remaining -= take;
       absorbed += take;
-      if (take > 0) hitShields.push(e);
+      if (take > 0) hitShields.push({ e, take });
       if (e.value <= 0) removeEffect(ctx, e, 'depleted');
     }
   }
@@ -163,7 +163,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true, a.skill, remaining + absorbed);
   // Anyone can listen for damage anywhere (Blood Chalice).
   broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
-  for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill);
+  for (const { e, take } of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill, take);
   if (source !== target) {
     for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);
   }
@@ -211,13 +211,22 @@ function enqueueOn(
   target: Unit,
   direct: boolean,
   skill?: string,
+  amount?: number,
 ): void {
   for (const spec of effectDef(ctx.c, e).triggers ?? []) {
     if (spec.on !== on) continue;
     if (spec.when?.direct !== undefined && spec.when.direct !== direct) continue;
     if (spec.when?.byEnemy && !isEnemy(source, target)) continue;
     if (spec.when?.archetypes && !spec.when.archetypes.includes(archetypeOf(ctx.c, skill) ?? '')) continue;
-    ctx.triggerQueue.push({ effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id, ...(skill ? { eventSkill: skill } : {}) });
+    ctx.triggerQueue.push({
+      effect: e.id,
+      inst: e,
+      spec,
+      eventSource: source.id,
+      eventTarget: target.id,
+      ...(amount !== undefined ? { eventAmount: amount } : {}),
+      ...(skill ? { eventSkill: skill } : {}),
+    });
   }
 }
 

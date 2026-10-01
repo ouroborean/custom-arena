@@ -701,7 +701,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const s of actor.skills) if (op.archetypes.includes(archetypeOf(ctx.c, s.defId) ?? '')) s.cooldown = 0;
         return;
       }
-      const slot = op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
+      const last = actor.counters.lastSlot;
+      const slot = op.lastUsed
+        ? last === undefined ? undefined : actor.skills[last]
+        : op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
       if (slot) slot.cooldown = 0;
       return;
     }
@@ -998,7 +1001,20 @@ export function flushTriggers(ctx: Ctx): void {
   }
 }
 
+/**
+ * Thunder's Deafened: counters, reflects and Traps applied by a unit with `muteTraps` don't trigger.
+ * Each muted attempt is announced as the `trapMuted` signal (from that unit).
+ */
+export function mutedTrap(ctx: Ctx, e: EffectInstance, spec: TriggerSpec): boolean {
+  if (!spec.intercept && e.sourceArchetype !== 'Trap' && effectKeyOf(e) !== 'trap') return false;
+  const src = findUnit(ctx.s, e.source);
+  if (!src || modsOn(ctx.s, ctx.c, src.id, 'muteTraps').length === 0) return false;
+  broadcastSignal(ctx, 'trapMuted', src, { target: unit(ctx, e.bearer) });
+  return true;
+}
+
 export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void {
+  if (mutedTrap(ctx, e, p.spec)) return;
   revealEffect(ctx, e);
   const sc: Scope = {
     actor: e.source,

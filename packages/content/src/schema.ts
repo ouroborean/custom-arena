@@ -248,6 +248,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('maxHpLossPerHit'), amount: z.number().int().min(0) }),
   mod({ mod: z.literal('maxHpLossPerTurn'), amount: z.number().int().min(0) }),
   mod({ mod: z.literal('borrowShield') }),
+  mod({ mod: z.literal('muteTraps') }),
+  mod({ mod: z.literal('absorbAoE') }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -320,7 +322,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
     z.strictObject({ op: z.literal('convertEffects'), from: z.string(), to: z.string() }),
     z.strictObject({ op: z.literal('gainEnergy'), amount: z.number().int().min(1) }),
-    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional(), archetypes: z.array(z.string()).optional() }),
+    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional(), archetypes: z.array(z.string()).optional(), lastUsed: z.boolean().optional() }),
     z.strictObject({
       op: z.literal('castSkill'),
       skill: z.string().optional(),

@@ -10,7 +10,9 @@ charged:
   maxStacks: 3
   description: Charge (max 3). At 3, the owner generates 1 extra energy next turn and the Charge is spent.
   modifiers:
-    - { mod: energyGain, amount: 1, atStacks: 3 }
+    # Thunder's Overcapacity: Charge builds to 5 instead, for 2 extra energy.
+    - { mod: energyGain, amount: 1, atStacks: 3, if: { not: { has: { unit: actor, effect: overcapacity } } } }
+    - { mod: energyGain, amount: 2, atStacks: 5, if: { has: { unit: actor, effect: overcapacity } } }
 
 sapped:
   name: Sapped

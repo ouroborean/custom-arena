@@ -4,7 +4,7 @@ import { effectDef, effectsOn, emit, findUnit, isEnemy, livingUnits, skillDef, u
 import type { SkillDef, TriggerSpec } from './defs.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
-import { broadcastSignal, enqueueFor, enqueueTriggers, evalCond, flushTriggers, runOps, runTrigger, type Scope } from './ops.js';
+import { broadcastSignal, enqueueFor, enqueueTriggers, evalCond, flushTriggers, mutedTrap, runOps, runTrigger, type Scope } from './ops.js';
 import {
   canTarget,
   cannotUseReason,
@@ -32,6 +32,11 @@ export function resolveTargets(ctx: Ctx, actor: Unit, def: SkillDef, declared: U
   const r = resolveTargetsWithExtras(ctx, actor, def, declared, strict);
   // Equipment can also rule targets out (Hand of Healing: never yourself).
   if (!r.ok) return r;
+  // Thunder's Stormspire: a skill aimed at every one of a side hits only the unit drawing the storm.
+  if (def.target === 'allEnemies' && r.targets.length > 1) {
+    const rod = r.targets.find((id) => modsOn(ctx.s, ctx.c, id, 'absorbAoE').length > 0);
+    if (rod) return { ok: true, targets: [rod] };
+  }
   const kept = r.targets.filter((id) => !isExcludedTarget(ctx, actor, def, unit(ctx, id)));
   if (kept.length === r.targets.length) return r;
   if (kept.length === 0) return { ok: false, reason: 'target not allowed' };
@@ -162,7 +167,7 @@ function interceptorFor(
   const found: { effect: EffectInstance; spec: TriggerSpec }[] = [];
   for (const e of effectsOn(ctx.s, actor.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-      if (spec.on === 'skillUsed' && spec.intercept && matches(spec)) found.push({ effect: e, spec });
+      if (spec.on === 'skillUsed' && spec.intercept && matches(spec) && !mutedTrap(ctx, e, spec)) found.push({ effect: e, spec });
     }
   }
   for (const tid of targets) {
@@ -170,7 +175,7 @@ function interceptorFor(
     if (!isEnemy(actor, t)) continue;
     for (const e of effectsOn(ctx.s, tid)) {
       for (const spec of effectDef(ctx.c, e).triggers ?? []) {
-        if (spec.on === 'skillTargeted' && spec.intercept && matches(spec)) found.push({ effect: e, spec });
+        if (spec.on === 'skillTargeted' && spec.intercept && matches(spec) && !mutedTrap(ctx, e, spec)) found.push({ effect: e, spec });
       }
     }
   }
@@ -257,6 +262,7 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   } finally {
     // Uses per skill (Ocean's Crest and Trough alternate on it).
     actor.counters[`uses:${def.id}`] = (actor.counters[`uses:${def.id}`] ?? 0) + 1;
+    actor.counters.lastSlot = slotIndex;
     for (const e of ending) removeEffect(ctx, e, 'consumed');
     for (const e of stealthed) {
       if (!ctx.s.effects.includes(e)) continue;
