@@ -803,3 +803,39 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Exoskeleton | **Simplified:** the extra 5 per Weakness is healed back after each direct hit. |
 | Hypnotic Hood | If the target doesn't damage the user before it ends, they fall Asleep for 2 turns. |
 | Chrysalis | Stunned and Invulnerable until the end of the user's next turn, then the buffs for 3 turns. |
+
+### 21.7 Life (Earth + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Flourish** | A macro after a heal on `it`: the overflow (`lastOverheal`) raises their max HP and fills it, up to +30 per unit for the match (each unit's `flourish` counter; `setCounter` now takes `on`, and the new `counterOf` value reads it). Only Life skills that say "which can Flourish" use it. |
+| **Bloom** | Life's fusion passive marks the character. A Seedling they create (Earth's Seedling checks its summoner) carries a timer and, if alive at the end of its creator's second turn after appearing, becomes a Treant in place (new `transformMinion` op: 40 max HP, full, Treant Slam and Channel Earth; tags `seedling` and `treant`). |
+| **Engine** | `addMaxHp` takes a computed amount (and caps current HP); new `shareDamage` modifier for Common Root; `transformMinion`. |
+
+| Skill | Ruling |
+|---|---|
+| Oakfist | +5 per full 10 the user has Flourished. |
+| Groundswell | Heals every other unit, both sides and minions, with Flourish. |
+| Sapling Charge | **Simplified:** the user's next hit (from anyone) lands on a random allied minion instead (`redirectDamage`, consumed). |
+| Thornwall | Placed on the user and each of their minions; the first counter removes them all. |
+| Wild Growth | While it lasts, each of the user's Seedlings that Blooms gives them 1 permanent Might. |
+| Treefall | Can target an allied Treant: it hits a random enemy for its HP (as the Treant), then becomes a fresh Seedling with a new Bloom timer. |
+| Heartwood Spear | Channels 2 turns with Channel Growth at each of the user's turn ends, then hits for 50. |
+| Strangling Roots | Up to 3 Weakness (2 turns each); the 3rd sprouts a Seedling for the trapper. |
+| Take Root | The Boulder becomes a Worldsprout in place if it's alive at the start of the user's next turn. |
+| Patient Acorn | +10 max HP and 10 healing at each of its owner's turn ends, no cap. Crush deals half its HP. |
+| Bedrock Thorn | For 3 turns, each damage event on an allied Boulder triggers Channel Growth. |
+| Harvest | Requires an allied Seedling or Treant; a random one is sacrificed. |
+| Twin Saplings | When one of the user's Seedlings dies within its window, a random unbloomed one Blooms at once. |
+| Splinter Spike | **Simplified:** sacrifices a random allied Seedling, not the one with the least HP. |
+| Taproot | Against a Stunned target, moves 10 max HP to the user (while their Flourish total is at most 20). |
+| Living Screen | With an allied minion: the target's next Harmful skill lands on the user's minions (`redirectDamage` on every allied character that turn; a random minion takes each hit, not the one with most HP). With none: it's countered and the user creates a Boulder. |
+| Overgrow | The Shield lasts as long as the Stun. When it runs out, what's left heals the user, with Flourish. |
+| Evergreen | Swiftness when the user has Flourished at all. |
+| Graft | A `maxHp` modifier for 3 turns, filled at once. |
+| Tangleweed | **Simplified:** the target can't target minions (`targetExclude`); area skills still hit them. |
+| Common Root | Every unit on the user's side shares damage evenly while it lasts. |
+| Whirling Vines | One Seedling per enemy minion that died to it. |
+| Call of the Grove | Blooms every allied unbloomed Seedling and heals every allied minion to full. |
+| Warden Oak | **Renamed** from the doc's "Guardian Oak": content lint forbids "Guardian" (the retired class). A random allied minion (or the user) Taunts; allied Seedlings that survive it Bloom. |
+| Ancient Treant | Armor equal to the user's minion count, and allied minions are Untargetable. |

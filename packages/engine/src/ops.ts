@@ -171,6 +171,10 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   if ('effectValue' in v) return sc.self?.value ?? 0;
   if ('timesUsed' in v) return timesUsed(ctx, sc);
   if ('counter' in v) return unit(ctx, sc.actor).counters[`c:${v.counter}`] ?? 0;
+  if ('counterOf' in v) {
+    const u = select(ctx, v.counterOf.unit, sc)[0];
+    return u ? (u.counters[`c:${v.counterOf.name}`] ?? 0) : 0;
+  }
   if ('turn' in v) return ctx.s.turn;
   if ('lastOverheal' in v) return sc.lastOverheal ?? 0;
   if ('effectValueOf' in v) {
@@ -541,8 +545,25 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     }
     case 'setCounter':
-      actor.counters[`c:${op.name}`] = evalValue(ctx, op.value, sc);
+      for (const t of op.on ? select(ctx, op.on, sc) : [actor]) t.counters[`c:${op.name}`] = withIt(sc, t.id, () => evalValue(ctx, op.value, sc));
       return;
+    case 'transformMinion': {
+      const def = ctx.c.minions[op.minion];
+      if (!def) throw new Error(`Unknown minion ${op.minion}`);
+      for (const t of select(ctx, op.to, sc)) {
+        if (t.kind !== 'minion' || !t.alive) continue;
+        // The old kind's own passives go; the new kind's come.
+        for (const e of effectsOn(ctx.s, t.id)) if (e.source === t.id && e.sourceSkill === undefined) removeEffect(ctx, e, 'removed');
+        t.defId = def.id;
+        t.name = def.name;
+        t.maxHp = def.hp;
+        t.hp = def.hp;
+        t.skills = def.skills.map((defId) => ({ defId, cooldown: 0 }));
+        emit(ctx, { t: 'summoned', unit: t.id, defId: def.id, by: t.summonedBy ?? t.id });
+        for (const p of def.passives) applyEffect(ctx, { def: resolveEffectDef(ctx.c, p), inline: typeof p !== 'string', bearer: t, source: t });
+      }
+      return;
+    }
     case 'growShield': {
       const def = resolveEffectDef(ctx.c, op.effect);
       const max = op.max ?? Number.POSITIVE_INFINITY;
@@ -569,7 +590,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       }
       return;
     case 'addMaxHp':
-      for (const t of select(ctx, op.to, sc)) t.maxHp += op.amount;
+      for (const t of select(ctx, op.to, sc)) {
+        t.maxHp = Math.max(1, t.maxHp + withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)));
+        t.hp = Math.min(t.hp, t.maxHp);
+      }
       return;
     case 'scaleShields':
       for (const t of select(ctx, op.on, sc)) {

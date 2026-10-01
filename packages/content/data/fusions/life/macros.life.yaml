@@ -1,0 +1,32 @@
+# Life actions. The "_it" macros act on `it` (use inside forEach).
+
+# Flourish, right after healing `it`: the overflow raises their max HP (and fills it), up to +30
+# per unit for the match. grow = min(overflow, 30 − already flourished).
+flourish_it:
+  - op: set
+    var: grow
+    value:
+      if:
+        compare:
+          value: { sum: [30, { mul: [-1, { counterOf: { unit: it, name: flourish } }] }, { mul: [-1, { lastOverheal: true }] }] }
+          atMost: 0
+      then: { sum: [30, { mul: [-1, { counterOf: { unit: it, name: flourish } }] }] }
+      else: { lastOverheal: true }
+  - op: if
+    cond: { compare: { value: { var: grow }, atLeast: 1 } }
+    then:
+      - { op: addMaxHp, to: it, amount: { var: grow } }
+      - { op: heal, to: it, amount: { var: grow }, raw: true, quiet: true }
+      - { op: setCounter, on: it, name: flourish, value: { sum: [{ counterOf: { unit: it, name: flourish } }, { var: grow }] } }
+
+# Bloom: the Seedling `it` becomes a Treant (40 max HP, full). Wild Growth rewards its creator:
+# `summoner` when the Seedling's own timer runs out, `actor` when a Life skill makes it Bloom.
+bloom_it:
+  - { op: removeEffect, from: it, effect: bloom_timer }
+  - op: if
+    cond: { has: { unit: summoner, effect: wild_growth } }
+    then: [{ op: apply, to: summoner, effect: might }]
+  - op: if
+    cond: { has: { unit: actor, effect: wild_growth } }
+    then: [{ op: apply, to: actor, effect: might }]
+  - { op: transformMinion, to: it, minion: treant }

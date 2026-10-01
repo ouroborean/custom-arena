@@ -36,6 +36,8 @@ export interface DamageArgs {
   skill?: string;
   /** Not affected by any damage modifier (Cultist Scythe). */
   raw?: boolean;
+  /** Already one share of a split hit (Life's Common Root): don't split again. */
+  split?: boolean;
 }
 
 /** Returns the damage actually dealt (absorbed by Shield + lost HP). */
@@ -67,6 +69,18 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   if (source !== target && modsOn(ctx.s, ctx.c, target.id, 'redirectDamage').length > 0) {
     const minions = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && u.kind === 'minion');
     if (minions.length > 0) return dealDamage(ctx, { ...a, target: minions[nextInt(ctx.s.rng, minions.length)]! });
+  }
+
+  // Life's Common Root: the hit is split evenly across every unit on that side that shares it.
+  if (!a.split && modsOn(ctx.s, ctx.c, target.id, 'shareDamage').length > 0) {
+    const group = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && modsOn(ctx.s, ctx.c, u.id, 'shareDamage').length > 0);
+    if (group.length > 1) {
+      const share = Math.floor(a.amount / group.length);
+      const rest = a.amount - share * group.length;
+      let total = 0;
+      for (const u of group) total += dealDamage(ctx, { ...a, target: u, amount: u === target ? share + rest : share, split: true });
+      return total;
+    }
   }
 
   // Cloud's Rain Check: the hit is held and lands later, smaller (as the held status's own damage).

@@ -78,6 +78,8 @@ export type Value =
   | { timesUsed: true }
   /** A number the actor stored with setCounter (0 if never set). */
   | { counter: string }
+  /** A number a unit stored with setCounter (0 if never set). */
+  | { counterOf: { unit: Selector; name: string } }
   /** The current turn number. */
   | { turn: true }
   /** Healing the most recent heal op couldn't give because the target was full (Ocean's Brimming). */
@@ -217,7 +219,13 @@ export type Op =
   /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */
   | { op: 'removeShields'; from: Selector }
   /** Stores a number on the actor, read back with the `counter` value. */
-  | { op: 'setCounter'; name: string; value: Value }
+  /** Stores a number on the actor, or on each unit in `on`; read back with `counter` / `counterOf`. */
+  | { op: 'setCounter'; name: string; value: Value; on?: Selector }
+  /**
+   * Turns minions into another minion in place (Life's Bloom: a Seedling becomes a Treant): new
+   * def, skills and passives, full HP at the new max. Its owner and summoner stay.
+   */
+  | { op: 'transformMinion'; to: Selector; minion: string }
   /**
    * `a` and `b` (one unit each) each gain copies of the other's effects of `kind`, as they stood
    * before this op, with the same stacks, value and time left (Ocean's Crosscurrent).
@@ -240,7 +248,7 @@ export type Op =
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
   | { op: 'removeKind'; from: Selector; kind: EffectKind }
   /** Raises max HP (current HP is unchanged). */
-  | { op: 'addMaxHp'; to: Selector; amount: number }
+  | { op: 'addMaxHp'; to: Selector; amount: Value }
   /** Multiplies the value of every Shield effect on the selected units (Earth Rampart). */
   | { op: 'scaleShields'; on: Selector; factor: number }
   /** Adds to the value of every Shield effect on the selected units. */
@@ -418,6 +426,11 @@ export type ModifierSpec = ModifierBase &
    * take 5 less from it, for the rest of the match (max 15 per skill).
    */
   | { mod: 'adaptiveHide' }
+  /**
+   * Life's Common Root: damage to the bearer is split evenly among every living unit on their side
+   * that also has this (the remainder stays on the one hit).
+   */
+  | { mod: 'shareDamage' }
   /**
    * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
    * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.

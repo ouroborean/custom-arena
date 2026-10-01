@@ -1,0 +1,12 @@
+# Life keywords (docs/glossary.md).
+
+flourish:
+  name: Flourish
+  text: "Healing that would take a unit above max HP raises their max HP by the excess instead, up to +30 per unit for the match."
+  forms: [Flourish, Flourishes, Flourishing, Flourished]
+  element: Life
+bloom:
+  name: Bloom
+  text: "A Seedling a Life character created that is alive at the end of its creator's second turn after appearing becomes a Treant: 40 max HP, healed to full, with Treant Slam. Treants still count as Seedlings."
+  forms: [Bloom, Blooms, Blooming]
+  element: Life

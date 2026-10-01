@@ -151,6 +151,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ kindCount: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
     z.strictObject({ timesUsed: z.literal(true) }),
     z.strictObject({ counter: z.string().min(1) }),
+    z.strictObject({ counterOf: z.strictObject({ unit: selectorSchema, name: z.string().min(1) }) }),
     z.strictObject({ turn: z.literal(true) }),
     z.strictObject({ lastOverheal: z.literal(true) }),
     z.strictObject({ effectValueOf: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
@@ -254,6 +255,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('driftSkills') }),
   mod({ mod: z.literal('protectEffects'), effects: z.array(z.string()).min(1) }),
   mod({ mod: z.literal('adaptiveHide') }),
+  mod({ mod: z.literal('shareDamage') }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 
@@ -305,13 +307,14 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
-    z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema }),
+    z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema, on: selectorSchema.optional() }),
+    z.strictObject({ op: z.literal('transformMinion'), to: selectorSchema, minion: z.string() }),
     z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
     z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
     z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional() }),
     z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
-    z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
+    z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),
     z.strictObject({ op: z.literal('boostShields'), on: selectorSchema, amount: z.number().int() }),
     z.strictObject({

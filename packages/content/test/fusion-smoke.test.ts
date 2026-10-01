@@ -32,7 +32,13 @@ describe('Fusion kits: every skill runs', () => {
           a.use(A1, 'strike.fire', B1).end();
           a.use(B1, 'strike', A1).end();
           const target = s.target === 'enemy' ? B1 : s.target === 'ally' ? A2 : s.target === 'any' ? B1 : undefined;
-          a.use(A1, s.id, target).end();
+          try {
+            a.use(A1, s.id, target);
+          } catch (e) {
+            // Skills with a requirement or target filter (Harvest needs a Seedling) may be refused here.
+            if (!s.requires && !s.targetFilter) throw e;
+          }
+          a.end();
           for (let i = 0; i < 6 && a.state.phase !== 'finished'; i++) {
             const me = a.active;
             const caster = me === 0 ? A1 : B1;
