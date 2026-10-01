@@ -96,7 +96,9 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   // Big-hit reductions apply first, measured before Armor (Helmet of the Ancestors).
   if (!a.raw) bonus += thresholdReduction(ctx, target, a.type, a.direct, a.amount + bonus);
   const armor = shattered ? 0 : taken.armor;
-  const amount = Math.max(0, Math.round((a.amount + bonus + armor) * dealt.mul * taken.mul));
+  // Evolution's Adaptive Hide: what the target learned about this skill (rest of the match).
+  const learned = a.direct && a.skill && enemy ? (target.counters[`adapt:${a.skill}`] ?? 0) : 0;
+  const amount = Math.max(0, Math.round((a.amount + bonus + armor - learned) * dealt.mul * taken.mul));
   const breakdown = { base: a.amount, bonus, armor };
   if (heals) {
     heal(ctx, source, target, amount);
@@ -181,6 +183,10 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   for (const { e, take } of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill, take);
   if (source !== target) {
     for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);
+  }
+  if (enemy) target.lastAttacker = source.id;
+  if (enemy && a.direct && a.skill && modsOn(ctx.s, ctx.c, target.id, 'adaptiveHide').length > 0) {
+    target.counters[`adapt:${a.skill}`] = Math.min(15, (target.counters[`adapt:${a.skill}`] ?? 0) + 5);
   }
   if (target.hp <= 0) killUnit(ctx, target, source, a.skill);
   return amount;

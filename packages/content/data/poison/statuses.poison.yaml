@@ -9,7 +9,13 @@ toxin:
   triggers:
     - on: turnEnd
       do:
-        - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
+        # Evolution's Hormesis: Toxin heals its bearer instead.
+        - op: if
+          cond: { has: { unit: bearer, effect: hormesis } }
+          then:
+            - { op: heal, to: bearer, amount: { mul: [5, { effectStacks: true }] } }
+          else:
+            - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
 
 # Explicit "considered Prey" (Lunge, Mesmerizing Glare). Units can also be Prey without it —
 # see the "prey" condition.

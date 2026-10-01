@@ -52,6 +52,8 @@ export interface Unit {
   counters: Record<string, number>;
   /** For minions: the archetype of the skill that summoned them (Companion, Summon, …). */
   summonArchetype?: string;
+  /** The last enemy who damaged this unit (the `lastAttacker` target). */
+  lastAttacker?: UnitId;
 }
 
 export interface EffectInstance {

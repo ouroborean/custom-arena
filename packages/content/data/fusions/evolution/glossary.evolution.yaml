@@ -1,0 +1,7 @@
+# Evolution keywords (docs/glossary.md).
+
+evolve:
+  name: Evolve
+  text: "Each Evolution skill has three stages. It starts at Stage I and goes up one stage each time it's used, then stays at III, unless the skill says otherwise."
+  forms: [Evolve, Evolves]
+  element: Evolution

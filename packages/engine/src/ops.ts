@@ -20,7 +20,7 @@ import {
 import { dealDamage, heal, killUnit } from './damage.js';
 import { costTotal } from './energy.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
-import { applyEffect, interruptChannels, removeEffect, revealEffect } from './effects.js';
+import { applyEffect, interruptChannels, isProtected, removeEffect, revealEffect } from './effects.js';
 import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
 import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
@@ -117,6 +117,10 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
     case 'weakestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'lastAttacker': {
+      const u = actor.lastAttacker ? findUnit(ctx.s, actor.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
     case 'strongestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'max');
   }
@@ -479,6 +483,28 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'interrupt':
       for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
       return;
+    case 'moveEffects': {
+      const from = select(ctx, op.from, sc)[0];
+      const to = select(ctx, op.to, sc)[0];
+      if (!from || !to || from === to) return;
+      const moving = effectsOn(ctx.s, from.id).filter(
+        (e) => (op.kind ? effectDef(ctx.c, e).kind === op.kind : true) && (op.effects ? op.effects.includes(effectKeyOf(e)) : true),
+      );
+      for (const e of moving) {
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: to,
+          source: findUnit(ctx.s, e.source) ?? actor,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+        removeEffect(ctx, e, 'removed');
+      }
+      return;
+    }
     case 'shareEffects': {
       const ua = select(ctx, op.a, sc)[0];
       const ub = select(ctx, op.b, sc)[0];
@@ -651,7 +677,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       for (const t of select(ctx, op.from, sc)) {
         let left = op.amount;
         for (const e of effectsOn(ctx.s, t.id)) {
-          if (left <= 0 || effectKeyOf(e) !== op.effect) continue;
+          if (left <= 0 || effectKeyOf(e) !== op.effect || isProtected(ctx, e)) continue;
           const take = Math.min(e.stacks, left);
           e.stacks -= take;
           left -= take;

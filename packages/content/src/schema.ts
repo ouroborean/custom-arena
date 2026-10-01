@@ -77,6 +77,7 @@ const namedSelector = z.enum([
   'weakestAlly',
   'weakestEnemy',
   'strongestEnemy',
+  'lastAttacker',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -251,6 +252,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('muteTraps') }),
   mod({ mod: z.literal('absorbAoE') }),
   mod({ mod: z.literal('driftSkills') }),
+  mod({ mod: z.literal('protectEffects'), effects: z.array(z.string()).min(1) }),
+  mod({ mod: z.literal('adaptiveHide') }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 
@@ -304,6 +307,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
     z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema }),
     z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
+    z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
     z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional() }),
     z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),

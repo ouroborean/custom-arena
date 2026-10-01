@@ -7,3 +7,6 @@ prey:
     - { has: { unit: it, effect: prey } }
     - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 2 } }
     - { hpAtMost: { unit: it, value: 19 } }
+    # Evolution: Telltale Venom (any Toxin counts) and Delirium (each Debuff stack counts as 2).
+    - { and: [{ has: { unit: it, effect: telltale_venom } }, { has: { unit: it, effect: toxin } }] }
+    - { and: [{ has: { unit: it, effect: delirium } }, { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 1 } }] }

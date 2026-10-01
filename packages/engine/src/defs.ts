@@ -53,7 +53,8 @@ export type NamedSelector =
   | 'lastSummoned' // the unit the most recent summon op created
   | 'weakestAlly' // the actor's living, targetable character ally (or self) with the least HP
   | 'weakestEnemy' // the actor's targetable enemy character with the least HP
-  | 'strongestEnemy'; // the actor's targetable enemy character with the most HP
+  | 'strongestEnemy' // the actor's targetable enemy character with the most HP
+  | 'lastAttacker'; // the last enemy who damaged the actor (if still alive)
 
 export type Selector =
   | NamedSelector
@@ -222,6 +223,8 @@ export type Op =
    * before this op, with the same stacks, value and time left (Ocean's Crosscurrent).
    */
   | { op: 'shareEffects'; a: Selector; b: Selector; kind: EffectKind }
+  /** Moves `from`'s effects (of `kind`, or these keys) onto `to`, keeping stacks, value and time left. */
+  | { op: 'moveEffects'; from: Selector; to: Selector; kind?: EffectKind; effects?: string[] }
   /**
    * Reveals hidden effects: every one applied by a unit in `by`, or (`event`) the effect the
    * triggering event is about (Ocean's Whalesong).
@@ -408,6 +411,13 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'absorbAoE' }
   /** Cloud's Becalmed: the bearer's skills Drift. */
   | { mod: 'driftSkills' }
+  /** These statuses on the bearer can't be removed or reduced by other effects (they still expire). */
+  | { mod: 'protectEffects'; effects: string[] }
+  /**
+   * Evolution's Adaptive Hide: each enemy skill that damages the bearer meanwhile teaches them to
+   * take 5 less from it, for the rest of the match (max 15 per skill).
+   */
+  | { mod: 'adaptiveHide' }
   /**
    * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
    * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.

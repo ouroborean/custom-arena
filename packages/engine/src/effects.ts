@@ -227,9 +227,16 @@ function announceApplied(ctx: Ctx, a: ApplyArgs, inst: EffectInstance): void {
   });
 }
 
+/** A status the bearer protects (`protectEffects`) can't be removed or reduced by other effects. */
+export function isProtected(ctx: Ctx, e: EffectInstance): boolean {
+  const key = effectKey(e);
+  return modsOn(ctx.s, ctx.c, e.bearer, 'protectEffects').some(({ spec, effect }) => effect !== e && spec.effects.includes(key));
+}
+
 export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason): void {
   const i = ctx.s.effects.indexOf(e);
   if (i < 0) return;
+  if ((reason === 'removed' || reason === 'consumed') && isProtected(ctx, e)) return;
   ctx.s.effects.splice(i, 1);
   e.data.removedReason = reason;
   let privateTo = isHidden(ctx, e) ? e.sourceOwner : undefined;

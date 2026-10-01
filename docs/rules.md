@@ -769,3 +769,37 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Becalmed | New `driftSkills` modifier: the target's skills Drift while it lasts. |
 | Cloudbank | Leaps if the Shield is depleted while the user is Rushing. |
 | Looming Cloud, Cloud Titan | Their damage drifts in as a held "Drifting Damage" effect a turn later. Cloud Titan marks the last enemy to damage the user. |
+
+### 21.6 Evolution (Poison + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Evolve** | A skill's stage is its user's use count so far (the `timesUsed` value): Stage I first, II second, III from the third use on. Later stages keep earlier stages' changes. **Not yet shown in the client.** Mutant Fang cycles I → II → III → I and Stalking Mark evolves when it triggers; both keep their own counters. |
+| **Engine** | New `lastAttacker` target (each unit remembers the last enemy who damaged it), `moveEffects` op, `protectEffects` modifier (listed statuses on the bearer can't be removed or reduced by other effects; they still expire), and `adaptiveHide` modifier (learned per-skill resistance kept in the unit's counters). |
+
+| Skill | Ruling |
+|---|---|
+| Mutant Fang | 1 Toxin at every stage; II and III make the target's Toxin tick (indirect Affliction) once or twice now. |
+| Primal Stomp | III adds 5 per Toxin on the target's allies after this spreads. |
+| Scent Trail | The user's next Toxin applied to an enemy also goes to every other Prey enemy. |
+| Molt | I–II react to the first direct hit within the turn; III counters the first Harmful skill instead. |
+| Apex Predator | Might becomes the same stacks of Weakness for 3 turns (on everyone at I, everyone but the user from II). |
+| Telltale Venom | Poison's Prey condition now also counts any enemy with Toxin while they carry Telltale Venom (until the end of the user's next turn). |
+| Barbed Quill | From II, a Prey target is hit at once; III also hits every other Prey enemy. |
+| Nesting Pit | Counts triggers in its stacks; II deals 10 per trigger on expiry; III Stuns if none. |
+| Slough Off | II moves Toxin, III moves every Debuff, onto the last enemy who damaged the user. |
+| Brood Parasite | **Simplified:** the Parasite can't be targeted by enemy skills at all; it dies when any Parasite Host dies. Feed targets the host (Affliction 10) and heals the user's weakest ally. |
+| Corrosive Glob | Armor stacks become Vulnerable for 2 turns; III removes all Shields for 1 Toxin per 10. |
+| Extinction Event | Hits every unit below 60 HP, the user included. |
+| Plague Strain | Its stacks count the turns: II from its second tick, III from its third. |
+| Opportunist | III executes Prey at or below 14 HP; otherwise I–II as written. |
+| Paralytic Bite | II marks the target as Prey for the Stun's duration; III Stuns a random Prey ally of theirs when it ends. |
+| Adaptive Hide | While it lasts, each enemy skill that directly damages the user adds 5 (max 15) to a reduction for that skill, for the rest of the match. |
+| Regenerate | II removes Toxin for 10 more healing per stack; III repeats the healing at the start of the ally's next turn. |
+| Hormesis | Toxin on the ally heals them for its damage (Toxin status hook). |
+| Delirium | Prey also counts a Delirious unit with more than 1 Debuff stack (each counts double). |
+| Symbiotic Song | **Simplified:** while it lasts, any indirect hit on a Toxin-carrying enemy heals a random ally of the singer 5. |
+| Thrashing Tail | Hitting any Prey resets its cooldown; II marks a random Toxin enemy as Prey when none was hit; III adds 10 against Prey. |
+| Exoskeleton | **Simplified:** the extra 5 per Weakness is healed back after each direct hit. |
+| Hypnotic Hood | If the target doesn't damage the user before it ends, they fall Asleep for 2 turns. |
+| Chrysalis | Stunned and Invulnerable until the end of the user's next turn, then the buffs for 3 turns. |
