@@ -48,6 +48,20 @@
   --el-shadow: #999999;
   --el-earth: #b5793a;
 
+  /* skill and status glyphs: neutral grey by default, else the element's color. Shadow and Wind
+     differ from their accents so they stand apart from neutral: a much darker grey, a clean white. */
+  --glyph-neutral: #9a9aa6;
+  --glyph-shadow: #4d4d57;
+  --glyph-wind: #ffffff;
+  --glyph-fire: var(--el-fire);
+  --glyph-poison: var(--el-poison);
+  --glyph-holy: var(--el-holy);
+  --glyph-ice: var(--el-ice);
+  --glyph-water: var(--el-water);
+  --glyph-unholy: var(--el-unholy);
+  --glyph-lightning: var(--el-lightning);
+  --glyph-earth: var(--el-earth);
+
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
   --font-display: 'Big Shoulders Display', 'Impact', sans-serif;
@@ -982,6 +996,26 @@ button.portrait.targetable {
   font-size: 27px;
   line-height: 1;
   margin-top: -6px;
+}
+
+/* A skill or status icon used as a mask; its inline background is the paint (see Glyph). */
+.glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Clear of the category bar on top and the cost pips below. */
+.tile .glyph {
+  width: 64%;
+  height: 64%;
+  margin-top: -8%;
 }
 
 .tile .cost {

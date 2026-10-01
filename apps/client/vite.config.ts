@@ -5,12 +5,16 @@ import { defineConfig, type Plugin } from 'vite';
 
 const PUBLIC_DIR = new URL('./public/', import.meta.url);
 
-/** Public files to precache: the manifest, icons and asset manifests — not portrait or sound files. */
+/**
+ * Public files to precache: the manifest, app icons, skill and status icons, and asset manifests —
+ * not portrait or sound files.
+ */
 function publicShellFiles(dir = PUBLIC_DIR, prefix = ''): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const path = `${prefix}${e.name}`;
     if (e.isDirectory()) return publicShellFiles(new URL(`${e.name}/`, dir), `${path}/`);
-    return path.startsWith('assets/') && !path.endsWith('manifest.json') ? [] : [`/${path}`];
+    const shell = !path.startsWith('assets/') || path.startsWith('assets/icons/') || path.endsWith('manifest.json');
+    return shell ? [`/${path}`] : [];
   });
 }
 

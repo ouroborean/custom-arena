@@ -1,0 +1,212 @@
+{
+  "Strike": {
+    "primary": "s3_r3_c0",
+    "alternates": [
+      "s3_r0_c9",
+      "s1_r0_c2"
+    ]
+  },
+  "Smash": {
+    "primary": "s4_r4_c6",
+    "alternates": [
+      "s4_r0_c2",
+      "s8_r3_c3"
+    ]
+  },
+  "Charge": {
+    "primary": "s5_r3_c2",
+    "alternates": [
+      "s1_r9_c4",
+      "s4_r8_c3"
+    ]
+  },
+  "Riposte": {
+    "primary": "s1_r5_c1",
+    "alternates": [
+      "s3_r6_c3",
+      "s8_r4_c2"
+    ]
+  },
+  "Rage": {
+    "primary": "s1_r2_c7",
+    "alternates": [
+      "s6_r6_c1",
+      "s8_r8_c9"
+    ]
+  },
+  "Shot": {
+    "primary": "s5_r5_c9",
+    "alternates": [
+      "s7_r9_c4",
+      "s5_r7_c2"
+    ]
+  },
+  "Snipe": {
+    "primary": "s1_r1_c5",
+    "alternates": [
+      "s1_r0_c6",
+      "s8_r2_c1"
+    ]
+  },
+  "Trap": {
+    "primary": "s2_r9_c7",
+    "alternates": [
+      "s7_r4_c5",
+      "s1_r9_c1"
+    ]
+  },
+  "Maneuver": {
+    "primary": "s8_r4_c5",
+    "alternates": [
+      "s1_r3_c3",
+      "s3_r8_c3"
+    ]
+  },
+  "Companion": {
+    "primary": "s4_r5_c8",
+    "alternates": [
+      "s8_r1_c0",
+      "s8_r1_c9"
+    ]
+  },
+  "Bolt": {
+    "primary": "s8_r7_c5",
+    "alternates": [
+      "s3_r0_c1",
+      "s6_r4_c2"
+    ]
+  },
+  "Blast": {
+    "primary": "s7_r7_c8",
+    "alternates": [
+      "s3_r8_c5",
+      "s2_r6_c0"
+    ]
+  },
+  "Consume": {
+    "primary": "s1_r0_c8",
+    "alternates": [
+      "s1_r1_c8",
+      "s6_r2_c5"
+    ]
+  },
+  "Summon": {
+    "primary": "s5_r6_c4",
+    "alternates": [
+      "s6_r1_c7",
+      "s5_r2_c3"
+    ]
+  },
+  "Channel": {
+    "primary": "s1_r7_c4",
+    "alternates": [
+      "s5_r7_c9",
+      "s8_r9_c3"
+    ]
+  },
+  "Stab": {
+    "primary": "s6_r2_c0",
+    "alternates": [
+      "s1_r5_c4",
+      "s6_r1_c0"
+    ]
+  },
+  "Ravage": {
+    "primary": "s1_r0_c1",
+    "alternates": [
+      "s4_r1_c9",
+      "s7_r8_c4"
+    ]
+  },
+  "Mislead": {
+    "primary": "s3_r3_c8",
+    "alternates": [
+      "s3_r8_c9",
+      "s7_r7_c4"
+    ]
+  },
+  "Stun": {
+    "primary": "s5_r4_c2",
+    "alternates": [
+      "s8_r2_c4",
+      "s3_r2_c8"
+    ]
+  },
+  "Dance": {
+    "primary": "s1_r7_c3",
+    "alternates": [
+      "s3_r1_c5",
+      "s7_r6_c9"
+    ]
+  },
+  "Heal": {
+    "primary": "s4_r8_c5",
+    "alternates": [
+      "s7_r8_c3",
+      "s6_r5_c8"
+    ]
+  },
+  "Bless": {
+    "primary": "s3_r1_c2",
+    "alternates": [
+      "s3_r7_c1",
+      "s6_r0_c5"
+    ]
+  },
+  "Curse": {
+    "primary": "s4_r1_c8",
+    "alternates": [
+      "s3_r1_c8",
+      "s1_r3_c4"
+    ]
+  },
+  "Smite": {
+    "primary": "s6_r0_c3",
+    "alternates": [
+      "s6_r0_c7",
+      "s3_r8_c0"
+    ]
+  },
+  "Prayer": {
+    "primary": "s7_r0_c5",
+    "alternates": [
+      "s1_r3_c9",
+      "s6_r1_c8"
+    ]
+  },
+  "Cleave": {
+    "primary": "s1_r6_c6",
+    "alternates": [
+      "s3_r8_c4",
+      "s5_r3_c6"
+    ]
+  },
+  "Shout": {
+    "primary": "s8_r5_c6",
+    "alternates": [
+      "s5_r9_c4",
+      "s8_r9_c5"
+    ]
+  },
+  "Withstand": {
+    "primary": "s3_r7_c2",
+    "alternates": [
+      "s6_r8_c2",
+      "s1_r5_c0"
+    ]
+  },
+  "Taunt": {
+    "primary": "s1_r2_c1",
+    "alternates": [
+      "s5_r5_c7",
+      "s5_r5_c1"
+    ]
+  },
+  "Titan": {
+    "primary": "s1_r7_c9",
+    "alternates": [
+      "s3_r8_c2",
+      "s2_r7_c1"
+    ]
+  }
+}

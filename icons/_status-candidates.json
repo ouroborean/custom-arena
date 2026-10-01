@@ -1,0 +1,386 @@
+{
+  "might": {
+    "name": "Might",
+    "primary": "s3_r8_c2",
+    "alternates": [
+      "s5_r6_c3",
+      "s8_r2_c3"
+    ]
+  },
+  "weakness": {
+    "name": "Weakness",
+    "primary": "s4_r0_c7",
+    "alternates": [
+      "s5_r0_c8",
+      "s7_r1_c0"
+    ]
+  },
+  "vulnerable": {
+    "name": "Vulnerable",
+    "primary": "s8_r3_c1",
+    "alternates": [
+      "s5_r2_c2",
+      "s8_r2_c0"
+    ]
+  },
+  "armor": {
+    "name": "Armor",
+    "primary": "s4_r9_c3",
+    "alternates": [
+      "s7_r6_c6",
+      "s4_r4_c7"
+    ]
+  },
+  "shield": {
+    "name": "Shield",
+    "primary": "s1_r8_c7",
+    "alternates": [
+      "s6_r0_c9",
+      "s6_r8_c2"
+    ]
+  },
+  "stun": {
+    "name": "Stunned",
+    "primary": "s4_r9_c9",
+    "alternates": [
+      "s3_r2_c8",
+      "s1_r9_c5"
+    ]
+  },
+  "stun_ns": {
+    "name": "Stunned (non-Strat.)",
+    "primary": "s7_r9_c5",
+    "alternates": [
+      "s7_r9_c6",
+      "s1_r9_c5"
+    ]
+  },
+  "stun_s": {
+    "name": "Stunned (Strategic)",
+    "primary": "s6_r0_c1",
+    "alternates": [
+      "s7_r1_c9",
+      "s1_r9_c5"
+    ]
+  },
+  "sleep": {
+    "name": "Sleep",
+    "primary": "s8_r2_c8",
+    "alternates": [
+      "s2_r0_c4",
+      "s6_r2_c7"
+    ]
+  },
+  "invulnerable": {
+    "name": "Invulnerable",
+    "primary": "s5_r5_c2",
+    "alternates": [
+      "s6_r0_c9",
+      "s6_r8_c4"
+    ]
+  },
+  "ghosted": {
+    "name": "Ghosted",
+    "primary": "s4_r5_c4",
+    "alternates": [
+      "s4_r1_c7",
+      "s6_r1_c5"
+    ]
+  },
+  "untargetable": {
+    "name": "Untargetable",
+    "primary": "s6_r8_c6",
+    "alternates": [
+      "s3_r4_c7",
+      "s6_r3_c1"
+    ]
+  },
+  "isolated": {
+    "name": "Isolated",
+    "primary": "s2_r8_c0",
+    "alternates": [
+      "s6_r3_c8",
+      "s2_r7_c1"
+    ]
+  },
+  "shattered": {
+    "name": "Shattered",
+    "primary": "s1_r3_c1",
+    "alternates": [
+      "s8_r2_c7",
+      "s2_r8_c9"
+    ]
+  },
+  "swiftness": {
+    "name": "Swiftness",
+    "primary": "s3_r9_c4",
+    "alternates": [
+      "s3_r8_c3",
+      "s1_r9_c4"
+    ]
+  },
+  "intimidated": {
+    "name": "Intimidated",
+    "primary": "s5_r1_c0",
+    "alternates": [
+      "s1_r2_c2",
+      "s1_r3_c6"
+    ]
+  },
+  "focus": {
+    "name": "Focus",
+    "primary": "s2_r4_c6",
+    "alternates": [
+      "s3_r9_c0",
+      "s1_r0_c9"
+    ]
+  },
+  "confusion": {
+    "name": "Confusion",
+    "primary": "s3_r1_c8",
+    "alternates": [
+      "s5_r7_c3",
+      "s5_r1_c1"
+    ]
+  },
+  "mark": {
+    "name": "Mark",
+    "primary": "s1_r0_c6",
+    "alternates": [
+      "s8_r2_c1",
+      "s3_r6_c4"
+    ]
+  },
+  "taunt": {
+    "name": "Taunted",
+    "primary": "s5_r5_c7",
+    "alternates": [
+      "s1_r2_c2",
+      "s5_r5_c1"
+    ]
+  },
+  "immune": {
+    "name": "Immune",
+    "primary": "s3_r4_c1",
+    "alternates": [
+      "s6_r0_c9",
+      "s3_r9_c9"
+    ]
+  },
+  "trap": {
+    "name": "Trap",
+    "primary": "s7_r4_c5",
+    "alternates": [
+      "s1_r9_c1",
+      "s8_r2_c1"
+    ]
+  },
+  "sanctify": {
+    "name": "Sanctify",
+    "primary": "s8_r4_c4",
+    "alternates": [
+      "s3_r8_c0",
+      "s6_r0_c5"
+    ]
+  },
+  "renew": {
+    "name": "Renew",
+    "primary": "s8_r2_c5",
+    "alternates": [
+      "s2_r5_c6",
+      "s3_r1_c0"
+    ]
+  },
+  "ignite": {
+    "name": "Ignite (Fire)",
+    "primary": "s3_r7_c9",
+    "alternates": [
+      "s7_r0_c9",
+      "s2_r1_c7"
+    ]
+  },
+  "scorched": {
+    "name": "Scorched (Fire)",
+    "primary": "s7_r8_c1",
+    "alternates": [
+      "s7_r0_c3",
+      "s3_r5_c1"
+    ]
+  },
+  "flameborn": {
+    "name": "Flameborn (Fire)",
+    "primary": "s4_r6_c7",
+    "alternates": [
+      "s3_r7_c6",
+      "s2_r1_c0"
+    ]
+  },
+  "toxin": {
+    "name": "Toxin (Poison)",
+    "primary": "s1_r8_c2",
+    "alternates": [
+      "s8_r5_c0",
+      "s2_r2_c9"
+    ]
+  },
+  "prey": {
+    "name": "Prey (Poison)",
+    "primary": "s7_r2_c3",
+    "alternates": [
+      "s7_r0_c8",
+      "s8_r3_c6"
+    ]
+  },
+  "anointed": {
+    "name": "Anointed (Holy)",
+    "primary": "s6_r0_c5",
+    "alternates": [
+      "s8_r4_c8",
+      "s7_r4_c8"
+    ]
+  },
+  "condemned": {
+    "name": "Condemned (Holy)",
+    "primary": "s2_r7_c0",
+    "alternates": [
+      "s1_r8_c0",
+      "s8_r7_c4"
+    ]
+  },
+  "frostbitten": {
+    "name": "Frostbitten (Ice)",
+    "primary": "s8_r6_c5",
+    "alternates": [
+      "s8_r3_c8",
+      "s8_r1_c2"
+    ]
+  },
+  "chilled": {
+    "name": "Chilled (Ice)",
+    "primary": "s6_r8_c5",
+    "alternates": [
+      "s8_r1_c2",
+      "s7_r9_c3"
+    ]
+  },
+  "numb": {
+    "name": "Numb (Ice)",
+    "primary": "s6_r7_c0",
+    "alternates": [
+      "s2_r9_c1",
+      "s5_r5_c6"
+    ]
+  },
+  "frostborn": {
+    "name": "Frostborn (Ice)",
+    "primary": "s7_r5_c7",
+    "alternates": [
+      "s7_r9_c3",
+      "s3_r9_c7"
+    ]
+  },
+  "flow": {
+    "name": "Flow (Water)",
+    "primary": "s3_r3_c9",
+    "alternates": [
+      "s8_r3_c4",
+      "s7_r6_c8"
+    ]
+  },
+  "horrified": {
+    "name": "Horrified (Unholy)",
+    "primary": "s8_r6_c9",
+    "alternates": [
+      "s8_r9_c5",
+      "s4_r7_c1"
+    ]
+  },
+  "immortal": {
+    "name": "Immortal (Unholy)",
+    "primary": "s5_r3_c3",
+    "alternates": [
+      "s8_r7_c4",
+      "s6_r0_c6"
+    ]
+  },
+  "soul_fragment": {
+    "name": "Soul Fragment (Unholy)",
+    "primary": "s6_r1_c4",
+    "alternates": [
+      "s7_r1_c8",
+      "s1_r2_c3"
+    ]
+  },
+  "lifesteal": {
+    "name": "Lifesteal (Unholy)",
+    "primary": "s7_r2_c0",
+    "alternates": [
+      "s1_r1_c8",
+      "s6_r2_c5"
+    ]
+  },
+  "charged": {
+    "name": "Charged (Lightning)",
+    "primary": "s3_r1_c3",
+    "alternates": [
+      "s5_r4_c0",
+      "s1_r1_c1"
+    ]
+  },
+  "sapped": {
+    "name": "Sapped (Lightning)",
+    "primary": "s4_r4_c5",
+    "alternates": [
+      "s8_r1_c8",
+      "s5_r4_c0"
+    ]
+  },
+  "stormborn": {
+    "name": "Stormborn (Lightning)",
+    "primary": "s8_r9_c8",
+    "alternates": [
+      "s3_r4_c0",
+      "s1_r1_c1"
+    ]
+  },
+  "conduit": {
+    "name": "Conduit (Lightning)",
+    "primary": "s7_r8_c8",
+    "alternates": [
+      "s4_r0_c4",
+      "s3_r1_c4"
+    ]
+  },
+  "rushing": {
+    "name": "Rushing (Wind)",
+    "primary": "s3_r8_c6",
+    "alternates": [
+      "s8_r6_c3",
+      "s4_r6_c9"
+    ]
+  },
+  "leaping": {
+    "name": "Leaping (Wind)",
+    "primary": "s3_r9_c3",
+    "alternates": [
+      "s8_r7_c1",
+      "s5_r0_c2"
+    ]
+  },
+  "stealth": {
+    "name": "Stealth (Shadow)",
+    "primary": "s4_r0_c9",
+    "alternates": [
+      "s6_r3_c1",
+      "s3_r8_c9"
+    ]
+  },
+  "blinded": {
+    "name": "Blinded (Shadow)",
+    "primary": "s8_r0_c8",
+    "alternates": [
+      "s6_r8_c1",
+      "s1_r3_c4"
+    ]
+  }
+}

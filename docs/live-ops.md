@@ -200,9 +200,26 @@ error.
   exception is the victory or defeat sting, which always plays.
 - The same cue is played at most once every 60 ms.
 
+**Skill and status icons** (`apps/client/public/assets/icons/manifest.json`):
+- `skills` maps each archetype (lowercase) to one glyph; every elemental and fusion version of a
+  skill shares it. Minion skills all have the Minion archetype, so `skillsById` gives each its own
+  glyph by skill id (reusing other skills' icons is fine; they're seen far less often). `statuses`
+  maps status ids to glyphs; near-identical twins share a file, and every story boss passive uses
+  one crowned-skull icon.
+- Glyphs are white on transparent and drawn as CSS masks, so the client paints them: neutral grey
+  with no element, the element's color, or a diagonal gradient between a fusion's two elements (a
+  doubled element fades into a deeper shade). Shadow is a much darker grey and Wind a clean white,
+  so both stand apart from neutral. The paints are the `--glyph-*` tokens in `theme.css`.
+- A status takes its own element; an effect defined inside a skill shows that skill's glyph and
+  element. Anything without a glyph (item passives and item trackers) keeps its letter code.
+- The picks live in the repo's `icons/` folder (`_*-candidates.json`, `_minion-skill-icons.json`);
+  after changing them, run
+  `python icons/_build-client-icons.py` (needs Pillow) to rebuild the assets and manifest.
+- They are precached with the app shell, so battles show them offline.
+
 **Checking assets:** `npm run assets:check` checks that every key names a real class, element,
-minion or cue, and that every listed file exists. It also reports how much of the roster
-(class × element) has art.
+minion, cue, archetype or status, and that every listed file exists. It also reports how much of the
+roster (class × element) has art and how many archetypes and statuses have icons.
 
 ## 6. The installable app and native shells
 

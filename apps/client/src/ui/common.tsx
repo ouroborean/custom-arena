@@ -336,6 +336,29 @@ export function elementClass(element: string | undefined): string {
   return element && element !== 'None' ? `has-el el-${element.toLowerCase()}` : '';
 }
 
+const BASE_ELEMENTS = new Set(['fire', 'poison', 'holy', 'ice', 'water', 'unholy', 'lightning', 'wind', 'shadow', 'earth']);
+
+/**
+ * How a skill or status glyph is painted: neutral grey with no element, the element's glyph color
+ * (theme.css --glyph-*), or for a fusion a diagonal gradient from one of its elements to the other. A
+ * doubled element (Fire + Fire) fades into a deeper shade of itself so it still reads as a fusion.
+ */
+export function glyphPaint(element: string | undefined, content: ContentBundle): string {
+  if (!element || element === 'None') return 'var(--glyph-neutral)';
+  const key = element.toLowerCase();
+  if (BASE_ELEMENTS.has(key)) return `var(--glyph-${key})`;
+  const fusion = content.fusions[key] ?? Object.values(content.fusions).find((f) => f.name === element);
+  if (!fusion) return 'var(--glyph-neutral)';
+  const [a, b] = fusion.elements.map((e) => `var(--glyph-${e.toLowerCase()})`) as [string, string];
+  return `linear-gradient(135deg, ${a} 20%, ${a === b ? `color-mix(in srgb, ${b} 55%, #000)` : b} 80%)`;
+}
+
+/** A white-on-transparent icon file used as a mask, so it takes any paint: a color or a gradient. */
+export function Glyph({ url, paint }: { url: string; paint: string }) {
+  const mask = `url("${url}")`;
+  return <span className="glyph" aria-hidden style={{ background: paint, maskImage: mask, WebkitMaskImage: mask }} />;
+}
+
 export type SkillCategory = 'attack' | 'control' | 'support';
 
 export function skillCategory(def: SkillDef): SkillCategory {
