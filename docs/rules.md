@@ -1361,3 +1361,19 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Mending Arc | 25 to the target, 15 to the other ally with the least HP, 5 to the rest. |
 | Shearing Gale | Simplified: Leaping's +5 applies as usual, and the Leap still ends. |
 | Static Lure | Simplified: while Taunted and Sapped, 1 less energy each turn. |
+
+### 21.36 Battery (Lightning + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Cells** | `cell` (Neutral, merging, max 5, never decays). The Battery Core passive turns Charge gained while at 3 into a Cell (simplified: gaining Charge that reaches 3 also stores a Cell). **Discharge** is macro `discharge`: all Cells spent into `cells`. |
+| **Corroded** | Debuff: −10 to every Shield on the bearer at the end of its applier's turns, and immune to Armor. |
+| Toxic Circuit | Simplified: every enemy it hits gains 1 Toxin. |
+| Jump Start | 2 random energy now; the player's next energy generation is 2 lower. |
+| Afterspark | Strikes again when its 2-tick timer ends if the user gained Charge meanwhile. |
+| Railgun | A kill (damage reaching their HP) stores the spent Cells again. |
+| Locked Relay | Simplified: Sapped once, and 1 less energy each turn while Sapped, for 2 turns. |
+| Short to Ground | Simplified: a dissolving Shield deals a flat 10 Affliction. |
+| Shared Grid | Each ally character's HP becomes the team average (raw changes, capped at max HP). |
+| Acid Arc | Simplified: the other enemy gets 2 turns of Corroded (not the target's exact time left). |
+| Etching Glare | Its own Corroded variant passes the 10 Shield it strips to the user. |

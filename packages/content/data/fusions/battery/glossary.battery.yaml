@@ -1,0 +1,14 @@
+# Battery keywords (docs/glossary.md).
+
+cell:
+  status: cell
+  element: Battery
+  forms: [Cell, Cells]
+corroded:
+  status: corroded
+  element: Battery
+discharge:
+  name: Discharge
+  text: A Discharge skill spends all the user's Cells for the effect it lists per Cell.
+  element: Battery
+  forms: [Discharge]

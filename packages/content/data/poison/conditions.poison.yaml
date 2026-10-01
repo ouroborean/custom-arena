@@ -15,6 +15,10 @@ prey:
     # Serum: Pressurized Dose (while they have Dose) and Weak Constitution (any Weakness).
     - { and: [{ has: { unit: it, effect: pressurized } }, { has: { unit: it, effect: dose } }] }
     - { and: [{ has: { unit: it, effect: weak_constitution } }, { has: { unit: it, effect: weakness } }] }
+    # Battery: Low Battery counts Sapped toward it.
+    - and:
+        - { has: { unit: it, effect: low_battery } }
+        - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, sapped], moreThan: 2 } }
     # Stasis: Frozen Quarry makes Frost debuffs count toward it.
     - and:
         - { has: { unit: it, effect: frozen_quarry } }

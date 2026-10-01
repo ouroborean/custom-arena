@@ -1,0 +1,6 @@
+# Battery actions.
+
+# Discharge: spends all the actor's Cells; how many is in the variable `cells`.
+discharge:
+  - { op: set, var: cells, value: { stacks: { unit: actor, effect: cell } } }
+  - { op: removeEffect, from: actor, effect: cell }

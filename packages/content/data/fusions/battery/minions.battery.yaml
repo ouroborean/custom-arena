@@ -1,0 +1,22 @@
+# Battery minions.
+
+bombardier_beetle:
+  name: Bombardier Beetle
+  hp: 30
+  passives:
+    - id: bombardier_spray
+      name: Bombardier Beetle
+      kind: Neutral
+      element: Battery
+      description: Enemies who damage it are Corroded for 2 turns.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - { op: apply, to: eventSource, effect: corroded, duration: { enemyTurns: 2 } }
+  skills: [bombardier_beetle_acid_jet]
+
+voltaic_wasps:
+  name: Voltaic Wasps
+  hp: 15
+  skills: [voltaic_wasps_arc_sting]
