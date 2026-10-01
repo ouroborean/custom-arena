@@ -1,0 +1,12 @@
+# Brimstone keywords (docs/glossary.md).
+
+sulfur:
+  status: sulfur
+  element: Brimstone
+erupt:
+  name: Erupt
+  text: >-
+    A unit's Sulfur Erupts: 10 Affliction per stack to them and 5 per stack to each of their allies,
+    and every stack turns into 1 Toxin.
+  element: Brimstone
+  forms: [Erupt, Erupts, Eruption, Eruptions]

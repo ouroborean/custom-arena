@@ -1,0 +1,10 @@
+# Lich keywords (docs/glossary.md).
+
+soulfrost:
+  status: soulfrost
+  element: Lich
+  forms: [Soulfrost, Soulfrosted]
+phylactery:
+  status: phylactery_bond
+  element: Lich
+  forms: [Phylactery, Phylacteries]

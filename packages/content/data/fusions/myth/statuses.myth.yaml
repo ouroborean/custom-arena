@@ -1,0 +1,50 @@
+# Myth (Ice + Earth) statuses, from the "Fusion Spec Kits" design doc.
+
+legend:
+  name: Legend
+  kind: Neutral
+  element: Myth
+  stacking: merge
+  description: At 3 Legend, the bearer becomes Mythic for 3 turns; Legend resets when Mythic ends.
+
+mythic:
+  name: Mythic
+  kind: Buff
+  element: Myth
+  stacking: unique
+  description: >-
+    +20 max HP (and 20 healing), 2 Armor, can't be Stunned, and Myth skills gain their Mythic riders.
+  modifiers:
+    - { mod: damageTaken, amount: -10, armor: true, when: { types: [Normal] } }
+    - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s] }
+  onExpire:
+    - { op: addMaxHp, to: bearer, amount: -20 }
+
+# Fusion passive (every Myth character): Legend from Myth skills and kills; Kinslayer's Doom.
+saga:
+  name: Saga
+  kind: Neutral
+  element: Myth
+  stacking: unique
+  description: >-
+    Gains 1 Legend each time this character uses a Myth skill (except Awakened Giant) or kills an enemy or
+    minion; at 3, they become Mythic.
+  triggers:
+    - on: skillUsed
+      do:
+        # Awakened Giant (the Myth Titan) spends Legends rather than earning one.
+        - op: if
+          cond: { and: [{ eventSkill: { elements: [Myth] } }, { not: { eventSkill: { archetypes: [Titan] } } }] }
+          then:
+            - { op: forEach, in: bearer, do: [{ op: macro, id: gain_legend }] }
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { isActor: eventSource }
+          then:
+            - { op: forEach, in: bearer, do: [{ op: macro, id: gain_legend }] }
+        - op: if
+          cond: { eventTargetHad: { effects: [kinslayers_doom] } }
+          then:
+            - { op: apply, to: allEnemies, effect: confusion, duration: { enemyTurns: 2 } }

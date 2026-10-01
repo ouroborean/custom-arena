@@ -1,0 +1,56 @@
+# Storm (Lightning + Wind) statuses, from the "Fusion Spec Kits" design doc.
+# Tempest is tracked on every Storm character (each sees the team's Storm skills).
+
+tempest:
+  name: Tempest
+  kind: Neutral
+  element: Storm
+  stacking: merge
+  maxStacks: 5
+  description: The team's storm (max 5). At 5, the Eye of the Storm.
+
+eye_of_the_storm:
+  name: Eye of the Storm
+  kind: Buff
+  element: Storm
+  stacking: unique
+  description: The bearer's next Storm skill also strikes every other enemy for 15, and Tempest drops to 3.
+
+# Fusion passive (every Storm character).
+storm_heart:
+  name: Storm Heart
+  kind: Neutral
+  element: Storm
+  stacking: unique
+  description: >-
+    +1 Tempest each time the team uses a Storm skill; −1 at the end of each of this character's turns in
+    which none was used. At 5, the Eye of the Storm.
+  triggers:
+    - on: signal
+      signal: "used:Storm"
+      when: { side: ally }
+      do:
+        - { op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }
+        - { op: setCounter, name: storm_turn, value: { turn: true } }
+    - on: turnEnd
+      do:
+        - op: if
+          cond:
+            and:
+              - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: storm_turn }] }] }, atLeast: 1 } }
+              - { not: { has: { unit: bearer, effect: song_of_the_storm } } }
+          then:
+            - { op: removeStacks, from: bearer, effect: tempest, amount: 1 }
+    - on: skillResolved
+      do:
+        - op: if
+          cond:
+            and:
+              - { has: { unit: bearer, effect: eye_of_the_storm } }
+              - { compare: { value: { sum: [{ useSeq: true }, { mul: [-1, { counterOf: { unit: bearer, name: eye_use } }] }] }, atLeast: 1 } }
+              - { eventSkill: { elements: [Storm] } }
+              - { not: { eventSkill: { archetypes: [Shout] } } }
+          then:
+            - { op: removeEffect, from: bearer, effect: eye_of_the_storm }
+            - { op: damage, to: { filter: allEnemies, where: { not: { isEventTarget: it } } }, amount: 15, direct: false }
+            - { op: removeStacks, from: bearer, effect: tempest, amount: 2 }

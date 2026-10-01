@@ -1,0 +1,13 @@
+# Apocalypse keywords (docs/glossary.md).
+
+frostfire:
+  status: frostfire
+  element: Apocalypse
+thermal_shock:
+  name: Thermal Shock
+  text: >-
+    When a unit with a Fire debuff (Ignite, Scorched, Frostfire) gains a Frost debuff (Frostbitten,
+    Chilled, Numb, Frostfire), or the reverse, it takes 15 Piercing damage and is Shattered for 1
+    turn. Once per unit per turn.
+  element: Apocalypse
+  forms: [Thermal Shock, Thermal Shocks, Thermal Shocked, Thermal Shocking]

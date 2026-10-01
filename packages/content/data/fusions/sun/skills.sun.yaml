@@ -1,0 +1,810 @@
+# The 30 Sun (Fire + Earth) variants, from the "Fusion Spec Kits" design doc.
+# Corona is gained through `gain_corona` (which keeps its cap); a Flare runs `solar_flare`, which
+# sets `flared`.
+
+strike.sun:
+  archetype: Strike
+  element: Sun
+  name: Daybreak Blow
+  description: Deals 20 damage to target enemy; the user gains 1 Corona.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_corona }] }
+
+smash.sun:
+  archetype: Smash
+  element: Sun
+  name: Scorched Earth
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. For 2 turns, Scorched on any of them also
+    halves their Shield, at the end of each of the user's turns.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect: &scorched_earth
+        id: scorched_earth
+        name: Scorched Earth
+        kind: Debuff
+        element: Sun
+        description: While Scorched, the bearer's Shield is halved at the end of each of the applier's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: scorched } }
+                then:
+                  - { op: scaleShields, on: bearer, factor: 0.5 }
+    - { op: apply, to: primaryAllies, duration: { enemyTurns: 2 }, effect: *scorched_earth }
+
+charge.sun:
+  archetype: Charge
+  element: Sun
+  name: Rolling Sunstone
+  description: >-
+    Deals 10 damage to target enemy, and creates a Sunstone: a Boulder (45 HP) that Explodes when it's
+    destroyed or launched.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: summon, minion: sunstone }
+
+riposte.sun:
+  archetype: Riposte
+  element: Sun
+  name: Sunspot
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user takes 15 Affliction damage
+    per Corona the user has, and the user's Corona lasts 2 turns longer. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: sunspot
+        name: Sunspot
+        kind: Buff
+        element: Sun
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and burns its user per Corona.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: eventSource, amount: { mul: [15, { stacks: { unit: bearer, effect: corona } }] }, type: Affliction }
+              - { op: extendEffects, on: bearer, effects: [corona], by: 4 }
+
+rage.sun:
+  archetype: Rage
+  element: Sun
+  name: Solar Maximum
+  description: >-
+    For 3 turns, the user is Immune, can hold up to 5 Corona and gains 1 at the start of each of their
+    turns. When it ends, their Corona drops to 3.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: solar_maximum
+        name: Solar Maximum
+        kind: Buff
+        element: Sun
+        description: Holds up to 5 Corona and gains 1 each turn; drops to 3 when this ends.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: gain_corona }] }
+        onExpire:
+          - op: repeat
+            times: { sum: [{ stacks: { unit: bearer, effect: corona } }, -3] }
+            do:
+              - { op: removeStacks, from: bearer, effect: corona, amount: 1 }
+
+shot.sun:
+  archetype: Shot
+  element: Sun
+  name: Noon Ray
+  description: >-
+    Deals 15 damage to target enemy. If the user has no Corona, they gain 1; otherwise it Flares: 10
+    more per Corona.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: corona } }
+      then:
+        - { op: macro, id: solar_flare }
+        - { op: damage, to: primary, amount: { sum: [15, { mul: [10, { var: flared }] }] } }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: forEach, in: actor, do: [{ op: macro, id: gain_corona }] }
+
+snipe.sun:
+  archetype: Snipe
+  element: Sun
+  name: Zenith Spear
+  description: >-
+    On the following turn, deals 45 damage to target enemy. Flare: when it lands, every ally heals 10
+    per Corona spent. The target of this skill is invisible. Channeled.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: macro, id: solar_flare }
+    - op: apply
+      to: actor
+      remember: primary
+      value: { var: flared }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: zenith_spear
+        name: Zenith Spear (aiming)
+        kind: Neutral
+        element: Sun
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn; every ally heals 10 per Corona spent.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 45 }
+          - { op: heal, to: allAllies, amount: { mul: [10, { effectValue: true }] } }
+
+trap.sun:
+  archetype: Trap
+  element: Sun
+  name: Sunlit Furrow
+  description: >-
+    For 3 turns, each time target enemy uses a Harmful skill, they take 10 damage and the user creates
+    a Seedling (up to 3). Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sunlit_furrow
+        name: Sunlit Furrow
+        kind: Debuff
+        element: Sun
+        visibility: hidden
+        description: Each Harmful skill the bearer uses deals them 10 damage and grows the applier a Seedling.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: damage, to: bearer, amount: 10 }
+              - op: if
+                cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }, atMost: 2 } }
+                then:
+                  - { op: summon, minion: seedling }
+
+maneuver.sun:
+  archetype: Maneuver
+  element: Sun
+  name: Horizon
+  description: >-
+    The user becomes Invulnerable for 1 turn. At the start of their next turn they rise: they gain 1
+    Corona, and each enemy who used a Harmful skill meanwhile is Ignited.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 2 }
+      effect:
+        id: horizon
+        name: Horizon
+        kind: Buff
+        element: Sun
+        description: At the start of the bearer's next turn, they gain 1 Corona.
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: gain_corona }] }
+    - op: apply
+      to: allEnemies
+      duration: { raw: 2 }
+      effect:
+        id: horizon_watch
+        name: Horizon
+        kind: Debuff
+        element: Sun
+        visibility: hidden
+        description: If the bearer uses a Harmful skill before the sun rises, they're Ignited.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: setFlag, flag: struck }
+        onExpire:
+          - op: if
+            cond: { flag: struck }
+            then:
+              - { op: apply, to: bearer, effect: ignite }
+
+companion.sun:
+  archetype: Companion
+  element: Sun
+  name: Sunflower
+  description: >-
+    Summons a Sunflower (40 HP, counts as a Seedling) permanently; it always has 1 Corona. Scatter
+    Seeds (r): the Sunflower loses 10 HP and creates a Seedling.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sunflower }
+
+bolt.sun:
+  archetype: Bolt
+  element: Sun
+  name: Ripening Vine
+  description: >-
+    Deals 20 damage to target enemy. Each allied Seedling ripens: it uses Channel Earth at no cost,
+    then loses 5 HP.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
+      do:
+        - { op: castSkill, skill: seedling_channel_earth, on: it, as: it }
+        - { op: damage, to: it, amount: 5, raw: true, type: Affliction, direct: false }
+
+blast.sun:
+  archetype: Blast
+  element: Sun
+  name: Noonburst
+  description: >-
+    Deals 25 damage to all enemies. Flare: 10 more to each per Corona, but the user is Scorched for 1
+    turn per Corona spent.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: macro, id: solar_flare }
+    - { op: damage, to: targets, amount: { sum: [25, { mul: [10, { var: flared }] }] } }
+    - op: if
+      cond: { compare: { value: { var: flared }, atLeast: 1 } }
+      then:
+        - { op: apply, to: actor, effect: scorched, duration: { enemyTurns: { var: flared } } }
+
+consume.sun:
+  archetype: Consume
+  element: Sun
+  name: Lingering Light
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it, 10 more if the target is Ignited. The
+    user gains 1 Corona, and all their Corona lasts 2 turns longer.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: heal
+      to: actor
+      amount: { sum: [{ lastDamage: true }, { if: { has: { unit: primary, effect: ignite } }, then: 10, else: 0 }] }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_corona }] }
+    - { op: extendEffects, on: actor, effects: [corona], by: 4 }
+
+summon.sun:
+  archetype: Summon
+  element: Sun
+  name: Sunseed
+  description: >-
+    Summons a Sunseed (20 HP) for 3 turns with 1 Corona. When it dies or expires, its creator gains
+    its Corona. Brighten (r): the Sunseed gains 1 Corona.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sunseed, duration: { enemyTurns: 3 } }
+
+channel.sun:
+  archetype: Channel
+  element: Sun
+  name: Long Summer
+  description: >-
+    For 3 turns, at the end of each of the user's turns, they gain 1 Corona. While it channels, their
+    Corona doesn't expire and deals double to Ignited enemies. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: long_summer
+        name: Long Summer
+        kind: Neutral
+        element: Sun
+        interruptible: true
+        description: Each turn, 1 Corona; meanwhile Corona doesn't expire and burns Ignited enemies double.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: gain_corona }] }
+              - { op: extendEffects, on: bearer, effects: [corona], by: 2 }
+
+stab.sun:
+  archetype: Stab
+  element: Sun
+  name: Tinder Spike
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The next Ignite put on them
+    before the user's next turn burns once the moment it lands.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: tinder_spike
+        name: Tinder
+        kind: Debuff
+        element: Sun
+        description: The next Ignite put on the bearer burns once the moment it lands.
+        triggers:
+          - on: effectGained
+            effect: ignite
+            consume: true
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: ignite_tick }] }
+
+ravage.sun:
+  archetype: Ravage
+  element: Sun
+  name: Upwelling Magma
+  description: >-
+    Deals 20 Piercing damage to target enemy, +10 for each of the user's turns since they last dealt
+    direct damage (max +30).
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: idle, value: { div: [{ sum: [{ turn: true }, { mul: [-1, { counter: last_direct }] }] }, 2] } }
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        sum:
+          - 20
+          - if: { compare: { value: { var: idle }, atLeast: 3 } }
+            then: 30
+            else: { mul: [10, { var: idle }] }
+
+mislead.sun:
+  archetype: Mislead
+  element: Sun
+  name: Blinding Noon
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Blinded for 1 turn per
+    Corona the user has (at least 1). Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: blinding_noon
+        name: Blinding Noon
+        kind: Debuff
+        element: Sun
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they're Blinded per Corona.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: apply
+                to: bearer
+                effect: blinded
+                duration:
+                  enemyTurns:
+                    if: { compare: { value: { stacks: { unit: actor, effect: corona } }, atLeast: 1 } }
+                    then: { stacks: { unit: actor, effect: corona } }
+                    else: 1
+
+stun.sun:
+  archetype: Stun
+  element: Sun
+  name: Sunstroke
+  description: >-
+    Target enemy is Stunned for 1 turn and Ignited. Flare: 1 more turn of Stun per 2 Corona.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: macro, id: solar_flare }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: { sum: [1, { div: [{ var: flared }, 2] }] } } }
+    - { op: apply, to: primary, effect: ignite }
+
+dance.sun:
+  archetype: Dance
+  element: Sun
+  name: Basking
+  description: >-
+    For 3 turns, the user gains 1 Swiftness, and each time their Corona ticks they gain 1 Might for 1
+    turn. They gain 1 Corona now.
+  cost: Ar
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: basking
+        name: Basking
+        kind: Buff
+        element: Sun
+        description: Each time the bearer's Corona ticks, they gain 1 Might.
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_corona }] }
+
+heal.sun:
+  archetype: Heal
+  element: Sun
+  name: Sunlit Mending
+  description: Target ally heals 20. Each Ignite or Scorch on them is removed and becomes 1 Corona.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: set, var: embers, value: { count: { effects: [ignite, scorched], in: primary } } }
+    - { op: removeEffect, from: primary, effect: ignite }
+    - { op: removeEffect, from: primary, effect: scorched }
+    - op: repeat
+      times: { var: embers }
+      do:
+        - { op: forEach, in: primary, do: [{ op: macro, id: gain_corona }] }
+
+bless.sun:
+  archetype: Bless
+  element: Sun
+  name: Heliotrope
+  description: >-
+    For 3 turns, target ally gains the sun's light (as 1 Might and 1 Renew). At the start of each of the
+    user's turns, it moves to the ally with the least HP.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heliotrope
+        name: Heliotrope
+        kind: Buff
+        element: Sun
+        description: +5 direct damage, and heals 5 at the end of the applier's turn.
+        modifiers:
+          - { mod: damageDealt, amount: 5, when: { direct: true } }
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: heal, to: bearer, amount: 5 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heliotrope_turn
+        name: Heliotrope
+        kind: Neutral
+        element: Sun
+        description: At the start of the bearer's turns, the Heliotrope moves to the ally with the least HP.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: moveEffects, from: allAllies, to: weakestAlly, effects: [heliotrope] }
+
+curse.sun:
+  archetype: Curse
+  element: Sun
+  name: Drought
+  description: >-
+    Target enemy is Scorched for 2 turns; the healing the Scorch denies them goes to a random ally of
+    the user instead.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: scorched, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: drought
+        name: Drought
+        kind: Debuff
+        element: Sun
+        description: The healing Scorched denies the bearer goes to a random ally of the applier.
+        triggers:
+          - on: healed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: scorched } }
+                then:
+                  - { op: heal, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, amount: { eventAmount: true } }
+
+smite.sun:
+  archetype: Smite
+  element: Sun
+  name: Pillar of Noon
+  description: >-
+    Deals 20 damage to target enemy. Flare: for 1 turn per Corona spent, allies who damage them gain 1
+    Corona.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: macro, id: solar_flare }
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { compare: { value: { var: flared }, atLeast: 1 } }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: { var: flared } }
+          effect:
+            id: pillar_of_noon
+            name: Pillar of Noon
+            kind: Debuff
+            element: Sun
+            description: The applier's allies who damage the bearer gain 1 Corona.
+            triggers:
+              - on: damaged
+                when: { direct: true, fromSide: ally }
+                do:
+                  - { op: forEach, in: eventSource, do: [{ op: macro, id: gain_corona }] }
+
+prayer.sun:
+  archetype: Prayer
+  element: Sun
+  name: Hymn to the Sun
+  description: >-
+    All allies heal 20. Flare: every ally gains 1 Corona per 2 Corona spent, rounded up.
+  cost: Srr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: macro, id: solar_flare }
+    - { op: heal, to: targets, amount: 20 }
+    - op: forEach
+      in: targets
+      do:
+        - op: repeat
+          times: { div: [{ sum: [{ var: flared }, 1] }, 2] }
+          do:
+            - { op: macro, id: gain_corona }
+
+cleave.sun:
+  archetype: Cleave
+  element: Sun
+  name: Stubble Burn
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Every allied Seedling is burned
+    off: it dies, and both enemies are Ignited and burn once now per Seedling lost.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: stubble, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } } }
+    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: if
+          cond: { compare: { value: { var: stubble }, atLeast: 1 } }
+          then:
+            - { op: apply, to: it, effect: ignite }
+            - { op: repeat, times: { var: stubble }, do: [{ op: macro, id: ignite_tick }] }
+    - op: if
+      cond: { compare: { value: { var: stubble }, atLeast: 1 } }
+      then:
+        - { op: apply, to: primary, effect: ignite }
+        - op: forEach
+          in: primary
+          do:
+            - { op: repeat, times: { var: stubble }, do: [{ op: macro, id: ignite_tick }] }
+
+shout.sun:
+  archetype: Shout
+  element: Sun
+  name: Dawn Chorus
+  description: >-
+    All enemies are Intimidated for 2 turns. Every allied minion gains 1 Corona, and it ticks once
+    now.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+      do:
+        - { op: macro, id: gain_corona }
+        - { op: set, var: glow, value: { mul: [5, { stacks: { unit: it, effect: corona } }] } }
+        - { op: damage, to: allEnemies, amount: { var: glow }, type: Affliction, direct: false }
+        - { op: heal, to: allAllies, amount: { var: glow } }
+
+withstand.sun:
+  archetype: Withstand
+  element: Sun
+  name: Kiln Wall
+  description: >-
+    The user gains 25 Shield for 2 turns. Damage it absorbs is baked into a random allied Boulder,
+    which gains that much max HP and HP.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: kiln_wall
+        name: Kiln Wall
+        kind: Buff
+        element: Sun
+        shield: true
+        description: A Shield; what it absorbs is baked into a random allied Boulder.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - op: forEach
+                in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+                do:
+                  - { op: addMaxHp, to: it, amount: { eventAmount: true } }
+                  - { op: heal, to: it, amount: { eventAmount: true }, raw: true }
+
+taunt.sun:
+  archetype: Taunt
+  element: Sun
+  name: High Noon
+  description: Target enemy is Taunted by the user for 2 turns. For as long, no other enemy can target the user.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { filter: allEnemies, exclude: primary, where: { kind: { unit: it, is: character } } }, effect: high_noon_shut, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: high_noon
+        name: High Noon
+        kind: Buff
+        element: Sun
+        description: Only the Taunted enemy can target the bearer.
+        modifiers:
+          - { mod: invulnerableTo, sourceHas: [high_noon_shut] }
+
+titan.sun:
+  archetype: Titan
+  element: Sun
+  name: Red Giant
+  description: >-
+    For 3 turns, the user is Immune and swells: at the start of each of their turns, they gain 15 max
+    HP and heal 15. When it ends, they lose that max HP, and every enemy takes as much damage.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: setCounter, name: red_giant, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: red_giant
+        name: Red Giant
+        kind: Buff
+        element: Sun
+        description: Swells by 15 max HP each turn; when it ends, that max HP bursts out at every enemy.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: addMaxHp, to: bearer, amount: 15 }
+              - { op: heal, to: bearer, amount: 15 }
+              - { op: setCounter, name: red_giant, value: { sum: [{ counter: red_giant }, 15] } }
+        onExpire:
+          - { op: addMaxHp, to: bearer, amount: { mul: [-1, { counter: red_giant }] } }
+          - { op: damage, to: allEnemies, amount: { counter: red_giant }, direct: false }
+
+# Minion skills.
+
+sunflower_scatter_seeds:
+  archetype: Minion
+  element: Sun
+  name: Scatter Seeds
+  description: The Sunflower loses 10 HP and creates a Seedling.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: damage, to: actor, amount: 10, raw: true, type: Affliction, direct: false }
+    - { op: summon, minion: seedling }
+
+sunseed_brighten:
+  archetype: Minion
+  element: Sun
+  name: Brighten
+  description: The Sunseed gains 1 Corona.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_corona }] }

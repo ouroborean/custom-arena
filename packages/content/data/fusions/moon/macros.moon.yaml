@@ -1,0 +1,13 @@
+# Moon actions (actor = a Moon character).
+
+# Advances the Lunar Cycle one phase, announcing Full and New Moons.
+advance_moon:
+  - op: setCounter
+    name: phase
+    value: { if: { compare: { value: { counter: phase }, atLeast: 3 } }, then: 0, else: { sum: [{ counter: phase }, 1] } }
+  - op: if
+    cond: { check: { cond: moon_full, unit: actor } }
+    then: [{ op: signal, name: full_moon }]
+  - op: if
+    cond: { check: { cond: moon_new, unit: actor } }
+    then: [{ op: signal, name: new_moon }]

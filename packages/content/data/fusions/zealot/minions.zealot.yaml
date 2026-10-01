@@ -1,0 +1,15 @@
+# Zealot minions.
+
+flagellant:
+  name: Flagellant
+  hp: 40
+  onSummon:
+    - { op: apply, to: actor, effect: fervor }
+  skills: [flagellant_self_scourge, flagellant_blood_whip]
+
+initiate:
+  name: Initiate
+  hp: 20
+  onSummon:
+    - { op: apply, to: actor, effect: fervor }
+  skills: [initiate_take_the_blow]

@@ -1,0 +1,27 @@
+# Life (Earth + Earth) statuses, from the "Fusion Spec Kits" design doc.
+# Flourish is a macro (flourish_it): overflow healing raises max HP, up to +30 per unit for the match
+# (tracked in each unit's `flourish` counter).
+
+# Fusion passive: every Life character. Seedlings they create can Bloom (see Earth's Seedling).
+life_grove:
+  name: Grove Tender
+  kind: Neutral
+  element: Life
+  stacking: unique
+  description: Seedlings this character creates Bloom into Treants if they survive until the end of its second turn.
+
+bloom_timer:
+  name: Blooming
+  kind: Neutral
+  element: Life
+  stacking: unique
+  description: Blooms into a Treant when this runs out.
+  onExpire:
+    - { op: forEach, in: bearer, do: [{ op: macro, id: bloom_it }] }
+
+wild_growth:
+  name: Wild Growth
+  kind: Buff
+  element: Life
+  stacking: unique
+  description: Each allied Seedling that Blooms gives the bearer 1 Might for good.

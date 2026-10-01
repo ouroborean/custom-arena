@@ -450,7 +450,7 @@ Character
   classId, baseElement
   rarity                → skillCount (3–5), upgradeCapacity
   skills[]              ordered list of { archetype, infusion: Element|None, source: Native|Equipment, locked: bool }
-  equipment[slot]       item instance ids
+  equipment[4]          up to 4 item instance ids, any types (§8.3)
   stats (record: wins, games, per-mode)
 ```
 
@@ -471,22 +471,26 @@ name = nameGenerator(class, baseElement)
 
 Proposed rarity table (to tune):
 
-| Rarity | Native skills | Default infusions | Equipment slots | Free infusion sockets |
-|---|---|---|---|---|
-| Common | 3 | 1 | 2 | 1 |
-| Uncommon | 3 | 1–2 | 3 | 1 |
-| Rare | 4 | 1–2 | 3 | 2 |
-| Epic | 4 | 2–3 | 4 | 2 |
-| Legendary | 5 | 2–3 | 5 | 3 |
+| Rarity | Native skills | Default infusions |
+|---|---|---|
+| Common | 3 | 1 |
+| Uncommon | 3 | 1–2 |
+| Rare | 4 | 1–2 |
+| Epic | 4 | 2–3 |
+| Legendary | 5 | 2–3 |
+
+Every rarity has the same **4 equipment slots** (§8.3); rarity sets the equipment budget instead
+(docs/meta.md §1.2).
 
 **Base element decision [OPEN]:** does the base element do anything beyond default infusions and portrait? One good cheap option: a small **affinity bonus**. For example, skills infused with the base element cost −1 GEN once per match, or the character counts as "X-infused" for equipment unlock requirements. Or it could be purely cosmetic.
 
 ### 7.3 Customization rules
 
-- **Infusing a skill** consumes (or socket-equips) an Elemental Crystal/Shard and swaps the skill to its elemental variant.
-- **One infusion per skill.** Default (locked) infusions can't be removed **[PROPOSED]**, or can be removed with a rare "Purifying" item.
-- **Adding a skill** via equipment is only possible when the character has < 5 skills. Removing that equipment removes the skill.
-- **Conflict resolution:** if two equipped items both try to infuse the same skill, the player picks which one applies. The other item's infusion is shown as inactive.
+- **The infusion pool (decided 2026-09-27).** Equipment's elemental infusions are never applied automatically, not even to a skill the same item grants. Every equipped item adds its elements to the character's **infusion pool**, and the player applies each one to a skill of their choice, which swaps that skill to its elemental variant. Unplaced infusions simply do nothing.
+- **Native infusions** (the base-element ones rolled at generation) stay **locked** on the skills they were rolled on: they can't be moved or removed (R8).
+- **Up to two infusions per skill**, counting a locked native one. Two infusions turn a skill into the **fusion element** of the pair (a Hybrid: more potent and specialized). The 55 fusions are data in `packages/content/data/elements/fusions.yaml`, taken from the Element Arena codex's "Fusion recipe matrix". The pair is unordered, and one element twice has its own fusion: Fire + Fire is Dragon, Fire + Ice is Apocalypse. **[PLANNED]** No skill has a fusion variant yet (they'd be ids like `strike.dragon`), so for now a second infusion is reported as unavailable, naming the fusion it would make.
+- **No infusion budget.** Rarity budgets cap equipment-granted skills and item passives only (§8.2).
+- **Adding a skill** via equipment is only possible when the character has < 5 skills. Removing that equipment removes the skill (and any infusion placed on it).
 - **Loadout validation** happens server-side on save and again at match start. Store loadouts as named presets.
 
 ### 7.4 Assets
@@ -512,11 +516,11 @@ All equipment reduces to a bundle of **grants**, which is how the engine should 
 |---|---|
 | `Passive(id)` | Attaches a passive effect definition (same contract as a status: modifiers + triggers) |
 | `Skill(archetype)` | Adds a skill (if < 5) |
-| `Infusion(element, target?)` | Infuses a skill. The target is either fixed (A/E/F: "Strike") or player-chosen (D/I/K: any skill) |
+| `Infusion(element)` | Adds the element to the wearer's infusion pool; the player applies it to a skill of their choice (§7.3) |
 
 ### 8.2 Equipment types (from *Structured Equipment*)
 
-| Type | Grants | Count | Proposed slot |
+| Type | Grants | Count | Category |
 |---|---|---|---|
 | A | 1 Skill + 1 Passive + 1 Element | 30 (one per skill) | Main Hand |
 | B | 2 Skills + 1 Passive | 20 (2 per class) | Two-Handed |
@@ -531,17 +535,22 @@ All equipment reduces to a bundle of **grants**, which is how the engine should 
 | K | 1 Element (Shard) | 10 | Accessory / consumable |
 | L | 1 Passive | open-ended | Accessory |
 
-The sheet's note "I … 3 skills 2 passives 4 element" reads like a **slot-budget formula**: a fully kitted character totals at most 3 equipment-granted skills, 2 passives, and 4 infusions. That's an excellent balance lever. **Recommend adopting explicit budgets per character** (scaled by rarity) and validating them in the loadout validator, independent of which items supplied them.
+The sheet's note "I … 3 skills 2 passives 4 element" reads like a **slot-budget formula**: a fully kitted character totals at most 3 equipment-granted skills, 2 passives, and 4 infusions. That's an excellent balance lever. **Recommend adopting explicit budgets per character** (scaled by rarity) and validating them in the loadout validator, independent of which items supplied them. **Decided 2026-09-27:** budgets cover skills and passives only; infusions have no budget (§7.3).
 
-### 8.3 Proposed slot layout
+### 8.3 Slot layout (decided 2026-09-27)
 
-```
-Weapon:   [Main Hand (A | C | D)] + [Off Hand (E)]   — or —   [Two-Handed (B)]
-Armor:    [Body (F | G)]
-Accessory ×N (by rarity): H | I | J | K | L
-```
+Every character has **4 equipment slots, and any item type fits any slot**: two weapons, three
+shards, a two-handed weapon beside armor are all fine. There are no main-hand, off-hand, body,
+accessory or socket slots, and rarity doesn't change the slot count. The categories in §8.2 are
+descriptive only. What still limits a loadout:
 
-The layout is data-configurable (`slots.json`), so it can be tuned without code changes.
+- the rarity's **budget** of equipment-granted skills and item passives (§8.2 note);
+- the **5-skill cap**, **up to two infusions per skill** (two make a fusion element, planned) and **locked native infusions** (§7.3);
+- **class armor** (type G) only fits its class;
+- each owned copy of an item can be on one character at a time.
+
+This supersedes the earlier proposal (Main Hand + Off Hand or Two-Handed, Body, and rarity-scaled
+accessory and socket slots).
 
 ### 8.4 Acquisition
 
@@ -881,10 +890,9 @@ triggers:
 ```yaml
 id: equip.wind_katana
 type: A
-slot: MainHand
 grants:
   - skill: Strike
-  - infusion: { element: Wind, archetype: Strike }
+  - infusion: { element: Wind }   # into the wearer's pool; the player picks the skill
   - passive:
       modifiers:
         - query: outgoingDamage
@@ -1032,7 +1040,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 - Implement equipment types A–L passives (they reuse the effect runtime), drop tables, crafting (shards → crystals), and currencies.
 - Balance simulator including equipment. Tune.
 
-### Phase 8: Polish, launch, and live ops (ongoing)
+### Phase 8: Polish, launch, and live ops (ongoing) — in progress: energy pip shapes, motion/speed/sound settings, screen-reader log, portrait and sound manifests, synthesized SFX, message catalogs with a pseudo-locale, pick/win-rate analytics, patch-note diffs, ranked seasons with soft resets and rewards, installable PWA with an offline sandbox ✅ (2026-09-26); art, translations and native shells pending; see docs/live-ops.md
 - Art pipeline and portrait manifest, VFX/SFX, accessibility (color-blind energy pip shapes!), and localization readiness.
 - Analytics (pick/win rates), a balance patch cadence, and seasons.
 - Desktop/mobile wrappers.
@@ -1062,6 +1070,8 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q15 | Cooldown clock | Ticks **only on the owner's turns**. CD 1 must stay unusable on the owner's following turn (internally `remaining = n + 1`). | §3.5 |
 | Q16 | Effects with no stated duration (e.g., Ignite) | **Permanent** until specifically ended (consumed, cleansed, or removed by a skill) | §3.8 |
 | Q17 | Wind Vortex redesign | Confirmed. See the new text in §14.2. | §14.2 |
+| Q18 | Equipment slots (2026-09-27) | **4 slots per character, any item type** in any slot; no typed slots, and rarity doesn't change the count. Budgets, the skill cap and class armor still apply. | §8.3 |
+| Q19 | Equipment infusions (2026-09-27) | Equipment infusions go into a **pool**, and the player applies each to a skill of their choice; nothing is automatic, not even onto a skill the same item grants. **Native infusions stay locked.** **No infusion budget.** A skill can hold **up to two** infusions; two make the pair's **fusion** element (55, from the codex's fusion matrix; no skill has a fusion variant yet). | §7.3, §8.1 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 
@@ -1103,7 +1113,7 @@ These started as engineering defaults. The designer confirmed all of them, along
 | R7 | Energy exchange (5 → 1 chosen color) | Optional. Decide after playtests. |
 | R8 | Does base element matter mechanically? Are default infusions removable? | Cosmetic plus default infusions. Defaults are locked. |
 | R9 | Class pool table (§6.2) and the "at least 2 signatures" roll rule | First pass; review |
-| R10 | Rarity table (§7.2) and slot/budget numbers (§8.2–8.3) | First pass; to tune |
+| R10 | Rarity table (§7.2) and budget numbers (§8.2) | First pass; to tune. Slots are settled: 4, any type (§8.3). |
 
 ---
 
@@ -1247,7 +1257,7 @@ The sheet's "Emblem of the…" heading suggests the naming pattern used for the 
 | Grave Insult | Taunt | Earth + Unholy |
 | Prism Guardian | Titan | Ice + Holy |
 
-A two-element item infuses up to two skills: the named skill plus one the player chooses, or two chosen skills **[PROPOSED]**. The sheet doesn't specify which skills receive the infusions.
+A two-element item adds both elements to the wearer's infusion pool; the player chooses the skills (§7.3).
 
 ### 15.5 Type F (Elemental Armor): one skill, one element
 

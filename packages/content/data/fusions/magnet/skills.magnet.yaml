@@ -1,0 +1,734 @@
+# The 30 Magnet (Lightning + Earth) variants, from the "Fusion Spec Kits" design doc.
+# Attract moves effects from an enemy (moveEffects); Repel moves the user's side's Debuffs onto an
+# enemy (moveEffects / stealRandom).
+
+strike.magnet:
+  archetype: Strike
+  element: Magnet
+  name: Lodestone Fist
+  description: >-
+    Deals 20 damage to target enemy. If they have more Might than the user, the user Attracts Might from
+    them until the two are even.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: repeat
+      times: { div: [{ sum: [{ totalStacks: { in: primary, effect: might } }, { mul: [-1, { totalStacks: { in: actor, effect: might } }] }] }, 2] }
+      do:
+        - { op: removeStacks, from: primary, effect: might, amount: 1 }
+        - { op: apply, to: actor, effect: might, duration: { enemyTurns: 2 } }
+
+smash.magnet:
+  archetype: Smash
+  element: Magnet
+  name: Iron Quake
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies; the user Repels one of their own Debuffs onto
+    each enemy hit.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: forEach
+      in: allEnemies
+      do:
+        - { op: stealRandom, from: actor, to: it, kind: Debuff }
+
+charge.magnet:
+  archetype: Charge
+  element: Magnet
+  name: Reel In
+  description: >-
+    Deals 10 damage to target enemy. Until the end of the user's next turn, any Armor, Shield, Might or
+    Charge they gain is Attracted to the user.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { raw: 3 }
+      effect:
+        id: reel_in
+        name: Reeled In
+        kind: Debuff
+        element: Magnet
+        description: Armor, Shield, Might and Charge the bearer gains go to the applier.
+        triggers:
+          - on: effectGained
+            when: { effects: [armor, shield, might, charged] }
+            do:
+              - { op: moveEffects, from: bearer, to: actor, effects: [armor, shield, might, charged] }
+
+riposte.magnet:
+  archetype: Riposte
+  element: Magnet
+  name: Repulsor Ward
+  description: >-
+    For 1 turn, the first Harmful skill used on the user is Reflected, and the user Repels one Debuff onto
+    its user. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: repulsor_ward
+        name: Repulsor Ward
+        kind: Buff
+        element: Magnet
+        visibility: hidden
+        description: Reflects the first Harmful skill used on the bearer and Repels a Debuff onto its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: reflect
+            consume: true
+            do:
+              - { op: stealRandom, from: bearer, to: eventSource, kind: Debuff }
+
+rage.magnet:
+  archetype: Rage
+  element: Magnet
+  name: Repelling Fury
+  description: >-
+    For 3 turns, the user gains 2 Might. At the start of each of their turns, they Repel all their Debuffs
+    onto the enemy who last damaged them.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: repelling_fury
+        name: Repelling Fury
+        kind: Buff
+        element: Magnet
+        description: Each turn, the bearer's Debuffs are pushed onto their last attacker.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: moveEffects, from: bearer, to: lastAttacker, kind: Debuff }
+
+shot.magnet:
+  archetype: Shot
+  element: Magnet
+  name: Magnetic Launch
+  description: Deals 15 damage to target enemy. If there's an allied Boulder, it sheds 15 HP to add 15 damage.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 1 } }
+      then:
+        - { op: damage, to: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }, amount: 15, raw: true, type: Affliction, direct: false }
+        - { op: damage, to: primary, amount: 30 }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+
+snipe.magnet:
+  archetype: Snipe
+  element: Magnet
+  name: Mass Driver
+  description: >-
+    The user creates a Boulder; on the following turn, an allied Boulder is launched at target enemy for 20
+    damage plus its remaining HP. The target of this skill is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: summon, minion: boulder }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mass_driver
+        name: Mass Driver (aiming)
+        kind: Neutral
+        element: Magnet
+        visibility: hiddenTarget
+        interruptible: true
+        description: Launches a Boulder at its target at the end of the following turn.
+        onExpire:
+          - op: forEach
+            in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+            do:
+              - { op: set, var: boulderHp, value: { hp: it } }
+              - { op: damage, to: effectTargets, amount: { sum: [20, { var: boulderHp }] } }
+              - { op: kill, to: it }
+
+trap.magnet:
+  archetype: Trap
+  element: Magnet
+  name: Polarized Trap
+  description: >-
+    For 3 turns, the first time target enemy uses a Harmful skill, they take 15 damage and the user Attracts
+    all their Armor and Shield. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: polarized_trap
+        name: Polarized Trap
+        kind: Debuff
+        element: Magnet
+        visibility: hidden
+        description: The bearer's first Harmful skill shocks them and strips their Armor and Shield.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15, direct: false }
+              - { op: moveEffects, from: bearer, to: actor, effects: [armor, shield] }
+
+maneuver.magnet:
+  archetype: Maneuver
+  element: Magnet
+  name: Maglev
+  description: The user becomes Invulnerable for 1 turn and Repels all their Debuffs onto a random enemy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: moveEffects, from: actor, to: { randomEnemy: 1 }, kind: Debuff }
+
+companion.magnet:
+  archetype: Companion
+  element: Magnet
+  name: Lodestone Golem
+  description: >-
+    Summons a Lodestone Golem (50 HP) permanently. Magnetize (r): Attracts 1 Armor or 10 Shield from target
+    enemy to the Golem. Iron Fist (nc): 10 damage.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: lodestone_golem }
+
+bolt.magnet:
+  archetype: Bolt
+  element: Magnet
+  name: Polarity Bolt
+  description: >-
+    Deals 20 damage to target enemy. The user first Repels up to 2 of their own Debuffs onto them, and it
+    deals 10 more per Debuff moved.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: poles, value: { if: { compare: { value: { kindCount: { unit: actor, kind: Debuff } }, atLeast: 2 } }, then: 2, else: { kindCount: { unit: actor, kind: Debuff } } } }
+    - { op: repeat, times: { var: poles }, do: [{ op: stealRandom, from: actor, to: primary, kind: Debuff }] }
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [10, { var: poles }] }] } }
+
+blast.magnet:
+  archetype: Blast
+  element: Magnet
+  name: Magnetic Storm
+  description: Deals 25 damage to all enemies. The user spends all their Charge, and each enemy is Sapped once per Charge spent.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: set, var: spent, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: apply, to: targets, effect: sapped, stacks: { var: spent } }
+
+consume.magnet:
+  archetype: Consume
+  element: Magnet
+  name: Ferrous Harvest
+  description: >-
+    Deals 5 Piercing damage to every enemy and enemy minion that has Armor or Shield; the user heals 10 for
+    each one hit.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: harvested, value: { countOf: { filter: allEnemies, where: { or: [{ hasShield: it }, { has: { unit: it, effect: armor } }] } } } }
+    - { op: damage, to: { filter: allEnemies, where: { or: [{ hasShield: it }, { has: { unit: it, effect: armor } }] } }, amount: 5, type: Piercing }
+    - { op: heal, to: actor, amount: { mul: [10, { var: harvested }] } }
+
+summon.magnet:
+  archetype: Summon
+  element: Magnet
+  name: Clinging Filings
+  description: >-
+    Summons an Iron Filing swarm (20 HP) for 3 turns, clinging to target enemy. Grind (r): 10 Piercing
+    damage to that enemy.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: iron_filings, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      from: lastSummoned
+      bindTo: lastSummoned
+      effect:
+        id: clinging_filings
+        name: Clinging Filings
+        kind: Debuff
+        element: Magnet
+        description: Iron Filings cling to the bearer.
+
+channel.magnet:
+  archetype: Channel
+  element: Magnet
+  name: Electromagnet
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, 10 damage to all enemies, Attracting 10
+    Shield from each. It ends early if an enemy damages the user. Channeled.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: electromagnet
+        name: Electromagnet
+        kind: Neutral
+        element: Magnet
+        interruptible: true
+        description: Each turn, 10 damage to all enemies and 10 of each one's Shield pulled to the bearer.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - op: forEach
+                in: { filter: allEnemies, where: { hasShield: it } }
+                do:
+                  - { op: boostShields, on: it, amount: -10 }
+                  - { op: apply, to: bearer, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: removeSelf }
+
+stab.magnet:
+  archetype: Stab
+  element: Magnet
+  name: Grounding Pin
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP; then all their Sapped is spent for 10
+    more damage per stack.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: grounded, value: { stacks: { unit: primary, effect: sapped } } }
+    - op: damage
+      to: primary
+      amount: { sum: [{ if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }, { mul: [10, { var: grounded }] }] }
+    - { op: removeEffect, from: primary, effect: sapped }
+
+ravage.magnet:
+  archetype: Ravage
+  element: Magnet
+  name: Rail Drill
+  description: >-
+    Deals 25 Piercing damage to target enemy, after the user Attracts all their Armor; 10 more per Armor
+    taken.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: drilled, value: { totalStacks: { in: primary, effect: armor } } }
+    - { op: moveEffects, from: primary, to: actor, effects: [armor] }
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [25, { mul: [10, { var: drilled }] }] } }
+
+mislead.magnet:
+  archetype: Mislead
+  element: Magnet
+  name: Pole Reversal
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user takes their Armor, Might,
+    Charge and Shield. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pole_reversal
+        name: Pole Reversal
+        kind: Debuff
+        element: Magnet
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and the applier takes their Armor, Might, Charge and Shield.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: moveEffects, from: bearer, to: actor, effects: [armor, might, charged, shield] }
+
+stun.magnet:
+  archetype: Stun
+  element: Magnet
+  name: Clamp
+  description: Target enemy is Stunned for 1 turn, and the user Attracts their Armor and Shield.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: moveEffects, from: primary, to: actor, effects: [armor, shield] }
+
+dance.magnet:
+  archetype: Dance
+  element: Magnet
+  name: Static Quarry
+  description: >-
+    For 4 turns, the user gains 1 Swiftness and Stormborn; each time they reach 3 Charge, they also create a
+    Boulder.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: static_quarry
+        name: Static Quarry
+        kind: Buff
+        element: Magnet
+        description: Reaching 3 Charge also creates a Boulder.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+                then: [{ op: summon, minion: boulder }]
+
+heal.magnet:
+  archetype: Heal
+  element: Magnet
+  name: Draw Out
+  description: Target ally heals 15 and Repels one Debuff onto a random enemy.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: stealRandom, from: primary, to: { randomEnemy: 1 }, kind: Debuff }
+
+bless.magnet:
+  archetype: Bless
+  element: Magnet
+  name: Polarized Plating
+  description: >-
+    For 3 turns, target ally gains 1 Armor, and the first Debuff put on them each turn is Repelled onto a
+    random enemy.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: armor, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: polarized_plating
+        name: Polarized Plating
+        kind: Buff
+        element: Magnet
+        description: The first Debuff on the bearer each turn is pushed onto a random enemy.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - op: if
+                cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: plating_turn } }] }] }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, name: plating_turn, on: bearer, value: { turn: true } }
+                  - { op: copyEventEffect, to: { randomEnemy: 1 } }
+                  - { op: eventEffect, remove: true }
+
+curse.magnet:
+  archetype: Curse
+  element: Magnet
+  name: Offload
+  description: Each ally Repels one Debuff onto target enemy.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    # Every ally, Isolated ones included: it doesn't target them.
+    - op: forEach
+      in: { filter: allUnits, where: { not: { isEnemy: it } } }
+      do:
+        - { op: stealRandom, from: it, to: primary, kind: Debuff }
+
+smite.magnet:
+  archetype: Smite
+  element: Magnet
+  name: True North
+  description: >-
+    Deals 20 damage to target enemy. Until the user's next turn, the user's side's random picks among enemies
+    are drawn to them: they're Vulnerable to everything for as long.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: vulnerable, duration: { raw: 2 } }
+
+prayer.magnet:
+  archetype: Prayer
+  element: Magnet
+  name: Shared Field
+  description: >-
+    The user Attracts every enemy's Shield and splits it evenly among their allies; then all allies heal 20.
+  cost: Srr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: set, var: field, value: 0 }
+    - op: forEach
+      in: allEnemies
+      do:
+        - { op: set, var: field, value: { sum: [{ var: field }, { effectValueOf: { unit: it, effect: shield } }] } }
+    - { op: removeEffect, from: allEnemies, effect: shield }
+    - op: if
+      cond: { compare: { value: { var: field }, atLeast: 1 } }
+      then:
+        - { op: apply, to: targets, effect: shield, value: { div: [{ var: field }, { countOf: targets }] }, duration: { enemyTurns: 1 } }
+    - { op: heal, to: targets, amount: 20 }
+
+cleave.magnet:
+  archetype: Cleave
+  element: Magnet
+  name: Grounding Whirl
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Until the user's next turn, they gain 1
+    Charge each time an ally takes damage.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - op: apply
+      to: { filter: allAllies, where: { not: { isActor: it } } }
+      duration: { raw: 2 }
+      effect:
+        id: grounding_whirl
+        name: Grounding Whirl
+        kind: Buff
+        element: Magnet
+        description: Damage to the bearer gives the applier 1 Charge.
+        triggers:
+          - on: damaged
+            do:
+              - { op: apply, to: actor, effect: charged }
+
+shout.magnet:
+  archetype: Shout
+  element: Magnet
+  name: Lodestone Hum
+  description: All enemies are Intimidated for 2 turns, and Sapped once for each allied Boulder.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: targets, effect: sapped, stacks: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } } }
+
+withstand.magnet:
+  archetype: Withstand
+  element: Magnet
+  name: Rebound Plate
+  description: >-
+    The user gains 20 Shield for 1 turn. When it ends, they Repel one Debuff onto each enemy who damaged them
+    meanwhile.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 1 }
+      effect:
+        id: rebound_plate
+        name: Rebound Plate
+        kind: Buff
+        element: Magnet
+        shield: true
+        description: A Shield; when it ends, a Debuff is Repelled onto each enemy who struck the bearer.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventSource, effect: rebound_mark, duration: { raw: 2 } }
+        onExpire:
+          - op: forEach
+            in: { filter: allEnemies, where: { has: { unit: it, effect: rebound_mark } } }
+            do:
+              - { op: stealRandom, from: bearer, to: it, kind: Debuff }
+
+taunt.magnet:
+  archetype: Taunt
+  element: Magnet
+  name: Opposite Poles
+  description: >-
+    Target enemy is Taunted by the user for 2 turns, and the user's Harmful skills can target only them for as
+    long.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: opposite_pole, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: opposite_poles
+        name: Opposite Poles
+        kind: Neutral
+        element: Magnet
+        description: The bearer's skills can target only the enemy at the opposite pole.
+        modifiers:
+          - { mod: targetExclude, where: { and: [{ isEnemy: it }, { not: { has: { unit: it, effect: opposite_pole } } }] } }
+
+titan.magnet:
+  archetype: Titan
+  element: Magnet
+  name: Iron Colossus
+  description: >-
+    The user creates a Boulder, then absorbs every allied Boulder for 1 Armor per 15 HP it had, and is Immune,
+    for 3 turns. When it ends, the Armor falls away as one Boulder with 10 HP per stack.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: boulder }
+    - { op: set, var: iron, value: { div: [{ totalHp: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, 15] } }
+    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
+    - { op: setCounter, name: iron_colossus, value: { var: iron } }
+    - { op: apply, to: actor, effect: armor, stacks: { var: iron }, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: iron_colossus
+        name: Iron Colossus
+        kind: Buff
+        element: Magnet
+        description: Immune; when it ends, the Armor falls away as a Boulder.
+        modifiers:
+          - { mod: immuneTo, kind: Debuff }
+        onExpire:
+          - op: if
+            cond: { compare: { value: { counter: iron_colossus }, atLeast: 1 } }
+            then:
+              - { op: summon, minion: boulder }
+              - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ mul: [10, { counter: iron_colossus }] }, -45] } }
+              - { op: heal, to: lastSummoned, amount: 999, raw: true }
+
+# Minion skills.
+
+lodestone_golem_magnetize:
+  archetype: Minion
+  element: Magnet
+  name: Magnetize
+  description: Attracts 1 Armor or 10 Shield from target enemy to the Golem.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: armor } }
+      then:
+        - { op: removeStacks, from: primary, effect: armor, amount: 1 }
+        - { op: apply, to: actor, effect: armor }
+      else:
+        - op: if
+          cond: { hasShield: primary }
+          then:
+            - { op: boostShields, on: primary, amount: -10 }
+            - { op: apply, to: actor, effect: shield, value: 10, duration: { enemyTurns: 2 } }
+
+lodestone_golem_iron_fist:
+  archetype: Minion
+  element: Magnet
+  name: Iron Fist
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+iron_filings_grind:
+  archetype: Minion
+  element: Magnet
+  name: Grind
+  description: Deals 10 Piercing damage to the enemy the Filings cling to.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: clinging_filings, mine: true } } }, amount: 10, type: Piercing }

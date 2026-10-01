@@ -12,7 +12,7 @@ import {
 import { serverNow } from '../match/online.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
-import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, skillCategory } from './common.js';
+import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, ENERGY_NAMES, EnergyPip, skillCategory } from './common.js';
 
 const TARGET_TEXT: Record<string, string> = {
   self: 'Self',
@@ -318,7 +318,8 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
   const other: PlayerId = viewer === 0 ? 1 : 0;
   const me = view.players[viewer];
   const energy = me.energy ?? { S: 0, A: 0, I: 0, W: 0 };
-  const queue = me.queue ?? [];
+  // While a turn plays out its queue has already been paid for: nothing is reserved.
+  const queue = playing ? [] : (me.queue ?? []);
   const reserved = sumCosts(queue.map((q) => q.cost));
   const total = COLORS.reduce((n, c) => n + energy[c], 0);
   const free = total - COLORS.reduce((n, c) => n + reserved[c], 0) - reserved.r;
@@ -362,13 +363,13 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
         {!spectate && (
           <div className="energy-panel" aria-label="Your energy" data-coach="energy">
             {COLORS.map((c) => (
-              <span key={c} className="energy-cell" title={{ S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom' }[c]}>
-                <span className={`pip lg ${c}`} />
+              <span key={c} className="energy-cell" title={ENERGY_NAMES[c]}>
+                <EnergyPip color={c} size={20} />
                 {energy[c] - reserved[c]}
               </span>
             ))}
             <span className={`energy-cell promised${reserved.r > 0 ? '' : ' zero'}`} title="Random costs you've promised to pay">
-              <span className="pip lg r" />
+              <EnergyPip color="r" size={20} title="Random" />
               {reserved.r}
             </span>
           </div>

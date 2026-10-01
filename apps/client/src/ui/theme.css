@@ -48,6 +48,20 @@
   --el-shadow: #999999;
   --el-earth: #b5793a;
 
+  /* skill and status glyphs: neutral grey by default, else the element's color. Shadow and Wind
+     differ from their accents so they stand apart from neutral: a much darker grey, a clean white. */
+  --glyph-neutral: #9a9aa6;
+  --glyph-shadow: #4d4d57;
+  --glyph-wind: #ffffff;
+  --glyph-fire: var(--el-fire);
+  --glyph-poison: var(--el-poison);
+  --glyph-holy: var(--el-holy);
+  --glyph-ice: var(--el-ice);
+  --glyph-water: var(--el-water);
+  --glyph-unholy: var(--el-unholy);
+  --glyph-lightning: var(--el-lightning);
+  --glyph-earth: var(--el-earth);
+
   --shadow: 4px 4px 0 #000;
   --chamfer: 14px;
   --font-display: 'Big Shoulders Display', 'Impact', sans-serif;
@@ -246,6 +260,38 @@ h3,
   background: var(--e-r);
   border-color: var(--text);
   color: var(--text);
+}
+
+/* SVG pips: each energy color has its own shape (color-blind friendly). */
+.pip-svg {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+}
+
+.pip-svg polygon {
+  stroke: #000;
+  stroke-width: 1.2;
+  stroke-linejoin: miter;
+}
+
+.pip-svg.S polygon {
+  fill: var(--e-S);
+}
+.pip-svg.A polygon {
+  fill: var(--e-A);
+}
+.pip-svg.I polygon {
+  fill: var(--e-I);
+}
+.pip-svg.W polygon {
+  fill: var(--e-W);
+}
+.pip-svg.r polygon {
+  fill: var(--e-r);
+  stroke: var(--text);
+  stroke-dasharray: 2 1.4;
 }
 
 .pip.free {
@@ -950,6 +996,26 @@ button.portrait.targetable {
   font-size: 27px;
   line-height: 1;
   margin-top: -6px;
+}
+
+/* A skill or status icon used as a mask; its inline background is the paint (see Glyph). */
+.glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Clear of the category bar on top and the cost pips below. */
+.tile .glyph {
+  width: 64%;
+  height: 64%;
+  margin-top: -8%;
 }
 
 .tile .cost {
@@ -1739,8 +1805,18 @@ button.portrait.targetable {
 
 .alloc {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.alloc-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.alloc-label {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .alloc-cell {
@@ -1855,6 +1931,7 @@ button.portrait.targetable {
 }
 
 input[type='text'],
+input[type='search'],
 input[type='number'],
 select {
   background: var(--void);
@@ -2103,6 +2180,13 @@ select:focus {
     --slot-h: 146px;
     --slot-tile: 30px;
     gap: 5px;
+  }
+  /* On phones an empty bench stays one slim row until the first minion arrives. */
+  .bench:not(:has(.slot.filled)) .slot.empty {
+    height: 36px;
+  }
+  .bench:not(:has(.slot.filled)) .slot.empty:nth-child(n + 3) {
+    display: none;
   }
   .slot {
     padding: 4px;
@@ -2582,40 +2666,6 @@ input[type="password"] {
   max-width: 360px;
 }
 
-.slot-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: 10px;
-}
-
-.slot-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border: 2px dashed var(--line);
-  background: var(--void);
-  min-width: 0;
-}
-
-.slot-card.filled {
-  border-style: solid;
-  border-color: var(--line-2);
-  background: var(--ink-2);
-}
-
-.slot-card select {
-  width: 100%;
-  min-width: 0;
-}
-
-.slot-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-}
-
 .slot-label {
   font-weight: 800;
   text-transform: uppercase;
@@ -2636,30 +2686,12 @@ input[type="password"] {
   flex-wrap: wrap;
 }
 
-.infusion-row select {
-  width: auto;
-  flex: 1;
-}
-
 .check {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
   color: var(--muted);
-}
-
-.passive {
-  margin: 0;
-  color: var(--text);
-}
-
-.passive b {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-right: 4px;
 }
 
 .preset-list {
@@ -2999,4 +3031,864 @@ input[type="password"] {
       outline-color: var(--yellow);
     }
   }
+}
+
+/* ---------------------------------------------------------------- accessibility */
+
+/* Visible to screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion (Settings, or the OS preference): animations and transitions end at once. */
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* Portrait art from the manifest sits under the tags; the monogram hides behind it. */
+.portrait .portrait-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.portrait:has(.portrait-art) .mono {
+  visibility: hidden;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------ ranked seasons */
+
+.season-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.season-tier {
+  padding: 1px 8px;
+  background: var(--yellow);
+  color: var(--void);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.season-tier.none {
+  background: var(--line);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ loadout editor */
+
+.loadout-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.equip-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Every slot is the same height, so equipping never moves what's below; longer details scroll. */
+.equip-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  min-width: 0;
+  height: 142px;
+  border: 2px dashed var(--line);
+  background: var(--void);
+}
+
+.equip-slot .slot-detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.equip-slot .slot-detail > * {
+  flex-shrink: 0;
+}
+
+/* One scrollbar style for the editor's scrolling areas: thin, flat, no arrows. */
+.equip-slot .slot-detail,
+.item-grid,
+.item-card {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+.equip-slot .slot-detail:hover,
+.item-grid:hover {
+  scrollbar-color: var(--muted) transparent;
+}
+
+.equip-slot.empty {
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.equip-slot.empty.next {
+  border-color: var(--line-2);
+}
+
+.equip-slot.filled {
+  border-style: solid;
+  border-color: var(--line-2);
+  background: var(--ink-2);
+}
+
+.equip-slot.selected {
+  border-color: var(--yellow);
+  box-shadow: 4px 4px 0 var(--yellow);
+}
+
+.equip-slot-top {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.equip-slot-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.equip-slot-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.equip-slot-name b {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.equip-slot-name .replacing {
+  color: var(--yellow);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
+}
+
+.equip-remove {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--line-2);
+  background: var(--void);
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.equip-remove:hover,
+.equip-remove:focus-visible {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.item-glyph {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line-2);
+  background: var(--ink-3);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+.item-pool {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 2px solid var(--line);
+}
+
+.pool-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.pool-filters .segmented {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.pool-filters input[type='search'] {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pool-count {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 80px);
+  gap: 12px 10px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 2px 6px 8px 2px;
+}
+
+.item-tile {
+  position: relative;
+  width: 80px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.item-tile .code {
+  position: relative;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line-2);
+  background: var(--ink-3);
+  box-shadow: 3px 3px 0 #000;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1;
+  overflow: hidden;
+  transition: transform 0.08s, border-color 0.1s;
+}
+
+/* The element as a hard corner notch, like portraits. */
+.item-tile.has-el .code::before,
+.item-glyph.has-el::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-top: 16px solid var(--el);
+  border-left: 16px solid transparent;
+}
+
+.item-tile:hover .code,
+.item-tile:focus-visible .code {
+  border-color: var(--text);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #000;
+}
+
+.item-tile:focus-visible {
+  outline: none;
+}
+
+.item-tile .tile-name {
+  font-size: 9.5px;
+  line-height: 1.2;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.item-type,
+.item-count,
+.item-here,
+.item-warn {
+  position: absolute;
+  z-index: 1;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.item-type {
+  top: 2px;
+  left: 2px;
+  color: var(--muted);
+}
+
+.item-count {
+  top: 46px;
+  right: 4px;
+  background: var(--void);
+  color: var(--text);
+}
+
+.item-here {
+  top: 46px;
+  left: 4px;
+  background: var(--yellow);
+  color: var(--void);
+}
+
+.item-warn {
+  top: 2px;
+  right: 18px;
+  background: var(--red);
+  color: #fff;
+}
+
+.item-tile.here .code {
+  border-color: var(--yellow);
+}
+
+.item-tile.blocked {
+  cursor: not-allowed;
+}
+
+.item-tile.blocked .code,
+.item-tile.blocked .tile-name {
+  opacity: 0.35;
+}
+
+.item-card {
+  position: fixed;
+  z-index: 200;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  background: var(--void);
+  border: 2px solid var(--text);
+  border-top: 5px solid var(--yellow);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  pointer-events: none;
+}
+
+.item-card h4 {
+  margin: 2px 0 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.item-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.item-type-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: var(--text);
+  color: var(--void);
+  font-weight: 900;
+}
+
+.item-grants {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-grants b {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.item-grants .muted {
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.item-card-line {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.item-card-line ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.fit-ok {
+  color: var(--hp);
+  font-weight: 700;
+}
+
+.fit-bad {
+  color: var(--red);
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .equip-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .item-grid {
+    grid-template-columns: repeat(auto-fill, 72px);
+    max-height: 360px;
+  }
+  .item-tile {
+    width: 72px;
+  }
+  .item-tile .code {
+    height: 58px;
+  }
+  .item-count,
+  .item-here {
+    top: 40px;
+  }
+}
+
+/* ------------------------------------------------------------ infusion pool */
+
+.infusion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--line);
+  background: var(--void);
+}
+
+.infusion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 24px; /* the pool's chips, so it doesn't grow once an item adds some */
+  font-size: 12px;
+}
+
+.infusions-left {
+  color: var(--yellow);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.infusion-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-infusions {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  height: 26px; /* skill rows and open-slot rows alike, so granting a skill moves nothing */
+}
+
+.skill-infusions > .tip-wrap > .skill-chip {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.infusion-sockets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.infusion-native {
+  cursor: default;
+}
+
+.infusion-set {
+  cursor: pointer;
+  color: var(--el, var(--text));
+}
+
+.infusion-set:hover,
+.infusion-set:focus-visible {
+  background: var(--ink-3);
+}
+
+.infusion-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.infusion-option {
+  border: 2px dashed var(--el, var(--line-2));
+  background: transparent;
+  color: var(--el, var(--text));
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.infusion-option:hover:not(:disabled),
+.infusion-option:focus-visible {
+  border-style: solid;
+  background: var(--ink-3);
+}
+
+.infusion-option:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.infusion-hybrid,
+.infusion-open {
+  border: 2px dashed var(--line);
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+  cursor: help;
+}
+
+@media (max-width: 600px) {
+  .skill-infusions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    height: auto;
+  }
+}
+
+.skill-infusions.open-skill .skill-chip {
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--faint);
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ keyword explanations */
+
+.keyword-panels {
+  position: fixed;
+  z-index: 220;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+  max-height: calc(100vh - 16px);
+  pointer-events: none;
+}
+
+.kw-card {
+  width: 250px;
+  max-width: calc(100vw - 16px);
+  background: var(--void);
+  border: 2px solid var(--line-2);
+  border-left: 5px solid var(--yellow);
+  box-shadow: var(--shadow);
+  padding: 6px 9px 7px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.kw-card.has-el {
+  border-left-color: var(--el);
+}
+
+.kw-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.kw-el {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--el, var(--muted));
+}
+
+.kw-text {
+  margin-top: 2px;
+}
+
+.kw-via {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.kw-hint {
+  position: fixed;
+  z-index: 220;
+  pointer-events: none;
+  background: var(--void);
+  border: 2px solid var(--line-2);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+::highlight(keyword) {
+  background-color: rgba(255, 212, 0, 0.2);
+  text-decoration: underline;
+  text-decoration-color: var(--yellow);
+}
+
+/* Fusion elements: their two parents' colors mixed (a pure fusion is its element's color). */
+.el-dragon {
+  --el: var(--el-fire);
+}
+.el-apocalypse {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-ice));
+}
+.el-alchemy {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-water));
+}
+.el-plasma {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-lightning));
+}
+.el-mechanic {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-wind));
+}
+.el-brimstone {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-poison));
+}
+.el-sun {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-earth));
+}
+.el-phoenix {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-holy));
+}
+.el-devil {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-unholy));
+}
+.el-ritual {
+  --el: color-mix(in srgb, var(--el-fire), var(--el-shadow));
+}
+.el-crystal {
+  --el: var(--el-ice);
+}
+.el-glacier {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-water));
+}
+.el-aurora {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-lightning));
+}
+.el-winter {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-wind));
+}
+.el-stasis {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-poison));
+}
+.el-myth {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-earth));
+}
+.el-prism {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-holy));
+}
+.el-lich {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-unholy));
+}
+.el-night {
+  --el: color-mix(in srgb, var(--el-ice), var(--el-shadow));
+}
+.el-ocean {
+  --el: var(--el-water);
+}
+.el-current {
+  --el: color-mix(in srgb, var(--el-water), var(--el-lightning));
+}
+.el-mist {
+  --el: color-mix(in srgb, var(--el-water), var(--el-wind));
+}
+.el-serum {
+  --el: color-mix(in srgb, var(--el-water), var(--el-poison));
+}
+.el-slime {
+  --el: color-mix(in srgb, var(--el-water), var(--el-earth));
+}
+.el-anointment {
+  --el: color-mix(in srgb, var(--el-water), var(--el-holy));
+}
+.el-blood {
+  --el: color-mix(in srgb, var(--el-water), var(--el-unholy));
+}
+.el-mirror {
+  --el: color-mix(in srgb, var(--el-water), var(--el-shadow));
+}
+.el-thunder {
+  --el: var(--el-lightning);
+}
+.el-storm {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-wind));
+}
+.el-battery {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-poison));
+}
+.el-magnet {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-earth));
+}
+.el-vengeance {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-holy));
+}
+.el-reanimation {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-unholy));
+}
+.el-ion {
+  --el: color-mix(in srgb, var(--el-lightning), var(--el-shadow));
+}
+.el-cloud {
+  --el: var(--el-wind);
+}
+.el-faerie {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-poison));
+}
+.el-nomad {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-earth));
+}
+.el-angel {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-holy));
+}
+.el-ghost {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-unholy));
+}
+.el-ninja {
+  --el: color-mix(in srgb, var(--el-wind), var(--el-shadow));
+}
+.el-evolution {
+  --el: var(--el-poison);
+}
+.el-spore {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-earth));
+}
+.el-antidote {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-holy));
+}
+.el-blight {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-unholy));
+}
+.el-assassin {
+  --el: color-mix(in srgb, var(--el-poison), var(--el-shadow));
+}
+.el-life {
+  --el: var(--el-earth);
+}
+.el-sanctuary {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-holy));
+}
+.el-grave {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-unholy));
+}
+.el-moon {
+  --el: color-mix(in srgb, var(--el-earth), var(--el-shadow));
+}
+.el-divine {
+  --el: var(--el-holy);
+}
+.el-zealot {
+  --el: color-mix(in srgb, var(--el-holy), var(--el-unholy));
+}
+.el-vigilante {
+  --el: color-mix(in srgb, var(--el-holy), var(--el-shadow));
+}
+.el-evil {
+  --el: var(--el-unholy);
+}
+.el-curse {
+  --el: color-mix(in srgb, var(--el-unholy), var(--el-shadow));
+}
+.el-dimension {
+  --el: var(--el-shadow);
 }

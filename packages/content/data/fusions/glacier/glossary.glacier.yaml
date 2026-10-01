@@ -1,0 +1,8 @@
+# Glacier keywords (docs/glossary.md).
+
+icebound:
+  status: icebound
+  element: Glacier
+meltwater:
+  status: meltwater
+  element: Glacier

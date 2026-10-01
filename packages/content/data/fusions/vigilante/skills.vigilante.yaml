@@ -1,0 +1,853 @@
+# The 30 Vigilante (Holy + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Exposed (status `exposed`).
+
+strike.vigilante:
+  archetype: Strike
+  element: Vigilante
+  name: Street Justice
+  description: >-
+    Deals 20 damage to target enemy. If they were the last enemy to damage the user, they're Exposed for 1 turn
+    first, so this deals 10 more.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { isPrimary: lastAttacker }
+      then: [{ op: apply, to: primary, effect: exposed, duration: { enemyTurns: 1 } }]
+    - { op: damage, to: primary, amount: 20 }
+
+smash.vigilante:
+  archetype: Smash
+  element: Vigilante
+  name: Round Up the Gang
+  description: >-
+    Deals 25 damage to target enemy, and 25 to each other enemy carrying a Buff.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { filter: allEnemies, where: { hasKind: { unit: it, kind: Buff } }, exclude: primary }, amount: 25 }
+
+charge.vigilante:
+  archetype: Charge
+  element: Vigilante
+  name: Pursuit
+  description: >-
+    Deals 15 damage to target enemy, who is Exposed for 2 turns; the user's next skill is Stealthy too. Stealthy.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: exposed, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: pursuit
+        name: Pursuit
+        kind: Buff
+        element: Vigilante
+        description: The bearer's next skill is Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy] }
+
+riposte.vigilante:
+  archetype: Riposte
+  element: Vigilante
+  name: Caught Red-Handed
+  description: >-
+    For 1 turn, counters the first Harmful skill used on each ally of the user; its user is Exposed for 2 turns.
+    Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: allAllies
+      duration: { enemyTurns: 1 }
+      effect:
+        id: caught_red_handed
+        name: Caught Red-Handed
+        kind: Buff
+        element: Vigilante
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Exposes its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: exposed, duration: { enemyTurns: 2 } }
+
+rage.vigilante:
+  archetype: Rage
+  element: Vigilante
+  name: The Hunt Begins
+  description: >-
+    For 3 turns, the user gains 1 Might and 1 Swiftness, and their skills are Stealthy while any enemy is Exposed.
+  cost: WA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: the_hunt_begins
+        name: The Hunt Begins
+        kind: Buff
+        element: Vigilante
+        description: While any enemy is Exposed, the bearer's skills are Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy], if: { any: { in: allEnemies, cond: { has: { unit: it, effect: exposed } } } } }
+
+shot.vigilante:
+  archetype: Shot
+  element: Vigilante
+  name: Searchlight
+  description: >-
+    Deals 10 damage to a random enemy, Stealthed ones included. If they had Stealth, they're Exposed for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  # Untargeted: it finds Stealthed enemies itself, so it can be used when every enemy is hidden.
+  target: self
+  ops:
+    - op: forEach
+      in: randomAnyEnemy
+      do:
+        - { op: set, var: hidden, value: { if: { has: { unit: it, effect: stealth } }, then: 1, else: 0 } }
+        - op: if
+          cond: { varTrue: hidden }
+          then: [{ op: apply, to: it, effect: exposed, duration: { enemyTurns: 2 } }]
+        - { op: damage, to: it, amount: 10 }
+
+snipe.vigilante:
+  archetype: Snipe
+  element: Vigilante
+  name: From the Rooftops
+  description: >-
+    On the following turn, deals 40 damage to target enemy; if they gained Stealth or used an Invisible skill
+    meanwhile, 20 more and Exposed for 2 turns. The target of this skill is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: rooftop_watch
+        name: Watched
+        kind: Neutral
+        element: Vigilante
+        visibility: hidden
+        description: Notes whether the bearer hides.
+        triggers:
+          - on: effectGained
+            effect: stealth
+            do: [{ op: addStacksSelf, amount: 1 }]
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { eventSkill: { tags: [Invisible] } }
+                then: [{ op: addStacksSelf, amount: 1 }]
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: from_the_rooftops
+        name: From the Rooftops
+        kind: Neutral
+        element: Vigilante
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 40 damage, or 60 and Exposed if they hid meanwhile.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: it, effect: rooftop_watch } }, atLeast: 2 } }
+                then:
+                  - { op: apply, to: it, effect: exposed, duration: { enemyTurns: 2 } }
+                  - { op: damage, to: it, amount: 60 }
+                else:
+                  - { op: damage, to: it, amount: 40 }
+
+trap.vigilante:
+  archetype: Trap
+  element: Vigilante
+  name: Sting Operation
+  description: >-
+    For 2 turns, if target enemy uses a Stealthy or Invisible skill, it's countered and they're Exposed for 2 turns.
+    Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sting_operation
+        name: Sting Operation
+        kind: Debuff
+        element: Vigilante
+        visibility: hidden
+        description: The bearer's next Stealthy or Invisible skill is countered and Exposes them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true, anyTags: [Stealthy, Invisible] }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: exposed, duration: { enemyTurns: 2 } }
+          - on: skillUsed
+            when: { harmful: false, anyTags: [Stealthy, Invisible] }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: exposed, duration: { enemyTurns: 2 } }
+
+maneuver.vigilante:
+  archetype: Maneuver
+  element: Vigilante
+  name: Safe Passage
+  description: >-
+    The user and target ally become Invulnerable for 1 turn. The user can't use Harmful skills on their next turn.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: safe_passage
+        name: Safe Passage
+        kind: Debuff
+        element: Vigilante
+        description: Can't use Harmful skills.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: true }
+
+companion.vigilante:
+  archetype: Companion
+  element: Vigilante
+  name: Bloodhound
+  description: >-
+    Summons a Bloodhound (30 HP) permanently. Run Down (r): 10 Piercing damage. Scent (r): target enemy is Exposed
+    for as long as the Bloodhound lives, until it uses Scent again.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: bloodhound }
+
+bolt.vigilante:
+  archetype: Bolt
+  element: Vigilante
+  name: Deputize
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. The ally who spends the Mark is Anointed until the end
+    of their next turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: deputize
+        name: Deputize
+        kind: Debuff
+        element: Vigilante
+        description: The ally who spends the bearer's Mark is Anointed.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
+
+blast.vigilante:
+  archetype: Blast
+  element: Vigilante
+  name: Floodlight
+  description: >-
+    Deals 25 damage to all enemies, Stealthed ones included. Those with Stealth or Invulnerable are Exposed for 2
+    turns first, and take 10 more.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  # Untargeted: it finds Stealthed enemies itself, so it can be used when every enemy is hidden.
+  target: self
+  ops:
+    - op: forEach
+      in: { filter: allUnits, where: { isEnemy: it } }
+      do:
+        - op: if
+          cond: { or: [{ has: { unit: it, effect: stealth } }, { has: { unit: it, effect: invulnerable } }] }
+          then: [{ op: apply, to: it, effect: exposed, duration: { enemyTurns: 2 } }]
+        - { op: damage, to: it, amount: 25 }
+
+consume.vigilante:
+  archetype: Consume
+  element: Vigilante
+  name: Interrogation
+  description: >-
+    Deals 5 damage to target enemy, healing the user for the damage dealt. The Invisible effects they own are
+    revealed and end.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - { op: reveal, by: primary, end: true }
+
+summon.vigilante:
+  archetype: Summon
+  element: Vigilante
+  name: Informant
+  description: >-
+    Summons an Informant (15 HP) for 3 turns. Whoever damages it is Exposed for 2 turns. Tip Off (r): the user's
+    next skill is Stealthy.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: informant, duration: { enemyTurns: 3 } }
+
+channel.vigilante:
+  archetype: Channel
+  element: Vigilante
+  name: Night Patrol
+  description: >-
+    For 3 turns, at the end of each of the user's turns, every enemy who used a Harmful skill since takes 10 damage
+    and is Exposed for 1 turn. Channeled.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: patrol_watch, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: night_patrol
+        name: Night Patrol
+        kind: Neutral
+        element: Vigilante
+        interruptible: true
+        description: Each turn, every enemy who used a Harmful skill since takes 10 damage and is Exposed.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in:
+                  filter: allEnemies
+                  where:
+                    and:
+                      - { compare: { value: { counterOf: { unit: it, name: patrolled } }, atLeast: 1 } }
+                      - { compare: { value: { sum: [{ counterOf: { unit: it, name: patrolled } }, { mul: [-1, { turn: true }] }] }, atLeast: -1 } }
+                do:
+                  - { op: apply, to: it, effect: exposed, duration: { enemyTurns: 1 } }
+                  - { op: damage, to: it, amount: 10 }
+
+stab.vigilante:
+  archetype: Stab
+  element: Vigilante
+  name: Quiet Verdict
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. Used from Stealth, it makes their Condemned trigger at
+    once.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { and: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: condemned } }] }
+      then:
+        - { op: removeEffect, from: primary, effect: condemned }
+        - op: random
+          options:
+            - [{ op: apply, to: primary, effect: weakness }]
+            - [{ op: apply, to: primary, effect: vulnerable }]
+            - [{ op: apply, to: primary, effect: confusion }]
+
+ravage.vigilante:
+  archetype: Ravage
+  element: Vigilante
+  name: Take Down
+  description: >-
+    Deals 25 Piercing damage to target enemy. If they're Exposed, it ends, and they're Stunned for 1 turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { has: { unit: primary, effect: exposed } }
+      then:
+        - { op: removeEffect, from: primary, effect: exposed }
+        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+mislead.vigilante:
+  archetype: Mislead
+  element: Vigilante
+  name: Setup
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Condemned; for 2 turns, any ally of
+    theirs who gives them a Buff is Exposed for 2 turns. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: setup
+        name: Setup
+        kind: Debuff
+        element: Vigilante
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered; they're Condemned and watched.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: condemned }
+              - { op: apply, to: bearer, effect: setup_watch, duration: { enemyTurns: 2 } }
+
+stun.vigilante:
+  archetype: Stun
+  element: Vigilante
+  name: Chokehold
+  description: >-
+    Deals 10 damage to target enemy, who falls Asleep for 1 turn. An Exposed target is Stunned for 2 turns instead.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: exposed } }
+      then: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }]
+      else: [{ op: apply, to: primary, effect: sleep, duration: { enemyTurns: 1 } }]
+
+dance.vigilante:
+  archetype: Dance
+  element: Vigilante
+  name: Mask On
+  description: >-
+    The user gains Stealth and 1 Swiftness. While they stay Stealthed, their skills deal 10 more to Exposed enemies.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: mask_on
+        name: Mask On
+        kind: Buff
+        element: Vigilante
+        description: While Stealthed, the bearer's hits on Exposed enemies deal 10 more.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: stealth } }, { has: { unit: eventTarget, effect: exposed } }] }
+                then: [{ op: damage, to: eventTarget, amount: 10, direct: false }]
+
+heal.vigilante:
+  archetype: Heal
+  element: Vigilante
+  name: Safe House
+  description: >-
+    Target ally heals 20 and gains Stealth. If they're still Stealthed at the end of their next turn, they heal 15
+    more.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { ownTurns: 1 }
+      effect:
+        id: safe_house
+        name: Safe House
+        kind: Buff
+        element: Vigilante
+        description: Still Stealthed when this runs out, the bearer heals 15.
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: stealth } }
+            then: [{ op: heal, to: bearer, amount: 15 }]
+
+bless.vigilante:
+  archetype: Bless
+  element: Vigilante
+  name: Watcher in the Dark
+  description: >-
+    For 3 turns, the first time target ally takes damage, they gain 25 Shield and 2 Might for 2 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: watcher_in_the_dark
+        name: Watcher in the Dark
+        kind: Buff
+        element: Vigilante
+        visibility: hidden
+        description: The first time the bearer takes damage, they gain 25 Shield and 2 Might for 2 turns.
+        triggers:
+          - on: damaged
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: shield, value: 25, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 2 } }
+
+curse.vigilante:
+  archetype: Curse
+  element: Vigilante
+  name: Most Wanted
+  description: >-
+    Target enemy is Exposed for 3 turns. The first ally of the user to damage them gains Stealth.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: exposed, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: most_wanted
+        name: Most Wanted
+        kind: Debuff
+        element: Vigilante
+        description: The first of the applier's side to hit the bearer gains Stealth.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: stealth, duration: { enemyTurns: 2 } }
+
+smite.vigilante:
+  archetype: Smite
+  element: Vigilante
+  name: Full Sentence
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. The next time their Condemned triggers, within 3
+    turns, it gives all three of its Debuffs.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: full_sentence
+        name: Full Sentence
+        kind: Debuff
+        element: Vigilante
+        description: The bearer's next Condemned gives Weakness, Vulnerable and Confusion together.
+        triggers:
+          - on: skillResolved
+            do:
+              - op: if
+                cond: { check: { cond: condemn_fired, unit: bearer } }
+                then:
+                  # Condemned already gave one of the three; the other two follow.
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: weakness } } }
+                    then: [{ op: apply, to: bearer, effect: weakness }]
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: vulnerable } } }
+                    then: [{ op: apply, to: bearer, effect: vulnerable }]
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: confusion } } }
+                    then: [{ op: apply, to: bearer, effect: confusion }]
+                  - { op: removeSelf }
+
+prayer.vigilante:
+  archetype: Prayer
+  element: Vigilante
+  name: Dawn Vigil
+  description: >-
+    All allies heal 20 and gain 10 Shield. Each Anointed ally spends their Anointed to remove all their Debuffs.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: anointed } } }
+      do:
+        - { op: removeEffect, from: it, effect: anointed }
+        - { op: removeKind, from: it, kind: Debuff }
+
+cleave.vigilante:
+  archetype: Cleave
+  element: Vigilante
+  name: Sweep the Streets
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. For 2 turns, each time either one's Condemned
+    triggers, they're also Blinded for 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: swept, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: apply, to: it, effect: swept, duration: { enemyTurns: 2 } }
+
+shout.vigilante:
+  archetype: Shout
+  element: Vigilante
+  name: Hue and Cry
+  description: >-
+    All enemies are Intimidated for 2 turns. Meanwhile, each time one uses a Harmful skill, they're Exposed for 1
+    turn.
+  cost: Wr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hue_and_cry
+        name: Hue and Cry
+        kind: Debuff
+        element: Vigilante
+        description: Each Harmful skill the bearer uses Exposes them for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: apply, to: bearer, effect: exposed, duration: { enemyTurns: 1 } }
+
+withstand.vigilante:
+  archetype: Withstand
+  element: Vigilante
+  name: Reinforced Trenchcoat
+  description: >-
+    The user gains 25 Shield for 1 turn. While it holds, each Debuff an enemy would give them is prevented and costs
+    10 of the Shield instead.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: reinforced_trenchcoat
+        name: Reinforced Trenchcoat
+        kind: Buff
+        element: Vigilante
+        description: While the bearer has Shield, Debuffs from enemies are prevented, each costing 10 Shield.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - op: if
+                cond: { and: [{ hasShield: bearer }, { isEnemy: eventSource }] }
+                then:
+                  - { op: eventEffect, remove: true }
+                  - { op: boostShields, on: bearer, amount: -10 }
+
+taunt.vigilante:
+  archetype: Taunt
+  element: Vigilante
+  name: Bait and Switch
+  description: >-
+    Taunts target enemy for 2 turns. The first time they damage the user, the Taunt ends: the user gains Stealth,
+    and they're Exposed for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bait_and_switch
+        name: Bait and Switch
+        kind: Debuff
+        element: Vigilante
+        description: The first time the bearer hits the applier, the Taunt ends, the applier hides, and the bearer is Exposed.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then:
+                  - { op: removeEffect, from: bearer, effect: taunt }
+                  - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }
+                  - { op: apply, to: bearer, effect: exposed, duration: { enemyTurns: 2 } }
+                  - { op: removeSelf }
+
+titan.vigilante:
+  archetype: Titan
+  element: Vigilante
+  name: Nightwarden
+  description: >-
+    For 3 turns, the user gains 3 Armor and Immune. Each time their Stealth ends meanwhile, they're Anointed until the
+    end of their next turn.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: nightwarden
+        name: Nightwarden
+        kind: Buff
+        element: Vigilante
+        description: Each time the bearer's own Stealth ends, they're Anointed until the end of their next turn.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [stealth] }
+            do:
+              - op: if
+                cond: { eventTargetIs: bearer }
+                then: [{ op: apply, to: bearer, effect: anointed, duration: { ownTurns: 1 } }]
+
+# Minion skills.
+
+bloodhound_run_down:
+  archetype: Minion
+  element: Vigilante
+  name: Run Down
+  description: Deals 10 Piercing damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+
+bloodhound_scent:
+  archetype: Minion
+  element: Vigilante
+  name: Scent
+  description: Target enemy is Exposed for as long as the Bloodhound lives, until it uses Scent again.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: { filter: allEnemies, where: { has: { unit: it, effect: bloodhound_scent } } }, effect: exposed }
+    - { op: removeEffect, from: allEnemies, effect: bloodhound_scent }
+    - { op: apply, to: primary, effect: exposed, bindTo: actor }
+    - op: apply
+      to: primary
+      bindTo: actor
+      effect:
+        id: bloodhound_scent
+        name: On the Scent
+        kind: Debuff
+        element: Vigilante
+        description: The Bloodhound has the bearer's scent.
+
+informant_tip_off:
+  archetype: Minion
+  element: Vigilante
+  name: Tip Off
+  description: Its creator's next skill is Stealthy.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: summoner
+      until: { skillUsed: {} }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: tip_off
+        name: Tip Off
+        kind: Buff
+        element: Vigilante
+        description: The bearer's next skill is Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy] }

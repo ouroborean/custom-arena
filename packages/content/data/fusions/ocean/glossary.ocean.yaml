@@ -1,0 +1,11 @@
+# Ocean keywords (docs/glossary.md).
+
+brimming:
+  status: brimming
+  forms: [Brimming]
+  element: Ocean
+crest:
+  name: Crest and Trough
+  text: "Each Ocean skill has two forms. Its first use is the Crest form; after every use it switches, so the next is the Trough form, and so on."
+  forms: [Crest, Trough]
+  element: Ocean

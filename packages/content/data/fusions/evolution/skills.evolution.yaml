@@ -1,0 +1,959 @@
+# The 30 Evolution (Poison + Poison) variants, from the "Fusion Spec Kits" design doc.
+# Evolve: Stage I on the first use, II on the second, III from the third on (the `timesUsed` value),
+# unless the skill says otherwise. A later stage keeps the earlier stages' changes.
+# "Stage II+" below = { compare: { value: { timesUsed: true }, atLeast: 1 } }; "III" = atLeast 2.
+
+strike.evolution:
+  archetype: Strike
+  element: Evolution
+  name: Mutant Fang
+  description: >-
+    I: 20 damage and 1 Toxin to target enemy. II: their Toxin also ticks once now. III: 25 damage,
+    and their Toxin ticks twice now; then this returns to Stage I.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    # Its own cycle (I → II → III → I), kept in a counter.
+    - { op: set, var: stage, value: { counter: mutant_fang } }
+    - op: damage
+      to: primary
+      amount: { if: { compare: { value: { var: stage }, atLeast: 2 } }, then: 25, else: 20 }
+    - { op: apply, to: primary, effect: toxin }
+    - op: repeat
+      times: { var: stage }
+      do:
+        - { op: damage, to: primary, amount: { mul: [5, { stacks: { unit: primary, effect: toxin } }] }, type: Affliction, direct: false }
+    - op: setCounter
+      name: mutant_fang
+      value: { if: { compare: { value: { var: stage }, atLeast: 2 } }, then: 0, else: { sum: [{ var: stage }, 1] } }
+
+smash.evolution:
+  archetype: Smash
+  element: Evolution
+  name: Primal Stomp
+  description: >-
+    I: 25 damage to target enemy; their allies gain 1 Toxin. II: the allies gain as much Toxin as the
+    target has (at least 1). III: the target also takes 5 more per Toxin on their allies.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: spread
+      value:
+        if: { and: [{ compare: { value: { timesUsed: true }, atLeast: 1 } }, { compare: { value: { stacks: { unit: primary, effect: toxin } }, atLeast: 1 } }] }
+        then: { stacks: { unit: primary, effect: toxin } }
+        else: 1
+    - { op: apply, to: primaryAllies, effect: toxin, stacks: { var: spread } }
+    - op: damage
+      to: primary
+      amount:
+        sum:
+          - 25
+          - if: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+            then: { mul: [5, { totalStacks: { in: primaryAllies, effect: toxin } }] }
+            else: 0
+
+charge.evolution:
+  archetype: Charge
+  element: Evolution
+  name: Scent Trail
+  description: Deals 10 damage to target enemy. The user's next skill that gives Toxin also gives it to every Prey enemy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: actor
+      effect:
+        id: scent_trail
+        name: Scent Trail
+        kind: Buff
+        element: Evolution
+        description: The bearer's next Toxin also goes to every Prey enemy.
+        triggers:
+          - on: effectApplied
+            when: { effects: [toxin], toEnemy: true }
+            consume: true
+            do:
+              - op: apply
+                to: { filter: allEnemies, where: { and: [{ check: { cond: prey, unit: it } }, { not: { isEventTarget: it } }] } }
+                effect: toxin
+                quiet: true
+
+riposte.evolution:
+  archetype: Riposte
+  element: Evolution
+  name: Molt
+  description: >-
+    For 1 turn. I: if the user takes direct damage, they heal 15. II: they also lose their Debuffs.
+    III: the skill that hit them is countered instead. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: molt_iii
+            name: Molt
+            kind: Buff
+            element: Evolution
+            visibility: hidden
+            description: Counters the first Harmful skill used on the bearer; they heal 15 and lose their Debuffs.
+            triggers:
+              - on: skillTargeted
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+                do:
+                  - { op: heal, to: bearer, amount: 15 }
+                  - { op: removeKind, from: bearer, kind: Debuff }
+      else:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          value: { timesUsed: true }
+          effect:
+            id: molt
+            name: Molt
+            kind: Buff
+            element: Evolution
+            visibility: hidden
+            description: The first time the bearer takes direct damage, they heal 15 (and at Stage II lose their Debuffs).
+            triggers:
+              - on: damaged
+                when: { direct: true }
+                consume: true
+                do:
+                  - { op: heal, to: bearer, amount: 15 }
+                  - op: if
+                    cond: { compare: { value: { effectValue: true }, atLeast: 1 } }
+                    then:
+                      - { op: removeKind, from: bearer, kind: Debuff }
+
+rage.evolution:
+  archetype: Rage
+  element: Evolution
+  name: Apex Predator
+  description: >-
+    I: all Might in the battle turns into Weakness. II: the user's own is spared, and they gain
+    Immune for 2 turns. III: they also gain 1 Might per stack converted, for 3 turns.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: converted, value: 0 }
+    - op: forEach
+      in:
+        filter: allUnits
+        where:
+          or:
+            - { compare: { value: { timesUsed: true }, atMost: 0 } }
+            - { not: { isActor: it } }
+      do:
+        - { op: set, var: m, value: { stacks: { unit: it, effect: might } } }
+        - { op: removeEffect, from: it, effect: might }
+        - { op: apply, to: it, effect: weakness, stacks: { var: m }, duration: { enemyTurns: 3 } }
+        - { op: set, var: converted, value: { sum: [{ var: converted }, { var: m }] } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+      then:
+        - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - { op: apply, to: actor, effect: might, stacks: { var: converted }, duration: { enemyTurns: 3 } }
+
+shot.evolution:
+  archetype: Shot
+  element: Evolution
+  name: Telltale Venom
+  description: >-
+    Deals 5 Piercing damage and 1 Toxin to target enemy. Until the end of the user's next turn,
+    every enemy with any Toxin counts as Prey.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }
+    - { op: apply, to: allEnemies, effect: telltale_venom, duration: { raw: 3 } }
+
+snipe.evolution:
+  archetype: Snipe
+  element: Evolution
+  name: Barbed Quill
+  description: >-
+    I: 25 Affliction damage to target enemy on the following turn. II: against Prey, it lands at
+    once. III: it also hits every other Prey enemy. The target of this skill is invisible. Channeled,
+    Uncounterable.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: if
+      cond: { and: [{ compare: { value: { timesUsed: true }, atLeast: 1 } }, { check: { cond: prey, unit: primary } }] }
+      then:
+        - { op: damage, to: primary, amount: 25, type: Affliction }
+        - op: if
+          cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+          then:
+            - { op: damage, to: { filter: allEnemies, exclude: primary, where: { check: { cond: prey, unit: it } } }, amount: 25, type: Affliction }
+      else:
+        - op: apply
+          to: actor
+          remember: primary
+          duration: { enemyTurns: 1 }
+          value: { timesUsed: true }
+          effect:
+            id: barbed_quill
+            name: Barbed Quill (aiming)
+            kind: Neutral
+            element: Evolution
+            visibility: hiddenTarget
+            interruptible: true
+            description: Fires at the end of the following turn unless interrupted.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 25, type: Affliction }
+              - op: if
+                cond: { compare: { value: { effectValue: true }, atLeast: 2 } }
+                then:
+                  - { op: damage, to: { filter: allEnemies, exclude: effectTargets, where: { check: { cond: prey, unit: it } } }, amount: 25, type: Affliction }
+
+trap.evolution:
+  archetype: Trap
+  element: Evolution
+  name: Nesting Pit
+  description: >-
+    For 3 turns. I: whenever target enemy uses a Strategic skill, they gain 1 Toxin. II: when it
+    ends, they take 10 Affliction per trigger. III: if it never triggered, they're Stunned for 1
+    turn. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      value: { timesUsed: true }
+      effect:
+        id: nesting_pit
+        name: Nesting Pit
+        kind: Debuff
+        element: Evolution
+        visibility: hidden
+        stacking: merge
+        description: Each Strategic skill the bearer uses gives them 1 Toxin.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true }
+            do:
+              - { op: apply, to: bearer, effect: toxin }
+              - { op: addStacksSelf, amount: 1 }
+        onExpire:
+          - op: if
+            cond: { compare: { value: { effectValue: true }, atLeast: 1 } }
+            then:
+              - { op: damage, to: bearer, amount: { mul: [10, { sum: [{ effectStacks: true }, -1] }] }, type: Affliction, direct: false }
+          - op: if
+            cond: { and: [{ compare: { value: { effectValue: true }, atLeast: 2 } }, { compare: { value: { effectStacks: true }, atMost: 1 } }] }
+            then:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+maneuver.evolution:
+  archetype: Maneuver
+  element: Evolution
+  name: Slough Off
+  description: >-
+    I: the user becomes Invulnerable for 1 turn and gains 1 Focus. II: their Toxin moves to the last
+    enemy who damaged them. III: all their Debuffs do. Unstunnable.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Unstunnable]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - { op: moveEffects, from: actor, to: lastAttacker, kind: Debuff }
+      else:
+        - op: if
+          cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+          then:
+            - { op: moveEffects, from: actor, to: lastAttacker, effects: [toxin] }
+
+companion.evolution:
+  archetype: Companion
+  element: Evolution
+  name: Brood Parasite
+  description: >-
+    Summons a Parasite (20 HP) permanently, lodged in target enemy: only they can target it, and it
+    dies with them. Feed (r): its host loses 10 HP, and the user's ally with the least HP heals 10.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: parasite }
+    # From the Parasite, so it knows its own host.
+    - { op: apply, to: primary, effect: parasite_host, from: lastSummoned }
+
+bolt.evolution:
+  archetype: Bolt
+  element: Evolution
+  name: Corrosive Glob
+  description: >-
+    I: 20 damage to target enemy; 1 of their Armor turns into Vulnerable. II: all of it does. III:
+    their Shield dissolves too, giving 1 Toxin per 10 removed.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: set
+      var: corroded
+      value:
+        if: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+        then: { stacks: { unit: primary, effect: armor } }
+        else: { if: { has: { unit: primary, effect: armor } }, then: 1, else: 0 }
+    - op: if
+      cond: { compare: { value: { var: corroded }, atLeast: 1 } }
+      then:
+        - { op: removeStacks, from: primary, effect: armor, amount: 1 }
+        - op: if
+          cond: { compare: { value: { var: corroded }, atLeast: 2 } }
+          then:
+            - { op: removeEffect, from: primary, effect: armor }
+        - { op: apply, to: primary, effect: vulnerable, stacks: { var: corroded }, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - { op: set, var: dissolved, value: { effectValueOf: { unit: primary, effect: shield } } }
+        - { op: removeShields, from: primary }
+        - { op: apply, to: primary, effect: toxin, stacks: { div: [{ var: dissolved }, 10] } }
+
+blast.evolution:
+  archetype: Blast
+  element: Evolution
+  name: Extinction Event
+  description: >-
+    Deals 30 Affliction damage to every unit on both sides, minions and the user included, except
+    those at or above 60 HP.
+  cost: II
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: none
+  ops:
+    - { op: damage, to: { filter: allUnits, where: { not: { hpAbove: { unit: it, value: 59 } } } }, amount: 30, type: Affliction }
+
+consume.evolution:
+  archetype: Consume
+  element: Evolution
+  name: Cull the Weak
+  description: >-
+    Removes all Toxin from target enemy. They die if their HP is at most 5 per stack removed;
+    otherwise the user heals 5 per stack.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: culled, value: { stacks: { unit: primary, effect: toxin } } }
+    - { op: removeEffect, from: primary, effect: toxin }
+    - op: if
+      cond: { and: [{ compare: { value: { var: culled }, atLeast: 1 } }, { compare: { value: { sum: [{ hp: primary }, { mul: [-5, { var: culled }] }] }, atMost: 0 } }] }
+      then:
+        - { op: kill, to: primary }
+      else:
+        - { op: heal, to: actor, amount: { mul: [5, { var: culled }] } }
+
+summon.evolution:
+  archetype: Summon
+  element: Evolution
+  name: Larva Swarm
+  description: >-
+    Summons 2 Larvae (15 HP). Nibble (W): 5 Piercing damage and 1 Toxin. I: they last 3 turns. II:
+    whoever kills a Larva gains 2 Toxin. III: they no longer expire.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - { op: summon, minion: larva, count: 2 }
+      else:
+        - { op: summon, minion: larva, count: 2, duration: { enemyTurns: 3 } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+      then:
+        - op: apply
+          to: actor
+          effect:
+            id: larva_venom
+            name: Larva Swarm
+            kind: Buff
+            element: Evolution
+            stacking: unique
+            description: Whoever kills one of the bearer's Larvae gains 2 Toxin.
+            triggers:
+              - on: signal
+                signal: died
+                when: { side: enemy }
+                do:
+                  - op: if
+                    cond: { minion: { unit: eventTarget, types: [larva], mine: true } }
+                    then:
+                      - { op: apply, to: eventSource, effect: toxin, stacks: 2 }
+
+channel.evolution:
+  archetype: Channel
+  element: Evolution
+  name: Plague Strain
+  description: >-
+    For up to 6 turns; Evolves each turn. I: 5 Affliction damage to all enemies and 1 Toxin to a
+    random one. II: the Toxin goes to a non-Prey enemy. III: Prey enemies also gain 1 Weakness.
+    Channeled.
+  cost: Wrr
+  cooldown: 5
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 6 }
+      effect:
+        id: plague_strain
+        name: Plague Strain
+        kind: Neutral
+        element: Evolution
+        interruptible: true
+        stacking: merge
+        description: Each turn, 5 Affliction to all enemies and spreading Toxin; it evolves every turn.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5, type: Affliction }
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atLeast: 2 } }
+                then:
+                  - { op: apply, to: { randomEnemy: 1, where: { not: { check: { cond: prey, unit: it } } } }, effect: toxin }
+                else:
+                  - { op: apply, to: { randomEnemy: 1 }, effect: toxin }
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atLeast: 3 } }
+                then:
+                  - { op: apply, to: { filter: allEnemies, where: { check: { cond: prey, unit: it } } }, effect: weakness, duration: { enemyTurns: 1 } }
+              - { op: addStacksSelf, amount: 1 }
+
+stab.evolution:
+  archetype: Stab
+  element: Evolution
+  name: Opportunist
+  description: >-
+    I: 5 Piercing damage; against Prey, the user gains 1 random energy. II: 15 Piercing against
+    targets at or below 40 HP. III: it executes Prey below 15 HP.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { and: [{ compare: { value: { timesUsed: true }, atLeast: 2 } }, { check: { cond: prey, unit: primary } }, { hpAtMost: { unit: primary, value: 14 } }] }
+      then:
+        - { op: kill, to: primary }
+      else:
+        - op: if
+          cond: { check: { cond: prey, unit: primary } }
+          then:
+            - { op: gainEnergy, amount: 1 }
+        - op: damage
+          to: primary
+          type: Piercing
+          amount:
+            if: { and: [{ compare: { value: { timesUsed: true }, atLeast: 1 } }, { hpAtMost: { unit: it, value: 40 } }] }
+            then: 15
+            else: 5
+
+ravage.evolution:
+  archetype: Ravage
+  element: Evolution
+  name: Envenomed Rend
+  description: >-
+    Deals 25 Piercing damage, Bypassing Invulnerable. I: Prey targets gain 2 Toxin. II: a Stunned
+    target's Toxin doubles instead. III: every target's Toxin doubles instead.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Bypass]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing, bypass: true }
+    - op: if
+      cond:
+        or:
+          - { compare: { value: { timesUsed: true }, atLeast: 2 } }
+          - { and: [{ compare: { value: { timesUsed: true }, atLeast: 1 } }, { stunned: primary }] }
+      then:
+        - { op: apply, to: primary, effect: toxin, stacks: { stacks: { unit: primary, effect: toxin } } }
+      else:
+        - op: if
+          cond: { check: { cond: prey, unit: primary } }
+          then:
+            - { op: apply, to: primary, effect: toxin, stacks: 2 }
+
+mislead.evolution:
+  archetype: Mislead
+  element: Evolution
+  name: Warning Colors
+  description: >-
+    For 1 turn. I: if target enemy uses a Harmful skill, it's countered and they gain 1 Toxin. II: 1
+    Toxin per energy it cost. III: it's visible, and any enemy's Harmful skill triggers it.
+    Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - op: apply
+          to: allEnemies
+          duration: { enemyTurns: 1 }
+          effect:
+            id: warning_colors_iii
+            name: Warning Colors
+            kind: Debuff
+            element: Evolution
+            visibility: public
+            description: The first Harmful skill any of these enemies uses is countered, and its user gains 1 Toxin per energy it cost.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+                do:
+                  - { op: apply, to: bearer, effect: toxin, stacks: { skillCost: true } }
+                  - { op: removeEffect, from: allEnemies, effect: warning_colors_iii }
+      else:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          value: { timesUsed: true }
+          effect:
+            id: warning_colors
+            name: Warning Colors
+            kind: Debuff
+            element: Evolution
+            visibility: hidden
+            description: The bearer's first Harmful skill is countered and they gain Toxin.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+                do:
+                  - op: apply
+                    to: bearer
+                    effect: toxin
+                    stacks: { if: { compare: { value: { effectValue: true }, atLeast: 1 } }, then: { skillCost: true }, else: 1 }
+
+stun.evolution:
+  archetype: Stun
+  element: Evolution
+  name: Paralytic Bite
+  description: >-
+    I: target enemy is Stunned for 1 turn, or 2 if Prey. II: they count as Prey while Stunned. III:
+    when it ends, a random Prey ally of theirs is Stunned for 1 turn.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: turns, value: { if: { check: { cond: prey, unit: primary } }, then: 2, else: 1 } }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: { var: turns } } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+      then:
+        - { op: apply, to: primary, effect: prey, duration: { enemyTurns: { var: turns } } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: { var: turns } }
+          effect:
+            id: paralytic_bite
+            name: Paralytic Bite
+            kind: Debuff
+            element: Evolution
+            description: When this ends, a random Prey ally of the bearer's is Stunned for 1 turn.
+            onExpire:
+              - { op: apply, to: { randomEnemy: 1, exclude: bearer, where: { check: { cond: prey, unit: it } } }, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.evolution:
+  archetype: Dance
+  element: Evolution
+  name: Adaptive Hide
+  description: >-
+    For 3 turns, the user gains 1 Swiftness at the start of each of their turns. Each enemy skill
+    that damages them meanwhile deals 5 less to them for the rest of the match (max 15 per skill).
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: adaptive_hide
+        name: Adaptive Hide
+        kind: Buff
+        element: Evolution
+        description: Gains 1 Swiftness each turn; each enemy skill that damages the bearer deals 5 less to them for the rest of the match (max 15).
+        modifiers:
+          - { mod: adaptiveHide }
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: swiftness }
+
+heal.evolution:
+  archetype: Heal
+  element: Evolution
+  name: Regenerate
+  description: >-
+    I: target ally heals 20. II: they lose their Toxin and heal 10 more per stack removed. III: the
+    same healing repeats at the start of their next turn.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: set
+      var: purge
+      value: { if: { compare: { value: { timesUsed: true }, atLeast: 1 } }, then: { stacks: { unit: primary, effect: toxin } }, else: 0 }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+      then:
+        - { op: removeEffect, from: primary, effect: toxin }
+    - { op: set, var: amount, value: { sum: [20, { mul: [10, { var: purge }] }] } }
+    - { op: heal, to: primary, amount: { var: amount } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - op: apply
+          to: primary
+          value: { var: amount }
+          duration: { raw: 3 }
+          effect:
+            id: regenerate
+            name: Regenerate
+            kind: Buff
+            element: Evolution
+            description: The healing repeats at the start of the bearer's next turn.
+            triggers:
+              - on: turnStart
+                do:
+                  - { op: heal, to: bearer, amount: { effectValue: true } }
+                  - { op: removeSelf }
+
+bless.evolution:
+  archetype: Bless
+  element: Evolution
+  name: Hormesis
+  description: For 3 turns, target ally gains 1 Might, and Toxin on them heals them for its damage instead of harming them.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: hormesis, duration: { enemyTurns: 3 } }
+
+curse.evolution:
+  archetype: Curse
+  element: Evolution
+  name: Delirium
+  description: Target enemy gains 1 Confusion for 2 turns. Meanwhile, each Debuff stack on them counts as 2 toward Prey.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: delirium, duration: { enemyTurns: 2 } }
+
+smite.evolution:
+  archetype: Smite
+  element: Evolution
+  name: Stalking Mark
+  description: >-
+    Evolves each time it triggers, not on use. I: 15 damage to target enemy; for 1 turn, allies who
+    damage them give them 1 Vulnerable. II: 1 Toxin too. III: it lasts 2 turns.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: set, var: stage, value: { counter: stalking_mark } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: { if: { compare: { value: { var: stage }, atLeast: 2 } }, then: 2, else: 1 } }
+      value: { var: stage }
+      effect:
+        id: stalking_mark
+        name: Stalking Mark
+        kind: Debuff
+        element: Evolution
+        description: Each time an enemy damages the bearer, they gain 1 Vulnerable (and Toxin, once evolved).
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: apply, to: bearer, effect: vulnerable, duration: { enemyTurns: 1 } }
+              - op: if
+                cond: { compare: { value: { effectValue: true }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: bearer, effect: toxin }
+              - op: setCounter
+                name: stalking_mark
+                value: { if: { compare: { value: { counter: stalking_mark }, atLeast: 2 } }, then: 2, else: { sum: [{ counter: stalking_mark }, 1] } }
+
+prayer.evolution:
+  archetype: Prayer
+  element: Evolution
+  name: Symbiotic Song
+  description: >-
+    I: all allies gain 2 Renew and all enemies 1 Toxin. II: for 2 turns, each enemy Toxin tick heals
+    a random ally 5. III: first, allies' Toxin moves onto random enemies.
+  cost: Wr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - op: forEach
+          in: { filter: allAllies, where: { has: { unit: it, effect: toxin } } }
+          do:
+            - { op: set, var: shed, value: { stacks: { unit: it, effect: toxin } } }
+            - { op: removeEffect, from: it, effect: toxin }
+            - { op: apply, to: { randomEnemy: 1 }, effect: toxin, stacks: { var: shed } }
+    - { op: apply, to: targets, effect: renew, stacks: 2 }
+    - { op: apply, to: allEnemies, effect: toxin }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+      then:
+        - op: apply
+          to: allEnemies
+          duration: { enemyTurns: 2 }
+          effect:
+            id: symbiotic_song
+            name: Symbiotic Song
+            kind: Debuff
+            element: Evolution
+            description: Each time the bearer's poison ticks, a random ally of the singer heals 5.
+            triggers:
+              # Simplified: any indirect Affliction tick on the bearer counts.
+              - on: damaged
+                when: { direct: false }
+                do:
+                  - op: if
+                    cond: { has: { unit: bearer, effect: toxin } }
+                    then:
+                      - { op: heal, to: { randomAlly: 1 }, amount: 5 }
+
+cleave.evolution:
+  archetype: Cleave
+  element: Evolution
+  name: Thrashing Tail
+  description: >-
+    I: 15 damage to all enemies; if it hits Prey, its cooldown resets. II: if it hits none, an enemy
+    with Toxin becomes Prey for 1 turn. III: Prey take 10 more.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: preyHit, value: { if: { any: { in: targets, cond: { check: { cond: prey, unit: it } } } }, then: 1, else: 0 } }
+    - op: damage
+      to: targets
+      amount:
+        if: { and: [{ compare: { value: { timesUsed: true }, atLeast: 2 } }, { check: { cond: prey, unit: it } }] }
+        then: 25
+        else: 15
+    - op: if
+      cond: { compare: { value: { var: preyHit }, atLeast: 1 } }
+      then:
+        - { op: resetCooldown }
+      else:
+        - op: if
+          cond: { compare: { value: { timesUsed: true }, atLeast: 1 } }
+          then:
+            - { op: apply, to: { randomEnemy: 1, where: { has: { unit: it, effect: toxin } } }, effect: prey, duration: { enemyTurns: 1 } }
+
+shout.evolution:
+  archetype: Shout
+  element: Evolution
+  name: Festering Howl
+  description: All enemies are Intimidated for 2 turns. While it lasts, their Toxin can't be removed, moved or reduced.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: festering_howl
+        name: Festering Howl
+        kind: Debuff
+        element: Evolution
+        description: The bearer's Toxin can't be removed, moved or reduced.
+        modifiers:
+          - { mod: protectEffects, effects: [toxin] }
+
+withstand.evolution:
+  archetype: Withstand
+  element: Evolution
+  name: Exoskeleton
+  description: >-
+    The user gains 15 Shield and 1 Armor for 2 turns, during which each Weakness on an enemy lowers
+    their damage to the user by 10 instead of 5.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 15, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: exoskeleton
+        name: Exoskeleton
+        kind: Buff
+        element: Evolution
+        description: Each Weakness on an attacker lowers their direct damage to the bearer by 5 more.
+        triggers:
+          # Simplified: the extra 5 per Weakness is given back as healing after the hit.
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: heal, to: bearer, amount: { mul: [5, { stacks: { unit: eventSource, effect: weakness } }] } }
+
+taunt.evolution:
+  archetype: Taunt
+  element: Evolution
+  name: Hypnotic Hood
+  description: >-
+    Target enemy is Taunted and counts as Prey for 2 turns. If they don't damage the user during it,
+    they fall Asleep when it ends.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: prey, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hypnotic_hood
+        name: Hypnotic Hood
+        kind: Debuff
+        element: Evolution
+        description: If the bearer doesn't damage the hood's caster before this ends, they fall Asleep.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isEventTarget: actor }
+                then:
+                  - { op: removeSelf }
+        onExpire:
+          - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 2 } }
+
+titan.evolution:
+  archetype: Titan
+  element: Evolution
+  name: Chrysalis
+  description: >-
+    The user is Stunned and Invulnerable for 1 turn, cocooned. Then, for 3 turns, they gain 3 Armor,
+    2 Might and Immune.
+  cost: W
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stun, duration: { raw: 3 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { raw: 3 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: chrysalis
+        name: Chrysalis
+        kind: Buff
+        element: Evolution
+        description: When the cocoon opens, the bearer gains 3 Armor, 2 Might and Immune for 3 turns.
+        onExpire:
+          - { op: apply, to: bearer, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+          - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+          - { op: apply, to: bearer, effect: immune, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+parasite_feed:
+  archetype: Minion
+  element: Evolution
+  name: Feed
+  description: Its host loses 10 HP, and the user's ally with the least HP heals 10.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  targetFilter: { has: { unit: it, effect: parasite_host } }
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction, direct: false }
+    - { op: heal, to: weakestAlly, amount: 10 }
+
+larva_nibble:
+  archetype: Minion
+  element: Evolution
+  name: Nibble
+  description: Deals 5 Piercing damage and 1 Toxin to target enemy.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }

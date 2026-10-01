@@ -1,0 +1,67 @@
+# Thunder (Lightning + Lightning) statuses, from the "Fusion Spec Kits" design doc.
+# Resound is an echo: each unit a Resound skill damaged carries an echo that lands when it runs out
+# (just before the user's next turn): half that damage again (rounded up to 5), and the echo's
+# owner gains 1 Charge.
+
+deafened:
+  name: Deafened
+  kind: Debuff
+  element: Thunder
+  stacking: unique
+  description: Counters, reflects and Traps that belong to the bearer can't trigger.
+  modifiers:
+    - { mod: muteTraps }
+
+resound_echo:
+  name: Echo
+  kind: Neutral
+  element: Thunder
+  stacking: independent
+  description: When this runs out, the bearer takes its value as damage, and its owner gains 1 Charge.
+  onExpire:
+    - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
+    - { op: apply, to: actor, effect: charged }
+
+# Rolling Thunder: the echo also hits the bearer's allies.
+resound_echo_wide:
+  name: Rolling Echo
+  kind: Neutral
+  element: Thunder
+  stacking: independent
+  description: When this runs out, the bearer and their allies take its value as damage, and its owner gains 1 Charge.
+  onExpire:
+    - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
+    - { op: damage, to: primaryAllies, amount: { effectValue: true }, direct: false }
+    - { op: apply, to: actor, effect: charged }
+
+# Forked Peal: the echo forks to another enemy instead, at full strength.
+resound_echo_fork:
+  name: Forked Echo
+  kind: Neutral
+  element: Thunder
+  stacking: independent
+  description: When this runs out, a random other unit on the bearer's side takes its value as damage, and its owner gains 1 Charge.
+  onExpire:
+    - { op: damage, to: { randomEnemy: 1, exclude: bearer }, amount: { effectValue: true }, direct: false }
+    - { op: apply, to: actor, effect: charged }
+
+# Concussion: the echo also stuns Strategic skills.
+resound_echo_stun:
+  name: Concussive Echo
+  kind: Neutral
+  element: Thunder
+  stacking: independent
+  description: When this runs out, the bearer takes its value as damage and their Strategic skills are stunned for 1 turn; its owner gains 1 Charge.
+  onExpire:
+    - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
+    - { op: apply, to: bearer, effect: stun_s, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: charged }
+
+overcapacity:
+  name: Overcapacity
+  kind: Buff
+  element: Thunder
+  stacking: unique
+  description: Charge can build past 3 to 5; at 5, it's spent and the owner generates 2 extra energy next turn.
+  modifiers:
+    - { mod: stackCap, effect: charged, max: 5 }

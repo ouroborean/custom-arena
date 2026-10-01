@@ -1,0 +1,24 @@
+# Zealot actions.
+
+# Martyr: run with `bearer` = the fallen unit (Fervor's onDeath); their allies heal 10 per Fervor and gain 1
+# Might per 2.
+martyr:
+  # Counted first: the fatal hit's own +1 Fervor doesn't count.
+  - { op: set, var: zeal, value: { stacks: { unit: bearer, effect: fervor } } }
+  - { op: heal, to: bearerAllies, amount: { mul: [10, { var: zeal }] } }
+  - op: if
+    cond: { compare: { value: { var: zeal }, atLeast: 2 } }
+    then: [{ op: apply, to: bearerAllies, effect: might, stacks: { div: [{ var: zeal }, 2] } }]
+
+# Martyr payout for the actor's Fervor without dying (Votive Dagger, Living Saint): their other allies benefit.
+martyr_payout:
+  - op: heal
+    to: { filter: allAllies, where: { not: { isActor: it } } }
+    amount: { mul: [10, { stacks: { unit: actor, effect: fervor } }] }
+  - op: if
+    cond: { compare: { value: { stacks: { unit: actor, effect: fervor } }, atLeast: 2 } }
+    then:
+      - op: apply
+        to: { filter: allAllies, where: { not: { isActor: it } } }
+        effect: might
+        stacks: { div: [{ stacks: { unit: actor, effect: fervor } }, 2] }

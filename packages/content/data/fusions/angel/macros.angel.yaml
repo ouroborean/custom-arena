@@ -1,0 +1,6 @@
+# Angel actions, run on `it`.
+
+# A Halo saves `it`: back to 25 HP, and a `halo_saved` signal from them.
+halo_save:
+  - { op: heal, to: it, amount: { sum: [25, { mul: [-1, { hp: it }] }] }, raw: true, quiet: true }
+  - { op: setCounter, name: halo_turn, on: it, value: { turn: true } }

@@ -1,0 +1,762 @@
+# The 30 Alchemy (Fire + Water) variants, from the "Fusion Spec Kits" design doc.
+# Transmute is the `transmute` op; Catalyst (catalyst / catalyst_debuff) doubles the next skill that
+# affects its bearer, for them.
+
+strike.alchemy:
+  archetype: Strike
+  element: Alchemy
+  name: Calcining Blow
+  description: >-
+    Deals 20 damage to target enemy. Their Ignite ticks at once, plus once more for each Buff they
+    have (max 3 more).
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - op: damage
+          to: primary
+          type: Affliction
+          direct: false
+          amount:
+            mul:
+              - 5
+              - sum:
+                  - 1
+                  - if: { compare: { value: { kindCount: { unit: primary, kind: Buff } }, atLeast: 3 } }
+                    then: 3
+                    else: { kindCount: { unit: primary, kind: Buff } }
+
+smash.alchemy:
+  archetype: Smash
+  element: Alchemy
+  name: Kiln Crash
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. For 2 turns, Scorched on any of them also
+    halves their Shield, at the end of each of the user's turns.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect: &kiln
+        id: kiln_crash
+        name: Kiln Crash
+        kind: Debuff
+        element: Alchemy
+        description: While Scorched, the bearer's Shield is halved at the end of each of the applier's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: scorched } }
+                then:
+                  - { op: scaleShields, on: bearer, factor: 0.5 }
+    - { op: apply, to: primaryAllies, duration: { enemyTurns: 2 }, effect: *kiln }
+
+charge.alchemy:
+  archetype: Charge
+  element: Alchemy
+  name: Steam Rush
+  description: >-
+    Deals 15 damage to target enemy, and the user gets 1 Focus for their next skill. The user gains 1
+    Renew for each Ignited enemy (max 3).
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: actor
+      effect: renew
+      stacks:
+        if: { compare: { value: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } } }, atLeast: 3 } }
+        then: 3
+        else: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } } }
+
+riposte.alchemy:
+  archetype: Riposte
+  element: Alchemy
+  name: Reactive Flask
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user: its user is Ignited, and the user's
+    Debuffs are Transmuted into Renew. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: reactive_flask
+        name: Reactive Flask
+        kind: Buff
+        element: Alchemy
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer, Ignites their users, and Transmutes the bearer's Debuffs.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: ignite }
+              - { op: transmute, on: bearer, kind: Debuff }
+
+rage.alchemy:
+  archetype: Rage
+  element: Alchemy
+  name: Magnum Opus
+  description: For 3 turns, the user gains 2 Might, and gains Catalyst at the start of each of their turns.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: magnum_opus
+        name: Magnum Opus
+        kind: Buff
+        element: Alchemy
+        description: The bearer gains Catalyst at the start of each of their turns.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: catalyst, duration: { raw: 2 } }
+
+shot.alchemy:
+  archetype: Shot
+  element: Alchemy
+  name: Vial Toss
+  description: >-
+    Deals 15 damage to target enemy and Ignites them. For 2 turns, if that Ignite is removed from
+    them, they Explode.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: ignite }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: vial_toss
+        name: Volatile Vial
+        kind: Neutral
+        element: Alchemy
+        description: If the bearer's Ignite is gone at the end of the applier's turn, they Explode.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: ignite } } }
+                then:
+                  - { op: removeSelf }
+                  - { op: macro, id: explode }
+
+snipe.alchemy:
+  archetype: Snipe
+  element: Alchemy
+  name: Distilled Arrow
+  description: >-
+    On the following turn, deals 40 damage to target enemy, plus the total healing they received in
+    the meantime. The target of this skill is invisible. Channeled.
+  cost: Ir
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: setCounter, name: distilled, value: 0, on: primary }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: distilled_arrow
+        name: Distilled Arrow (aiming)
+        kind: Neutral
+        element: Alchemy
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn for 40 plus the healing they received.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: damage, to: it, amount: { sum: [40, { counterOf: { unit: it, name: distilled } }] } }
+    - op: apply
+      to: primary
+      linkTo: distilled_arrow
+      duration: { enemyTurns: 1 }
+      effect:
+        id: distilled_arrow_mark
+        name: Distilled Arrow
+        kind: Debuff
+        element: Alchemy
+        visibility: hidden
+        description: Healing the bearer receives is added to the arrow.
+        triggers:
+          - on: healed
+            do:
+              - { op: setCounter, name: distilled, on: bearer, value: { sum: [{ counterOf: { unit: bearer, name: distilled } }, { eventAmount: true }] } }
+
+trap.alchemy:
+  archetype: Trap
+  element: Alchemy
+  name: Volatile Compound
+  description: >-
+    For 2 turns, each time target enemy uses a skill, they gain Catalyst. If they already had it, it
+    reacts instead: they Explode. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: volatile_compound
+        name: Volatile Compound
+        kind: Debuff
+        element: Alchemy
+        visibility: hidden
+        description: Each skill the bearer uses gives them Catalyst, or makes them Explode if they had it.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: catalyst } }
+                then:
+                  - { op: removeEffect, from: bearer, effect: catalyst_debuff }
+                  - { op: removeEffect, from: bearer, effect: catalyst }
+                  - { op: macro, id: explode }
+                else:
+                  - { op: apply, to: bearer, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+
+maneuver.alchemy:
+  archetype: Maneuver
+  element: Alchemy
+  name: Sublimate
+  description: >-
+    The user becomes Invulnerable for 1 turn. Their Debuffs are removed, and for each one, a random
+    enemy gains Catalyst.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: repeat
+      times: { kindCount: { unit: actor, kind: Debuff } }
+      do:
+        - { op: apply, to: { randomEnemy: 1 }, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+    - { op: removeKind, from: actor, kind: Debuff }
+
+companion.alchemy:
+  archetype: Companion
+  element: Alchemy
+  name: Homunculus
+  description: >-
+    Summons a Homunculus (30 HP) permanently. At the end of each of your turns, one stack of Might,
+    Armor, Focus or Renew on a random enemy is Transmuted, and a random ally gains 1 Renew.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: homunculus }
+
+bolt.alchemy:
+  archetype: Bolt
+  element: Alchemy
+  name: Quicksilver Bolt
+  description: >-
+    Deals 20 damage to target enemy. If they have Catalyst, the doubled hit also Transmutes one of
+    their Buffs; if not, they gain Catalyst.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: catalyst } }
+      then:
+        - { op: damage, to: primary, amount: 20 }
+        - { op: transmute, on: primary, kind: Buff, count: 1 }
+      else:
+        - { op: damage, to: primary, amount: 20 }
+        - { op: apply, to: primary, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+
+blast.alchemy:
+  archetype: Blast
+  element: Alchemy
+  name: Chain Reaction
+  description: Deals 20 damage to all enemies. Each enemy with Catalyst Explodes.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: catalyst } } }
+      do:
+        - { op: setCounter, name: chain_reaction, value: 1, on: it }
+    - { op: damage, to: targets, amount: 20 }
+    - op: forEach
+      in: { filter: targets, where: { compare: { value: { counterOf: { unit: it, name: chain_reaction } }, atLeast: 1 } } }
+      do:
+        - { op: setCounter, name: chain_reaction, value: 0, on: it }
+        - { op: macro, id: explode }
+
+consume.alchemy:
+  archetype: Consume
+  element: Alchemy
+  name: Essence Extraction
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. Then 10 of their max HP is distilled
+    into the user: theirs drops by 10 and the user's rises by 10 for the rest of the match (up to 30
+    per enemy).
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: if
+      cond: { compare: { value: { counterOf: { unit: primary, name: essence_taken } }, atMost: 20 } }
+      then:
+        - { op: addMaxHp, to: primary, amount: -10 }
+        - { op: addMaxHp, to: actor, amount: 10 }
+        - { op: setCounter, name: essence_taken, on: primary, value: { sum: [{ counterOf: { unit: primary, name: essence_taken } }, 10] } }
+
+summon.alchemy:
+  archetype: Summon
+  element: Alchemy
+  name: Alembic
+  description: Summons an Alembic (15 HP) for 3 turns. Brew (nc) gives target unit, ally or enemy, Catalyst.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: alembic, duration: { enemyTurns: 3 } }
+
+channel.alchemy:
+  archetype: Channel
+  element: Alchemy
+  name: Slow Distillation
+  description: >-
+    For up to 4 turns, at the end of each of the user's turns, deals 5 damage to all enemies and gives
+    all allies 1 Renew. When it runs its course, allies' Renew boils off as 5 Affliction damage per
+    stack to random enemies. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: slow_distillation
+        name: Slow Distillation
+        kind: Neutral
+        element: Alchemy
+        interruptible: true
+        description: Each turn, 5 damage to all enemies and 1 Renew to all allies; at the end, the Renew boils off.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5 }
+              - { op: apply, to: allAllies, effect: renew }
+        onExpire:
+          - op: repeat
+            times: { totalStacks: { in: allAllies, effect: renew } }
+            do:
+              - { op: damage, to: { randomEnemy: 1 }, amount: 5, type: Affliction }
+          - { op: removeEffect, from: allAllies, effect: renew }
+
+stab.alchemy:
+  archetype: Stab
+  element: Alchemy
+  name: Probing Lancet
+  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. It can't be countered or reflected.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Uncounterable]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+
+ravage.alchemy:
+  archetype: Ravage
+  element: Alchemy
+  name: Boiling Point
+  description: >-
+    Deals 25 Piercing damage to target enemy. The user boils off all their Renew, and the target's
+    Ignite ticks once per stack (max 4).
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - op: damage
+          to: primary
+          type: Affliction
+          direct: false
+          amount:
+            mul:
+              - 5
+              - if: { compare: { value: { totalStacks: { in: actor, effect: renew } }, atLeast: 4 } }
+                then: 4
+                else: { totalStacks: { in: actor, effect: renew } }
+    - { op: removeEffect, from: actor, effect: renew }
+
+mislead.alchemy:
+  archetype: Mislead
+  element: Alchemy
+  name: Inversion Circle
+  description: >-
+    For 1 turn, if target enemy uses a Helpful skill, it's Transmuted: it's countered, and its
+    targets take 15 Affliction damage and are Weakened for 1 turn instead. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: inversion_circle
+        name: Inversion Circle
+        kind: Debuff
+        element: Alchemy
+        visibility: hidden
+        description: The bearer's next Helpful skill is inverted into harm for its targets.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: eventTargets, amount: 15, type: Affliction }
+              - { op: apply, to: eventTargets, effect: weakness, duration: { enemyTurns: 1 } }
+
+stun.alchemy:
+  archetype: Stun
+  element: Alchemy
+  name: Flash Powder
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn; Swiftness can't stop it: each
+    Swiftness on them is Transmuted into 1 Confusion instead.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: primary, effect: swiftness } }
+      then:
+        - { op: apply, to: primary, effect: confusion, stacks: { stacks: { unit: primary, effect: swiftness } }, duration: { enemyTurns: 1 } }
+        - { op: removeEffect, from: primary, effect: swiftness }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.alchemy:
+  archetype: Dance
+  element: Alchemy
+  name: Quickening Draught
+  description: >-
+    The user gains Catalyst. At the start of their next turn, they gain 1 Might, 2 Swiftness and 1
+    Focus for 3 turns, doubled if the Catalyst is still unspent.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: catalyst, duration: { raw: 3 } }
+    - op: apply
+      to: actor
+      duration: { raw: 2 }
+      effect:
+        id: quickening_draught
+        name: Quickening Draught
+        kind: Buff
+        element: Alchemy
+        description: At the start of the bearer's next turn, they gain Might, Swiftness and Focus (doubled with Catalyst).
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: catalyst } }
+            then:
+              - { op: removeEffect, from: bearer, effect: catalyst }
+              - { op: apply, to: bearer, effect: might, stacks: 2, duration: { ownTurns: 3 } }
+              - { op: apply, to: bearer, effect: swiftness, stacks: 4, duration: { ownTurns: 3 } }
+              - { op: apply, to: bearer, effect: focus, stacks: 2, duration: { ownTurns: 3 } }
+            else:
+              - { op: apply, to: bearer, effect: might, duration: { ownTurns: 3 } }
+              - { op: apply, to: bearer, effect: swiftness, stacks: 2, duration: { ownTurns: 3 } }
+              - { op: apply, to: bearer, effect: focus, duration: { ownTurns: 3 } }
+
+heal.alchemy:
+  archetype: Heal
+  element: Alchemy
+  name: Panacea
+  description: Target ally heals 15; their Debuffs are Transmuted into 2 Renew each.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      effect: renew
+      stacks: { mul: [2, { kindCount: { unit: primary, kind: Debuff } }] }
+    - { op: removeKind, from: primary, kind: Debuff }
+
+bless.alchemy:
+  archetype: Bless
+  element: Alchemy
+  name: Universal Solvent
+  description: For 3 turns, target ally gains 1 Might, and their Normal damage is Piercing.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: universal_solvent
+        name: Universal Solvent
+        kind: Buff
+        element: Alchemy
+        description: The bearer's Normal damage is Piercing.
+        modifiers:
+          - { mod: normalAsPiercing }
+
+curse.alchemy:
+  archetype: Curse
+  element: Alchemy
+  name: Gold into Lead
+  description: All of target enemy's Buffs are Transmuted; any without a recipe are removed.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: transmute, on: primary, kind: Buff, removeUnmatched: true }
+
+smite.alchemy:
+  archetype: Smite
+  element: Alchemy
+  name: Reagent Brand
+  description: >-
+    Deals 15 damage to target enemy, who gains Catalyst. For 1 turn, each ally skill that damages
+    them gives them Catalyst again.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: reagent_brand
+        name: Reagent Brand
+        kind: Debuff
+        element: Alchemy
+        description: Direct damage from the applier's side gives the bearer Catalyst again.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: apply, to: bearer, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
+
+prayer.alchemy:
+  archetype: Prayer
+  element: Alchemy
+  name: Equivalent Exchange
+  description: >-
+    All allies heal 15. Every Renew on enemies is Transmuted into Weakness, and each ally gains 1
+    Renew per 2 stacks converted.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: transmute, on: allEnemies, effects: [renew] }
+    - { op: apply, to: targets, effect: renew, stacks: { div: [{ var: transmuted }, 2] } }
+
+cleave.alchemy:
+  archetype: Cleave
+  element: Alchemy
+  name: Splash Potion
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. If the target has Catalyst, it
+    splashes: both hits are doubled.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: catalyst } }
+      then:
+        - { op: damage, to: primary, amount: 25 }
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 30 }
+      else:
+        - { op: damage, to: primary, amount: 25 }
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+shout.alchemy:
+  archetype: Shout
+  element: Alchemy
+  name: Souring Vapors
+  description: For 1 turn, every Buff an enemy gains is Transmuted on arrival.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 1 }
+      effect:
+        id: souring_vapors
+        name: Souring Vapors
+        kind: Debuff
+        element: Alchemy
+        description: Every Buff the bearer gains is Transmuted on arrival.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            do:
+              - { op: transmute, on: bearer, event: true }
+
+withstand.alchemy:
+  archetype: Withstand
+  element: Alchemy
+  name: Steam Barrier
+  description: >-
+    The user gains 25 Shield for 1 turn. When it ends, what's left of it is Transmuted into Renew, 1
+    per 5 Shield.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: steam_barrier
+        name: Steam Barrier
+        kind: Buff
+        element: Alchemy
+        shield: true
+        description: A Shield; what's left when it ends becomes Renew, 1 per 5.
+        onExpire:
+          - { op: apply, to: bearer, effect: renew, stacks: { div: [{ effectValue: true }, 5] } }
+
+taunt.alchemy:
+  archetype: Taunt
+  element: Alchemy
+  name: Lure Flask
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Meanwhile, half the damage they deal the user is
+    Transmuted into healing for the user.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: lure_flask
+        name: Lure Flask
+        kind: Buff
+        element: Alchemy
+        description: The bearer heals half the damage the lured enemy deals them.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
+                then:
+                  - { op: heal, to: bearer, amount: { div: [{ eventAmount: true }, 2] } }
+
+titan.alchemy:
+  archetype: Titan
+  element: Alchemy
+  name: The Great Work
+  description: For the rest of the match, the user has 2 Armor and Immune, but can't gain any other Buff.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2 }
+    - { op: apply, to: actor, effect: immune }
+    - op: apply
+      to: actor
+      effect:
+        id: the_great_work
+        name: The Great Work
+        kind: Neutral
+        element: Alchemy
+        description: The bearer can't gain any other Buff.
+        modifiers:
+          - { mod: immuneTo, kind: Buff }
+
+# Minion skills.
+
+alembic_brew:
+  archetype: Minion
+  element: Alchemy
+  name: Brew
+  description: Target unit, ally or enemy, gains Catalyst for 2 turns.
+  cost: nc
+  cooldown: 0
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - { op: forEach, in: primary, do: [{ op: macro, id: give_catalyst }] }

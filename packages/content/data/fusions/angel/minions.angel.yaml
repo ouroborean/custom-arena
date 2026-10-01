@@ -1,0 +1,11 @@
+# Angel minions.
+
+cherub:
+  name: Cherub
+  hp: 35
+  skills: [cherub_shelter, cherub_holy_arrow]
+
+lesser_angel:
+  name: Lesser Angel
+  hp: 10
+  skills: [lesser_angel_soothe]

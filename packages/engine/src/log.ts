@@ -13,20 +13,26 @@ function findInline(ops: readonly Op[], id: string): EffectDef | undefined {
   return undefined;
 }
 
-export function effectName(content: ContentBundle, defId: string): string {
+/** The definition behind an effect id: a named status, or an inline effect ("<skill>:<id>"). */
+export function effectDefById(content: ContentBundle, defId: string): EffectDef | undefined {
   const named = content.statuses[defId];
-  if (named) return named.name;
+  if (named) return named;
   const [owner, inlineId] = defId.split(':');
-  if (owner && inlineId) {
-    const skill = content.skills[owner];
-    const def = skill ? findInline(skill.ops, inlineId) : undefined;
-    if (def) return def.name;
-    for (const m of Object.values(content.minions)) {
-      for (const p of m.passives) if (typeof p !== 'string' && p.id === inlineId) return p.name;
-    }
-    if (inlineId === 'lifetime') return 'Summoned';
-    return inlineId;
+  if (!owner || !inlineId) return undefined;
+  const skill = content.skills[owner];
+  const def = skill ? findInline(skill.ops, inlineId) : undefined;
+  if (def) return def;
+  for (const m of Object.values(content.minions)) {
+    for (const p of m.passives) if (typeof p !== 'string' && p.id === inlineId) return p;
   }
+  return undefined;
+}
+
+export function effectName(content: ContentBundle, defId: string): string {
+  const def = effectDefById(content, defId);
+  if (def) return def.name;
+  const [owner, inlineId] = defId.split(':');
+  if (owner && inlineId) return inlineId === 'lifetime' ? 'Summoned' : inlineId;
   return defId;
 }
 
@@ -40,6 +46,10 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
   switch (e.t) {
     case 'turnStart':
       return `— Turn ${e.turn}: Player ${e.player + 1} —`;
+    case 'skillDrifting': {
+      const on = e.targets.length ? ` on ${e.targets.map(name).join(', ')}` : '';
+      return `${name(e.actor)}'s ${skill(e.skill)} drifts${on}; it lands next turn`;
+    }
     case 'energyGained':
       return `Player ${e.player + 1} gains ${energyText(e.gained)}`;
     case 'skillUsed': {
@@ -77,8 +87,12 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
       return `${name(e.by)} summons ${name(e.unit)}`;
     case 'died':
       return `${name(e.unit)} is defeated`;
+    case 'revived':
+      return `${name(e.unit)} returns with ${e.hp} HP`;
     case 'turnEnd':
       return `Player ${e.player + 1} ends turn ${e.turn}`;
+    case 'checkpoint':
+      return '';
     case 'gameOver':
       return e.result.winner === null ? `Match drawn (${e.result.reason})` : `Player ${e.result.winner + 1} wins (${e.result.reason})`;
   }

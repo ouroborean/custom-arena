@@ -11,15 +11,11 @@ export interface RarityDef {
   nativeSkills: number;
   /** Default (locked) infusions of the base element: [min, max], uniform. */
   defaultInfusions: [number, number];
-  /** Accessory-style equipment slots (GDD §8.3). */
-  equipmentSlots: number;
-  /** Free infusion sockets the player can fill with crystals and shards (types I, K). */
-  freeSockets: number;
   /**
-   * Most equipment-granted skills, passives and infusions the character can use at once (GDD §8.2:
-   * "3 skills 2 passives 4 element" for a fully kitted character, scaled down by rarity).
+   * Most equipment-granted skills and item passives the character can use at once (GDD §8.2: "3
+   * skills 2 passives" for a fully kitted character, scaled down by rarity). Infusions have no budget.
    */
-  budget: { skills: number; passives: number; infusions: number };
+  budget: { skills: number; passives: number };
 }
 
 export const RARITY_ORDER: readonly RarityId[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
@@ -31,9 +27,7 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 50,
     nativeSkills: 3,
     defaultInfusions: [1, 1],
-    equipmentSlots: 2,
-    freeSockets: 1,
-    budget: { skills: 1, passives: 1, infusions: 2 },
+    budget: { skills: 1, passives: 1 },
   },
   uncommon: {
     id: 'uncommon',
@@ -41,9 +35,7 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 28,
     nativeSkills: 3,
     defaultInfusions: [1, 2],
-    equipmentSlots: 3,
-    freeSockets: 1,
-    budget: { skills: 2, passives: 1, infusions: 2 },
+    budget: { skills: 2, passives: 1 },
   },
   rare: {
     id: 'rare',
@@ -51,9 +43,7 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 14,
     nativeSkills: 4,
     defaultInfusions: [1, 2],
-    equipmentSlots: 3,
-    freeSockets: 2,
-    budget: { skills: 2, passives: 2, infusions: 3 },
+    budget: { skills: 2, passives: 2 },
   },
   epic: {
     id: 'epic',
@@ -61,9 +51,7 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 6,
     nativeSkills: 4,
     defaultInfusions: [2, 3],
-    equipmentSlots: 4,
-    freeSockets: 2,
-    budget: { skills: 3, passives: 2, infusions: 3 },
+    budget: { skills: 3, passives: 2 },
   },
   legendary: {
     id: 'legendary',
@@ -71,9 +59,7 @@ export const RARITIES: Record<RarityId, RarityDef> = {
     weight: 2,
     nativeSkills: 5,
     defaultInfusions: [2, 3],
-    equipmentSlots: 5,
-    freeSockets: 3,
-    budget: { skills: 3, passives: 2, infusions: 4 },
+    budget: { skills: 3, passives: 2 },
   },
 };
 

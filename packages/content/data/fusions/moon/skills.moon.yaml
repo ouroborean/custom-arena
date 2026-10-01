@@ -1,0 +1,740 @@
+# The 30 Moon (Earth + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Lunar Cycle (passive `lunar_cycle`, counter `phase`; conditions moon_new / moon_waxing / moon_full / moon_waning).
+
+strike.moon:
+  archetype: Strike
+  element: Moon
+  name: Moonstone Fist
+  description: >-
+    Deals 20 damage to target enemy. New Moon: Stealthy. Waning: the user heals half the damage dealt.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { check: { cond: moon_waning, unit: actor } }
+      then: [{ op: heal, to: actor, amount: { div: [{ lastDamage: true }, 2] } }]
+
+smash.moon:
+  archetype: Smash
+  element: Moon
+  name: Quickening Quake
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Then every allied Seedling uses Channel Earth at no
+    cost.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: forEach
+      in: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
+      do:
+        - { op: apply, to: actor, effect: might }
+        - { op: apply, to: actor, effect: armor }
+        - { op: signal, name: channel_earth }
+
+charge.moon:
+  archetype: Charge
+  element: Moon
+  name: Prowl
+  description: >-
+    Deals 15 damage to target enemy, and the user gains 1 Focus for their next skill. New Moon: they gain Stealth
+    instead of Focus. Stealthy.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { check: { cond: moon_new, unit: actor } }
+      then: [{ op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }]
+      else: [{ op: apply, to: actor, effect: focus, until: { skillUsed: {} }, duration: { enemyTurns: 2 } }]
+
+riposte.moon:
+  archetype: Riposte
+  element: Moon
+  name: Shadowed Face
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user. New Moon: it counters every Harmful skill used
+    on them instead. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: if
+      cond: { check: { cond: moon_new, unit: actor } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: shadowed_face_new
+            name: Shadowed Face (New Moon)
+            kind: Buff
+            element: Moon
+            visibility: hidden
+            description: Counters every Harmful skill used on the bearer.
+            triggers:
+              - { on: skillTargeted, when: { harmful: true }, intercept: counter }
+      else:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: shadowed_face
+            name: Shadowed Face
+            kind: Buff
+            element: Moon
+            visibility: hidden
+            description: Counters the first Harmful skill used on the bearer.
+            triggers:
+              - { on: skillTargeted, when: { harmful: true }, intercept: counter, consume: true }
+
+rage.moon:
+  archetype: Rage
+  element: Moon
+  name: Turn Beast
+  description: >-
+    For 4 turns, the user gains 1 Might and 1 Swiftness; during the Full Moon, 3 Might and Immune instead.
+  cost: WA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: turn_beast
+        name: Turn Beast
+        kind: Buff
+        element: Moon
+        description: During the Full Moon, 2 more Might and Immune.
+        modifiers:
+          - { mod: damageDealt, amount: 10, when: { direct: true }, if: { check: { cond: moon_full, unit: bearer } } }
+          - { mod: immuneTo, kind: Debuff, if: { check: { cond: moon_full, unit: bearer } } }
+
+shot.moon:
+  archetype: Shot
+  element: Moon
+  name: Moonshard
+  description: >-
+    Deals 10 Piercing damage to target enemy. Waxing: the shard stays lodged, dealing 15 more at the start of the
+    next Full Moon.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - op: if
+      cond: { check: { cond: moon_waxing, unit: actor } }
+      then: [{ op: apply, to: primary, effect: moonshard, duration: { enemyTurns: 4 } }]
+
+snipe.moon:
+  archetype: Snipe
+  element: Moon
+  name: Hunter's Moon
+  description: >-
+    On the following turn, deals 40 damage to target enemy, Bypassing Invulnerable. It uses the phase it lands in:
+    Full, 20 more; Waning, the user heals half. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hunters_moon
+        name: Hunter's Moon
+        kind: Neutral
+        element: Moon
+        interruptible: true
+        description: When this runs out, its target takes 40 damage (Full Moon 60; Waning heals the user half).
+        onExpire:
+          - op: damage
+            to: effectTargets
+            bypass: true
+            amount: { if: { check: { cond: moon_full, unit: actor } }, then: 60, else: 40 }
+          - op: if
+            cond: { check: { cond: moon_waning, unit: actor } }
+            then: [{ op: heal, to: actor, amount: { div: [{ lastDamage: true }, 2] } }]
+
+trap.moon:
+  archetype: Trap
+  element: Moon
+  name: Dreaming Stones
+  description: >-
+    For 2 turns, if target enemy uses a Harmful skill on a minion, they fall Asleep and are Isolated for 1 turn.
+    Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: dreaming_stones
+        name: Dreaming Stones
+        kind: Debuff
+        element: Moon
+        visibility: hidden
+        description: A Harmful skill on a minion puts the bearer to Sleep and Isolates them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - op: if
+                cond: { any: { in: eventTargets, cond: { kind: { unit: it, is: minion } } } }
+                then:
+                  - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 1 } }
+                  - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
+                  - { op: removeSelf }
+
+maneuver.moon:
+  archetype: Maneuver
+  element: Moon
+  name: Eclipse
+  description: >-
+    The user becomes Invulnerable for 1 turn, and the Lunar Cycle advances one extra phase at the end of the turn.
+    Stealthy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: setCounter, name: eclipse, value: 1 }
+
+companion.moon:
+  archetype: Companion
+  element: Moon
+  name: Lunar Wolf
+  description: >-
+    Summons a Lunar Wolf (35 HP) permanently. Moonfang (r): 10 Piercing damage. At the start of each Full Moon, it
+    howls: it heals 20, and a random enemy is Taunted by it for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: lunar_wolf }
+
+bolt.moon:
+  archetype: Bolt
+  element: Moon
+  name: Silver Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Blinded for 2 turns. Full Moon: it also ends their Stealth, and they
+    can't regain it for 3 turns.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { check: { cond: moon_full, unit: actor } }
+      then:
+        - { op: removeEffect, from: primary, effect: stealth }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 3 }
+          effect:
+            id: silver_bolt
+            name: Silvered
+            kind: Debuff
+            element: Moon
+            description: Can't gain Stealth.
+            modifiers:
+              - { mod: immuneToEffects, effects: [stealth] }
+
+blast.moon:
+  archetype: Blast
+  element: Moon
+  name: Moonburst
+  description: >-
+    Deals 25 damage to all enemies. Full Moon: Blinded ones fall Asleep after the hit. Waning: the user heals 5 per
+    enemy hit.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - op: if
+      cond: { check: { cond: moon_full, unit: actor } }
+      then: [{ op: apply, to: { filter: targets, where: { has: { unit: it, effect: blinded } } }, effect: sleep, duration: { enemyTurns: 1 } }]
+    - op: if
+      cond: { check: { cond: moon_waning, unit: actor } }
+      then: [{ op: heal, to: actor, amount: { mul: [5, { countOf: targets }] } }]
+
+consume.moon:
+  archetype: Consume
+  element: Moon
+  name: Drink the Moonlight
+  description: >-
+    Deals 10 damage to target enemy, healing the user for the damage dealt. Waning: it drains every enemy instead.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { check: { cond: moon_waning, unit: actor } }
+      then:
+        - { op: set, var: drunk, value: 0 }
+        - op: forEach
+          in: allEnemies
+          do:
+            - { op: damage, to: it, amount: 10 }
+            - { op: set, var: drunk, value: { sum: [{ var: drunk }, { lastDamage: true }] } }
+        - { op: heal, to: actor, amount: { var: drunk } }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: heal, to: actor, amount: { lastDamage: true } }
+
+summon.moon:
+  archetype: Summon
+  element: Moon
+  name: Moon Moths
+  description: >-
+    Summons 2 Moon Moths (10 HP) for 3 turns, and every Blinded enemy is Taunted by one for 1 turn. Flutter (r): 10
+    damage to target enemy.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: moon_moth, duration: { enemyTurns: 3 } }
+    - { op: summon, minion: moon_moth, duration: { enemyTurns: 3 } }
+    - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: blinded } } }, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+
+channel.moon:
+  archetype: Channel
+  element: Moon
+  name: Lunar Lullaby
+  description: >-
+    Until the next New Moon, deals 10 damage to all enemies at the end of each of the user's turns. If it lasts to
+    the New Moon, every enemy falls Asleep. Channeled.
+  cost: Wr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: { sum: [4, { mul: [-1, { counter: phase }] }] } }
+      effect:
+        id: lunar_lullaby
+        name: Lunar Lullaby
+        kind: Neutral
+        element: Moon
+        interruptible: true
+        description: Each turn, 10 damage to all enemies; at the New Moon, every enemy falls Asleep.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+          # The New Moon is announced before this turn's tick, so the last tick happens here.
+          - on: signal
+            signal: new_moon
+            when: { side: ally }
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - { op: apply, to: allEnemies, effect: sleep, duration: { enemyTurns: 1 } }
+              - { op: removeSelf }
+
+stab.moon:
+  archetype: Stab
+  element: Moon
+  name: Silver Severance
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. Their Blind ends, and they're Isolated for 2 turns
+    instead.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: blinded } }
+      then:
+        - { op: removeEffect, from: primary, effect: blinded }
+        - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 2 } }
+
+ravage.moon:
+  archetype: Ravage
+  element: Moon
+  name: Feral Maw
+  description: >-
+    Deals 20 Piercing damage to target enemy, doubled if the user is Stealthed. Full Moon: it doesn't end the user's
+    Stealth.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { if: { has: { unit: actor, effect: stealth } }, then: 40, else: 20 }
+
+mislead.moon:
+  archetype: Mislead
+  element: Moon
+  name: False Moonlight
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, the user creates a Boulder, and the enemy is
+    Isolated for 3 turns. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: false_moonlight
+        name: False Moonlight
+        kind: Debuff
+        element: Moon
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered; a Boulder rises and they're Isolated.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: summon, minion: boulder }
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 3 } }
+
+stun.moon:
+  archetype: Stun
+  element: Moon
+  name: Lunacy
+  description: >-
+    Deals 10 damage to target enemy, who falls Asleep for 1 turn. Full Moon: for 2 turns.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      effect: sleep
+      duration: { enemyTurns: { if: { check: { cond: moon_full, unit: actor } }, then: 2, else: 1 } }
+
+dance.moon:
+  archetype: Dance
+  element: Moon
+  name: Dance of Phases
+  description: >-
+    For 2 turns, the user gains 1 Swiftness and the phase's gift: New, Stealth; Waxing, 2 Armor; Full, 2 Might;
+    Waning, 2 Renew.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { check: { cond: moon_new, unit: actor } }
+      then: [{ op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }]
+    - op: if
+      cond: { check: { cond: moon_waxing, unit: actor } }
+      then: [{ op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 2 } }]
+    - op: if
+      cond: { check: { cond: moon_full, unit: actor } }
+      then: [{ op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 2 } }]
+    - op: if
+      cond: { check: { cond: moon_waning, unit: actor } }
+      then: [{ op: apply, to: actor, effect: renew, stacks: 2 }]
+
+heal.moon:
+  archetype: Heal
+  element: Moon
+  name: Borrowed Moonlight
+  description: >-
+    Target ally heals 40. 3 turns later, the moonlight wanes and they lose 20 HP, which can't kill them.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 40 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: borrowed_moonlight
+        name: Borrowed Moonlight
+        kind: Neutral
+        element: Moon
+        description: When this runs out, the bearer loses 20 HP (never below 1).
+        onExpire:
+          - op: damage
+            to: bearer
+            raw: true
+            direct: false
+            amount: { if: { hpAtMost: { unit: bearer, value: 20 } }, then: { sum: [{ hp: bearer }, -1] }, else: 20 }
+
+bless.moon:
+  archetype: Bless
+  element: Moon
+  name: Moonveil
+  description: >-
+    Target ally gains Stealth; while Stealthed, they gain 1 permanent Armor at the end of each of their turns.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: moonveil
+        name: Moonveil
+        kind: Buff
+        element: Moon
+        description: While Stealthed, the bearer gains 1 permanent Armor at the end of each of their turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: stealth } }
+                then: [{ op: apply, to: bearer, effect: armor }]
+                else: [{ op: removeSelf }]
+
+curse.moon:
+  archetype: Curse
+  element: Moon
+  name: Tidal Lock
+  description: >-
+    For 3 turns, target enemy's skills are Stunned in alternation: non-Strategic ones on their first and third
+    turns, Strategic ones on their second.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tidal_lock
+        name: Tidal Lock
+        kind: Debuff
+        element: Moon
+        stacking: unique
+        description: Non-Strategic skills Stunned on the bearer's first and third turns, Strategic ones on the second.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atLeast: 2, atMost: 2 } }
+                then: [{ op: apply, to: bearer, effect: stun_s, duration: { enemyTurns: 1 } }]
+                else: [{ op: apply, to: bearer, effect: stun_ns, duration: { enemyTurns: 1 } }]
+              - { op: addStacksSelf, amount: 1 }
+
+smite.moon:
+  archetype: Smite
+  element: Moon
+  name: Moonlight Covenant
+  description: Deals 20 damage to target enemy. For 2 turns, every unit on both sides is Sanctified.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: allUnits, effect: sanctify, duration: { enemyTurns: 2 } }
+
+prayer.moon:
+  archetype: Prayer
+  element: Moon
+  name: Lunar Hymn
+  description: >-
+    All allies heal 20. New Moon: they gain Stealth. Waxing: 2 Renew. Full: 1 Might for 2 turns. Waning: every
+    enemy gains 1 Weakness.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: if
+      cond: { check: { cond: moon_new, unit: actor } }
+      then: [{ op: apply, to: targets, effect: stealth, duration: { enemyTurns: 2 } }]
+    - op: if
+      cond: { check: { cond: moon_waxing, unit: actor } }
+      then: [{ op: apply, to: targets, effect: renew, stacks: 2 }]
+    - op: if
+      cond: { check: { cond: moon_full, unit: actor } }
+      then: [{ op: apply, to: targets, effect: might, duration: { enemyTurns: 2 } }]
+    - op: if
+      cond: { check: { cond: moon_waning, unit: actor } }
+      then: [{ op: apply, to: allEnemies, effect: weakness }]
+
+cleave.moon:
+  archetype: Cleave
+  element: Moon
+  name: Crescent Lull
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. Neither hit wakes a Sleeping enemy; each Sleeper
+    it hits sleeps 1 turn longer instead.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, wakes: false }
+    - { op: extendEffects, on: primary, effects: [sleep], by: 2 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15, wakes: false }
+        - { op: extendEffects, on: it, effects: [sleep], by: 2 }
+
+shout.moon:
+  archetype: Shout
+  element: Moon
+  name: Howl at the Moon
+  description: >-
+    All enemies are Intimidated for 2 turns. Full Moon: every allied minion also attacks a random enemy for 10.
+  cost: Wr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { check: { cond: moon_full, unit: actor } }
+      then:
+        - op: forEach
+          in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, from: it, amount: 10, direct: false }
+
+withstand.moon:
+  archetype: Withstand
+  element: Moon
+  name: Cairn Ward
+  description: >-
+    The user gains 25 Shield for 1 turn. Whatever is left of it when it ends becomes a Boulder for the user, with
+    that much HP.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: cairn_ward
+        name: Cairn Ward
+        kind: Buff
+        element: Moon
+        shield: true
+        description: Absorbs damage; what's left when it runs out becomes a Boulder.
+        onExpire:
+          - op: if
+            cond: { compare: { value: { effectValue: true }, atLeast: 1 } }
+            then:
+              - { op: set, var: left, value: { effectValue: true } }
+              - { op: summon, minion: boulder }
+              - { op: damage, to: lastSummoned, amount: { sum: [45, { mul: [-1, { var: left }] }] }, raw: true, direct: false }
+
+taunt.moon:
+  archetype: Taunt
+  element: Moon
+  name: Wandering Light
+  description: >-
+    Taunts target enemy for 2 turns. Each time an ally of the user damages them, the Taunt passes to that ally.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: wandering_light
+        name: Wandering Light
+        kind: Debuff
+        element: Moon
+        description: Each direct hit from the applier's side passes the bearer's Taunt to the hitter.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: removeEffect, from: bearer, effect: taunt }
+              - { op: apply, to: bearer, effect: taunt, from: eventSource, duration: { enemyTurns: 1 } }
+
+titan.moon:
+  archetype: Titan
+  element: Moon
+  name: Face of the Moon
+  description: >-
+    For 3 turns, the user gains 3 Armor and Immune, and the Lunar Cycle holds at its current phase.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: face_of_the_moon, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+wolf_moonfang:
+  archetype: Minion
+  element: Moon
+  name: Moonfang
+  description: Deals 10 Piercing damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+
+moth_flutter:
+  archetype: Minion
+  element: Moon
+  name: Flutter
+  description: Deals 10 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

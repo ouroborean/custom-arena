@@ -1,0 +1,31 @@
+# Evolution (Poison + Poison) statuses, from the "Fusion Spec Kits" design doc.
+# Evolve isn't a status: a skill's stage is how many times its user has used it (the `timesUsed`
+# value: 0 = Stage I, 1 = Stage II, 2 or more = Stage III).
+
+telltale_venom:
+  name: Telltale Venom
+  kind: Debuff
+  element: Evolution
+  stacking: unique
+  description: While the bearer has any Toxin, they count as Prey.
+
+delirium:
+  name: Delirium
+  kind: Debuff
+  element: Evolution
+  stacking: unique
+  description: Each Debuff stack on the bearer counts as 2 toward Prey.
+
+hormesis:
+  name: Hormesis
+  kind: Buff
+  element: Evolution
+  stacking: unique
+  description: Toxin on the bearer heals them for its damage instead of harming them.
+
+parasite_host:
+  name: Parasite Host
+  kind: Debuff
+  element: Evolution
+  stacking: unique
+  description: Carries a Parasite. Only this unit can target it, and it dies with them.

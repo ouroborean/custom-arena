@@ -48,8 +48,8 @@ export const characters = pgTable(
     portraitId: text('portrait_id').notNull(),
     /** Ordered skill list; validated by @arena/meta (GDD §7.1 character_skills, kept as one document). */
     skills: jsonb('skills').$type<CharacterSkill[]>().notNull(),
-    /** Equipped items by slot (instance ids from item_instances); validated by @arena/meta. */
-    loadout: jsonb('loadout').$type<Loadout>().notNull().default({}),
+    /** Up to four equipped items (instance ids from item_instances) and where their infusions go; validated by @arena/meta. */
+    loadout: jsonb('loadout').$type<Loadout>().notNull().default({ items: [], infusions: [] }),
     /** Content version the character was generated against. */
     contentVersion: text('content_version').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -279,4 +279,23 @@ export const auditLog = pgTable(
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('audit_user_idx').on(t.userId), index('audit_kind_idx').on(t.kind)],
+);
+
+/** Season-end rewards paid (docs/live-ops.md §4): one row per player per season, so a close-out pays at most once. */
+export const seasonRewards = pgTable(
+  'season_rewards',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: text('season_id').notNull(),
+    tier: text('tier').notNull(),
+    /** Final display rating. */
+    rating: integer('rating').notNull(),
+    currency: jsonb('currency').$type<Record<string, number>>().notNull(),
+    /** Item ids granted (their instances have source 'season:<id>'). */
+    items: jsonb('items').$type<string[]>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
 );

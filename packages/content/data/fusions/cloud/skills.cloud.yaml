@@ -1,0 +1,781 @@
+# The 30 Cloud (Wind + Wind) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.cloud".
+# Keywords: Drift (the `Drift` skill tag: lands at the start of the user's next turn) and Aloft
+# (counts as Leaping for its whole duration, without Invulnerability).
+
+strike.cloud:
+  archetype: Strike
+  element: Cloud
+  name: Heavy Sky
+  description: Drift. Deals 35 damage to target enemy when it lands.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Drift]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 35 }
+
+smash.cloud:
+  archetype: Smash
+  element: Cloud
+  name: Anvil Cloud
+  description: >-
+    It builds for 2 turns instead of 1: at the start of the user's second turn from now, deals 50
+    damage to target enemy and 30 to each of their allies. It still lands if the user is Stunned,
+    but is lost if they die.
+  cost: Arr
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { raw: 4 }
+      effect:
+        id: anvil_cloud
+        name: Anvil Cloud
+        kind: Neutral
+        element: Cloud
+        description: Lands on its target and their allies at the start of the user's second turn from now.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50 }
+          - { op: damage, to: primaryAllies, amount: 30 }
+
+charge.cloud:
+  archetype: Charge
+  element: Cloud
+  name: Rising Air
+  description: >-
+    Deals 10 damage to target enemy, and the user gains Aloft for 2 turns. If they were already
+    Aloft, they dive instead: the target's non-Strategic skills are stunned for 1 turn.
+  cost: nc
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: actor, effect: aloft } }
+      then:
+        - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 2 } }
+
+riposte.cloud:
+  archetype: Riposte
+  element: Cloud
+  name: Cloud Veil
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Isolated for 1 turn,
+    and the user gains Aloft for 2 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: cloud_veil
+        name: Cloud Veil
+        kind: Buff
+        element: Cloud
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, Isolating its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: isolated, duration: { enemyTurns: 1 } }
+              - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 2 } }
+
+rage.cloud:
+  archetype: Rage
+  element: Cloud
+  name: Rise Above
+  description: >-
+    For 3 turns, the user is Aloft and gains 1 Might, and any Debuff applied to them drifts off at
+    the start of their next turn.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: rise_above
+        name: Rise Above
+        kind: Buff
+        element: Cloud
+        description: At the start of the bearer's turn, their Debuffs drift off.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: removeKind, from: bearer, kind: Debuff }
+
+shot.cloud:
+  archetype: Shot
+  element: Cloud
+  name: Hailfall
+  description: Deals 15 damage to every other unit on the field that isn't Leaping or Aloft, the user's allies included.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: none
+  ops:
+    - op: damage
+      to: { filter: allUnits, exclude: actor, where: { not: { has: { unit: it, effect: leaping } } } }
+      amount: 15
+
+snipe.cloud:
+  archetype: Snipe
+  element: Cloud
+  name: Squall Line
+  description: >-
+    On the following turn, deals 30 Piercing damage to every enemy who used a Harmful skill in the
+    meantime, and 15 to the rest. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 1 }
+      effect:
+        id: squall_watch
+        name: Squall Line
+        kind: Debuff
+        element: Cloud
+        description: Using a Harmful skill marks the bearer for the coming squall.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: apply, to: bearer, effect: squall_marked, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: squall_line
+        name: Squall Line (gathering)
+        kind: Neutral
+        element: Cloud
+        interruptible: true
+        description: Breaks at the end of the following turn unless interrupted.
+        onExpire:
+          - op: forEach
+            in: allEnemies
+            do:
+              - op: if
+                cond: { has: { unit: it, effect: squall_marked } }
+                then:
+                  - { op: damage, to: it, amount: 30, type: Piercing }
+                else:
+                  - { op: damage, to: it, amount: 15, type: Piercing }
+          - { op: removeEffect, from: allEnemies, effect: squall_marked }
+
+trap.cloud:
+  archetype: Trap
+  element: Cloud
+  name: Overcast
+  description: >-
+    For 2 turns, each skill target enemy uses gathers a cloud over them. When it ends, 15 damage per
+    cloud Drifts onto them. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: overcast
+        name: Overcast
+        kind: Debuff
+        element: Cloud
+        visibility: hidden
+        stacking: merge
+        description: Each skill the bearer uses gathers a cloud; when this ends, 15 damage per cloud drifts onto them.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: addStacksSelf, amount: 1 }
+        onExpire:
+          - op: if
+            cond: { compare: { value: { effectStacks: true }, atLeast: 2 } }
+            then:
+              - op: apply
+                to: bearer
+                value: { mul: [15, { sum: [{ effectStacks: true }, -1] }] }
+                duration: { raw: 2 }
+                effect: drifting_hit
+
+maneuver.cloud:
+  archetype: Maneuver
+  element: Cloud
+  name: Idle Updraft
+  description: >-
+    The user becomes Invulnerable for 1 turn and begins Rushing. For 3 turns, their Rushing doesn't
+    end after a turn with no skill used.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: rushing }
+    - { op: apply, to: actor, effect: idle_updraft, duration: { enemyTurns: 3 } }
+
+companion.cloud:
+  archetype: Companion
+  element: Cloud
+  name: Sky Whale
+  description: >-
+    Summons a Sky Whale (50 HP) permanently. Rain Down (r): Drift; when it lands, all allies heal 10.
+    Breach (A): Drift; when it lands, 20 damage to all enemies.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sky_whale }
+
+bolt.cloud:
+  archetype: Bolt
+  element: Cloud
+  name: Cirrus Bolt
+  description: Drift. When it lands, deals 30 damage to the enemy with the least HP and Marks them for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Drift]
+  target: none
+  ops:
+    - { op: damage, to: weakestEnemy, amount: 30 }
+    - { op: apply, to: lastDamaged, effect: mark, duration: { enemyTurns: 1 } }
+
+blast.cloud:
+  archetype: Blast
+  element: Cloud
+  name: Cloudburst
+  description: >-
+    Deals 30 damage to all enemies. It doesn't end the user's Leaping, and if they weren't Leaping,
+    they Leap once it resolves.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: wasLeaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
+    - { op: damage, to: targets, amount: 30 }
+    # A fresh Leaping doesn't count this skill's hit, so it outlives the resolution.
+    - op: if
+      cond: { compare: { value: { var: wasLeaping }, atLeast: 1 } }
+      then:
+        - op: if
+          cond: { not: { has: { unit: actor, effect: aloft } } }
+          then:
+            - { op: removeEffect, from: actor, effect: leaping }
+            - { op: apply, to: actor, effect: leaping }
+      else:
+        - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+
+consume.cloud:
+  archetype: Consume
+  element: Cloud
+  name: Evaporate
+  description: >-
+    Deals 5 damage to target enemy, and the user heals as much. Drift: at the start of the user's
+    next turn, it drains them again for 15.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { raw: 2 }
+      effect:
+        id: evaporate
+        name: Evaporate
+        kind: Neutral
+        element: Cloud
+        description: Drains its target again for 15 at the start of the user's next turn.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 15 }
+          - { op: heal, to: bearer, amount: { lastDamage: true } }
+
+summon.cloud:
+  archetype: Summon
+  element: Cloud
+  name: Cloudlings
+  description: >-
+    Summons 2 Cloudlings (10 HP) for 3 turns. Drizzle (nc): Drift, 10 damage. When a Cloudling
+    dies, it breaks into rain: all allies heal 10.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: cloudling, count: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cloudling_rain
+        name: Cloudlings
+        kind: Buff
+        element: Cloud
+        description: When one of the bearer's Cloudlings dies, all their allies heal 10.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [cloudling], mine: true } }
+                then:
+                  - { op: heal, to: allAllies, amount: 10 }
+
+channel.cloud:
+  archetype: Channel
+  element: Cloud
+  name: Gathering Clouds
+  description: >-
+    For 3 turns, deals 10 damage to all enemies at the end of each of the user's turns. While it
+    lasts, every ally is Aloft. Channeled.
+  cost: AI
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: gathering_clouds
+        name: Gathering Clouds
+        kind: Neutral
+        element: Cloud
+        interruptible: true
+        description: Deals 10 damage to all enemies at the end of each of the user's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+    - { op: apply, to: allAllies, effect: aloft, linkTo: gathering_clouds, duration: { enemyTurns: 3 } }
+
+stab.cloud:
+  archetype: Stab
+  element: Cloud
+  name: Sleet Needle
+  description: Deals 10 damage to target enemy. The user spends all their Swiftness, dealing 10 more per stack.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: swift, value: { stacks: { unit: actor, effect: swiftness } } }
+    - { op: removeEffect, from: actor, effect: swiftness }
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [10, { var: swift }] }] } }
+
+ravage.cloud:
+  archetype: Ravage
+  element: Cloud
+  name: Downdraft
+  description: Deals 25 Piercing damage to target enemy. If the user is Aloft, they end it to deal 20 more.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: dive, value: { if: { has: { unit: actor, effect: aloft } }, then: 20, else: 0 } }
+    - { op: removeEffect, from: actor, effect: aloft }
+    - { op: damage, to: primary, amount: { sum: [25, { var: dive }] }, type: Piercing }
+
+mislead.cloud:
+  archetype: Mislead
+  element: Cloud
+  name: Low Ceiling
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and for 2 turns they count as
+    Immobile even if they have mobility skills or buffs. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: low_ceiling_trap
+        name: Low Ceiling
+        kind: Debuff
+        element: Cloud
+        visibility: hidden
+        description: The bearer's Harmful skills are countered, and they count as Immobile for 2 turns.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: low_ceiling, duration: { enemyTurns: 2 } }
+
+stun.cloud:
+  archetype: Stun
+  element: Cloud
+  name: Sleet Squall
+  description: Deals 15 damage to target enemy and Stuns them for 1 turn. The user is Aloft for as long as the target stays Stunned.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 1 } }
+
+dance.cloud:
+  archetype: Dance
+  element: Cloud
+  name: Sky Dancer
+  description: >-
+    For 4 turns, the user is Aloft and gains 1 Focus. At the start of each of their turns, a random
+    enemy loses their mobility buffs.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: sky_dancer
+        name: Sky Dancer
+        kind: Buff
+        element: Cloud
+        description: At the start of the bearer's turn, a random enemy loses their mobility buffs.
+        triggers:
+          - on: turnStart
+            do:
+              - op: forEach
+                in: { randomEnemy: 1 }
+                do:
+                  - { op: removeEffect, from: it, effect: swiftness }
+                  - { op: removeEffect, from: it, effect: rushing }
+                  - { op: removeEffect, from: it, effect: leaping }
+                  - { op: removeEffect, from: it, effect: aloft }
+
+heal.cloud:
+  archetype: Heal
+  element: Cloud
+  name: Rain Check
+  description: >-
+    Target ally heals 15. For 1 turn, each hit they take is held in the cloud and lands at the start
+    of the user's next turn instead, 10 lower.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: rain_check
+        name: Rain Check
+        kind: Buff
+        element: Cloud
+        description: Each hit on the bearer is held and lands at the start of the healer's next turn, 10 lower.
+        modifiers:
+          - { mod: deferHits, status: drifting_hit, reduceBy: 10, delay: 1 }
+
+bless.cloud:
+  archetype: Bless
+  element: Cloud
+  name: Lift
+  description: >-
+    Target ally gains Aloft for 2 turns, above the fray: any Taunt on them ends, and they can't be
+    Taunted while Aloft.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: removeEffect, from: primary, effect: taunt }
+    - { op: apply, to: primary, effect: aloft, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: lift
+        name: Lift
+        kind: Buff
+        element: Cloud
+        description: Can't be Taunted while Aloft.
+        triggers:
+          - on: effectGained
+            effect: taunt
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: aloft } }
+                then:
+                  - { op: removeEffect, from: bearer, effect: taunt }
+
+curse.cloud:
+  archetype: Curse
+  element: Cloud
+  name: Becalmed
+  description: >-
+    For 2 turns, target enemy's skills Drift: each lands at the start of their next turn instead of when it's used.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: becalmed
+        name: Becalmed
+        kind: Debuff
+        element: Cloud
+        description: The bearer's skills Drift, landing at the start of their next turn.
+        modifiers:
+          - { mod: driftSkills }
+
+smite.cloud:
+  archetype: Smite
+  element: Cloud
+  name: Silver Lining
+  description: Deals 20 damage to target enemy. For 1 turn, each ally who damages them loses a Debuff.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: silver_lining
+        name: Silver Lining
+        kind: Debuff
+        element: Cloud
+        description: Each enemy who damages the bearer loses a Debuff.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: removeRandom, from: eventSource, kind: Debuff }
+
+prayer.cloud:
+  archetype: Prayer
+  element: Cloud
+  name: Blessed Rain
+  description: Drift. When it lands, all allies heal 30 and gain 1 Swiftness.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic, Drift]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 30 }
+    - { op: apply, to: targets, effect: swiftness }
+
+cleave.cloud:
+  archetype: Cleave
+  element: Cloud
+  name: Gust Front
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy, and the user gains Aloft for 1
+    turn. If they were already Aloft, the second hit goes to the enemy with the least HP instead.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: actor, effect: aloft } }
+      then:
+        - { op: damage, to: weakestEnemy, amount: 15 }
+      else:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 1 } }
+
+shout.cloud:
+  archetype: Shout
+  element: Cloud
+  name: Gale Warning
+  description: All enemies are Intimidated for 2 turns. Each ally with Swiftness trades 1 of it to begin Rushing.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { filter: allAllies, where: { has: { unit: it, effect: swiftness } } }
+      do:
+        - { op: removeStacks, from: it, effect: swiftness, amount: 1 }
+        - { op: apply, to: it, effect: rushing }
+
+withstand.cloud:
+  archetype: Withstand
+  element: Cloud
+  name: Cloudbank
+  description: The user gains 20 Shield for 2 turns. If it breaks while they're Rushing, they Leap.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cloudbank
+        name: Cloudbank
+        kind: Buff
+        element: Cloud
+        shield: true
+        description: If this Shield breaks while the bearer is Rushing, they Leap.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cloudbank_watch
+        name: Cloudbank (watch)
+        kind: Neutral
+        element: Cloud
+        description: When the Cloudbank breaks while Rushing, the bearer Leaps.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [cloudbank], reason: [depleted] }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: rushing } }
+                then:
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: leap }] }
+
+taunt.cloud:
+  archetype: Taunt
+  element: Cloud
+  name: Looming Cloud
+  description: Taunts target enemy for 2 turns. Each skill they use while Taunted Drifts 10 damage back onto them.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: looming_cloud
+        name: Looming Cloud
+        kind: Debuff
+        element: Cloud
+        description: Each skill the bearer uses while Taunted drifts 10 damage back onto them next turn.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: taunt } }
+                then:
+                  - { op: apply, to: bearer, value: 10, duration: { raw: 2 }, effect: drifting_hit }
+
+titan.cloud:
+  archetype: Titan
+  element: Cloud
+  name: Cloud Titan
+  description: >-
+    For 3 turns, the user gains Immune and Aloft; at the end of each of their turns, 15 damage
+    Drifts onto the enemy who last damaged them.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cloud_titan
+        name: Cloud Titan
+        kind: Buff
+        element: Cloud
+        description: At the end of the bearer's turn, 15 damage drifts onto the enemy who last damaged them.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: removeEffect, from: allEnemies, effect: cloud_titan_mark }
+              - { op: apply, to: eventSource, effect: cloud_titan_mark }
+          - on: turnEnd
+            do:
+              - op: apply
+                to: { filter: allEnemies, where: { has: { unit: it, effect: cloud_titan_mark } } }
+                value: 15
+                duration: { raw: 2 }
+                effect: drifting_hit
+
+# Minion skills.
+
+whale_rain_down:
+  archetype: Minion
+  element: Cloud
+  name: Rain Down
+  description: Drift. When it lands, all allies heal 10.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic, Drift]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 10 }
+
+whale_breach:
+  archetype: Minion
+  element: Cloud
+  name: Breach
+  description: Drift. When it lands, deals 20 damage to all enemies.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Drift]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+
+cloudling_drizzle:
+  archetype: Minion
+  element: Cloud
+  name: Drizzle
+  description: Drift. Deals 10 damage to target enemy when it lands.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Drift]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

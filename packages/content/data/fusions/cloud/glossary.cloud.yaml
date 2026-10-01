@@ -1,0 +1,11 @@
+# Cloud keywords (docs/glossary.md).
+
+aloft:
+  status: aloft
+  forms: [Aloft]
+  element: Cloud
+drift:
+  name: Drift
+  text: "The skill hangs in plain sight and lands at the start of its user's next turn, on the same targets if they're still valid. It still lands if the user is Stunned, but is lost if they die."
+  forms: [Drift, Drifts]
+  element: Cloud

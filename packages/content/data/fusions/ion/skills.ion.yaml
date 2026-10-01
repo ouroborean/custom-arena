@@ -1,0 +1,718 @@
+# The 30 Ion (Lightning + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Suppressed switches a unit's Buffs off (`suppressBuffs`). Blackout (macro `blackout`, with the
+# variable `blackout` turns) shuts down an enemy's minions.
+
+strike.ion:
+  archetype: Strike
+  element: Ion
+  name: Power Cut
+  description: >-
+    Deals 20 damage to target enemy. Until their next skill resolves, they can't apply Buffs: it's cut to its
+    bare effects.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: numb, until: { skillUsed: {} }, duration: { enemyTurns: 2 } }
+
+smash.ion:
+  archetype: Smash
+  element: Ion
+  name: Surge from the Dark
+  description: >-
+    Each ally passes the user their Charge; then 20 damage to target enemy and 10 to their allies, +5 to each
+    hit per Charge passed.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: surge, value: { totalStacks: { in: { filter: allAllies, where: { not: { isActor: it } } }, effect: charged } } }
+    - { op: moveEffects, from: { filter: allAllies, where: { not: { isActor: it } } }, to: actor, effects: [charged] }
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [5, { var: surge }] }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [10, { mul: [5, { var: surge }] }] } }
+
+charge.ion:
+  archetype: Charge
+  element: Ion
+  name: Dark Current
+  description: >-
+    Deals 10 damage to target enemy, who has Blackout until the user's next turn; the user gains 1 Focus.
+    Stealthy.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: set, var: blackout, value: 1 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: blackout }] }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+
+riposte.ion:
+  archetype: Riposte
+  element: Ion
+  name: Null Guard
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Suppressed for 1 turn per Buff
+    they have, up to 3. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: null_guard
+        name: Null Guard
+        kind: Buff
+        element: Ion
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Suppresses its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: if
+                cond: { hasKind: { unit: eventSource, kind: Buff } }
+                then:
+                  - op: apply
+                    to: eventSource
+                    effect: suppressed
+                    duration:
+                      enemyTurns: { if: { compare: { value: { kindCount: { unit: eventSource, kind: Buff } }, atLeast: 3 } }, then: 3, else: { kindCount: { unit: eventSource, kind: Buff } } }
+
+rage.ion:
+  archetype: Rage
+  element: Ion
+  name: Static Fury
+  description: >-
+    For 3 turns, the user gains 2 Might, and each enemy they damage is Suppressed until the user's next turn.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: static_fury
+        name: Static Fury
+        kind: Buff
+        element: Ion
+        description: Enemies the bearer damages are Suppressed until their next turn.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: apply, to: eventTarget, effect: suppressed, duration: { raw: 2 } }
+
+shot.ion:
+  archetype: Shot
+  element: Ion
+  name: Seeker Spark
+  description: >-
+    Deals 15 damage to target enemy, or to the Stealthed enemies instead if there are any, ending their
+    Stealth.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allUnits, where: { and: [{ isEnemy: it }, { has: { unit: it, effect: stealth } }] } } }, atLeast: 1 } }
+      then:
+        # Their Stealth ends first, so the spark can reach them.
+        - op: forEach
+          in: { filter: allUnits, where: { and: [{ isEnemy: it }, { has: { unit: it, effect: stealth } }] } }
+          do:
+            - { op: removeEffect, from: it, effect: stealth }
+            - { op: damage, to: it, amount: 15, bypass: true }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+
+snipe.ion:
+  archetype: Snipe
+  element: Ion
+  name: Ion Cannon
+  description: >-
+    On the following turn, target enemy is Suppressed for 1 turn and takes 40 damage. The target of this skill
+    is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ion_cannon
+        name: Ion Cannon (aiming)
+        kind: Neutral
+        element: Ion
+        visibility: hiddenTarget
+        interruptible: true
+        description: Suppresses and strikes its target at the end of the following turn.
+        onExpire:
+          - { op: apply, to: effectTargets, effect: suppressed, duration: { enemyTurns: 1 } }
+          - { op: damage, to: effectTargets, amount: 40 }
+
+trap.ion:
+  archetype: Trap
+  element: Ion
+  name: EMP Mine
+  description: >-
+    For 3 turns, the first time target enemy summons a minion or starts a channel, they take 15 damage and have
+    Blackout for 3 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: emp_mine
+        name: EMP Mine
+        kind: Debuff
+        element: Ion
+        visibility: hidden
+        description: The bearer's first summon or channel sets it off.
+        triggers:
+          - on: skillResolved
+            when: { archetypes: [Companion, Summon, Channel] }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15, direct: false }
+              - { op: set, var: blackout, value: 3 }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: blackout }] }
+
+maneuver.ion:
+  archetype: Maneuver
+  element: Ion
+  name: Blind Spot
+  description: The user becomes Ghosted and Invulnerable for 1 turn. Stealthy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+companion.ion:
+  archetype: Companion
+  element: Ion
+  name: Shadow Drone
+  description: >-
+    Summons a Shadow Drone (20 HP) permanently, Stealthed. Scramble (r, Stealthy): target enemy is Suppressed
+    for 1 turn. Needle Arc (r): 15 Piercing damage to target enemy; it ends the Drone's Stealth.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: shadow_drone }
+
+bolt.ion:
+  archetype: Bolt
+  element: Ion
+  name: Blackspark
+  description: >-
+    Deals 20 damage to target enemy, who has Blackout for 2 turns; 15 more if they're channeling or have a
+    minion.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if:
+          or:
+            - { channeling: primary }
+            - { compare: { value: { countOf: { filter: allEnemies, where: { kind: { unit: it, is: minion } } } }, atLeast: 1 } }
+        then: 35
+        else: 20
+    - { op: set, var: blackout, value: 2 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: blackout }] }
+
+blast.ion:
+  archetype: Blast
+  element: Ion
+  name: EMP
+  description: >-
+    Deals 20 damage to all enemies, and each is Suppressed for 1 turn, +1 per Charge the user spends on it
+    (all of it).
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: set, var: spent, value: { stacks: { unit: actor, effect: charged } } }
+    - { op: removeEffect, from: actor, effect: charged }
+    - { op: apply, to: targets, effect: suppressed, duration: { enemyTurns: { sum: [1, { var: spent }] } } }
+
+consume.ion:
+  archetype: Consume
+  element: Ion
+  name: Grid Drain
+  description: >-
+    Deals 5 damage to target enemy and 10 to each of their minions, which are blacked out for 1 turn; the user
+    heals for all the damage dealt.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: set, var: drained, value: { lastDamage: true } }
+    - { op: damage, to: { filter: allEnemies, where: { kind: { unit: it, is: minion } } }, amount: 10 }
+    - { op: set, var: drained, value: { sum: [{ var: drained }, { lastDamage: true }] } }
+    - { op: apply, to: { filter: allEnemies, where: { kind: { unit: it, is: minion } } }, effect: blacked_out, duration: { enemyTurns: 1 } }
+    - { op: heal, to: actor, amount: { var: drained } }
+
+summon.ion:
+  archetype: Summon
+  element: Ion
+  name: Jammer
+  description: >-
+    Summons a Jammer (15 HP) for 3 turns; while it stands, every enemy has Blackout. Static Hiss (r): 10 damage
+    to target enemy.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: jammer, duration: { enemyTurns: 3 } }
+
+channel.ion:
+  archetype: Channel
+  element: Ion
+  name: Dark Hum
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, 10 damage to all enemies, plus 10 for each time
+    the user's Charge has turned into energy since it began. Channeled, Stealthy.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled, Stealthy]
+  target: allEnemies
+  ops:
+    - { op: setCounter, name: dark_hum, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dark_hum
+        name: Dark Hum
+        kind: Neutral
+        element: Ion
+        interruptible: true
+        description: Each turn, damage to all enemies that grows with each Charge spent.
+        triggers:
+          - on: energyFromEffect
+            do:
+              - { op: setCounter, name: dark_hum, value: { sum: [{ counter: dark_hum }, 1] } }
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: { sum: [10, { mul: [10, { counter: dark_hum }] }] } }
+
+stab.ion:
+  archetype: Stab
+  element: Ion
+  name: Circuit Breaker
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Suppressed, one of their
+    Buffs also ends.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: suppressed } }
+      then: [{ op: removeRandom, from: primary, kind: Buff }]
+
+ravage.ion:
+  archetype: Ravage
+  element: Ion
+  name: Arc Ambush
+  description: >-
+    Deals 25 Piercing damage to target enemy; it doesn't wake a Sleeping target, and Saps them twice instead.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: sleep } }
+      then:
+        - { op: damage, to: primary, amount: 25, type: Piercing, wakes: false }
+        - { op: apply, to: primary, effect: sapped, stacks: 2 }
+      else:
+        - { op: damage, to: primary, amount: 25, type: Piercing }
+
+mislead.ion:
+  archetype: Mislead
+  element: Ion
+  name: Signal Jam
+  description: >-
+    For 1 turn, if target enemy or one of their minions uses a Harmful skill, it's countered, and all their
+    minions are blacked out for 2 turns. Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: { filter: allEnemies, where: { or: [{ isPrimary: it }, { kind: { unit: it, is: minion } }] } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: signal_jam
+        name: Signal Jam
+        kind: Debuff
+        element: Ion
+        visibility: hidden
+        description: The next Harmful skill is countered, and every enemy minion is blacked out.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: removeEffect, from: allEnemies, effect: signal_jam }
+              - { op: apply, to: { filter: allEnemies, where: { kind: { unit: it, is: minion } } }, effect: blacked_out, duration: { enemyTurns: 2 } }
+
+stun.ion:
+  archetype: Stun
+  element: Ion
+  name: Shutdown
+  description: >-
+    Target enemy falls Asleep for 2 turns; until they wake, they're also Suppressed and have Blackout.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: suppressed, duration: { enemyTurns: 2 } }
+    - { op: set, var: blackout, value: 2 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: blackout }] }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: shutdown
+        name: Shutdown
+        kind: Debuff
+        element: Ion
+        description: When the bearer wakes, the Suppression and Blackout end.
+        triggers:
+          - on: damaged
+            when: { wakes: true }
+            consume: true
+            do:
+              - { op: removeEffect, from: bearer, effect: suppressed }
+              - { op: removeEffect, from: bearer, effect: blackout }
+
+dance.ion:
+  archetype: Dance
+  element: Ion
+  name: Ghost in the Machine
+  description: >-
+    For 3 turns, the user gains 2 Swiftness. A random enemy with Buffs is Suppressed for 2 turns, and the user
+    gains copies of their Buffs.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: forEach
+      in: { randomEnemy: 1, where: { hasKind: { unit: it, kind: Buff } } }
+      do:
+        - { op: copyEffects, from: it, to: actor, kind: Buff }
+        - { op: apply, to: it, effect: suppressed, duration: { enemyTurns: 2 } }
+
+heal.ion:
+  archetype: Heal
+  element: Ion
+  name: Sleep Mode
+  description: >-
+    Target ally heals 15 and falls Asleep for 2 turns; at the start of each of their turns while Asleep, they
+    heal 15 and gain 1 Charge.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sleep_mode
+        name: Sleep Mode
+        kind: Buff
+        element: Ion
+        description: While Asleep, heals 15 and gains 1 Charge at the start of each turn.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sleep } }
+                then:
+                  - { op: heal, to: bearer, amount: 15 }
+                  - { op: apply, to: bearer, effect: charged }
+
+bless.ion:
+  archetype: Bless
+  element: Ion
+  name: Cloaking Field
+  description: Target ally gains Stealth. For 2 turns, Helpful skills they use don't break it.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cloaking_field
+        name: Cloaking Field
+        kind: Buff
+        element: Ion
+        description: The bearer's Helpful skills are Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy], skillsWith: [Helpful] }
+
+curse.ion:
+  archetype: Curse
+  element: Ion
+  name: Signal Loss
+  description: Target enemy is Confused for 2 turns, and for as long, their skills can't target their own allies.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: signal_loss
+        name: Signal Loss
+        kind: Debuff
+        element: Ion
+        description: The bearer's skills can't target their own allies.
+        modifiers:
+          - { mod: targetExclude, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }
+
+smite.ion:
+  archetype: Smite
+  element: Ion
+  name: Null Brand
+  description: >-
+    Deals 15 damage to target enemy, who is Suppressed for 1 turn; allies who damage them meanwhile gain 1
+    Charge per Buff they have.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: suppressed, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: null_brand
+        name: Null Brand
+        kind: Debuff
+        element: Ion
+        description: The applier's allies who damage the bearer gain 1 Charge per Buff the bearer has.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: apply, to: eventSource, effect: charged, stacks: { kindCount: { unit: bearer, kind: Buff } } }
+
+prayer.ion:
+  archetype: Prayer
+  element: Ion
+  name: Lights Out
+  description: >-
+    All allies heal 20. Every enemy has Blackout for 2 turns, and allies heal 10 more for each enemy minion or
+    channel it pauses.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - op: heal
+      to: targets
+      amount:
+        sum:
+          - 20
+          - mul:
+              - 10
+              - sum:
+                  - { countOf: { filter: allEnemies, where: { kind: { unit: it, is: minion } } } }
+                  - { countOf: { filter: allEnemies, where: { channeling: it } } }
+    - { op: set, var: blackout, value: 2 }
+    - { op: forEach, in: { filter: allEnemies, where: { kind: { unit: it, is: character } } }, do: [{ op: macro, id: blackout }] }
+
+cleave.ion:
+  archetype: Cleave
+  element: Ion
+  name: Pulse Wave
+  description: >-
+    Deals 20 damage to target enemy and 15 to another enemy with Buffs (any other, if none), who is Suppressed
+    for 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { hasKind: { unit: it, kind: Buff } } } }, atLeast: 1 } }
+      then:
+        - op: forEach
+          in: { randomEnemy: 1, exclude: primary, where: { hasKind: { unit: it, kind: Buff } } }
+          do:
+            - { op: damage, to: it, amount: 15 }
+            - { op: apply, to: it, effect: suppressed, duration: { enemyTurns: 1 } }
+      else:
+        - op: forEach
+          in: { randomEnemy: 1, exclude: primary }
+          do:
+            - { op: damage, to: it, amount: 15 }
+            - { op: apply, to: it, effect: suppressed, duration: { enemyTurns: 1 } }
+
+shout.ion:
+  archetype: Shout
+  element: Ion
+  name: Jammed Frequency
+  description: All enemies are Intimidated for 2 turns, and every skill of theirs goes 1 turn further onto cooldown.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: adjustCooldowns, to: targets, by: 1 }
+
+withstand.ion:
+  archetype: Withstand
+  element: Ion
+  name: Faraday Cage
+  description: The user gains 25 Shield for 1 turn. While it holds, any Sapped they would gain becomes Charge instead.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: faraday_cage
+        name: Faraday Cage
+        kind: Buff
+        element: Ion
+        shield: true
+        description: A Shield; while it holds, Sapped the bearer gains becomes Charge.
+        triggers:
+          - on: effectGained
+            effect: sapped
+            do:
+              - { op: removeEffect, from: bearer, effect: sapped }
+              - { op: apply, to: bearer, effect: charged }
+
+taunt.ion:
+  archetype: Taunt
+  element: Ion
+  name: Decoy Signal
+  description: >-
+    Creates a Signal Ghost (10 HP); target enemy is Taunted by it for 2 turns. If they destroy it, they have
+    Blackout for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: signal_ghost }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
+
+titan.ion:
+  archetype: Titan
+  element: Ion
+  name: Null Colossus
+  description: >-
+    For 3 turns, the user gains 3 Armor, and every other unit's Buffs, allies' included, are Suppressed.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: { filter: allUnits, where: { not: { isActor: it } } }, effect: suppressed, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+shadow_drone_scramble:
+  archetype: Minion
+  element: Ion
+  name: Scramble
+  description: Target enemy is Suppressed for 1 turn. Stealthy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: suppressed, duration: { enemyTurns: 1 } }
+
+shadow_drone_needle_arc:
+  archetype: Minion
+  element: Ion
+  name: Needle Arc
+  description: Deals 15 Piercing damage to target enemy; it ends the Drone's Stealth.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, type: Piercing }
+
+jammer_static_hiss:
+  archetype: Minion
+  element: Ion
+  name: Static Hiss
+  description: Deals 10 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

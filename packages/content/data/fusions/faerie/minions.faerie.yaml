@@ -1,0 +1,30 @@
+# Faerie minions.
+
+pixie:
+  name: Pixie
+  hp: 25
+  passives:
+    - id: pixie_hide
+      name: Pixie
+      kind: Neutral
+      element: Faerie
+      description: Untargetable by enemies while any enemy is Charmed.
+      modifiers:
+        - { mod: untargetable, by: enemies, bypassable: true, if: { any: { in: allEnemies, cond: { has: { unit: it, effect: charmed } } } } }
+  skills: [pixie_befuddle]
+
+sprite:
+  name: Sprite
+  hp: 10
+  passives:
+    - id: sprite_mischief
+      name: Sprite
+      kind: Neutral
+      element: Faerie
+      description: An enemy who damages it is Charmed for 1 turn.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - { op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }
+  skills: [sprite_pinch]

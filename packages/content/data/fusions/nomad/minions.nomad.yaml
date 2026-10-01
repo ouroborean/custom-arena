@@ -1,0 +1,29 @@
+# Nomad minions.
+
+pack_camel:
+  name: Pack Camel
+  hp: 50
+  skills: [pack_camel_kick]
+
+pack_mule:
+  name: Pack Mule
+  hp: 25
+  onSummon:
+    - { op: setCounter, name: mule_pack, value: 0 }
+  passives:
+    - id: pack_mule_saddlebags
+      name: Saddlebags
+      kind: Neutral
+      element: Nomad
+      description: At the end of its owner's turn, stores 1 unspent energy (max 3); its owner gets it back when it leaves.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { and: [{ compare: { value: { energy: true }, atLeast: 1 } }, { compare: { value: { counter: mule_pack }, atMost: 2 } }] }
+              then:
+                - { op: spendEnergy, amount: 1 }
+                - { op: setCounter, name: mule_pack, value: { sum: [{ counter: mule_pack }, 1] } }
+  onDeath:
+    - { op: repeat, times: { counter: mule_pack }, do: [{ op: gainEnergy, amount: 1 }] }
+  skills: []

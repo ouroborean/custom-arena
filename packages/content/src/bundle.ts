@@ -2,6 +2,7 @@
 // also run in the browser or at server boot.
 
 import {
+  fusionKey,
   scripts,
   variantId,
   type ClassDef,
@@ -9,6 +10,8 @@ import {
   type AchievementDef,
   type ChapterDef,
   type ContentBundle,
+  type FusionDef,
+  type GlossaryDef,
   type EconomyDef,
   type EncounterDef,
   type TutorialDef,
@@ -27,6 +30,8 @@ import {
   economySchema,
   effectDefSchema,
   encounterFileEntry,
+  fusionFileEntry,
+  glossaryFileEntry,
   tutorialFileEntry,
   itemFileEntry,
   macroFileEntry,
@@ -50,6 +55,10 @@ export interface RawContent {
   achievements: Record<string, unknown>;
   /** Tutorial coach scripts by encounter id. */
   tutorial: Record<string, unknown>;
+  /** Fusion elements by id (fusions*.yaml). */
+  fusions: Record<string, unknown>;
+  /** Keywords by id (glossary*.yaml). */
+  glossary: Record<string, unknown>;
 }
 
 export interface ContentIssue {
@@ -144,9 +153,11 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const chapters = parseEntries('story', raw.story ?? {}, chapterFileEntry, issues) as Record<string, ChapterDef>;
   const achievements = parseEntries('achievements', raw.achievements ?? {}, achievementFileEntry, issues) as Record<string, AchievementDef>;
   const tutorial = parseEntries('tutorial', raw.tutorial ?? {}, tutorialFileEntry, issues, true) as Record<string, TutorialDef>;
+  const fusions = parseEntries('fusions', raw.fusions ?? {}, fusionFileEntry, issues) as Record<string, FusionDef>;
+  const glossary = resolveGlossary(parseEntries('glossary', raw.glossary ?? {}, glossaryFileEntry, issues), statuses, issues);
 
   const version = contentHash(
-    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial }),
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial, fusions, glossary }),
   );
   const bundle: ContentBundle = {
     version,
@@ -162,11 +173,15 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     chapters,
     achievements,
     tutorial,
+    fusions,
+    glossary,
   };
   issues.push(
     ...checkReferences(bundle),
     ...lintSkills(bundle),
     ...checkElements(bundle),
+    ...checkFusions(bundle),
+    ...checkGlossary(bundle),
     ...checkEconomy(bundle),
     ...checkSinglePlayer(bundle),
   );
@@ -322,14 +337,13 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
     }
   }
 
-  // Items: granted and targeted skills are base skills, elements exist, classes exist.
+  // Items: granted skills are base skills, elements exist, classes exist.
   const elements = new Set(Object.values(b.skills).map((s) => s.element));
   for (const it of Object.values(b.items)) {
     const where = `items.${it.id}`;
     for (const sk of it.skills) if (b.skills[sk]?.element !== 'None') err(where, `"${sk}" isn't a base skill`);
     for (const inf of it.infusions) {
       if (!elements.has(inf.element) || inf.element === 'None') err(where, `unknown element "${inf.element}"`);
-      if (inf.target && b.skills[inf.target]?.element !== 'None') err(where, `infusion target "${inf.target}" isn't a base skill`);
     }
     if (it.classId && !b.classes[it.classId]) err(where, `unknown class "${it.classId}"`);
     if (it.passiveEffect && !b.statuses[it.passiveEffect]) err(where, `unknown passive effect "${it.passiveEffect}"`);
@@ -382,6 +396,84 @@ export function checkElements(b: ContentBundle): ContentIssue[] {
   return issues;
 }
 
+/** Glossary entries with their defaults filled in from the statuses they explain. */
+function resolveGlossary(
+  entries: Record<string, z.output<typeof glossaryFileEntry> & { id: string }>,
+  statuses: Record<string, EffectDef>,
+  issues: ContentIssue[],
+): Record<string, GlossaryDef> {
+  const out: Record<string, GlossaryDef> = {};
+  for (const e of Object.values(entries)) {
+    const where = `glossary.${e.id}`;
+    const status = e.status ? statuses[e.status] : undefined;
+    if (e.status && !status) issues.push({ level: 'error', where, message: `unknown status "${e.status}"` });
+    const name = e.name ?? status?.name;
+    const text = e.text ?? status?.description;
+    if (!name || !text) {
+      issues.push({ level: 'error', where, message: 'needs a name and text, or a status that has them' });
+      continue;
+    }
+    out[e.id] = {
+      id: e.id,
+      name,
+      text,
+      forms: e.forms ?? [name],
+      ...(e.element ? { element: e.element } : {}),
+      ...(e.status ? { status: e.status } : {}),
+    };
+  }
+  return out;
+}
+
+/** Keywords: each word form belongs to one keyword, and elements exist. */
+export function checkGlossary(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const elements = new Set(Object.values(b.skills).map((s) => s.element));
+  const owner = new Map<string, string>();
+  for (const g of Object.values(b.glossary)) {
+    const where = `glossary.${g.id}`;
+    if (g.element && !elements.has(g.element)) issues.push({ level: 'error', where, message: `unknown element "${g.element}"` });
+    for (const f of g.forms) {
+      const other = owner.get(f);
+      if (other) issues.push({ level: 'error', where, message: `"${f}" already means ${other}` });
+      owner.set(f, g.id);
+    }
+  }
+  return issues;
+}
+
+/**
+ * Fusions (GDD §7.3): each is made from two base elements, no pair makes two fusions, and a fusion
+ * isn't named like a base element. Every pair of base elements (one element twice included) should
+ * have a fusion: a gap is a warning, since the game only needs them once skills have fusion variants.
+ */
+export function checkFusions(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  // Base elements: every skill element except None and the fusions' own names (fusion kits). A
+  // name that some pair is made from stays a base element, so a fusion can't hide one.
+  const fusionNames = new Set(Object.values(b.fusions).map((f) => f.name));
+  const pairElements = new Set(Object.values(b.fusions).flatMap((f) => f.elements));
+  const elements = [...new Set(Object.values(b.skills).map((s) => s.element))]
+    .filter((e) => e !== 'None' && (!fusionNames.has(e) || pairElements.has(e)))
+    .sort();
+  const seen = new Map<string, string>();
+  for (const f of Object.values(b.fusions)) {
+    const where = `fusions.${f.id}`;
+    for (const id of f.passives ?? []) if (!b.statuses[id]) issues.push({ level: 'error', where, message: `unknown passive status "${id}"` });
+    for (const el of f.elements) if (!elements.includes(el)) issues.push({ level: 'error', where, message: `unknown element "${el}"` });
+    if (elements.includes(f.name)) issues.push({ level: 'error', where, message: `"${f.name}" is a base element's name` });
+    const key = fusionKey(f.elements[0], f.elements[1]);
+    const other = seen.get(key);
+    if (other) issues.push({ level: 'error', where, message: `${f.elements.join(' + ')} already makes ${other}` });
+    seen.set(key, f.name);
+  }
+  if (Object.keys(b.fusions).length > 0) {
+    const missing = elements.flatMap((a, i) => elements.slice(i).filter((c) => !seen.has(fusionKey(a, c))).map((c) => `${a} + ${c}`));
+    if (missing.length) issues.push({ level: 'warning', where: 'fusions', message: `no fusion for ${missing.join(', ')}` });
+  }
+  return issues;
+}
+
 // ---------------------------------------------------------------- lint
 
 // Misspellings from the sheets, and retired names ("Bolster" → Bless, "Guardian" class → Paladin).
@@ -403,17 +495,28 @@ export function lintSkills(b: ContentBundle): ContentIssue[] {
     const where = `skills.${s.id}`;
     const strat = s.tags.includes('Strategic');
     if (strat === s.tags.includes('NonStrategic')) err(where, 'must be tagged exactly one of Strategic / NonStrategic (Q4)');
-    if (s.tags.includes('Harmful') === s.tags.includes('Helpful')) err(where, 'must be tagged exactly one of Harmful / Helpful');
+    // Divine's Radiant skills are neither: their target decides (Harmful on enemies, Helpful on allies).
+    if (s.tags.includes('Radiant')) {
+      if (s.tags.includes('Harmful') || s.tags.includes('Helpful')) err(where, 'a Radiant skill is neither Harmful nor Helpful');
+      if (s.target !== 'any') err(where, 'a Radiant skill targets any unit');
+    } else if (s.tags.includes('Harmful') === s.tags.includes('Helpful')) err(where, 'must be tagged exactly one of Harmful / Helpful');
     if ((s.target === 'enemy' || s.target === 'allEnemies') && s.tags.includes('Helpful')) {
       warn(where, 'targets enemies but is tagged Helpful');
     }
 
     // Strategic = "not explicitly directly damaging": compare the tag with the skill's direct damage.
     let direct = false;
-    walkOps(s.ops, (op, inInline) => {
-      if (op.op !== 'damage') return;
-      if (!inInline && op.direct !== false) direct = true;
-    });
+    const scanDirect = (ops: readonly Op[], seen: Set<string>) =>
+      walkOps(ops, (op, inInline) => {
+        // Macros count as part of the skill (Divine's Radiant halves live in macros).
+        if (op.op === 'macro' && !inInline && !seen.has(op.id)) {
+          seen.add(op.id);
+          scanDirect(b.macros[op.id] ?? [], seen);
+        }
+        if (op.op !== 'damage') return;
+        if (!inInline && op.direct !== false) direct = true;
+      });
+    scanDirect(s.ops, new Set());
     // Delayed payloads (onExpire) of the skill's own effects are direct too.
     walkOps(s.ops, (op) => {
       if (op.op === 'apply' && typeof op.effect !== 'string') {

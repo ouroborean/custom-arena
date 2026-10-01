@@ -1,0 +1,35 @@
+# Ritual minions.
+
+shadow_acolyte:
+  name: Shadow Acolyte
+  hp: 30
+  skills: [acolyte_chant, acolyte_flame_lash]
+
+tended_wick:
+  name: Wick
+  hp: 15
+  onSummon:
+    - { op: setCounter, name: wick, value: 10 }
+  passives:
+    - id: tended_wick_flame
+      name: Wick
+      kind: Neutral
+      element: Ritual
+      description: At the end of its owner's turn, deals damage to a random enemy (10, doubling each time); any damage to it resets it to 10.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: { counter: wick } }
+            - { op: setCounter, name: wick, value: { mul: [2, { counter: wick }] } }
+        - on: damaged
+          do:
+            - { op: setCounter, name: wick, value: 10 }
+  skills: []
+
+effigy:
+  name: Effigy
+  hp: 10
+  # If it's destroyed, its creator's Rite completes at once.
+  onDeath:
+    - { op: signal, name: rite_complete }
+  skills: []

@@ -1,0 +1,130 @@
+# Divine actions: each Radiant skill's enemy part and ally part, acting on `it` (use inside forEach).
+
+lightray_enemy_it:
+  - { op: damage, to: it, amount: 15 }
+  - op: apply
+    to: it
+    duration: { raw: 2 }
+    effect:
+      id: lightray_enemy
+      name: Lightray
+      kind: Debuff
+      element: Divine
+      description: Enemies who damage the bearer heal 5.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - { op: heal, to: eventSource, amount: 5 }
+
+lightray_ally_it:
+  - { op: heal, to: it, amount: 15 }
+  - op: apply
+    to: it
+    duration: { raw: 2 }
+    effect:
+      id: lightray_ally
+      name: Lightray
+      kind: Buff
+      element: Divine
+      description: Enemies who damage the bearer are Condemned.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - { op: apply, to: eventSource, effect: condemned }
+
+scales_enemy_it:
+  - op: damage
+    to: it
+    amount: { if: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { hp: actor }] }] }, atLeast: 1 } }, then: 20, else: 10 }
+
+scales_ally_it:
+  - op: heal
+    to: it
+    amount: { if: { compare: { value: { sum: [{ hp: actor }, { mul: [-1, { hp: it }] }] }, atLeast: 1 } }, then: 20, else: 10 }
+
+intervention_enemy_it:
+  - op: apply
+    to: it
+    duration: { enemyTurns: 1 }
+    effect:
+      id: intervention_enemy
+      name: Divine Intervention
+      kind: Debuff
+      element: Divine
+      visibility: hidden
+      description: The bearer's first Harmful skill is countered, and they're Condemned.
+      triggers:
+        - on: skillUsed
+          when: { harmful: true }
+          intercept: counter
+          consume: true
+          do:
+            - { op: apply, to: bearer, effect: condemned }
+
+intervention_ally_it:
+  - op: apply
+    to: it
+    duration: { enemyTurns: 1 }
+    effect:
+      id: intervention_ally
+      name: Divine Intervention
+      kind: Buff
+      element: Divine
+      visibility: hidden
+      description: The first Harmful skill used on the bearer is countered, and its user is Condemned.
+      triggers:
+        - on: skillTargeted
+          when: { harmful: true }
+          intercept: counter
+          consume: true
+          do:
+            - { op: apply, to: eventSource, effect: condemned }
+
+awe_enemy_it:
+  - op: if
+    cond: { has: { unit: it, effect: condemned } }
+    then:
+      - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
+    else:
+      - { op: apply, to: it, effect: condemned }
+
+awe_ally_it:
+  - { op: removeEffect, from: it, effect: stun }
+  - { op: removeEffect, from: it, effect: stun_ns }
+  - { op: removeEffect, from: it, effect: stun_s }
+
+consecrate_ally_it:
+  - { op: apply, to: it, effect: exalted, duration: { ownTurns: 1 } }
+  - { op: apply, to: it, effect: might, duration: { enemyTurns: 3 } }
+
+consecrate_enemy_it:
+  - { op: removeEffect, from: it, effect: anointed }
+  - { op: removeEffect, from: it, effect: exalted }
+  - op: apply
+    to: it
+    duration: { enemyTurns: 2 }
+    effect:
+      id: deconsecrated
+      name: Deconsecrated
+      kind: Debuff
+      element: Divine
+      description: Can't gain Anointed or Exalted.
+      triggers:
+        - on: effectGained
+          effect: anointed
+          do: [{ op: removeEffect, from: bearer, effect: anointed }]
+        - on: effectGained
+          effect: exalted
+          do: [{ op: removeEffect, from: bearer, effect: exalted }]
+
+anathema_enemy_it:
+  - { op: apply, to: it, effect: condemned, duration: { enemyTurns: 2 } }
+  - { op: apply, to: it, effect: sanctify, duration: { enemyTurns: 2 } }
+
+anathema_ally_it:
+  - { op: removeEffect, from: it, effect: condemned }
+  - { op: removeEffect, from: it, effect: weakness }
+  - { op: removeEffect, from: it, effect: vulnerable }
+  - { op: removeEffect, from: it, effect: confusion }

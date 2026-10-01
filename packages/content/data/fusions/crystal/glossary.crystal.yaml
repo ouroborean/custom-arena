@@ -1,0 +1,10 @@
+# Crystal keywords (docs/glossary.md).
+
+brittle:
+  status: brittle
+  forms: [Brittle]
+  element: Crystal
+diamond:
+  status: diamond
+  forms: [Diamond]
+  element: Crystal

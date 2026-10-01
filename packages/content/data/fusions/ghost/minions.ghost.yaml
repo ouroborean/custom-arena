@@ -1,0 +1,15 @@
+# Ghost minions.
+
+poltergeist:
+  name: Poltergeist
+  hp: 30
+  passives: [spectral]
+  skills: [poltergeist_rattle]
+
+wraith:
+  name: Wraith
+  hp: 10
+  # When it dies, its killer is Haunted for 2 turns.
+  onDeath:
+    - { op: apply, to: lastAttacker, effect: haunt, duration: { enemyTurns: 2 } }
+  skills: [wraith_cold_grasp]

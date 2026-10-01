@@ -1,7 +1,10 @@
 // Online play from Home: casual/ranked queues, private matches by code, and resuming a match.
 
 import { useEffect, useState } from 'react';
+import { formatAmounts } from '@arena/meta';
 import { api, type Ratings } from '../api.js';
+import { content } from '../content.js';
+import { formatDate, useT } from '../i18n/index.js';
 import { online, serverNow, useOnline } from '../match/online.js';
 import { useStore } from '../store.js';
 
@@ -9,6 +12,49 @@ const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
+
+/** The ranked season line: the season and when it ends, the player's standing, the last season reward. */
+function SeasonLine({ ratings }: { ratings: Ratings }) {
+  const t = useT();
+  const { season, next, ranked, lastReward } = ratings;
+  const last =
+    lastReward &&
+    t('season.lastReward', {
+      season: lastReward.seasonName,
+      tier: lastReward.tier,
+      rating: lastReward.rating,
+      reward: [formatAmounts(content, lastReward.currency), ...lastReward.items.map((i) => content.items[i]?.name ?? i)].join(' · '),
+    });
+  return (
+    <div className="season-line">
+      {season ? (
+        <>
+          <b>{season.end ? t('season.ends', { season: season.name, date: formatDate(season.end) }) : t('season.open', { season: season.name })}</b>
+          {ranked && (
+            <>
+              <span>
+                {t('season.rating', { rating: ranked.rating, rd: ranked.rd, wins: ranked.wins, games: ranked.games })}
+              </span>
+              <span className={`season-tier${ranked.tier ? '' : ' none'}`}>
+                {ranked.placementGames > 0
+                  ? t('season.placement', { count: ranked.placementGames })
+                  : ranked.tier
+                    ? t('season.tier', { tier: ranked.tier.name })
+                    : t('season.unranked')}
+              </span>
+            </>
+          )}
+        </>
+      ) : (
+        <b>
+          {t('season.between')}
+          {next ? ` · ${t('season.next', { season: next.name, date: formatDate(next.start) })}` : ''}
+        </b>
+      )}
+      {last && <span className="muted">{last}</span>}
+    </div>
+  );
+}
 
 function Waiting({ since }: { since: number }) {
   const [, tick] = useState(0);
@@ -44,15 +90,11 @@ export function OnlinePanel({ teamReady }: { teamReady: boolean }) {
         <span className={`conn-dot ${status}`} title={status} />
         <span className="muted">{status === 'ready' ? 'Connected' : status === 'connecting' ? 'Connecting…' : 'Offline'}</span>
         <span style={{ flex: 1 }} />
-        {ratings && (
-          <span className="muted">
-            Ranked <b className="rating">{ratings.ranked.rating}</b> ±{ratings.ranked.rd} · {ratings.ranked.wins}/{ratings.ranked.games} wins
-          </span>
-        )}
         <button type="button" className="btn small" onClick={() => go('history')}>
           Match history
         </button>
       </div>
+      {ratings && <SeasonLine ratings={ratings} />}
 
       {resumable && (
         <div className="online-row">
@@ -93,7 +135,12 @@ export function OnlinePanel({ teamReady }: { teamReady: boolean }) {
           <button type="button" className="btn primary" disabled={!ready || !teamReady} onClick={() => online.joinQueue('casual')}>
             Casual
           </button>
-          <button type="button" className="btn primary" disabled={!ready || !teamReady} onClick={() => online.joinQueue('ranked')}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!ready || !teamReady || ratings?.season === null}
+            onClick={() => online.joinQueue('ranked')}
+          >
             Ranked
           </button>
           <span className="divider" />

@@ -1,0 +1,18 @@
+# Curse minions.
+
+black_cat:
+  name: Black Cat
+  hp: 25
+  onSummon:
+    - { op: apply, to: actor, effect: cat_curse }
+  skills: [cat_scratch]
+
+hex_shade:
+  name: Hex Shade
+  hp: 15
+  skills: [shade_whisper]
+
+poppet:
+  name: Poppet
+  hp: 10
+  skills: []

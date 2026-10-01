@@ -2,13 +2,13 @@
 // command log; the engine rebuilds everything else deterministically (GDD §10.5).
 
 import { ENGINE_VERSION, type MatchRecord, type PlayerId } from '@arena/engine';
-import { displayRating } from '@arena/meta';
+import { displayRating, nextSeason, seasonAt, seasonTier } from '@arena/meta';
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
-import { matchActions, matches, matchRewards, users } from '../db/schema.js';
-import { RANKED_SEASON, ratingOf } from '../match/store.js';
+import { matchActions, matches, matchRewards, seasonRewards, users } from '../db/schema.js';
+import { queueRatingOf, ratingOf } from '../match/store.js';
 
 export function matchRoutes(ctx: AppContext) {
   return async (app: FastifyInstance) => {
@@ -76,12 +76,41 @@ export function matchRoutes(ctx: AppContext) {
       return { record, seat: (m.p0User === me ? 0 : 1) as PlayerId, playable: m.engineVersion === ENGINE_VERSION && m.contentVersion === ctx.content.version };
     });
 
+    /** The running ranked season and the player's standing in it (docs/live-ops.md §4). */
     app.get('/api/ratings', async (req) => {
-      const [ranked, casual] = await Promise.all([ratingOf(ctx.db, req.user!.id, RANKED_SEASON), ratingOf(ctx.db, req.user!.id, 'casual')]);
+      const me = req.user!.id;
+      const now = ctx.clock.now();
+      const season = seasonAt(ctx.seasons, now);
+      const next = nextSeason(ctx.seasons, now);
+      const [ranked, casual, [last]] = await Promise.all([
+        season ? queueRatingOf(ctx.db, ctx.seasons, me, season.id) : null,
+        ratingOf(ctx.db, me, 'casual'),
+        ctx.db.select().from(seasonRewards).where(eq(seasonRewards.userId, me)).orderBy(desc(seasonRewards.createdAt)).limit(1),
+      ]);
+      const tier = ranked && seasonTier(ctx.seasons, ranked);
+      const seasonName = (id: string) => ctx.seasons.seasons.find((s) => s.id === id)?.name ?? id;
       return {
-        season: RANKED_SEASON,
-        ranked: { rating: Math.round(ranked.rating), rd: Math.round(ranked.rd), display: displayRating(ranked), games: ranked.games, wins: ranked.wins },
+        season: season && { id: season.id, name: season.name, start: season.start, end: season.end ?? null },
+        next: next && { id: next.id, name: next.name, start: next.start },
+        ranked: ranked && {
+          rating: Math.round(ranked.rating),
+          rd: Math.round(ranked.rd),
+          display: displayRating(ranked),
+          games: ranked.games,
+          wins: ranked.wins,
+          /** Games still needed to place in a tier. */
+          placementGames: Math.max(0, ctx.seasons.minGames - ranked.games),
+          tier: tier && { id: tier.id, name: tier.name },
+        },
         casual: { games: casual.games, wins: casual.wins },
+        lastReward: last && {
+          season: last.seasonId,
+          seasonName: seasonName(last.seasonId),
+          tier: ctx.seasons.tiers.find((t) => t.id === last.tier)?.name ?? last.tier,
+          rating: last.rating,
+          currency: last.currency,
+          items: last.items,
+        },
       };
     });
   };

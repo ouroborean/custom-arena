@@ -4,7 +4,7 @@
 // Crafting and salvage only take unequipped items.
 
 import { pick, seedRng } from '@arena/engine';
-import { craft, resolveLoadout, equippedItems, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
+import { craft, EQUIPMENT_SLOTS, resolveLoadout, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -16,19 +16,11 @@ import { credit, inTransaction, spend, walletOf } from '../economy.js';
 
 type CharacterRow = typeof characters.$inferSelect;
 
-const Equipped = z.strictObject({
-  itemId: z.string(),
-  instanceId: z.uuid(),
-  targets: z.array(z.string().nullable()).max(2).optional(),
-  unused: z.array(z.number().int().min(0).max(1)).max(2).optional(),
-});
+const Equipped = z.strictObject({ itemId: z.string(), instanceId: z.uuid() });
+/** Four slots, any item type (GDD §8.3), and which skills the items' infusions go on (§7.3). */
 export const LoadoutSchema = z.strictObject({
-  mainHand: Equipped.optional(),
-  offHand: Equipped.optional(),
-  twoHanded: Equipped.optional(),
-  body: Equipped.optional(),
-  accessories: z.array(Equipped).max(5).optional(),
-  sockets: z.array(Equipped).max(3).optional(),
+  items: z.array(Equipped).max(EQUIPMENT_SLOTS),
+  infusions: z.array(z.strictObject({ skill: z.string(), element: z.string() })).max(EQUIPMENT_SLOTS * 2),
 });
 
 export const recordOf = (c: CharacterRow): CharacterRecord => ({
@@ -47,7 +39,7 @@ export function resolveStored(ctx: AppContext, c: CharacterRow): ResolvedLoadout
 
 /** Full validation of a loadout the user wants to save on a character; throws 400 with problems. */
 export async function checkLoadout(ctx: AppContext, userId: string, c: CharacterRow, loadout: Loadout): Promise<ResolvedLoadout> {
-  const eqs = equippedItems(loadout).map((x) => x.eq);
+  const eqs = loadout.items;
   const ids = eqs.map((e) => e.instanceId!).filter(Boolean);
   const owned = ids.length
     ? await ctx.db
@@ -67,7 +59,7 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
     .from(characters)
     .where(and(eq(characters.userId, userId), ne(characters.id, c.id)));
   for (const o of others) {
-    for (const { eq: e } of equippedItems(o.loadout)) {
+    for (const e of o.loadout.items ?? []) {
       if (e.instanceId && ids.includes(e.instanceId)) problems.push(`${ctx.content.items[e.itemId]?.name ?? e.itemId} is equipped on ${o.name}`);
     }
   }
@@ -81,7 +73,7 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
 async function equippedOn(db: Db, userId: string): Promise<Map<string, string>> {
   const chars = await db.select({ id: characters.id, loadout: characters.loadout }).from(characters).where(eq(characters.userId, userId));
   const out = new Map<string, string>();
-  for (const c of chars) for (const { eq: e } of equippedItems(c.loadout)) if (e.instanceId) out.set(e.instanceId, c.id);
+  for (const c of chars) for (const e of c.loadout.items ?? []) if (e.instanceId) out.set(e.instanceId, c.id);
   return out;
 }
 

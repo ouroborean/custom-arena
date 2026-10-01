@@ -7,6 +7,7 @@ import {
   type ChapterDef,
   type ClassDef,
   type EncounterDef,
+  type FusionDef,
   type ItemDef,
   type TutorialDef,
   type Cond,
@@ -73,6 +74,17 @@ const namedSelector = z.enum([
   'eventPrimary',
   'allUnits',
   'lastSummoned',
+  'weakestAlly',
+  'weakestEnemy',
+  'strongestEnemy',
+  'lastAttacker',
+  'primaryLastAttacker',
+  'summonerLastAttacker',
+  'primaryPartners',
+  'bearerAllies',
+  'randomBearerAlly',
+  'randomAnyEnemy',
+  'weakestOtherAlly',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -86,7 +98,7 @@ export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
 
 export const condSchema: z.ZodType<Cond> = z.lazy(() =>
   z.union([
-    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string(), mine: z.boolean().optional() }) }),
+    z.strictObject({ has: z.strictObject({ unit: selectorSchema, effect: z.string(), mine: z.boolean().optional(), exact: z.boolean().optional() }) }),
     z.strictObject({ hasFromArchetype: z.strictObject({ unit: selectorSchema, archetype: z.string(), mine: z.boolean().optional() }) }),
     z.strictObject({ hpAtMost: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
     z.strictObject({ hpAbove: z.strictObject({ unit: selectorSchema, value: z.number() }) }),
@@ -96,6 +108,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ kind: z.strictObject({ unit: selectorSchema, is: z.enum(['character', 'minion']) }) }),
     z.strictObject({ check: z.strictObject({ cond: z.string(), unit: selectorSchema }) }),
     z.strictObject({ isActor: selectorSchema }),
+    z.strictObject({ isPrimary: selectorSchema }),
     z.strictObject({ isEnemy: selectorSchema }),
     z.strictObject({
       minion: z.strictObject({
@@ -106,13 +119,16 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
       }),
     }),
     z.strictObject({ isEventTarget: selectorSchema }),
+    z.strictObject({ eventTargetIs: selectorSchema }),
     z.strictObject({ appliedFromArchetype: z.string() }),
-    z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1) }) }),
+    z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1).optional(), effects: z.array(z.string()).min(1).optional() }) }),
     z.strictObject({
       eventSkill: z.strictObject({
         archetypes: z.array(z.string()).optional(),
         costAtLeast: z.number().optional(),
         tags: z.array(z.string()).optional(),
+        elements: z.array(z.string()).optional(),
+        single: z.boolean().optional(),
       }),
     }),
     z.strictObject({ channeling: selectorSchema }),
@@ -131,6 +147,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     z.strictObject({ not: condSchema }),
     z.strictObject({ flag: z.string() }),
     z.strictObject({ varTrue: z.string() }),
+    z.strictObject({ crest: z.literal(true) }),
   ]),
 ) as z.ZodType<Cond>;
 
@@ -141,13 +158,28 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ lastDamage: z.literal(true) }),
     z.strictObject({ effectValue: z.literal(true) }),
     z.strictObject({ effectStacks: z.literal(true) }),
+    z.strictObject({ effectData: z.string().min(1) }),
+    z.strictObject({ kindCount: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']), stacks: z.boolean().optional() }) }),
+    z.strictObject({ timesUsed: z.literal(true) }),
+    z.strictObject({ counter: z.string().min(1) }),
+    z.strictObject({ counterOf: z.strictObject({ unit: selectorSchema, name: z.string().min(1) }) }),
+    z.strictObject({ turn: z.literal(true) }),
+    z.strictObject({ lastOverheal: z.literal(true) }),
+    z.strictObject({ effectValueOf: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
     z.strictObject({ stacks: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ countOf: selectorSchema }),
     z.strictObject({ missingHp: selectorSchema }),
     z.strictObject({ hp: selectorSchema }),
     z.strictObject({ skillCost: z.literal(true) }),
+    z.strictObject({ skillCooldown: z.literal(true) }),
+    z.strictObject({ skillsOnCooldown: selectorSchema }),
+    z.strictObject({ energyOf: z.strictObject({ unit: selectorSchema, colors: z.boolean().optional() }) }),
+    z.strictObject({ totalHp: selectorSchema }),
     z.strictObject({ deadCount: z.enum(['enemies', 'allies']) }),
+    z.strictObject({ minionsLost: z.literal(true) }),
+    z.strictObject({ recentDeaths: z.literal(true) }),
+    z.strictObject({ useSeq: z.literal(true) }),
     z.strictObject({ alliesActed: z.literal(true) }),
     z.strictObject({ eventAmount: z.literal(true) }),
     z.strictObject({ eventDuration: z.literal(true) }),
@@ -168,6 +200,7 @@ const modBase = {
   if: z.lazy(() => condSchema).optional(),
   archetypes: z.array(z.string()).optional(),
   skillsWith: z.array(z.string()).optional(),
+  elements: z.array(z.string()).optional(),
 };
 const mod = <T extends z.ZodRawShape>(shape: T) => z.strictObject({ ...shape, ...modBase });
 
@@ -197,7 +230,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('cooldownOnUse'), amount: z.number().int(), perStack: z.boolean().optional(), min: z.number().int().min(0).optional() }),
   mod({ mod: z.literal('untargetable'), by: z.enum(['enemies', 'allies']), bypassable: z.boolean() }),
   mod({ mod: z.literal('blockIndirectDamage') }),
-  mod({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional() }),
+  mod({ mod: z.literal('cannotUseSkills'), classes: z.array(skillClass).optional(), harmful: z.boolean().optional(), evenUnstunnable: z.boolean().optional() }),
   mod({ mod: z.literal('noCostReduction') }),
   mod({ mod: z.literal('cannotApplyBuffs') }),
   mod({ mod: z.literal('immuneToDebuffsFrom'), sourceHas: z.array(z.string()).min(1) }),
@@ -219,10 +252,12 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('freeSkills') }),
   mod({ mod: z.literal('costSpecific'), amount: z.number().int().max(-1) }),
   mod({ mod: z.literal('keepChannels') }),
-  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
+  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema), singleOnly: z.boolean().optional() }),
   mod({ mod: z.literal('redirectDamage') }),
-  mod({ mod: z.literal('exposed') }),
-  mod({ mod: z.literal('maxHp'), amount: z.number().int() }),
+  mod({ mod: z.literal('hpLink') }),
+  mod({ mod: z.literal('lured') }),
+  mod({ mod: z.literal('exposed'), anyEnemy: z.boolean().optional(), total: z.boolean().optional() }),
+  mod({ mod: z.literal('maxHp'), amount: z.number().int(), perStack: z.boolean().optional() }),
   mod({ mod: z.literal('armorMul'), mul: z.number().min(0) }),
   mod({ mod: z.literal('stackCap'), effect: z.string(), max: z.number().int().min(2) }),
   mod({ mod: z.literal('skillTags'), add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() }),
@@ -233,6 +268,31 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
     ops: z.lazy(() => z.array(opSchema)).optional(),
   }),
   mod({ mod: z.literal('grantBypass') }),
+  mod({ mod: z.literal('maxHpLossPerHit'), amount: z.number().int().min(0) }),
+  mod({ mod: z.literal('maxHpLossPerTurn'), amount: z.number().int().min(0) }),
+  mod({ mod: z.literal('borrowShield') }),
+  mod({ mod: z.literal('muteTraps') }),
+  mod({ mod: z.literal('absorbAoE') }),
+  mod({ mod: z.literal('driftSkills') }),
+  mod({ mod: z.literal('protectEffects'), effects: z.array(z.string()).min(1) }),
+  mod({ mod: z.literal('adaptiveHide') }),
+  mod({ mod: z.literal('shareDamage') }),
+  mod({ mod: z.literal('invertHealing') }),
+  mod({ mod: z.literal('banished') }),
+  mod({ mod: z.literal('catalyst') }),
+  mod({ mod: z.literal('normalAsPiercing') }),
+  mod({ mod: z.literal('immuneToEffects'), effects: z.array(z.string()), fromData: z.boolean().optional() }),
+  mod({ mod: z.literal('freezeCooldowns') }),
+  mod({ mod: z.literal('suspendEffects') }),
+  mod({ mod: z.literal('fogged') }),
+  mod({ mod: z.literal('bloodPrice') }),
+  mod({ mod: z.literal('suppressBuffs') }),
+  mod({ mod: z.literal('suppressDebuffs') }),
+  mod({ mod: z.literal('charmed'), own: z.boolean().optional() }),
+  mod({ mod: z.literal('warded') }),
+  mod({ mod: z.literal('cooldownTick'), amount: z.number().int() }),
+  mod({ mod: z.literal('entangleLink'), kinds: z.array(effectKind).optional() }),
+  mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -281,8 +341,26 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       duration: durationSchema.optional(),
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('revive'), hp: z.number().int().min(1) }),
+    z.strictObject({ op: z.literal('swapCooldowns'), a: selectorSchema, b: selectorSchema }),
+    z.strictObject({ op: z.literal('shiftEnergy'), of: selectorSchema, count: z.number().int().min(1).optional() }),
+    z.strictObject({ op: z.literal('stealEnergy'), from: selectorSchema }),
+    z.strictObject({ op: z.literal('spendEnergy'), amount: z.number().int().min(1) }),
+    z.strictObject({ op: z.literal('invertCooldowns'), on: selectorSchema, ready: z.number().int().min(0) }),
+    z.strictObject({ op: z.literal('copyEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']), fromSnapshot: z.boolean().optional() }),
+    z.strictObject({ op: z.literal('expire'), on: selectorSchema, effect: z.string(), times: z.number().int().min(1).optional() }),
+    z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
+    z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema, on: selectorSchema.optional() }),
+    z.strictObject({ op: z.literal('transformMinion'), to: selectorSchema, minion: z.string() }),
+    z.strictObject({ op: z.literal('shareEffects'), a: selectorSchema, b: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }),
+    z.strictObject({ op: z.literal('entangle'), to: selectorSchema, with: selectorSchema.optional(), effect: z.string(), duration: durationSchema.optional() }),
+    z.strictObject({ op: z.literal('moveEffects'), from: selectorSchema, to: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), effects: z.array(z.string()).optional() }),
+    z.strictObject({ op: z.literal('transmute'), on: selectorSchema, effects: z.array(z.string()).optional(), kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(), count: z.number().int().min(1).optional(), event: z.boolean().optional(), removeUnmatched: z.boolean().optional() }),
+    z.strictObject({ op: z.literal('reveal'), by: selectorSchema.optional(), event: z.boolean().optional(), end: z.boolean().optional() }),
+    z.strictObject({ op: z.literal('growShield'), to: selectorSchema, effect: z.string(), amount: valueSchema, max: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
-    z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
+    z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: valueSchema }),
     z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),
     z.strictObject({ op: z.literal('boostShields'), on: selectorSchema, amount: z.number().int() }),
     z.strictObject({
@@ -299,12 +377,13 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('random'), options: z.array(z.array(opSchema)).min(1) }),
     z.strictObject({ op: z.literal('convertEffects'), from: z.string(), to: z.string() }),
     z.strictObject({ op: z.literal('gainEnergy'), amount: z.number().int().min(1) }),
-    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional(), archetypes: z.array(z.string()).optional() }),
+    z.strictObject({ op: z.literal('resetCooldown'), skill: z.string().optional(), archetypes: z.array(z.string()).optional(), lastUsed: z.boolean().optional() }),
     z.strictObject({
       op: z.literal('castSkill'),
       skill: z.string().optional(),
       archetype: z.string().optional(),
       eventSkill: z.boolean().optional(),
+      lastUsedBy: selectorSchema.optional(),
       on: selectorSchema,
       as: z.enum(['actor', 'it']).optional(),
     }),
@@ -313,8 +392,10 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       permanent: z.boolean().optional(),
       extendBy: z.number().int().optional(),
       expireNow: z.boolean().optional(),
+      remove: z.boolean().optional(),
     }),
-    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('immunize'), to: selectorSchema, effect: z.string().optional(), duration: durationSchema.optional() }),
+    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema, noChain: z.boolean().optional() }),
     z.strictObject({
       op: z.literal('removeRandom'),
       from: selectorSchema,
@@ -329,6 +410,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       skill: z.string().optional(),
       archetypes: z.array(z.string()).optional(),
       exceptEvent: z.boolean().optional(),
+      onlyEvent: z.boolean().optional(),
       random: z.boolean().optional(),
     }),
     z
@@ -377,11 +459,15 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
         kind: z.enum(['Buff', 'Debuff', 'Neutral']).optional(),
         reflected: z.boolean().optional(),
         shield: z.boolean().optional(),
+        costAtLeast: z.number().int().min(1).optional(),
+        anyTags: z.array(z.string()).optional(),
+        sourceIs: z.string().optional(),
       })
       .optional(),
     intercept: z.enum(['counter', 'reflect']).optional(),
     do: z.array(opSchema).optional(),
     consume: z.boolean().optional(),
+    silent: z.boolean().optional(),
   }),
 ) as z.ZodType<TriggerSpec>;
 
@@ -399,9 +485,12 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     shield: z.boolean().optional(),
     interruptible: z.boolean().optional(),
     respectsInvulnerable: z.boolean().optional(),
+    countsAs: z.array(z.string()).optional(),
     modifiers: z.array(modifierSchema).optional(),
     triggers: z.array(triggerSchema).optional(),
     onExpire: z.array(opSchema).optional(),
+    onDeath: z.array(opSchema).optional(),
+    lingers: z.boolean().optional(),
   }),
 ) as z.ZodType<EffectDef>;
 
@@ -418,6 +507,11 @@ const skillTag = z.enum([
   'Unstunnable',
   'UsableWhileStunned',
   'Stealthy',
+  'Drift',
+  'Radiant',
+  'FreeAction',
+  'BloodPrice',
+  'Purifying',
 ]);
 
 /** Skills are keyed by id in the file; the loader injects `id`. */
@@ -444,6 +538,7 @@ export const minionFileEntry = z.strictObject({
   skills: z.array(z.string()).default([]),
   passives: z.array(z.union([z.string(), effectDefSchema])).default([]),
   onSummon: z.array(opSchema).optional(),
+  onDeath: z.array(opSchema).optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -461,7 +556,7 @@ export const itemFileEntry = z.strictObject({
   name: z.string().min(1),
   type: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']),
   skills: z.array(z.string()).max(2).default([]),
-  infusions: z.array(z.strictObject({ element: z.string(), target: z.string().optional() })).max(2).default([]),
+  infusions: z.array(z.strictObject({ element: z.string() })).max(2).default([]),
   passive: z.string().optional(),
   passiveEffect: z.string().optional(),
   classId: z.string().optional(),
@@ -597,6 +692,25 @@ export const achievementFileEntry = z.strictObject({
   reward: grantSpec.optional(),
 });
 
+/**
+ * A keyword (glossary*.yaml). A `status` keyword defaults to that status's name and description;
+ * `forms` default to the name.
+ */
+export const glossaryFileEntry = z.strictObject({
+  name: z.string().min(1).optional(),
+  text: z.string().min(1).optional(),
+  status: z.string().min(1).optional(),
+  forms: z.array(z.string().min(1)).min(1).optional(),
+  element: z.string().min(1).optional(),
+});
+
+/** A fusion element: its name and the pair of base elements that makes it (fusions*.yaml). */
+export const fusionFileEntry = z.strictObject({
+  name: z.string().min(1),
+  elements: z.tuple([z.string().min(1), z.string().min(1)]),
+  passives: z.array(z.string().min(1)).optional(),
+});
+
 // Compile-time checks that file entries + injected id produce the engine's types.
 type Assert<T extends true> = T;
 export type _SkillOk = Assert<z.output<typeof skillFileEntry> & { id: string } extends SkillDef ? true : false>;
@@ -607,3 +721,4 @@ export type _EncounterOk = Assert<z.output<typeof encounterFileEntry> & { id: st
 export type _ChapterOk = Assert<z.output<typeof chapterFileEntry> & { id: string } extends ChapterDef ? true : false>;
 export type _AchievementOk = Assert<z.output<typeof achievementFileEntry> & { id: string } extends AchievementDef ? true : false>;
 export type _TutorialOk = Assert<z.output<typeof tutorialFileEntry> extends TutorialDef ? true : false>;
+export type _FusionOk = Assert<z.output<typeof fusionFileEntry> & { id: string } extends FusionDef ? true : false>;

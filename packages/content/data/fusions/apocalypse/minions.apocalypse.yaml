@@ -1,0 +1,41 @@
+# Apocalypse minions.
+
+rimeflame_salamander:
+  name: Rimeflame Salamander
+  hp: 35
+  passives:
+    - id: rimeflame_breath
+      name: Rimeflame Breath
+      kind: Neutral
+      element: Apocalypse
+      description: At the end of its owner's turn, gives a random enemy Frostfire.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: forEach
+              in: { randomEnemy: 1 }
+              do:
+                - { op: apply, to: it, effect: frostfire }
+                - { op: macro, id: frostfire_shock_check }
+  # When it dies, every enemy with Frostfire is Thermal Shocked.
+  onDeath:
+    - op: forEach
+      in: { filter: allEnemies, where: { has: { unit: it, effect: frostfire } } }
+      do:
+        - { op: macro, id: thermal_check }
+  skills: []
+
+twilight_jotunn:
+  name: Twilight Jotunn
+  hp: 60
+  passives:
+    - id: jotunn_stride
+      name: Jotunn's Stride
+      kind: Neutral
+      element: Apocalypse
+      description: At the end of its owner's turn, deals 25 damage to a random enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 25 }
+  skills: []

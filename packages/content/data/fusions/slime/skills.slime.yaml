@@ -1,0 +1,812 @@
+# The 30 Slime (Water + Earth) variants, from the "Fusion Spec Kits" design doc.
+# Oozes Split (their passive); `make_ooze` / `engulf_new` take the variable `ooze_hp`. Engulfed is
+# applied from the holding Ooze and bound to it.
+
+strike.slime:
+  archetype: Strike
+  element: Slime
+  name: Plunging Fist
+  description: >-
+    Deals 20 damage to target enemy. If they're Engulfed, the blow drives them deeper: the user's Oozes
+    heal 10 and the Engulf lasts 1 turn longer.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: primary, effect: engulfed } }
+      then:
+        - { op: heal, to: { filter: allAllies, where: { minion: { unit: it, types: [ooze, great_ooze] } } }, amount: 10, raw: true }
+        - { op: extendEffects, on: primary, effects: [engulfed], by: 2 }
+
+smash.slime:
+  archetype: Smash
+  element: Slime
+  name: Splatter
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. If the target is Stunned, the splatter sets
+    around them: a new Ooze Engulfs them.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: if
+      cond: { stunned: primary }
+      then:
+        - { op: set, var: ooze_hp, value: 20 }
+        - { op: forEach, in: primary, do: [{ op: macro, id: engulf_new }] }
+
+charge.slime:
+  archetype: Charge
+  element: Slime
+  name: Slime Roll
+  description: >-
+    Deals 15 damage to target enemy, and the user rolls behind an Ooze, creating one if they have none:
+    for 1 turn, damage aimed at them hits an allied minion instead.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }, atMost: 0 } }
+      then:
+        - { op: set, var: ooze_hp, value: 20 }
+        - { op: macro, id: make_ooze }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: slime_roll
+        name: Slime Roll
+        kind: Buff
+        element: Slime
+        description: Damage aimed at the bearer hits an allied minion instead.
+        modifiers:
+          - { mod: redirectDamage }
+
+riposte.slime:
+  archetype: Riposte
+  element: Slime
+  name: Gel Parry
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; the user creates an Ooze with 10 HP per
+    energy the skill cost (10 to 40). Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: gel_parry
+        name: Gel Parry
+        kind: Buff
+        element: Slime
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and makes an Ooze from it.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: set
+                var: ooze_hp
+                value:
+                  if: { compare: { value: { skillCost: true }, atLeast: 4 } }
+                  then: 40
+                  else: { if: { compare: { value: { skillCost: true }, atLeast: 1 } }, then: { mul: [10, { skillCost: true }] }, else: 10 }
+              - { op: macro, id: make_ooze }
+
+rage.slime:
+  archetype: Rage
+  element: Slime
+  name: Mitosis
+  description: >-
+    The user creates an Ooze. For 3 turns, they're Immune and gain 1 Might whenever an allied Ooze Splits
+    (max 3).
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: ooze_hp, value: 20 }
+    - { op: macro, id: make_ooze }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: setCounter, name: mitosis, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: mitosis
+        name: Mitosis
+        kind: Buff
+        element: Slime
+        description: Each allied Ooze Split gives 1 Might while this lasts (max 3).
+        triggers:
+          - on: signal
+            signal: ooze_split
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { compare: { value: { counter: mitosis }, atMost: 2 } }
+                then:
+                  - { op: setCounter, name: mitosis, value: { sum: [{ counter: mitosis }, 1] } }
+                  - { op: apply, to: bearer, effect: might, linkTo: mitosis }
+
+shot.slime:
+  archetype: Shot
+  element: Slime
+  name: Mud Ball
+  description: >-
+    Deals 15 damage to target enemy and 1 Confusion for 2 turns. At 3 Confusion, the mud sets: they lose
+    it all and are Stunned for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { compare: { value: { totalStacks: { in: primary, effect: confusion } }, atLeast: 3 } }
+      then:
+        - { op: removeEffect, from: primary, effect: confusion }
+        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+snipe.slime:
+  archetype: Snipe
+  element: Slime
+  name: Ooze Mortar
+  description: >-
+    Now, the user creates an Ooze. On the following turn, an allied Ooze is hurled at target enemy for 30
+    damage and Engulfs them, keeping the HP it has left. The target of this skill is invisible.
+    Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: set, var: ooze_hp, value: 20 }
+    - { op: macro, id: make_ooze }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ooze_mortar
+        name: Ooze Mortar (aiming)
+        kind: Neutral
+        element: Slime
+        visibility: hiddenTarget
+        interruptible: true
+        description: Hurls an Ooze at its target at the end of the following turn.
+        onExpire:
+          - op: forEach
+            in: { randomAlly: 1, where: { minion: { unit: it, types: [ooze] } } }
+            do:
+              - { op: damage, to: effectTargets, amount: 30 }
+              - { op: apply, to: effectTargets, effect: engulfed, from: it, bindTo: it, duration: { enemyTurns: 3 } }
+
+trap.slime:
+  archetype: Trap
+  element: Slime
+  name: Gel Snare
+  description: >-
+    For 3 turns, the next healing target enemy receives is swallowed: they're Engulfed by a new Ooze with
+    that much HP (max 40). Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: gel_snare
+        name: Gel Snare
+        kind: Debuff
+        element: Slime
+        visibility: hidden
+        description: The next healing the bearer receives becomes an Ooze that Engulfs them.
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { eventAmount: true }, raw: true, type: Affliction, direct: false, bypass: true }
+              - op: set
+                var: ooze_hp
+                value:
+                  if: { compare: { value: { eventAmount: true }, atLeast: 40 } }
+                  then: 40
+                  else: { if: { compare: { value: { eventAmount: true }, atLeast: 10 } }, then: { eventAmount: true }, else: 10 }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: engulf_new }] }
+
+maneuver.slime:
+  archetype: Maneuver
+  element: Slime
+  name: Clay Shell
+  description: >-
+    The user becomes Invulnerable for 1 turn, and their Renew sets like clay: every 2 stacks become 1 Armor
+    for good.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: set, var: clay, value: { div: [{ totalStacks: { in: actor, effect: renew } }, 2] } }
+    - { op: repeat, times: { mul: [2, { var: clay }] }, do: [{ op: removeStacks, from: actor, effect: renew, amount: 1 }] }
+    - { op: apply, to: actor, effect: armor, stacks: { var: clay } }
+
+companion.slime:
+  archetype: Companion
+  element: Slime
+  name: Great Ooze
+  description: >-
+    Summons a Great Ooze (50 HP) permanently; it doesn't Split. Swallow (r): it Engulfs target enemy, and
+    heals 10 at the end of each turn it holds them.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: great_ooze }
+
+bolt.slime:
+  archetype: Bolt
+  element: Slime
+  name: Ooze Lash
+  description: >-
+    Deals 25 damage to target enemy. For 1 turn, the next time they take damage, a glob splits off them:
+    the user creates an Ooze.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ooze_lash
+        name: Ooze Lash
+        kind: Debuff
+        element: Slime
+        description: The next damage the bearer takes splits off an Ooze for the applier.
+        triggers:
+          - on: damaged
+            consume: true
+            do:
+              - { op: set, var: ooze_hp, value: 20 }
+              - { op: macro, id: make_ooze }
+
+blast.slime:
+  archetype: Blast
+  element: Slime
+  name: Burst Bubble
+  description: >-
+    Deals 25 damage to all enemies, and the user creates an Ooze. For 2 turns, whenever an allied Ooze
+    dies, it bursts for 10 damage to all enemies.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: set, var: ooze_hp, value: 20 }
+    - { op: macro, id: make_ooze }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: burst_bubble
+        name: Burst Bubble
+        kind: Buff
+        element: Slime
+        description: Allied Oozes burst for 10 damage to all enemies when they die.
+
+consume.slime:
+  archetype: Consume
+  element: Slime
+  name: Digest
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. If they're Engulfed, they're digested instead:
+    20 Affliction damage, healing the user as much.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: engulfed } }
+      then:
+        - { op: damage, to: primary, amount: 20, type: Affliction }
+      else:
+        - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+
+summon.slime:
+  archetype: Summon
+  element: Slime
+  name: Slime Mother
+  description: >-
+    Summons a Slime Mother (30 HP) for 3 turns; she doesn't Split. Gloop (nc): 10 damage to target enemy.
+    If she lasts all 3 turns, she leaves 2 Oozes.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: slime_mother, duration: { enemyTurns: 3 } }
+
+channel.slime:
+  archetype: Channel
+  element: Slime
+  name: Primordial Pool
+  description: >-
+    Now, the user creates an Ooze. For up to 4 turns, at the end of each of the user's turns, 5 damage to
+    all enemies, and each allied Ooze that died since the last turn re-forms with 10 HP. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: set, var: ooze_hp, value: 20 }
+    - { op: macro, id: make_ooze }
+    - { op: setCounter, name: pool_deaths, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: primordial_pool
+        name: Primordial Pool
+        kind: Neutral
+        element: Slime
+        interruptible: true
+        description: Each turn, 5 damage to all enemies, and fallen Oozes re-form with 10 HP.
+        triggers:
+          - on: signal
+            signal: ooze_died
+            when: { side: ally }
+            do:
+              - { op: setCounter, name: pool_deaths, value: { sum: [{ counter: pool_deaths }, 1] } }
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5 }
+              - { op: set, var: ooze_hp, value: 10 }
+              - { op: repeat, times: { counter: pool_deaths }, do: [{ op: macro, id: make_ooze }] }
+              - { op: setCounter, name: pool_deaths, value: 0 }
+
+stab.slime:
+  archetype: Stab
+  element: Slime
+  name: Grit Shiv
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The grit of every allied Boulder
+    gets in their eyes: 1 Confusion for 1 turn per Boulder (max 3).
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: apply
+      to: primary
+      effect: confusion
+      duration: { enemyTurns: 1 }
+      stacks:
+        if: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 3 } }
+        then: 3
+        else: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
+
+ravage.slime:
+  archetype: Ravage
+  element: Slime
+  name: Crushing Mass
+  description: >-
+    Deals 25 Piercing damage to target enemy. If they're Stunned, the user absorbs some of their mass: 1
+    Might and 1 Armor for good.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { stunned: primary }
+      then:
+        - { op: apply, to: actor, effect: might }
+        - { op: apply, to: actor, effect: armor }
+
+mislead.slime:
+  archetype: Mislead
+  element: Slime
+  name: Gulp
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Engulfed by a new Ooze with
+    10 HP per energy the skill cost. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: gulp
+        name: Gulp
+        kind: Debuff
+        element: Slime
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and an Ooze Engulfs them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: set, var: ooze_hp, value: { if: { compare: { value: { skillCost: true }, atLeast: 1 } }, then: { mul: [10, { skillCost: true }] }, else: 10 } }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: engulf_new }] }
+
+stun.slime:
+  archetype: Stun
+  element: Slime
+  name: Swallow Whole
+  description: Creates an Ooze (30 HP) that Engulfs target enemy.
+  cost: Ar
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: ooze_hp, value: 30 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: engulf_new }] }
+
+dance.slime:
+  archetype: Dance
+  element: Slime
+  name: Slick Shimmy
+  description: >-
+    For 3 turns, the user gains 1 Might and 2 Swiftness, and they're too slick to hold: their Debuffs slide
+    off at the end of each of their turns.
+  cost: AI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: slick_shimmy
+        name: Slick Shimmy
+        kind: Buff
+        element: Slime
+        description: The bearer's Debuffs slide off at the end of each of their turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: removeKind, from: bearer, kind: Debuff }
+
+heal.slime:
+  archetype: Heal
+  element: Slime
+  name: Irrigate
+  description: >-
+    Target ally heals 20. For 3 turns, whenever one of the user's allies is healed, every allied Seedling
+    and Boulder heals as much.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: apply
+      to: { filter: allAllies, where: { kind: { unit: it, is: character } } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: irrigate
+        name: Irrigate
+        kind: Buff
+        element: Slime
+        description: Healing the bearer receives also heals every allied Seedling and Boulder.
+        triggers:
+          - on: healed
+            do:
+              - { op: heal, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling, boulder] } } }, amount: { eventAmount: true }, quiet: true }
+
+bless.slime:
+  archetype: Bless
+  element: Slime
+  name: Fertile Silt
+  description: Target ally gains 2 Renew. For 3 turns, each time they're healed, they gain 1 Might (max 2).
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: renew, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: fertile_silt
+        name: Fertile Silt
+        kind: Buff
+        element: Slime
+        description: Each heal gives 1 Might while this lasts (max 2).
+        triggers:
+          - on: healed
+            do:
+              - op: if
+                cond: { not: { stackTotal: { unit: bearer, effects: [might], moreThan: 1 } } }
+                then: [{ op: apply, to: bearer, effect: might, linkTo: fertile_silt }]
+
+curse.slime:
+  archetype: Curse
+  element: Slime
+  name: Flypaper
+  description: >-
+    Target enemy gains 2 Confusion for 2 turns. Meanwhile, every unit that uses a skill on them, from
+    either side, gains 1 Confusion for 1 turn.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, stacks: 2, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: flypaper
+        name: Flypaper
+        kind: Debuff
+        element: Slime
+        description: Every unit that uses a skill on the bearer gains 1 Confusion.
+        triggers:
+          - on: skillTargeted
+            do:
+              - { op: apply, to: eventSource, effect: confusion, duration: { enemyTurns: 1 } }
+
+smite.slime:
+  archetype: Smite
+  element: Slime
+  name: Settling Silt
+  description: >-
+    Deals 20 damage to target enemy, and silt settles on them for 2 turns: Stuns on them can't be removed.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: settling_silt
+        name: Settling Silt
+        kind: Debuff
+        element: Slime
+        description: Stuns on the bearer can't be removed.
+        modifiers:
+          - { mod: protectEffects, effects: [stun, stun_ns, stun_s] }
+
+prayer.slime:
+  archetype: Prayer
+  element: Slime
+  name: Gel Mantle
+  description: >-
+    All allies heal 20 and gain 10 Shield for 2 turns. Every allied Ooze then melts into it: each adds 10
+    Shield to every ally, and dies.
+  cost: Irr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: { filter: targets, where: { kind: { unit: it, is: character } } }, effect: shield, value: 10, duration: { enemyTurns: 2 } }
+    - { op: set, var: melted, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } } }
+    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }
+    - op: repeat
+      times: { var: melted }
+      do:
+        - { op: boostShields, on: { filter: allAllies, where: { kind: { unit: it, is: character } } }, amount: 10 }
+
+cleave.slime:
+  archetype: Cleave
+  element: Slime
+  name: Mudguard Sweep
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. Until the user's next turn, their Armor
+    also reduces Piercing damage.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - op: apply
+      to: actor
+      duration: { raw: 2 }
+      effect:
+        id: mudguard
+        name: Mudguard
+        kind: Buff
+        element: Slime
+        description: The bearer's Armor also reduces Piercing damage.
+        modifiers:
+          - { mod: damageTaken, amount: 0, when: { types: [Piercing] }, value: { mul: [-5, { stacks: { unit: actor, effect: armor } }] } }
+
+shout.slime:
+  archetype: Shout
+  element: Slime
+  name: Quagmire
+  description: All enemies are Intimidated for 2 turns. For as long, each of their skills costs 1 more random energy.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: quagmire
+        name: Quagmire
+        kind: Debuff
+        element: Slime
+        description: Each of the bearer's skills costs 1 more random energy.
+        modifiers:
+          - { mod: costGeneric, amount: 1 }
+
+withstand.slime:
+  archetype: Withstand
+  element: Slime
+  name: Quivering Wall
+  description: The user gains 40 Shield with no time limit. It melts by 10 at the end of each of their turns.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 40
+      effect:
+        id: quivering_wall
+        name: Quivering Wall
+        kind: Buff
+        element: Slime
+        shield: true
+        description: A Shield with no time limit that melts by 10 at the end of each of the bearer's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { effectValue: true }, atMost: 10 } }
+                then: [{ op: removeSelf }]
+                else: [{ op: boostShields, on: bearer, amount: -10 }]
+
+taunt.slime:
+  archetype: Taunt
+  element: Slime
+  name: Sticky Bait
+  description: >-
+    The user creates an Ooze (30 HP), and target enemy is Taunted by it for 2 turns. If it's still standing
+    when the Taunt ends, it swallows them: they're Engulfed by it.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: ooze_hp, value: 30 }
+    - { op: macro, id: make_ooze }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      from: lastSummoned
+      bindTo: lastSummoned
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sticky_bait
+        name: Sticky Bait
+        kind: Debuff
+        element: Slime
+        description: If the bait still stands when this ends, it Engulfs the bearer.
+        onExpire:
+          - { op: apply, to: bearer, effect: engulfed, bindTo: actor, duration: { enemyTurns: 3 } }
+
+titan.slime:
+  archetype: Titan
+  element: Slime
+  name: Gelatinous Giant
+  description: >-
+    For 4 turns, the user Splits like an Ooze when damaged (the new Oozes are separate minions, max 4) and
+    gains 1 Armor per allied Ooze.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: gelatinous_giant
+        name: Gelatinous Giant
+        kind: Buff
+        element: Slime
+        description: Splits off Oozes when damaged; 1 Armor per allied Ooze.
+        modifiers:
+          - { mod: damageTaken, amount: 0, armor: true, when: { types: [Normal] }, value: { mul: [-5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }] } }
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond:
+                  and:
+                    - { hpAbove: { unit: bearer, value: 19 } }
+                    - { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }, atMost: 3 } }
+                then:
+                  - { op: set, var: ooze_hp, value: { div: [{ hp: bearer }, 4] } }
+                  - { op: macro, id: make_ooze }
+                  - { op: damage, to: bearer, amount: { var: ooze_hp }, raw: true, type: Affliction, direct: false }
+
+# Minion skills.
+
+ooze_slap:
+  archetype: Minion
+  element: Slime
+  name: Slap
+  description: Deals 5 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+
+great_ooze_swallow:
+  archetype: Minion
+  element: Slime
+  name: Swallow
+  description: The Great Ooze Engulfs target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: engulfed, bindTo: actor, duration: { enemyTurns: 3 } }
+
+slime_mother_gloop:
+  archetype: Minion
+  element: Slime
+  name: Gloop
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

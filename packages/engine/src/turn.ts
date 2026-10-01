@@ -1,10 +1,11 @@
 // Turn structure (GDD §3.3): start-of-turn energy, end-of-turn ticks, duration countdown,
 // cooldowns, win checks.
 
-import { effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
+import { checkpoint, effectDef, effectKey, emit, livingCharacters, other, type Ctx } from './ctx.js';
 import { removeEffect } from './effects.js';
 import { enqueueFor, enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
-import { energyGainBonus } from './queries.js';
+import { energyGainBonus, modsOn } from './queries.js';
+import { landDrifting } from './pipeline.js';
 import { pick } from './rng.js';
 import { COLORS, type EffectInstance, type Energy } from './types.js';
 
@@ -47,9 +48,28 @@ export function startTurn(ctx: Ctx): void {
     removeEffect(ctx, e, 'consumed');
   }
 
-  for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
+  // Cloud's Drift: last turn's drifting skills land now.
+  landDrifting(ctx);
+  for (const u of ctx.s.units) if (u.alive && u.owner === p && !isBanished(ctx, u.id)) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);
   checkGameOver(ctx);
+  checkpoint(ctx);
+}
+
+/** Dimension's Banished: the unit is out of the fight. */
+function isBanished(ctx: Ctx, unitId: string): boolean {
+  return modsOn(ctx.s, ctx.c, unitId, 'banished').length > 0 || modsOn(ctx.s, ctx.c, unitId, 'suspendEffects').length > 0;
+}
+
+/** Effects on a Banished unit neither tick nor count down (except the Banished effect itself). */
+function frozen(ctx: Ctx, e: EffectInstance): boolean {
+  if (!isBanished(ctx, e.bearer)) return false;
+  return !(effectDef(ctx.c, e).modifiers ?? []).some((m) => m.mod === 'banished' || m.mod === 'suspendEffects');
+}
+
+/** Antidote's Immune Response: the bearer's Debuffs don't tick. */
+function debuffSuppressed(ctx: Ctx, e: EffectInstance): boolean {
+  return effectDef(ctx.c, e).kind === 'Debuff' && modsOn(ctx.s, ctx.c, e.bearer, 'suppressDebuffs').length > 0;
 }
 
 function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
@@ -59,7 +79,9 @@ function hasTurnEndTrigger(ctx: Ctx, e: EffectInstance): boolean {
 /** The active player's ticking effects, in their chosen order (then application order). */
 export function tickingEffects(ctx: Ctx): EffectInstance[] {
   const p = ctx.s.activePlayer;
-  const mine = ctx.s.effects.filter((e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e));
+  const mine = ctx.s.effects.filter(
+    (e) => e.sourceOwner === p && hasTurnEndTrigger(ctx, e) && !frozen(ctx, e) && !debuffSuppressed(ctx, e),
+  );
   const order = ctx.s.players[p].tickOrder ?? [];
   const rank = (e: EffectInstance) => {
     const i = order.indexOf(e.id);
@@ -80,29 +102,49 @@ export function endTurn(ctx: Ctx): void {
       ctx.triggerQueue.push({ effect: e.id, spec, eventTarget: e.bearer });
     }
     flushTriggers(ctx);
+    checkpoint(ctx);
     if (checkGameOver(ctx)) return;
   }
+
+  // Glacier's Icebound: units frozen as the turn ends, before anything expires.
+  const icebound = new Set(s.units.filter((u) => modsOn(s, ctx.c, u.id, 'freezeCooldowns').length > 0).map((u) => u.id));
 
   // b. Every effect on the board counts down; those reaching 0 expire (Q1).
   const expired: EffectInstance[] = [];
   for (const e of s.effects) {
-    if (e.duration === null) continue;
+    if (e.duration === null || frozen(ctx, e)) continue;
     e.duration -= 1;
     if (e.duration <= 0) expired.push(e);
   }
-  for (const e of expired) {
-    if (!s.effects.includes(e)) continue;
-    expireEffect(ctx, e);
-    checkGameOver(ctx);
+  // Effects applied from here on (by what expires) have already missed this turn's countdown.
+  ctx.pastTick = true;
+  try {
+    for (const e of expired) {
+      if (!s.effects.includes(e)) continue;
+      expireEffect(ctx, e);
+      checkGameOver(ctx);
+    }
+    if (s.phase === 'finished') return;
+    flushTriggers(ctx);
+  } finally {
+    ctx.pastTick = false;
   }
-  if (s.phase === 'finished') return;
-  flushTriggers(ctx);
+  checkpoint(ctx);
   if (checkGameOver(ctx)) return;
 
   // c. The active player's cooldowns tick (owner's turns only, Q15).
   for (const u of s.units) {
     if (u.owner !== p) continue;
-    for (const slot of u.skills) slot.cooldown = Math.max(0, slot.cooldown - 1);
+    // Glacier: Icebound freezes them; Meltwater ticks them faster (`thawed` counts skills it freed).
+    if (icebound.has(u.id)) continue;
+    const extra = modsOn(s, ctx.c, u.id, 'cooldownTick').reduce((n, { spec }) => n + spec.amount, 0);
+    let thawed = 0;
+    for (const slot of u.skills) {
+      const before = Math.max(0, slot.cooldown - 1);
+      slot.cooldown = Math.max(0, before - extra);
+      if (before > 0 && slot.cooldown === 0) thawed++;
+    }
+    u.counters['c:thawed'] = thawed;
   }
 
   const ps = s.players[p];
@@ -110,6 +152,7 @@ export function endTurn(ctx: Ctx): void {
   ps.queue = [];
   ps.tickOrder = null;
   emit(ctx, { t: 'turnEnd', turn: s.turn, player: p });
+  checkpoint(ctx);
 
   // Stalling backstop (R3): both players at the turn limit → draw.
   if (s.players[0].turnsTaken >= s.settings.turnLimitPerPlayer && s.players[1].turnsTaken >= s.settings.turnLimitPerPlayer) {

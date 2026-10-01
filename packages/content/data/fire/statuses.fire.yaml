@@ -11,12 +11,25 @@ ignite:
   triggers:
     - on: turnEnd
       do:
-        # Ignite only stacks with Emblem of the Inferno; each stack burns for 5.
-        - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
+        # Dragon's Dragonfire rides on an Ignite and burns in its place (10 instead of 5).
         - op: if
-          cond: { has: { unit: actor, effect: flameborn } }
+          cond: { not: { has: { unit: bearer, effect: dragonfire } } }
           then:
-            - { op: heal, to: actor, amount: { lastDamage: true } }
+            # Ignite only stacks with Emblem of the Inferno; each stack burns for 5.
+            - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
+            - { op: macro, id: burn_aftermath }
+    # Dragon's Burning Wake: while the applier has it, their Ignites also burn at the start of the
+    # bearer's turn.
+    - on: turnStart
+      do:
+        - op: if
+          cond:
+            and:
+              - { has: { unit: actor, effect: burning_wake } }
+              - { not: { has: { unit: bearer, effect: dragonfire } } }
+          then:
+            - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction }
+            - { op: macro, id: burn_aftermath }
 
 scorched:
   name: Scorched

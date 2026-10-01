@@ -1,0 +1,57 @@
+# Ghost (Wind + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+
+spectral:
+  name: Spectral
+  kind: Buff
+  element: Ghost
+  stacking: unique
+  description: The bearer takes no Normal damage; Piercing and Affliction still hurt.
+  modifiers:
+    - { mod: damageTaken, amount: 0, mul: 0, when: { types: [Normal] } }
+
+haunt:
+  name: Haunt
+  kind: Debuff
+  element: Ghost
+  stacking: unique
+  description: >-
+    At the end of its applier's turn, the bearer takes 10 Affliction, then the Haunt drifts to a random ally of
+    theirs (it stays if they have none).
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+        - { op: forEach, in: bearer, do: [{ op: macro, id: haunt_drift }] }
+
+# Second Haunting: out of reach until the start of the bearer's next turn, then back with 30 HP.
+vanished:
+  name: Vanished
+  kind: Neutral
+  element: Ghost
+  stacking: unique
+  description: Gone from the field; returns at the start of the bearer's next turn with 30 HP.
+  modifiers:
+    - { mod: untargetable, by: enemies, bypassable: false }
+    - { mod: untargetable, by: allies, bypassable: false }
+    - { mod: damageTaken, amount: 0, mul: 0 }
+    - { mod: hpFloor, amount: 1 }
+  triggers:
+    - on: turnStart
+      do:
+        - { op: heal, to: bearer, amount: { sum: [30, { mul: [-1, { hp: bearer }] }] }, raw: true, quiet: true }
+        - { op: removeSelf }
+
+# Spirit Mark rides along with the Haunt: each new bearer is Horrified as it arrives.
+spirit_mark:
+  name: Spirit Mark
+  kind: Debuff
+  element: Ghost
+  stacking: unique
+  description: Wherever the Haunt drifts, its new bearer is Horrified for 1 turn.
+
+beckoner:
+  name: Beckoning
+  kind: Buff
+  element: Ghost
+  stacking: unique
+  description: The Taunted enemy's Normal damage can't hurt the bearer.

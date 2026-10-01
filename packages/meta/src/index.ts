@@ -8,4 +8,6 @@ export * from './loadout.js';
 export * from './glicko2.js';
 export * from './economy.js';
 export * from './story.js';
+export * from './analytics.js';
+export * from './seasons.js';
 export { generateName } from './names.js';

@@ -13,6 +13,8 @@ export interface ServerConfig {
   secureCookies: boolean;
   /** Allow POST /api/dev/grant (never in production). */
   devGrants: boolean;
+  /** Ranked season schedule (default: seasons.json next to the server's package.json). */
+  seasonsFile?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -24,5 +26,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     sessionDays: Number(env.SESSION_DAYS ?? 30),
     secureCookies: env.NODE_ENV === 'production',
     devGrants: env.NODE_ENV !== 'production',
+    ...(env.SEASONS_FILE ? { seasonsFile: env.SEASONS_FILE } : {}),
   };
 }

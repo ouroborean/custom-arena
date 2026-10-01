@@ -1,0 +1,4 @@
+{
+  "_comment": "Recorded sound effects (optional). Map a cue to a file in this folder (OGG or MP3); cues without a file use the built-in synthesized sounds. Cues: hit, bigHit, shieldHit, heal, buff, debuff, stun, counter, death, skill, turn, victory, defeat.",
+  "cues": {}
+}

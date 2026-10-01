@@ -1,0 +1,22 @@
+# Divine minions.
+
+seraph:
+  name: Seraph
+  hp: 40
+  skills: [seraph_burning_light]
+  passives:
+    - id: seraph_judgment
+      name: Seraph's Gaze
+      kind: Neutral
+      element: Divine
+      description: Whenever a Condemn it applied triggers, it Sanctifies that enemy for 1 turn.
+      triggers:
+        - on: ownEffectTriggered
+          when: { effects: [condemned] }
+          do:
+            - { op: apply, to: eventTarget, effect: sanctify, duration: { enemyTurns: 1 } }
+
+harbinger:
+  name: Harbinger
+  hp: 20
+  skills: [harbinger_trumpet]

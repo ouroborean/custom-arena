@@ -1,0 +1,9 @@
+# Devil keywords (docs/glossary.md).
+
+hellfire:
+  status: hellfire
+  element: Devil
+contract:
+  status: contract
+  element: Devil
+  forms: [Contract, Contracts]

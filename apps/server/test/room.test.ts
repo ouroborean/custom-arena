@@ -85,6 +85,26 @@ describe('MatchRoom', () => {
     expect(room.active).toBe(1);
   });
 
+  it('sends each player their view at every checkpoint of a turn, but never logs checkpoints', () => {
+    const { room, c } = setup();
+    room.submit(0, plan(c[0].view()));
+    for (const p of [0, 1] as const) {
+      const ev = c[p].last('match.events')!;
+      expect(ev.events.some((e) => e.event.t === 'checkpoint')).toBe(false);
+      const cps = ev.checkpoints ?? [];
+      expect(cps.length).toBeGreaterThan(1);
+      // In order, within the events sent, each spot once, each view the recipient's own.
+      const first = ev.seq - ev.events.length;
+      expect(cps.every((x, i) => x.afterSeq >= first && x.afterSeq <= ev.seq && (i === 0 || x.afterSeq > cps[i - 1]!.afterSeq))).toBe(true);
+      expect(cps.every((x) => x.view.viewer === p && x.view.players[p === 0 ? 1 : 0].energy === null)).toBe(true);
+      // The last one is the board as the turn left it.
+      expect(cps[cps.length - 1]!.view).toEqual(ev.view);
+    }
+    const back = new Conn();
+    room.attach(1, back, 0);
+    expect(back.last('match.sync')!.events.some((e) => e.event.t === 'checkpoint')).toBe(false);
+  });
+
   it('rejects turns out of order or for the wrong turn, without changing anything', () => {
     const { room, c } = setup();
     expect(room.submit(1, { turn: 1, queue: [] })).toBe(false);

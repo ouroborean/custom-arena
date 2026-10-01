@@ -1,0 +1,729 @@
+# The 30 Anointment (Water + Holy) variants, from the "Fusion Spec Kits" design doc.
+# Unction (merging Buff) cleanses and heals one stack per turn; Chrism (counts as Anointed) Anoints
+# the allies its bearer helps.
+
+strike.anointment:
+  archetype: Strike
+  element: Anointment
+  name: Wave of Blessing
+  description: Deals 20 damage to target enemy. Every ally of the user gains 1 Might for 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: allAllies, effect: might, duration: { enemyTurns: 1 } }
+
+smash.anointment:
+  archetype: Smash
+  element: Anointment
+  name: Cascade of Grace
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. If the user is Anointed, they spend it to cut
+    their other cooldowns by 1 per enemy hit (max 2).
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - { op: removeEffect, from: actor, effect: anointed }
+        - { op: removeEffect, from: actor, effect: chrism }
+        - op: adjustCooldowns
+          to: actor
+          exceptCurrent: true
+          by: { if: { compare: { value: { countOf: allEnemies }, atLeast: 2 } }, then: -2, else: -1 }
+
+charge.anointment:
+  archetype: Charge
+  element: Anointment
+  name: Pilgrim's Rush
+  description: >-
+    Deals 15 damage to target enemy. Until the end of the user's next turn, they have Chrism, and each ally
+    they Anoint through it also gets 1 Focus for their next skill.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: chrism, duration: { ownTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { ownTurns: 1 }
+      effect:
+        id: pilgrims_rush
+        name: Pilgrim's Rush
+        kind: Buff
+        element: Anointment
+        description: Each ally the bearer Anoints through Chrism also gets 1 Focus.
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: focus, until: { skillUsed: {} } }
+
+riposte.anointment:
+  archetype: Riposte
+  element: Anointment
+  name: Calm Waters
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user or on any Anointed ally, and whoever it
+    protected gains Flow for 2 turns. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: { filter: allAllies, where: { or: [{ isActor: it }, { has: { unit: it, effect: anointed } }] } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: calm_waters
+        name: Calm Waters
+        kind: Buff
+        element: Anointment
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, who gains Flow.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: flow, duration: { enemyTurns: 2 } }
+              - { op: removeEffect, from: allAllies, effect: calm_waters }
+
+rage.anointment:
+  archetype: Rage
+  element: Anointment
+  name: Chrismation
+  description: For 3 turns, the user gains Chrism, and 1 Might for each ally they Anoint with it (max 3).
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: chrism, duration: { enemyTurns: 3 } }
+    - { op: setCounter, name: chrismation, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: chrismation
+        name: Chrismation
+        kind: Buff
+        element: Anointment
+        description: Each ally the bearer Anoints gives them 1 Might while this lasts (max 3).
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - op: repeat
+                times: { countOf: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } } }
+                do:
+                  - op: if
+                    cond: { compare: { value: { counter: chrismation }, atMost: 2 } }
+                    then:
+                      - { op: setCounter, name: chrismation, value: { sum: [{ counter: chrismation }, 1] } }
+                      - { op: apply, to: bearer, effect: might, linkTo: chrismation }
+
+shot.anointment:
+  archetype: Shot
+  element: Anointment
+  name: Holy Sprinkle
+  description: >-
+    Deals 15 damage to target enemy. If the user has Unction, they fling 1 stack with it: 10 more damage,
+    and the target is Condemned. If not, they gain 1.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: unction } }
+      then:
+        - { op: removeStacks, from: actor, effect: unction, amount: 1 }
+        - { op: damage, to: primary, amount: 25 }
+        - { op: apply, to: primary, effect: condemned }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: actor, effect: unction }
+
+snipe.anointment:
+  archetype: Snipe
+  element: Anointment
+  name: Lance of the Font
+  description: >-
+    On the following turn, deals 30 damage to target enemy, +10 per Debuff on them; those Debuffs are
+    washed away. The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: lance_of_the_font
+        name: Lance of the Font (aiming)
+        kind: Neutral
+        element: Anointment
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn, washing their Debuffs away.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: damage, to: it, amount: { sum: [30, { mul: [10, { kindCount: { unit: it, kind: Debuff } }] }] } }
+              - { op: removeKind, from: it, kind: Debuff }
+
+trap.anointment:
+  archetype: Trap
+  element: Anointment
+  name: Font Ward
+  description: >-
+    For 3 turns, whenever target enemy gives an ally of the user a Debuff, they take 15 damage and that
+    ally gains 1 Unction. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: font_ward
+        name: Font Ward
+        kind: Debuff
+        element: Anointment
+        visibility: hidden
+        description: Each Debuff the bearer gives the applier's side hurts them and gives its target Unction.
+        triggers:
+          - on: effectApplied
+            when: { kind: Debuff, toEnemy: true }
+            do:
+              - { op: damage, to: bearer, amount: 15, direct: false }
+              - { op: apply, to: eventTarget, effect: unction }
+
+maneuver.anointment:
+  archetype: Maneuver
+  element: Anointment
+  name: Immersion
+  description: The user becomes Invulnerable for 1 turn. Every enemy who uses a Harmful skill during it is Condemned.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 1 }
+      effect:
+        id: immersion
+        name: Immersion
+        kind: Debuff
+        element: Anointment
+        description: Using a Harmful skill Condemns the bearer.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: apply, to: bearer, effect: condemned }
+
+companion.anointment:
+  archetype: Companion
+  element: Anointment
+  name: Sacred Koi
+  description: >-
+    Summons a Sacred Koi (35 HP) permanently. Golden Leap (r): target ally is Anointed until the end of
+    their next turn, or gains Chrism for as long if they already were. Tail Slap (nc): 10 damage.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sacred_koi }
+
+bolt.anointment:
+  archetype: Bolt
+  element: Anointment
+  name: Vial of Holy Water
+  description: >-
+    Deals 20 damage to target enemy, who is Sanctified for 1 turn. If they were already Sanctified, it
+    bursts instead: every ally heals 15 and gains 1 Unction.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: primary, effect: sanctify } }
+      then:
+        - { op: removeEffect, from: primary, effect: sanctify }
+        - { op: heal, to: allAllies, amount: 15 }
+        - { op: apply, to: allAllies, effect: unction }
+      else:
+        - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+
+blast.anointment:
+  archetype: Blast
+  element: Anointment
+  name: Flood of Grace
+  description: Deals 20 damage to all enemies, +10 for each Anointed ally, the user included.
+  cost: IA
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: { sum: [20, { mul: [10, { countOf: { filter: allAllies, where: { has: { unit: it, effect: anointed } } } }] }] } }
+
+consume.anointment:
+  archetype: Consume
+  element: Anointment
+  name: Communion
+  description: Deals 10 damage to target enemy; the user and every Anointed ally heal for the damage dealt.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: heal, to: { filter: allAllies, where: { or: [{ isActor: it }, { has: { unit: it, effect: anointed } }] } }, amount: { lastDamage: true } }
+
+summon.anointment:
+  archetype: Summon
+  element: Anointment
+  name: Baptismal Font
+  description: >-
+    Summons a Baptismal Font (25 HP) for 3 turns. Pour (nc): target ally heals 10. While it stands, no unit
+    on either side can gain Debuffs.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: baptismal_font, duration: { enemyTurns: 3 } }
+
+channel.anointment:
+  archetype: Channel
+  element: Anointment
+  name: Consecrated Rain
+  description: >-
+    For up to 4 turns, at the end of each of the user's turns, 5 damage to all enemies, and each loses a
+    Buff; for each Buff washed away, a random ally gains 1 Unction. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: consecrated_rain
+        name: Consecrated Rain
+        kind: Neutral
+        element: Anointment
+        interruptible: true
+        description: Each turn, 5 damage to all enemies, a Buff washed off each, and Unction for allies.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5 }
+              - { op: set, var: washed, value: { countOf: { filter: allEnemies, where: { hasKind: { unit: it, kind: Buff } } } } }
+              - { op: removeRandom, from: allEnemies, kind: Buff }
+              - { op: repeat, times: { var: washed }, do: [{ op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: unction }] }
+
+stab.anointment:
+  archetype: Stab
+  element: Anointment
+  name: Brine Needle
+  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Each Weakness on them lasts 1 turn longer.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: extendEffects, on: primary, effects: [weakness], by: 2 }
+
+ravage.anointment:
+  archetype: Ravage
+  element: Anointment
+  name: Scouring Current
+  description: >-
+    Deals 25 Piercing damage to target enemy. For 2 turns, while the user has Flow, enemies they hit are
+    Shattered for 1 turn.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: scouring_current
+        name: Scouring Current
+        kind: Buff
+        element: Anointment
+        description: While the bearer has Flow, enemies they hit are Shattered.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: flow } }
+                then: [{ op: apply, to: eventTarget, effect: shattered, duration: { enemyTurns: 1 } }]
+
+mislead.anointment:
+  archetype: Mislead
+  element: Anointment
+  name: Turned to Grace
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and its targets heal 20 instead.
+    Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: turned_to_grace
+        name: Turned to Grace
+        kind: Debuff
+        element: Anointment
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and heals its targets instead.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: heal, to: eventTargets, amount: 20 }
+
+stun.anointment:
+  archetype: Stun
+  element: Anointment
+  name: Submission
+  description: Target enemy is Stunned for 1 turn. While they are, Anointed allies deal 10 more damage to them.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: submission, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: allAllies
+      duration: { enemyTurns: 1 }
+      effect:
+        id: submission_zeal
+        name: Submission
+        kind: Buff
+        element: Anointment
+        description: While Anointed, the bearer deals 10 more damage to the submitted enemy.
+        modifiers:
+          - { mod: damageDealt, amount: 10, target: { has: { unit: it, effect: submission } }, if: { has: { unit: actor, effect: anointed } } }
+
+dance.anointment:
+  archetype: Dance
+  element: Anointment
+  name: River of Grace
+  description: >-
+    For 3 turns, the user gains Chrism and 2 Swiftness, and allies they Anoint through it gain Chrism too
+    until the end of their next turn.
+  cost: AI
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: chrism, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: river_of_grace
+        name: River of Grace
+        kind: Buff
+        element: Anointment
+        description: Allies the bearer Anoints gain Chrism too.
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - { op: apply, to: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } }, effect: chrism, duration: { ownTurns: 1 } }
+
+heal.anointment:
+  archetype: Heal
+  element: Anointment
+  name: Anointing Oil
+  description: Target ally heals 15 and gains 1 Unction, +1 for each Debuff they have.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: unction, stacks: { sum: [1, { kindCount: { unit: primary, kind: Debuff } }] } }
+
+bless.anointment:
+  archetype: Bless
+  element: Anointment
+  name: Holy Oil
+  description: >-
+    For 2 turns, target ally can't gain Debuffs; each Harmful skill used on them gives them 1 Unction
+    instead.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: holy_oil
+        name: Holy Oil
+        kind: Buff
+        element: Anointment
+        description: Debuffs become Unction.
+        modifiers:
+          - { mod: immuneTo, kind: Debuff }
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            do:
+              - { op: apply, to: bearer, effect: unction }
+
+curse.anointment:
+  archetype: Curse
+  element: Anointment
+  name: Offertory
+  description: >-
+    Target enemy is Confused for 2 turns. Each time they use a skill while Confused, the user's player
+    gains 1 random energy per Confusion.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: offertory
+        name: Offertory
+        kind: Debuff
+        element: Anointment
+        description: Each skill the bearer uses while Confused gives the applier's player energy.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: repeat, times: { totalStacks: { in: bearer, effect: confusion } }, do: [{ op: gainEnergy, amount: 1 }] }
+
+smite.anointment:
+  archetype: Smite
+  element: Anointment
+  name: Flowing Brand
+  description: >-
+    Deals 20 damage to target enemy. If the user is Anointed, the anointing flows downstream: it leaves
+    them, and the ally with the least HP gains Chrism until the end of their next turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - { op: removeEffect, from: actor, effect: anointed }
+        - { op: removeEffect, from: actor, effect: chrism }
+        - { op: apply, to: weakestAlly, effect: chrism, duration: { ownTurns: 1 } }
+
+prayer.anointment:
+  archetype: Prayer
+  element: Anointment
+  name: Sin-Eater's Prayer
+  description: All allies heal 20. The user then takes on every ally's Debuffs and gains 1 Unction for each.
+  cost: WW
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: forEach
+      in: { filter: targets, where: { not: { isActor: it } } }
+      do:
+        - { op: set, var: sins, value: { kindCount: { unit: it, kind: Debuff } } }
+        - { op: apply, to: actor, effect: unction, stacks: { var: sins } }
+        - { op: moveEffects, from: it, to: actor, kind: Debuff }
+
+cleave.anointment:
+  archetype: Cleave
+  element: Anointment
+  name: Sweeping Grace
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. Any Sanctify or Condemned on the first
+    flows onto the second.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: moveEffects, from: primary, to: it, effects: [sanctify, condemned] }
+
+shout.anointment:
+  archetype: Shout
+  element: Anointment
+  name: General Absolution
+  description: Every unit in the battle, on both sides, loses all its Debuffs. Then all enemies are Intimidated for 2 turns.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: removeKind, from: allUnits, kind: Debuff }
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+
+withstand.anointment:
+  archetype: Withstand
+  element: Anointment
+  name: Shield of the Font
+  description: >-
+    The user gains 2 Unction, then all their Unction works at once: each stack removes a Debuff and gives 15
+    Shield instead of healing.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: unction, stacks: 2 }
+    - { op: set, var: font, value: { totalStacks: { in: actor, effect: unction } } }
+    - { op: removeEffect, from: actor, effect: unction }
+    - { op: repeat, times: { var: font }, do: [{ op: removeRandom, from: actor, kind: Debuff }] }
+    - { op: apply, to: actor, effect: shield, value: { mul: [15, { var: font }] }, duration: { enemyTurns: 1 } }
+
+taunt.anointment:
+  archetype: Taunt
+  element: Anointment
+  name: Call of the Font
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Each time they damage the user meanwhile, the user
+    gains Chrism until the end of their next turn.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: call_of_the_font
+        name: Call of the Font
+        kind: Buff
+        element: Anointment
+        description: Each hit from the Taunted enemy gives the bearer Chrism.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
+                then: [{ op: apply, to: bearer, effect: chrism, duration: { ownTurns: 1 } }]
+
+titan.anointment:
+  archetype: Titan
+  element: Anointment
+  name: Living Font
+  description: >-
+    For 3 turns, the user gains 2 Armor and 1 Unction at the start of each of their turns, and their Unction
+    cleanses and heals every ally, not just them.
+  cost: AI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: living_font
+        name: Living Font
+        kind: Buff
+        element: Anointment
+        description: Gains 1 Unction each turn; the bearer's Unction cleanses and heals every ally.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: unction }
+
+# Minion skills.
+
+sacred_koi_golden_leap:
+  archetype: Minion
+  element: Anointment
+  name: Golden Leap
+  description: Target ally is Anointed until the end of their next turn, or gains Chrism for as long if they already were.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: anointed } }
+      then: [{ op: apply, to: primary, effect: chrism, duration: { ownTurns: 1 } }]
+      else: [{ op: apply, to: primary, effect: anointed, duration: { ownTurns: 1 } }]
+
+sacred_koi_tail_slap:
+  archetype: Minion
+  element: Anointment
+  name: Tail Slap
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+baptismal_font_pour:
+  archetype: Minion
+  element: Anointment
+  name: Pour
+  description: Target ally heals 10.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 10 }

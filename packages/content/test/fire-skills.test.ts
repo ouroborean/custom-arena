@@ -290,8 +290,8 @@ describe('Fire skills', () => {
     const b = arena({ p0: [['taunt.fire']], p1: [['shot']] });
     b.use(A1, 'taunt.fire', B1).end().end();
     expect([b.has(B1, 'ignite'), b.has(B1, 'scorched')]).toEqual([false, true]);
-    b.pass(4);
-    expect(b.has(B1, 'scorched')).toBe(true); // still covers the enemy's 2nd turn
+    b.pass(3);
+    expect(b.has(B1, 'scorched')).toBe(true); // covers the enemy's next 2 turns (granted after this turn's countdown)
     b.pass(1);
     expect(b.has(B1, 'scorched')).toBe(false);
   });

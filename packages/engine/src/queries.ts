@@ -18,8 +18,16 @@ export function modsOn<K extends ModifierSpec['mod']>(
   kind: K,
 ): { spec: ModOf<K>; effect: EffectInstance }[] {
   const out: { spec: ModOf<K>; effect: EffectInstance }[] = [];
-  for (const e of effectsOn(s, bearer)) {
-    for (const m of effectDef(c, e).modifiers ?? []) {
+  const effects = effectsOn(s, bearer);
+  // Ion's Suppressed: the bearer's Buffs have no effect (their modifiers are ignored).
+  const suppressed = effects.some((e) => (effectDef(c, e).modifiers ?? []).some((m) => m.mod === 'suppressBuffs'));
+  // Antidote's Immune Response: the bearer's Debuffs have no effect.
+  const cured = effects.some((e) => (effectDef(c, e).modifiers ?? []).some((m) => m.mod === 'suppressDebuffs'));
+  for (const e of effects) {
+    const def = effectDef(c, e);
+    if (suppressed && def.kind === 'Buff') continue;
+    if (cured && def.kind === 'Debuff') continue;
+    for (const m of def.modifiers ?? []) {
       if (m.mod !== kind) continue;
       // Conditional modifiers (equipment: "while at or above 80 Health") are checked for the bearer.
       if (m.if && !evalCond(makeCtx(s, c), m.if, bearerScope(bearer))) continue;
@@ -43,7 +51,8 @@ export function modsFor<K extends ModifierSpec['mod']>(
   return modsOn(ctx.s, ctx.c, bearer, kind).filter(
     ({ spec }) =>
       (!spec.archetypes || (!!skill && spec.archetypes.includes(skill.archetype))) &&
-      (!spec.skillsWith || (!!skill && spec.skillsWith.some((t) => skill.tags.includes(t)))),
+      (!spec.skillsWith || (!!skill && spec.skillsWith.some((t) => skill.tags.includes(t)))) &&
+      (!spec.elements || (!!skill && spec.elements.includes(skill.element))),
   );
 }
 
@@ -61,7 +70,10 @@ export function effectiveTags(ctx: Ctx, u: Unit, def: SkillDef): SkillTag[] {
 
 /** Equipment forbidding `def` from picking `target` (Hand of Healing: not yourself). */
 export function isExcludedTarget(ctx: Ctx, u: Unit, def: SkillDef, target: Unit): boolean {
-  return modsFor(ctx, u.id, 'targetExclude', def).some(({ spec }) => evalCond(ctx, spec.where, { ...bearerScope(u.id), it: target.id }));
+  const single = def.target === 'enemy' || def.target === 'ally' || def.target === 'any';
+  return modsFor(ctx, u.id, 'targetExclude', def).some(
+    ({ spec }) => (single || !spec.singleOnly) && evalCond(ctx, spec.where, { ...bearerScope(u.id), it: target.id }),
+  );
 }
 
 /** An equipment rule letting `def` also target `target` (and how it resolves then), if any. */
@@ -92,6 +104,21 @@ export function skillClass(def: SkillDef): SkillClass {
 // ---------------------------------------------------------------- costs & cooldowns
 
 export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
+  const cost = costBeforeBlood(ctx, u, def);
+  return paysInBlood(ctx, u, def) ? { ...cost, r: 0 } : cost;
+}
+
+/** Blood's Blood Price: the skill's random costs are paid with HP. */
+function paysInBlood(ctx: Ctx, u: Unit, def: SkillDef): boolean {
+  return def.tags.includes('BloodPrice') || modsFor(ctx, u.id, 'bloodPrice', def).length > 0;
+}
+
+/** HP a Blood Price skill costs: 10 per random pip (0 if it isn't one). */
+export function bloodPriceHp(ctx: Ctx, u: Unit, def: SkillDef): number {
+  return paysInBlood(ctx, u, def) ? 10 * costBeforeBlood(ctx, u, def).r : 0;
+}
+
+function costBeforeBlood(ctx: Ctx, u: Unit, def: SkillDef): Cost {
   const scope = { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: true, bypass: false };
   const base = def.altCost && evalCond(ctx, def.altCost.when, scope) ? def.altCost.cost : def.cost;
   const chilled = modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0;
@@ -132,10 +159,12 @@ export function cooldownOnUse(ctx: Ctx, u: Unit, def: SkillDef): number {
 export function cannotUseReason(ctx: Ctx, u: Unit, def: SkillDef): string | null {
   if (!u.alive) return 'dead';
   const tags = effectiveTags(ctx, u, def);
-  if (tags.includes('UsableWhileStunned') || tags.includes('Unstunnable')) return null;
+  const unstunnable = tags.includes('UsableWhileStunned') || tags.includes('Unstunnable');
   const cls = skillClass(def);
   const harmful = def.tags.includes('Harmful');
   for (const { spec } of modsFor(ctx, u.id, 'cannotUseSkills', def)) {
+    // Brimstone's Asphyxiate: some Stuns even stop Unstunnable skills.
+    if (unstunnable && !spec.evenUnstunnable) continue;
     if (spec.classes && !spec.classes.includes(cls)) continue;
     if (spec.harmful !== undefined && spec.harmful !== harmful) continue;
     return 'stunned';
@@ -157,6 +186,8 @@ export function canTarget(ctx: Ctx, source: Unit, target: Unit, bypassing: boole
   const bypass = bypassing || exposedTo(ctx, source, target);
   const enemy = isEnemy(source, target);
   if (enemy && !bypass && invulnerableToSource(ctx, source, target)) return false;
+  // Dimension's Void Brand: nothing hides the bearer from the brander's side, Stealth included.
+  if (enemy && modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ spec }) => spec.anyEnemy && spec.total)) return true;
   for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'untargetable')) {
     if (bypass && spec.bypassable) continue;
     if (spec.by === 'enemies' && enemy) return false;
@@ -167,7 +198,7 @@ export function canTarget(ctx: Ctx, source: Unit, target: Unit, bypassing: boole
 
 /** Boomerang Blade: the source's skills Bypass against a target it marked. */
 export function exposedTo(ctx: Ctx, source: Unit, target: Unit): boolean {
-  return modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ effect }) => effect.source === source.id);
+  return modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ spec, effect }) => (spec.anyEnemy ? isEnemy(source, target) : effect.source === source.id));
 }
 
 /** Taunt sources that constrain `u`'s enemy targeting (the effect's source must be the target). */
@@ -232,12 +263,15 @@ export function damageTakenBonus(
   target: Unit,
   type: DamageType,
   direct: boolean,
+  skill?: SkillDef,
 ): { other: number; armor: number; mul: number } {
   let other = 0;
   let armor = 0;
   let mul = 1;
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'damageTaken')) {
     if (spec.atLeast !== undefined) continue; // see thresholdReduction
+    // Vigilante's Exposed: only that element's skills hit harder.
+    if (spec.elements && !(skill && spec.elements.includes(skill.element))) continue;
     if (!damageWhenMatches(spec.when, type, direct)) continue;
     if (spec.mul !== undefined) mul *= spec.mul;
     const v = spec.value !== undefined ? evalValue(ctx, spec.value, bearerScope(target.id)) : scaled(spec.amount, spec.perStack, effect);

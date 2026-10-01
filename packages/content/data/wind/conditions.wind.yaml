@@ -2,10 +2,15 @@
 
 # Immobile: a character with no mobility skills (Charge, Maneuver, Mislead, Dance) and no mobility
 # buffs (Swiftness, Rushing, Leaping). Computed, never applied.
+# Cloud's Low Ceiling makes a unit count as Immobile whatever it has.
 immobile:
-  and:
-    - { kind: { unit: it, is: character } }
-    - { not: { hasSkill: { unit: it, archetypes: [Charge, Maneuver, Mislead, Dance] } } }
-    - { not: { has: { unit: it, effect: swiftness } } }
-    - { not: { has: { unit: it, effect: rushing } } }
-    - { not: { has: { unit: it, effect: leaping } } }
+  or:
+    - { has: { unit: it, effect: low_ceiling } }
+    # Winter's Snowbound.
+    - { has: { unit: it, effect: snowbound } }
+    - and:
+        - { kind: { unit: it, is: character } }
+        - { not: { hasSkill: { unit: it, archetypes: [Charge, Maneuver, Mislead, Dance] } } }
+        - { not: { has: { unit: it, effect: swiftness } } }
+        - { not: { has: { unit: it, effect: rushing } } }
+        - { not: { has: { unit: it, effect: leaping } } }

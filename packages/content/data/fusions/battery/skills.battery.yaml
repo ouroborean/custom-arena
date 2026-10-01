@@ -1,0 +1,772 @@
+# The 30 Battery (Lightning + Poison) variants, from the "Fusion Spec Kits" design doc.
+# Cells (Neutral, max 5) are stored charge; Discharge (macro `discharge`) spends them into `cells`.
+# Corroded strips Shield and blocks Armor.
+
+strike.battery:
+  archetype: Strike
+  element: Battery
+  name: Galvanic Fang
+  description: >-
+    Deals 20 damage to target enemy. If the user has no Cells, they store 1; if they have any, they spend 1
+    and the target gains 2 Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: actor, effect: cell } }
+      then:
+        - { op: removeStacks, from: actor, effect: cell, amount: 1 }
+        - { op: apply, to: primary, effect: toxin, stacks: 2 }
+      else:
+        - { op: apply, to: actor, effect: cell }
+
+smash.battery:
+  archetype: Smash
+  element: Battery
+  name: Toxic Circuit
+  description: Deals 25 damage to target enemy and 10 to each of their allies; each of them gains 1 Toxin.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: apply, to: allEnemies, effect: toxin }
+
+charge.battery:
+  archetype: Charge
+  element: Battery
+  name: Jump Start
+  description: Deals 15 damage to target enemy. The user's player gains 2 random energy now and generates 2 less next turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: gainEnergy, amount: 2 }
+    - op: apply
+      to: actor
+      duration: { ownTurns: 1 }
+      effect:
+        id: jump_start
+        name: Jump Start
+        kind: Neutral
+        element: Battery
+        description: The bearer's player generates 2 less energy next turn.
+        modifiers:
+          - { mod: energyGain, amount: -2 }
+
+riposte.battery:
+  archetype: Riposte
+  element: Battery
+  name: Capacitor
+  description: >-
+    For 1 turn, counters the next Harmful skill used on the user; the user stores 1 Cell for each energy
+    that skill cost. Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: capacitor
+        name: Capacitor
+        kind: Buff
+        element: Battery
+        visibility: hidden
+        description: Counters the next Harmful skill used on the bearer and stores its cost as Cells.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: cell, stacks: { skillCost: true } }
+
+rage.battery:
+  archetype: Rage
+  element: Battery
+  name: Thermal Runaway
+  description: >-
+    For 3 turns, the user gains 2 Might and Immune. Each skill they use meanwhile gives them 1 more Might for
+    as long and deals them 10 Affliction damage.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: thermal_runaway
+        name: Thermal Runaway
+        kind: Buff
+        element: Battery
+        description: Each skill the bearer uses gives 1 more Might and burns them for 10.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: bearer, effect: might, linkTo: thermal_runaway }
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+
+shot.battery:
+  archetype: Shot
+  element: Battery
+  name: Afterspark
+  description: >-
+    Deals 10 Piercing damage to target enemy. It strikes again at the start of the user's next turn if they
+    gained any Charge in between.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { raw: 2 }
+      effect:
+        id: afterspark
+        name: Afterspark
+        kind: Neutral
+        element: Battery
+        description: Strikes again at the start of the bearer's next turn if they gained Charge.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - { op: setFlag, flag: sparked }
+        onExpire:
+          - op: if
+            cond: { flag: sparked }
+            then: [{ op: damage, to: effectTargets, amount: 10, type: Piercing }]
+
+snipe.battery:
+  archetype: Snipe
+  element: Battery
+  name: Railgun
+  description: >-
+    On the following turn, deals 30 Piercing damage to target enemy. Discharge: 10 more per Cell; if it
+    kills them, the Cells are stored again. The target of this skill is invisible. Channeled.
+  cost: AI
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: railgun
+        name: Railgun (charging)
+        kind: Neutral
+        element: Battery
+        visibility: hiddenTarget
+        interruptible: true
+        description: Fires at the end of the following turn, Discharging every Cell.
+        onExpire:
+          - { op: macro, id: discharge }
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: set, var: before, value: { hp: it } }
+              - { op: damage, to: it, type: Piercing, amount: { sum: [30, { mul: [10, { var: cells }] }] } }
+              - op: if
+                cond: { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
+                then: [{ op: apply, to: actor, effect: cell, stacks: { var: cells } }]
+
+trap.battery:
+  archetype: Trap
+  element: Battery
+  name: Leaking Cell
+  description: >-
+    For 3 turns, the first time target enemy uses a Helpful skill, they take 15 Piercing damage and every
+    unit it affects is Corroded for 2 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: leaking_cell
+        name: Leaking Cell
+        kind: Debuff
+        element: Battery
+        visibility: hidden
+        description: The bearer's first Helpful skill shocks them and Corrodes its targets.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15, type: Piercing, direct: false }
+              - { op: apply, to: eventTargets, effect: corroded, duration: { enemyTurns: 2 } }
+
+maneuver.battery:
+  archetype: Maneuver
+  element: Battery
+  name: Electrolysis
+  description: The user becomes Invulnerable for 1 turn, and their Toxin and Sapped turn into Cells, stack for stack.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: set, var: split, value: { sum: [{ totalStacks: { in: actor, effect: toxin } }, { totalStacks: { in: actor, effect: sapped } }] } }
+    - { op: removeEffect, from: actor, effect: toxin }
+    - { op: removeEffect, from: actor, effect: sapped }
+    - { op: apply, to: actor, effect: cell, stacks: { var: split } }
+
+companion.battery:
+  archetype: Companion
+  element: Battery
+  name: Bombardier Beetle
+  description: >-
+    Summons a Bombardier Beetle (30 HP) permanently; enemies who damage it are Corroded for 2 turns. Acid
+    Jet (r): 10 Piercing damage to target enemy, +10 if they're Corroded.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: bombardier_beetle }
+
+bolt.battery:
+  archetype: Bolt
+  element: Battery
+  name: Battery Acid
+  description: >-
+    Deals 20 damage to target enemy, who is Corroded for 2 turns. Each Armor they have turns into 1 Toxin.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: set, var: etched, value: { totalStacks: { in: primary, effect: armor } } }
+    - { op: removeEffect, from: primary, effect: armor }
+    - { op: apply, to: primary, effect: toxin, stacks: { var: etched } }
+    - { op: apply, to: primary, effect: corroded, duration: { enemyTurns: 2 } }
+
+blast.battery:
+  archetype: Blast
+  element: Battery
+  name: Full Discharge
+  description: >-
+    Deals 15 damage to all enemies. Discharge: 10 more to each per Cell, and the user is Sapped once per
+    Cell spent.
+  cost: Wrr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: macro, id: discharge }
+    - { op: damage, to: targets, amount: { sum: [15, { mul: [10, { var: cells }] }] } }
+    - { op: apply, to: actor, effect: sapped, stacks: { var: cells } }
+
+consume.battery:
+  archetype: Consume
+  element: Battery
+  name: Flatline
+  description: >-
+    Deals 5 damage to target enemy. If they're then at or below 5 HP per Cell the user has (10 for minions),
+    Discharge: they're executed; if not, the user stores 1 Cell.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: if
+      cond:
+        and:
+          - { has: { unit: actor, effect: cell } }
+          - compare:
+              value:
+                sum:
+                  - { hp: primary }
+                  - mul:
+                      - -1
+                      - { stacks: { unit: actor, effect: cell } }
+                      - { if: { kind: { unit: primary, is: minion } }, then: 10, else: 5 }
+              atMost: 0
+      then:
+        - { op: macro, id: discharge }
+        - { op: kill, to: primary }
+      else:
+        - { op: apply, to: actor, effect: cell }
+
+summon.battery:
+  archetype: Summon
+  element: Battery
+  name: Voltaic Wasps
+  description: >-
+    Summons a Voltaic Wasp swarm (15 HP) for 3 turns. Arc Sting (r): 5 Piercing damage and 1 Toxin to target
+    enemy, then 5 Piercing to every other enemy with Toxin.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: voltaic_wasps, duration: { enemyTurns: 3 } }
+
+channel.battery:
+  archetype: Channel
+  element: Battery
+  name: Acid Drizzle
+  description: >-
+    For 2 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and each is Corroded
+    for 1 turn. If no enemy has Shield or Armor when a tick lands, a turn is added, once. Channeled.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: acid_drizzle
+        name: Acid Drizzle
+        kind: Neutral
+        element: Battery
+        interruptible: true
+        description: Each turn, 10 damage and Corroded on all enemies; it lingers once if nothing protects them.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - { op: apply, to: allEnemies, effect: corroded, duration: { enemyTurns: 1 } }
+              - op: if
+                cond:
+                  and:
+                    - { not: { flag: lingered } }
+                    - { compare: { value: { countOf: { filter: allEnemies, where: { or: [{ hasShield: it }, { has: { unit: it, effect: armor } }] } } }, atMost: 0 } }
+                then:
+                  - { op: setFlag, flag: lingered }
+                  - { op: extendSelf, by: 2 }
+
+stab.battery:
+  archetype: Stab
+  element: Battery
+  name: Shock Prod
+  description: Deals 10 damage to target enemy, or 20 if they're Corroded; then they're Corroded for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: it, effect: corroded } }, then: 20, else: 10 } }
+    - { op: apply, to: primary, effect: corroded, duration: { enemyTurns: 1 } }
+
+ravage.battery:
+  archetype: Ravage
+  element: Battery
+  name: Locked Relay
+  description: >-
+    Deals 25 Piercing damage to target enemy, who is Sapped. For 2 turns, while they're Sapped, they
+    generate 1 less energy each turn.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: apply, to: primary, effect: sapped }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: locked_relay
+        name: Locked Relay
+        kind: Debuff
+        element: Battery
+        description: While Sapped, the bearer generates 1 less energy each turn.
+        modifiers:
+          - { mod: energyGain, amount: -1, if: { has: { unit: actor, effect: sapped } } }
+
+mislead.battery:
+  archetype: Mislead
+  element: Battery
+  name: Short to Ground
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Corroded for 2 turns; their
+    Shield dissolves at once, dealing them 10 Affliction damage. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: short_to_ground
+        name: Short to Ground
+        kind: Debuff
+        element: Battery
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and their Shield dissolves.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: corroded, duration: { enemyTurns: 2 } }
+              - op: if
+                cond: { hasShield: bearer }
+                then:
+                  - { op: removeShields, from: bearer }
+                  - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+
+stun.battery:
+  archetype: Stun
+  element: Battery
+  name: Paralysis
+  description: Target enemy is Stunned for 1 turn, and their Toxin deals its damage now as well.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: { mul: [5, { totalStacks: { in: primary, effect: toxin } }] }, type: Affliction, direct: false }
+
+dance.battery:
+  archetype: Dance
+  element: Battery
+  name: Voltaic Waltz
+  description: >-
+    For 3 turns, the user gains 1 Might and 2 Swiftness; at the end of each of their turns, they gain 1
+    Charge per enemy with Toxin.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: voltaic_waltz
+        name: Voltaic Waltz
+        kind: Buff
+        element: Battery
+        description: Each turn, 1 Charge per enemy with Toxin.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: bearer, effect: charged, stacks: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: toxin } } } } }
+
+heal.battery:
+  archetype: Heal
+  element: Battery
+  name: Recharge
+  description: Target ally heals 20, and the user moves up to 3 of their Cells to them as Charge.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: set
+      var: moved
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: cell } }, atLeast: 3 } }, then: 3, else: { stacks: { unit: actor, effect: cell } } }
+    - { op: removeStacks, from: actor, effect: cell, amount: 3 }
+    - { op: apply, to: primary, effect: charged, stacks: { var: moved } }
+
+bless.battery:
+  archetype: Bless
+  element: Battery
+  name: Adrenal Charge
+  description: >-
+    For 3 turns, target ally gains 1 Might and 2 Renew, and each time they're healed, they also gain 1
+    Charge.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: renew, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: adrenal_charge
+        name: Adrenal Charge
+        kind: Buff
+        element: Battery
+        description: Each heal gives the bearer 1 Charge.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: bearer, effect: charged }
+
+curse.battery:
+  archetype: Curse
+  element: Battery
+  name: Low Battery
+  description: Target enemy is Confused for 2 turns, and their Sapped counts toward Prey for as long.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: low_battery
+        name: Low Battery
+        kind: Debuff
+        element: Battery
+        description: The bearer's Sapped counts toward Prey.
+
+smite.battery:
+  archetype: Smite
+  element: Battery
+  name: Stripping Brand
+  description: >-
+    Deals 20 damage to target enemy, who is Corroded for 2 turns. For 1 turn, allies who damage them heal
+    10, or 20 once they have no Shield or Armor.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: corroded, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: stripping_brand
+        name: Stripping Brand
+        kind: Debuff
+        element: Battery
+        description: The applier's allies who damage the bearer heal 10, or 20 once the bearer is bare.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: heal
+                to: eventSource
+                amount: { if: { or: [{ hasShield: bearer }, { has: { unit: bearer, effect: armor } }] }, then: 10, else: 20 }
+
+prayer.battery:
+  archetype: Prayer
+  element: Battery
+  name: Shared Grid
+  description: >-
+    All allies heal 15. Then their HP is pooled: each ally's HP becomes the average of the team's.
+  cost: WW
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - op: set
+      var: grid
+      value:
+        div:
+          - { totalHp: { filter: allAllies, where: { kind: { unit: it, is: character } } } }
+          - { countOf: { filter: allAllies, where: { kind: { unit: it, is: character } } } }
+    - op: forEach
+      in: { filter: allAllies, where: { kind: { unit: it, is: character } } }
+      do:
+        - op: if
+          cond: { compare: { value: { sum: [{ var: grid }, { mul: [-1, { hp: it }] }] }, atLeast: 1 } }
+          then: [{ op: heal, to: it, amount: { sum: [{ var: grid }, { mul: [-1, { hp: it }] }] }, raw: true, quiet: true }]
+          else:
+            - op: if
+              cond: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { var: grid }] }] }, atLeast: 1 } }
+              then: [{ op: damage, to: it, amount: { sum: [{ hp: it }, { mul: [-1, { var: grid }] }] }, raw: true, type: Affliction, direct: false, bypass: true }]
+
+cleave.battery:
+  archetype: Cleave
+  element: Battery
+  name: Acid Arc
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy, who catches the target's Corrosion for 2
+    turns. If the target had none, both are Corroded for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: if
+          cond: { has: { unit: primary, effect: corroded } }
+          then: [{ op: apply, to: it, effect: corroded, duration: { enemyTurns: 2 } }]
+          else:
+            - { op: apply, to: it, effect: corroded, duration: { enemyTurns: 1 } }
+            - { op: apply, to: primary, effect: corroded, duration: { enemyTurns: 1 } }
+
+shout.battery:
+  archetype: Shout
+  element: Battery
+  name: Overload Alarm
+  description: >-
+    All enemies are Intimidated for 2 turns. Meanwhile, each skill they use that costs 3 or more energy deals
+    them 15 Affliction damage.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: overload_alarm
+        name: Overload Alarm
+        kind: Debuff
+        element: Battery
+        description: Each skill costing 3 or more energy deals the bearer 15 Affliction.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { eventSkill: { costAtLeast: 3 } }
+                then: [{ op: damage, to: bearer, amount: 15, type: Affliction, direct: false }]
+
+withstand.battery:
+  archetype: Withstand
+  element: Battery
+  name: Battery Pack
+  description: The user gains 30 Shield for 1 turn; whatever is left of it at the end becomes Cells, 1 per 10.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 30
+      duration: { enemyTurns: 1 }
+      effect:
+        id: battery_pack
+        name: Battery Pack
+        kind: Buff
+        element: Battery
+        shield: true
+        description: A Shield; what's left when it ends becomes Cells, 1 per 10.
+        onExpire:
+          - { op: apply, to: bearer, effect: cell, stacks: { div: [{ effectValue: true }, 10] } }
+
+taunt.battery:
+  archetype: Taunt
+  element: Battery
+  name: Etching Glare
+  description: >-
+    Target enemy is Taunted by the user for 2 turns, and Corroded for as long; the Shield they lose to it
+    goes to the user.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: etching_glare
+        name: Corroded
+        kind: Debuff
+        element: Battery
+        countsAs: [corroded]
+        description: The bearer's Shield loses 10 each turn, which goes to the applier; they can't gain Armor.
+        modifiers:
+          - { mod: immuneToEffects, effects: [armor] }
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { hasShield: bearer }
+                then:
+                  - { op: boostShields, on: bearer, amount: -10 }
+                  - { op: apply, to: actor, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+
+titan.battery:
+  archetype: Titan
+  element: Battery
+  name: Living Battery
+  description: >-
+    For 3 turns, the user gains 2 Armor, Immune and Stormborn. When it ends, Discharge: 10 damage to all
+    enemies per Cell.
+  cost: Wr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: living_battery
+        name: Living Battery
+        kind: Buff
+        element: Battery
+        description: When this ends, every Cell discharges for 10 damage to all enemies.
+        onExpire:
+          - { op: macro, id: discharge }
+          - { op: damage, to: allEnemies, amount: { mul: [10, { var: cells }] }, direct: false }
+
+# Minion skills.
+
+bombardier_beetle_acid_jet:
+  archetype: Minion
+  element: Battery
+  name: Acid Jet
+  description: Deals 10 Piercing damage to target enemy, +10 if they're Corroded.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, type: Piercing, amount: { if: { has: { unit: it, effect: corroded } }, then: 20, else: 10 } }
+
+voltaic_wasps_arc_sting:
+  archetype: Minion
+  element: Battery
+  name: Arc Sting
+  description: Deals 5 Piercing damage and 1 Toxin to target enemy, then 5 Piercing to every other enemy with Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }
+    - { op: damage, to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: toxin } } }, amount: 5, type: Piercing }

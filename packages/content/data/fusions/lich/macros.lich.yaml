@@ -1,0 +1,20 @@
+# Lich actions (actor = the Lich).
+
+# Creates the actor's Phylactery, or restores theirs to full.
+make_phylactery:
+  - op: if
+    cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [phylactery], mine: true } } } }, atLeast: 1 } }
+    then:
+      - { op: heal, to: { filter: allAllies, where: { minion: { unit: it, types: [phylactery], mine: true } } }, amount: 999, raw: true }
+    else:
+      - { op: summon, minion: phylactery }
+
+# Heals the actor's Phylactery by `feed`, or creates one with that much HP.
+feed_phylactery:
+  - op: if
+    cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [phylactery], mine: true } } } }, atLeast: 1 } }
+    then:
+      - { op: heal, to: { filter: allAllies, where: { minion: { unit: it, types: [phylactery], mine: true } } }, amount: { var: feed }, raw: true }
+    else:
+      - { op: summon, minion: phylactery }
+      - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ var: feed }, -30] } }

@@ -1,0 +1,11 @@
+# Serum minions.
+
+giant_leech:
+  name: Giant Leech
+  hp: 25
+  skills: [giant_leech_latch, giant_leech_bloodletting]
+
+spriggan_nurse:
+  name: Spriggan Nurse
+  hp: 15
+  skills: [spriggan_nurse_titrate]

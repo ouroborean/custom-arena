@@ -3,6 +3,7 @@
 // screen the step is about. The store refuses commands the step doesn't ask for.
 
 import type { CoachTarget } from '@arena/engine';
+import { useT } from '../i18n/index.js';
 import { useStore } from '../store.js';
 
 /** CSS selector for a coach target (data hooks in Panels, UnitRow and Battle). */
@@ -13,6 +14,7 @@ function selectorFor(t: CoachTarget): string {
 }
 
 export function Coach() {
+  const t = useT();
   const match = useStore((s) => s.match);
   const coach = useStore((s) => s.coach);
   const next = useStore((s) => s.coachNext);
@@ -26,13 +28,11 @@ export function Coach() {
         // A rule rather than a class on the element, so React re-renders can't drop it.
         <style>{`${selectorFor(step.highlight)} { outline: 3px solid var(--yellow); outline-offset: 2px; animation: coach-pulse 1.2s ease-in-out infinite; }`}</style>
       )}
-      <span className="coach-step">
-        Tip {coach.step + 1}/{script.steps.length}
-      </span>
+      <span className="coach-step">{t('coach.tip', { n: coach.step + 1, total: script.steps.length })}</span>
       <p>{step.text}</p>
       {!step.expect && (
         <button type="button" className="btn small primary" autoFocus onClick={next}>
-          Got it
+          {t('coach.gotIt')}
         </button>
       )}
     </aside>

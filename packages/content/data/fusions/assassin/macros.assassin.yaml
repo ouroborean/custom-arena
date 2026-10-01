@@ -1,0 +1,13 @@
+# Assassin actions (actor = the Assassin).
+
+# Puts the side's Death Mark (threshold 25) on `it`, removing any other one first.
+place_mark:
+  - { op: removeEffect, from: allEnemies, effect: death_mark }
+  - { op: apply, to: it, effect: death_mark, value: 25 }
+
+# Places the Death Mark on a random enemy if none has it.
+mark_if_none:
+  - op: if
+    cond: { not: { any: { in: allEnemies, cond: { has: { unit: it, effect: death_mark } } } } }
+    then:
+      - { op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: place_mark }] }

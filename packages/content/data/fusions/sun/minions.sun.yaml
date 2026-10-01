@@ -1,0 +1,34 @@
+# Sun minions.
+
+# Rolling Sunstone: a Boulder that Explodes when destroyed or launched.
+sunstone:
+  name: Sunstone
+  hp: 45
+  tags: [boulder]
+  onDeath:
+    - { op: macro, id: explode }
+  skills: []
+
+sunflower:
+  name: Sunflower
+  hp: 40
+  tags: [seedling]
+  onSummon:
+    - { op: apply, to: actor, effect: corona }
+  skills: [sunflower_scatter_seeds]
+
+sunseed:
+  name: Sunseed
+  hp: 20
+  onSummon:
+    - { op: apply, to: actor, effect: corona }
+  # When it dies or expires, its creator gains its Corona.
+  onDeath:
+    - op: forEach
+      in: summoner
+      do:
+        - op: repeat
+          times: { stacks: { unit: actor, effect: corona } }
+          do:
+            - { op: macro, id: gain_corona }
+  skills: [sunseed_brighten]

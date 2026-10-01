@@ -1,0 +1,34 @@
+# Night minions.
+
+snow_owl:
+  name: Snow Owl
+  hp: 25
+  passives:
+    - id: snow_owl_watch
+      name: Snow Owl
+      kind: Neutral
+      element: Night
+      description: At the end of its owner's turn, a random enemy without Dusk gains Dusk 4.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: apply, to: { randomEnemy: 1, where: { and: [{ not: { has: { unit: it, effect: dusk } } }, { not: { has: { unit: it, effect: first_light } } }] } }, effect: dusk, stacks: 4 }
+  skills: [snow_owl_silent_talons]
+
+rime_revenant:
+  name: Rime Revenant
+  hp: 20
+  passives:
+    - id: rime_revenant_vengeance
+      name: Rime Revenant
+      kind: Neutral
+      element: Night
+      description: At the end of its owner's turn, deals 15 damage to the last enemy who damaged its summoner (or a random enemy).
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { compare: { value: { countOf: summonerLastAttacker }, atLeast: 1 } }
+              then: [{ op: damage, to: summonerLastAttacker, amount: 15 }]
+              else: [{ op: damage, to: { randomEnemy: 1 }, amount: 15 }]
+  skills: []

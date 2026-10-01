@@ -1,0 +1,8 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# Carries any Hex.
+hexed:
+  or:
+    - { has: { unit: it, effect: hex_pain } }
+    - { has: { unit: it, effect: hex_silence } }
+    - { has: { unit: it, effect: hex_ruin } }

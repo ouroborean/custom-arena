@@ -8,7 +8,9 @@ import { History } from './ui/History.js';
 import { Home } from './ui/Home.js';
 import { Setup } from './ui/Setup.js';
 import { Story } from './ui/Story.js';
+import { Settings } from './ui/Settings.js';
 import { Tutorial } from './ui/Tutorial.js';
+import { KeywordHelp } from './ui/KeywordHelp.js';
 
 export function App() {
   const screen = useStore((s) => s.screen);
@@ -19,8 +21,18 @@ export function App() {
     void init();
   }, [init]);
 
+  return (
+    <>
+      <Page screen={screen} status={status} />
+      <KeywordHelp />
+    </>
+  );
+}
+
+function Page({ screen, status }: { screen: ReturnType<typeof useStore.getState>['screen']; status: ReturnType<typeof useMeta.getState>['status'] }) {
   if (screen === 'battle') return <Battle />;
   if (screen === 'sandbox') return <Setup />;
+  if (screen === 'settings') return <Settings />;
   if (status === 'loading') return <div className="meta-page muted">Connecting…</div>;
   if (status === 'offline') return <Offline />;
   if (status === 'signedOut') return <Account />;

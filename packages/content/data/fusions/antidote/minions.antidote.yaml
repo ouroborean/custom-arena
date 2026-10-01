@@ -1,0 +1,11 @@
+# Antidote minions.
+
+asclepian_serpent:
+  name: Asclepian Serpent
+  hp: 40
+  skills: [serpent_cure, serpent_kiss]
+
+apothecary:
+  name: Apothecary
+  hp: 15
+  skills: [apothecary_milk_venom]

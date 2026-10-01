@@ -1,0 +1,17 @@
+# Slime (Water + Earth) statuses, from the "Fusion Spec Kits" design doc.
+
+# Engulfed: applied from (and bound to) the Ooze that holds the bearer.
+engulfed:
+  name: Engulfed
+  kind: Debuff
+  element: Slime
+  stacking: unique
+  description: >-
+    Inside an Ooze: Stunned, and 5 Affliction damage at the end of each of its owner's turns, until that
+    Ooze dies or 3 turns pass.
+  modifiers:
+    - { mod: cannotUseSkills }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }

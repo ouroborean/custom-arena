@@ -1,0 +1,839 @@
+# The 30 Vengeance (Lightning + Holy) variants, from the "Fusion Spec Kits" design doc.
+# Vow turns enemy hits into Wrath; Wrath adds 10 per stack to the next direct damage and becomes
+# Charge when spent.
+
+strike.vengeance:
+  archetype: Strike
+  element: Vengeance
+  name: Avenging Blow
+  description: >-
+    Deals 20 damage to target enemy; it doesn't spend Wrath. If they're the last enemy who damaged the user,
+    the user gains 1 Wrath.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: lastAttacker, where: { isPrimary: it } } }, atLeast: 1 } }
+      then: [{ op: apply, to: actor, effect: wrath }]
+
+smash.vengeance:
+  archetype: Smash
+  element: Vengeance
+  name: Heaven's Rebuke
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. For 2 turns, when any enemy it hit has their
+    Condemnation trigger, they gain a second random Debuff of its kind.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: heavens_rebuke
+        name: Heaven's Rebuke
+        kind: Debuff
+        element: Vengeance
+        description: When the bearer's Condemnation triggers, they gain a second Debuff from it.
+        triggers:
+          - on: skillResolved
+            do:
+              - op: if
+                cond: { check: { cond: condemn_fired, unit: bearer } }
+                then:
+                  - op: random
+                    options:
+                      - [{ op: apply, to: bearer, effect: weakness, duration: { enemyTurns: 2 } }]
+                      - [{ op: apply, to: bearer, effect: vulnerable, duration: { enemyTurns: 2 } }]
+                      - [{ op: apply, to: bearer, effect: confusion, duration: { enemyTurns: 2 } }]
+
+charge.vengeance:
+  archetype: Charge
+  element: Vengeance
+  name: Oath Rush
+  description: >-
+    Deals 15 damage to target enemy. The user gains 1 Focus for their next skill, +1 per Wrath spent on this.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: oath, value: { sum: [1, { stacks: { unit: actor, effect: wrath } }] } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, stacks: { var: oath }, until: { skillUsed: {} } }
+
+riposte.vengeance:
+  archetype: Riposte
+  element: Vengeance
+  name: Hallowed Feedback
+  description: >-
+    For 1 turn, counters the next Harmful skill used on the user, and the user gains 1 Charge. If that fills
+    their Charge, it's spent to Anoint them for 2 turns instead. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hallowed_feedback
+        name: Hallowed Feedback
+        kind: Buff
+        element: Vengeance
+        visibility: hidden
+        description: Counters the next Harmful skill used on the bearer and charges them.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: charged }
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+                then:
+                  - { op: removeEffect, from: bearer, effect: charged }
+                  - { op: apply, to: bearer, effect: anointed, duration: { enemyTurns: 2 } }
+
+rage.vengeance:
+  archetype: Rage
+  element: Vengeance
+  name: Sworn Vengeance
+  description: >-
+    For 3 turns, the user has a Vow, and their damage doesn't spend Wrath; when it ends, all their Wrath is
+    spent for Charge.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: vow, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sworn_vengeance
+        name: Sworn Vengeance
+        kind: Buff
+        element: Vengeance
+        description: The bearer's damage doesn't spend Wrath; when this ends, it all becomes Charge.
+        onExpire:
+          - { op: apply, to: bearer, effect: charged, stacks: { stacks: { unit: bearer, effect: wrath } } }
+          - { op: removeEffect, from: bearer, effect: wrath }
+
+shot.vengeance:
+  archetype: Shot
+  element: Vengeance
+  name: Answering Spark
+  description: >-
+    Deals 10 damage to target enemy, who is Sanctified until the user's next turn; the user gains 1 Charge
+    each time that Sanctify heals someone.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: sanctify, duration: { raw: 2 } }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: answering_spark
+        name: Answering Spark
+        kind: Debuff
+        element: Vengeance
+        description: Each time the bearer's Sanctify heals someone, the applier gains 1 Charge.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then: [{ op: apply, to: actor, effect: charged }]
+
+snipe.vengeance:
+  archetype: Snipe
+  element: Vengeance
+  name: Spear of the Fallen
+  description: >-
+    On the following turn, deals 40 damage to target enemy. If an ally of the user dies before then, it
+    strikes at once instead, as 80 Piercing damage. The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spear_of_the_fallen
+        name: Spear of the Fallen (aiming)
+        kind: Neutral
+        element: Vengeance
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn; a fallen ally makes it strike at once, doubled.
+        triggers:
+          - on: signal
+            signal: died
+            when: { side: enemy }
+            do:
+              - op: if
+                cond: { not: { isEnemy: eventTarget } }
+                then:
+                  - { op: removeSelf }
+                  - { op: damage, to: effectTargets, amount: 80, type: Piercing }
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+
+trap.vengeance:
+  archetype: Trap
+  element: Vengeance
+  name: Warrant
+  description: >-
+    For 3 turns, the first time target enemy uses a Harmful skill, every ally of the user takes a Vow for 1
+    turn before it lands. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: warrant
+        name: Warrant
+        kind: Debuff
+        element: Vengeance
+        visibility: hidden
+        description: The bearer's first Harmful skill gives every ally of the applier a Vow.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: allAllies, effect: vow, duration: { enemyTurns: 1 } }
+
+maneuver.vengeance:
+  archetype: Maneuver
+  element: Vengeance
+  name: Vigilant Step
+  description: >-
+    The user becomes Invulnerable for 1 turn, and gains 1 Wrath each time an enemy damages one of their allies
+    meanwhile.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: { filter: allAllies, where: { not: { isActor: it } } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: vigilant_step
+        name: Vigilant Step
+        kind: Buff
+        element: Vengeance
+        description: Each enemy hit on the bearer gives the applier 1 Wrath.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: actor, effect: wrath }
+
+companion.vengeance:
+  archetype: Companion
+  element: Vengeance
+  name: Storm Griffin
+  description: >-
+    Summons a Storm Griffin (45 HP) permanently, under a Vow that never ends. Righteous Strike (W): 15 damage
+    and Sanctify.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: storm_griffin }
+
+bolt.vengeance:
+  archetype: Bolt
+  element: Vengeance
+  name: Rebuking Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. If Wrath adds to it, their non-Strategic
+    skills are also stunned for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: wrathful, value: { stacks: { unit: actor, effect: wrath } } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { compare: { value: { var: wrathful }, atLeast: 1 } }
+      then: [{ op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }]
+
+blast.vengeance:
+  archetype: Blast
+  element: Vengeance
+  name: Found Wanting
+  description: >-
+    Deals 10 damage to all enemies, and each takes as much again as the damage they dealt the user since the
+    user's last turn (max 40 more).
+  cost: IW
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - op: damage
+          to: it
+          amount:
+            sum:
+              - 10
+              - if: { compare: { value: { counterOf: { unit: it, name: wronged } }, atLeast: 40 } }
+                then: 40
+                else: { counterOf: { unit: it, name: wronged } }
+
+consume.vengeance:
+  archetype: Consume
+  element: Vengeance
+  name: Siphon Grace
+  description: >-
+    Deals 5 damage to target enemy, and the user heals 10. Their Wrath is spent on healing instead of damage:
+    15 more per stack.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: grace, value: { stacks: { unit: actor, effect: wrath } } }
+    - { op: removeEffect, from: actor, effect: wrath }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { sum: [10, { mul: [15, { var: grace }] }] } }
+
+summon.vengeance:
+  archetype: Summon
+  element: Vengeance
+  name: Herald of Vengeance
+  description: >-
+    Summons a Herald (20 HP) for 3 turns with a Vow; when it dies or expires, the user gains its Wrath.
+    Denounce (r): 10 damage to target enemy.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: herald_of_vengeance, duration: { enemyTurns: 3 } }
+
+channel.vengeance:
+  archetype: Channel
+  element: Vengeance
+  name: Vigil of Wrath
+  description: >-
+    For up to 3 turns, the user has a Vow while channeling, and at the end of each of their turns deals 5
+    damage to all enemies, with Wrath adding (and spent). Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: vigil_of_wrath
+        name: Vigil of Wrath
+        kind: Neutral
+        element: Vengeance
+        interruptible: true
+        description: Each turn, 5 damage to all enemies with the bearer's Wrath added.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: { sum: [5, { mul: [10, { stacks: { unit: bearer, effect: wrath } }] }] } }
+              - op: if
+                cond: { has: { unit: bearer, effect: wrath } }
+                then:
+                  - { op: apply, to: bearer, effect: charged, stacks: { stacks: { unit: bearer, effect: wrath } } }
+                  - { op: removeEffect, from: bearer, effect: wrath }
+    - { op: apply, to: actor, effect: vow, duration: { enemyTurns: 3 }, linkTo: vigil_of_wrath }
+
+stab.vengeance:
+  archetype: Stab
+  element: Vengeance
+  name: Grounded Point
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If the user's Charge is full, it's
+    restored to full again once it's spent next turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: charged } }, atLeast: 3 } }
+      then:
+        - op: apply
+          to: actor
+          duration: { raw: 3 }
+          effect:
+            id: grounded_point
+            name: Grounded Point
+            kind: Buff
+            element: Vengeance
+            description: When this ends, the bearer's Charge fills to 3 again.
+            onExpire:
+              - { op: apply, to: bearer, effect: charged, stacks: 3 }
+
+ravage.vengeance:
+  archetype: Ravage
+  element: Vengeance
+  name: Clemency
+  description: >-
+    Deals 45 Piercing damage to target enemy. If they use no Harmful skill on their next turn, they heal 25.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 45, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: clemency
+        name: Clemency
+        kind: Buff
+        element: Vengeance
+        description: If the bearer uses no Harmful skill this turn, they heal 25 at its end.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: removeSelf }
+        onExpire:
+          - { op: heal, to: bearer, amount: 25 }
+
+mislead.vengeance:
+  archetype: Mislead
+  element: Vengeance
+  name: Swift Reprisal
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user deals them 15 damage at
+    once, with Wrath adding. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: swift_reprisal
+        name: Swift Reprisal
+        kind: Debuff
+        element: Vengeance
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and the applier strikes back.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { sum: [15, { mul: [10, { stacks: { unit: actor, effect: wrath } }] }] }, direct: false }
+              - op: if
+                cond: { has: { unit: actor, effect: wrath } }
+                then:
+                  - { op: apply, to: actor, effect: charged, stacks: { stacks: { unit: actor, effect: wrath } } }
+                  - { op: removeEffect, from: actor, effect: wrath }
+
+stun.vengeance:
+  archetype: Stun
+  element: Vengeance
+  name: Chastening Shock
+  description: >-
+    Deals 15 damage to target enemy, who is Condemned. When the Condemnation triggers, they're also Stunned
+    for 1 turn.
+  cost: AI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: condemned }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: chastening_shock
+        name: Chastening Shock
+        kind: Debuff
+        element: Vengeance
+        description: When the bearer's Condemnation triggers, they're Stunned for 1 turn.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.vengeance:
+  archetype: Dance
+  element: Vengeance
+  name: Heaven's Tempest
+  description: >-
+    For 3 turns, the user gains 1 Might, 2 Swiftness and a Vow; reaching 3 Wrath makes them Invulnerable for 1
+    turn.
+  cost: AS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: vow, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heavens_tempest
+        name: Heaven's Tempest
+        kind: Buff
+        element: Vengeance
+        description: Reaching 3 Wrath makes the bearer Invulnerable for 1 turn.
+        triggers:
+          - on: effectGained
+            effect: wrath
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: wrath } }, atLeast: 3 } }
+                then: [{ op: apply, to: bearer, effect: invulnerable, duration: { enemyTurns: 1 } }]
+
+heal.vengeance:
+  archetype: Heal
+  element: Vengeance
+  name: Spark of Mercy
+  description: Target ally heals 20. Each time their Charge turns into energy in the next 2 turns, they heal 10.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: spark_of_mercy
+        name: Spark of Mercy
+        kind: Buff
+        element: Vengeance
+        description: Spending Charge heals the bearer 10.
+        triggers:
+          - on: energyFromEffect
+            do:
+              - { op: heal, to: bearer, amount: 10 }
+
+bless.vengeance:
+  archetype: Bless
+  element: Vengeance
+  name: Oathbond
+  description: >-
+    For 3 turns, target ally and the user share a Vow: whenever an enemy damages either of them, both gain 1
+    Wrath.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: { filter: allAllies, where: { or: [{ isActor: it }, { isPrimary: it }] } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: oathbond
+        name: Oathbond
+        kind: Buff
+        element: Vengeance
+        description: When an enemy damages the bearer, both oath-bound allies gain 1 Wrath.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: apply, to: { filter: allAllies, where: { has: { unit: it, effect: oathbond } } }, effect: wrath }
+
+curse.vengeance:
+  archetype: Curse
+  element: Vengeance
+  name: Karmic Debt
+  description: >-
+    Target enemy is Confused for 2 turns. Meanwhile, each time they deal damage, they take half of it back as
+    Affliction damage.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: karmic_debt
+        name: Karmic Debt
+        kind: Debuff
+        element: Vengeance
+        description: The bearer takes half the damage they deal back as Affliction.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true }
+            do:
+              - { op: damage, to: bearer, amount: { div: [{ eventAmount: true }, 2] }, type: Affliction, direct: false }
+
+smite.vengeance:
+  archetype: Smite
+  element: Vengeance
+  name: Karmic Spark
+  description: >-
+    Deals 20 damage to target enemy, who is Sanctified for 1 turn; an ally at full HP who damages them gains 1
+    Wrath instead of healing.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: karmic_spark
+        name: Sanctify
+        kind: Debuff
+        element: Vengeance
+        countsAs: [sanctify]
+        description: When the bearer takes direct damage, the damager heals 15, or gains 1 Wrath if at full HP.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { compare: { value: { missingHp: eventSource }, atMost: 0 } }
+                then: [{ op: apply, to: eventSource, effect: wrath }]
+                else: [{ op: heal, to: eventSource, amount: 15 }]
+
+prayer.vengeance:
+  archetype: Prayer
+  element: Vengeance
+  name: Gathering Oath
+  description: All allies heal 20 and gain 10 Shield for 1 turn. Then every ally's Charge moves to the user.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - { op: moveEffects, from: { filter: allAllies, where: { not: { isActor: it } } }, to: actor, effects: [charged] }
+
+cleave.vengeance:
+  archetype: Cleave
+  element: Vengeance
+  name: Arc of Justice
+  description: >-
+    Deals 20 damage to target enemy and to every Condemned enemy, or to a random other enemy if none is; each
+    Condemned enemy hit has their Condemnation trigger now.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: condemned } } } }, atLeast: 1 } }
+      then:
+        - { op: damage, to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: condemned } } }, amount: 20 }
+      else:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 20 }
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { filter: allEnemies, where: { has: { unit: it, effect: condemned } } }
+      do:
+        - { op: removeEffect, from: it, effect: condemned }
+        - op: random
+          options:
+            - [{ op: apply, to: it, effect: weakness, duration: { enemyTurns: 2 } }]
+            - [{ op: apply, to: it, effect: vulnerable, duration: { enemyTurns: 2 } }]
+            - [{ op: apply, to: it, effect: confusion, duration: { enemyTurns: 2 } }]
+
+shout.vengeance:
+  archetype: Shout
+  element: Vengeance
+  name: Call for Vengeance
+  description: >-
+    Every ally takes a Vow for 2 turns; each enemy who gives one of them Wrath is Intimidated for 1 turn.
+  cost: W
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: apply, to: targets, effect: vow, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: call_for_vengeance
+        name: Call for Vengeance
+        kind: Buff
+        element: Vengeance
+        description: Enemies who stoke the bearer's Wrath are Intimidated.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - { op: apply, to: eventSource, effect: intimidated, duration: { enemyTurns: 1 } }
+
+withstand.vengeance:
+  archetype: Withstand
+  element: Vengeance
+  name: Shield of Retribution
+  description: The user gains 25 Shield for 1 turn. If it breaks, they gain 3 Wrath.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shield_of_retribution
+        name: Shield of Retribution
+        kind: Buff
+        element: Vengeance
+        shield: true
+        description: A Shield; if it breaks, the bearer gains 3 Wrath.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shield_of_retribution_watch
+        name: Shield of Retribution
+        kind: Neutral
+        element: Vengeance
+        description: If the Shield breaks, 3 Wrath.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [shield_of_retribution], reason: [depleted] }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: wrath, stacks: 3 }
+
+taunt.vengeance:
+  archetype: Taunt
+  element: Vengeance
+  name: Come and Face Me
+  description: >-
+    Target enemy is Taunted by the user for 2 turns, and the user has a Vow for as long; each hit from that
+    enemy gives 2 Wrath.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: vow, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: come_and_face_me
+        name: Come and Face Me
+        kind: Buff
+        element: Vengeance
+        description: Each hit from the Taunted enemy gives 1 more Wrath.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
+                then: [{ op: apply, to: bearer, effect: wrath }]
+
+titan.vengeance:
+  archetype: Titan
+  element: Vengeance
+  name: Avenger
+  description: >-
+    For 3 turns, the user gains 2 Armor, Immune and a Vow. Every enemy who damages them meanwhile is
+    Sanctified for 1 turn, so allies who answer heal 15.
+  cost: Ar
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: vow, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: avenger
+        name: Avenger
+        kind: Buff
+        element: Vengeance
+        description: Enemies who damage the bearer are Sanctified for 1 turn.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventSource, effect: sanctify, duration: { enemyTurns: 1 } }
+
+# Minion skills.
+
+storm_griffin_righteous_strike:
+  archetype: Minion
+  element: Vengeance
+  name: Righteous Strike
+  description: Deals 15 damage to target enemy, who is Sanctified for 1 turn.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+
+herald_of_vengeance_denounce:
+  archetype: Minion
+  element: Vengeance
+  name: Denounce
+  description: Deals 10 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }

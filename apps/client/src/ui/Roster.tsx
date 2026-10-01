@@ -3,7 +3,8 @@
 import { resolveLoadout, RARITIES, skillDefId, type CharacterRecord, type CharacterSkill } from '@arena/meta';
 import type { Character } from '../api.js';
 import { content } from '../content.js';
-import { classCode, CostPips, elementClass, portraitStyle, Tooltip } from './common.js';
+import { portraitKey } from '../assets.js';
+import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, Tooltip } from './common.js';
 
 export const recordOf = (c: Character): CharacterRecord => ({
   name: c.name,
@@ -55,9 +56,10 @@ export function SkillChips({ skills }: { skills: CharacterSkill[] }) {
   );
 }
 
-export function Portrait({ c, size = 56 }: { c: Pick<Character, 'classId' | 'element'>; size?: number }) {
+export function Portrait({ c, size = 56 }: { c: Pick<Character, 'classId' | 'element'> & { portraitId?: string }; size?: number }) {
   return (
     <div className={`portrait ${elementClass(c.element)}`} style={{ ...portraitStyle(c.classId), width: size, height: size }} aria-hidden>
+      <PortraitArt artKey={portraitKey(c)} {...(c.portraitId ? { portraitId: c.portraitId } : {})} />
       <span className="mono">{classCode(c.classId)}</span>
     </div>
   );

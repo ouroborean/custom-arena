@@ -79,7 +79,9 @@ export type ErrorCode =
   | 'invalid_team'
   | 'no_such_code'
   | 'rate_limited'
-  | 'turn_rejected';
+  | 'turn_rejected'
+  /** Ranked queue while no season is running. */
+  | 'off_season';
 
 export interface OpponentInfo {
   displayName: string;
@@ -90,6 +92,12 @@ export interface OpponentInfo {
 export interface SeqEvent {
   seq: number;
   event: GameEvent;
+}
+
+/** The board as it stood after event `afterSeq` (redacted for the recipient), for step-by-step playback. */
+export interface CheckpointView {
+  afterSeq: number;
+  view: PlayerView;
 }
 
 export interface RatingChange {
@@ -135,7 +143,7 @@ export type ServerMessage =
       opponentConnected: boolean;
     }
   /** New events (already redacted for this player) and the resulting view. */
-  | { t: 'match.events'; matchId: string; events: SeqEvent[]; seq: number; view: PlayerView; deadline: number | null }
+  | { t: 'match.events'; matchId: string; events: SeqEvent[]; seq: number; view: PlayerView; deadline: number | null; checkpoints?: CheckpointView[] }
   | { t: 'match.presence'; matchId: string; opponentConnected: boolean; forfeitAt: number | null }
   | { t: 'match.turnRejected'; matchId: string; reason: string }
   /** `reason`: the engine's, or the server's forfeit reason (disconnect, afk). */

@@ -1,0 +1,9 @@
+# Ion keywords (docs/glossary.md).
+
+suppressed:
+  status: suppressed
+  element: Ion
+  forms: [Suppressed, Suppress, Suppresses]
+blackout:
+  status: blackout
+  element: Ion

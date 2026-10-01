@@ -94,10 +94,23 @@ export interface MatchSummary {
   reward: Reward | null;
 }
 
+/** The running ranked season and the player's standing (docs/live-ops.md §4). */
 export interface Ratings {
-  season: string;
-  ranked: { rating: number; rd: number; display: number; games: number; wins: number };
+  /** Null between seasons. */
+  season: { id: string; name: string; start: string; end: string | null } | null;
+  next: { id: string; name: string; start: string } | null;
+  ranked: {
+    rating: number;
+    rd: number;
+    display: number;
+    games: number;
+    wins: number;
+    placementGames: number;
+    tier: { id: string; name: string } | null;
+  } | null;
   casual: { games: number; wins: number };
+  /** The latest season-end reward paid. */
+  lastReward: { season: string; seasonName: string; tier: string; rating: number; currency: Record<string, number>; items: string[] } | null;
 }
 
 export class ApiError extends Error {

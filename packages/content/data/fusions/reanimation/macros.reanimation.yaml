@@ -1,0 +1,14 @@
+# Reanimation actions, run on `it`.
+
+# `it` returns with 30 HP, Reanimated (once per match).
+reanimate:
+  - { op: heal, to: it, amount: { sum: [30, { mul: [-1, { hp: it }] }] }, raw: true, quiet: true }
+  - { op: apply, to: it, effect: reanimated }
+  - { op: setCounter, name: reanimated, value: 1, on: it }
+  - { op: setCounter, name: reanimated_turn, value: { turn: true }, on: it }
+  # The Monster Lives: returning during it makes them Stormborn with 1 Might for good.
+  - op: if
+    cond: { has: { unit: it, effect: the_monster_lives } }
+    then:
+      - { op: apply, to: it, effect: stormborn }
+      - { op: apply, to: it, effect: might }

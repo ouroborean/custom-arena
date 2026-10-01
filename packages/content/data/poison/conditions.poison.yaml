@@ -7,3 +7,28 @@ prey:
     - { has: { unit: it, effect: prey } }
     - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 2 } }
     - { hpAtMost: { unit: it, value: 19 } }
+    # Evolution: Telltale Venom (any Toxin counts) and Delirium (each Debuff stack counts as 2).
+    - { and: [{ has: { unit: it, effect: telltale_venom } }, { has: { unit: it, effect: toxin } }] }
+    - { and: [{ has: { unit: it, effect: delirium } }, { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 1 } }] }
+    # Brimstone: Acrid Orb (while Marked) and Scent of Cinders (while Ignited or Scorched).
+    - { and: [{ has: { unit: it, effect: acrid_orb } }, { has: { unit: it, effect: mark } }] }
+    # Serum: Pressurized Dose (while they have Dose) and Weak Constitution (any Weakness).
+    - { and: [{ has: { unit: it, effect: pressurized } }, { has: { unit: it, effect: dose } }] }
+    - { and: [{ has: { unit: it, effect: weak_constitution } }, { has: { unit: it, effect: weakness } }] }
+    # Battery: Low Battery counts Sapped toward it.
+    - and:
+        - { has: { unit: it, effect: low_battery } }
+        - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, sapped], moreThan: 2 } }
+    # Stasis: Frozen Quarry makes Frost debuffs count toward it.
+    - and:
+        - { has: { unit: it, effect: frozen_quarry } }
+        - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, frostbitten, chilled, numb], moreThan: 2 } }
+    # Antidote: Find the Wound (at or below 60 HP).
+    - { and: [{ has: { unit: it, effect: find_the_wound } }, { hpAtMost: { unit: it, value: 60 } }] }
+    # Spore: Fester Pod makes every Debuff count toward it.
+    - and:
+        - { has: { unit: it, effect: fester_pod } }
+        - { compare: { value: { kindCount: { unit: it, kind: Debuff } }, atLeast: 3 } }
+    - and:
+        - { has: { unit: it, effect: cinder_scent } }
+        - { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }

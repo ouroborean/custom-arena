@@ -7,12 +7,33 @@ import {
   type PlayerId,
   type PlayerView,
   type SkillAvailability,
+  type SkillDef,
   type Unit,
 } from '@arena/engine';
 import { useStore } from '../store.js';
-import { CostPips, elementClass, portraitStyle, skillCategory, skillCode, statusCode, unitCode, useHover, useMediaQuery } from './common.js';
+import { portraitKey, skillIconUrl, statusIconUrl, useAssets } from '../assets.js';
+import {
+  CostPips,
+  elementClass,
+  Glyph,
+  glyphPaint,
+  PortraitArt,
+  portraitStyle,
+  skillCategory,
+  skillCode,
+  statusCode,
+  unitCode,
+  useHover,
+  useMediaQuery,
+} from './common.js';
 
 // ---------------------------------------------------------------- shared pieces
+
+/** A skill's glyph in its element's paint, or its letter code when it has no icon. */
+function SkillFace({ def, content }: { def: SkillDef; content: ContentBundle }) {
+  const url = skillIconUrl(useAssets((s) => s.icons), def);
+  return url ? <Glyph url={url} paint={glyphPaint(def.element, content)} /> : <span className="code">{skillCode(def)}</span>;
+}
 
 function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle }) {
   const hover = useHover({ kind: 'effect', effect: e.id });
@@ -20,6 +41,9 @@ function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle 
   const name = effectName(content, e.defId);
   const key = e.inline?.id ?? e.defId;
   const hidden = def?.visibility === 'hidden' && !e.revealed;
+  const url = statusIconUrl(useAssets((s) => s.icons), e);
+  // An effect defined inside a skill wears that skill's glyph, so it takes the skill's element too.
+  const element = e.inline ? (e.sourceSkill ? content.skills[e.sourceSkill]?.element : undefined) : def?.element;
   return (
     <button
       type="button"
@@ -28,7 +52,7 @@ function StatusChip({ e, content }: { e: EffectInstance; content: ContentBundle 
       {...hover}
       onClick={hover.onFocus}
     >
-      {statusCode(key, name)}
+      {url ? <Glyph url={url} paint={glyphPaint(element, content)} /> : statusCode(key, name)}
       {e.duration !== null && <span className="d">{e.duration}</span>}
       {(e.stacks > 1 || e.value > 0) && <span className="n">{e.value > 0 ? e.value : `×${e.stacks}`}</span>}
     </button>
@@ -108,7 +132,7 @@ function SkillTile({
           else selectSkill(unit.id, slot);
         }}
       >
-        <span className="code">{skillCode(def)}</span>
+        <SkillFace def={def} content={content} />
         <CostPips cost={cost} />
         {s.cooldown > 0 && <span className="cd">{s.cooldown}</span>}
       </button>
@@ -129,7 +153,7 @@ function StaticTile({ unit, slot, content }: { unit: Unit; slot: number; content
   return (
     <span className="tile-wrap">
       <span className={`tile static cat-${skillCategory(def)} ${elementClass(def.element)}`} tabIndex={0} aria-label={def.name} {...hover}>
-        <span className="code">{skillCode(def)}</span>
+        <SkillFace def={def} content={content} />
         <CostPips cost={def.cost} />
         {s.cooldown > 0 && <span className="cd">{s.cooldown}</span>}
       </span>
@@ -201,6 +225,7 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
 
   const inner = (
     <>
+      <PortraitArt artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })} />
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
       {states && (

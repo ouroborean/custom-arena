@@ -1,0 +1,13 @@
+# Antidote keywords (docs/glossary.md).
+
+inoculated:
+  status: inoculated
+  element: Antidote
+  forms: [Inoculated, Inoculate, Inoculation]
+purge:
+  name: Purge
+  text: >-
+    Removes Debuffs from an ally, as the skill lists, and deals 10 Affliction to an enemy (the skill's target, or
+    a random one) per Debuff removed. Each stack of a stacking Debuff counts.
+  element: Antidote
+  forms: [Purge, Purges, Purged]

@@ -1,0 +1,31 @@
+# Blood (Water + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+# Blood Price is the BloodPrice skill tag (and the bloodPrice modifier).
+
+hemorrhage:
+  name: Hemorrhage
+  kind: Debuff
+  element: Blood
+  stacking: merge
+  maxStacks: 5
+  description: >-
+    Max 5. At the end of its applier's turn, the bearer takes 5 Affliction per stack, then gains another
+    stack. Any healing the bearer receives removes it entirely.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: { mul: [5, { effectStacks: true }] }, type: Affliction, direct: false }
+        - op: if
+          cond: { compare: { value: { effectStacks: true }, atMost: 4 } }
+          then: [{ op: addStacksSelf, amount: 1 }]
+    - on: healed
+      do:
+        # Arterial Strike: the healer takes the Hemorrhage as it stands.
+        - op: if
+          cond: { has: { unit: bearer, effect: arterial_strike } }
+          then:
+            - { op: apply, to: eventSource, effect: hemorrhage, stacks: { effectStacks: true } }
+            - { op: removeEffect, from: bearer, effect: arterial_strike }
+            - { op: removeSelf }
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: hemophilia } } }
+          then: [{ op: removeSelf }]

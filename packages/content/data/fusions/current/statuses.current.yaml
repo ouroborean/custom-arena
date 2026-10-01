@@ -1,0 +1,35 @@
+# Current (Water + Lightning) statuses, from the "Fusion Spec Kits" design doc.
+
+# Soaked: +5 from Current skills (the Current passive); a single-target Current hit conducts.
+soaked:
+  name: Soaked
+  kind: Debuff
+  element: Current
+  stacking: unique
+  description: >-
+    Takes 5 more damage from Current skills. When a single-target Current skill damages the bearer, the
+    hit conducts: every other Soaked unit on their side takes the same damage.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond:
+            and:
+              - { eventSkill: { single: true } }
+              - or:
+                  - { eventSkill: { elements: [Current] } }
+                  - { has: { unit: eventSource, effect: overflow } }
+          then:
+            - { op: set, var: zap, value: { eventAmount: true } }
+            - { op: forEach, in: bearer, do: [{ op: macro, id: conduct }] }
+
+# Fusion passive (every Current character): +5 damage from their Current skills to Soaked units.
+current_conductor:
+  name: Conductor
+  kind: Neutral
+  element: Current
+  stacking: unique
+  description: This character's Current skills deal 5 more damage to Soaked units.
+  modifiers:
+    - { mod: damageDealt, amount: 5, elements: [Current], when: { direct: true }, target: { has: { unit: it, effect: soaked } } }

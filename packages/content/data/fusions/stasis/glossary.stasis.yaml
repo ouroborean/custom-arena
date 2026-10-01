@@ -1,0 +1,11 @@
+# Stasis keywords (docs/glossary.md).
+
+suspended:
+  status: suspended
+  element: Stasis
+  forms: [Suspended, Suspend, Suspends]
+thaw:
+  name: Thaw
+  text: When Suspended ends, the bearer's Toxin deals its damage at once, doubled (10 Affliction per stack), then keeps ticking.
+  element: Stasis
+  forms: [Thaw, Thaws]

@@ -1,0 +1,32 @@
+# Ocean (Water + Water) statuses, from the "Fusion Spec Kits" design doc.
+# Crest and Trough isn't a status: each Ocean skill checks the `crest` condition (even uses so far).
+
+brimming:
+  name: Brimming
+  kind: Buff
+  element: Ocean
+  stacking: unique
+  description: Renew healing that would take the bearer above max HP becomes Shield instead, up to 30.
+
+brimming_shield:
+  name: Brimming Shield
+  kind: Buff
+  element: Ocean
+  stacking: unique
+  shield: true
+  description: Shield from Renew that overflowed (up to 30).
+
+# Slack Water: Renew on the bearer doesn't lose stacks while the channel lasts (see base Renew).
+slack_water_calm:
+  name: Slack Water
+  kind: Buff
+  element: Ocean
+  stacking: unique
+  description: The bearer's Renew doesn't lose stacks when it heals.
+
+swell_of_the_deep:
+  name: Swell of the Deep
+  kind: Buff
+  element: Ocean
+  stacking: unique
+  description: Each time Brimming gives the bearer Shield, they gain 1 Might for 1 turn.

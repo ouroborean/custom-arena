@@ -1,0 +1,65 @@
+# Moon (Earth + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+
+# Fusion passive (every Moon character): the Lunar Cycle, counter `phase` (0 New, 1 Waxing, 2 Full, 3 Waning).
+lunar_cycle:
+  name: Lunar Cycle
+  kind: Neutral
+  element: Moon
+  stacking: unique
+  description: >-
+    Starts at New Moon and advances at the end of each of this character's turns: New, Waxing, Full, Waning. Moon
+    skills add the current phase's rider.
+  modifiers:
+    # Moonstone Fist is Stealthy at New Moon; Feral Maw keeps Stealth at Full Moon.
+    - { mod: skillTags, add: [Stealthy], archetypes: [Strike], elements: [Moon], if: { check: { cond: moon_new, unit: bearer } } }
+    - { mod: skillTags, add: [Stealthy], archetypes: [Ravage], elements: [Moon], if: { check: { cond: moon_full, unit: bearer } } }
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: face_of_the_moon } } }
+          then:
+            - { op: macro, id: advance_moon }
+            - op: if
+              cond: { compare: { value: { counter: eclipse }, atLeast: 1 } }
+              then:
+                - { op: setCounter, name: eclipse, value: 0 }
+                - { op: macro, id: advance_moon }
+
+# Moonshard: lodged in the bearer until the next Full Moon.
+moonshard:
+  name: Moonshard
+  kind: Debuff
+  element: Moon
+  stacking: independent
+  description: At the start of the next Full Moon, the shard deals 15 damage.
+  triggers:
+    - on: signal
+      signal: full_moon
+      when: { side: enemy }
+      do:
+        - { op: damage, to: bearer, amount: 15, direct: false }
+        - { op: removeSelf }
+
+# On a Lunar Wolf: it howls at each Full Moon.
+wolf_howl:
+  name: Howl
+  kind: Neutral
+  element: Moon
+  stacking: unique
+  description: At each Full Moon, heals 20 and Taunts a random enemy for 1 turn.
+  triggers:
+    - on: signal
+      signal: full_moon
+      when: { side: ally }
+      do:
+        - { op: heal, to: bearer, amount: 20 }
+        - { op: apply, to: { randomEnemy: 1 }, effect: taunt, from: bearer, duration: { enemyTurns: 1 } }
+
+# Face of the Moon: the bearer's Lunar Cycle holds.
+face_of_the_moon:
+  name: Face of the Moon
+  kind: Buff
+  element: Moon
+  stacking: unique
+  description: The bearer's Lunar Cycle holds at its current phase.

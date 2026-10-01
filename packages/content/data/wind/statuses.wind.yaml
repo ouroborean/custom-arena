@@ -24,7 +24,8 @@ rushing:
         - { op: setFlag, flag: acted }
     - on: turnEnd
       do:
-        - { op: if, cond: { not: { flag: acted } }, then: [{ op: removeSelf }] }
+        # Cloud's Idle Updraft: Rushing survives idle turns while it lasts.
+        - { op: if, cond: { and: [{ not: { flag: acted } }, { not: { has: { unit: bearer, effect: idle_updraft } } }] }, then: [{ op: removeSelf }] }
 
 leaping:
   name: Leaping

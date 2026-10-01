@@ -1,0 +1,769 @@
+# The 30 Mechanic (Fire + Wind) variants, from the "Fusion Spec Kits" design doc.
+# Contraptions are minions with the `contraption` passive; Upgrade is the `upgrade` macro.
+
+strike.mechanic:
+  archetype: Strike
+  element: Mechanic
+  name: Piston Punch
+  description: Deals 20 damage to target enemy, and a random allied minion is Upgraded.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: macro, id: upgrade_random }
+
+smash.mechanic:
+  archetype: Smash
+  element: Mechanic
+  name: Steam Hammer
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. If the user is Rushing, it vents: their
+    Rushing ends, and the splash is 30 and Ignites.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { has: { unit: actor, effect: rushing } }
+      then:
+        - { op: removeEffect, from: actor, effect: rushing }
+        - { op: damage, to: primaryAllies, amount: 30 }
+        - { op: apply, to: primaryAllies, effect: ignite }
+      else:
+        - { op: damage, to: primaryAllies, amount: 15 }
+
+charge.mechanic:
+  archetype: Charge
+  element: Mechanic
+  name: Rocket Boots
+  description: Deals 15 damage to target enemy. The user begins Rushing and leaves a Turret behind for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: rushing }
+    - { op: summon, minion: turret, duration: { enemyTurns: 2 } }
+
+riposte.mechanic:
+  archetype: Riposte
+  element: Mechanic
+  name: Spring Trap
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Isolated for 1 turn,
+    and the user builds a Turret. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spring_trap
+        name: Spring Trap
+        kind: Buff
+        element: Mechanic
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, Isolates its user, and builds a Turret.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: isolated, duration: { enemyTurns: 1 } }
+              - { op: summon, minion: turret }
+
+rage.mechanic:
+  archetype: Rage
+  element: Mechanic
+  name: Boiler Fury
+  description: >-
+    For 3 turns, the user gains 1 Might and Immune, and 1 more Might each time their side causes an
+    Explosion (max 3 more).
+  cost: A
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: setCounter, name: boiler_fury, value: 0 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: boiler_fury
+        name: Boiler Fury
+        kind: Buff
+        element: Mechanic
+        description: Each Explosion the bearer's side causes gives 1 more Might while this lasts (max 3).
+        triggers:
+          - on: signal
+            signal: explosion
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { compare: { value: { counter: boiler_fury }, atMost: 2 } }
+                then:
+                  - { op: setCounter, name: boiler_fury, value: { sum: [{ counter: boiler_fury }, 1] } }
+                  - { op: apply, to: bearer, effect: might, linkTo: boiler_fury }
+
+shot.mechanic:
+  archetype: Shot
+  element: Mechanic
+  name: Rivet Gun
+  description: >-
+    Deals 15 damage to target enemy. If the last one to damage them was an allied minion, that minion
+    is Upgraded.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: forEach
+      in: { filter: primaryLastAttacker, where: { kind: { unit: it, is: minion } } }
+      do:
+        - { op: macro, id: upgrade }
+    - { op: damage, to: primary, amount: 15 }
+
+snipe.mechanic:
+  archetype: Snipe
+  element: Mechanic
+  name: Mortar
+  description: >-
+    The user builds a Mortar (Contraption, 20 HP). On the following turn, if it still stands, it
+    fires: 25 Piercing damage to all enemies. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: summon, minion: mortar, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mortar_shell
+        name: Mortar (loading)
+        kind: Neutral
+        element: Mechanic
+        interruptible: true
+        description: The Mortar fires at the end of the following turn if it still stands.
+        onExpire:
+          - op: forEach
+            in: { filter: allAllies, where: { minion: { unit: it, types: [mortar] } } }
+            do:
+              - { op: damage, to: allEnemies, amount: 25, type: Piercing, from: it }
+
+trap.mechanic:
+  archetype: Trap
+  element: Mechanic
+  name: Tripwire
+  description: >-
+    For 3 turns, the first skill target enemy uses Ignites them; after that, their Ignite also ticks
+    each time they use a skill. Invisible.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tripwire
+        name: Tripwire
+        kind: Debuff
+        element: Mechanic
+        visibility: hidden
+        description: The bearer's first skill Ignites them; after that, each skill makes their Ignite tick.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { flag: sprung }
+                then:
+                  - op: if
+                    cond: { has: { unit: bearer, effect: ignite } }
+                    then:
+                      - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+                else:
+                  - { op: setFlag, flag: sprung }
+                  - { op: apply, to: bearer, effect: ignite }
+
+maneuver.mechanic:
+  archetype: Maneuver
+  element: Mechanic
+  name: Jetpack
+  description: The user Leaps. When a damaging skill ends the Leap, it also causes an Explosion.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: apply
+      to: actor
+      duration: { ownTurns: 2 }
+      effect:
+        id: jetpack
+        name: Jetpack
+        kind: Buff
+        element: Mechanic
+        description: When a damaging skill ends the bearer's Leap, it also causes an Explosion.
+        triggers:
+          # A direct hit while Leaping spends the Leap (Leaping ends as that skill resolves): Explode then.
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: leaping } }
+                then: [{ op: setFlag, flag: hit }]
+          - on: skillResolved
+            do:
+              - op: if
+                cond: { flag: hit }
+                then:
+                  - { op: removeSelf }
+                  - { op: macro, id: explode }
+
+companion.mechanic:
+  archetype: Companion
+  element: Mechanic
+  name: Clockwork Hound
+  description: >-
+    Builds a Clockwork Hound (Contraption, 30 HP) permanently. At the end of each of your turns, it
+    deals 10 damage to a random enemy, and every other turn it Upgrades itself.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: clockwork_hound }
+
+bolt.mechanic:
+  archetype: Bolt
+  element: Mechanic
+  name: Grapnel Shot
+  description: >-
+    Deals 20 damage to target enemy and Marks them for 1 turn. Until the end of their next turn,
+    they're hooked: they lose Invulnerable, Untargetable and Stealth, and can't gain them.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: removeEffect, from: primary, effect: invulnerable }
+    - { op: removeEffect, from: primary, effect: untargetable }
+    - { op: removeEffect, from: primary, effect: stealth }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grapnel_hook
+        name: Hooked
+        kind: Debuff
+        element: Mechanic
+        description: Can't gain Invulnerable, Untargetable or Stealth.
+        modifiers:
+          - { mod: immuneToEffects, effects: [invulnerable, untargetable, stealth] }
+
+blast.mechanic:
+  archetype: Blast
+  element: Mechanic
+  name: Pressure Cascade
+  description: Deals 20 damage to all enemies, +10 for each ally of the user who used a skill earlier this turn.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: { sum: [20, { mul: [10, { alliesActed: true }] }] } }
+
+consume.mechanic:
+  archetype: Consume
+  element: Mechanic
+  name: Refuel
+  description: >-
+    Deals 10 damage to target enemy, healing the user as much. The user burns all their Swiftness as
+    fuel: 10 more healing per stack.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: heal, to: actor, amount: { sum: [{ lastDamage: true }, { mul: [10, { totalStacks: { in: actor, effect: swiftness } }] }] } }
+    - { op: removeEffect, from: actor, effect: swiftness }
+
+summon.mechanic:
+  archetype: Summon
+  element: Mechanic
+  name: Turret Drop
+  description: Builds 2 Turrets for 3 turns. When one is destroyed, the other is Upgraded.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: paired_turret, count: 2, duration: { enemyTurns: 3 } }
+
+channel.mechanic:
+  archetype: Channel
+  element: Mechanic
+  name: Assembly Line
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, a random allied minion is Upgraded; if
+    the user has none, they build a Turret instead. Channeled.
+  cost: SI
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: assembly_line
+        name: Assembly Line
+        kind: Neutral
+        element: Mechanic
+        interruptible: true
+        description: Each turn, Upgrades a random allied minion, or builds a Turret if there are none.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { countOf: { filter: allAllies, where: { kind: { unit: it, is: minion } } } }, atLeast: 1 } }
+                then:
+                  - { op: macro, id: upgrade_random }
+                else:
+                  - { op: summon, minion: turret }
+
+stab.mechanic:
+  archetype: Stab
+  element: Mechanic
+  name: Drill Bit
+  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Usable while Stunned.
+  cost: nc
+  cooldown: 1
+  tags: [Harmful, NonStrategic, UsableWhileStunned]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+
+ravage.mechanic:
+  archetype: Ravage
+  element: Mechanic
+  name: Chainsaw
+  description: >-
+    Deals 25 Piercing damage to target enemy, doubled against minions. If it destroys one, the user
+    builds a Turret from the wreck.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: before, value: { hp: primary } }
+    - { op: set, var: minion, value: { if: { kind: { unit: primary, is: minion } }, then: 1, else: 0 } }
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { if: { kind: { unit: it, is: minion } }, then: 50, else: 25 }
+    - op: if
+      cond:
+        and:
+          - { compare: { value: { var: before }, atLeast: 1 } }
+          - { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
+          - { compare: { value: { var: minion }, atLeast: 1 } }
+      then:
+        - { op: summon, minion: turret }
+
+mislead.mechanic:
+  archetype: Mislead
+  element: Mechanic
+  name: Dummy Bomb
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and a Dummy (Contraption, 15 HP)
+    is built. When the Dummy is destroyed, it Explodes. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dummy_bomb
+        name: Dummy Bomb
+        kind: Debuff
+        element: Mechanic
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and a Dummy is built.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: summon, minion: dummy }
+
+stun.mechanic:
+  archetype: Stun
+  element: Mechanic
+  name: Concussion Grenade
+  description: >-
+    Lands at the start of the user's next turn: 15 damage and a 1-turn Stun to target enemy, unless
+    they used a mobility skill in between.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: concussion_grenade
+        name: Concussion Grenade
+        kind: Debuff
+        element: Mechanic
+        description: Lands at the start of the applier's next turn unless the bearer uses a mobility skill first.
+        triggers:
+          - on: skillUsed
+            when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
+            do:
+              - { op: removeSelf }
+        onExpire:
+          - { op: damage, to: bearer, amount: 15 }
+          - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.mechanic:
+  archetype: Dance
+  element: Mechanic
+  name: Autogyro
+  description: >-
+    For 3 turns, the user gains 1 Might and Ghosted and begins Rushing. At the end of each of their
+    turns they're still Rushing, every allied minion is Upgraded.
+  cost: AA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: rushing }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: autogyro
+        name: Autogyro
+        kind: Buff
+        element: Mechanic
+        description: At the end of each of the bearer's turns while Rushing, every allied minion is Upgraded.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: rushing } }
+                then:
+                  - { op: macro, id: upgrade_all }
+
+heal.mechanic:
+  archetype: Heal
+  element: Mechanic
+  name: Repair Kit
+  description: >-
+    Target ally heals 20. An allied minion is instead Upgraded twice; a Contraption is Repaired for 20
+    first.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: if
+      cond: { kind: { unit: primary, is: minion } }
+      then:
+        - op: if
+          cond: { has: { unit: primary, effect: contraption } }
+          then:
+            - { op: heal, to: primary, amount: 20, raw: true }
+        - { op: forEach, in: primary, do: [{ op: macro, id: upgrade }, { op: macro, id: upgrade }] }
+      else:
+        - { op: heal, to: primary, amount: 20 }
+
+bless.mechanic:
+  archetype: Bless
+  element: Mechanic
+  name: Tune-Up
+  description: >-
+    For 3 turns, target ally gains 1 Might, and their damaging skills don't end their Leap; it ends
+    only when they take damage.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tune_up
+        name: Tune-Up
+        kind: Buff
+        element: Mechanic
+        description: The bearer's damaging skills don't end their Leap; taking damage does.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: leaping } }
+                then: [{ op: setFlag, flag: leaping }]
+                else: [{ op: setFlag, flag: leaping, value: false }]
+          - on: skillResolved
+            do:
+              - op: if
+                cond: { and: [{ flag: leaping }, { not: { has: { unit: bearer, effect: leaping } } }] }
+                then:
+                  - { op: apply, to: bearer, effect: leaping }
+          - on: damaged
+            do:
+              - { op: removeEffect, from: bearer, effect: leaping }
+              - { op: setFlag, flag: leaping, value: false }
+
+curse.mechanic:
+  archetype: Curse
+  element: Mechanic
+  name: Sabotage
+  description: >-
+    Target enemy is Confused for 2 turns. Meanwhile, each mobility skill they use backfires: it's
+    countered and they're Stunned for 1 turn.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sabotage
+        name: Sabotage
+        kind: Debuff
+        element: Mechanic
+        description: Each mobility skill the bearer uses is countered and Stuns them for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
+            intercept: counter
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+smite.mechanic:
+  archetype: Smite
+  element: Mechanic
+  name: Signal Flare
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each allied minion that damages them is Upgraded.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: signal_flare
+        name: Signal Flare
+        kind: Debuff
+        element: Mechanic
+        description: Each of the applier's minions that damages the bearer is Upgraded.
+        triggers:
+          - on: damaged
+            when: { fromSide: ally }
+            do:
+              - op: forEach
+                in: { filter: eventSource, where: { kind: { unit: it, is: minion } } }
+                do:
+                  - { op: macro, id: upgrade }
+
+prayer.mechanic:
+  archetype: Prayer
+  element: Mechanic
+  name: Field Workshop
+  description: All allies heal 20. Each ally at or below half HP afterwards gets a Turret for 2 turns.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: forEach
+      in:
+        filter: targets
+        where:
+          and:
+            - { kind: { unit: it, is: character } }
+            - { compare: { value: { sum: [{ missingHp: it }, { mul: [-1, { hp: it }] }] }, atLeast: 0 } }
+      do:
+        - { op: summon, minion: turret, duration: { enemyTurns: 2 } }
+
+cleave.mechanic:
+  archetype: Cleave
+  element: Mechanic
+  name: Red-Hot Blades
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. The user overheats: they're
+    Ignited, and deal 5 more direct damage while they stay Ignited.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: apply, to: actor, effect: ignite }
+    - op: apply
+      to: actor
+      effect:
+        id: red_hot_blades
+        name: Red-Hot Blades
+        kind: Buff
+        element: Mechanic
+        description: +5 direct damage while the bearer is Ignited.
+        modifiers:
+          - { mod: damageDealt, amount: 5, when: { direct: true }, if: { has: { unit: actor, effect: ignite } } }
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: ignite } } }
+                then: [{ op: removeSelf }]
+
+shout.mechanic:
+  archetype: Shout
+  element: Mechanic
+  name: Steam Whistle
+  description: >-
+    All enemies are Intimidated for 2 turns. Every allied minion is Upgraded, and loses that level
+    again after 2 turns.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { filter: allAllies, where: { check: { cond: upgradeable, unit: it } } }
+      do:
+        - op: if
+          cond: { compare: { value: { stacks: { unit: it, effect: upgraded } }, atMost: 2 } }
+          then:
+            - { op: macro, id: upgrade }
+            - op: apply
+              to: it
+              duration: { enemyTurns: 2 }
+              effect:
+                id: steam_whistle
+                name: Steam Whistle
+                kind: Neutral
+                element: Mechanic
+                description: Loses the borrowed Upgrade level when this ends.
+                onExpire:
+                  - { op: removeStacks, from: bearer, effect: upgraded, amount: 1 }
+                  - { op: addMaxHp, to: bearer, amount: -10 }
+
+withstand.mechanic:
+  archetype: Withstand
+  element: Mechanic
+  name: Blast Shield
+  description: >-
+    The user gains 25 Shield for 1 turn. When it ends, if 10 or more is left, the user builds a
+    Turret for 2 turns from it.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: blast_shield
+        name: Blast Shield
+        kind: Buff
+        element: Mechanic
+        shield: true
+        description: A Shield; with 10 or more left when it ends, it becomes a Turret.
+        onExpire:
+          - op: if
+            cond: { compare: { value: { effectValue: true }, atLeast: 10 } }
+            then:
+              - { op: summon, minion: turret, duration: { enemyTurns: 2 } }
+
+taunt.mechanic:
+  archetype: Taunt
+  element: Mechanic
+  name: Scarecrow Bot
+  description: >-
+    Builds a Decoy (Contraption, 20 HP); target enemy is Taunted by it for 2 turns, or 3 if they're
+    Immobile.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: decoy }
+    - op: apply
+      to: primary
+      effect: taunt
+      from: lastSummoned
+      duration:
+        enemyTurns: { if: { check: { cond: immobile, unit: primary } }, then: 3, else: 2 }
+
+titan.mechanic:
+  archetype: Titan
+  element: Mechanic
+  name: Mech Suit
+  description: >-
+    For 3 turns, the user counts as a Contraption: 20 Shield, Immune, ignores Stuns, and can be
+    Upgraded. Then they Leap.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: mech_suit
+        name: Mech Suit
+        kind: Buff
+        element: Mechanic
+        countsAs: [contraption]
+        description: Counts as a Contraption that can be Upgraded; ignores Stuns.
+        modifiers:
+          - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s, sleep] }
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }

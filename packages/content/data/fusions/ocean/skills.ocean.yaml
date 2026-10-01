@@ -1,0 +1,871 @@
+# The 30 Ocean (Water + Water) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.ocean".
+# Crest and Trough: a skill's first use is its Crest form, then it alternates (the `crest` condition).
+# Brimming: Renew healing past max HP becomes Shield (Brimming Shield, up to 30); see base Renew.
+
+strike.ocean:
+  archetype: Strike
+  element: Ocean
+  name: Breaker
+  description: >-
+    Crest: deals 25 damage to target enemy, and one of their Buffs washes away. Trough: deals 15
+    damage, and one of the user's Debuffs washes away.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: damage, to: primary, amount: 25 }
+        - { op: removeRandom, from: primary, kind: Buff }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: removeRandom, from: actor, kind: Debuff }
+
+smash.ocean:
+  archetype: Smash
+  element: Ocean
+  name: Rogue Wave
+  description: >-
+    Crest: deals 30 damage to target enemy and 15 to their allies. Trough: the sea draws back:
+    15 damage to target enemy, and every enemy loses their Shield.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: damage, to: primary, amount: 30 }
+        - { op: damage, to: primaryAllies, amount: 15 }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: removeShields, from: allEnemies }
+
+charge.ocean:
+  archetype: Charge
+  element: Ocean
+  name: Swell
+  description: >-
+    Crest: deals 15 damage, plus 5 for each of the user's turns since their last Trough (up to 20
+    more). Trough: deals 10 damage, and the user gains Flow until the end of their next turn.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: set, var: swells, value: { div: [{ sum: [{ turn: true }, { mul: [-1, { counter: swell_trough }] }] }, 2] } }
+        - op: damage
+          to: primary
+          amount:
+            sum:
+              - 15
+              - if: { compare: { value: { var: swells }, atLeast: 4 } }
+                then: 20
+                else: { mul: [5, { var: swells }] }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: actor, effect: flow, duration: { raw: 3 } }
+        - { op: setCounter, name: swell_trough, value: { turn: true } }
+
+riposte.ocean:
+  archetype: Riposte
+  element: Ocean
+  name: Breakwater
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user. The user gains Brimming for 3 turns
+    and 2 Renew per skill countered. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: breakwater
+        name: Breakwater
+        kind: Buff
+        element: Ocean
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; each gives them Brimming and 2 Renew.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: actor, effect: brimming, duration: { enemyTurns: 3 } }
+              - { op: apply, to: actor, effect: renew, stacks: 2 }
+
+rage.ocean:
+  archetype: Rage
+  element: Ocean
+  name: Relentless Surf
+  description: >-
+    For 3 turns, the user gains 2 Might, and the first time they damage each Stunned enemy, that
+    enemy's Stuns last 1 turn longer.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: relentless_surf
+        name: Relentless Surf
+        kind: Buff
+        element: Ocean
+        description: The first time the bearer damages each Stunned enemy, that enemy's Stuns last 1 turn longer.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true }
+            do:
+              - { op: extendEffects, on: eventTarget, effects: [stun, stun_ns, stun_s], by: 2, onceKey: relentless_surf }
+
+shot.ocean:
+  archetype: Shot
+  element: Ocean
+  name: Spindrift
+  description: >-
+    Deals 15 damage to target enemy, and the user gains 2 Renew and Brimming for 2 turns. If they
+    were already Brimming, they spend their Brimming Shield instead, dealing as much extra damage
+    (up to 20).
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: brimming } }
+      then:
+        - op: set
+          var: spend
+          value:
+            if: { compare: { value: { effectValueOf: { unit: actor, effect: brimming_shield } }, atLeast: 20 } }
+            then: 20
+            else: { effectValueOf: { unit: actor, effect: brimming_shield } }
+        - { op: damage, to: primary, amount: { sum: [15, { var: spend }] } }
+        - { op: growShield, to: actor, effect: brimming_shield, amount: { mul: [-1, { var: spend }] } }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: actor, effect: renew, stacks: 2 }
+        - { op: apply, to: actor, effect: brimming, duration: { enemyTurns: 2 } }
+
+snipe.ocean:
+  archetype: Snipe
+  element: Ocean
+  name: Harpoon
+  description: >-
+    Crest: deals 45 damage to target enemy on the following turn. Trough: deals 30 damage on the
+    following turn, and the catch is shared: allies heal 30, split evenly between them. The target
+    of this skill is invisible. Channeled.
+  cost: Ir
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - op: apply
+          to: actor
+          remember: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: harpoon_crest
+            name: Harpoon (aiming)
+            kind: Neutral
+            element: Ocean
+            visibility: hiddenTarget
+            interruptible: true
+            description: Fires at the end of the following turn unless interrupted.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 45 }
+      else:
+        - op: apply
+          to: actor
+          remember: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: harpoon_trough
+            name: Harpoon (aiming)
+            kind: Neutral
+            element: Ocean
+            visibility: hiddenTarget
+            interruptible: true
+            description: Fires at the end of the following turn unless interrupted, sharing the catch with allies.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 30 }
+              - { op: heal, to: allAllies, amount: { div: [30, { countOf: allAllies }] } }
+
+trap.ocean:
+  archetype: Trap
+  element: Ocean
+  name: Undercurrent
+  description: >-
+    For 2 turns. Crest: each time target enemy uses a Harmful skill, they take 10 damage and their
+    other cooldowns rise by 1. Trough: each time they use a Helpful skill, the user's ally with the
+    least HP heals as much as it healed. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: undercurrent_crest
+            name: Undercurrent
+            kind: Debuff
+            element: Ocean
+            visibility: hidden
+            description: Each Harmful skill the bearer uses deals them 10 damage and raises their other cooldowns by 1.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                do:
+                  - { op: damage, to: bearer, amount: 10 }
+                  - { op: adjustCooldowns, to: bearer, by: 1, exceptEvent: true }
+      else:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: undercurrent_trough
+            name: Undercurrent
+            kind: Debuff
+            element: Ocean
+            visibility: hidden
+            description: Each time the bearer heals someone, the applier's ally with the least HP heals as much.
+            triggers:
+              - on: healDone
+                do:
+                  - { op: heal, to: weakestAlly, amount: { eventAmount: true } }
+
+maneuver.ocean:
+  archetype: Maneuver
+  element: Ocean
+  name: Sounding
+  description: >-
+    The user becomes Invulnerable for 1 turn and gains Flow for 2 turns. Each skill they use with
+    Flow gives the ally with the least HP 2 Renew.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: flow, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sounding
+        name: Sounding
+        kind: Buff
+        element: Ocean
+        description: Each skill the bearer uses with Flow gives their ally with the least HP 2 Renew.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: flow } }
+                then:
+                  - { op: apply, to: weakestAlly, effect: renew, stacks: 2 }
+
+companion.ocean:
+  archetype: Companion
+  element: Ocean
+  name: Kraken
+  description: >-
+    Summons a Kraken (40 HP) permanently. Tentacles (r): Crest: 15 damage. Trough: it grabs target
+    enemy: their non-Strategic skills are stunned for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: kraken }
+
+bolt.ocean:
+  archetype: Bolt
+  element: Ocean
+  name: Brine Bolt
+  description: >-
+    Deals 25 damage to target enemy and Marks them for 1 turn. Whoever spends the Mark gains 2
+    Renew and Brimming for 2 turns.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: brine_bolt
+        name: Brine Bolt
+        kind: Debuff
+        element: Ocean
+        description: Whoever spends the bearer's Mark gains 2 Renew and Brimming for 2 turns.
+        triggers:
+          - on: damaged
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: mark } } }
+                then:
+                  - { op: apply, to: eventSource, effect: renew, stacks: 2 }
+                  - { op: apply, to: eventSource, effect: brimming, duration: { enemyTurns: 2 } }
+                  - { op: removeSelf }
+
+blast.ocean:
+  archetype: Blast
+  element: Ocean
+  name: Flood Tide
+  description: Deals 20 damage to all enemies. Every ally gains Brimming for 2 turns and 1 Renew for each enemy hit.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: set, var: hit, value: { countOf: lastDamaged } }
+    - { op: apply, to: allAllies, effect: brimming, duration: { enemyTurns: 2 } }
+    - { op: apply, to: allAllies, effect: renew, stacks: { var: hit } }
+
+consume.ocean:
+  archetype: Consume
+  element: Ocean
+  name: Ebbing Toll
+  description: >-
+    Deals 5 damage to target enemy, and the user heals 5. For 2 turns, each extra energy their
+    Confusion makes them pay heals the user 10.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: ebbing_toll
+        name: Ebbing Toll
+        kind: Debuff
+        element: Ocean
+        description: Each skill the bearer uses while Confused heals the applier 10 per Confusion.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: confusion } }
+                then:
+                  - { op: heal, to: actor, amount: { mul: [10, { stacks: { unit: bearer, effect: confusion } }] } }
+
+summon.ocean:
+  archetype: Summon
+  element: Ocean
+  name: Jellyfish Bloom
+  description: >-
+    Summons 3 Jellyfish (10 HP) for 3 turns. Stinging Bell (nc): 5 damage. When an enemy kills a
+    Jellyfish, that enemy is Stunned for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: jellyfish, count: 3, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: jellyfish_bloom
+        name: Jellyfish Bloom
+        kind: Buff
+        element: Ocean
+        description: An enemy who kills one of the bearer's Jellyfish is Stunned for 1 turn.
+        triggers:
+          - on: signal
+            signal: died
+            when: { side: enemy }
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [jellyfish], mine: true } }
+                then:
+                  - { op: apply, to: eventSource, effect: stun, duration: { enemyTurns: 1 } }
+
+channel.ocean:
+  archetype: Channel
+  element: Ocean
+  name: Slack Water
+  description: >-
+    For up to 3 turns, deals 10 damage to all enemies at the end of each of the user's turns. While
+    it channels, allies' Renew doesn't lose stacks when it heals. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: slack_water
+        name: Slack Water
+        kind: Neutral
+        element: Ocean
+        interruptible: true
+        description: Deals 10 damage to all enemies at the end of each of the user's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+    - { op: apply, to: allAllies, effect: slack_water_calm, linkTo: slack_water, duration: { enemyTurns: 3 } }
+
+stab.ocean:
+  archetype: Stab
+  element: Ocean
+  name: Slipfoot Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Confused, they
+    lose their footing: the Confusion is spent and they're Stunned for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: confusion } }
+      then:
+        - { op: removeEffect, from: primary, effect: confusion }
+        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+ravage.ocean:
+  archetype: Ravage
+  element: Ocean
+  name: Breaker Swell
+  description: >-
+    Deals 40 Piercing damage to target enemy and 15 to each of their allies. The wave drags the
+    user under too: they're Stunned on their next turn.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 40, type: Piercing }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - { op: apply, to: actor, effect: stun, duration: { raw: 3 } }
+
+mislead.ocean:
+  archetype: Mislead
+  element: Ocean
+  name: Siren's Lure
+  description: >-
+    For 1 turn. Crest: if target enemy uses a Harmful skill, it's countered and they're Taunted by
+    the user for 2 turns. Trough: if they use a Helpful skill, it's countered and they're Stunned
+    for 1 turn. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: sirens_lure_crest
+            name: Siren's Lure
+            kind: Debuff
+            element: Ocean
+            visibility: hidden
+            description: The bearer's Harmful skills are countered, and they're Taunted by the Siren for 2 turns.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                intercept: counter
+                do:
+                  - { op: apply, to: bearer, effect: taunt, duration: { enemyTurns: 2 } }
+      else:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: sirens_lure_trough
+            name: Siren's Lure
+            kind: Debuff
+            element: Ocean
+            visibility: hidden
+            description: The bearer's Helpful skills are countered, and they're Stunned for 1 turn.
+            triggers:
+              - on: skillUsed
+                when: { harmful: false }
+                intercept: counter
+                do:
+                  - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+stun.ocean:
+  archetype: Stun
+  element: Ocean
+  name: Maelstrom
+  description: >-
+    Crest: deals 15 damage to target enemy and Stuns them for 1 turn. Trough: every Stunned enemy's
+    Stuns last 1 turn longer, and every other enemy gains 1 Confusion for 2 turns.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+      else:
+        - op: forEach
+          in: allEnemies
+          do:
+            - op: if
+              cond: { or: [{ has: { unit: it, effect: stun } }, { has: { unit: it, effect: stun_ns } }, { has: { unit: it, effect: stun_s } }] }
+              then:
+                - { op: extendEffects, on: it, effects: [stun, stun_ns, stun_s], by: 2 }
+              else:
+                - { op: apply, to: it, effect: confusion, duration: { enemyTurns: 2 } }
+
+dance.ocean:
+  archetype: Dance
+  element: Ocean
+  name: Swell of the Deep
+  description: >-
+    For 4 turns, the user gains Flow, Brimming and 1 Swiftness, and 2 Renew at the start of each of
+    their turns. Each time Brimming gives them Shield, they gain 1 Might for 1 turn.
+  cost: Ar
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: flow, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: brimming, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: swell_of_the_deep
+        name: Swell of the Deep
+        kind: Buff
+        element: Ocean
+        description: 2 Renew at the start of each of the bearer's turns; each Brimming Shield gain gives 1 Might for 1 turn.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: renew, stacks: 2 }
+
+heal.ocean:
+  archetype: Heal
+  element: Ocean
+  name: Tidepool
+  description: >-
+    Target ally heals 30. Any of it past their max HP becomes 2 Renew per 10, and they gain
+    Brimming for 2 turns.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 30 }
+    - { op: apply, to: primary, effect: renew, stacks: { mul: [2, { div: [{ lastOverheal: true }, 10] }] } }
+    - { op: apply, to: primary, effect: brimming, duration: { enemyTurns: 2 } }
+
+bless.ocean:
+  archetype: Bless
+  element: Ocean
+  name: Sea Legs
+  description: Target ally gains Flow for 3 turns; each time their Flow ignores a counter or reflect, they heal 15.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: flow, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sea_legs
+        name: Sea Legs
+        kind: Buff
+        element: Ocean
+        description: Each time the bearer's Flow ignores a counter or reflect, they heal 15.
+        triggers:
+          - on: counterIgnored
+            do:
+              - { op: heal, to: bearer, amount: 15 }
+
+curse.ocean:
+  archetype: Curse
+  element: Ocean
+  name: Brine Haze
+  description: >-
+    Target enemy is Confused for 2 turns. For as long, each time an ally of the user gains Renew,
+    the target gains 1 more Confusion.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: allAllies
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: brine_haze
+        name: Brine Haze
+        kind: Buff
+        element: Ocean
+        description: Each time the bearer gains Renew, the hazed enemy gains 1 more Confusion.
+        triggers:
+          - on: effectGained
+            effect: renew
+            do:
+              - { op: apply, to: effectTargets, effect: confusion, duration: { enemyTurns: 2 } }
+
+smite.ocean:
+  archetype: Smite
+  element: Ocean
+  name: Foambreaker
+  description: Deals 20 damage to target enemy. For 1 turn, allies who damage them gain 2 Renew and Brimming for 2 turns.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: foambreaker
+        name: Foambreaker
+        kind: Debuff
+        element: Ocean
+        description: Enemies who damage the bearer gain 2 Renew and Brimming for 2 turns.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventSource, effect: renew, stacks: 2 }
+              - { op: apply, to: eventSource, effect: brimming, duration: { enemyTurns: 2 } }
+
+prayer.ocean:
+  archetype: Prayer
+  element: Ocean
+  name: Chorus of Tides
+  description: All allies heal 30; healing past max HP becomes Shield, up to 30 each.
+  cost: Irr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: heal, to: it, amount: 30 }
+        - op: if
+          cond: { compare: { value: { lastOverheal: true }, atLeast: 1 } }
+          then:
+            - { op: growShield, to: it, effect: brimming_shield, amount: { lastOverheal: true }, max: 30 }
+
+cleave.ocean:
+  archetype: Cleave
+  element: Ocean
+  name: Crosscurrent
+  description: >-
+    Crest: deals 25 damage to target enemy and 15 to a random other enemy. Trough: deals 10 damage
+    to target enemy and a random other enemy, and each also gains the other's Debuffs.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: damage, to: primary, amount: 25 }
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 10 }
+        - { op: shareEffects, a: primary, b: lastDamaged, kind: Debuff }
+
+shout.ocean:
+  archetype: Shout
+  element: Ocean
+  name: Whalesong
+  description: >-
+    All enemies gain 1 Vulnerable for 2 turns. Every Invisible effect they own is revealed, and any
+    they create in the next 2 turns is revealed as it's made.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: vulnerable, duration: { enemyTurns: 2 } }
+    - { op: reveal, by: allEnemies }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: whalesong
+        name: Whalesong
+        kind: Debuff
+        element: Ocean
+        description: Every hidden effect the bearer applies is revealed.
+        triggers:
+          - on: effectApplied
+            do:
+              - { op: reveal, event: true }
+
+withstand.ocean:
+  archetype: Withstand
+  element: Ocean
+  name: Returning Wave
+  description: >-
+    The user gains 30 Shield for 1 turn. When it ends, whatever is left of it crashes outward as
+    damage, split evenly among all enemies.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 30
+      duration: { enemyTurns: 1 }
+      effect:
+        id: returning_wave
+        name: Returning Wave
+        kind: Buff
+        element: Ocean
+        shield: true
+        description: When it ends, the Shield left crashes into the enemies, split evenly.
+        onExpire:
+          - op: damage
+            to: allEnemies
+            direct: false
+            amount: { div: [{ effectValue: true }, { countOf: allEnemies }] }
+
+taunt.ocean:
+  archetype: Taunt
+  element: Ocean
+  name: Riptide
+  description: Taunts target enemy for 2 turns. Each Harmful skill they use while Taunted gives the user 2 Renew.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: riptide
+        name: Riptide
+        kind: Debuff
+        element: Ocean
+        description: Each Harmful skill the bearer uses while Taunted gives the applier 2 Renew.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: taunt } }
+                then:
+                  - { op: apply, to: actor, effect: renew, stacks: 2 }
+
+titan.ocean:
+  archetype: Titan
+  element: Ocean
+  name: Leviathan Form
+  description: >-
+    For 3 turns, the user gains 2 Armor and Brimming, and at the end of each of their turns they
+    bite the enemy with the least HP for 15 damage and gain 2 Renew.
+  cost: WI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: brimming, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: leviathan_form
+        name: Leviathan Form
+        kind: Buff
+        element: Ocean
+        description: At the end of the bearer's turn, they bite the enemy with the least HP for 15 and gain 2 Renew.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: weakestEnemy, amount: 15 }
+              - { op: apply, to: bearer, effect: renew, stacks: 2 }
+
+# Minion skills.
+
+kraken_tentacles:
+  archetype: Minion
+  element: Ocean
+  name: Tentacles
+  description: >-
+    Crest: deals 15 damage to target enemy. Trough: grabs target enemy: their non-Strategic skills
+    are stunned for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: damage, to: primary, amount: 15 }
+      else:
+        - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }
+
+jellyfish_stinging_bell:
+  archetype: Minion
+  element: Ocean
+  name: Stinging Bell
+  description: Deals 5 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }

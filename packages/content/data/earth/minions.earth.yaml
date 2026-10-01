@@ -10,6 +10,12 @@ seedling:
   hp: 15
   skills: [seedling_channel_earth]
   tags: [seedling]
+  # Life's Bloom: a Seedling made by a Life character becomes a Treant if it survives.
+  onSummon:
+    - op: if
+      cond: { has: { unit: summoner, effect: life_grove } }
+      then:
+        - { op: apply, to: actor, effect: bloom_timer, duration: { raw: 5 } }
 
 forest_stalker:
   name: Forest Stalker

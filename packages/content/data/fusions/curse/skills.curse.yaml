@@ -1,0 +1,760 @@
+# The 30 Curse (Unholy + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Hexes (statuses `hex_pain`, `hex_silence`, `hex_ruin`; they Linger) and macro `random_hex`.
+
+strike.curse:
+  archetype: Strike
+  element: Curse
+  name: Woeblade
+  description: Deals 20 damage to target enemy, who gains a random Hex for 2 turns.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: random_hex }] }
+
+smash.curse:
+  archetype: Smash
+  element: Curse
+  name: Crushing Malediction
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Each Hex on the target is copied, for 2 turns, to a
+    random ally of theirs.
+  cost: SS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - op: if
+          cond: { has: { unit: primary, effect: hex_pain } }
+          then: [{ op: apply, to: it, effect: hex_pain, duration: { enemyTurns: 2 } }]
+        - op: if
+          cond: { has: { unit: primary, effect: hex_silence } }
+          then: [{ op: apply, to: it, effect: hex_silence, duration: { enemyTurns: 2 } }]
+        - op: if
+          cond: { has: { unit: primary, effect: hex_ruin } }
+          then: [{ op: apply, to: it, effect: hex_ruin, duration: { enemyTurns: 2 } }]
+
+charge.curse:
+  archetype: Charge
+  element: Curse
+  name: Somnambulant Rush
+  description: Deals 15 damage to target enemy, without waking them.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, wakes: false }
+
+riposte.curse:
+  archetype: Riposte
+  element: Curse
+  name: Hex Ward
+  description: >-
+    For 1 turn, counters every Harmful skill used on the user by a Hexed enemy, and the first one from anyone else.
+    Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hex_ward
+        name: Hex Ward
+        kind: Buff
+        element: Curse
+        visibility: hidden
+        description: Counters every Harmful skill a Hexed enemy uses on the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, sourceIs: hexed }
+            intercept: counter
+    # Applied second, so a Hexed attacker meets the ward above first and this one is kept for anyone else.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hex_ward_first
+        name: Hex Ward
+        kind: Buff
+        element: Curse
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+
+rage.curse:
+  archetype: Rage
+  element: Curse
+  name: Cursed Hunger
+  description: >-
+    For 3 turns, the user gains Lifesteal, and +5 damage (1 Might) for each Hexed enemy, up to 3, counted as they
+    hit.
+  cost: SA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cursed_hunger
+        name: Cursed Hunger
+        kind: Buff
+        element: Curse
+        description: +5 direct damage per Hexed enemy, up to 3.
+        modifiers:
+          - mod: damageDealt
+            amount: 0
+            when: { direct: true }
+            value:
+              mul:
+                - 5
+                - if: { compare: { value: { countOf: { filter: allEnemies, where: { check: { cond: hexed, unit: it } } } }, atLeast: 3 } }
+                  then: 3
+                  else: { countOf: { filter: allEnemies, where: { check: { cond: hexed, unit: it } } } }
+
+shot.curse:
+  archetype: Shot
+  element: Curse
+  name: Needle of Woe
+  description: Deals 5 Piercing damage to target enemy; each Hex on them lasts 1 turn longer.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: extendEffects, on: primary, effects: [hex_pain, hex_silence, hex_ruin], by: 2 }
+
+snipe.curse:
+  archetype: Snipe
+  element: Curse
+  name: Doom
+  description: >-
+    On the following turn, deals 40 damage to target enemy; it consumes their Hexes for 15 more each, and those
+    Hexes don't Linger. The target of this skill is invisible. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: doom
+        name: Doom
+        kind: Neutral
+        element: Curse
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 40 damage, +15 per Hex consumed.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - op: set
+                var: hexes
+                value: { sum: [{ count: { effects: [hex_pain], in: it } }, { count: { effects: [hex_silence], in: it } }, { count: { effects: [hex_ruin], in: it } }] }
+              - { op: removeStacks, from: it, effect: hex_pain, amount: 1 }
+              - { op: removeStacks, from: it, effect: hex_silence, amount: 1 }
+              - { op: removeStacks, from: it, effect: hex_ruin, amount: 1 }
+              - { op: damage, to: it, amount: { sum: [40, { mul: [15, { var: hexes }] }] } }
+
+trap.curse:
+  archetype: Trap
+  element: Curse
+  name: Cleanser's Snare
+  description: >-
+    For 2 turns, if the Snare on target enemy is cleansed, they're Stunned for 1 turn and gain Hex of Ruin for 3
+    turns. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cleansers_snare
+        name: Cleanser's Snare
+        kind: Debuff
+        element: Curse
+        visibility: hidden
+        description: If this is cleansed, the bearer is Stunned and Hexed with Ruin.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cleansers_snare_watch
+        name: Cleanser's Snare (set)
+        kind: Neutral
+        element: Curse
+        visibility: hidden
+        description: Springs when the Snare is cleansed.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [cleansers_snare], reason: [removed] }
+            consume: true
+            do:
+              - { op: apply, to: eventTarget, effect: stun, duration: { enemyTurns: 1 } }
+              - { op: apply, to: eventTarget, effect: hex_ruin, duration: { enemyTurns: 3 } }
+
+maneuver.curse:
+  archetype: Maneuver
+  element: Curse
+  name: Familiar's Cover
+  description: >-
+    The user becomes Invulnerable for 1 turn. For 2 turns, their Lifesteal also heals them for damage their minions
+    deal.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: familiars_cover
+        name: Familiar's Cover
+        kind: Buff
+        element: Curse
+        description: Damage the bearer deals heals the applier, if they have Lifesteal.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: actor, effect: lifesteal } }
+                then: [{ op: heal, to: actor, amount: { eventAmount: true } }]
+
+companion.curse:
+  archetype: Companion
+  element: Curse
+  name: Black Cat
+  description: >-
+    Summons a Black Cat (25 HP) permanently. Scratch (r): 10 Piercing damage. Whoever damages the Cat gains a random
+    Hex for 2 turns.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: black_cat }
+
+bolt.curse:
+  archetype: Bolt
+  element: Curse
+  name: Malediction
+  description: >-
+    Deals 25 damage to target enemy, who gains Hex of Ruin for 2 turns; each Buff they already have counts as
+    gained, for 10 Affliction each.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: hex_ruin, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then:
+        - { op: damage, to: primary, amount: { mul: [10, { kindCount: { unit: primary, kind: Buff } }] }, type: Affliction, direct: false }
+
+blast.curse:
+  archetype: Blast
+  element: Curse
+  name: Soul Eclipse
+  description: >-
+    Deals 25 damage to all enemies. The user spends up to 3 Soul Fragments; for each, a random enemy is Blinded for
+    2 turns.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - op: set
+      var: souls
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 3 } }, then: 3, else: { stacks: { unit: actor, effect: soul_fragment } } }
+    - op: repeat
+      times: { var: souls }
+      do:
+        - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }
+        - { op: apply, to: { randomEnemy: 1 }, effect: blinded, duration: { enemyTurns: 2 } }
+
+consume.curse:
+  archetype: Consume
+  element: Curse
+  name: Feed on Misery
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. Each Hex on them is shortened by 1 turn, and the user
+    heals 10 more per Hex shortened.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: set
+      var: hexes
+      value: { sum: [{ count: { effects: [hex_pain], in: primary } }, { count: { effects: [hex_silence], in: primary } }, { count: { effects: [hex_ruin], in: primary } }] }
+    - { op: extendEffects, on: primary, effects: [hex_pain, hex_silence, hex_ruin], by: -2 }
+    - { op: heal, to: actor, amount: { sum: [5, { mul: [10, { var: hexes }] }] } }
+
+summon.curse:
+  archetype: Summon
+  element: Curse
+  name: Hex Shade
+  description: >-
+    Summons a Hex Shade (15 HP) for 3 turns. Whisper (r): target enemy gains a random Hex for 2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: hex_shade, duration: { enemyTurns: 3 } }
+
+channel.curse:
+  archetype: Channel
+  element: Curse
+  name: Litany of Curses
+  description: >-
+    For 3 turns, at the end of each of the user's turns, a random enemy gains a random Hex for 2 turns; if they
+    already had it, they take 20 Affliction instead. Channeled.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: litany_of_curses
+        name: Litany of Curses
+        kind: Neutral
+        element: Curse
+        interruptible: true
+        description: Each turn, a random enemy gains a random Hex, or takes 20 Affliction if they had it.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in: { randomEnemy: 1 }
+                do:
+                  - op: random
+                    options:
+                      - - op: if
+                          cond: { has: { unit: it, effect: hex_pain } }
+                          then: [{ op: damage, to: it, amount: 20, type: Affliction, direct: false }]
+                          else: [{ op: apply, to: it, effect: hex_pain, duration: { enemyTurns: 2 } }]
+                      - - op: if
+                          cond: { has: { unit: it, effect: hex_silence } }
+                          then: [{ op: damage, to: it, amount: 20, type: Affliction, direct: false }]
+                          else: [{ op: apply, to: it, effect: hex_silence, duration: { enemyTurns: 2 } }]
+                      - - op: if
+                          cond: { has: { unit: it, effect: hex_ruin } }
+                          then: [{ op: damage, to: it, amount: 20, type: Affliction, direct: false }]
+                          else: [{ op: apply, to: it, effect: hex_ruin, duration: { enemyTurns: 2 } }]
+
+stab.curse:
+  archetype: Stab
+  element: Curse
+  name: Cursed Dagger
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. If they're Hexed, they also gain a random Hex for 2
+    turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { check: { cond: hexed, unit: primary } }
+      then: [{ op: forEach, in: primary, do: [{ op: macro, id: random_hex }] }]
+
+ravage.curse:
+  archetype: Ravage
+  element: Curse
+  name: Rend the Wards
+  description: >-
+    The user spends up to 3 Soul Fragments, and target enemy loses 1 random Buff for each. Then deals 30 Piercing
+    damage to them.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: souls
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 3 } }, then: 3, else: { stacks: { unit: actor, effect: soul_fragment } } }
+    - op: repeat
+      times: { var: souls }
+      do:
+        - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }
+        - { op: removeRandom, from: primary, kind: Buff }
+    - { op: damage, to: primary, amount: 30, type: Piercing }
+
+mislead.curse:
+  archetype: Mislead
+  element: Curse
+  name: Tongue-Tied
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and their Hexes last 1 turn longer. The user
+    becomes Untargetable for 1 turn. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - { op: apply, to: actor, effect: untargetable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tongue_tied
+        name: Tongue-Tied
+        kind: Debuff
+        element: Curse
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and their Hexes last 1 turn longer.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: extendEffects, on: bearer, effects: [hex_pain, hex_silence, hex_ruin], by: 2 }
+
+stun.curse:
+  archetype: Stun
+  element: Curse
+  name: Evil Eye
+  description: >-
+    Target enemy is Stunned for 1 turn. When it ends, the Stun passes to a random enemy who hasn't had it, until
+    every enemy has been Stunned once.
+  cost: A
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: setCounter, name: evil_eyed, on: primary, value: 1 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: evil_eye, duration: { enemyTurns: 1 } }
+
+dance.curse:
+  archetype: Dance
+  element: Curse
+  name: Envious Jig
+  description: >-
+    The user gains 1 Swiftness. For 3 turns, whenever an enemy gains a Buff, the user gains a copy, and the enemy's
+    lasts 1 turn less.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 3 }
+      effect:
+        id: envious_jig
+        name: Envious Jig
+        kind: Debuff
+        element: Curse
+        description: Each Buff the bearer gains is copied to the applier and lasts 1 turn less.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            do:
+              - { op: copyEventEffect, to: actor, noChain: true }
+              - { op: eventEffect, extendBy: -2 }
+
+heal.curse:
+  archetype: Heal
+  element: Curse
+  name: Pass the Curse
+  description: Target ally heals 20, and their Hexes and other Debuffs move to a random enemy.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: moveEffects, from: primary, to: { randomEnemy: 1 }, kind: Debuff }
+
+bless.curse:
+  archetype: Bless
+  element: Curse
+  name: Unhallowed Pact
+  description: For 3 turns, target ally gains 2 Might and Lifesteal, but they're Isolated for as long.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 3 } }
+
+curse.curse:
+  archetype: Curse
+  element: Curse
+  name: Bane
+  description: Target enemy gains all three Hexes for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: hex_pain, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: hex_silence, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: hex_ruin, duration: { enemyTurns: 2 } }
+
+smite.curse:
+  archetype: Smite
+  element: Curse
+  name: Blind Man's Toll
+  description: >-
+    Deals 20 damage to target enemy. For 2 turns, each skill they use while Blinded lets the user drain a Soul
+    Fragment from them.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: blind_mans_toll
+        name: Blind Man's Toll
+        kind: Debuff
+        element: Curse
+        description: Each skill the bearer uses while Blinded gives the applier a Soul Fragment.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: blinded } }
+                then: [{ op: apply, to: actor, effect: soul_fragment }]
+
+prayer.curse:
+  archetype: Prayer
+  element: Curse
+  name: Vespers of Slumber
+  description: >-
+    All allies heal 20. For 2 turns, the first hit that would kill each of them leaves them at 1 HP and Asleep for
+    1 turn instead.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: vespers_of_slumber
+        name: Vespers of Slumber
+        kind: Buff
+        element: Curse
+        description: The first hit that would kill the bearer leaves them at 1 HP and Asleep for 1 turn.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 1 } }
+                  - { op: removeSelf }
+
+cleave.curse:
+  archetype: Cleave
+  element: Curse
+  name: Spreading Dread
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. Horrified on either one spreads to the other for
+    2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - op: if
+          cond: { has: { unit: primary, effect: horrified } }
+          then: [{ op: apply, to: it, effect: horrified, duration: { enemyTurns: 2 } }]
+        - op: if
+          cond: { has: { unit: it, effect: horrified } }
+          then: [{ op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }]
+
+shout.curse:
+  archetype: Shout
+  element: Curse
+  name: Ill Wind
+  description: All enemies are Intimidated for 2 turns, and their Hexes can't be removed meanwhile.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: ill_wind
+        name: Ill Wind
+        kind: Debuff
+        element: Curse
+        description: The bearer's Hexes can't be removed.
+        modifiers:
+          - { mod: protectEffects, effects: [hex_pain, hex_silence, hex_ruin] }
+
+withstand.curse:
+  archetype: Withstand
+  element: Curse
+  name: Shrouded Ward
+  description: >-
+    The user gains 20 Shield for 1 turn. While any of it remains, their skills don't end their Stealth.
+    Stealthy.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shrouded_ward
+        name: Shrouded Ward
+        kind: Buff
+        element: Curse
+        description: While the bearer has Shield, their skills are Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy], if: { hasShield: bearer } }
+
+taunt.curse:
+  archetype: Taunt
+  element: Curse
+  name: Poppet
+  description: >-
+    Creates a Poppet (10 HP) bound to target enemy: they're Taunted by it for 1 turn, and damage it takes is dealt
+    to them as Affliction.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: poppet }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: lastSummoned
+      remember: primary
+      effect:
+        id: poppet_bond
+        name: Poppet
+        kind: Neutral
+        element: Curse
+        description: Damage the Poppet takes is dealt to its target as Affliction.
+        triggers:
+          - on: damaged
+            do:
+              - { op: damage, to: effectTargets, amount: { eventAmount: true }, type: Affliction, direct: false }
+
+titan.curse:
+  archetype: Titan
+  element: Curse
+  name: The Accursed
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and at the end of each of their turns, every Hex on enemies
+    deals its bearer 5 Affliction.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: the_accursed
+        name: The Accursed
+        kind: Buff
+        element: Curse
+        description: At the end of each of the bearer's turns, every Hex on enemies deals its bearer 5 Affliction.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in: { filter: allEnemies, where: { check: { cond: hexed, unit: it } } }
+                do:
+                  - op: damage
+                    to: it
+                    type: Affliction
+                    direct: false
+                    amount: { mul: [5, { sum: [{ count: { effects: [hex_pain], in: it } }, { count: { effects: [hex_silence], in: it } }, { count: { effects: [hex_ruin], in: it } }] }] }
+
+# Minion skills.
+
+cat_scratch:
+  archetype: Minion
+  element: Curse
+  name: Scratch
+  description: Deals 10 Piercing damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+
+shade_whisper:
+  archetype: Minion
+  element: Curse
+  name: Whisper
+  description: Target enemy gains a random Hex for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: forEach, in: primary, do: [{ op: macro, id: random_hex }] }

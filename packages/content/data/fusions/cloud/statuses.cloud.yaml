@@ -1,0 +1,53 @@
+# Cloud (Wind + Wind) statuses, from the "Fusion Spec Kits" design doc.
+# Drift is a skill tag handled by the engine: the use hangs in the air (public) and lands at the
+# start of its user's next turn.
+
+aloft:
+  name: Aloft
+  kind: Buff
+  element: Cloud
+  stacking: unique
+  countsAs: [leaping]
+  description: >-
+    Counts as Leaping (+5 direct damage, and Wind's Leaping payoffs) for its whole duration; dealing
+    damage doesn't end it. It gives no Invulnerability.
+  modifiers:
+    - { mod: damageDealt, amount: 5, when: { direct: true } }
+
+# Damage that drifts in later: when it runs out, the bearer takes its value.
+drifting_hit:
+  name: Drifting Damage
+  kind: Neutral
+  element: Cloud
+  stacking: independent
+  description: When this runs out, the bearer takes its value as damage.
+  onExpire:
+    - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
+
+idle_updraft:
+  name: Idle Updraft
+  kind: Buff
+  element: Cloud
+  stacking: unique
+  description: The bearer's Rushing doesn't end after a turn with no skill used.
+
+low_ceiling:
+  name: Low Ceiling
+  kind: Debuff
+  element: Cloud
+  stacking: unique
+  description: Counts as Immobile, whatever mobility skills or buffs the bearer has.
+
+squall_marked:
+  name: Squall-marked
+  kind: Neutral
+  element: Cloud
+  stacking: unique
+  description: Used a Harmful skill under a Squall Line.
+
+cloud_titan_mark:
+  name: Stormcloud
+  kind: Neutral
+  element: Cloud
+  stacking: unique
+  description: The last enemy to damage a Cloud Titan.

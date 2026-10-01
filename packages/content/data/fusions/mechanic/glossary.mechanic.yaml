@@ -1,0 +1,10 @@
+# Mechanic keywords (docs/glossary.md).
+
+contraption:
+  status: contraption
+  element: Mechanic
+  forms: [Contraption, Contraptions]
+upgrade:
+  status: upgraded
+  element: Mechanic
+  forms: [Upgrade, Upgraded, Upgrades]

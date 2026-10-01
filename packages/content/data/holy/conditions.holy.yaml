@@ -1,0 +1,5 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# The unit's Condemned triggered this turn (it's already gone; check after the skill, e.g. on skillResolved).
+condemn_fired:
+  compare: { value: { sum: [{ counterOf: { unit: it, name: condemn_fired } }, { mul: [-1, { turn: true }] }] }, atLeast: 0 }

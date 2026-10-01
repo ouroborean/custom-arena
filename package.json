@@ -18,7 +18,9 @@
     "ci": "npm run typecheck && npm run lint && npm run content:validate && npm test",
     "dev": "npm run dev -w @arena/client",
     "server": "npm run dev -w @arena/server",
-    "build": "npm run build -w @arena/client"
+    "build": "npm run build -w @arena/client",
+    "assets:check": "npm run assets:check -w @arena/client",
+    "content:diff": "npm run diff -w @arena/content --"
   },
   "engines": {
     "node": ">=22"

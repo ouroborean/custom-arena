@@ -1,0 +1,17 @@
+# Blight minions.
+
+plague_rats:
+  name: Plague Rats
+  hp: 25
+  skills: [rats_plague_bite, rats_scurry]
+
+plague_imp:
+  name: Plague Imp
+  hp: 25
+  onDeath:
+    - op: forEach
+      in: { filter: allEnemies, where: { has: { unit: it, effect: imp_bitten } } }
+      do:
+        - { op: apply, to: it, effect: withered, from: summoner }
+        - { op: removeEffect, from: it, effect: imp_bitten }
+  skills: [imp_rotbolt]

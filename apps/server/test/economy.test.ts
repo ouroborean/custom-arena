@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
 import { ENGINE_VERSION } from '@arena/engine';
+import { OPEN_SCHEDULE } from '@arena/meta';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { buildApp } from '../src/app.js';
@@ -70,12 +71,12 @@ describe('crafting and salvage', () => {
     expect(await a.gold()).toBe(300);
     expect((await a.call('GET', '/api/inventory')).json().items.filter((i: { id: string }) => mixed.includes(i.id))).toHaveLength(3);
 
-    const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; locked: boolean }[] }[];
+    const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; infusion: string | null }[] }[];
     const c = chars[0]!;
     const shard = mixed[0]!;
-    const target = c.skills.find((s) => !s.locked)!.base;
+    const target = c.skills.find((s) => !s.infusion)!.base;
     const put = await a.call('PUT', `/api/characters/${c.id}/loadout`, {
-      loadout: { sockets: [{ itemId: 'ice_shard', instanceId: shard, targets: [target] }] },
+      loadout: { items: [{ itemId: 'ice_shard', instanceId: shard }], infusions: [{ skill: target, element: 'Ice' }] },
     });
     expect(put.statusCode).toBe(200);
     expect((await a.call('POST', `/api/inventory/${shard}/salvage`)).statusCode).toBe(409);
@@ -102,7 +103,7 @@ describe('match rewards', () => {
   it('a played-out casual match pays both players, once', async () => {
     const a = await account('winner@example.com');
     const b = await account('loser@example.com');
-    const store = dbRoomStore(dbh.db, content, () => seed++);
+    const store = dbRoomStore(dbh.db, content, () => seed++, OPEN_SCHEDULE);
     const id = await match('casual', a.userId, b.userId);
     const out = await store.finish(id, { winner: 0, endReason: 'elimination', turns: 20 });
     expect(out?.rewards[0]).toMatchObject({ currency: { gold: 40 } });
@@ -125,7 +126,7 @@ describe('match rewards', () => {
   it('surrenders pay the loser nothing; short and private matches pay no one', async () => {
     const a = await account('w2@example.com');
     const b = await account('l2@example.com');
-    const store = dbRoomStore(dbh.db, content, () => seed++);
+    const store = dbRoomStore(dbh.db, content, () => seed++, OPEN_SCHEDULE);
     const surrendered = await store.finish(await match('casual', a.userId, b.userId), { winner: 0, endReason: 'surrender', turns: 20 });
     expect(surrendered?.rewards[1]).toBeNull();
     const short = await store.finish(await match('ranked', a.userId, b.userId), { winner: 0, endReason: 'elimination', turns: 3 });

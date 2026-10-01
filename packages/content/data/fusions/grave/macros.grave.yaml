@@ -1,0 +1,21 @@
+# Grave actions (actor = a Grave character; Graves are its counter `graves`).
+
+# Digs 1 Grave (max 6).
+dig:
+  - op: setCounter
+    name: graves
+    value: { if: { compare: { value: { counter: graves }, atLeast: 6 } }, then: 6, else: { sum: [{ counter: graves }, 1] } }
+
+# Spends 1 Grave if there is one; var `spent` = how many.
+spend_1:
+  - { op: set, var: spent, value: { if: { compare: { value: { counter: graves }, atLeast: 1 } }, then: 1, else: 0 } }
+  - { op: setCounter, name: graves, value: { sum: [{ counter: graves }, { mul: [-1, { var: spent }] }] } }
+
+# Spends up to 2 Graves; var `spent` = how many.
+spend_2:
+  - { op: set, var: spent, value: { if: { compare: { value: { counter: graves }, atLeast: 2 } }, then: 2, else: { counter: graves } } }
+  - { op: setCounter, name: graves, value: { sum: [{ counter: graves }, { mul: [-1, { var: spent }] }] } }
+
+# Raise: one Skeleton per Grave spent (var `spent`).
+raise_spent:
+  - { op: repeat, times: { var: spent }, do: [{ op: summon, minion: skeleton }] }

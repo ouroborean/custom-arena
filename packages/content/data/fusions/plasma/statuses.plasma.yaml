@@ -1,0 +1,46 @@
+# Plasma (Fire + Lightning) statuses, from the "Fusion Spec Kits" design doc.
+
+heat:
+  name: Heat
+  kind: Neutral
+  element: Plasma
+  stacking: merge
+  maxStacks: 5
+  description: >-
+    The bearer's Plasma skills deal 5 more damage per Heat. At the end of their turn with 5 Heat,
+    they Melt Down.
+
+# Fusion passive (every Plasma character).
+plasma_core:
+  name: Plasma Core
+  kind: Neutral
+  element: Plasma
+  stacking: unique
+  description: >-
+    Gains 1 Heat whenever this character gains Charge. At the end of their turn with 5 Heat, they
+    Melt Down: they take 20 Affliction, every enemy takes 20 Affliction and is Sapped, and Heat
+    returns to 0.
+  triggers:
+    - on: effectGained
+      effect: charged
+      do:
+        - { op: apply, to: bearer, effect: heat }
+    - on: turnEnd
+      do:
+        - op: if
+          cond:
+            and:
+              - { compare: { value: { stacks: { unit: bearer, effect: heat } }, atLeast: 5 } }
+              - { not: { has: { unit: bearer, effect: critical_mass } } }
+          then:
+            - { op: macro, id: meltdown }
+
+# Breaker Arc: can't start a channel.
+breaker_arc:
+  name: Broken Circuit
+  kind: Debuff
+  element: Plasma
+  stacking: unique
+  description: Can't use Channeled skills.
+  modifiers:
+    - { mod: cannotUseSkills, skillsWith: [Channeled] }

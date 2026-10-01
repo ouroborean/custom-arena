@@ -1,0 +1,13 @@
+# Alchemy keywords (docs/glossary.md).
+
+catalyst:
+  status: catalyst
+  element: Alchemy
+transmute:
+  name: Transmute
+  text: >-
+    Turns effects on a unit into others, stack for stack. On enemies, Might becomes Weakness, Armor
+    becomes Vulnerable, Focus becomes Confusion, and Renew becomes Weakness; on allies, the reverse,
+    and other Debuffs become Renew.
+  element: Alchemy
+  forms: [Transmute, Transmutes, Transmuted]

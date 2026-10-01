@@ -1,0 +1,783 @@
+# The 30 Reanimation (Lightning + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# Galvanized saves a character from death once per match (they return Reanimated at the end of the
+# turn, macro `reanimate`). Reanimated: no healing or Renew, 5 HP lost each turn.
+
+strike.reanimation:
+  archetype: Strike
+  element: Reanimation
+  name: Deadhand
+  description: >-
+    Deals 20 damage to target enemy. A Reanimated user deals 10 more and skips their next 5 HP loss.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: reanimated } }
+      then:
+        - { op: damage, to: primary, amount: 30 }
+        - { op: apply, to: actor, effect: deadhand_reprieve }
+      else:
+        - { op: damage, to: primary, amount: 20 }
+
+smash.reanimation:
+  archetype: Smash
+  element: Reanimation
+  name: Death Current
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies; if it kills any of them, the user is Galvanized
+    for 2 turns.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: fallen, value: { deadCount: enemies } }
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: if
+      cond: { compare: { value: { sum: [{ deadCount: enemies }, { mul: [-1, { var: fallen }] }] }, atLeast: 1 } }
+      then: [{ op: apply, to: actor, effect: galvanized, duration: { enemyTurns: 2 } }]
+
+charge.reanimation:
+  archetype: Charge
+  element: Reanimation
+  name: Spark of Life
+  description: Deals 10 damage to target enemy; the user loses 10 HP and gains 3 Charge.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: damage, to: actor, amount: 10, raw: true, type: Affliction, direct: false }
+    - { op: apply, to: actor, effect: charged, stacks: 3 }
+
+riposte.reanimation:
+  archetype: Riposte
+  element: Reanimation
+  name: Dead Man's Switch
+  description: >-
+    For 1 turn, counters the next Harmful skill used on the user; if the user is Galvanized, it's spent to
+    Reflect the skill instead. Invisible.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: galvanized } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: dead_mans_switch_reflect
+            name: Dead Man's Switch
+            kind: Buff
+            element: Reanimation
+            visibility: hidden
+            description: Reflects the next Harmful skill used on the bearer, spending their Galvanized.
+            triggers:
+              - on: skillTargeted
+                when: { harmful: true }
+                intercept: reflect
+                consume: true
+                do:
+                  - { op: removeEffect, from: bearer, effect: galvanized }
+      else:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: dead_mans_switch
+            name: Dead Man's Switch
+            kind: Buff
+            element: Reanimation
+            visibility: hidden
+            description: Counters the next Harmful skill used on the bearer.
+            triggers:
+              - on: skillTargeted
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+
+rage.reanimation:
+  archetype: Rage
+  element: Reanimation
+  name: Soul Dynamo
+  description: >-
+    For 3 turns, the user has Stormborn, and Charge they gain while at 3 also becomes Soul Fragments.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: soul_dynamo
+        name: Soul Dynamo
+        kind: Buff
+        element: Reanimation
+        description: Charge gained at 3 also becomes a Soul Fragment.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+                then: [{ op: apply, to: bearer, effect: soul_fragment }]
+
+shot.reanimation:
+  archetype: Shot
+  element: Reanimation
+  name: Bone Zap
+  description: >-
+    Deals 15 damage to target enemy, who is Marked for 1 turn; when the Mark is spent, the user drains a Soul
+    Fragment from them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: bone_zap
+        name: Bone Zap
+        kind: Neutral
+        element: Reanimation
+        description: When the Mark is spent, the bearer drains a Soul Fragment from its bearer.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [mark], reason: [consumed, removed] }
+            consume: true
+            do:
+              - { op: removeStacks, from: eventTarget, effect: soul_fragment, amount: 1 }
+              - { op: apply, to: bearer, effect: soul_fragment }
+
+snipe.reanimation:
+  archetype: Snipe
+  element: Reanimation
+  name: Dying Current
+  description: >-
+    Until it lands, the user is Immortal. On the following turn, deals 30 damage to target enemy, plus half
+    the HP the user is missing. The target of this skill is invisible. Channeled.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dying_current
+        name: Dying Current (aiming)
+        kind: Neutral
+        element: Reanimation
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn, harder the more the bearer is hurt.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: { sum: [30, { div: [{ missingHp: bearer }, 2] }] } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 }, linkTo: dying_current }
+
+trap.reanimation:
+  archetype: Trap
+  element: Reanimation
+  name: Death Coil
+  description: >-
+    For 3 turns, the first time target enemy uses a Harmful skill, they take 15 damage and suffer
+    Reanimated's drawbacks for 2 turns: no healing, and 5 HP lost each turn. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: death_coil
+        name: Death Coil
+        kind: Debuff
+        element: Reanimation
+        visibility: hidden
+        description: The bearer's first Harmful skill coils death around them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15, direct: false }
+              - op: apply
+                to: bearer
+                duration: { enemyTurns: 2 }
+                effect:
+                  id: death_coiled
+                  name: Death Coil
+                  kind: Debuff
+                  element: Reanimation
+                  description: Can't be healed, and loses 5 HP each turn.
+                  modifiers:
+                    - { mod: healingReceived, mul: 0 }
+                  triggers:
+                    - on: turnEnd
+                      do:
+                        - { op: damage, to: bearer, amount: 5, raw: true, type: Affliction, direct: false }
+
+maneuver.reanimation:
+  archetype: Maneuver
+  element: Reanimation
+  name: Galvanic Twitch
+  description: >-
+    The user becomes Invulnerable for 1 turn, and any Stun on them jumps to a random enemy for the turns it had
+    left. Usable while Stunned.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic, UsableWhileStunned]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: moveEffects, from: actor, to: { randomEnemy: 1 }, effects: [stun, stun_ns, stun_s] }
+
+companion.reanimation:
+  archetype: Companion
+  element: Reanimation
+  name: Flesh Golem
+  description: >-
+    Summons a Flesh Golem (40 HP) permanently; the first time it dies, it returns with 20 HP, Reanimated.
+    Slam (S): 15 damage, and Saps.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: flesh_golem }
+
+bolt.reanimation:
+  archetype: Bolt
+  element: Reanimation
+  name: Necrobolt
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. A Reanimated user deals 10 more for each turn
+    they've been back, up to 30.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        sum:
+          - 20
+          - if: { has: { unit: actor, effect: reanimated } }
+            then:
+              if: { compare: { value: { div: [{ sum: [{ turn: true }, { mul: [-1, { counter: reanimated_turn }] }] }, 2] }, atLeast: 3 } }
+              then: 30
+              else: { mul: [10, { div: [{ sum: [{ turn: true }, { mul: [-1, { counter: reanimated_turn }] }] }, 2] }] }
+            else: 0
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+
+blast.reanimation:
+  archetype: Blast
+  element: Reanimation
+  name: Soul Surge
+  description: Deals 25 damage to all enemies, +10 for each Galvanized or Reanimated unit on the user's team.
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      amount: { sum: [25, { mul: [10, { countOf: { filter: allAllies, where: { or: [{ has: { unit: it, effect: galvanized } }, { has: { unit: it, effect: reanimated } }] } } }] }] }
+
+consume.reanimation:
+  archetype: Consume
+  element: Reanimation
+  name: Life Siphon
+  description: >-
+    Deals 10 damage to target enemy, and the user heals 10, +10 if the target is Horrified. A Reanimated user
+    gains the healing as Shield instead.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: set, var: siphon, value: { if: { has: { unit: primary, effect: horrified } }, then: 20, else: 10 } }
+    - op: if
+      cond: { has: { unit: actor, effect: reanimated } }
+      then: [{ op: apply, to: actor, effect: shield, value: { var: siphon }, duration: { enemyTurns: 1 } }]
+      else: [{ op: heal, to: actor, amount: { var: siphon } }]
+
+summon.reanimation:
+  archetype: Summon
+  element: Reanimation
+  name: Patchwork Revenant
+  description: >-
+    Summons a Patchwork Revenant (25 HP) for 3 turns. Gnash (r): 10 Affliction damage.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: patchwork_revenant, duration: { enemyTurns: 3 } }
+
+channel.reanimation:
+  archetype: Channel
+  element: Reanimation
+  name: Life Current
+  description: >-
+    For up to 3 turns, 10 damage to all enemies at the end of each of the user's turns. The user is
+    Galvanized while channeling. Channeled.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: life_current
+        name: Life Current
+        kind: Neutral
+        element: Reanimation
+        interruptible: true
+        description: Each turn, 10 damage to all enemies; the bearer is Galvanized meanwhile.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+    - { op: apply, to: actor, effect: galvanized, duration: { enemyTurns: 3 }, linkTo: life_current }
+
+stab.reanimation:
+  archetype: Stab
+  element: Reanimation
+  name: Autopsy Blade
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If the user is at or below 40 HP, it
+    also drains a Soul Fragment from them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { hpAtMost: { unit: actor, value: 40 } }
+      then:
+        - { op: removeStacks, from: primary, effect: soul_fragment, amount: 1 }
+        - { op: apply, to: actor, effect: soul_fragment }
+
+ravage.reanimation:
+  archetype: Ravage
+  element: Reanimation
+  name: Electrocution
+  description: >-
+    Deals 35 Piercing damage to target enemy. If the user is Reanimated, it executes a target it leaves at or
+    below 25 HP.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 35, type: Piercing }
+    - op: if
+      cond: { and: [{ has: { unit: actor, effect: reanimated } }, { hpAtMost: { unit: primary, value: 25 } }] }
+      then: [{ op: kill, to: primary }]
+
+mislead.reanimation:
+  archetype: Mislead
+  element: Reanimation
+  name: Lazarus Trick
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each ally it targeted is Galvanized
+    for 2 turns. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: lazarus_trick
+        name: Lazarus Trick
+        kind: Debuff
+        element: Reanimation
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and its targets are Galvanized.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventTargets, effect: galvanized, duration: { enemyTurns: 2 } }
+
+stun.reanimation:
+  archetype: Stun
+  element: Reanimation
+  name: Nerve Shock
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn. While they're Stunned, each Sapped they gain
+    counts twice.
+  cost: AI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: nerve_shock
+        name: Nerve Shock
+        kind: Debuff
+        element: Reanimation
+        description: While Stunned, each Sapped the bearer gains counts twice.
+        triggers:
+          - on: effectGained
+            effect: sapped
+            do:
+              - op: if
+                cond: { flag: doubling }
+                then: [{ op: setFlag, flag: doubling, value: false }]
+                else:
+                  - op: if
+                    cond: { stunned: bearer }
+                    then:
+                      - { op: setFlag, flag: doubling }
+                      - { op: apply, to: bearer, effect: sapped }
+
+dance.reanimation:
+  archetype: Dance
+  element: Reanimation
+  name: Twitching Dance
+  description: >-
+    For 3 turns, the user gains 1 Might, 2 Swiftness and Lifesteal; each hit they deal while at full HP or
+    Reanimated (when the Lifesteal can't heal) gives 1 Charge.
+  cost: SA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: twitching_dance
+        name: Twitching Dance
+        kind: Buff
+        element: Reanimation
+        description: Hits the Lifesteal can't heal give 1 Charge.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { or: [{ has: { unit: bearer, effect: reanimated } }, { compare: { value: { missingHp: bearer }, atMost: 0 } }] }
+                then: [{ op: apply, to: bearer, effect: charged }]
+
+heal.reanimation:
+  archetype: Heal
+  element: Reanimation
+  name: Clear!
+  description: >-
+    Target ally heals 20 and gains 1 Charge; if that brings them to 3 Charge, they're also Galvanized for 2
+    turns.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: charged }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: primary, effect: charged } }, atLeast: 3 } }
+      then: [{ op: apply, to: primary, effect: galvanized, duration: { enemyTurns: 2 } }]
+
+bless.reanimation:
+  archetype: Bless
+  element: Reanimation
+  name: Jolt of Life
+  description: Target ally is Galvanized for 3 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: galvanized, duration: { enemyTurns: 3 } }
+
+curse.reanimation:
+  archetype: Curse
+  element: Reanimation
+  name: Death Rattle
+  description: >-
+    Target enemy is Horrified for 2 turns. If they die before it ends, every ally of the user gains 1 Soul
+    Fragment.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: death_rattle
+        name: Death Rattle
+        kind: Debuff
+        element: Reanimation
+        description: If the bearer dies, every ally of the applier gains a Soul Fragment.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: death_rattle_listen
+        name: Death Rattle
+        kind: Neutral
+        element: Reanimation
+        description: When the rattled enemy dies, every ally gains a Soul Fragment.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { eventTargetHad: { effects: [death_rattle] } }
+                then: [{ op: apply, to: allAllies, effect: soul_fragment }]
+
+smite.reanimation:
+  archetype: Smite
+  element: Reanimation
+  name: Soul Spark
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, allies who damage them gain 10 Shield, or 20 if they're
+    Reanimated.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: soul_spark
+        name: Soul Spark
+        kind: Debuff
+        element: Reanimation
+        description: The applier's allies who damage the bearer gain Shield.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: apply, to: eventSource, effect: shield, value: { if: { has: { unit: eventSource, effect: reanimated } }, then: 20, else: 10 }, duration: { enemyTurns: 1 } }
+
+prayer.reanimation:
+  archetype: Prayer
+  element: Reanimation
+  name: Raise the Fallen
+  description: Every dead ally returns with 30 HP, Reanimated; living allies heal 15.
+  cost: Wrr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: revive, hp: 30 }
+    - op: forEach
+      in: { filter: allAllies, where: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: it, name: revived_turn } }] }] }, atMost: 0 } } }
+      do:
+        - { op: apply, to: it, effect: reanimated }
+        - { op: setCounter, name: reanimated, value: 1, on: it }
+        - { op: setCounter, name: reanimated_turn, value: { turn: true }, on: it }
+
+cleave.reanimation:
+  archetype: Cleave
+  element: Reanimation
+  name: Chain of Souls
+  description: >-
+    Deals 20 damage to target enemy and to a random other enemy; if it kills one, it jumps to another random
+    enemy for 20.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: fallen, value: { deadCount: enemies } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 20 }
+    - op: if
+      cond: { compare: { value: { sum: [{ deadCount: enemies }, { mul: [-1, { var: fallen }] }] }, atLeast: 1 } }
+      then: [{ op: damage, to: { randomEnemy: 1 }, amount: 20 }]
+
+shout.reanimation:
+  archetype: Shout
+  element: Reanimation
+  name: Wail of Lightning
+  description: >-
+    All enemies are Intimidated for 2 turns. Meanwhile, whenever a unit on either side dies, the user's Charge
+    fills to 3.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: wail_of_lightning
+        name: Wail of Lightning
+        kind: Buff
+        element: Reanimation
+        description: Each death fills the bearer's Charge to 3.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - { op: apply, to: bearer, effect: charged, stacks: 3 }
+
+withstand.reanimation:
+  archetype: Withstand
+  element: Reanimation
+  name: Ribcage
+  description: The user gains 25 Shield for 1 turn; if it breaks, they're Galvanized for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ribcage
+        name: Ribcage
+        kind: Buff
+        element: Reanimation
+        shield: true
+        description: A Shield; if it breaks, the bearer is Galvanized.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: ribcage_watch
+        name: Ribcage
+        kind: Neutral
+        element: Reanimation
+        description: If the Ribcage breaks, the bearer is Galvanized for 2 turns.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [ribcage], reason: [depleted] }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: galvanized, duration: { enemyTurns: 2 } }
+
+taunt.reanimation:
+  archetype: Taunt
+  element: Reanimation
+  name: Lure the Living
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. If the user falls meanwhile, the enemy is Horrified for 2
+    turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: lure_the_living
+        name: Lure the Living
+        kind: Debuff
+        element: Reanimation
+        description: If the applier falls, the bearer is Horrified.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then: [{ op: apply, to: bearer, effect: horrified, duration: { enemyTurns: 2 } }]
+
+titan.reanimation:
+  archetype: Titan
+  element: Reanimation
+  name: The Monster Lives
+  description: >-
+    For 3 turns, the user gains 2 Armor, Immune and Galvanized. If they return during it, they're Stormborn
+    and gain 1 Might for the rest of the match.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: galvanized, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: the_monster_lives
+        name: The Monster Lives
+        kind: Buff
+        element: Reanimation
+        description: Returning from death now makes the bearer Stormborn with 1 Might for good.
+
+# Minion skills.
+
+flesh_golem_slam:
+  archetype: Minion
+  element: Reanimation
+  name: Slam
+  description: Deals 15 damage to target enemy and Saps them.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sapped }
+
+patchwork_revenant_gnash:
+  archetype: Minion
+  element: Reanimation
+  name: Gnash
+  description: Deals 10 Affliction damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }

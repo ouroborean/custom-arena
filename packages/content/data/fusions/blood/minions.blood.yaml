@@ -1,0 +1,27 @@
+# Blood minions.
+
+# Shares its summoner's HP: damage and healing to it go to them; it dies with them.
+bloodbound_familiar:
+  name: Bloodbound Familiar
+  hp: 10
+  passives:
+    - id: bloodbound
+      name: Bloodbound
+      kind: Neutral
+      element: Blood
+      description: Damage and healing to it go to its summoner instead; it dies only with them.
+      modifiers:
+        - { mod: hpLink }
+      triggers:
+        - on: signal
+          signal: died
+          do:
+            - op: if
+              cond: { eventTargetIs: summoner }
+              then: [{ op: kill, to: bearer }]
+  skills: [bloodbound_familiar_bite]
+
+blood_elemental:
+  name: Blood Elemental
+  hp: 20
+  skills: [blood_elemental_lash]

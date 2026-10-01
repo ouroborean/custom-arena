@@ -1,0 +1,37 @@
+# Phoenix (Fire + Holy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Rebirth: a hit that would kill the bearer leaves them at 1 HP, in Ashes instead.
+rebirth:
+  name: Rebirth
+  kind: Buff
+  element: Phoenix
+  stacking: unique
+  description: When the bearer would die, they burn to Ashes instead, and Rebirth ends.
+  modifiers:
+    - { mod: hpFloor, amount: 1 }
+  triggers:
+    - on: damaged
+      do:
+        - op: if
+          cond: { hpAtMost: { unit: bearer, value: 1 } }
+          then:
+            - { op: removeSelf }
+            - { op: apply, to: bearer, effect: ashes }
+
+ashes:
+  name: Ashes
+  kind: Neutral
+  element: Phoenix
+  stacking: unique
+  description: >-
+    Until the start of the bearer's next turn, they're Untargetable and can't lose HP. Then they rise
+    with 25 HP.
+  modifiers:
+    - { mod: untargetable, by: enemies, bypassable: false }
+    - { mod: untargetable, by: allies, bypassable: false }
+    - { mod: damageTaken, amount: 0, mul: 0 }
+    - { mod: hpFloor, amount: 1 }
+  triggers:
+    - on: turnStart
+      do:
+        - { op: forEach, in: bearer, do: [{ op: macro, id: rise }] }

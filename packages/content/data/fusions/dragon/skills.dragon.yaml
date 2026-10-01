@@ -1,0 +1,764 @@
+# The 30 Dragon (Fire + Fire) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.dragon".
+# Keywords: Dragonfire (an upgraded Ignite) and Hoard (the user's, max 6; Breath skills spend it).
+# Durations follow the base convention: "for N turns" = enemyTurns N.
+
+strike.dragon:
+  archetype: Strike
+  element: Dragon
+  name: Wyrmclaw
+  description: Deals 20 damage to target enemy, plus 5 for every 2 Hoard the user has. Hoard isn't spent.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { sum: [20, { mul: [5, { div: [{ stacks: { unit: actor, effect: hoard } }, 2] }] }] }
+
+smash.dragon:
+  archetype: Smash
+  element: Dragon
+  name: Tail Sweep
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Any of them who is channeling stops and
+    gains Dragonfire.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: forEach
+      in: { filter: allEnemies, where: { channeling: it } }
+      do:
+        - { op: interrupt, to: it }
+        - { op: macro, id: dragonfire_it }
+
+charge.dragon:
+  archetype: Charge
+  element: Dragon
+  name: Dragon's Descent
+  description: >-
+    Deals 15 damage to target enemy. The user gains 1 Focus for their next skill, and that skill's
+    Ignites land as Dragonfire.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: dragons_descent
+        name: Dragon's Descent
+        kind: Buff
+        element: Dragon
+        description: The bearer's next skill's Ignites land as Dragonfire.
+        triggers:
+          - on: effectApplied
+            when: { effects: [ignite] }
+            do:
+              - { op: apply, to: eventTarget, effect: dragonfire }
+
+riposte.dragon:
+  archetype: Riposte
+  element: Dragon
+  name: Dragon's Toll
+  description: >-
+    For 1 turn, the user counters any Harmful skill used on them, and gains 1 Hoard per energy each
+    countered skill cost. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dragons_toll
+        name: Dragon's Toll
+        kind: Buff
+        element: Dragon
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; they gain 1 Hoard per energy each one cost.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - op: if
+                cond: { compare: { value: { skillCost: true }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: actor, effect: hoard, stacks: { skillCost: true } }
+
+rage.dragon:
+  archetype: Rage
+  element: Dragon
+  name: Wyrm's Wrath
+  description: For 3 turns, the user gains 2 Might, and 1 Hoard each time an enemy damages them.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: wyrms_wrath
+        name: Wyrm's Wrath
+        kind: Buff
+        element: Dragon
+        description: Gains 1 Hoard each time an enemy damages the bearer.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: bearer, effect: hoard }
+
+shot.dragon:
+  archetype: Shot
+  element: Dragon
+  name: Ember Spit
+  description: If target enemy is Ignited, deals 25 damage to them. Otherwise, deals 10 damage and gives them Dragonfire.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: damage, to: primary, amount: 25 }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: forEach, in: primary, do: [{ op: macro, id: dragonfire_it }] }
+
+snipe.dragon:
+  archetype: Snipe
+  element: Dragon
+  name: Skyfall Breath
+  description: >-
+    The user circles overhead, Untargetable by enemies until it lands. On the following turn, deals
+    35 damage to target enemy, plus Breath. The target of this skill is invisible. Channeled.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: skyfall_breath
+        name: Skyfall Breath (circling)
+        kind: Neutral
+        element: Dragon
+        visibility: hiddenTarget
+        interruptible: true
+        description: Untargetable by enemies. Breathes on its target at the end of the following turn unless interrupted.
+        modifiers:
+          - { mod: untargetable, by: enemies, bypassable: true }
+        onExpire:
+          - { op: macro, id: breath }
+          - { op: damage, to: effectTargets, amount: { sum: [35, { var: breath }] } }
+
+trap.dragon:
+  archetype: Trap
+  element: Dragon
+  name: Gilded Bait
+  description: >-
+    For 2 turns, the first time target enemy gains a Buff, they lose it and gain Dragonfire.
+    Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: gilded_bait
+        name: Gilded Bait
+        kind: Debuff
+        element: Dragon
+        visibility: hidden
+        description: The first Buff the bearer gains is lost, and they gain Dragonfire.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            consume: true
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: dragonfire_it }] }
+
+maneuver.dragon:
+  archetype: Maneuver
+  element: Dragon
+  name: Burning Wake
+  description: >-
+    The user becomes Invulnerable for 1 turn. While it lasts, each Ignite they applied also deals
+    its damage at the start of its bearer's turn.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: burning_wake, duration: { enemyTurns: 1 } }
+
+companion.dragon:
+  archetype: Companion
+  element: Dragon
+  name: Drake
+  description: >-
+    Summons a Drake (40 HP) permanently. At the end of each of your turns, if any enemy is Ignited,
+    it gives the user 1 Hoard. Drake Claw (r): 15 damage and Scorched for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: drake }
+
+bolt.dragon:
+  archetype: Bolt
+  element: Dragon
+  name: Wyrmbolt
+  description: Deals 20 damage to target enemy. If they're Ignited, their Ignite deals its damage twice right now.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - op: repeat
+          times: 2
+          do:
+            - op: damage
+              to: primary
+              type: Affliction
+              direct: false
+              amount: { if: { has: { unit: it, effect: dragonfire } }, then: 10, else: 5 }
+            - { op: macro, id: burn_aftermath }
+
+blast.dragon:
+  archetype: Blast
+  element: Dragon
+  name: Great Breath
+  description: Deals 20 damage to all enemies, plus Breath. Ignited enemies take 10 more.
+  cost: SI
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: macro, id: breath }
+    - op: damage
+      to: targets
+      amount: { sum: [20, { var: breath }, { if: { has: { unit: it, effect: ignite } }, then: 10, else: 0 }] }
+
+consume.dragon:
+  archetype: Consume
+  element: Dragon
+  name: Devour Embers
+  description: >-
+    Deals 5 damage to target enemy. Then every Ignite on the enemy side ends, and the user heals 10
+    and gains 1 Hoard for each.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: forEach
+      in: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
+      do:
+        - { op: removeEffect, from: it, effect: ignite }
+        - { op: removeEffect, from: it, effect: dragonfire }
+        - { op: heal, to: actor, amount: 10 }
+        - { op: apply, to: actor, effect: hoard }
+
+summon.dragon:
+  archetype: Summon
+  element: Dragon
+  name: Dragon Egg
+  description: >-
+    Summons a Dragon Egg (30 HP) for 3 turns. It does nothing, but if it's still alive when it
+    expires, it hatches into a permanent Wyrmling (30 HP). Wyrmling Bite (r): 15 damage and Ignite.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: dragon_egg }
+
+channel.dragon:
+  archetype: Channel
+  element: Dragon
+  name: Wyrmfire Torrent
+  description: >-
+    For 3 turns, deals 10 damage to all enemies each turn, and a random enemy without Dragonfire
+    gains it. Once every enemy has it, each tick deals 10 more instead. Channeled.
+  cost: SI
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: wyrmfire_torrent
+        name: Wyrmfire Torrent
+        kind: Neutral
+        element: Dragon
+        interruptible: true
+        description: Deals 10 damage to all enemies at the end of each of the user's turns and spreads Dragonfire.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { all: { in: allEnemies, cond: { has: { unit: it, effect: dragonfire } } } }
+                then:
+                  - { op: damage, to: allEnemies, amount: 20 }
+                else:
+                  - { op: damage, to: allEnemies, amount: 10 }
+                  - op: forEach
+                    in: { randomEnemy: 1, where: { not: { has: { unit: it, effect: dragonfire } } } }
+                    do: [{ op: macro, id: dragonfire_it }]
+
+stab.dragon:
+  archetype: Stab
+  element: Dragon
+  name: Fang
+  description: >-
+    Deals 10 damage to target enemy, or 25 if they have Dragonfire; the bigger bite tears it out,
+    and their Dragonfire cools back into an Ignite.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { has: { unit: it, effect: dragonfire } }, then: 25, else: 10 }
+    - { op: removeEffect, from: primary, effect: dragonfire }
+
+ravage.dragon:
+  archetype: Ravage
+  element: Dragon
+  name: Molten Maw
+  description: >-
+    Deals 25 Piercing damage to target enemy, 15 more if they're Scorched. For 2 turns, each time
+    their Ignite deals damage, they're Scorched for 1 turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { if: { has: { unit: it, effect: scorched } }, then: 40, else: 25 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: molten_maw
+        name: Molten Maw
+        kind: Debuff
+        element: Dragon
+        description: Each time the bearer's Ignite burns them, they're Scorched for 1 turn.
+        triggers:
+          # Simplified: any non-direct damage while Ignited counts as the Ignite burning.
+          - on: damaged
+            when: { direct: false }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: ignite } }
+                then:
+                  - { op: apply, to: bearer, effect: scorched, duration: { enemyTurns: 1 } }
+
+mislead.dragon:
+  archetype: Mislead
+  element: Dragon
+  name: Covetous Eye
+  description: >-
+    For 1 turn, the first enemy skill that costs 3 or more energy is countered, and its gold is
+    taken: next turn, its user generates 1 less energy and the user 1 more. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 1 }
+      effect:
+        id: covetous_eye
+        name: Covetous Eye
+        kind: Debuff
+        element: Dragon
+        visibility: hidden
+        description: The bearer's first skill costing 3 or more energy is countered, and its energy is taken.
+        triggers:
+          - on: skillUsed
+            when: { costAtLeast: 3 }
+            intercept: counter
+            consume: true
+            do:
+              - op: apply
+                to: bearer
+                duration: { raw: 3 }
+                effect:
+                  id: covetous_eye_loss
+                  name: Robbed
+                  kind: Debuff
+                  element: Dragon
+                  description: Generates 1 less energy next turn.
+                  modifiers:
+                    - { mod: energyGain, amount: -1 }
+              - op: apply
+                to: actor
+                duration: { raw: 2 }
+                effect:
+                  id: covetous_eye_gain
+                  name: Gilded
+                  kind: Buff
+                  element: Dragon
+                  description: Generates 1 more energy next turn.
+                  modifiers:
+                    - { mod: energyGain, amount: 1 }
+
+stun.dragon:
+  archetype: Stun
+  element: Dragon
+  name: Dragonfear
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn. For 2 turns, the first Explosion the
+    user's side causes Stuns them again for 1 turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: dragonfear
+        name: Dragonfear
+        kind: Debuff
+        element: Dragon
+        description: The first Explosion the applier's side causes Stuns the bearer for 1 turn.
+        triggers:
+          - on: signal
+            signal: explosion
+            when: { side: enemy }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.dragon:
+  archetype: Dance
+  element: Dragon
+  name: Warming Wings
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and 1 Focus, and each time an Ignite they applied deals
+    damage, the ally with the least HP heals as much.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: warming_wings, duration: { enemyTurns: 3 } }
+
+heal.dragon:
+  archetype: Heal
+  element: Dragon
+  name: Hearthfire
+  description: Target ally heals 15, plus 10 for each Hoard the user spends, up to 3.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - op: repeat
+      times:
+        if: { compare: { value: { stacks: { unit: actor, effect: hoard } }, atLeast: 3 } }
+        then: 3
+        else: { stacks: { unit: actor, effect: hoard } }
+      do:
+        - { op: heal, to: primary, amount: 10 }
+        - { op: removeStacks, from: actor, effect: hoard, amount: 1 }
+
+bless.dragon:
+  archetype: Bless
+  element: Dragon
+  name: Dragonblood
+  description: >-
+    For 2 turns, target ally's damaging skills also Ignite their targets, or give Dragonfire to
+    targets already Ignited.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: dragonblood
+        name: Dragonblood
+        kind: Buff
+        element: Dragon
+        description: The bearer's direct damage Ignites its targets, or gives Dragonfire to those already Ignited.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventTarget, effect: ignite } }
+                then:
+                  - { op: apply, to: eventTarget, effect: dragonfire, from: bearer }
+                else:
+                  - { op: apply, to: eventTarget, effect: ignite, from: bearer }
+
+curse.dragon:
+  archetype: Curse
+  element: Dragon
+  name: Slag
+  description: Target enemy loses all Armor and Shield, gains 1 Vulnerable for 2 turns, and gains Dragonfire.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: primary, effect: armor }
+    - { op: removeEffect, from: primary, effect: shield }
+    - { op: apply, to: primary, effect: vulnerable, duration: { enemyTurns: 2 } }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dragonfire_it }] }
+
+smite.dragon:
+  archetype: Smite
+  element: Dragon
+  name: Pyre Brand
+  description: >-
+    Deals 20 damage to target enemy, and they're Scorched for 1 turn. When that Scorch ends, they
+    Explode if they're still Ignited.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: scorched, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pyre_brand
+        name: Pyre Brand
+        kind: Debuff
+        element: Dragon
+        description: When this ends, the bearer Explodes if they're still Ignited.
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: ignite } }
+            then:
+              - { op: macro, id: explode }
+
+prayer.dragon:
+  archetype: Prayer
+  element: Dragon
+  name: Dragon's Slumber
+  description: >-
+    All allies heal 20 and gain 10 Shield. Then the user curls up on the hoard: Sleep for up to 3
+    turns, and all allies heal 20 at the end of each of the user's turns while they sleep.
+  cost: WS
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10 }
+    - { op: apply, to: actor, effect: sleep, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dragons_slumber
+        name: Dragon's Slumber
+        kind: Buff
+        element: Dragon
+        description: While the bearer sleeps, all their allies heal 20 at the end of their turn.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sleep } }
+                then:
+                  - { op: heal, to: allAllies, amount: 20 }
+                else:
+                  - { op: removeSelf }
+
+cleave.dragon:
+  archetype: Cleave
+  element: Dragon
+  name: Scything Wing
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Each is Ignited, or gains
+    Dragonfire if they already were.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: forEach, in: lastDamaged, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
+
+shout.dragon:
+  archetype: Shout
+  element: Dragon
+  name: Terrible Roar
+  description: All enemies are Intimidated for 2 turns. For as long, each time one of them is healed, they're Ignited.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: terrible_roar
+        name: Terrible Roar
+        kind: Debuff
+        element: Dragon
+        description: Each time the bearer is healed, they're Ignited.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: bearer, effect: ignite }
+
+withstand.dragon:
+  archetype: Withstand
+  element: Dragon
+  name: Smoldering Hide
+  description: >-
+    The user gains 20 Shield and Flameborn for 2 turns, and Ignites every enemy who damages them
+    meanwhile.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: smoldering_hide
+        name: Smoldering Hide
+        kind: Buff
+        element: Dragon
+        description: Ignites every enemy who damages the bearer.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: apply, to: eventSource, effect: ignite }
+
+taunt.dragon:
+  archetype: Taunt
+  element: Dragon
+  name: Wyrm's Domain
+  description: >-
+    Taunts target enemy for 2 turns. Meanwhile, any other enemy who uses a Harmful skill on the
+    user's allies takes 10 damage.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: allAllies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: wyrms_domain
+        name: Wyrm's Domain
+        kind: Buff
+        element: Dragon
+        description: Any enemy not Taunted by the Wyrm who uses a Harmful skill on the bearer takes 10 damage.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            do:
+              - op: if
+                cond: { not: { has: { unit: eventSource, effect: taunt, mine: true } } }
+                then:
+                  - { op: damage, to: eventSource, amount: 10 }
+
+titan.dragon:
+  archetype: Titan
+  element: Dragon
+  name: Elder Wyrm
+  description: For 3 turns, the user gains Immune and Flameborn, and every Hoard gives 1 Armor instead of every 2.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: elder_wyrm, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+drake_claw:
+  archetype: Minion
+  element: Dragon
+  name: Drake Claw
+  description: Deals 15 damage to target enemy and Scorches them for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: scorched, duration: { enemyTurns: 1 } }
+
+wyrmling_bite:
+  archetype: Minion
+  element: Dragon
+  name: Wyrmling Bite
+  description: Deals 15 damage to target enemy and Ignites them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: ignite }

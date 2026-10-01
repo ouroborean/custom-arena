@@ -1,0 +1,37 @@
+# Battery (Lightning + Poison) statuses, from the "Fusion Spec Kits" design doc.
+
+cell:
+  name: Cell
+  kind: Neutral
+  element: Battery
+  stacking: merge
+  maxStacks: 5
+  description: Stored charge (max 5) that never decays. Discharge skills spend all of it.
+
+corroded:
+  name: Corroded
+  kind: Debuff
+  element: Battery
+  stacking: unique
+  description: The bearer's Shield loses 10 at the end of each of the applier's turns, and they can't gain Armor.
+  modifiers:
+    - { mod: immuneToEffects, effects: [armor] }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: boostShields, on: bearer, amount: -10 }
+
+# Fusion passive (every Battery character): Charge gained at 3 becomes a Cell.
+battery_core:
+  name: Battery Core
+  kind: Neutral
+  element: Battery
+  stacking: unique
+  description: Charge this character gains while at 3 becomes a Cell instead.
+  triggers:
+    - on: effectGained
+      effect: charged
+      do:
+        - op: if
+          cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+          then: [{ op: apply, to: bearer, effect: cell }]

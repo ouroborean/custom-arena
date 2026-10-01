@@ -1,0 +1,19 @@
+# Glacier (Ice + Water) statuses, from the "Fusion Spec Kits" design doc.
+
+icebound:
+  name: Icebound
+  kind: Debuff
+  element: Glacier
+  stacking: unique
+  description: The bearer's cooldowns don't tick down.
+  modifiers:
+    - { mod: freezeCooldowns }
+
+meltwater:
+  name: Meltwater
+  kind: Buff
+  element: Glacier
+  stacking: unique
+  description: The bearer's cooldowns tick down 1 extra at the end of each of their turns.
+  modifiers:
+    - { mod: cooldownTick, amount: 1 }

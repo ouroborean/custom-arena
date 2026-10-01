@@ -1,0 +1,19 @@
+# Grave minions (Undead).
+
+skeleton:
+  name: Skeleton
+  hp: 20
+  tags: [undead]
+  skills: [skeleton_rattle_blade]
+
+ghoul:
+  name: Ghoul
+  hp: 30
+  tags: [undead]
+  skills: [ghoul_gnaw]
+
+ghoul_gravedigger:
+  name: Ghoul Gravedigger
+  hp: 40
+  tags: [undead]
+  skills: [gravedigger_gnaw, gravedigger_unearth]

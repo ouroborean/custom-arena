@@ -1,0 +1,758 @@
+# The 30 Storm (Lightning + Wind) variants, from the "Fusion Spec Kits" design doc.
+# Tempest lives on each Storm character (the Storm Heart passive hears every `used:Storm` signal from
+# their side). `gain_tempest` adds 1 on `it`.
+
+strike.storm:
+  archetype: Strike
+  element: Storm
+  name: Squall Strike
+  description: Deals 15 damage to target enemy, +5 per Tempest the user has (max +15).
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        sum:
+          - 15
+          - if: { compare: { value: { stacks: { unit: actor, effect: tempest } }, atLeast: 3 } }
+            then: 15
+            else: { mul: [5, { stacks: { unit: actor, effect: tempest } }] }
+
+smash.storm:
+  archetype: Smash
+  element: Storm
+  name: Downburst
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. The user gains 1 Swiftness at the start of each of
+    their next 2 turns.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: apply
+      to: actor
+      duration: { ownTurns: 2 }
+      effect:
+        id: downburst
+        name: Downburst
+        kind: Buff
+        element: Storm
+        description: Gains 1 Swiftness at the start of each of the bearer's turns.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 1 } }
+
+charge.storm:
+  archetype: Charge
+  element: Storm
+  name: Ride the Wind
+  description: >-
+    Deals 10 damage to target enemy, and the user begins Rushing. For 3 turns, each turn they start Rushing,
+    they also gain 1 Charge.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: actor, effect: rushing }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: ride_the_wind
+        name: Ride the Wind
+        kind: Buff
+        element: Storm
+        description: Each turn the bearer starts Rushing, they gain 1 Charge.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: rushing } }
+                then: [{ op: apply, to: bearer, effect: charged }]
+
+riposte.storm:
+  archetype: Riposte
+  element: Storm
+  name: Grounded Arc
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Sapped once for each energy
+    it cost. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grounded_arc
+        name: Grounded Arc
+        kind: Buff
+        element: Storm
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Saps its user per energy.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: sapped, stacks: { skillCost: true } }
+
+rage.storm:
+  archetype: Rage
+  element: Storm
+  name: Gathering Storm
+  description: >-
+    For 3 turns, the user gains Stormborn and 1 Might, and each time their Charge fills to 3, Tempest rises
+    by 1.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: gathering_storm
+        name: Gathering Storm
+        kind: Buff
+        element: Storm
+        description: Each time the bearer's Charge fills to 3, Tempest rises by 1.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
+                then: [{ op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }]
+
+shot.storm:
+  archetype: Shot
+  element: Storm
+  name: Shared Static
+  description: >-
+    Deals 15 damage to target enemy. Until the user's next turn, each time one of their allies takes damage,
+    the user gains 1 Charge.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: { filter: allAllies, where: { not: { isActor: it } } }
+      duration: { raw: 2 }
+      effect:
+        id: shared_static
+        name: Shared Static
+        kind: Buff
+        element: Storm
+        description: Damage to the bearer gives the applier 1 Charge.
+        triggers:
+          - on: damaged
+            do:
+              - { op: apply, to: actor, effect: charged }
+
+snipe.storm:
+  archetype: Snipe
+  element: Storm
+  name: Stormfront
+  description: >-
+    On the following turn, deals 15 Piercing damage to all enemies, +5 for each Tempest; it spends all of
+    it. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: stormfront
+        name: Stormfront
+        kind: Neutral
+        element: Storm
+        interruptible: true
+        description: Breaks over the enemy team at the end of the following turn.
+        onExpire:
+          - { op: damage, to: allEnemies, type: Piercing, amount: { sum: [15, { mul: [5, { stacks: { unit: bearer, effect: tempest } }] }] } }
+          - { op: removeEffect, from: bearer, effect: tempest }
+          - { op: removeEffect, from: bearer, effect: eye_of_the_storm }
+
+trap.storm:
+  archetype: Trap
+  element: Storm
+  name: Charged Noose
+  description: >-
+    For 3 turns, each time target enemy uses a skill, the user gains 1 Tempest, and they take 5 Piercing
+    damage per Tempest. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: charged_noose
+        name: Charged Noose
+        kind: Debuff
+        element: Storm
+        visibility: hidden
+        description: Each skill the bearer uses feeds the applier's Tempest and shocks them.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: forEach, in: actor, do: [{ op: macro, id: gain_tempest }] }
+              - { op: damage, to: bearer, amount: { mul: [5, { stacks: { unit: actor, effect: tempest } }] }, type: Piercing, direct: false }
+
+maneuver.storm:
+  archetype: Maneuver
+  element: Storm
+  name: Lightning Leap
+  description: The user Leaps, and gains Conduit until their Leap ends, so their landing blow steals the target's Charge.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - { op: apply, to: actor, effect: conduit, linkTo: leaping }
+
+companion.storm:
+  archetype: Companion
+  element: Storm
+  name: Storm Roc
+  description: >-
+    Summons a Storm Roc (40 HP) permanently; its skills are Storm skills. Gale Wing (nc): 5 damage to target
+    enemy. Thunder Talon (r, only at 3 or more Tempest): 20 damage, and Saps.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: storm_roc }
+
+bolt.storm:
+  archetype: Bolt
+  element: Storm
+  name: Stormbolt
+  description: >-
+    Deals 20 damage to target enemy, and Saps them. It then arcs to 1 other enemy for every 2 Tempest,
+    dealing 10 to each.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sapped }
+    - op: repeat
+      times: { div: [{ stacks: { unit: actor, effect: tempest } }, 2] }
+      do:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 10 }
+
+blast.storm:
+  archetype: Blast
+  element: Storm
+  name: Supercell
+  description: >-
+    Deals 25 damage to all enemies. The storm discharges: Tempest falls by 1, and each ally gains 1 Charge.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: removeStacks, from: actor, effect: tempest, amount: 1 }
+    - { op: apply, to: allAllies, effect: charged }
+
+consume.storm:
+  archetype: Consume
+  element: Storm
+  name: Calm Before the Storm
+  description: >-
+    Deals 5 damage to target enemy. The storm calms: Tempest falls by up to 2, and the user heals the
+    damage dealt plus 10 for each point it fell.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: set
+      var: calm
+      value: { if: { compare: { value: { stacks: { unit: actor, effect: tempest } }, atLeast: 2 } }, then: 2, else: { stacks: { unit: actor, effect: tempest } } }
+    - { op: removeStacks, from: actor, effect: tempest, amount: 2 }
+    - { op: heal, to: actor, amount: { sum: [{ lastDamage: true }, { mul: [10, { var: calm }] }] } }
+
+summon.storm:
+  archetype: Summon
+  element: Storm
+  name: Brewing Squall
+  description: >-
+    Summons a Squall Cloud (20 HP) for 3 turns; its skills are Storm skills. Rumble (nc): 5 damage to target
+    enemy. When it expires, it breaks: 5 damage per Tempest to all enemies.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: squall_cloud, duration: { enemyTurns: 3 } }
+
+channel.storm:
+  archetype: Channel
+  element: Storm
+  name: Hurricane
+  description: >-
+    For up to 4 turns, at the end of each of the user's turns, deals 10 damage to all enemies, +5 per
+    Tempest, and Tempest rises by 1; it ends early once Tempest reaches 5. Channeled.
+  cost: SI
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: hurricane
+        name: Hurricane
+        kind: Neutral
+        element: Storm
+        interruptible: true
+        description: Each turn, damage scaling with Tempest, and Tempest rises; ends at 5.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: { sum: [10, { mul: [5, { stacks: { unit: bearer, effect: tempest } }] }] } }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: tempest } }, atLeast: 5 } }
+                then: [{ op: removeSelf }]
+
+stab.storm:
+  archetype: Stab
+  element: Storm
+  name: Pinning Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP, and they count as Immobile until
+    the end of the user's next turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: apply
+      to: primary
+      duration: { raw: 3 }
+      effect:
+        id: pinning_knife
+        name: Pinned
+        kind: Debuff
+        element: Storm
+        countsAs: [low_ceiling]
+        description: The bearer counts as Immobile.
+
+ravage.storm:
+  archetype: Ravage
+  element: Storm
+  name: Summit Strike
+  description: >-
+    Deals 25 Piercing damage to the enemy with the most HP, +15 if they're Stunned. It Bypasses.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Bypass]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: strongestEnemy
+      type: Piercing
+      bypass: true
+      amount: { if: { stunned: it }, then: 40, else: 25 }
+
+mislead.storm:
+  archetype: Mislead
+  element: Storm
+  name: False Front
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they're Sapped once for every 2
+    Tempest (at least once). Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: false_front
+        name: False Front
+        kind: Debuff
+        element: Storm
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they're Sapped by the storm.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: apply
+                to: bearer
+                effect: sapped
+                stacks: { if: { compare: { value: { stacks: { unit: actor, effect: tempest } }, atLeast: 2 } }, then: { div: [{ stacks: { unit: actor, effect: tempest } }, 2] }, else: 1 }
+
+stun.storm:
+  archetype: Stun
+  element: Storm
+  name: Static Buildup
+  description: >-
+    Deals 15 damage to target enemy. Static builds in them for 2 turns: each skill they use adds 1 turn to a
+    Stun that lands when it ends (max 3).
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: setCounter, name: static_buildup, value: 0, on: primary }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: static_buildup
+        name: Static Buildup
+        kind: Debuff
+        element: Storm
+        description: Each skill the bearer uses builds a Stun that lands when this ends (max 3 turns).
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { compare: { value: { counterOf: { unit: bearer, name: static_buildup } }, atMost: 2 } }
+                then: [{ op: setCounter, name: static_buildup, on: bearer, value: { sum: [{ counterOf: { unit: bearer, name: static_buildup } }, 1] } }]
+        onExpire:
+          - op: if
+            cond: { compare: { value: { counterOf: { unit: bearer, name: static_buildup } }, atLeast: 1 } }
+            then:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: { counterOf: { unit: bearer, name: static_buildup } } } }
+
+dance.storm:
+  archetype: Dance
+  element: Storm
+  name: Storm Rider
+  description: >-
+    For 3 turns, the user gains 1 Might and begins Rushing; while they're Rushing, all their skills count as
+    Storm skills.
+  cost: AA
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: rushing }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: storm_rider
+        name: Storm Rider
+        kind: Buff
+        element: Storm
+        description: While Rushing, the bearer's skills count as Storm skills.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: rushing } }, { not: { eventSkill: { elements: [Storm] } } }] }
+                then: [{ op: signal, name: "used:Storm" }]
+
+heal.storm:
+  archetype: Heal
+  element: Storm
+  name: Mending Arc
+  description: >-
+    Target ally heals 25. The current then arcs to the other ally with the least HP for 15, then to any
+    remaining allies for 5.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+    - op: forEach
+      in: { filter: weakestAlly, exclude: primary, where: { kind: { unit: it, is: character } } }
+      do:
+        - { op: heal, to: it, amount: 15 }
+        - { op: setCounter, name: arc_hop, value: 1, on: it }
+    - op: heal
+      to:
+        filter: allAllies
+        exclude: primary
+        where: { and: [{ kind: { unit: it, is: character } }, { compare: { value: { counterOf: { unit: it, name: arc_hop } }, atMost: 0 } }] }
+      amount: 5
+    - { op: setCounter, name: arc_hop, value: 0, on: allAllies }
+
+bless.storm:
+  archetype: Bless
+  element: Storm
+  name: Tailwind
+  description: For 2 turns, target ally's skills count as Storm skills, and they gain 1 Swiftness.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: swiftness, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: tailwind
+        name: Tailwind
+        kind: Buff
+        element: Storm
+        description: The bearer's skills count as Storm skills.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { not: { eventSkill: { elements: [Storm] } } }
+                then: [{ op: signal, name: "used:Storm" }]
+
+curse.storm:
+  archetype: Curse
+  element: Storm
+  name: Crosswind
+  description: >-
+    Target enemy loses all their Charge. For 2 turns, any Charge they would gain feeds the user's Tempest
+    instead.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: primary, effect: charged }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: crosswind
+        name: Crosswind
+        kind: Debuff
+        element: Storm
+        description: Charge the bearer gains feeds the applier's Tempest instead.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - { op: removeEffect, from: bearer, effect: charged }
+              - { op: forEach, in: actor, do: [{ op: macro, id: gain_tempest }] }
+
+smite.storm:
+  archetype: Smite
+  element: Storm
+  name: Rod of the Storm
+  description: Deals 20 damage to target enemy. For 1 turn, each time an ally damages them, Tempest rises by 1.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: rod_of_the_storm
+        name: Rod of the Storm
+        kind: Debuff
+        element: Storm
+        description: Each hit from the applier's side raises their Tempest.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: forEach, in: actor, do: [{ op: macro, id: gain_tempest }] }
+
+prayer.storm:
+  archetype: Prayer
+  element: Storm
+  name: Song of the Storm
+  description: All allies heal 20 and gain 10 Shield for 1 turn. For 2 turns, the team's Tempest doesn't fall.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: song_of_the_storm
+        name: Song of the Storm
+        kind: Buff
+        element: Storm
+        description: The bearer's Tempest doesn't fall.
+
+cleave.storm:
+  archetype: Cleave
+  element: Storm
+  name: Shearing Gale
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy; while the user is Leaping, both hits
+    gain the Leap's bonus.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+shout.storm:
+  archetype: Shout
+  element: Storm
+  name: Storm Warning
+  description: >-
+    All enemies are Intimidated for 2 turns. It never uses up the Eye of the Storm; at 5 Tempest, it also
+    Saps every enemy.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: tempest } }, atLeast: 5 } }
+      then: [{ op: apply, to: targets, effect: sapped }]
+
+withstand.storm:
+  archetype: Withstand
+  element: Storm
+  name: Storm Cellar
+  description: Every ally, the user included, gains 20 Shield for 1 turn. The user gains 3 Sapped.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: allAllies, effect: shield, value: 20, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: sapped, stacks: 3 }
+
+taunt.storm:
+  archetype: Taunt
+  element: Storm
+  name: Static Lure
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. While they're Taunted and Sapped, they generate 1 less
+    energy every turn.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: static_lure
+        name: Static Lure
+        kind: Debuff
+        element: Storm
+        description: While Taunted and Sapped, the bearer generates 1 less energy each turn.
+        modifiers:
+          - { mod: energyGain, amount: -1, if: { and: [{ has: { unit: actor, effect: taunt } }, { has: { unit: actor, effect: sapped } }] } }
+
+titan.storm:
+  archetype: Titan
+  element: Storm
+  name: Djinn of the Tempest
+  description: >-
+    For 3 turns, the user is Immune and gains 1 Armor per 2 Tempest, rechecked as each hit lands; Tempest
+    rises by 1 at the start of each of their turns.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: djinn_of_the_tempest
+        name: Djinn of the Tempest
+        kind: Buff
+        element: Storm
+        description: 1 Armor per 2 Tempest; Tempest rises each turn.
+        modifiers:
+          - { mod: damageTaken, amount: 0, armor: true, when: { types: [Normal] }, value: { mul: [-5, { div: [{ stacks: { unit: actor, effect: tempest } }, 2] }] } }
+        triggers:
+          - on: turnStart
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }
+
+# Minion skills.
+
+storm_roc_gale_wing:
+  archetype: Minion
+  element: Storm
+  name: Gale Wing
+  description: Deals 5 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+
+storm_roc_thunder_talon:
+  archetype: Minion
+  element: Storm
+  name: Thunder Talon
+  description: Deals 20 damage to target enemy and Saps them. Only at 3 or more Tempest.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  requires: { compare: { value: { stacks: { unit: summoner, effect: tempest } }, atLeast: 3 } }
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sapped }
+
+squall_cloud_rumble:
+  archetype: Minion
+  element: Storm
+  name: Rumble
+  description: Deals 5 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }

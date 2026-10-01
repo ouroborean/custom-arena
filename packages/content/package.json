@@ -9,7 +9,8 @@
   },
   "scripts": {
     "validate": "tsx scripts/validate.ts",
-    "build": "tsx scripts/build.ts"
+    "build": "tsx scripts/build.ts",
+    "diff": "tsx scripts/diff.ts"
   },
   "dependencies": {
     "@arena/engine": "0.1.0",

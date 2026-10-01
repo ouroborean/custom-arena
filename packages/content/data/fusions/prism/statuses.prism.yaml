@@ -1,0 +1,14 @@
+# Prism (Ice + Holy) statuses, from the "Fusion Spec Kits" design doc.
+# Refract is written into each skill: half strength (rounded down to 5) on one more random unit on the
+# target's side, unless the user has Lens.
+
+lens:
+  name: Lens
+  kind: Buff
+  element: Prism
+  stacking: unique
+  description: >-
+    The bearer's next skill doesn't Refract, and its direct damage is 50% stronger. Using a skill spends
+    the Lens.
+  modifiers:
+    - { mod: damageDealt, amount: 0, mul: 1.5, when: { direct: true } }

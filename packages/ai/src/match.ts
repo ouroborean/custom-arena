@@ -52,7 +52,9 @@ export function playMatch(content: ContentBundle, config: MatchConfig, bots: [Bo
 
 /** Elements that have skill variants in this content (plus "None"). */
 export function availableElements(content: ContentBundle): string[] {
-  const els = new Set(Object.values(content.skills).map((s) => s.element).filter((e) => e !== 'None'));
+  // Base elements only: a fusion element (Dragon) comes from two infusions, never from a native element.
+  const fusions = new Set(Object.values(content.fusions ?? {}).map((f) => f.name));
+  const els = new Set(Object.values(content.skills).map((s) => s.element).filter((e) => e !== 'None' && !fusions.has(e)));
   return ['None', ...[...els].sort()];
 }
 

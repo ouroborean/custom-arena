@@ -12,7 +12,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { formatEvent, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
 import { botFor, encounterBot, greedyBot, normalBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
-import { encounterConfig, equippedItems, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
+import { encounterConfig, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
 import { num, parseArgs } from './args.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -45,7 +45,7 @@ function matchSetup(seed: number): { config: MatchConfig; items: [string[], stri
     [0, 1, 2].map((i) => {
       const { character } = rollCharacter(content, rng);
       const loadout = randomLoadout(content, character, rng);
-      items[p].push(...equippedItems(loadout).map((e) => e.eq.itemId));
+      items[p].push(...loadout.items.map((e) => e.itemId));
       const spec = toCharacterSpec(character, resolveLoadout(content, character, loadout));
       return { ...spec, name: `${p === 0 ? 'Blue' : 'Red'} ${content.classes[character.classId]!.name} ${i + 1}` };
     });

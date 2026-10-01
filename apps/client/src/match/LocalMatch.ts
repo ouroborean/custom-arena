@@ -21,7 +21,7 @@ import {
   type SkillAvailability,
 } from '@arena/engine';
 
-import type { BotKind, MatchMode, MatchSession } from './session.js';
+import { Checkpoints, type BotKind, type MatchMode, type MatchSession } from './session.js';
 
 export type { BotKind, MatchMode } from './session.js';
 
@@ -34,6 +34,7 @@ export class LocalMatch implements MatchSession {
   readonly record: MatchRecord;
   readonly initialEvents: GameEvent[];
   private readonly bots: [Bot | null, Bot | null];
+  private readonly checkpoints: Checkpoints;
 
   constructor(
     readonly content: ContentBundle,
@@ -42,6 +43,7 @@ export class LocalMatch implements MatchSession {
   ) {
     const r = createMatch(content, config);
     this.state = r.state;
+    this.checkpoints = new Checkpoints(content);
     this.initialEvents = r.events;
     this.record = { engineVersion: ENGINE_VERSION, contentVersion: content.version, config, commands: [] };
     const botFor = (p: PlayerId): Bot | null => {
@@ -96,11 +98,15 @@ export class LocalMatch implements MatchSession {
     return this.apply(p, cmd);
   }
 
+  checkpointView(n: number, viewer: PlayerId): PlayerView | null {
+    return this.checkpoints.view(n, viewer);
+  }
+
   private apply(p: PlayerId, cmd: Command): GameEvent[] {
-    const r = applyCommand(this.content, this.state, p, cmd);
+    const r = applyCommand(this.content, this.state, p, cmd, { checkpoints: true });
     this.state = r.state;
     this.record.commands.push({ player: p, cmd });
-    return r.events;
+    return this.checkpoints.take(r);
   }
 
   /** Plays one full bot turn if the active player is a bot. */

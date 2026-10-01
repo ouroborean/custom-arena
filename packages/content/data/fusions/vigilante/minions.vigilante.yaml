@@ -1,0 +1,13 @@
+# Vigilante minions.
+
+bloodhound:
+  name: Bloodhound
+  hp: 30
+  skills: [bloodhound_run_down, bloodhound_scent]
+
+informant:
+  name: Informant
+  hp: 15
+  onSummon:
+    - { op: apply, to: actor, effect: informant_watch }
+  skills: [informant_tip_off]

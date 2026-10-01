@@ -1,0 +1,733 @@
+# The 30 Glacier (Ice + Water) variants, from the "Fusion Spec Kits" design doc.
+# Icebound freezes a unit's cooldowns; Meltwater ticks them 1 faster.
+
+strike.glacier:
+  archetype: Strike
+  element: Glacier
+  name: Glacial Fist
+  description: >-
+    Deals 25 damage to target enemy, and they're Icebound for 1 turn. If they already were, the user
+    gains Meltwater for 1 turn instead.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { has: { unit: primary, effect: icebound } }
+      then:
+        - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: primary, effect: icebound, duration: { enemyTurns: 1 } }
+
+smash.glacier:
+  archetype: Smash
+  element: Glacier
+  name: Spring Breakup
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. The user spends all their Renew: each stack
+    adds 5 to every hit.
+  cost: Srr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: thaw, value: { mul: [5, { totalStacks: { in: actor, effect: renew } }] } }
+    - { op: removeEffect, from: actor, effect: renew }
+    - { op: damage, to: primary, amount: { sum: [20, { var: thaw }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [10, { var: thaw }] } }
+
+charge.glacier:
+  archetype: Charge
+  element: Glacier
+  name: Meltwater Rush
+  description: >-
+    Deals 15 damage to target enemy. If they're Chilled, the Chill melts off them and the user gains
+    Meltwater for 2 turns.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: primary, effect: chilled, exact: true } }
+      then:
+        - { op: removeEffect, from: primary, effect: chilled }
+        - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 2 } }
+
+riposte.glacier:
+  archetype: Riposte
+  element: Glacier
+  name: Pressure Ridge
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; they gain Meltwater for 1 turn per
+    turn of that skill's cooldown (max 3). Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pressure_ridge
+        name: Pressure Ridge
+        kind: Buff
+        element: Glacier
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, and gains Meltwater by its cooldown.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: if
+                cond: { compare: { value: { skillCooldown: true }, atLeast: 1 } }
+                then:
+                  - op: apply
+                    to: bearer
+                    effect: meltwater
+                    duration:
+                      enemyTurns: { if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }, then: 3, else: { skillCooldown: true } }
+
+rage.glacier:
+  archetype: Rage
+  element: Glacier
+  name: Spring Thaw
+  description: >-
+    For 3 turns, the user gains Immune and Meltwater; each time Meltwater brings one of their skills off
+    cooldown, they gain 1 Might until it ends.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: spring_thaw
+        name: Spring Thaw
+        kind: Buff
+        element: Glacier
+        description: Each skill Meltwater frees gives 1 Might until this ends.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { compare: { value: { counterOf: { unit: bearer, name: thawed } }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: bearer, effect: might, stacks: { counterOf: { unit: bearer, name: thawed } }, linkTo: spring_thaw }
+
+shot.glacier:
+  archetype: Shot
+  element: Glacier
+  name: Borrowed Hour
+  description: >-
+    Deals 15 damage to target enemy. Their skill with the longest cooldown left and the user's other
+    skill with the longest cooldown left swap cooldowns.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: swapCooldowns, a: primary, b: actor }
+
+snipe.glacier:
+  archetype: Snipe
+  element: Glacier
+  name: Serac Spear
+  description: >-
+    On the following turn, deals 50 Piercing damage to target enemy. If they're Icebound, it lands at
+    once instead, and their Icebound ends. The target of this skill is invisible. Channeled.
+  cost: AIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: icebound } }
+      then:
+        - { op: damage, to: primary, amount: 50, type: Piercing }
+        - { op: removeEffect, from: primary, effect: icebound }
+      else:
+        - op: apply
+          to: actor
+          remember: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: serac_spear
+            name: Serac Spear (aiming)
+            kind: Neutral
+            element: Glacier
+            visibility: hiddenTarget
+            interruptible: true
+            description: Strikes its target at the end of the following turn unless interrupted.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 50, type: Piercing }
+
+trap.glacier:
+  archetype: Trap
+  element: Glacier
+  name: Crevasse
+  description: >-
+    For 2 turns, if target enemy uses a Harmful skill, they're Icebound for 2 turns and their cooldowns
+    rise by 1. Invisible.
+  cost: II
+  cooldown: 4
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: crevasse
+        name: Crevasse
+        kind: Debuff
+        element: Glacier
+        visibility: hidden
+        description: The bearer's next Harmful skill Icebinds them and lengthens their cooldowns.
+        triggers:
+          - on: skillResolved
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: icebound, duration: { enemyTurns: 2 } }
+              - { op: adjustCooldowns, to: bearer, by: 1 }
+
+maneuver.glacier:
+  archetype: Maneuver
+  element: Glacier
+  name: Under the Ice
+  description: The user becomes Invulnerable for 1 turn, and every enemy with a skill on cooldown is Icebound for 1 turn.
+  cost: I
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: { filter: allEnemies, where: { compare: { value: { skillsOnCooldown: it }, atLeast: 1 } } }
+      effect: icebound
+      duration: { enemyTurns: 1 }
+
+companion.glacier:
+  archetype: Companion
+  element: Glacier
+  name: Walrus Bull
+  description: >-
+    Summons a Walrus (45 HP) permanently. Tusk (S): 20 damage to target enemy. Haul Out (r): target ally
+    gains Meltwater for 2 turns, and the Walrus is Icebound for as long.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: walrus_bull }
+
+bolt.glacier:
+  archetype: Bolt
+  element: Glacier
+  name: Glacial Erratic
+  description: >-
+    Deals 20 damage to target enemy and Marks them for 2 turns. If nothing has spent the Mark when it
+    expires, it breaks on them anyway for 30 damage.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { raw: 5 }
+      effect:
+        id: glacial_erratic
+        name: Glacial Erratic
+        kind: Neutral
+        element: Glacier
+        description: If the bearer's Mark expires unspent, it breaks for 30 damage.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [mark], reason: [expired] }
+            consume: true
+            do:
+              - { op: damage, to: eventTarget, amount: 30, direct: false }
+
+blast.glacier:
+  archetype: Blast
+  element: Glacier
+  name: Thawburst
+  description: >-
+    Deals 25 damage to all enemies. Every Frost debuff on them thaws: it's removed, and a random ally of
+    the user gains 2 Renew for each.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - op: forEach
+      in: targets
+      do:
+        - { op: set, var: thawed, value: { count: { effects: [frostbitten, chilled, numb, frostfire], in: it } } }
+        - { op: removeEffect, from: it, effect: frostbitten }
+        - { op: removeEffect, from: it, effect: chilled }
+        - { op: removeEffect, from: it, effect: numb }
+        - { op: removeEffect, from: it, effect: frostfire }
+        - op: if
+          cond: { compare: { value: { var: thawed }, atLeast: 1 } }
+          then:
+            - { op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: renew, stacks: { mul: [2, { var: thawed }] } }
+
+consume.glacier:
+  archetype: Consume
+  element: Glacier
+  name: Stolen Thaw
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. If they're Icebound, it ends, and the user
+    gains Meltwater for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: if
+      cond: { has: { unit: primary, effect: icebound } }
+      then:
+        - { op: removeEffect, from: primary, effect: icebound }
+        - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 2 } }
+
+summon.glacier:
+  archetype: Summon
+  element: Glacier
+  name: Advancing Glacier
+  description: >-
+    Summons an Ice Tongue (50 HP) for 4 turns. It does nothing for its first 2 turns; then, at the end of
+    each of your turns, it deals 30 Piercing damage to a random enemy.
+  cost: Ir
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: ice_tongue, duration: { enemyTurns: 4 } }
+
+channel.glacier:
+  archetype: Channel
+  element: Glacier
+  name: Glacial Advance
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, deals 10 damage to target enemy, who is
+    Icebound for 1 turn. While it channels, the user's cooldowns don't tick either. Channeled.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: glacial_advance
+        name: Glacial Advance
+        kind: Neutral
+        element: Glacier
+        interruptible: true
+        description: Each turn, 10 damage and Icebound on the target; the bearer's cooldowns are frozen too.
+        modifiers:
+          - { mod: freezeCooldowns }
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: effectTargets, amount: 10 }
+              - { op: apply, to: effectTargets, effect: icebound, duration: { enemyTurns: 1 } }
+
+stab.glacier:
+  archetype: Stab
+  element: Glacier
+  name: Hoarfrost Pick
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. For 2 turns, Frost debuffs on
+    them can't be removed.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hoarfrost_pick
+        name: Hoarfrost
+        kind: Debuff
+        element: Glacier
+        description: Frost debuffs on the bearer can't be removed.
+        modifiers:
+          - { mod: protectEffects, effects: [frostbitten, chilled, numb, frostfire] }
+
+ravage.glacier:
+  archetype: Ravage
+  element: Glacier
+  name: Scouring Melt
+  description: >-
+    Deals 25 Piercing damage to target enemy, +10 per Confusion they have (max 3). Then their Confusion
+    is washed away.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        sum:
+          - 25
+          - mul:
+              - 10
+              - if: { compare: { value: { totalStacks: { in: primary, effect: confusion } }, atLeast: 3 } }
+                then: 3
+                else: { totalStacks: { in: primary, effect: confusion } }
+    - { op: removeEffect, from: primary, effect: confusion }
+
+mislead.glacier:
+  archetype: Mislead
+  element: Glacier
+  name: Thin Ice
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Icebound for 1 turn per
+    turn of its cooldown (max 3). Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: thin_ice
+        name: Thin Ice
+        kind: Debuff
+        element: Glacier
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they're Icebound by its cooldown.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              # 1 turn per turn of the countered skill's cooldown (max 3): a cooldown-0 skill gives none.
+              - op: if
+                cond: { compare: { value: { skillCooldown: true }, atLeast: 1 } }
+                then:
+                  - op: apply
+                    to: bearer
+                    effect: icebound
+                    duration:
+                      enemyTurns: { if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }, then: 3, else: { skillCooldown: true } }
+
+stun.glacier:
+  archetype: Stun
+  element: Glacier
+  name: Pack Ice
+  description: Deals 15 damage to target enemy and Stuns them for 1 turn; they're Icebound for as long.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: icebound, duration: { enemyTurns: 1 } }
+
+dance.glacier:
+  archetype: Dance
+  element: Glacier
+  name: Spring Current
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and Meltwater, and each ally they use a Helpful skill on
+    gains Meltwater for 1 turn.
+  cost: Ar
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: spring_current
+        name: Spring Current
+        kind: Buff
+        element: Glacier
+        description: Each ally the bearer uses a Helpful skill on gains Meltwater for 1 turn.
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - { op: apply, to: { filter: eventTargets, where: { not: { isEnemy: it } } }, effect: meltwater, duration: { enemyTurns: 1 } }
+
+heal.glacier:
+  archetype: Heal
+  element: Glacier
+  name: Glacial Spring
+  description: Target ally heals 15 and gains Meltwater for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: meltwater, duration: { enemyTurns: 1 } }
+
+bless.glacier:
+  archetype: Bless
+  element: Glacier
+  name: Snowmelt
+  description: >-
+    Target ally loses Icebound and Chilled, then gains Meltwater for 2 turns, +1 turn for each of those
+    removed.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: set, var: melted, value: { count: { effects: [icebound, chilled], in: primary } } }
+    - { op: removeEffect, from: primary, effect: icebound }
+    - { op: removeEffect, from: primary, effect: chilled }
+    - { op: apply, to: primary, effect: meltwater, duration: { enemyTurns: { sum: [2, { var: melted }] } } }
+
+curse.glacier:
+  archetype: Curse
+  element: Glacier
+  name: Frozen in Time
+  description: >-
+    Target enemy is Icebound for 2 turns, so whatever skills they have on cooldown stay there until it
+    ends; their cooldowns also rise by 1.
+  cost: IW
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: icebound, duration: { enemyTurns: 2 } }
+    - { op: adjustCooldowns, to: primary, by: 1 }
+
+smite.glacier:
+  archetype: Smite
+  element: Glacier
+  name: Tidemark
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each ally who damages them has their Renew heal once at
+    once, without losing a stack.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tidemark
+        name: Tidemark
+        kind: Debuff
+        element: Glacier
+        description: Each of the applier's allies who damages the bearer has their Renew heal once.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: heal, to: eventSource, amount: { mul: [5, { totalStacks: { in: eventSource, effect: renew } }] } }
+
+prayer.glacier:
+  archetype: Prayer
+  element: Glacier
+  name: Stillfrost Hymn
+  description: >-
+    All allies heal 20 and gain 10 Shield for 1 turn. For 2 turns, Frostbitten enemies can't use Helpful
+    skills either.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: stillfrost_hymn
+        name: Stillfrost Hymn
+        kind: Debuff
+        element: Glacier
+        description: While Frostbitten, the bearer can't use Helpful skills either.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: false, if: { has: { unit: actor, effect: frostbitten } } }
+
+cleave.glacier:
+  archetype: Cleave
+  element: Glacier
+  name: Calving
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. The two then share their Debuffs:
+    each gains copies of the other's.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: shareEffects, a: primary, b: it, kind: Debuff }
+
+shout.glacier:
+  archetype: Shout
+  element: Glacier
+  name: Floe Horn
+  description: >-
+    All enemies are Intimidated for 2 turns, and every ally of the user with Flow becomes Frostborn for
+    as long.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { filter: allAllies, where: { has: { unit: it, effect: flow } } }, effect: frostborn, duration: { enemyTurns: 2 } }
+
+withstand.glacier:
+  archetype: Withstand
+  element: Glacier
+  name: Ice Shelf
+  description: The user gains 20 Shield for 2 turns, and Meltwater for as long as any of it remains.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 2 }
+      effect:
+        id: ice_shelf
+        name: Ice Shelf
+        kind: Buff
+        element: Glacier
+        shield: true
+        description: A Shield; the bearer has Meltwater while any of it remains.
+    - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 2 }, linkTo: ice_shelf }
+
+taunt.glacier:
+  archetype: Taunt
+  element: Glacier
+  name: Rime Glare
+  description: Target enemy is Taunted by the user until they next take direct damage, for up to 4 turns.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 4 }
+      effect:
+        id: rime_glare
+        name: Rime Glare
+        kind: Debuff
+        element: Glacier
+        description: The Taunt breaks when the bearer takes direct damage.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            consume: true
+            do:
+              - { op: removeEffect, from: bearer, effect: taunt }
+
+titan.glacier:
+  archetype: Titan
+  element: Glacier
+  name: Glacier Form
+  description: >-
+    For 3 turns, the user is Icebound, then Immune, and gains 1 Armor per skill of theirs on cooldown
+    (max 3), rechecked as each hit lands.
+  cost: WI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: icebound, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: glacier_form
+        name: Glacier Form
+        kind: Buff
+        element: Glacier
+        description: 1 Armor per skill on cooldown (max 3).
+        modifiers:
+          - mod: damageTaken
+            amount: 0
+            armor: true
+            when: { types: [Normal] }
+            value:
+              mul:
+                - -5
+                - if: { compare: { value: { skillsOnCooldown: actor }, atLeast: 3 } }
+                  then: 3
+                  else: { skillsOnCooldown: actor }
+
+# Minion skills.
+
+walrus_tusk:
+  archetype: Minion
+  element: Glacier
+  name: Tusk
+  description: Deals 20 damage to target enemy.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+
+walrus_haul_out:
+  archetype: Minion
+  element: Glacier
+  name: Haul Out
+  description: Target ally gains Meltwater for 2 turns, and the Walrus is Icebound for as long.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: meltwater, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: icebound, duration: { enemyTurns: 2 } }

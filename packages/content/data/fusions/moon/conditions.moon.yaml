@@ -1,0 +1,5 @@
+# Lunar Cycle phases (counter `phase` on a Moon character): 0 New, 1 Waxing, 2 Full, 3 Waning.
+moon_new: { compare: { value: { counterOf: { unit: it, name: phase } }, atMost: 0 } }
+moon_waxing: { compare: { value: { counterOf: { unit: it, name: phase } }, atLeast: 1, atMost: 1 } }
+moon_full: { compare: { value: { counterOf: { unit: it, name: phase } }, atLeast: 2, atMost: 2 } }
+moon_waning: { compare: { value: { counterOf: { unit: it, name: phase } }, atLeast: 3 } }

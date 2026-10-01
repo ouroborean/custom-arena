@@ -34,7 +34,7 @@ full game state, clients get redacted views, and planning is local-first.
 | `welcome` | User, the match they're in (to resume), server time |
 | `queue.status`, `queue.left`, `private.created`, `private.cancelled` | Lobby state |
 | `match.start`, `match.sync` | A match began; full resync (view + missed events + deadline + presence) |
-| `match.events` | New redacted events and the resulting view |
+| `match.events` | New redacted events and the resulting view, plus `checkpoints`: the player's view after each skill, tick and turn boundary (`afterSeq` says which event it follows), so the client shows each outcome as it plays. Checkpoints aren't logged; a resync shows the current state. |
 | `match.presence` | Opponent disconnected / reconnected, forfeit time |
 | `match.turnRejected`, `match.end` | Rejection reason; result, end reason, ranked rating change |
 | `error` | `bad_message`, `already_busy`, `invalid_team` (with the loadout problems), `no_such_code`, `rate_limited`, … |
@@ -64,8 +64,8 @@ start (no ratings change).
 - **Teams:** the active team is validated when queueing (the same checks as practice), so an invalid
   loadout is caught before a match starts.
 - **Ratings:** Glicko-2 (tested against Glickman's worked example), one match per rating period.
-  Ranked has a visible season rating (`ranked-s1`); casual keeps a hidden rating used only for
-  pairing; private matches are unrated. A forfeit counts as a loss.
+  Ranked has a visible rating per season, soft-reset between seasons (docs/live-ops.md §4); casual
+  keeps a hidden rating used only for pairing; private matches are unrated. A forfeit counts as a loss.
 - The queue is in-process. Its interface (`join`, `leave`, `tick`) is small enough to move to Redis
   when the server runs as several processes (GDD §10.2).
 

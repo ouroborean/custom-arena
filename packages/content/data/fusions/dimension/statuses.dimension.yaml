@@ -1,0 +1,52 @@
+# Dimension (Shadow + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+# Banished lasts until the end of the bearer's next turn: raw 2 on an enemy (applied on the user's
+# turn), raw 3 on the user or an ally, raw 3 on an enemy during their own turn.
+
+banished:
+  name: Banished
+  kind: Debuff
+  element: Dimension
+  stacking: unique
+  description: >-
+    Out of the fight: can't act or be targeted by anyone, takes no damage, and their effects neither
+    tick nor expire.
+  modifiers:
+    - { mod: banished }
+    - { mod: cannotUseSkills }
+    - { mod: untargetable, by: enemies, bypassable: false }
+    - { mod: untargetable, by: allies, bypassable: false }
+
+# The same, on the user's own side (a Buff).
+banished_ally:
+  name: Banished
+  kind: Buff
+  element: Dimension
+  stacking: unique
+  countsAs: [banished]
+  description: >-
+    Out of the fight: can't act or be targeted by anyone, takes no damage, and their effects neither
+    tick nor expire.
+  modifiers:
+    - { mod: banished }
+    - { mod: cannotUseSkills }
+    - { mod: untargetable, by: enemies, bypassable: false }
+    - { mod: untargetable, by: allies, bypassable: false }
+
+entangled:
+  name: Entangled
+  kind: Neutral
+  element: Dimension
+  stacking: independent
+  description: Linked to other units on the same side; any effect applied to one is applied to the others too.
+  modifiers:
+    - { mod: entangleLink }
+
+entangled_buffs:
+  name: Entangled (Buffs)
+  kind: Neutral
+  element: Dimension
+  stacking: independent
+  countsAs: [entangled]
+  description: Linked to other allies; any Buff applied to one is applied to the others too.
+  modifiers:
+    - { mod: entangleLink, kinds: [Buff] }

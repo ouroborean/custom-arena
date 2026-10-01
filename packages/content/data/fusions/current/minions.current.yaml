@@ -1,0 +1,13 @@
+# Current minions.
+
+electric_eel:
+  name: Electric Eel
+  hp: 30
+  skills: [electric_eel_shock, electric_eel_static_coil]
+
+galvanic_elemental:
+  name: Galvanic Elemental
+  hp: 20
+  onDeath:
+    - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: soaked } } }, amount: 15, direct: false }
+  skills: [galvanic_elemental_static_lash]

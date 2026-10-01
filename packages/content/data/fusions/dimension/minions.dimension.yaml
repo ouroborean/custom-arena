@@ -1,0 +1,11 @@
+# Dimension minions.
+
+void_stalker:
+  name: Void Stalker
+  hp: 30
+  skills: [void_stalker_tether, void_stalker_rend]
+
+rift:
+  name: Rift
+  hp: 20
+  skills: [rift_shunt]

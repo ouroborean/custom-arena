@@ -1,0 +1,796 @@
+# The 30 Life (Earth + Earth) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.life".
+# Keywords: Flourish (overflow healing raises max HP, up to +30 per unit; macro flourish_it) and
+# Bloom (a Life character's Seedling that survives becomes a Treant; macro bloom_it).
+
+strike.life:
+  archetype: Strike
+  element: Life
+  name: Oakfist
+  description: Deals 20 damage to target enemy, plus 5 per 10 max HP the user has gained from Flourish.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { sum: [20, { mul: [5, { div: [{ counter: flourish }, 10] }] }] }
+
+smash.life:
+  archetype: Smash
+  element: Life
+  name: Groundswell
+  description: >-
+    Deals 30 damage to target enemy. Every other unit in the battle, on both sides and minions
+    included, heals 15, which can Flourish.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30 }
+    - op: forEach
+      in: { filter: allUnits, exclude: primary, where: { not: { isEventTarget: it } } }
+      do:
+        - { op: heal, to: it, amount: 15 }
+        - { op: macro, id: flourish_it }
+
+charge.life:
+  archetype: Charge
+  element: Life
+  name: Sapling Charge
+  description: >-
+    Deals 15 damage to target enemy, and the user creates a Seedling that takes the next hit aimed
+    at the user.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: summon, minion: seedling }
+    - op: apply
+      to: actor
+      effect:
+        id: sapling_guard
+        name: Sapling Guard
+        kind: Buff
+        element: Life
+        description: The next hit on the bearer lands on one of their minions instead.
+        modifiers:
+          - { mod: redirectDamage }
+        triggers:
+          - on: damaged
+            consume: true
+            do: []
+
+riposte.life:
+  archetype: Riposte
+  element: Life
+  name: Thornwall
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user or one of their minions, dealing
+    15 Piercing damage to its user. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: { filter: allAllies, where: { or: [{ isActor: it }, { kind: { unit: it, is: minion } }] } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: thornwall
+        name: Thornwall
+        kind: Buff
+        element: Life
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, dealing 15 Piercing damage to its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: damage, to: eventSource, amount: 15, type: Piercing }
+              - { op: removeEffect, from: allAllies, effect: thornwall }
+
+rage.life:
+  archetype: Rage
+  element: Life
+  name: Wild Growth
+  description: >-
+    The user creates 2 Seedlings and is Immune for 3 turns. Each allied Seedling that Blooms during
+    it gives the user 1 Might for good.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: seedling, count: 2 }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: wild_growth, duration: { enemyTurns: 3 } }
+
+shot.life:
+  archetype: Shot
+  element: Life
+  name: Treefall
+  description: >-
+    Deals 15 damage to target enemy. Can instead target an allied Treant: it's flung at a random
+    enemy for damage equal to its HP, and lands as a fresh Seedling.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: any
+  targetFilter: { or: [{ isEnemy: it }, { minion: { unit: it, types: [treant], mine: true } }] }
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: damage, to: primary, amount: 15 }
+      else:
+        - { op: set, var: thrown, value: { hp: primary } }
+        - { op: damage, to: { randomEnemy: 1 }, from: primary, amount: { var: thrown } }
+        - { op: transformMinion, to: primary, minion: seedling }
+        - { op: apply, to: primary, effect: bloom_timer, duration: { raw: 5 } }
+
+snipe.life:
+  archetype: Snipe
+  element: Life
+  name: Heartwood Spear
+  description: >-
+    At the end of each of the user's turns while it channels, Channel Growth. In 2 turns, deals 50
+    damage to target enemy. Channeled.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: heartwood_spear
+        name: Heartwood Spear (growing)
+        kind: Neutral
+        element: Life
+        interruptible: true
+        description: Channel Growth at the end of each of the user's turns; strikes its target when it ends.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: macro, id: channel_growth }
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50 }
+
+trap.life:
+  archetype: Trap
+  element: Life
+  name: Strangling Roots
+  description: >-
+    For 2 turns, each skill target enemy uses tightens the roots: 1 Weakness for 2 turns (max 3). At
+    3, a Seedling sprouts for the user. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: strangling_roots
+        name: Strangling Roots
+        kind: Debuff
+        element: Life
+        visibility: hidden
+        # Re-casting refreshes it; only the bearer's skills tighten it (its stacks count the tightenings).
+        stacking: unique
+        description: Each skill the bearer uses gives them 1 Weakness (max 3); at 3, a Seedling sprouts for the trapper.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atMost: 3 } }
+                then:
+                  - { op: apply, to: bearer, effect: weakness, duration: { enemyTurns: 2 } }
+                  - op: if
+                    cond: { compare: { value: { effectStacks: true }, atLeast: 3 } }
+                    then:
+                      - { op: summon, minion: seedling }
+                  - { op: addStacksSelf, amount: 1 }
+
+maneuver.life:
+  archetype: Maneuver
+  element: Life
+  name: Take Root
+  description: >-
+    The user becomes Invulnerable for 1 turn and creates a Boulder. If the Boulder still stands at
+    the start of their next turn, it cracks open into a Worldsprout.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: summon, minion: boulder }
+    - op: apply
+      to: lastSummoned
+      duration: { raw: 2 }
+      effect:
+        id: take_root
+        name: Taking Root
+        kind: Neutral
+        element: Life
+        description: Cracks open into a Worldsprout at the start of its owner's next turn.
+        onExpire:
+          - { op: transformMinion, to: bearer, minion: worldsprout }
+
+companion.life:
+  archetype: Companion
+  element: Life
+  name: Patient Acorn
+  description: >-
+    Summons an Acorn (5 HP, not a Seedling) permanently. At the end of each of your turns, it gains
+    10 max HP and heals 10, without limit. Crush (r): damage to target enemy equal to half its HP.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: acorn }
+
+bolt.life:
+  archetype: Bolt
+  element: Life
+  name: Bedrock Thorn
+  description: >-
+    Deals 25 damage to target enemy, and the user creates a Boulder. For 3 turns, each time an
+    allied Boulder takes damage, Channel Growth.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: summon, minion: boulder }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: bedrock_thorn
+        name: Bedrock Thorn
+        kind: Buff
+        element: Life
+        description: Each time an allied Boulder takes damage, Channel Growth.
+        triggers:
+          - on: signal
+            signal: unitDamaged
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [boulder], mine: true } }
+                then:
+                  - { op: macro, id: channel_growth }
+
+blast.life:
+  archetype: Blast
+  element: Life
+  name: Verdant Wave
+  description: Deals 25 damage to all enemies. The user creates a Seedling for each enemy left below 50 HP (max 2).
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: set, var: low, value: { countOf: { filter: allEnemies, where: { hpAtMost: { unit: it, value: 49 } } } } }
+    - op: repeat
+      times: { if: { compare: { value: { var: low }, atLeast: 2 } }, then: 2, else: { var: low } }
+      do:
+        - { op: summon, minion: seedling }
+
+consume.life:
+  archetype: Consume
+  element: Life
+  name: Harvest
+  description: Sacrifices an allied Seedling or Treant; target ally heals its remaining HP, which can Flourish.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  requires: { any: { in: allAllies, cond: { minion: { unit: it, types: [seedling], mine: true } } } }
+  ops:
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [seedling], mine: true } } }
+      do:
+        - { op: set, var: sap, value: { hp: it } }
+        - { op: kill, to: it }
+    - op: forEach
+      in: primary
+      do:
+        - { op: heal, to: it, amount: { var: sap } }
+        - { op: macro, id: flourish_it }
+
+summon.life:
+  archetype: Summon
+  element: Life
+  name: Twin Saplings
+  description: >-
+    Creates 2 Seedlings (15 HP). Channel Earth (r): its creator gains 1 Might and 1 Armor. If one
+    dies before Blooming, the other Blooms at once.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: seedling, count: 2 }
+    - op: apply
+      to: actor
+      duration: { raw: 5 }
+      effect:
+        id: twin_saplings
+        name: Twin Saplings
+        kind: Buff
+        element: Life
+        description: If one of the bearer's unbloomed Seedlings dies, another Blooms at once.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [seedling], mine: true } }
+                then:
+                  - op: forEach
+                    in: { randomAlly: 1, where: { has: { unit: it, effect: bloom_timer } } }
+                    do: [{ op: macro, id: bloom_it }]
+                  - { op: removeSelf }
+
+channel.life:
+  archetype: Channel
+  element: Life
+  name: Tend the Grove
+  description: >-
+    For 4 turns, at the end of each of the user's turns, every allied minion heals 15, which can
+    Flourish; if the user has no minion, they create a Seedling. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: tend_the_grove
+        name: Tend the Grove
+        kind: Neutral
+        element: Life
+        interruptible: true
+        description: At the end of each of the user's turns, allied minions heal 15 (Flourishing), or a Seedling sprouts.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } }
+                then:
+                  - op: forEach
+                    in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+                    do:
+                      - { op: heal, to: it, amount: 15 }
+                      - { op: macro, id: flourish_it }
+                else:
+                  - { op: summon, minion: seedling }
+
+stab.life:
+  archetype: Stab
+  element: Life
+  name: Splinter Spike
+  description: >-
+    Sacrifices one of the user's Seedlings, if they have one, to deal 25 Piercing damage to target
+    enemy; otherwise 10 damage.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { any: { in: allAllies, cond: { minion: { unit: it, types: [seedling], mine: true } } } }
+      then:
+        - { op: kill, to: { randomAlly: 1, where: { minion: { unit: it, types: [seedling], mine: true } } } }
+        - { op: damage, to: primary, amount: 25, type: Piercing }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+
+ravage.life:
+  archetype: Ravage
+  element: Life
+  name: Taproot
+  description: >-
+    Deals 25 Piercing damage to target enemy. Against a Stunned target, 10 of their max HP moves to
+    the user, counting toward the user's Flourish limit.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { and: [{ stunned: primary }, { compare: { value: { counter: flourish }, atMost: 20 } }] }
+      then:
+        - { op: addMaxHp, to: primary, amount: -10 }
+        - { op: addMaxHp, to: actor, amount: 10 }
+        - { op: heal, to: actor, amount: 10, raw: true, quiet: true }
+        - { op: setCounter, name: flourish, value: { sum: [{ counter: flourish }, 10] } }
+
+mislead.life:
+  archetype: Mislead
+  element: Life
+  name: Living Screen
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it lands on the user's minions instead of its
+    targets. With no minion to take it, it's countered and the user creates a Boulder. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: if
+      cond: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: living_screen
+            name: Living Screen
+            kind: Debuff
+            element: Life
+            visibility: hidden
+            description: The bearer's next Harmful skill hits the screen's minions instead.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                consume: true
+                do:
+                  - op: apply
+                    to: { filter: allAllies, where: { kind: { unit: it, is: character } } }
+                    duration: { thisTurn: true }
+                    effect:
+                      id: living_screen_cover
+                      name: Living Screen
+                      kind: Buff
+                      element: Life
+                      description: Damage to the bearer lands on an allied minion this turn.
+                      modifiers:
+                        - { mod: redirectDamage }
+      else:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: living_screen_wall
+            name: Living Screen
+            kind: Debuff
+            element: Life
+            visibility: hidden
+            description: The bearer's next Harmful skill is countered, and a Boulder rises for the screen's maker.
+            triggers:
+              - on: skillUsed
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+                do:
+                  - { op: summon, minion: boulder }
+
+stun.life:
+  archetype: Stun
+  element: Life
+  name: Overgrow
+  description: >-
+    Target enemy is Stunned for 2 turns and gains 25 Shield. When the Stun ends, the user heals
+    whatever Shield is left, which can Flourish.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      value: 25
+      duration: { enemyTurns: 2 }
+      effect:
+        id: overgrow
+        name: Overgrowth
+        kind: Neutral
+        element: Life
+        shield: true
+        description: When this ends, whatever Shield is left heals the one who grew it.
+        onExpire:
+          - op: forEach
+            in: actor
+            do:
+              - { op: heal, to: it, amount: { effectValue: true } }
+              - { op: macro, id: flourish_it }
+
+dance.life:
+  archetype: Dance
+  element: Life
+  name: Evergreen
+  description: >-
+    For 3 turns, at the start of each of the user's turns, they heal 10, which can Flourish, and
+    gain 1 Swiftness if they're above their starting max HP.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: evergreen
+        name: Evergreen
+        kind: Buff
+        element: Life
+        description: At the start of the bearer's turn, they heal 10 (Flourishing) and gain Swiftness if they've Flourished.
+        triggers:
+          - on: turnStart
+            do:
+              - op: forEach
+                in: bearer
+                do:
+                  - { op: heal, to: it, amount: 10 }
+                  - { op: macro, id: flourish_it }
+              - op: if
+                cond: { compare: { value: { counterOf: { unit: bearer, name: flourish } }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: bearer, effect: swiftness }
+
+heal.life:
+  archetype: Heal
+  element: Life
+  name: Lifebloom
+  description: Target ally heals 20, which can Flourish. If any of it Flourishes, the user creates a Seedling.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: heal, to: it, amount: 20 }
+        - { op: macro, id: flourish_it }
+    - op: if
+      cond: { compare: { value: { var: grow }, atLeast: 1 } }
+      then:
+        - { op: summon, minion: seedling }
+
+bless.life:
+  archetype: Bless
+  element: Life
+  name: Graft
+  description: >-
+    For 3 turns, target ally gains 1 Might, and their max HP rises by 20; the extra HP arrives
+    filled and leaves when it ends.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: graft
+        name: Graft
+        kind: Buff
+        element: Life
+        description: +20 max HP.
+        modifiers:
+          - { mod: maxHp, amount: 20 }
+    - { op: heal, to: primary, amount: 20, raw: true, quiet: true }
+
+curse.life:
+  archetype: Curse
+  element: Life
+  name: Tangleweed
+  description: Target enemy gains 1 Confusion for 2 turns, and meanwhile their skills can't target the user's minions.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: tangleweed
+        name: Tangleweed
+        kind: Debuff
+        element: Life
+        description: The bearer can't target minions.
+        modifiers:
+          - { mod: targetExclude, where: { kind: { unit: it, is: minion } }, singleOnly: true }
+
+smite.life:
+  archetype: Smite
+  element: Life
+  name: Sunlit Glade
+  description: Deals 20 damage to target enemy. Every ally heals 5, which can Flourish.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: allAllies
+      do:
+        - { op: heal, to: it, amount: 5 }
+        - { op: macro, id: flourish_it }
+
+prayer.life:
+  archetype: Prayer
+  element: Life
+  name: Common Root
+  description: >-
+    All allies heal 20. For 2 turns, damage dealt to any unit on the user's side is split evenly
+    among all of them, minions included.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: apply
+      to: allAllies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: common_root
+        name: Common Root
+        kind: Buff
+        element: Life
+        description: Damage to the bearer is split evenly with every ally sharing the root.
+        modifiers:
+          - { mod: shareDamage }
+
+cleave.life:
+  archetype: Cleave
+  element: Life
+  name: Whirling Vines
+  description: >-
+    Deals 10 damage to all enemies, doubled against minions. Each enemy minion it kills becomes a
+    Seedling for the user.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: minionsBefore, value: { countOf: { filter: allEnemies, where: { kind: { unit: it, is: minion } } } } }
+    - op: damage
+      to: targets
+      amount: { if: { kind: { unit: it, is: minion } }, then: 20, else: 10 }
+    - op: repeat
+      times: { sum: [{ var: minionsBefore }, { mul: [-1, { countOf: { filter: allEnemies, where: { kind: { unit: it, is: minion } } } }] }] }
+      do:
+        - { op: summon, minion: seedling }
+
+shout.life:
+  archetype: Shout
+  element: Life
+  name: Call of the Grove
+  description: Every allied Seedling Blooms now, and every allied minion heals to full.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: forEach
+      in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [seedling] } }, { not: { minion: { unit: it, types: [treant] } } }] } }
+      do: [{ op: macro, id: bloom_it }]
+    - op: forEach
+      in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+      do:
+        - { op: heal, to: it, amount: { missingHp: it } }
+
+withstand.life:
+  archetype: Withstand
+  element: Life
+  name: Barkskin
+  description: The user gains 25 Shield for 1 turn; if they have Flourished HP, they also gain 2 Armor for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { compare: { value: { counter: flourish }, atLeast: 1 } }
+      then:
+        - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 2 } }
+
+taunt.life:
+  archetype: Taunt
+  element: Life
+  name: Warden Oak
+  description: >-
+    Target enemy is Taunted for 2 turns by one of the user's minions, or by the user if they have
+    none. A Seedling that survives it Blooms when it ends.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } }
+      then:
+        - { op: forEach, in: { randomAlly: 1, where: { kind: { unit: it, is: minion } } }, do: [{ op: set, var: guard, value: 1 }] }
+        - op: apply
+          to: primary
+          from: { randomAlly: 1, where: { kind: { unit: it, is: minion } } }
+          effect: taunt
+          duration: { enemyTurns: 2 }
+        - op: apply
+          to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
+          duration: { enemyTurns: 2 }
+          effect:
+            id: guardian_oak
+            name: Warden Oak
+            kind: Buff
+            element: Life
+            description: Blooms when this ends, if it survives.
+            onExpire:
+              - op: if
+                cond: { not: { minion: { unit: bearer, types: [treant] } } }
+                then:
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: bloom_it }] }
+      else:
+        - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+
+titan.life:
+  archetype: Titan
+  element: Life
+  name: Ancient Treant
+  description: For 3 turns, the user gains Immune and 1 Armor per allied minion, and allied minions are Untargetable.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      effect: armor
+      stacks: { countOf: { filter: allAllies, where: { kind: { unit: it, is: minion } } } }
+      duration: { enemyTurns: 3 }
+    - { op: apply, to: { filter: allAllies, where: { kind: { unit: it, is: minion } } }, effect: untargetable, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+treant_slam:
+  archetype: Minion
+  element: Life
+  name: Treant Slam
+  description: Deals 15 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+
+acorn_crush:
+  archetype: Minion
+  element: Life
+  name: Crush
+  description: Deals damage to target enemy equal to half the Acorn's HP.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { div: [{ hp: actor }, 2] } }

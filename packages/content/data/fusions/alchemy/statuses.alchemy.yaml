@@ -1,0 +1,26 @@
+# Alchemy (Fire + Water) statuses, from the "Fusion Spec Kits" design doc.
+# Transmute is the engine's `transmute` op (its recipes are in the op).
+
+catalyst:
+  name: Catalyst
+  kind: Buff
+  element: Alchemy
+  stacking: unique
+  description: >-
+    The next skill that affects the bearer is doubled for them: twice the damage, healing, and the
+    stacks and duration of what it applies.
+  modifiers:
+    - { mod: catalyst }
+
+# The same, on an enemy (a Debuff).
+catalyst_debuff:
+  name: Catalyst
+  kind: Debuff
+  element: Alchemy
+  stacking: unique
+  countsAs: [catalyst]
+  description: >-
+    The next skill that affects the bearer is doubled for them: twice the damage, healing, and the
+    stacks and duration of what it applies.
+  modifiers:
+    - { mod: catalyst }

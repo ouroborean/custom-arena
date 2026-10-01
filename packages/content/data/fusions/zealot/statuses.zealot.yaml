@@ -1,0 +1,61 @@
+# Zealot (Holy + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Fervor (with Martyr): grows from enemy damage and Debuffs; pays out to allies when the bearer dies.
+fervor:
+  name: Fervor
+  kind: Buff
+  element: Zealot
+  stacking: merge
+  maxStacks: 5
+  description: >-
+    +5 damage per stack to the bearer's Zealot skills (max 5). +1 whenever an enemy damages the bearer or gives
+    them a Debuff. Martyr: when the bearer dies, each of their allies heals 10 per stack and gains 1 Might per 2.
+  modifiers:
+    - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true }, elements: [Zealot] }
+  triggers:
+    - on: damaged
+      when: { direct: true, byEnemy: true }
+      do:
+        - op: if
+          cond: { compare: { value: { effectStacks: true }, atMost: 4 } }
+          then: [{ op: addStacksSelf, amount: 1 }]
+    - on: effectGained
+      when: { kind: Debuff }
+      do:
+        - op: if
+          # (Under Fanaticism the Debuff is prevented and Fanaticism gives the Fervor instead.)
+          cond: { and: [{ isEnemy: eventSource }, { compare: { value: { effectStacks: true }, atMost: 4 } }, { not: { has: { unit: bearer, effect: fanaticism } } }] }
+          then: [{ op: addStacksSelf, amount: 1 }]
+  onDeath:
+    - { op: macro, id: martyr }
+
+# Fervent Chant: a Martyr as if with 3 Fervor.
+fervent_chant:
+  name: Fervent Chant
+  kind: Buff
+  element: Zealot
+  stacking: unique
+  description: If the bearer dies, they're a Martyr as if they had 3 Fervor.
+  onDeath:
+    - { op: heal, to: bearerAllies, amount: 30 }
+    - { op: apply, to: bearerAllies, effect: might }
+
+# Initiate's Take the Blow: the next Harmful skill aimed at the bearer hits the Initiate.
+take_the_blow:
+  name: Take the Blow
+  kind: Buff
+  element: Zealot
+  stacking: independent
+  countsAs: [warded]
+  description: The next single-target enemy skill aimed at the bearer hits the Initiate instead.
+  modifiers:
+    - { mod: warded }
+
+# Unholy Unction's Shield.
+unction_shield:
+  name: Unction
+  kind: Buff
+  element: Zealot
+  stacking: unique
+  shield: true
+  description: Absorbs damage.

@@ -98,6 +98,23 @@ describe('store', () => {
     expect(useStore.getState().viewer).toBe(1);
   });
 
+  it('shows each skill’s outcome as it plays, not only once the whole exchange has', () => {
+    useStore.getState().newMatch(content, config([['curse']], [['shot']]), { kind: 'vsBot', bot: 'normal', human: 0 });
+    useStore.getState().flush();
+    useStore.getState().selectSkill('p0c0', 0);
+    useStore.getState().chooseTarget('p1c0');
+    useStore.getState().commit({});
+    const confused = () => useStore.getState().displayView?.effects.some((e) => e.bearer === 'p1c0' && e.defId === 'confusion') ?? false;
+    expect(confused()).toBe(false); // the board as the turn started
+    // Play until the Curse has landed: Confusion shows while the bot's turn is still to come.
+    let guard = 0;
+    while (!useStore.getState().logs[0].some((l) => l.text.includes('Confusion')) && guard++ < 50) useStore.getState().step();
+    expect(useStore.getState().pending.some((e) => e.t === 'turnStart' && e.player === 1)).toBe(true);
+    expect(confused()).toBe(true);
+    useStore.getState().flush();
+    expect(useStore.getState().displayView).toBeNull();
+  });
+
   it('vs bot: committing plays the bot turn and returns control to the human', () => {
     useStore.getState().newMatch(content, config([['shot']], [['shot']]), { kind: 'vsBot', bot: 'normal', human: 0 });
     useStore.getState().flush();
@@ -107,5 +124,41 @@ describe('store', () => {
     expect(st.match!.active).toBe(0);
     expect(st.match!.turn).toBe(3);
     expect(st.logs[0].some((l) => l.text.includes('Turn 2'))).toBe(true);
+  });
+});
+
+describe('RemoteMatch', () => {
+  it("slots the server's checkpoint views in after the events they follow", async () => {
+    const { createMatch, viewFor } = await import('@arena/engine');
+    const { RemoteMatch } = await import('../src/match/RemoteMatch.js');
+    const cfg = config([['shot']], [['shot']]);
+    const state = createMatch(content, cfg).state;
+    const view = viewFor(content, state, 0);
+    const m = new RemoteMatch(content, 'm1', { kind: 'online', you: 0, opponent: 'Ben', matchKind: 'casual', timer: null }, { send: () => undefined });
+    const got: { t: string; n?: number }[][] = [];
+    m.onUpdate = (events) => void got.push(events.map((e) => (e.t === 'checkpoint' ? { t: e.t, n: e.n } : { t: e.t })));
+    m.handle({ t: 'match.sync', matchId: 'm1', you: 0, opponent: { displayName: 'Ben' }, view, events: [], seq: 2, deadline: null, opponentConnected: true } as never);
+    const a = { ...view, turn: 7 };
+    const b = { ...view, turn: 8 };
+    m.handle({
+      t: 'match.events',
+      matchId: 'm1',
+      events: [
+        { seq: 3, event: { t: 'skillUsed', actor: 'p0c0', skill: 'shot', targets: ['p1c0'] } },
+        { seq: 4, event: { t: 'turnEnd', turn: 1, player: 0 } },
+      ],
+      seq: 4,
+      view: b,
+      deadline: null,
+      checkpoints: [
+        { afterSeq: 3, view: a },
+        { afterSeq: 4, view: b },
+      ],
+    } as never);
+    const events = got[got.length - 1]!;
+    expect(events).toEqual([{ t: 'skillUsed' }, { t: 'checkpoint', n: 0 }, { t: 'turnEnd' }, { t: 'checkpoint', n: 1 }]);
+    expect(m.checkpointView(0, 0)?.turn).toBe(7);
+    expect(m.checkpointView(1, 0)?.turn).toBe(8);
+    expect(m.checkpointView(0, 1)).toBeNull(); // only ever the recipient's own view
   });
 });

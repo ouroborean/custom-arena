@@ -1,0 +1,32 @@
+# Ninja (Wind + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+
+# Fusion passive (every Ninja character): Flurry.
+ninja_flurry:
+  name: Flurry
+  kind: Neutral
+  element: Ninja
+  stacking: unique
+  description: Each Harmful skill this character uses also deals each enemy it hit 5 Piercing per Shadow Clone.
+  triggers:
+    - on: skillResolved
+      when: { harmful: true }
+      do:
+        # Every enemy the skill hit directly, splash included.
+        - op: damage
+          to:
+            filter: allEnemies
+            where: { compare: { value: { sum: [{ counterOf: { unit: it, name: hit_in_use } }, { mul: [-1, { useSeq: true }] }] }, atLeast: 0, atMost: 0 } }
+          amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] }
+          type: Piercing
+          direct: false
+
+# Substitution: carried by the Ninja, sourced from (and bound to) a Clone, which takes the hit.
+substitution:
+  name: Substitution
+  kind: Buff
+  element: Ninja
+  stacking: independent
+  countsAs: [warded]
+  description: The first single-target enemy skill aimed at the bearer each turn hits a Shadow Clone instead.
+  modifiers:
+    - { mod: warded }

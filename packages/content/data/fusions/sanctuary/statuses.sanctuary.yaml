@@ -1,0 +1,66 @@
+# Sanctuary (Earth + Holy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Sanctum: the team's, carried by whoever raised it first; stacks = level (1-3).
+sanctum:
+  name: Sanctum
+  kind: Buff
+  element: Sanctuary
+  stacking: merge
+  maxStacks: 3
+  description: >-
+    At the end of each of its side's turns, every ally gains 1 Armor per level (until that side's next turn) and
+    heals 5 per level; at level 3, allies can't be Stunned. Doesn't run out while an allied Wardstone stands.
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: apply, to: allAllies, effect: armor, stacks: { effectStacks: true }, duration: { enemyTurns: 1 } }
+        - { op: heal, to: allAllies, amount: { mul: [5, { effectStacks: true }] } }
+        - op: if
+          cond: { compare: { value: { effectStacks: true }, atLeast: 3 } }
+          then: [{ op: apply, to: allAllies, effect: sanctum_steady, duration: { enemyTurns: 1 } }]
+        - op: if
+          cond: { any: { in: allAllies, cond: { check: { cond: counts_as_wardstone, unit: it } } } }
+          then: [{ op: extendSelf, by: 2 }]
+
+sanctum_steady:
+  name: Steadfast (Sanctum)
+  kind: Buff
+  element: Sanctuary
+  stacking: unique
+  description: Can't be Stunned.
+  modifiers:
+    - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s] }
+
+# Living Temple: the bearer counts as a Wardstone for the Sanctum.
+living_temple:
+  name: Living Temple
+  kind: Buff
+  element: Sanctuary
+  stacking: unique
+  description: The bearer counts as a Wardstone.
+
+# Stately Measure's Might (its own key, so it caps at 3).
+stately_might:
+  name: Might (Stately Measure)
+  kind: Buff
+  element: Sanctuary
+  stacking: merge
+  maxStacks: 3
+  description: +5 direct damage dealt per stack.
+  modifiers:
+    - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true } }
+
+# Shieldbearer's Sweep: Sanctify on the bearer also gives its damager 15 Shield.
+shieldbearer:
+  name: Shieldbearer's Mark
+  kind: Debuff
+  element: Sanctuary
+  stacking: unique
+  description: While Sanctified, each direct hit on the bearer gives the damager 15 Shield.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: sanctify } }
+          then: [{ op: apply, to: eventSource, effect: shield, value: 15, duration: { enemyTurns: 1 } }]

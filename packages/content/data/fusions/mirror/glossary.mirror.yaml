@@ -1,0 +1,7 @@
+# Mirror keywords (docs/glossary.md).
+
+mimic:
+  name: Mimic
+  text: The user uses a copy of the last skill a given enemy used, as its user. It costs nothing extra.
+  element: Mirror
+  forms: [Mimic, Mimics]

@@ -1,0 +1,27 @@
+# Evolution minions.
+
+parasite:
+  name: Parasite
+  hp: 20
+  skills: [parasite_feed]
+  passives:
+    - id: parasite_lodged
+      name: Lodged
+      kind: Neutral
+      element: Evolution
+      description: Can't be targeted by enemy skills (simplified from "only its host can target it"). Dies with its host.
+      modifiers:
+        - { mod: untargetable, by: enemies, bypassable: true }
+      triggers:
+        - on: signal
+          signal: died
+          do:
+            - op: if
+              cond: { eventTargetHad: { effects: [parasite_host] } }
+              then:
+                - { op: kill, to: bearer }
+
+larva:
+  name: Larva
+  hp: 15
+  skills: [larva_nibble]

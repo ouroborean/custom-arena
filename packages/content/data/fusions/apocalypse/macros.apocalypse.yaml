@@ -1,0 +1,27 @@
+# Apocalypse actions, run on `it`.
+
+# Thermal Shock, unconditionally: 15 Piercing damage and Shattered for 1 turn.
+thermal_shock:
+  - { op: damage, to: it, amount: 15, type: Piercing, direct: false }
+  - { op: apply, to: it, effect: shattered, duration: { enemyTurns: 1 } }
+  - { op: apply, to: it, effect: thermal_shocked, duration: { raw: 1 } }
+
+# Thermal Shock, if `it` hasn't been Shocked this turn.
+thermal_check:
+  - op: if
+    cond: { not: { has: { unit: it, effect: thermal_shocked } } }
+    then:
+      - { op: macro, id: thermal_shock }
+
+# After `it` gains Frostfire: Shock if it already had another Fire or Frost debuff.
+frostfire_shock_check:
+  - op: if
+    cond:
+      or:
+        - { has: { unit: it, effect: ignite, exact: true } }
+        - { has: { unit: it, effect: scorched } }
+        - { has: { unit: it, effect: frostbitten } }
+        - { has: { unit: it, effect: chilled, exact: true } }
+        - { has: { unit: it, effect: numb } }
+    then:
+      - { op: macro, id: thermal_check }

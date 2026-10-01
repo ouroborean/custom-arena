@@ -1,0 +1,686 @@
+# The 30 Assassin (Poison + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Death Mark (status `death_mark`, macros `place_mark` / `mark_if_none`).
+
+strike.assassin:
+  archetype: Strike
+  element: Assassin
+  name: Throatcut
+  description: >-
+    Deals 20 damage to target enemy. If this executes your Death Mark, a new one goes on a random enemy, hidden.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: marked, value: { if: { has: { unit: primary, effect: death_mark } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { and: [{ varTrue: marked }, { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }] }
+      then: [{ op: macro, id: mark_if_none }]
+
+smash.assassin:
+  archetype: Smash
+  element: Assassin
+  name: Coordinated Strike
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. Each enemy hit gains 1 Toxin per Stealthed ally of the
+    user. Stealthy.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: set, var: hidden, value: { countOf: { filter: allAllies, where: { has: { unit: it, effect: stealth } } } } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: apply, to: primary, effect: toxin, stacks: { var: hidden } }
+    - { op: apply, to: primaryAllies, effect: toxin, stacks: { var: hidden } }
+
+charge.assassin:
+  archetype: Charge
+  element: Assassin
+  name: Stalk
+  description: Deals 15 damage to target enemy, who gains your Death Mark for 2 turns. Stealthy.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: removeEffect, from: allEnemies, effect: death_mark }
+    - { op: apply, to: primary, effect: death_mark, value: 25, duration: { enemyTurns: 2 } }
+
+riposte.assassin:
+  archetype: Riposte
+  element: Assassin
+  name: Garrote Wire
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user is Stunned for 1 turn, or 2 if the
+    countered skill has a cooldown of 3 or more. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: garrote_wire
+        name: Garrote Wire
+        kind: Buff
+        element: Assassin
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and Stuns its user.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: apply
+                to: eventSource
+                effect: stun
+                duration: { enemyTurns: { if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }, then: 2, else: 1 } }
+
+rage.assassin:
+  archetype: Rage
+  element: Assassin
+  name: Open Contract
+  description: >-
+    For 3 turns, the user gains 1 Might and 1 Swiftness, and a random enemy gains your Death Mark. Each execution
+    meanwhile gives the user 1 Might and 1 Swiftness for 2 more turns. Stealthy.
+  cost: WA
+  cooldown: 4
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: place_mark }] }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: open_contract
+        name: Open Contract
+        kind: Buff
+        element: Assassin
+        description: Each execution gives the bearer 1 Might and 1 Swiftness for 2 turns.
+        triggers:
+          - on: signal
+            signal: mark_executed
+            when: { side: ally }
+            do:
+              - { op: apply, to: bearer, effect: might, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 2 } }
+
+shot.assassin:
+  archetype: Shot
+  element: Assassin
+  name: Blowdart
+  description: >-
+    Deals 10 Piercing damage to target enemy. For 2 turns, their Toxin, Weakness and Vulnerable can't be removed.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: blowdart
+        name: Blowdart
+        kind: Debuff
+        element: Assassin
+        description: The bearer's Toxin, Weakness and Vulnerable can't be removed.
+        modifiers:
+          - { mod: protectEffects, effects: [toxin, weakness, vulnerable] }
+
+snipe.assassin:
+  archetype: Snipe
+  element: Assassin
+  name: The Long Shot
+  description: >-
+    On the following turn, deals 40 damage to target enemy. If they have your Death Mark, this executes at 40 HP;
+    if not, they gain it. The target of this skill is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: the_long_shot
+        name: The Long Shot (aiming)
+        kind: Neutral
+        element: Assassin
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 40 damage.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: set, var: marked, value: { if: { has: { unit: it, effect: death_mark } }, then: 1, else: 0 } }
+              - { op: damage, to: it, amount: 40 }
+              - op: if
+                cond: { varTrue: marked }
+                then:
+                  - op: if
+                    cond: { hpAtMost: { unit: it, value: 40 } }
+                    then: [{ op: kill, to: it }]
+                else:
+                  - { op: macro, id: place_mark }
+
+trap.assassin:
+  archetype: Trap
+  element: Assassin
+  name: Tainted Well
+  description: For 3 turns, all enemies take 5 Affliction damage whenever they use any skill. Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tainted_well
+        name: Tainted Well
+        kind: Debuff
+        element: Assassin
+        visibility: hidden
+        description: Each skill the bearer uses deals them 5 Affliction damage.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+
+maneuver.assassin:
+  archetype: Maneuver
+  element: Assassin
+  name: Covering Smoke
+  description: >-
+    The user becomes Invulnerable for 1 turn. Meanwhile, Stealthed allies stay Stealthed whatever skills they use.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: { filter: allAllies, where: { has: { unit: it, effect: stealth } } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: covering_smoke
+        name: Covering Smoke
+        kind: Buff
+        element: Assassin
+        description: The bearer's skills are Stealthy.
+        modifiers:
+          - { mod: skillTags, add: [Stealthy] }
+
+companion.assassin:
+  archetype: Companion
+  element: Assassin
+  name: Shadow Viper
+  description: >-
+    Summons a Shadow Viper (25 HP) permanently. Venom Fang (r): 5 Piercing damage and 1 Toxin. Seek the Mark (rr):
+    15 Piercing damage to your Death Mark's bearer; if none has it, target enemy gains it.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: shadow_viper }
+
+bolt.assassin:
+  archetype: Bolt
+  element: Assassin
+  name: Whispered Names
+  description: >-
+    Deals 20 damage to target enemy and Marks them for 2 turns. When the Mark is spent, the name is passed on: a
+    random other enemy is Marked for 1 turn, up to 3 times.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: whispered_names, stacks: 4, duration: { enemyTurns: 2 } }
+
+blast.assassin:
+  archetype: Blast
+  element: Assassin
+  name: Poison Smoke
+  description: >-
+    Deals 20 damage to all enemies, who gain 1 Toxin each. Then your Death Mark, if it's out, moves (hidden) to the
+    enemy with the least HP.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: toxin }
+    - op: if
+      cond: { any: { in: allEnemies, cond: { has: { unit: it, effect: death_mark } } } }
+      then:
+        - { op: forEach, in: weakestEnemy, do: [{ op: macro, id: place_mark }] }
+
+consume.assassin:
+  archetype: Consume
+  element: Assassin
+  name: Fulfill the Contract
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. If this executes them through your Death Mark, the
+    user heals 30 more and gains Stealth.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: marked, value: { if: { has: { unit: primary, effect: death_mark } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - op: if
+      cond: { and: [{ varTrue: marked }, { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }] }
+      then:
+        - { op: heal, to: actor, amount: 30 }
+        - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }
+
+summon.assassin:
+  archetype: Summon
+  element: Assassin
+  name: Hired Blade
+  description: >-
+    Summons a Hired Blade (20 HP) for 3 turns. Shank (r): 10 Affliction damage. Whoever kills the Blade gains your
+    Death Mark.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: hired_blade, duration: { enemyTurns: 3 } }
+
+channel.assassin:
+  archetype: Channel
+  element: Assassin
+  name: Open Season
+  description: >-
+    For 3 turns, a random enemy gains your Death Mark if none has one, and at the end of each of the user's turns
+    all enemies take 10 damage; meanwhile your Death Mark executes at 35 HP. Channeled.
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: macro, id: mark_if_none }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: open_season
+        name: Open Season
+        kind: Neutral
+        element: Assassin
+        interruptible: true
+        description: Each turn, 10 damage to all enemies; the Death Mark executes at 35 HP.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+
+stab.assassin:
+  archetype: Stab
+  element: Assassin
+  name: Stiletto
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Against your Death Mark, the Mark's
+    execute threshold rises by 5 for good (max 40).
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: death_mark } }
+      then: [{ op: growShield, to: primary, effect: death_mark, amount: 5, max: 40 }]
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+
+ravage.assassin:
+  archetype: Ravage
+  element: Assassin
+  name: Unseen Knife
+  description: >-
+    Deals 25 Piercing damage to target enemy. Against a Blinded or Sleeping target, the user slips into Stealth
+    for 1 turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    # Checked before the hit, which wakes a Sleeper.
+    - { op: set, var: unseen, value: { if: { or: [{ has: { unit: primary, effect: blinded } }, { has: { unit: primary, effect: sleep } }] }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { varTrue: unseen }
+      then: [{ op: apply, to: actor, effect: stealth, duration: { enemyTurns: 1 } }]
+
+mislead.assassin:
+  archetype: Mislead
+  element: Assassin
+  name: Poisoned Lure
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they gain your Death Mark; if they don't,
+    they gain 2 Toxin. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: poisoned_lure
+        name: Poisoned Lure
+        kind: Debuff
+        element: Assassin
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and Death-Marks them; if unused, they gain 2 Toxin.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: place_mark }] }
+        onExpire:
+          - { op: apply, to: bearer, effect: toxin, stacks: 2 }
+
+stun.assassin:
+  archetype: Stun
+  element: Assassin
+  name: Knockout Poison
+  description: >-
+    Deals 10 damage to target enemy, who falls Asleep for 1 turn, or 2 if they have 4 or more Toxin.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      effect: sleep
+      duration: { enemyTurns: { if: { compare: { value: { stacks: { unit: primary, effect: toxin } }, atLeast: 4 } }, then: 2, else: 1 } }
+
+dance.assassin:
+  archetype: Dance
+  element: Assassin
+  name: Dance of Knives
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and 1 Focus, and each skill they use also deals 5 Piercing damage to
+    your Death Mark's bearer.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dance_of_knives
+        name: Dance of Knives
+        kind: Buff
+        element: Assassin
+        description: Each skill the bearer uses deals 5 Piercing damage to the Death Mark's bearer.
+        triggers:
+          - on: skillResolved
+            do:
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } } }, amount: 5, type: Piercing, direct: false }
+
+heal.assassin:
+  archetype: Heal
+  element: Assassin
+  name: Blood Debt
+  description: Target ally heals 25, and the enemy who damaged them most recently gains your Death Mark.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 25 }
+    - { op: forEach, in: primaryLastAttacker, do: [{ op: macro, id: place_mark }] }
+
+bless.assassin:
+  archetype: Bless
+  element: Assassin
+  name: Subcontract
+  description: >-
+    For 3 turns, target ally gains 1 Might, and their skills count as Assassin skills against your Death Mark.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: subcontract, duration: { enemyTurns: 3 } }
+
+curse.assassin:
+  archetype: Curse
+  element: Assassin
+  name: Mark for Death
+  description: >-
+    Target enemy gains your Death Mark for 3 turns and is Confused for 2. The Mark executes 5 HP higher per Toxin
+    on them when it's placed (max 40).
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: venom, value: { sum: [25, { mul: [5, { stacks: { unit: primary, effect: toxin } }] }] } }
+    - { op: removeEffect, from: allEnemies, effect: death_mark }
+    - op: apply
+      to: primary
+      effect: death_mark
+      value: { if: { compare: { value: { var: venom }, atLeast: 40 } }, then: 40, else: { var: venom } }
+      duration: { enemyTurns: 3 }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+
+smite.assassin:
+  archetype: Smite
+  element: Assassin
+  name: Souring Mark
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each ally who damages them turns 1 of their Buffs into 1
+    Vulnerable.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: souring_mark
+        name: Souring Mark
+        kind: Debuff
+        element: Assassin
+        description: Each direct hit from the applier's side turns 1 of the bearer's Buffs into 1 Vulnerable.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { hasKind: { unit: bearer, kind: Buff } }
+                then:
+                  - { op: removeRandom, from: bearer, kind: Buff }
+                  - { op: apply, to: bearer, effect: vulnerable }
+
+prayer.assassin:
+  archetype: Prayer
+  element: Assassin
+  name: Serpent's Communion
+  description: All allies heal 20. For 2 turns, Toxin on the user's allies heals them instead of harming them.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: targets, effect: hormesis, duration: { enemyTurns: 2 } }
+
+cleave.assassin:
+  archetype: Cleave
+  element: Assassin
+  name: Fan of Knives
+  description: >-
+    Deals 20 damage to target enemy and 10 to a random other enemy; the second knife always finds your Death
+    Mark's bearer if it's out. Stealthy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { any: { in: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } }, exclude: primary }, cond: { has: { unit: it, effect: death_mark } } } }
+      then:
+        - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } }, exclude: primary }, amount: 10 }
+      else:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 10 }
+
+shout.assassin:
+  archetype: Shout
+  element: Assassin
+  name: Pick the Target
+  description: >-
+    All enemies are Blinded for 2 turns. Your Death Mark's bearer (a random enemy, if none has it) is also Isolated
+    for 2 turns.
+  cost: Wr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: blinded, duration: { enemyTurns: 2 } }
+    - { op: macro, id: mark_if_none }
+    - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } } }, effect: isolated, duration: { enemyTurns: 2 } }
+
+withstand.assassin:
+  archetype: Withstand
+  element: Assassin
+  name: Hidden Mail
+  description: >-
+    The user gains 25 Shield for 1 turn. Each enemy skill that hits it has its cooldown raised by 1. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hidden_mail
+        name: Hidden Mail
+        kind: Buff
+        element: Assassin
+        visibility: hidden
+        shield: true
+        description: Absorbs damage; each enemy skill that hits it has its cooldown raised by 1.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: adjustCooldowns, to: eventSource, by: 1, onlyEvent: true }
+      value: 25
+
+taunt.assassin:
+  archetype: Taunt
+  element: Assassin
+  name: Whisper from the Dark
+  description: >-
+    Target enemy is Taunted by the user for 1 turn, even while the user is Stealthed and can't be targeted.
+    Stealthy.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
+
+titan.assassin:
+  archetype: Titan
+  element: Assassin
+  name: Guildmaster
+  description: >-
+    For 3 turns, the user gains 1 Armor and Ghosted, and every enemy gains a Death Mark from them for as long.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 3 } }
+    - { op: apply, to: allEnemies, effect: death_mark, value: 25, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+viper_venom_fang:
+  archetype: Minion
+  element: Assassin
+  name: Venom Fang
+  description: Deals 5 Piercing damage to target enemy, who gains 1 Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin, from: summoner }
+
+viper_seek_the_mark:
+  archetype: Minion
+  element: Assassin
+  name: Seek the Mark
+  description: >-
+    Deals 15 Piercing damage to your Death Mark's bearer; if none has it, target enemy gains it.
+  cost: rr
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { any: { in: allEnemies, cond: { has: { unit: it, effect: death_mark } } } }
+      then:
+        - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } } }, amount: 15, type: Piercing }
+      else:
+        - { op: apply, to: primary, effect: death_mark, value: 25, from: summoner }
+
+blade_shank:
+  archetype: Minion
+  element: Assassin
+  name: Shank
+  description: Deals 10 Affliction damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }

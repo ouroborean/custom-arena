@@ -88,8 +88,14 @@ export function Offline() {
       <section className="panel account-form">
         <h2>Server offline</h2>
         <p className="muted">
-          The roster and equipment need the API server. Start it with <code>npm run server</code>, or play the sandbox
-          with generated teams.
+          {import.meta.env.DEV ? (
+            <>
+              The roster and equipment need the API server. Start it with <code>npm run server</code>, or play the sandbox
+              with generated teams.
+            </>
+          ) : (
+            "Can't reach the server. Your roster, the story and online play need it; the sandbox works offline with generated teams."
+          )}
         </p>
         <div className="row-actions">
           <button type="button" className="btn" onClick={() => void init()}>

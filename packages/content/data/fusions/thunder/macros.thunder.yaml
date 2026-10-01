@@ -1,0 +1,9 @@
+# Thunder actions. Use the "_it" macros inside forEach, right after damaging `it`.
+
+# Resound: `it` echoes half the damage just dealt (rounded up to 5) before the user's next turn.
+resound_it:
+  - op: apply
+    to: it
+    value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] }
+    duration: { raw: 2 }
+    effect: resound_echo

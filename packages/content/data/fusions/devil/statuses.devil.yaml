@@ -1,0 +1,51 @@
+# Devil (Fire + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+# Contracts are inline effects that count as `contract`: the benefit is applied with them, and their
+# onExpire collects the price. The `expire` op collects early.
+
+hellfire:
+  name: Hellfire
+  kind: Debuff
+  element: Devil
+  stacking: unique
+  countsAs: [ignite, horrified]
+  description: >-
+    Counts as an Ignite (5 Affliction at the end of the applier's turn), and the bearer is Horrified
+    (can't gain Buffs, Contracts included) while it lasts.
+  modifiers:
+    - { mod: immuneTo, kind: Buff }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: damage, to: bearer, amount: 5, type: Affliction }
+        - { op: macro, id: burn_aftermath }
+
+# Marker so `has contract` and the Ledger have a key; every Contract counts as it.
+contract:
+  name: Contract
+  kind: Buff
+  element: Devil
+  stacking: independent
+  description: A deal with a due date. When it expires, the Devil collects the price.
+
+# Fusion passive (every Devil character): collects on Contracts whose holders die, and on bounties.
+devils_ledger:
+  name: Devil's Ledger
+  kind: Neutral
+  element: Devil
+  stacking: unique
+  description: >-
+    When a unit holding this character's Contract dies, they gain 2 Soul Fragments. When a unit with
+    their Price on Their Head dies, the killer's cooldowns reset and they gain 1 random energy.
+  triggers:
+    - on: signal
+      signal: died
+      do:
+        - op: if
+          cond: { eventTargetHad: { effects: [contract] } }
+          then:
+            - { op: apply, to: bearer, effect: soul_fragment, stacks: 2 }
+        - op: if
+          cond: { eventTargetHad: { effects: [price_on_their_head] } }
+          then:
+            - { op: adjustCooldowns, to: eventSource, by: -10 }
+            - { op: gainEnergy, amount: 1 }

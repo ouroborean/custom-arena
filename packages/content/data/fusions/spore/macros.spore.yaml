@@ -1,0 +1,12 @@
+# Spore actions (actor = the Spore player's unit).
+
+# A Mushroom sprouts for the actor, or a Fungal Colossus absorbs it.
+sprout:
+  - op: if
+    cond: { has: { unit: actor, effect: fungal_colossus } }
+    then:
+      - { op: apply, to: actor, effect: armor }
+      - { op: heal, to: actor, amount: 15 }
+    else:
+      - { op: summon, minion: mushroom }
+  - { op: signal, name: mushroom_sprouted }

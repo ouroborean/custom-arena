@@ -1,0 +1,21 @@
+# Ritual (Fire + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+# Each Rite is an inline effect on its user that counts as `rite` (stacks = skills left). Its
+# onExpire is the Rite's effect; completing it expires it.
+
+rite:
+  name: Rite
+  kind: Neutral
+  element: Ritual
+  stacking: unique
+  description: >-
+    Completes once the user (or their Acolytes) have used as many more skills as it has stacks. Breaks
+    if the user is Stunned, falls Asleep or is Banished.
+
+veiled_by_smoke:
+  name: Veiled by Smoke
+  kind: Buff
+  element: Ritual
+  stacking: unique
+  description: The bearer's next skill counts as Stealthy.
+  modifiers:
+    - { mod: nextSkillStealthy }

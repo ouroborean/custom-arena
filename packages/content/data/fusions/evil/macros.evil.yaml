@@ -1,0 +1,26 @@
+# Evil actions.
+
+# The user drains a Soul Fragment from `it`: `it` loses one if it has any, and the user gains one.
+drain_it:
+  - op: if
+    cond: { has: { unit: it, effect: soul_fragment } }
+    then:
+      - { op: removeStacks, from: it, effect: soul_fragment, amount: 1 }
+  - { op: apply, to: actor, effect: soul_fragment }
+
+# Tithe: spends up to `tithe` (a var) of the user's Soul Fragments; `spent` is how many.
+tithe:
+  - op: set
+    var: spent
+    value:
+      # Lord of Souls: the user can't spend Fragments, so a Tithe gets nothing.
+      if: { has: { unit: actor, effect: lord_of_souls } }
+      then: 0
+      else:
+        if: { compare: { value: { sum: [{ stacks: { unit: actor, effect: soul_fragment } }, { mul: [-1, { var: tithe }] }] }, atLeast: 0 } }
+        then: { var: tithe }
+        else: { stacks: { unit: actor, effect: soul_fragment } }
+  - op: repeat
+    times: { var: spent }
+    do:
+      - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }

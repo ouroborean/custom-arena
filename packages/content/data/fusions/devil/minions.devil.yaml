@@ -1,0 +1,19 @@
+# Devil minions.
+
+imp_notary:
+  name: Imp Notary
+  hp: 25
+  skills: [imp_notary_offer, imp_notary_sealing_wax]
+
+imp_captain:
+  name: Imp Captain
+  hp: 25
+  passives:
+    - id: imp_captain_rally
+      name: Imp Captain
+      kind: Neutral
+      element: Devil
+      description: Its hits deal 5 more per Soul Fragment its summoner has.
+      modifiers:
+        - { mod: damageDealt, amount: 0, value: { mul: [5, { stacks: { unit: summoner, effect: soul_fragment } }] } }
+  skills: [imp_captain_ember_whip]

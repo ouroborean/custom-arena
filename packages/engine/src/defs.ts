@@ -50,7 +50,18 @@ export type NamedSelector =
   | 'eventTargets' // for skillUsed/skillResolved triggers: the targets of the triggering skill
   | 'eventPrimary' // the first of eventTargets (the triggering skill's primary target)
   | 'allUnits' // every living unit on both sides
-  | 'lastSummoned'; // the unit the most recent summon op created
+  | 'lastSummoned' // the unit the most recent summon op created
+  | 'weakestAlly' // the actor's living, targetable character ally (or self) with the least HP
+  | 'weakestEnemy' // the actor's targetable enemy character with the least HP
+  | 'strongestEnemy' // the actor's targetable enemy character with the most HP
+  | 'lastAttacker' // the last enemy who damaged the actor (if still alive)
+  | 'primaryLastAttacker' // the last enemy who damaged the first target (Mechanic's Rivet Gun)
+  | 'summonerLastAttacker' // the last enemy who damaged the actor's summoner (Night's Rime Revenant)
+  | 'primaryPartners' // units Entangled with the first target (Dimension)
+  | 'bearerAllies' // the bearer's living allies, not the bearer
+  | 'randomBearerAlly' // one random living ally of the bearer, not the bearer (Spore spreading)
+  | 'randomAnyEnemy'
+  | 'weakestOtherAlly'; // the actor's other allied character with the least HP (Faceless Void) // one random living enemy, Stealthed or not (Vigilante's Searchlight)
 
 export type Selector =
   | NamedSelector
@@ -66,6 +77,22 @@ export type Value =
   | { lastDamage: true }
   | { effectValue: true }
   | { effectStacks: true }
+  /** A number the executing effect tracks in its data (e.g. "prevented" for Diamond). */
+  | { effectData: string }
+  /** How many effects of this kind the unit carries. */
+  | { kindCount: { unit: Selector; kind: EffectKind; stacks?: boolean } }
+  /** How many times the actor used this skill before this use (Ocean's Crest and Trough, Myth). */
+  | { timesUsed: true }
+  /** A number the actor stored with setCounter (0 if never set). */
+  | { counter: string }
+  /** A number a unit stored with setCounter (0 if never set). */
+  | { counterOf: { unit: Selector; name: string } }
+  /** The current turn number. */
+  | { turn: true }
+  /** Healing the most recent heal op couldn't give because the target was full (Ocean's Brimming). */
+  | { lastOverheal: true }
+  /** The summed value (Shield left) of a unit's effects with this key. */
+  | { effectValueOf: { unit: Selector; effect: string } }
   | { stacks: { unit: Selector; effect: string } }
   /** Number of active effect instances with these keys, on `in` (default: the whole board). */
   | { count: { effects: string[]; in?: Selector } }
@@ -84,8 +111,22 @@ export type Value =
   | { if: Cond; then: Value; else: Value }
   /** Total base cost of the skill in scope (the skill being used, or the one behind the event). */
   | { skillCost: true }
+  /** Base cooldown of the skill in scope (the skill being used, or the one behind the event). */
+  | { skillCooldown: true }
+  /** How many of the (first) selected unit's skills are on cooldown. */
+  | { skillsOnCooldown: Selector }
+  /** Energy banked by the (first) selected unit's player; `colors`: how many colors they hold instead. */
+  | { energyOf: { unit: Selector; colors?: boolean } }
+  /** Summed HP of the selected units. */
+  | { totalHp: Selector }
   /** Dead characters on the actor's enemy / own side. */
   | { deadCount: 'enemies' | 'allies' }
+  /** Allied minions that died since the actor's side last started a turn (Spore's Compost Bed). */
+  | { minionsLost: true }
+  /** Units on either side that died since the actor's side last started a turn (Grave's Requiem). */
+  | { recentDeaths: true }
+  /** Identifies the skill use in progress (compare with counter `hit_in_use`: units it hit directly). */
+  | { useSeq: true }
   /** The actor's other characters that have used a skill this turn. */
   | { alliesActed: true }
   /** The amount carried by the event (healing received). */
@@ -97,7 +138,8 @@ export type Value =
 
 export type Cond =
   /** `mine`: only an instance the actor applied. */
-  | { has: { unit: Selector; effect: string; mine?: boolean } }
+  /** `exact`: statuses that only count as this one (countsAs) don't match. */
+  | { has: { unit: Selector; effect: string; mine?: boolean; exact?: boolean } }
   /** `mine`: only effects the actor applied. */
   | { hasFromArchetype: { unit: Selector; archetype: string; mine?: boolean } }
   | { hpAtMost: { unit: Selector; value: number } }
@@ -112,6 +154,8 @@ export type Cond =
   | { hasKind: { unit: Selector; kind: EffectKind } }
   /** The selected unit is the actor (e.g. a targetFilter excluding the user). */
   | { isActor: Selector }
+  /** The selected unit is the first target of the skill in scope. */
+  | { isPrimary: Selector }
   /** The selected unit is an enemy of the actor. */
   | { isEnemy: Selector }
   /** The unit is a minion, optionally of one of these types (minion id or tag); `mine`: summoned by the actor. */
@@ -124,12 +168,15 @@ export type Cond =
   | { compare: { value: Value; atLeast?: number; atMost?: number } }
   /** The unit is one of the event's targets (the skill that caused the event). */
   | { isEventTarget: Selector }
+  | { eventTargetIs: Selector } // the single event target (a 'died' signal's dead unit)
   /** An effect the actor applied from a skill of this archetype is on the board (e.g. an active Taunt). */
   | { appliedFromArchetype: string }
   /** At the time of the event, its unit carried an effect the actor applied from one of these archetypes. */
-  | { eventTargetHad: { archetypes: string[] } }
+  /** `effects`: instead, an effect the actor applied with one of these keys (or counting as one). */
+  | { eventTargetHad: { archetypes?: string[]; effects?: string[] } }
   /** The skill behind the event (or in scope) matches. */
-  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[] } }
+  /** `single`: only single-target skills (target enemy, ally or any). */
+  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[]; elements?: string[]; single?: boolean } }
   /** The unit is channeling (carries an interruptible effect). */
   | { channeling: Selector }
   /** The unit can't use at least some skills (Stun, Sleep, …). */
@@ -142,7 +189,9 @@ export type Cond =
   | { or: Cond[] }
   | { not: Cond }
   | { flag: string }
-  | { varTrue: string };
+  | { varTrue: string }
+  /** Ocean: this skill is in its Crest form (the actor has used it an even number of times). */
+  | { crest: true };
 
 // ---------------------------------------------------------------- ops
 
@@ -192,12 +241,78 @@ export type Op =
     }
   | { op: 'summon'; minion: string; count?: number; duration?: DurationSpec }
   | { op: 'kill'; to: Selector }
+  /** Every fallen character on the actor's side returns with `hp` HP and no effects (Phoenix's Second Dawn). */
+  | { op: 'revive'; hp: number }
+  /** Swaps the longest remaining cooldown of `a` with that of `b` (the actor's skill being used is skipped). */
+  | { op: 'swapCooldowns'; a: Selector; b: Selector }
+  /** Aurora's Dazzled: `count` random energies of the (first) unit's player change to another color. */
+  | { op: 'shiftEnergy'; of: Selector; count?: number }
+  /** Aurora's Drink the Light: the unit's player loses 1 energy of the color they hold most; the actor's gains it. */
+  | { op: 'stealEnergy'; from: Selector }
+  /** The actor's player pays `amount` random energy (as much as they have). */
+  | { op: 'spendEnergy'; amount: number }
+  /** Mirror's Inverted Echo: skills on cooldown become ready, ready ones go on cooldown for `ready` turns. */
+  | { op: 'invertCooldowns'; on: Selector; ready: number }
+  /** Gives `to` copies of `from`'s effects of `kind` (same stacks, value and time left). */
+  | { op: 'copyEffects'; fromSnapshot?: boolean; from: Selector; to: Selector; kind: EffectKind }
+  /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
+  | { op: 'expire'; on: Selector; effect: string; times?: number }
+  /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
+  | { op: 'interrupt'; to: Selector }
+  /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */
+  | { op: 'removeShields'; from: Selector }
+  /** Stores a number on the actor, read back with the `counter` value. */
+  /** Stores a number on the actor, or on each unit in `on`; read back with `counter` / `counterOf`. */
+  | { op: 'setCounter'; name: string; value: Value; on?: Selector }
+  /**
+   * Turns minions into another minion in place (Life's Bloom: a Seedling becomes a Treant): new
+   * def, skills and passives, full HP at the new max. Its owner and summoner stay.
+   */
+  | { op: 'transformMinion'; to: Selector; minion: string }
+  /**
+   * `a` and `b` (one unit each) each gain copies of the other's effects of `kind`, as they stood
+   * before this op, with the same stacks, value and time left (Ocean's Crosscurrent).
+   */
+  | { op: 'shareEffects'; a: Selector; b: Selector; kind: EffectKind }
+  /** Moves `from`'s effects (of `kind`, or these keys) onto `to`, keeping stacks, value and time left. */
+  | { op: 'moveEffects'; from: Selector; to: Selector; kind?: EffectKind; effects?: string[] }
+  /**
+   * Alchemy's Transmute: turns effects on each unit into others, stack for stack, keeping time left.
+   * On the actor's enemies: Might → Weakness, Armor → Vulnerable, Focus → Confusion, Renew →
+   * Weakness. On allies the reverse, and other Debuffs become Renew. `effects` limits it to these
+   * keys, `kind` to one kind, `count` to that many random instances per unit, `event` to the event's
+   * effect; `removeUnmatched` removes matching effects with no recipe. The stacks converted are
+   * stored in the variable `transmuted`.
+   */
+  | {
+      op: 'transmute';
+      on: Selector;
+      effects?: string[];
+      kind?: EffectKind;
+      count?: number;
+      event?: boolean;
+      removeUnmatched?: boolean;
+    }
+  /** Links the selected units (2 or more) with `effect` (a status with entangleLink) in one new group. */
+  /** `with` adds more units to the same group (e.g. a random ally of the target). */
+  | { op: 'entangle'; to: Selector; with?: Selector; effect: string; duration?: DurationSpec }
+  /**
+   * Reveals hidden effects: every one applied by a unit in `by`, or (`event`) the effect the
+   * triggering event is about (Ocean's Whalesong).
+   */
+  /** `end`: hidden effects found this way also end (Divine's Revelation). */
+  | { op: 'reveal'; by?: Selector; event?: boolean; end?: boolean }
+  /**
+   * Adds `amount` to the targets' Shield effect `effect` (a Shield status id), up to `max`; a new
+   * one is made if they have none. A negative amount drains it, ending it at 0 (Ocean's Brimming).
+   */
+  | { op: 'growShield'; to: Selector; effect: string; amount: Value; max?: number }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
   | { op: 'removeKind'; from: Selector; kind: EffectKind }
   /** Raises max HP (current HP is unchanged). */
-  | { op: 'addMaxHp'; to: Selector; amount: number }
+  | { op: 'addMaxHp'; to: Selector; amount: Value }
   /** Multiplies the value of every Shield effect on the selected units (Earth Rampart). */
   | { op: 'scaleShields'; on: Selector; factor: number }
   /** Adds to the value of every Shield effect on the selected units. */
@@ -217,18 +332,23 @@ export type Op =
   /** The actor's player gains random-colored energy. */
   | { op: 'gainEnergy'; amount: number }
   /** A skill comes off cooldown: the skill being used, or the actor's skill with this id. */
-  | { op: 'resetCooldown'; skill?: string; archetypes?: string[] }
+  /** `lastUsed`: the skill the actor used before this one (Thunder's Second Flash). */
+  | { op: 'resetCooldown'; skill?: string; archetypes?: string[]; lastUsed?: boolean }
   /**
    * Uses a skill without cost or cooldown (GDD §11.5 meta ops): a content skill id, or the actor's
    * own skill of an archetype. Single-target skills hit each unit of `on`; self and AoE skills
    * resolve their own targets. `as: 'it'` casts it as each unit of `on` instead (e.g. on a minion).
    */
   /** `archetype` falls back to `skill` when the actor has no skill of it; `eventSkill` casts the event's skill. */
-  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; on: Selector; as?: 'actor' | 'it' }
+  /** `lastUsedBy`: the last skill that unit used (Mirror's Mimic); an ally-target copy lands on its caster. */
+  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; lastUsedBy?: Selector; on: Selector; as?: 'actor' | 'it' }
   /** Changes the effect the event is about (the one just applied). `expireNow` ends it as if its time ran out. */
-  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean }
+  /** `remove`: takes it off its bearer (Mirror's Looking Glass). */
+  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean; remove?: boolean }
   /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
-  | { op: 'copyEventEffect'; to: Selector }
+  | { op: 'copyEventEffect'; to: Selector; noChain?: boolean }
+  /** Applies status `immunity` keyed to `effect` (default: the event's effect), for Antidote's Inoculated. */
+  | { op: 'immunize'; to: Selector; effect?: string; duration?: DurationSpec }
   /** Removes `count` (default 1) random effects of a kind from each selected unit. */
   | { op: 'removeRandom'; from: Selector; kind: EffectKind; count?: number }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */
@@ -242,6 +362,7 @@ export type Op =
       archetypes?: string[];
       /** Skip the skill behind the event (e.g. the Dance that was just used). */
       exceptEvent?: boolean;
+      onlyEvent?: boolean;
       /** Only one of the matching skills on cooldown, chosen at random. */
       random?: boolean;
     }
@@ -285,6 +406,8 @@ export interface ModifierBase {
   archetypes?: string[];
   /** Only for skills with one of these tags (e.g. Helpful). */
   skillsWith?: SkillTag[];
+  /** Only for skills of these elements (Current's Soaked bonus). */
+  elements?: string[];
 }
 
 export type ModifierSpec = ModifierBase &
@@ -327,7 +450,7 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'untargetable'; by: 'enemies' | 'allies'; bypassable: boolean }
   | { mod: 'blockIndirectDamage' }
   /** Stun. `classes` limits it to Strategic / non-Strategic skills; `harmful` to Harmful (true) or Helpful (false) ones. */
-  | { mod: 'cannotUseSkills'; classes?: SkillClass[]; harmful?: boolean }
+  | { mod: 'cannotUseSkills'; classes?: SkillClass[]; harmful?: boolean; evenUnstunnable?: boolean }
   /** The bearer's costs can't be reduced (Chilled). */
   | { mod: 'noCostReduction' }
   /** The bearer can't apply Buffs, to anyone (Numb). */
@@ -352,6 +475,77 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'healFromDirectDamage' }
   /** The bearer's skills Bypass (ignore Invulnerable and Isolated) — Ghosted. */
   | { mod: 'grantBypass' }
+  /**
+   * Crystal's Diamond: no single hit takes more than `amount` HP (after Armor and Shield). What it
+   * prevents is added to the effect's `data.prevented`.
+   */
+  | { mod: 'maxHpLossPerHit'; amount: number }
+  /** No more than `amount` HP lost in one turn (Crystal's Faceted Ward); also tracks `prevented`. */
+  | { mod: 'maxHpLossPerTurn'; amount: number }
+  /** Hits on the bearer use the Shield this effect is linked to first (Crystal's Latticework). */
+  | { mod: 'borrowShield' }
+  /** Thunder's Deafened: counters, reflects and Traps the bearer applied can't trigger. */
+  | { mod: 'muteTraps' }
+  /** Thunder's Stormspire: enemy skills aimed at all of the bearer's side hit only the bearer. */
+  | { mod: 'absorbAoE' }
+  /** Cloud's Becalmed: the bearer's skills Drift. */
+  | { mod: 'driftSkills' }
+  /** These statuses on the bearer can't be removed or reduced by other effects (they still expire). */
+  | { mod: 'protectEffects'; effects: string[] }
+  /**
+   * Evolution's Adaptive Hide: each enemy skill that damages the bearer meanwhile teaches them to
+   * take 5 less from it, for the rest of the match (max 15 per skill).
+   */
+  | { mod: 'adaptiveHide' }
+  /**
+   * Life's Common Root: damage to the bearer is split evenly among every living unit on their side
+   * that also has this (the remainder stays on the one hit).
+   */
+  | { mod: 'shareDamage' }
+  /** Evil's Unhallowed: healing the bearer would receive deals that much Affliction damage instead. */
+  | { mod: 'invertHealing' }
+  /**
+   * Dimension's Banished: the bearer is out of the fight. No damage, no ticks or countdowns on its
+   * effects (other than the Banished effect itself), no turn-start triggers. Pair it with
+   * cannotUseSkills and untargetable in the status.
+   */
+  | { mod: 'banished' }
+  /**
+   * Alchemy's Catalyst: the next skill that affects the bearer is doubled for them (damage, healing,
+   * and the stacks and duration of effects it applies). Ends once that skill has resolved.
+   */
+  | { mod: 'catalyst' }
+  /** The bearer's Normal damage is dealt as Piercing (Alchemy's Universal Solvent). */
+  | { mod: 'normalAsPiercing' }
+  /** The bearer can't gain these effects (Mechanic's Contraptions: Stun, Sleep, Confusion, Renew). */
+  | { mod: 'immuneToEffects'; effects: string[]; fromData?: boolean }
+  /** Glacier's Icebound: the bearer's cooldowns don't tick down. */
+  | { mod: 'freezeCooldowns' }
+  /** Stasis's Suspended: the bearer's other effects don't tick, count down or fire turn-start triggers. */
+  | { mod: 'suspendEffects' }
+  /** Mist's Fog: enemy single-target skills aimed at the bearer land on a random unit of their side. */
+  | { mod: 'fogged' }
+  /** Blood: the bearer's skills pay their random costs with 10 HP each. */
+  | { mod: 'bloodPrice' }
+  /** Ion's Suppressed: the bearer's Buffs' modifiers have no effect. */
+  | { mod: 'suppressBuffs' }
+  | { mod: 'suppressDebuffs' }
+  /** Faerie's Charmed: single-target skills pick any other living unit (`own`: only the bearer's allies). */
+  | { mod: 'charmed'; own?: boolean }
+  /** Angel's Ward: the first Harmful single-target skill each turn aimed at the bearer goes to this effect's source. */
+  | { mod: 'warded' }
+  /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
+  | { mod: 'cooldownTick'; amount: number }
+  /**
+   * Dimension's Entangled: effects applied to the bearer are applied to every unit sharing this
+   * effect's link group too (only these kinds, if given). Made by the `entangle` op.
+   */
+  | { mod: 'entangleLink'; kinds?: EffectKind[] }
+  /**
+   * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
+   * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.
+   */
+  | { mod: 'deferHits'; status: string; reduceBy: number; delay: number }
   /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
   | { mod: 'hpFloor'; amount: number }
   /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */
@@ -369,13 +563,18 @@ export type ModifierSpec = ModifierBase &
   /** Using these skills doesn't end the bearer's channels. */
   | { mod: 'keepChannels' }
   /** The bearer's skills can't pick targets matching `where` (it = candidate). */
-  | { mod: 'targetExclude'; where: Cond }
+  | { mod: 'targetExclude'; where: Cond; singleOnly?: boolean }
   /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
   | { mod: 'redirectDamage' }
+  /** The minion shares its summoner's HP: damage and healing to it go to them (Bloodbound Familiar). */
+  | { mod: 'hpLink' }
+  /** The bearer's single-target Harmful skills land on this effect's source (Mist's Voice in the Fog). */
+  | { mod: 'lured' }
   /** Skills of this effect's source Bypass against the bearer. */
-  | { mod: 'exposed' }
+  /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
+  | { mod: 'exposed'; anyEnemy?: boolean; total?: boolean }
   /** Raises the bearer's max (and current) Health while the effect lasts. */
-  | { mod: 'maxHp'; amount: number }
+  | { mod: 'maxHp'; amount: number; perStack?: boolean }
   /** Multiplies the bearer's Armor. */
   | { mod: 'armorMul'; mul: number }
   /** A non-stacking effect the bearer applies can stack up to `max` (Emblem of the Inferno: Ignite). */
@@ -468,10 +667,18 @@ export interface TriggerSpec {
     reflected?: boolean;
     /** effectGained / effectApplied: only Shield effects. */
     shield?: boolean;
+    /** Intercepting skillUsed / skillTargeted: only skills whose listed cost totals at least this. */
+    costAtLeast?: number;
+    /** Intercepting skillUsed: only skills with any of these tags (Vigilante's Sting Operation). */
+    anyTags?: string[];
+    /** Intercepting skillUsed / skillTargeted: only when the skill's user meets this named condition. */
+    sourceIs?: string;
   };
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
   do?: Op[];
+  /** A hidden effect reacting this way isn't revealed (bookkeeping, e.g. a Trap growing). */
+  silent?: boolean;
   /** Remove the effect after it fires. */
   consume?: boolean;
 }
@@ -505,10 +712,16 @@ export interface EffectDef {
   interruptible?: boolean;
   /** Explicit exception to the Invulnerable rule for Affliction/indirect damage it deals (Fire Explode). */
   respectsInvulnerable?: boolean;
+  /** Status keys this one also counts as for `has` checks (Cloud's Aloft counts as Leaping). */
+  countsAs?: string[];
   modifiers?: ModifierSpec[];
   triggers?: TriggerSpec[];
   /** Runs when the effect's duration naturally reaches 0 (not when interrupted or consumed). */
   onExpire?: Op[];
+  /** Curse's Lingering: cleansed, or on its bearer's death, it jumps to a random ally of theirs. */
+  lingers?: boolean;
+  /** Runs when the bearer dies, before its effects are removed (actor = the source, eventSource = the killer). */
+  onDeath?: Op[];
 }
 
 // ---------------------------------------------------------------- skills, minions, classes
@@ -527,7 +740,17 @@ export type SkillTag =
   | 'Bypass'
   | 'Unstunnable'
   | 'UsableWhileStunned'
-  | 'Stealthy';
+  | 'Stealthy'
+  /** Cloud: the skill hangs in the air and lands at the start of its user's next turn. */
+  | 'Drift'
+  /** Divine: can target any unit; Harmful when aimed at an enemy, Helpful when aimed at an ally. */
+  | 'Radiant'
+  /** Dimension's Folded Moment: doesn't use up the character's action this turn. */
+  | 'FreeAction'
+  /** Blood: random costs are paid with 10 HP each. */
+  | 'BloodPrice'
+  /** Holy: a Condemned user isn't punished for using it; it purges the Condemnation instead (Anointed Ascent). */
+  | 'Purifying';
 
 export interface SkillDef {
   id: string;
@@ -561,6 +784,8 @@ export interface MinionDef {
   passives: (string | EffectDef)[];
   /** Ops run once when summoned, with the minion as the actor (e.g. grant its owner an aura). */
   onSummon?: Op[];
+  /** Ops run once when it dies, with the (dead) minion as the actor (Apocalypse's Salamander). */
+  onDeath?: Op[];
   /** Extra minion types it counts as (Earth: Forest Stalker counts as a Seedling). */
   tags?: string[];
 }
@@ -575,10 +800,9 @@ export interface ClassDef {
 /** Equipment types (GDD §8.2): which slot an item fits and what it grants. */
 export type ItemType = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
 
+/** An elemental infusion an item adds to its wearer's pool; the player chooses the skill it goes on. */
 export interface ItemInfusion {
   element: string;
-  /** The skill (base id) it infuses; omitted when the player chooses the target. */
-  target?: string;
 }
 
 /** An equipment item (GDD §8.1 grant model). Items never enter the engine directly: the loadout
@@ -795,6 +1019,51 @@ export interface ContentBundle {
   achievements: Record<string, AchievementDef>;
   /** Tutorial coach scripts by encounter id. */
   tutorial: Record<string, TutorialDef>;
+  /** Fusion elements by id: what two infusions on one skill make (GDD §7.3). */
+  fusions: Record<string, FusionDef>;
+  /** Keywords the client explains beside tooltips (hold Alt), by id. */
+  glossary: Record<string, GlossaryDef>;
+}
+
+/**
+ * A keyword the game explains (docs/glossary.md). `forms` are the exact, case-sensitive words that
+ * count as it in text ("Chills", "Chilled"); a status keyword takes the status's own wording.
+ */
+export interface GlossaryDef {
+  id: string;
+  name: string;
+  text: string;
+  forms: string[];
+  /** The element it belongs to, if any (for the explanation's color). */
+  element?: string;
+  /** The status it explains, if any. */
+  status?: string;
+}
+
+/**
+ * A fusion element (the codex's "Fusion recipe matrix"): the element a skill takes with two
+ * infusions. The pair is unordered, and may be one element twice (Fire + Fire is Dragon).
+ */
+export interface FusionDef {
+  id: string;
+  name: string;
+  elements: [string, string];
+  /**
+   * Status ids every character with at least one of this fusion's skills carries from the start
+   * (a kit's resource or rule, such as Dragon's Hoard keeper).
+   */
+  passives?: string[];
+}
+
+/** The unordered key of an element pair: "Fire+Ice" for Fire + Ice or Ice + Fire. */
+export function fusionKey(a: string, b: string): string {
+  return a <= b ? `${a}+${b}` : `${b}+${a}`;
+}
+
+/** The fusion two elements make, if the content defines one. */
+export function fusionOf(content: ContentBundle, a: string, b: string): FusionDef | undefined {
+  const key = fusionKey(a, b);
+  return Object.values(content.fusions ?? {}).find((f) => fusionKey(f.elements[0], f.elements[1]) === key);
 }
 
 /** Id of an archetype's elemental variant: base id + element, e.g. "strike.fire". */

@@ -1,0 +1,10 @@
+# Sun keywords (docs/glossary.md).
+
+corona:
+  status: corona
+  element: Sun
+solar_flare:
+  name: Solar Flare
+  text: A Flare skill spends all the user's Corona for the bonus it lists per stack.
+  element: Sun
+  forms: [Solar Flare, Flare, Flares]

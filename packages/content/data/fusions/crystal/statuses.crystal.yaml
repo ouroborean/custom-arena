@@ -1,0 +1,30 @@
+# Crystal (Ice + Ice) statuses, from the "Fusion Spec Kits" design doc.
+
+brittle:
+  name: Brittle
+  kind: Debuff
+  element: Crystal
+  stacking: merge
+  maxStacks: 3
+  description: >-
+    Max 3. Takes 5 more direct damage per stack. At 3 stacks, the next direct hit Shatters them:
+    20 more damage, and they're Shattered for 2 turns. Shattering removes Brittle.
+  modifiers:
+    - { mod: damageTaken, amount: 5, perStack: true, when: { direct: true } }
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond: { compare: { value: { stacks: { unit: bearer, effect: brittle } }, atLeast: 3 } }
+          then:
+            - { op: macro, id: shatter_bearer }
+
+diamond:
+  name: Diamond
+  kind: Buff
+  element: Crystal
+  stacking: unique
+  description: No single hit can take more than 15 HP from the bearer (counted after Armor and Shield). Ticking damage counts as hits too.
+  modifiers:
+    - { mod: maxHpLossPerHit, amount: 15 }

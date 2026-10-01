@@ -1,0 +1,745 @@
+# The 30 Blight (Poison + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# Withered (status `withered`, with Festering).
+
+strike.blight:
+  archetype: Strike
+  element: Blight
+  name: Rotblade
+  description: >-
+    Deals 20 damage to target enemy, who gains 1 Withered. If they now have 3 or more Withered, the user drains a
+    Soul Fragment from them.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: withered }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: primary, effect: withered } }, atLeast: 3 } }
+      then: [{ op: apply, to: actor, effect: soul_fragment }]
+
+smash.blight:
+  archetype: Smash
+  element: Blight
+  name: Plaguecrusher
+  description: >-
+    Deals 40 damage to target enemy. Each of their allies who has Toxin gains 1 Withered; the rest gain 1 Toxin.
+  cost: SS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 40 }
+    - op: forEach
+      in: primaryAllies
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: toxin } }
+          then: [{ op: apply, to: it, effect: withered }]
+          else: [{ op: apply, to: it, effect: toxin }]
+
+charge.blight:
+  archetype: Charge
+  element: Blight
+  name: Dread Lunge
+  description: >-
+    Deals 15 damage to target enemy. Until the end of the user's next turn, they count as Horrified, whether
+    they are or not.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { ownTurns: 1 }
+      effect:
+        id: dread_lunge
+        name: Dread
+        kind: Debuff
+        element: Blight
+        countsAs: [horrified]
+        description: Counts as Horrified.
+
+riposte.blight:
+  archetype: Riposte
+  element: Blight
+  name: Festering Spite
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user gains 2 Withered. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: festering_spite
+        name: Festering Spite
+        kind: Buff
+        element: Blight
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer; its user Withers.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: withered, stacks: 2 }
+
+rage.blight:
+  archetype: Rage
+  element: Blight
+  name: Rot Frenzy
+  description: >-
+    The user gains 2 Withered. Then, for 3 turns, they gain 1 Might per Withered on them and are Immortal.
+  cost: W
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: withered, stacks: 2 }
+    - { op: apply, to: actor, effect: might, stacks: { stacks: { unit: actor, effect: withered } }, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 3 } }
+
+shot.blight:
+  archetype: Shot
+  element: Blight
+  name: Dread Spittle
+  description: >-
+    Deals 15 damage to target enemy. For 2 turns, they can't gain Buffs (as if Horrified) whenever they have 2 or
+    more Toxin.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: dread_spittle
+        name: Dread Spittle
+        kind: Debuff
+        element: Blight
+        description: With 2 or more Toxin, the bearer can't gain Buffs.
+        modifiers:
+          - { mod: immuneTo, kind: Buff, if: { compare: { value: { stacks: { unit: bearer, effect: toxin } }, atLeast: 2 } } }
+
+snipe.blight:
+  archetype: Snipe
+  element: Blight
+  name: Rotspear
+  description: >-
+    On the following turn, target enemy takes 25 Affliction damage, +10 per Withered they have. The target of this
+    skill is invisible. Channeled. Uncounterable.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: rotspear
+        name: Rotspear (aiming)
+        kind: Neutral
+        element: Blight
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 25 Affliction, +10 per Withered.
+        onExpire:
+          - op: damage
+            to: effectTargets
+            type: Affliction
+            amount: { sum: [25, { mul: [10, { stacks: { unit: effectTargets, effect: withered } }] }] }
+
+trap.blight:
+  archetype: Trap
+  element: Blight
+  name: Rotten Remedy
+  description: >-
+    For 3 turns, the first time target enemy is healed, it's undone, and they gain 1 Withered per 10 it would have
+    healed. Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: rotten_remedy
+        name: Rotten Remedy
+        kind: Debuff
+        element: Blight
+        visibility: hidden
+        description: The bearer's first healing is undone and becomes Withered.
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { eventAmount: true }, type: Affliction, direct: false, raw: true }
+              - { op: apply, to: bearer, effect: withered, stacks: { div: [{ eventAmount: true }, 10] } }
+
+maneuver.blight:
+  archetype: Maneuver
+  element: Blight
+  name: Seep Away
+  description: >-
+    The user becomes Invulnerable for 1 turn. At the start of their next turn, the Toxin they applied ticks once
+    more.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: seep_away
+        name: Seep Away
+        kind: Buff
+        element: Blight
+        description: At the start of the bearer's next turn, their Toxin on enemies ticks once more.
+        triggers:
+          - on: turnStart
+            consume: true
+            do:
+              - op: forEach
+                in: { filter: allEnemies, where: { has: { unit: it, effect: toxin, mine: true } } }
+                do:
+                  - { op: damage, to: it, amount: { mul: [5, { stacks: { unit: it, effect: toxin } }] }, type: Affliction, direct: false }
+
+companion.blight:
+  archetype: Companion
+  element: Blight
+  name: Plague Rats
+  description: >-
+    Summons a Plague Rat swarm (25 HP) permanently. Plague Bite (r): 5 Piercing damage and 1 Withered. Scurry
+    (nc): 5 Piercing damage to each Withered enemy.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: plague_rats }
+
+bolt.blight:
+  archetype: Bolt
+  element: Blight
+  name: Plague Bolt
+  description: >-
+    Deals 20 damage to target enemy, who gains 1 Withered and is Horrified for 1 turn. While Horrified, their
+    Withered can't be cleansed.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: withered }
+    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: plague_bolt
+        name: Plague-Bound
+        kind: Debuff
+        element: Blight
+        description: While Horrified, the bearer's Withered can't be cleansed.
+        modifiers:
+          - { mod: protectEffects, effects: [withered], if: { has: { unit: bearer, effect: horrified } } }
+
+blast.blight:
+  archetype: Blast
+  element: Blight
+  name: Leveling Plague
+  description: >-
+    The enemy with the least HP takes 15 Affliction damage. Every other enemy takes Affliction damage equal to how
+    much more HP they have than that enemy, up to 35.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: set, var: floor, value: { hp: weakestEnemy } }
+    - op: forEach
+      in: { filter: allEnemies, where: { kind: { unit: it, is: character } }, exclude: weakestEnemy }
+      do:
+        - { op: set, var: gap, value: { sum: [{ hp: it }, { mul: [-1, { var: floor }] }] } }
+        - op: if
+          cond: { compare: { value: { var: gap }, atLeast: 1 } }
+          then:
+            - op: damage
+              to: it
+              type: Affliction
+              amount: { if: { compare: { value: { var: gap }, atLeast: 35 } }, then: 35, else: { var: gap } }
+    - { op: damage, to: weakestEnemy, amount: 15, type: Affliction }
+
+consume.blight:
+  archetype: Consume
+  element: Blight
+  name: Drink the Plague
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. The user drinks their own Toxin: it's removed, and
+    they gain 1 Soul Fragment per 3 stacks (max 2).
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - { op: set, var: drunk, value: { div: [{ stacks: { unit: actor, effect: toxin } }, 3] } }
+    - { op: removeEffect, from: actor, effect: toxin }
+    - op: apply
+      to: actor
+      effect: soul_fragment
+      stacks: { if: { compare: { value: { var: drunk }, atLeast: 2 } }, then: 2, else: { var: drunk } }
+
+summon.blight:
+  archetype: Summon
+  element: Blight
+  name: Plague Imp
+  description: >-
+    Summons a Plague Imp (25 HP) for 3 turns. Rotbolt (r): 10 Affliction damage and 1 Toxin. When the Imp dies,
+    each enemy it damaged gains 1 Withered.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: plague_imp, duration: { enemyTurns: 3 } }
+
+channel.blight:
+  archetype: Channel
+  element: Blight
+  name: Long Decay
+  description: >-
+    For 2 turns, +1 turn per Withered enemy, at the end of each of the user's turns, deals 10 Affliction damage to
+    all enemies. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: { sum: [2, { countOf: { filter: allEnemies, where: { has: { unit: it, effect: withered } } } }] } }
+      effect:
+        id: long_decay
+        name: Long Decay
+        kind: Neutral
+        element: Blight
+        interruptible: true
+        description: Each turn, 10 Affliction damage to all enemies.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10, type: Affliction }
+
+stab.blight:
+  archetype: Stab
+  element: Blight
+  name: Rusted Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Above 60 HP, they also gain 1 Withered.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { hpAtMost: { unit: primary, value: 60 } }
+      then:
+        - { op: damage, to: primary, amount: 20 }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: primary, effect: withered }
+
+ravage.blight:
+  archetype: Ravage
+  element: Blight
+  name: Flay
+  description: >-
+    Deals 30 Piercing damage to target enemy. Each Buff on them is torn off and becomes 1 Withered.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30, type: Piercing }
+    - { op: set, var: flayed, value: { kindCount: { unit: primary, kind: Buff } } }
+    - { op: removeKind, from: primary, kind: Buff }
+    - { op: apply, to: primary, effect: withered, stacks: { var: flayed } }
+
+mislead.blight:
+  archetype: Mislead
+  element: Blight
+  name: Tainted Offering
+  description: >-
+    For 1 turn, if target enemy uses a Helpful skill, it's countered, and each unit it would have helped gains 1
+    Withered. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: tainted_offering
+        name: Tainted Offering
+        kind: Debuff
+        element: Blight
+        visibility: hidden
+        description: The bearer's next Helpful skill is countered, and each unit it would have helped Withers.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventTargets, effect: withered }
+
+stun.blight:
+  archetype: Stun
+  element: Blight
+  name: Crippling Rot
+  description: >-
+    Deals 10 damage to target enemy, who is Stunned for 1 turn and gains 1 Withered. Then their Toxin grows by 1
+    per Withered they have.
+  cost: AW
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: withered }
+    - { op: apply, to: primary, effect: toxin, stacks: { stacks: { unit: primary, effect: withered } } }
+
+dance.blight:
+  archetype: Dance
+  element: Blight
+  name: Rot Waltz
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and 1 Focus, and each skill they use gives its first enemy target 1
+    Withered.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: rot_waltz
+        name: Rot Waltz
+        kind: Buff
+        element: Blight
+        description: Each skill the bearer uses gives its first enemy target 1 Withered.
+        triggers:
+          - on: skillResolved
+            do:
+              - { op: apply, to: { filter: eventPrimary, where: { isEnemy: it } }, effect: withered }
+
+heal.blight:
+  archetype: Heal
+  element: Blight
+  name: Feast on Fear
+  description: Target ally heals 15, +10 for each Horrified enemy.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: heal
+      to: primary
+      amount: { sum: [15, { mul: [10, { countOf: { filter: allEnemies, where: { has: { unit: it, effect: horrified } } } }] }] }
+
+bless.blight:
+  archetype: Bless
+  element: Blight
+  name: Vulture's Blessing
+  description: >-
+    For 3 turns, target ally gains 1 Might and executes any Prey their skills leave at 15 HP or less.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: vultures_blessing
+        name: Vulture's Blessing
+        kind: Buff
+        element: Blight
+        description: Prey the bearer's skills leave at 15 HP or less are executed.
+        triggers:
+          - on: skillResolved
+            do:
+              - op: forEach
+                in: { filter: eventTargets, where: { and: [{ isEnemy: it }, { hpAtMost: { unit: it, value: 15 } }, { check: { cond: prey, unit: it } }] } }
+                do:
+                  - { op: kill, to: it }
+
+curse.blight:
+  archetype: Curse
+  element: Blight
+  name: Touch of Decay
+  description: Target enemy gains 1 Withered and is Confused for 3 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: withered }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 3 } }
+
+smite.blight:
+  archetype: Smite
+  element: Blight
+  name: Mark of Decay
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each ally who damages them makes their Toxin tick once, healing
+    that ally for it.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mark_of_decay
+        name: Mark of Decay
+        kind: Debuff
+        element: Blight
+        description: Each direct hit from the applier's side ticks the bearer's Toxin, healing the hitter for it.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: toxin } }
+                then:
+                  - { op: set, var: tick, value: { mul: [5, { stacks: { unit: bearer, effect: toxin } }] } }
+                  - { op: damage, to: bearer, amount: { var: tick }, type: Affliction, direct: false }
+                  - { op: heal, to: eventSource, amount: { var: tick } }
+
+prayer.blight:
+  archetype: Prayer
+  element: Blight
+  name: Communion of Rot
+  description: Each enemy loses 15 HP. All allies heal twice the total lost, split evenly among them.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: set, var: lost, value: 0 }
+    - op: forEach
+      in: { filter: allEnemies, where: { kind: { unit: it, is: character } } }
+      do:
+        - { op: set, var: had, value: { hp: it } }
+        - { op: damage, to: it, amount: 15, type: Affliction, raw: true, direct: false }
+        - { op: set, var: lost, value: { sum: [{ var: lost }, { var: had }, { mul: [-1, { hp: it }] }] } }
+    - op: heal
+      to: { filter: targets, where: { kind: { unit: it, is: character } } }
+      amount: { div: [{ mul: [2, { var: lost }] }, { countOf: { filter: targets, where: { kind: { unit: it, is: character } } } }] }
+
+cleave.blight:
+  archetype: Cleave
+  element: Blight
+  name: Scything Rot
+  description: >-
+    Deals 20 damage to target enemy and 10 to a random other enemy, who gains as much Withered as the first has
+    (max 2).
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: set, var: rot, value: { stacks: { unit: primary, effect: withered } } }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: apply, to: it, effect: withered, stacks: { if: { compare: { value: { var: rot }, atLeast: 2 } }, then: 2, else: { var: rot } } }
+
+shout.blight:
+  archetype: Shout
+  element: Blight
+  name: Plague Hymn
+  description: >-
+    All enemies are Intimidated for 2 turns. Meanwhile, each Helpful skill they use deals 10 Affliction damage to
+    each of its targets.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: plague_hymn
+        name: Plague Hymn
+        kind: Debuff
+        element: Blight
+        description: Each Helpful skill the bearer uses deals 10 Affliction damage to each of its targets.
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - { op: damage, to: eventTargets, amount: 10, type: Affliction, direct: false }
+
+withstand.blight:
+  archetype: Withstand
+  element: Blight
+  name: Bone Carapace
+  description: >-
+    The user gains 20 Shield for 1 turn. Whoever breaks it has a Soul Fragment drained by the user.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: bone_carapace
+        name: Bone Carapace
+        kind: Buff
+        element: Blight
+        description: Whoever breaks the bearer's Shield has a Soul Fragment drained.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - op: if
+                cond: { not: { hasShield: bearer } }
+                then:
+                  - { op: apply, to: bearer, effect: soul_fragment }
+                  - { op: removeSelf }
+
+taunt.blight:
+  archetype: Taunt
+  element: Blight
+  name: Carrion Stench
+  description: >-
+    All enemies are Taunted by the user for 1 turn. Until the user's next turn, every hit on the user deals 10
+    less, but the user can't be healed.
+  cost: S
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: taunt, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: carrion_stench
+        name: Carrion Stench
+        kind: Buff
+        element: Blight
+        description: Every hit on the bearer deals 10 less, but they can't be healed.
+        modifiers:
+          - { mod: damageTaken, amount: -10 }
+          - { mod: healingReceived, mul: 0 }
+
+titan.blight:
+  archetype: Titan
+  element: Blight
+  name: Plague Lord
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and 5 max HP per Withered stack on enemies (as they are when
+    it's used), healing as it rises.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      stacks: { totalStacks: { in: allEnemies, effect: withered } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: plague_lord
+        name: Plague Lord
+        kind: Buff
+        element: Blight
+        stacking: unique
+        description: +5 max HP per stack.
+        modifiers:
+          - { mod: maxHp, amount: 5, perStack: true }
+
+# Minion skills.
+
+rats_plague_bite:
+  archetype: Minion
+  element: Blight
+  name: Plague Bite
+  description: Deals 5 Piercing damage to target enemy, who gains 1 Withered.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: withered, from: summoner }
+
+rats_scurry:
+  archetype: Minion
+  element: Blight
+  name: Scurry
+  description: Deals 5 Piercing damage to each Withered enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: { filter: targets, where: { has: { unit: it, effect: withered } } }, amount: 5, type: Piercing }
+
+imp_rotbolt:
+  archetype: Minion
+  element: Blight
+  name: Rotbolt
+  description: Deals 10 Affliction damage to target enemy, who gains 1 Toxin.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }
+    - { op: apply, to: primary, effect: toxin, from: summoner }
+    - { op: apply, to: primary, effect: imp_bitten }

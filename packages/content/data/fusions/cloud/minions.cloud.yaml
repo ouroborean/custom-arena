@@ -1,0 +1,11 @@
+# Cloud minions.
+
+sky_whale:
+  name: Sky Whale
+  hp: 50
+  skills: [whale_rain_down, whale_breach]
+
+cloudling:
+  name: Cloudling
+  hp: 10
+  skills: [cloudling_drizzle]

@@ -52,6 +52,8 @@ export interface Unit {
   counters: Record<string, number>;
   /** For minions: the archetype of the skill that summoned them (Companion, Summon, …). */
   summonArchetype?: string;
+  /** The last enemy who damaged this unit (the `lastAttacker` target). */
+  lastAttacker?: UnitId;
 }
 
 export interface EffectInstance {
@@ -129,6 +131,15 @@ export interface GameState {
   effects: EffectInstance[];
   settings: MatchSettings;
   seq: number;
+  /** Skills hanging in the air (Cloud's Drift), landing at the start of their user's next turn. Public. */
+  drifting?: DriftingSkill[];
+}
+
+export interface DriftingSkill {
+  actor: UnitId;
+  slot: number;
+  defId: string;
+  targets: UnitId[];
 }
 
 // ---------------------------------------------------------------- match setup
@@ -143,6 +154,8 @@ export interface CharacterSpec {
   skills: string[];
   /** Status ids applied permanently at match start (equipment passives). */
   passives?: string[];
+  /** Equipped item ids, for match records and analytics (the engine ignores them). */
+  items?: string[];
 }
 
 export interface MatchConfig {
@@ -183,6 +196,7 @@ export type EventBody =
   | { t: 'energyGained'; player: PlayerId; gained: Energy }
   /** `stealthFrom`: that player only learns that a Stealthed unit acted (R6). */
   | { t: 'skillUsed'; actor: UnitId; skill: string; targets: UnitId[]; secretFrom?: PlayerId; stealthFrom?: PlayerId }
+  | { t: 'skillDrifting'; actor: UnitId; skill: string; targets: UnitId[] }
   | { t: 'skillFailed'; actor: UnitId; skill: string; reason: string; refunded: boolean }
   | { t: 'skillCountered'; actor: UnitId; skill: string; by: UnitId; effect: string; reflected: boolean }
   | {
@@ -216,8 +230,14 @@ export type EventBody =
   | { t: 'effectRevealed'; effect: EffectId; defId: string; bearer: UnitId; source: UnitId }
   | { t: 'summoned'; unit: UnitId; defId: string; by: UnitId }
   | { t: 'died'; unit: UnitId }
+  | { t: 'revived'; unit: UnitId; hp: number }
   | { t: 'turnEnd'; turn: number; player: PlayerId }
-  | { t: 'gameOver'; result: MatchResult };
+  | { t: 'gameOver'; result: MatchResult }
+  /**
+   * A point worth showing the board at (after a skill resolves, a tick, the turn's end and start).
+   * Only emitted when checkpoints are asked for; `n` indexes ApplyResult.checkpoints.
+   */
+  | { t: 'checkpoint'; n: number };
 
 /** An event plus its visibility: `visibleTo` undefined = both players. */
 export type GameEvent = EventBody & { visibleTo?: PlayerId };
@@ -225,4 +245,14 @@ export type GameEvent = EventBody & { visibleTo?: PlayerId };
 export interface ApplyResult {
   state: GameState;
   events: GameEvent[];
+  /** The state at each `checkpoint` event, when asked for (ApplyOptions). */
+  checkpoints?: GameState[];
+}
+
+export interface ApplyOptions {
+  /**
+   * Snapshot the state at each point worth showing, so a client can play a turn back step by step
+   * rather than jumping to the end. Off by default: bots simulate thousands of turns without them.
+   */
+  checkpoints?: boolean;
 }

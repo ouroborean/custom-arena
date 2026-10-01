@@ -1,0 +1,15 @@
+# Nomad actions, run on `it`.
+
+# +1 Trek (stamping the turn it rose and telling listeners).
+gain_trek:
+  - { op: apply, to: it, effect: trek }
+  - { op: setCounter, name: trek_rose_turn, on: it, value: { turn: true } }
+  - { op: signal, name: trek_rose }
+
+# Trek resets to 0 (not during Endless Journey).
+reset_trek:
+  - op: if
+    cond: { not: { has: { unit: it, effect: endless_journey } } }
+    then:
+      - { op: removeEffect, from: it, effect: trek }
+      - { op: signal, name: trek_reset }

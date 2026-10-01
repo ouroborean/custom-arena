@@ -1,0 +1,24 @@
+# Mechanic actions, run on `it`.
+
+# Upgrade: one level (max 3): +10 max HP and 10 HP, +5 damage.
+upgrade:
+  - op: if
+    cond: { compare: { value: { stacks: { unit: it, effect: upgraded } }, atMost: 2 } }
+    then:
+      - { op: apply, to: it, effect: upgraded }
+      - { op: addMaxHp, to: it, amount: 10 }
+      - { op: heal, to: it, amount: 10, raw: true }
+
+# Upgrades a random allied minion (or Mech Suit).
+upgrade_random:
+  - op: forEach
+    in: { randomAlly: 1, where: { check: { cond: upgradeable, unit: it } } }
+    do:
+      - { op: macro, id: upgrade }
+
+# Upgrades every allied minion (and Mech Suit).
+upgrade_all:
+  - op: forEach
+    in: { filter: allAllies, where: { check: { cond: upgradeable, unit: it } } }
+    do:
+      - { op: macro, id: upgrade }

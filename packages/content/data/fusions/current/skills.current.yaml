@@ -1,0 +1,809 @@
+# The 30 Current (Water + Lightning) variants, from the "Fusion Spec Kits" design doc.
+# Soaked: +5 from Current skills (the Conductor passive), and single-target Current hits conduct to
+# every other Soaked unit on that side (macro `conduct`, with `zap`).
+
+strike.current:
+  archetype: Strike
+  element: Current
+  name: Shock Palm
+  description: >-
+    Deals 20 damage to target enemy, then they're Soaked for 2 turns. The user gains 1 Charge for each
+    other enemy the hit conducts to.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: arcs
+      value:
+        if: { has: { unit: primary, effect: soaked } }
+        then: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } } }
+        else: 0
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: charged, stacks: { var: arcs } }
+
+smash.current:
+  archetype: Smash
+  element: Current
+  name: Breakdown Surge
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Each of them who has Shield or Armor takes 10
+    Affliction damage at the start of the user's next turn, as the absorbed charge arcs back.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: { filter: allEnemies, where: { or: [{ hasShield: it }, { has: { unit: it, effect: armor } }] } }
+      duration: { raw: 2 }
+      effect:
+        id: breakdown_surge
+        name: Breakdown Surge
+        kind: Debuff
+        element: Current
+        description: 10 Affliction damage at the start of the applier's next turn.
+        onExpire:
+          - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+
+charge.current:
+  archetype: Charge
+  element: Current
+  name: Rip Current
+  description: >-
+    Deals 15 damage to target enemy. The user gains 1 Focus, and their next skill Soaks the enemies it
+    targets for 2 turns before it hits.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: actor
+      until: { skillUsed: {} }
+      effect:
+        id: rip_current
+        name: Rip Current
+        kind: Buff
+        element: Current
+        description: The bearer's next skill Soaks its enemy targets before it hits.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: { filter: eventTargets, where: { isEnemy: it } }, effect: soaked, duration: { enemyTurns: 2 } }
+
+riposte.current:
+  archetype: Riposte
+  element: Current
+  name: Still Water
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user; its user is Soaked for 2 turns, then takes 15
+    damage, which conducts. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: still_water
+        name: Still Water
+        kind: Buff
+        element: Current
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; their users are Soaked and shocked.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: soaked, duration: { enemyTurns: 2 } }
+              - { op: damage, to: eventSource, amount: 15 }
+              - { op: set, var: zap, value: 15 }
+              - { op: forEach, in: eventSource, do: [{ op: macro, id: conduct }] }
+
+rage.current:
+  archetype: Rage
+  element: Current
+  name: Galvanic Fury
+  description: >-
+    For 3 turns, the user gains 1 Might and Immune, and their single-target hits conduct through Sapped
+    enemies as if they were Soaked.
+  cost: SS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: galvanic_fury
+        name: Galvanic Fury
+        kind: Buff
+        element: Current
+        description: The bearer's single-target hits conduct through Sapped enemies.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { eventSkill: { single: true } }
+                then:
+                  - op: damage
+                    to: { filter: allEnemies, exclude: eventTarget, where: { and: [{ has: { unit: it, effect: sapped } }, { not: { has: { unit: it, effect: soaked } } }] } }
+                    amount: { eventAmount: true }
+                    direct: false
+
+shot.current:
+  archetype: Shot
+  element: Current
+  name: Spark Spray
+  description: >-
+    Deals 10 damage to target enemy, who is Soaked for 2 turns. If the user is Charged, they spend 1
+    Charge to Soak a random other enemy for 2 turns too.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
+    - op: if
+      cond: { has: { unit: actor, effect: charged } }
+      then:
+        - { op: removeStacks, from: actor, effect: charged, amount: 1 }
+        - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: soaked, duration: { enemyTurns: 2 } }
+
+snipe.current:
+  archetype: Snipe
+  element: Current
+  name: Conductor's Lance
+  description: >-
+    On the following turn, deals 40 damage to target enemy, which conducts if they're Soaked; the user
+    gains 1 Charge per other Soaked enemy. The target of this skill is invisible. Channeled.
+  cost: Ir
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: conductors_lance
+        name: Conductor's Lance (aiming)
+        kind: Neutral
+        element: Current
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn; the hit conducts.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 40 }
+          - op: apply
+            to: bearer
+            effect: charged
+            stacks: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } } }
+
+trap.current:
+  archetype: Trap
+  element: Current
+  name: Live Wire
+  description: >-
+    For 3 turns, the first time target enemy uses a Harmful skill, they and every Soaked enemy take 15
+    damage, and each one hit is Sapped. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: live_wire
+        name: Live Wire
+        kind: Debuff
+        element: Current
+        visibility: hidden
+        description: The bearer's first Harmful skill shocks them and every Soaked enemy.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - op: forEach
+                in: { filter: allEnemies, where: { has: { unit: it, effect: soaked } }, exclude: bearer }
+                do:
+                  - { op: damage, to: it, amount: 15, direct: false }
+                  - { op: apply, to: it, effect: sapped }
+              - { op: damage, to: bearer, amount: 15, direct: false }
+              - { op: apply, to: bearer, effect: sapped }
+
+maneuver.current:
+  archetype: Maneuver
+  element: Current
+  name: Submerge
+  description: >-
+    The user becomes Invulnerable for 1 turn. When it ends, they spend all their Charge: each Soaked enemy
+    takes 10 damage per Charge spent.
+  cost: I
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: submerge
+        name: Submerge
+        kind: Buff
+        element: Current
+        description: When this ends, all the bearer's Charge discharges into Soaked enemies.
+        onExpire:
+          - { op: set, var: charge, value: { stacks: { unit: bearer, effect: charged } } }
+          - { op: removeEffect, from: bearer, effect: charged }
+          - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: soaked } } }, amount: { mul: [10, { var: charge }] }, direct: false }
+
+companion.current:
+  archetype: Companion
+  element: Current
+  name: Electric Eel
+  description: >-
+    Summons an Electric Eel (30 HP) permanently. Eel Shock (r): 10 damage and Soaked for 2 turns. Static
+    Coil (I): target ally gains 1 Charge per Soaked enemy (max 3).
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: electric_eel }
+
+bolt.current:
+  archetype: Bolt
+  element: Current
+  name: Galvanic Bolt
+  description: Target enemy is Soaked for 2 turns, then takes 20 damage. Every enemy it conducts to is Sapped.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } }, effect: sapped }
+
+blast.current:
+  archetype: Blast
+  element: Current
+  name: Deluge of Sparks
+  description: Deals 15 damage to all enemies, who are Soaked for 2 turns. The user's next skill costs 1 less.
+  cost: II
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: soaked, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+
+consume.current:
+  archetype: Consume
+  element: Current
+  name: Ebb Siphon
+  description: Deals 5 damage to target enemy, and the user heals 10 per stack of Sapped on them (max 30).
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: heal
+      to: actor
+      amount:
+        if: { compare: { value: { stacks: { unit: primary, effect: sapped } }, atLeast: 3 } }
+        then: 30
+        else: { mul: [10, { stacks: { unit: primary, effect: sapped } }] }
+
+summon.current:
+  archetype: Summon
+  element: Current
+  name: Galvanic Elemental
+  description: >-
+    Summons a Galvanic Elemental (20 HP) for 3 turns. When it dies, every Soaked enemy takes 15 damage.
+    Static Lash (nc, Uncounterable): 10 damage and Soaked for 1 turn.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: galvanic_elemental, duration: { enemyTurns: 3 } }
+
+channel.current:
+  archetype: Channel
+  element: Current
+  name: Electric Rain
+  description: >-
+    For up to 4 turns, at the end of each of the user's turns, a random enemy is Soaked for 2 turns, then
+    a random Soaked enemy takes 10 damage, which conducts. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: electric_rain
+        name: Electric Rain
+        kind: Neutral
+        element: Current
+        interruptible: true
+        description: Each turn, Soaks a random enemy and shocks a random Soaked one; it conducts.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: { randomEnemy: 1 }, effect: soaked, duration: { enemyTurns: 2 } }
+              - op: forEach
+                in: { randomEnemy: 1, where: { has: { unit: it, effect: soaked } } }
+                do:
+                  - { op: damage, to: it, amount: 10 }
+                  - { op: set, var: zap, value: 10 }
+                  - { op: macro, id: conduct }
+
+stab.current:
+  archetype: Stab
+  element: Current
+  name: Static Shiv
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. For 1 turn, the user gains 1
+    Charge each time an enemy skill targets them.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: static_shiv
+        name: Static Shiv
+        kind: Buff
+        element: Current
+        description: Each enemy skill that targets the bearer gives them 1 Charge.
+        triggers:
+          - on: skillTargeted
+            when: { side: enemy }
+            do:
+              - { op: apply, to: bearer, effect: charged }
+
+ravage.current:
+  archetype: Ravage
+  element: Current
+  name: Riptide Pike
+  description: >-
+    Deals 25 Piercing damage to target enemy. The user spends up to 3 Renew, and each one spent cuts their
+    other cooldowns by 1.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: set
+      var: tide
+      value:
+        if: { compare: { value: { totalStacks: { in: actor, effect: renew } }, atLeast: 3 } }
+        then: 3
+        else: { totalStacks: { in: actor, effect: renew } }
+    - { op: repeat, times: { var: tide }, do: [{ op: removeStacks, from: actor, effect: renew, amount: 1 }] }
+    - { op: adjustCooldowns, to: actor, by: { mul: [-1, { var: tide }] }, exceptCurrent: true }
+
+mislead.current:
+  archetype: Mislead
+  element: Current
+  name: Grounding
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each Confusion on them becomes 1
+    Sapped. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: grounding
+        name: Grounding
+        kind: Debuff
+        element: Current
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and their Confusion becomes Sapped.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: set, var: grounded, value: { totalStacks: { in: bearer, effect: confusion } } }
+              - { op: removeEffect, from: bearer, effect: confusion }
+              - { op: apply, to: bearer, effect: sapped, stacks: { var: grounded } }
+
+stun.current:
+  archetype: Stun
+  element: Current
+  name: Electric Undertow
+  description: >-
+    Deals 15 damage to target enemy and Stuns them for 1 turn. Every other Soaked enemy has their
+    non-Strategic skills stunned for 1 turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } }, effect: stun_ns, duration: { enemyTurns: 1 } }
+
+dance.current:
+  archetype: Dance
+  element: Current
+  name: River of Lightning
+  description: >-
+    For 4 turns, the user gains Stormborn and 1 Swiftness; each Charge they gain also brings 2 Renew.
+  cost: Ar
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: river_of_lightning
+        name: River of Lightning
+        kind: Buff
+        element: Current
+        description: Each Charge the bearer gains brings 2 Renew.
+        triggers:
+          - on: effectGained
+            effect: charged
+            do:
+              - { op: apply, to: bearer, effect: renew, stacks: 2 }
+
+heal.current:
+  archetype: Heal
+  element: Current
+  name: Still Spring
+  description: Target ally heals 20 and gains 2 Renew. For 2 turns, their Renew heals without losing stacks.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: renew, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: still_spring
+        name: Still Spring
+        kind: Buff
+        element: Current
+        description: The bearer's Renew doesn't lose stacks (see Renew).
+
+bless.current:
+  archetype: Bless
+  element: Current
+  name: Overflow
+  description: >-
+    For 3 turns, target ally's single-target skills count as Current skills: they deal 5 more to Soaked
+    enemies and conduct through them.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: overflow
+        name: Overflow
+        kind: Buff
+        element: Current
+        description: The bearer's skills deal 5 more to Soaked enemies, and their single-target hits conduct.
+        modifiers:
+          - { mod: damageDealt, amount: 5, when: { direct: true }, target: { has: { unit: it, effect: soaked } } }
+
+curse.current:
+  archetype: Curse
+  element: Current
+  name: Waterlogged
+  description: >-
+    Target enemy is Soaked for 2 turns and gains 1 Confusion; each time a conducted hit reaches them, they
+    gain 1 more (max 3).
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: waterlogged
+        name: Waterlogged
+        kind: Debuff
+        element: Current
+        description: Each conducted hit that reaches the bearer gives them 1 more Confusion (max 3).
+        triggers:
+          - on: damaged
+            when: { direct: false }
+            do:
+              - op: if
+                cond: { compare: { value: { totalStacks: { in: bearer, effect: confusion } }, atMost: 2 } }
+                then: [{ op: apply, to: bearer, effect: confusion, duration: { enemyTurns: 2 } }]
+
+smite.current:
+  archetype: Smite
+  element: Current
+  name: Closed Circuit
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each time an ally of the user damages them, every ally of
+    the user heals 10.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: closed_circuit
+        name: Closed Circuit
+        kind: Debuff
+        element: Current
+        description: Each time the applier's side damages the bearer, every ally of the applier heals 10.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: heal, to: allAllies, amount: 10 }
+
+prayer.current:
+  archetype: Prayer
+  element: Current
+  name: Swelling Current
+  description: >-
+    All allies heal 10. The healing repeats at the start of each of the user's next 2 turns, 10 more each
+    time (20, then 30), and stops once the user takes damage.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 10 }
+    - { op: setCounter, name: swell, value: 10 }
+    - op: apply
+      to: actor
+      duration: { raw: 5 }
+      effect:
+        id: swelling_current
+        name: Swelling Current
+        kind: Buff
+        element: Current
+        description: The healing swells at the start of the bearer's next 2 turns, until they take damage.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: setCounter, name: swell, value: { sum: [{ counter: swell }, 10] } }
+              - { op: heal, to: allAllies, amount: { counter: swell } }
+          - on: damaged
+            do:
+              - { op: removeSelf }
+
+cleave.current:
+  archetype: Cleave
+  element: Current
+  name: Arc Lash
+  description: >-
+    Deals 25 damage to target enemy, and 15 to another Soaked enemy (a random one if none is Soaked). Each
+    is Soaked for 1 turn.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } } }, atLeast: 1 } }
+      then:
+        - op: forEach
+          in: { randomEnemy: 1, exclude: primary, where: { has: { unit: it, effect: soaked } } }
+          do:
+            - { op: damage, to: it, amount: 15 }
+            - { op: apply, to: it, effect: soaked, duration: { enemyTurns: 1 } }
+      else:
+        - op: forEach
+          in: { randomEnemy: 1, exclude: primary }
+          do:
+            - { op: damage, to: it, amount: 15 }
+            - { op: apply, to: it, effect: soaked, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 1 } }
+
+shout.current:
+  archetype: Shout
+  element: Current
+  name: Sounding Call
+  description: >-
+    All enemies are Soaked for 2 turns, and Intimidated for 1 turn per stack of Sapped they have (at least
+    1).
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: soaked, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: targets
+      do:
+        - op: apply
+          to: it
+          effect: intimidated
+          duration:
+            enemyTurns: { if: { has: { unit: it, effect: sapped } }, then: { stacks: { unit: it, effect: sapped } }, else: 1 }
+
+withstand.current:
+  archetype: Withstand
+  element: Current
+  name: Bubble Cage
+  description: The user gains 25 Shield for 1 turn. When it ends, they gain 1 Charge per 10 Shield left.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: bubble_cage
+        name: Bubble Cage
+        kind: Buff
+        element: Current
+        shield: true
+        description: A Shield; what's left when it ends becomes Charge, 1 per 10.
+        onExpire:
+          - { op: apply, to: bearer, effect: charged, stacks: { div: [{ effectValue: true }, 10] } }
+
+taunt.current:
+  archetype: Taunt
+  element: Current
+  name: Backwash Lure
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Meanwhile, each time the user is healed, the Taunted
+    enemy takes as much damage.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: backwash_lure
+        name: Backwash Lure
+        kind: Buff
+        element: Current
+        description: Each time the bearer is healed, the enemy they Taunted takes as much damage.
+        triggers:
+          - on: healed
+            do:
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: taunt, mine: true } } }, amount: { eventAmount: true }, direct: false }
+
+titan.current:
+  archetype: Titan
+  element: Current
+  name: Dynamo Form
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and their player generates 1 extra energy each turn.
+    At the end of each of those turns, the user takes 15 Affliction damage.
+  cost: WS
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dynamo_form
+        name: Dynamo Form
+        kind: Buff
+        element: Current
+        description: 1 extra energy each turn; 15 Affliction to the bearer at the end of each of their turns.
+        modifiers:
+          - { mod: energyGain, amount: 1 }
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
+
+# Minion skills.
+
+electric_eel_shock:
+  archetype: Minion
+  element: Current
+  name: Eel Shock
+  description: Deals 10 damage to target enemy, who is Soaked for 2 turns.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
+
+electric_eel_static_coil:
+  archetype: Minion
+  element: Current
+  name: Static Coil
+  description: Target ally gains 1 Charge per Soaked enemy (max 3).
+  cost: I
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      effect: charged
+      stacks:
+        if: { compare: { value: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: soaked } } } }, atLeast: 3 } }
+        then: 3
+        else: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: soaked } } } }
+
+galvanic_elemental_static_lash:
+  archetype: Minion
+  element: Current
+  name: Static Lash
+  description: Deals 10 damage to target enemy, who is Soaked for 1 turn. Uncounterable.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic, Uncounterable]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 1 } }

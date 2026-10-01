@@ -1,17 +1,19 @@
 # Equipment catalogue (GDD §8, appendix §15), generated from the "Structured Equipment" sheet.
-# Grants: `skills` (added if the character lacks them), `infusions` (a fixed `target` skill, or the
-# player chooses), and a `passive`. Each passive is implemented by a status (`passiveEffect`, in
-# statuses.passives-*.yaml) applied to the wearer at match start; see docs/equipment.md for rulings.
+# Grants: `skills` (added if the character lacks them), `infusions` (elements added to the wearer's
+# infusion pool; the player chooses which skills they go on), and a `passive`. Each passive is
+# implemented by a status (`passiveEffect`, in statuses.passives-*.yaml) applied to the wearer at
+# match start; see docs/equipment.md for rulings.
 # Unlock conditions on the sheet are ignored (GDD §8.4).
-# Types: A main hand · B two-handed · C exotic · D elemental weapon · E off hand · F elemental armor ·
-# G class armor · H accessory · I perfect crystal · J gear · K shard · L misc (none yet).
+# Types (categories only: any item fits any of a character's 4 slots): A weapon · B two-handed ·
+# C exotic · D elemental weapon · E off hand · F elemental armor · G class armor · H accessory ·
+# I perfect crystal · J gear · K shard · L misc (none yet).
 # Counts: {'A': 30, 'B': 20, 'C': 20, 'D': 30, 'E': 30, 'F': 30, 'G': 20, 'H': 20, 'I': 10, 'J': 40, 'K': 10}
 
 wind_katana:
   name: "Wind Katana"
   type: A
   skills: [strike]
-  infusions: [{ element: Wind, target: strike }]
+  infusions: [{ element: Wind }]
   passive: "Your Strikes deal 5 additional damage, plus 5 damage for every mana in their total cost."
   passiveEffect: eq_wind_katana
 
@@ -19,7 +21,7 @@ magma_hammer:
   name: "Magma Hammer"
   type: A
   skills: [smash]
-  infusions: [{ element: Fire, target: smash }]
+  infusions: [{ element: Fire }]
   passive: "Smash skills deal 10 additional damage to all targets but their cost is increased by 1 GEN."
   passiveEffect: eq_magma_hammer
 
@@ -27,7 +29,7 @@ water_spear:
   name: "Water Spear"
   type: A
   skills: [charge]
-  infusions: [{ element: Water, target: charge }]
+  infusions: [{ element: Water }]
   passive: "Charge now changes Specific costs to Random costs for 1 turn, and deals 5 additional damage."
   passiveEffect: eq_water_spear
 
@@ -35,7 +37,7 @@ poison_rapier:
   name: "Poison Rapier"
   type: A
   skills: [riposte]
-  infusions: [{ element: Poison, target: riposte }]
+  infusions: [{ element: Poison }]
   passive: "Once per round, Riposte will reset its cooldown when triggered."
   passiveEffect: eq_poison_rapier
 
@@ -43,7 +45,7 @@ unholy_cleaver:
   name: "Unholy Cleaver"
   type: A
   skills: [rage]
-  infusions: [{ element: Unholy, target: rage }]
+  infusions: [{ element: Unholy }]
   passive: "Your Rage skills give you 10 Shield for each 20 HP you're missing when you use them."
   passiveEffect: eq_unholy_cleaver
 
@@ -51,7 +53,7 @@ ice_kunai:
   name: "Ice Kunai"
   type: A
   skills: [shot]
-  infusions: [{ element: Ice, target: shot }]
+  infusions: [{ element: Ice }]
   passive: "Your Shot skills deal 5 additional damage every time they're used against the same target, stacking."
   passiveEffect: eq_ice_kunai
 
@@ -59,7 +61,7 @@ shadow_arbalest:
   name: "Shadow Arbalest"
   type: A
   skills: [snipe]
-  infusions: [{ element: Shadow, target: snipe }]
+  infusions: [{ element: Shadow }]
   passive: "The target of your Snipe skills is now visible, but your Snipes now Bypass and cannot be Countered."
   passiveEffect: eq_shadow_arbalest
 
@@ -67,7 +69,7 @@ vine_whip:
   name: "Vine Whip"
   type: A
   skills: [trap]
-  infusions: [{ element: Earth, target: trap }]
+  infusions: [{ element: Earth }]
   passive: "The cooldown of your Trap skills is reduced by 1 turn if it fails to activate."
   passiveEffect: eq_vine_whip
 
@@ -75,7 +77,7 @@ lightsaber_dirk:
   name: "Lightsaber Dirk"
   type: A
   skills: [maneuver]
-  infusions: [{ element: Lightning, target: maneuver }]
+  infusions: [{ element: Lightning }]
   passive: "Your Maneuver skills can be used on an ally, but their cooldowns are increased by 1."
   passiveEffect: eq_lightsaber_dirk
 
@@ -83,7 +85,7 @@ ice_claw:
   name: "Ice Claw"
   type: A
   skills: [companion]
-  infusions: [{ element: Ice, target: companion }]
+  infusions: [{ element: Ice }]
   passive: "Minions from your Companion skills have all their costs changed to GEN."
   passiveEffect: eq_ice_claw
 
@@ -91,7 +93,7 @@ fire_sceptre:
   name: "Fire Sceptre"
   type: A
   skills: [bolt]
-  infusions: [{ element: Fire, target: bolt }]
+  infusions: [{ element: Fire }]
   passive: "Your Bolt skills receive double benefit from Might."
   passiveEffect: eq_fire_sceptre
 
@@ -99,7 +101,7 @@ holy_book:
   name: "Holy Book"
   type: A
   skills: [blast]
-  infusions: [{ element: Holy, target: blast }]
+  infusions: [{ element: Holy }]
   passive: "Your Blast skills deal 10 additional damage for each dead enemy."
   passiveEffect: eq_holy_book
 
@@ -107,7 +109,7 @@ twisted_wand:
   name: "Twisted Wand"
   type: A
   skills: [consume]
-  infusions: [{ element: Earth, target: consume }]
+  infusions: [{ element: Earth }]
   passive: "Consume may be used on allied Summoned Minions, instantly killing it to Heal 10 Health and add 10 Shield."
   passiveEffect: eq_twisted_wand
 
@@ -115,7 +117,7 @@ sacrificial_dagger:
   name: "Sacrificial Dagger"
   type: A
   skills: [summon]
-  infusions: [{ element: Unholy, target: summon }]
+  infusions: [{ element: Unholy }]
   passive: "Your Summon is also healed whenever you are."
   passiveEffect: eq_sacrificial_dagger
 
@@ -123,7 +125,7 @@ holy_censer:
   name: "Holy Censer"
   type: A
   skills: [channel]
-  infusions: [{ element: Holy, target: channel }]
+  infusions: [{ element: Holy }]
   passive: "You gain 10 Shield at the end of each turn you maintain your Channel skills."
   passiveEffect: eq_holy_censer
 
@@ -131,7 +133,7 @@ scything_claw:
   name: "Scything Claw"
   type: A
   skills: [stab]
-  infusions: [{ element: Poison, target: stab }]
+  infusions: [{ element: Poison }]
   passive: "When Stab activates its bonus effect, all your current Cooldowns are decreased by 1."
   passiveEffect: eq_scything_claw
 
@@ -139,7 +141,7 @@ lightning_dagger:
   name: "Lightning Dagger"
   type: A
   skills: [ravage]
-  infusions: [{ element: Lightning, target: ravage }]
+  infusions: [{ element: Lightning }]
   passive: "Your Ravage skills deal 5 additional damage for each ally that acted before you that turn."
   passiveEffect: eq_lightning_dagger
 
@@ -147,7 +149,7 @@ mist_fan:
   name: "Mist Fan"
   type: A
   skills: [mislead]
-  infusions: [{ element: Water, target: mislead }]
+  infusions: [{ element: Water }]
   passive: "When Mislead is triggered, your skills Bypass for 1 turn."
   passiveEffect: eq_mist_fan
 
@@ -155,7 +157,7 @@ sun_baton:
   name: "Sun Baton"
   type: A
   skills: [stun]
-  infusions: [{ element: Earth, target: stun }]
+  infusions: [{ element: Earth }]
   passive: "Enemies affected by your Stuns are Shattered for the duration."
   passiveEffect: eq_sun_baton
 
@@ -163,7 +165,7 @@ hoop_blade:
   name: "Hoop Blade"
   type: A
   skills: [dance]
-  infusions: [{ element: Shadow, target: dance }]
+  infusions: [{ element: Shadow }]
   passive: "Using a skill reduces the remaining cooldown of your Dance skills by 1."
   passiveEffect: eq_hoop_blade
 
@@ -171,7 +173,7 @@ wind_charm_stick:
   name: "Wind Charm Stick"
   type: A
   skills: [heal]
-  infusions: [{ element: Wind, target: heal }]
+  infusions: [{ element: Wind }]
   passive: "Your Heal skills heal an additional 5 health over the following 2 turns. (No bonus immediately)"
   passiveEffect: eq_wind_charm_stick
 
@@ -179,7 +181,7 @@ anointment_mace:
   name: "Anointment Mace"
   type: A
   skills: [bless]
-  infusions: [{ element: Water, target: bless }]
+  infusions: [{ element: Water }]
   passive: "Using Bless on a target causes them to ignore non-damage effects for 1 turn."
   passiveEffect: eq_anointment_mace
 
@@ -187,7 +189,7 @@ brimstone_lash:
   name: "Brimstone Lash"
   type: A
   skills: [curse]
-  infusions: [{ element: Fire, target: curse }]
+  infusions: [{ element: Fire }]
   passive: "Gain 1 random energy whenever an enemy affected by your Curse dies."
   passiveEffect: eq_brimstone_lash
 
@@ -195,7 +197,7 @@ book_of_shadows:
   name: "Book of Shadows"
   type: A
   skills: [smite]
-  infusions: [{ element: Shadow, target: smite }]
+  infusions: [{ element: Shadow }]
   passive: "Your Smite skills have their cost reduced by 1 GEN, but they no longer deal damage."
   passiveEffect: eq_book_of_shadows
 
@@ -203,7 +205,7 @@ book_of_the_damned:
   name: "Book of the Damned"
   type: A
   skills: [prayer]
-  infusions: [{ element: Unholy, target: prayer }]
+  infusions: [{ element: Unholy }]
   passive: "Increases the cooldown of Prayer by 1 turn. Any targets at full health after the heal will also be affected by Bless."
   passiveEffect: eq_book_of_the_damned
 
@@ -211,7 +213,7 @@ paladin_axe:
   name: "Paladin Axe"
   type: A
   skills: [cleave]
-  infusions: [{ element: Holy, target: cleave }]
+  infusions: [{ element: Holy }]
   passive: "Your Cleave skills deal 5 Piercing damage to any enemy they don't affect directly."
   passiveEffect: eq_paladin_axe
 
@@ -219,7 +221,7 @@ lightning_banner:
   name: "Lightning Banner"
   type: A
   skills: [shout]
-  infusions: [{ element: Lightning, target: shout }]
+  infusions: [{ element: Lightning }]
   passive: "Gain 10 Shield whenever an enemy affected by your Shout acts."
   passiveEffect: eq_lightning_banner
 
@@ -227,7 +229,7 @@ wind_shield:
   name: "Wind Shield"
   type: A
   skills: [withstand]
-  infusions: [{ element: Wind, target: withstand }]
+  infusions: [{ element: Wind }]
   passive: "Deals 10 Piercing damage to any enemy that damages you during your Withstand skills."
   passiveEffect: eq_wind_shield
 
@@ -235,7 +237,7 @@ ice_hammer:
   name: "Ice Hammer"
   type: A
   skills: [taunt]
-  infusions: [{ element: Ice, target: taunt }]
+  infusions: [{ element: Ice }]
   passive: "Your Taunt skills have unlimited duration, but cannot be used while active."
   passiveEffect: eq_ice_hammer
 
@@ -243,7 +245,7 @@ chemtech_sword:
   name: "Chemtech Sword"
   type: A
   skills: [titan]
-  infusions: [{ element: Poison, target: titan }]
+  infusions: [{ element: Poison }]
   passive: "Heal for 10 health when Titan expires, increased to 20 if you are at or below 40 HP."
   passiveEffect: eq_chemtech_sword
 
@@ -768,361 +770,361 @@ devils_blade:
   name: "Devil's Blade"
   type: E
   skills: [strike]
-  infusions: [{ element: Fire, target: strike }, { element: Unholy }]
+  infusions: [{ element: Fire }, { element: Unholy }]
 
 mythic_hammer:
   name: "Mythic Hammer"
   type: E
   skills: [smash]
-  infusions: [{ element: Earth, target: smash }, { element: Ice }]
+  infusions: [{ element: Earth }, { element: Ice }]
 
 storm_chaser:
   name: "Storm Chaser"
   type: E
   skills: [charge]
-  infusions: [{ element: Lightning, target: charge }, { element: Wind }]
+  infusions: [{ element: Lightning }, { element: Wind }]
 
 ritual_guard:
   name: "Ritual Guard"
   type: E
   skills: [riposte]
-  infusions: [{ element: Fire, target: riposte }, { element: Shadow }]
+  infusions: [{ element: Fire }, { element: Shadow }]
 
 solar_berserker:
   name: "Solar Berserker"
   type: E
   skills: [rage]
-  infusions: [{ element: Fire, target: rage }, { element: Earth }]
+  infusions: [{ element: Fire }, { element: Earth }]
 
 spore_hunter:
   name: "Spore Hunter"
   type: E
   skills: [shot]
-  infusions: [{ element: Poison, target: shot }, { element: Earth }]
+  infusions: [{ element: Poison }, { element: Earth }]
 
 charged_sight:
   name: "Charged Sight"
   type: E
   skills: [snipe]
-  infusions: [{ element: Poison, target: snipe }, { element: Lightning }]
+  infusions: [{ element: Poison }, { element: Lightning }]
 
 mirror_world:
   name: "Mirror World"
   type: E
   skills: [trap]
-  infusions: [{ element: Water, target: trap }, { element: Shadow }]
+  infusions: [{ element: Water }, { element: Shadow }]
 
 ninja_step:
   name: "Ninja Step"
   type: E
   skills: [maneuver]
-  infusions: [{ element: Wind, target: maneuver }, { element: Shadow }]
+  infusions: [{ element: Wind }, { element: Shadow }]
 
 faerie_partner:
   name: "Faerie Partner"
   type: E
   skills: [companion]
-  infusions: [{ element: Wind, target: companion }, { element: Poison }]
+  infusions: [{ element: Wind }, { element: Poison }]
 
 rainbow_mage:
   name: "Rainbow Mage"
   type: E
   skills: [bolt]
-  infusions: [{ element: Lightning, target: bolt }, { element: Ice }]
+  infusions: [{ element: Lightning }, { element: Ice }]
 
 alchemical_explosion:
   name: "Alchemical Explosion"
   type: E
   skills: [blast]
-  infusions: [{ element: Fire, target: blast }, { element: Water }]
+  infusions: [{ element: Fire }, { element: Water }]
 
 corpse_eater:
   name: "Corpse Eater"
   type: E
   skills: [consume]
-  infusions: [{ element: Unholy, target: consume }, { element: Lightning }]
+  infusions: [{ element: Unholy }, { element: Lightning }]
 
 misty_calling:
   name: "Misty Calling"
   type: E
   skills: [summon]
-  infusions: [{ element: Water, target: summon }, { element: Wind }]
+  infusions: [{ element: Water }, { element: Wind }]
 
 channels_current:
   name: "Channel's Current"
   type: E
   skills: [channel]
-  infusions: [{ element: Water, target: channel }, { element: Lightning }]
+  infusions: [{ element: Water }, { element: Lightning }]
 
 spectral_knife:
   name: "Spectral Knife"
   type: E
   skills: [stab]
-  infusions: [{ element: Unholy, target: stab }, { element: Wind }]
+  infusions: [{ element: Unholy }, { element: Wind }]
 
 lichs_spike:
   name: "Lich's Spike"
   type: E
   skills: [ravage]
-  infusions: [{ element: Ice, target: ravage }, { element: Unholy }]
+  infusions: [{ element: Ice }, { element: Unholy }]
 
 vigilante_mask:
   name: "Vigilante Mask"
   type: E
   skills: [mislead]
-  infusions: [{ element: Holy, target: mislead }, { element: Shadow }]
+  infusions: [{ element: Holy }, { element: Shadow }]
 
 good_nights_sleep:
   name: "Good Night's Sleep"
   type: E
   skills: [stun]
-  infusions: [{ element: Ice, target: stun }, { element: Shadow }]
+  infusions: [{ element: Ice }, { element: Shadow }]
 
 preserved_form:
   name: "Preserved Form"
   type: E
   skills: [dance]
-  infusions: [{ element: Poison, target: dance }, { element: Ice }]
+  infusions: [{ element: Poison }, { element: Ice }]
 
 pure_injection:
   name: "Pure Injection"
   type: E
   skills: [heal]
-  infusions: [{ element: Poison, target: heal }, { element: Water }]
+  infusions: [{ element: Poison }, { element: Water }]
 
 cleansing_touch:
   name: "Cleansing Touch"
   type: E
   skills: [bless]
-  infusions: [{ element: Holy, target: bless }, { element: Poison }]
+  infusions: [{ element: Holy }, { element: Poison }]
 
 evil_fate:
   name: "Evil Fate"
   type: E
   skills: [curse]
-  infusions: [{ element: Unholy, target: curse }, { element: Shadow }]
+  infusions: [{ element: Unholy }, { element: Shadow }]
 
 angels_wrath:
   name: "Angel's Wrath"
   type: E
   skills: [smite]
-  infusions: [{ element: Wind, target: smite }, { element: Holy }]
+  infusions: [{ element: Wind }, { element: Holy }]
 
 anointed_words:
   name: "Anointed Words"
   type: E
   skills: [prayer]
-  infusions: [{ element: Water, target: prayer }, { element: Holy }]
+  infusions: [{ element: Water }, { element: Holy }]
 
 magnetic_arc:
   name: "Magnetic Arc"
   type: E
   skills: [cleave]
-  infusions: [{ element: Lightning, target: cleave }, { element: Earth }]
+  infusions: [{ element: Lightning }, { element: Earth }]
 
 fire_and_ice:
   name: "Fire and Ice"
   type: E
   skills: [shout]
-  infusions: [{ element: Ice, target: shout }, { element: Fire }]
+  infusions: [{ element: Ice }, { element: Fire }]
 
 divine_authority:
   name: "Divine Authority"
   type: E
   skills: [withstand]
-  infusions: [{ element: Fire, target: withstand }, { element: Holy }]
+  infusions: [{ element: Fire }, { element: Holy }]
 
 grave_insult:
   name: "Grave Insult"
   type: E
   skills: [taunt]
-  infusions: [{ element: Earth, target: taunt }, { element: Unholy }]
+  infusions: [{ element: Earth }, { element: Unholy }]
 
 prism_guardian:
   name: "Prism Guardian"
   type: E
   skills: [titan]
-  infusions: [{ element: Ice, target: titan }, { element: Holy }]
+  infusions: [{ element: Ice }, { element: Holy }]
 
 viper_blade:
   name: "Viper Blade"
   type: F
   skills: [strike]
-  infusions: [{ element: Poison, target: strike }]
+  infusions: [{ element: Poison }]
 
 frostblood_mallet:
   name: "Frostblood Mallet"
   type: F
   skills: [smash]
-  infusions: [{ element: Ice, target: smash }]
+  infusions: [{ element: Ice }]
 
 skylance:
   name: "Skylance"
   type: F
   skills: [charge]
-  infusions: [{ element: Wind, target: charge }]
+  infusions: [{ element: Wind }]
 
 secutor_mk_i:
   name: "S.E.C.U.T.O.R. MK I"
   type: F
   skills: [riposte]
-  infusions: [{ element: Lightning, target: riposte }]
+  infusions: [{ element: Lightning }]
 
 oathsign:
   name: "Oathsign"
   type: F
   skills: [rage]
-  infusions: [{ element: Holy, target: rage }]
+  infusions: [{ element: Holy }]
 
 blackflint_revolver:
   name: "Blackflint Revolver"
   type: F
   skills: [shot]
-  infusions: [{ element: Unholy, target: shot }]
+  infusions: [{ element: Unholy }]
 
 red_arcane_lens:
   name: "Red Arcane Lens"
   type: F
   skills: [snipe]
-  infusions: [{ element: Fire, target: snipe }]
+  infusions: [{ element: Fire }]
 
 satchel_of_void_ooze:
   name: "Satchel of Void Ooze"
   type: F
   skills: [trap]
-  infusions: [{ element: Shadow, target: trap }]
+  infusions: [{ element: Shadow }]
 
 sapphire_anklet:
   name: "Sapphire Anklet"
   type: F
   skills: [maneuver]
-  infusions: [{ element: Water, target: maneuver }]
+  infusions: [{ element: Water }]
 
 feather_talisman:
   name: "Feather Talisman"
   type: F
   skills: [companion]
-  infusions: [{ element: Wind, target: companion }]
+  infusions: [{ element: Wind }]
 
 dark_faeries_blessing:
   name: "Dark Faerie's Blessing"
   type: F
   skills: [bolt]
-  infusions: [{ element: Shadow, target: bolt }]
+  infusions: [{ element: Shadow }]
 
 hoof_talisman:
   name: "Hoof Talisman"
   type: F
   skills: [blast]
-  infusions: [{ element: Earth, target: blast }]
+  infusions: [{ element: Earth }]
 
 blue_arcane_lens:
   name: "Blue Arcane Lens"
   type: F
   skills: [consume]
-  infusions: [{ element: Water, target: consume }]
+  infusions: [{ element: Water }]
 
 deployment_platform:
   name: "Deployment Platform"
   type: F
   skills: [summon]
-  infusions: [{ element: Lightning, target: summon }]
+  infusions: [{ element: Lightning }]
 
 arcadian_brooch:
   name: "Arcadian Brooch"
   type: F
   skills: [channel]
-  infusions: [{ element: Poison, target: channel }]
+  infusions: [{ element: Poison }]
 
 inquisitors_prod:
   name: "Inquisitor's Prod"
   type: F
   skills: [stab]
-  infusions: [{ element: Holy, target: stab }]
+  infusions: [{ element: Holy }]
 
 sanguine_hook:
   name: "Sanguine Hook"
   type: F
   skills: [ravage]
-  infusions: [{ element: Unholy, target: ravage }]
+  infusions: [{ element: Unholy }]
 
 dusk_rose:
   name: "Dusk Rose"
   type: F
   skills: [mislead]
-  infusions: [{ element: Earth, target: mislead }]
+  infusions: [{ element: Earth }]
 
 divine_edict:
   name: "Divine Edict"
   type: F
   skills: [stun]
-  infusions: [{ element: Holy, target: stun }]
+  infusions: [{ element: Holy }]
 
 fan_of_the_flames:
   name: "Fan of the Flames"
   type: F
   skills: [dance]
-  infusions: [{ element: Fire, target: dance }]
+  infusions: [{ element: Fire }]
 
 holy_prism:
   name: "Holy Prism"
   type: F
   skills: [heal]
-  infusions: [{ element: Ice, target: heal }]
+  infusions: [{ element: Ice }]
 
 writ_of_vengeance:
   name: "Writ of Vengeance"
   type: F
   skills: [bless]
-  infusions: [{ element: Lightning, target: bless }]
+  infusions: [{ element: Lightning }]
 
 haunted_memento:
   name: "Haunted Memento"
   type: F
   skills: [curse]
-  infusions: [{ element: Shadow, target: curse }]
+  infusions: [{ element: Shadow }]
 
 druidic_symbol:
   name: "Druidic Symbol"
   type: F
   skills: [smite]
-  infusions: [{ element: Earth, target: smite }]
+  infusions: [{ element: Earth }]
 
 tome_of_fables:
   name: "Tome of Fables"
   type: F
   skills: [prayer]
-  infusions: [{ element: Ice, target: prayer }]
+  infusions: [{ element: Ice }]
 
 oathbreakers_blade:
   name: "Oathbreaker's Blade"
   type: F
   skills: [cleave]
-  infusions: [{ element: Unholy, target: cleave }]
+  infusions: [{ element: Unholy }]
 
 faerie_bugle:
   name: "Faerie Bugle"
   type: F
   skills: [shout]
-  infusions: [{ element: Poison, target: shout }]
+  infusions: [{ element: Poison }]
 
 ironshell_shield:
   name: "Ironshell Shield"
   type: F
   skills: [withstand]
-  infusions: [{ element: Water, target: withstand }]
+  infusions: [{ element: Water }]
 
 dragon_knights_helm:
   name: "Dragon Knight's Helm"
   type: F
   skills: [taunt]
-  infusions: [{ element: Fire, target: taunt }]
+  infusions: [{ element: Fire }]
 
 rocfeather_charm:
   name: "Rocfeather Charm"
   type: F
   skills: [titan]
-  infusions: [{ element: Wind, target: titan }]
+  infusions: [{ element: Wind }]
 
 barbarian_greatclub:
   name: "Barbarian Greatclub"

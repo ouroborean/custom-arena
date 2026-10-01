@@ -1,0 +1,37 @@
+# Thunder minions.
+
+thunderbird:
+  name: Thunderbird
+  hp: 30
+  skills: [thunderbird_wingclap]
+
+thunderhead:
+  name: Thunderhead
+  hp: 25
+  passives:
+    - id: thunderhead_strike
+      name: Lightning Rod
+      kind: Neutral
+      element: Thunder
+      description: >-
+        At the end of its owner's turn, strikes the unit with the most Charge on the field, either
+        side, for 20 damage (a random enemy if no one has any).
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { any: { in: allUnits, cond: { compare: { value: { stacks: { unit: it, effect: charged } }, atLeast: 3 } } } }
+              then:
+                - { op: damage, to: { filter: allUnits, where: { compare: { value: { stacks: { unit: it, effect: charged } }, atLeast: 3 } } }, amount: 20 }
+              else:
+                - op: if
+                  cond: { any: { in: allUnits, cond: { compare: { value: { stacks: { unit: it, effect: charged } }, atLeast: 2 } } } }
+                  then:
+                    - { op: damage, to: { filter: allUnits, where: { compare: { value: { stacks: { unit: it, effect: charged } }, atLeast: 2 } } }, amount: 20 }
+                  else:
+                    - op: if
+                      cond: { any: { in: allUnits, cond: { has: { unit: it, effect: charged } } } }
+                      then:
+                        - { op: damage, to: { filter: allUnits, where: { has: { unit: it, effect: charged } } }, amount: 20 }
+                      else:
+                        - { op: damage, to: { randomEnemy: 1 }, amount: 20 }

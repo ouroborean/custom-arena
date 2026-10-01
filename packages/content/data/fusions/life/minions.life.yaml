@@ -1,0 +1,23 @@
+# Life minions.
+
+treant:
+  name: Treant
+  hp: 40
+  skills: [treant_slam, seedling_channel_earth]
+  tags: [seedling, treant]
+
+acorn:
+  name: Acorn
+  hp: 5
+  skills: [acorn_crush]
+  passives:
+    - id: acorn_growth
+      name: Patient Growth
+      kind: Neutral
+      element: Life
+      description: At the end of its owner's turn, gains 10 max HP and heals 10, without limit.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: addMaxHp, to: bearer, amount: 10 }
+            - { op: heal, to: bearer, amount: 10 }

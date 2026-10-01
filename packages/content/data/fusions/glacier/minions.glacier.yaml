@@ -1,0 +1,27 @@
+# Glacier minions.
+
+walrus_bull:
+  name: Walrus
+  hp: 45
+  skills: [walrus_tusk, walrus_haul_out]
+
+ice_tongue:
+  name: Ice Tongue
+  hp: 50
+  onSummon:
+    - { op: setCounter, name: advancing, value: 0 }
+  passives:
+    - id: ice_tongue_advance
+      name: Ice Tongue
+      kind: Neutral
+      element: Glacier
+      description: Does nothing for its first 2 turns; then, at the end of its owner's turns, deals 30 Piercing damage to a random enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { compare: { value: { counter: advancing }, atLeast: 2 } }
+              then:
+                - { op: damage, to: { randomEnemy: 1 }, amount: 30, type: Piercing }
+            - { op: setCounter, name: advancing, value: { sum: [{ counter: advancing }, 1] } }
+  skills: []

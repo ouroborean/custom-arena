@@ -1,0 +1,834 @@
+# The 30 Myth (Ice + Earth) variants, from the "Fusion Spec Kits" design doc.
+# The Saga passive gives 1 Legend per Myth skill used and per kill; at 3, the user becomes Mythic.
+# "Mythic:" riders check `has mythic` on the user.
+
+strike.myth:
+  archetype: Strike
+  element: Myth
+  name: Jotun Fist
+  description: >-
+    Deals 20 damage to target enemy, or 30 if the user has no allied minions. Mythic: it also hits a
+    random other enemy for 15.
+  cost: W
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if: { compare: { value: { countOf: { filter: allAllies, where: { kind: { unit: it, is: minion } } } }, atLeast: 1 } }
+        then: 20
+        else: 30
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+smash.myth:
+  archetype: Smash
+  element: Myth
+  name: Mountain Stomp
+  description: >-
+    Deals 15 damage to target enemy and 10 to their allies, +5 to each hit per allied Boulder. Mythic:
+    the user creates a Boulder for each enemy it hits.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: stones, value: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }] } }
+    - { op: damage, to: primary, amount: { sum: [15, { var: stones }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [10, { var: stones }] } }
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - { op: summon, minion: boulder, count: 1 }
+        - { op: repeat, times: { countOf: primaryAllies }, do: [{ op: summon, minion: boulder }] }
+
+charge.myth:
+  archetype: Charge
+  element: Myth
+  name: Mammoth Charge
+  description: >-
+    Deals 15 damage to target enemy. If the user has a Boulder, it's destroyed to add half its HP to the
+    hit; if not, they create one. Mythic: the Boulder isn't destroyed.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 1 } }
+      then:
+        - op: forEach
+          in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+          do:
+            - { op: set, var: boulderHp, value: { hp: it } }
+            - { op: damage, to: primary, amount: { sum: [15, { div: [{ var: boulderHp }, 2] }] } }
+            - op: if
+              cond: { not: { has: { unit: actor, effect: mythic } } }
+              then: [{ op: kill, to: it }]
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: summon, minion: boulder }
+
+riposte.myth:
+  archetype: Riposte
+  element: Myth
+  name: Runic Ward
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, and creates a Boulder when it does.
+    Mythic: it reflects the skill instead of countering it. Invisible.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: runic_ward_mythic
+            name: Runic Ward
+            kind: Buff
+            element: Myth
+            visibility: hidden
+            description: Reflects the first Harmful skill used on the bearer and creates a Boulder.
+            triggers:
+              - on: skillTargeted
+                when: { harmful: true }
+                intercept: reflect
+                consume: true
+                do:
+                  - { op: summon, minion: boulder }
+      else:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 1 }
+          effect:
+            id: runic_ward
+            name: Runic Ward
+            kind: Buff
+            element: Myth
+            visibility: hidden
+            description: Counters the first Harmful skill used on the bearer and creates a Boulder.
+            triggers:
+              - on: skillTargeted
+                when: { harmful: true }
+                intercept: counter
+                consume: true
+                do:
+                  - { op: summon, minion: boulder }
+
+rage.myth:
+  archetype: Rage
+  element: Myth
+  name: Call of the Saga
+  description: The user gains 2 Legend and creates a Boulder, then becomes Immune for 2 turns.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }, { op: macro, id: gain_legend }] }
+    - { op: summon, minion: boulder }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 2 } }
+
+shot.myth:
+  archetype: Shot
+  element: Myth
+  name: Hurl the Stone
+  description: >-
+    Deals 15 damage to target enemy. Can instead target an allied Boulder to hurl it at a random enemy
+    for its remaining HP. Mythic: it can hurl an enemy minion the same way.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: any
+  targetFilter: { or: [{ isEnemy: it }, { minion: { unit: it, types: [boulder] } }] }
+  ops:
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - op: if
+          cond: { and: [{ has: { unit: actor, effect: mythic } }, { kind: { unit: primary, is: minion } }] }
+          then:
+            - { op: set, var: thrown, value: { hp: primary } }
+            - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: { var: thrown } }
+            - { op: kill, to: primary }
+          else:
+            - { op: damage, to: primary, amount: 15 }
+      else:
+        - { op: forEach, in: primary, do: [{ op: macro, id: launch_boulder }] }
+
+snipe.myth:
+  archetype: Snipe
+  element: Myth
+  name: Giant's Spear
+  description: >-
+    20 Piercing damage to target enemy, growing by 20 at the end of each of the user's turns. It lands at
+    60, or as soon as the user takes damage. The target of this skill is invisible. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: setCounter, name: giants_spear, value: 20 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: giants_spear
+        name: Giant's Spear (aiming)
+        kind: Neutral
+        element: Myth
+        visibility: hiddenTarget
+        interruptible: true
+        description: Grows 20 each turn; lands at 60, or when the bearer takes damage.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: setCounter, name: giants_spear, value: { sum: [{ counter: giants_spear }, 20] } }
+              - op: if
+                cond: { compare: { value: { counter: giants_spear }, atLeast: 60 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: damage, to: effectTargets, amount: { counter: giants_spear }, type: Piercing, direct: true }
+          - on: damaged
+            do:
+              - { op: removeSelf }
+              - { op: damage, to: effectTargets, amount: { counter: giants_spear }, type: Piercing, direct: true }
+
+trap.myth:
+  archetype: Trap
+  element: Myth
+  name: Troll Bridge
+  description: >-
+    For 3 turns, whenever any enemy uses the same skill they used on their previous turn, they take 20
+    damage. Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 3 }
+      effect:
+        id: troll_bridge
+        name: Troll Bridge
+        kind: Debuff
+        element: Myth
+        visibility: hidden
+        description: Using the same skill as on their previous turn costs the bearer 20 damage.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: set, var: print, value: { sum: [{ mul: [100, { skillCost: true }] }, { mul: [10, { skillCooldown: true }] }, 1] } }
+              - op: if
+                cond:
+                  and:
+                    - { compare: { value: { sum: [{ counterOf: { unit: bearer, name: troll_print } }, { mul: [-1, { var: print }] }] }, atLeast: 0 } }
+                    - { compare: { value: { sum: [{ counterOf: { unit: bearer, name: troll_print } }, { mul: [-1, { var: print }] }] }, atMost: 0 } }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: troll_turn } }] }] }, atMost: 2 } }
+                then:
+                  - { op: damage, to: bearer, amount: 20, direct: false }
+              - { op: setCounter, name: troll_print, on: bearer, value: { var: print } }
+              - { op: setCounter, name: troll_turn, on: bearer, value: { turn: true } }
+
+maneuver.myth:
+  archetype: Maneuver
+  element: Myth
+  name: Barrow
+  description: The user is Stunned and Invulnerable until the end of their next turn, and gains 1 more Legend.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { raw: 3 } }
+    - { op: apply, to: actor, effect: stun, duration: { raw: 3 } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
+
+companion.myth:
+  archetype: Companion
+  element: Myth
+  name: Mammoth
+  description: >-
+    Summons a Mammoth (55 HP) permanently; while it stands, Frost debuffs on enemies can't be removed.
+    Trample (r): 15 damage to all enemies.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: mammoth }
+
+bolt.myth:
+  archetype: Bolt
+  element: Myth
+  name: Frost Rune
+  description: >-
+    Deals 25 damage to target enemy; the user gains 1 more Legend if they have a Frost debuff. Mythic:
+    their Frost debuffs also spread to a random ally of theirs.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond:
+        or:
+          - { has: { unit: primary, effect: frostbitten } }
+          - { has: { unit: primary, effect: chilled } }
+          - { has: { unit: primary, effect: numb } }
+          - { has: { unit: primary, effect: snowbound } }
+      then:
+        - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
+        - op: if
+          cond: { has: { unit: actor, effect: mythic } }
+          then:
+            - op: forEach
+              in: { randomEnemy: 1, exclude: primary }
+              do:
+                - { op: if, cond: { has: { unit: primary, effect: frostbitten } }, then: [{ op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }] }
+                - { op: if, cond: { has: { unit: primary, effect: chilled } }, then: [{ op: apply, to: it, effect: chilled, duration: { enemyTurns: 1 } }] }
+                - { op: if, cond: { has: { unit: primary, effect: numb } }, then: [{ op: apply, to: it, effect: numb, duration: { enemyTurns: 1 } }] }
+                - { op: if, cond: { has: { unit: primary, effect: snowbound } }, then: [{ op: apply, to: it, effect: snowbound, duration: { enemyTurns: 1 } }] }
+
+blast.myth:
+  archetype: Blast
+  element: Myth
+  name: Age of Ice
+  description: >-
+    Deals 25 damage to all enemies. Enemy minions it kills become allied Boulders. Mythic: every enemy
+    minion it hits becomes one, dead or not.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: { filter: targets, where: { kind: { unit: it, is: character } } }, amount: 25 }
+    - op: forEach
+      in: { filter: targets, where: { kind: { unit: it, is: minion } } }
+      do:
+        - { op: set, var: before, value: { hp: it } }
+        - { op: damage, to: it, amount: 25 }
+        - op: if
+          cond:
+            or:
+              - { has: { unit: actor, effect: mythic } }
+              - { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
+          then:
+            - { op: kill, to: it }
+            - { op: summon, minion: boulder }
+
+consume.myth:
+  archetype: Consume
+  element: Myth
+  name: Draught of Ages
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it and 5 more for each round the battle has
+    lasted (max 40).
+  cost: W
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: heal
+      to: actor
+      amount:
+        sum:
+          - { lastDamage: true }
+          - if: { compare: { value: { turn: true }, atLeast: 16 } }
+            then: 40
+            else: { mul: [5, { div: [{ turn: true }, 2] }] }
+
+summon.myth:
+  archetype: Summon
+  element: Myth
+  name: Trollkin
+  description: >-
+    Summons 2 Trolls (20 HP) for 3 turns. Club (r): 10 damage to target enemy. When a Troll dies or
+    expires, it turns to stone: an allied Boulder with 20 HP.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: troll, count: 2, duration: { enemyTurns: 3 } }
+
+channel.myth:
+  archetype: Channel
+  element: Myth
+  name: Awakening the Ancients
+  description: >-
+    For 3 turns, the user creates a Boulder at the end of each of their turns. When it ends, every allied
+    Boulder awakens as a Rime Giant (Frost Maul (nc): 15 damage). Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: awakening_the_ancients
+        name: Awakening the Ancients
+        kind: Neutral
+        element: Myth
+        interruptible: true
+        description: Each turn, a Boulder; when it ends, every allied Boulder awakens as a Rime Giant.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: summon, minion: boulder }
+        onExpire:
+          - { op: transformMinion, to: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } }, minion: rime_giant }
+
+stab.myth:
+  archetype: Stab
+  element: Myth
+  name: Rimecut
+  description: Deals 10 damage to target enemy, +5 per Frost debuff on them (max 25 in all).
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        sum:
+          - 10
+          - if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound], in: primary } }, atLeast: 3 } }
+            then: 15
+            else: { mul: [5, { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound], in: primary } }] }
+
+ravage.myth:
+  archetype: Ravage
+  element: Myth
+  name: Giant-Slayer
+  description: >-
+    Deals 25 Piercing damage to target enemy, +20 if they have more HP than the user. If it kills, the
+    user gains 1 more Legend. Mythic: the bonus always applies.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        if:
+          or:
+            - { has: { unit: actor, effect: mythic } }
+            - { compare: { value: { sum: [{ hp: primary }, { mul: [-1, { hp: actor }] }] }, atLeast: 1 } }
+        then: 45
+        else: 25
+    # A kill: 1 more Legend on top of Saga's own.
+    - op: if
+      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
+      then: [{ op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }]
+
+mislead.myth:
+  archetype: Mislead
+  element: Myth
+  name: Frozen Riddle
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and for 3 turns their cooldowns
+    don't tick down while they have a Frost debuff. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frozen_riddle
+        name: Frozen Riddle
+        kind: Debuff
+        element: Myth
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and their cooldowns freeze while they have a Frost debuff.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: apply
+                to: bearer
+                duration: { enemyTurns: 3 }
+                effect:
+                  id: riddled
+                  name: Riddled
+                  kind: Debuff
+                  element: Myth
+                  description: The bearer's cooldowns don't tick while they have a Frost debuff.
+                  modifiers:
+                    - mod: freezeCooldowns
+                      if:
+                        or:
+                          - { has: { unit: actor, effect: frostbitten } }
+                          - { has: { unit: actor, effect: chilled } }
+                          - { has: { unit: actor, effect: numb } }
+                          - { has: { unit: actor, effect: snowbound } }
+
+stun.myth:
+  archetype: Stun
+  element: Myth
+  name: Turned to Stone
+  description: >-
+    Target enemy is Stunned and gains 25 Shield for 3 turns; the Stun ends if the Shield breaks. Mythic:
+    it doesn't.
+  cost: Ar
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      value: 25
+      duration: { enemyTurns: 3 }
+      effect:
+        id: stone_shell
+        name: Stone Shell
+        kind: Buff
+        element: Myth
+        shield: true
+        description: A Shield; when it breaks, the Stun ends.
+    - op: if
+      cond: { not: { has: { unit: actor, effect: mythic } } }
+      then:
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 3 }
+          effect:
+            id: turned_to_stone
+            name: Turned to Stone
+            kind: Neutral
+            element: Myth
+            description: When the Stone Shell breaks, its bearer's Stun ends.
+            triggers:
+              - on: ownEffectEnded
+                when: { effects: [stone_shell], reason: [depleted] }
+                do:
+                  - { op: removeEffect, from: eventTarget, effect: stun }
+                  - { op: removeSelf }
+
+dance.myth:
+  archetype: Dance
+  element: Myth
+  name: Retold Saga
+  description: >-
+    For 3 turns, the user gains 1 Might, 1 Swiftness and 1 Focus, and 1 more of each for every earlier
+    use of this skill in the battle.
+  cost: AI
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: { sum: [1, { timesUsed: true }] }, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: { sum: [1, { timesUsed: true }] }, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, stacks: { sum: [1, { timesUsed: true }] }, duration: { enemyTurns: 3 } }
+
+heal.myth:
+  archetype: Heal
+  element: Myth
+  name: Rime Cairn
+  description: >-
+    Target ally heals 20, and the user creates a Boulder with 10 HP for each Frost debuff on the enemy
+    team (max 40).
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: set
+      var: cairn
+      value:
+        if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound], in: allEnemies } }, atLeast: 4 } }
+        then: 40
+        else: { mul: [10, { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound], in: allEnemies } }] }
+    - op: if
+      cond: { compare: { value: { var: cairn }, atLeast: 10 } }
+      then:
+        - { op: summon, minion: boulder }
+        - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ var: cairn }, -45] } }
+
+bless.myth:
+  archetype: Bless
+  element: Myth
+  name: Ancestral Gift
+  description: >-
+    Target ally gains 1 Might or 1 Armor at random for 2 turns; an allied minion gains both. Mythic: a
+    non-minion ally also becomes Mythic until the end of their next turn.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: if
+      cond: { kind: { unit: primary, is: minion } }
+      then:
+        - { op: apply, to: primary, effect: might, duration: { enemyTurns: 2 } }
+        - { op: apply, to: primary, effect: armor, duration: { enemyTurns: 2 } }
+      else:
+        - op: random
+          options:
+            - [{ op: apply, to: primary, effect: might, duration: { enemyTurns: 2 } }]
+            - [{ op: apply, to: primary, effect: armor, duration: { enemyTurns: 2 } }]
+        - op: if
+          cond: { and: [{ has: { unit: actor, effect: mythic } }, { not: { isActor: primary } }] }
+          then:
+            - { op: set, var: mythic_ticks, value: 3 }
+            - { op: forEach, in: primary, do: [{ op: macro, id: become_mythic }] }
+
+curse.myth:
+  archetype: Curse
+  element: Myth
+  name: Kinslayer's Doom
+  description: >-
+    Target enemy is Confused for 2 turns. If they die before it ends, the doom falls on their kin: every
+    ally of theirs is Confused for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: kinslayers_doom
+        name: Kinslayer's Doom
+        kind: Debuff
+        element: Myth
+        description: If the bearer dies before this ends, every ally of theirs is Confused for 2 turns.
+
+smite.myth:
+  archetype: Smite
+  element: Myth
+  name: Deed of Renown
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, each ally who damages them gives the user 1 Legend.
+    Mythic: those allies also gain 1 Armor.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: deed_of_renown
+        name: Deed of Renown
+        kind: Debuff
+        element: Myth
+        description: Each of the applier's allies who damages the bearer earns the applier 1 Legend.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
+              - op: if
+                cond: { has: { unit: actor, effect: mythic } }
+                then:
+                  - { op: apply, to: eventSource, effect: armor, duration: { enemyTurns: 1 } }
+
+prayer.myth:
+  archetype: Prayer
+  element: Myth
+  name: Song of the Saga
+  description: >-
+    All allies heal 20, and allied minions heal to full. Mythic: allies also gain 20 max HP while the
+    user stays Mythic.
+  cost: Irr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: heal, to: { filter: targets, where: { kind: { unit: it, is: minion } } }, amount: 999 }
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - op: apply
+          to: targets
+          linkTo: mythic
+          effect:
+            id: song_of_the_saga
+            name: Song of the Saga
+            kind: Buff
+            element: Myth
+            description: +20 max HP while the singer stays Mythic.
+            modifiers:
+              - { mod: maxHp, amount: 20 }
+
+cleave.myth:
+  archetype: Cleave
+  element: Myth
+  name: Jotun Sweep
+  description: >-
+    Deals 20 damage to target enemy, and 10 to a random other enemy, who is Frostbitten for 1 turn.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }
+
+shout.myth:
+  archetype: Shout
+  element: Myth
+  name: Horn of the North
+  description: >-
+    All enemies are Intimidated for 2 turns, +1 per allied Boulder (up to 4). Mythic: they're also
+    Frostbitten for as long.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: set
+      var: horn
+      value:
+        if: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 2 } }
+        then: 4
+        else: { sum: [2, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }] }
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: { var: horn } } }
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - { op: apply, to: targets, effect: frostbitten, duration: { enemyTurns: { var: horn } } }
+
+withstand.myth:
+  archetype: Withstand
+  element: Myth
+  name: Frozen Rampart
+  description: The user gains 30 Shield for 2 turns, or doubles the Shield they have.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { hasShield: actor }
+      then:
+        - { op: scaleShields, on: actor, factor: 2 }
+      else:
+        - { op: apply, to: actor, effect: shield, value: 30, duration: { enemyTurns: 2 } }
+
+taunt.myth:
+  archetype: Taunt
+  element: Myth
+  name: Old Feud
+  description: >-
+    Permanently Taunts one enemy (only one at a time). Each time they damage the user, the user gains 1
+    Legend. Mythic: the user deals 10 more to them.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: allEnemies, effect: old_feud }
+    - { op: apply, to: primary, effect: taunt }
+    - op: apply
+      to: primary
+      effect:
+        id: old_feud
+        name: Old Feud
+        kind: Debuff
+        element: Myth
+        description: Each time the bearer damages the applier, the applier gains 1 Legend.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then:
+                  - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
+    - op: apply
+      to: actor
+      effect:
+        id: old_feud_grudge
+        name: Old Feud
+        kind: Buff
+        element: Myth
+        description: While Mythic, the bearer deals 10 more to their old foe.
+        modifiers:
+          - { mod: damageDealt, amount: 10, target: { has: { unit: it, effect: old_feud } }, if: { has: { unit: actor, effect: mythic } } }
+
+titan.myth:
+  archetype: Titan
+  element: Myth
+  name: Awakened Giant
+  description: The user becomes Mythic now, for 3 turns +1 per Legend they had, and is Immune for as long.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: mythic_ticks, value: { mul: [2, { sum: [3, { stacks: { unit: actor, effect: legend } }] }] } }
+    - { op: apply, to: actor, effect: immune, duration: { raw: { var: mythic_ticks } } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: become_mythic }] }
+
+# Minion skills.
+
+mammoth_trample:
+  archetype: Minion
+  element: Myth
+  name: Trample
+  description: Deals 15 damage to all enemies.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+
+troll_club:
+  archetype: Minion
+  element: Myth
+  name: Club
+  description: Deals 10 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+rime_giant_frost_maul:
+  archetype: Minion
+  element: Myth
+  name: Frost Maul
+  description: Deals 15 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }

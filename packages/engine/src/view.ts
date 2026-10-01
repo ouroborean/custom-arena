@@ -23,6 +23,7 @@ export function effectDefinition(content: ContentBundle, e: EffectInstance): imp
 
 function effectVisibility(content: ContentBundle, e: EffectInstance): 'public' | 'hidden' | 'hiddenTarget' {
   const def = e.inline ?? content.statuses[e.defId];
+  if (e.data.invisible) return 'hidden'; // applied by an Invisible skill
   return def?.visibility ?? 'public';
 }
 

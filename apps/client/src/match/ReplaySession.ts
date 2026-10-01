@@ -16,7 +16,7 @@ import {
   type PlayerView,
   type SkillAvailability,
 } from '@arena/engine';
-import type { MatchMode, MatchSession } from './session.js';
+import { Checkpoints, type MatchMode, type MatchSession } from './session.js';
 
 export class ReplaySession implements MatchSession {
   readonly initialEvents: GameEvent[];
@@ -24,6 +24,7 @@ export class ReplaySession implements MatchSession {
   /** Commands grouped into turns (each ends with endTurn or surrender). */
   private readonly turns: { player: PlayerId; cmd: Command }[][] = [];
   private next = 0;
+  private readonly checkpoints: Checkpoints;
 
   constructor(
     readonly content: ContentBundle,
@@ -33,6 +34,7 @@ export class ReplaySession implements MatchSession {
     const r = createMatch(content, record.config);
     this.state = r.state;
     this.initialEvents = r.events;
+    this.checkpoints = new Checkpoints(content);
     let current: { player: PlayerId; cmd: Command }[] = [];
     for (const c of record.commands) {
       current.push(c);
@@ -84,6 +86,10 @@ export class ReplaySession implements MatchSession {
     throw new CommandError('replay', 'This is a replay');
   }
 
+  checkpointView(n: number, viewer: PlayerId): PlayerView | null {
+    return this.checkpoints.view(n, viewer);
+  }
+
   runBots(): GameEvent[] {
     return [];
   }
@@ -94,9 +100,9 @@ export class ReplaySession implements MatchSession {
     if (!turn) return [];
     const out: GameEvent[] = [];
     for (const { player, cmd } of turn) {
-      const r = applyCommand(this.content, this.state, player, cmd);
+      const r = applyCommand(this.content, this.state, player, cmd, { checkpoints: true });
       this.state = r.state;
-      out.push(...r.events);
+      out.push(...this.checkpoints.take(r));
     }
     return out;
   }

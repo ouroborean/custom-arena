@@ -1,0 +1,1398 @@
+{
+  "catalyst": {
+    "fusion": "Alchemy",
+    "name": "Catalyst",
+    "primary": "s5_r9_c1",
+    "alternates": [
+      "s1_r6_c8",
+      "s8_r6_c0"
+    ]
+  },
+  "catalyst_debuff": {
+    "fusion": "Alchemy",
+    "name": "Catalyst (debuff)",
+    "sharesWith": "catalyst"
+  },
+  "warded": {
+    "fusion": "Angel",
+    "name": "Warded",
+    "primary": "s3_r7_c1",
+    "alternates": [
+      "s4_r9_c5",
+      "s3_r5_c0"
+    ]
+  },
+  "halo": {
+    "fusion": "Angel",
+    "name": "Halo",
+    "primary": "s1_r3_c9",
+    "alternates": [
+      "s3_r1_c9",
+      "s6_r0_c8"
+    ]
+  },
+  "vigil_mark": {
+    "fusion": "Angel",
+    "name": "Vigil",
+    "primary": "s6_r1_c8",
+    "alternates": [
+      "s1_r5_c5",
+      "s3_r9_c0"
+    ]
+  },
+  "unction": {
+    "fusion": "Anointment",
+    "name": "Unction",
+    "primary": "s7_r1_c7",
+    "alternates": [
+      "s5_r8_c7",
+      "s8_r4_c7"
+    ]
+  },
+  "chrism": {
+    "fusion": "Anointment",
+    "name": "Chrism",
+    "primary": "s8_r4_c8",
+    "alternates": [
+      "s7_r4_c1",
+      "s6_r0_c5"
+    ]
+  },
+  "submission": {
+    "fusion": "Anointment",
+    "name": "Submission",
+    "primary": "s5_r0_c8",
+    "alternates": [
+      "s7_r2_c5",
+      "s5_r1_c0"
+    ]
+  },
+  "inoculated": {
+    "fusion": "Antidote",
+    "name": "Inoculated",
+    "primary": "s1_r7_c1",
+    "alternates": [
+      "s1_r7_c2",
+      "s8_r7_c3"
+    ]
+  },
+  "immunity": {
+    "fusion": "Antidote",
+    "name": "Immunity",
+    "primary": "s1_r7_c2",
+    "alternates": [
+      "s3_r9_c9",
+      "s6_r0_c9"
+    ]
+  },
+  "antivenom": {
+    "fusion": "Antidote",
+    "name": "Antivenom",
+    "primary": "s7_r4_c3",
+    "alternates": [
+      "s8_r5_c9",
+      "s8_r6_c8"
+    ]
+  },
+  "find_the_wound": {
+    "fusion": "Antidote",
+    "name": "Found Wound",
+    "primary": "s5_r2_c2",
+    "alternates": [
+      "s8_r2_c0",
+      "s3_r9_c8"
+    ]
+  },
+  "shared_absolution": {
+    "fusion": "Antidote",
+    "name": "Shared Absolution",
+    "primary": "s6_r0_c8",
+    "alternates": [
+      "s6_r5_c8",
+      "s4_r1_c1"
+    ]
+  },
+  "frostfire": {
+    "fusion": "Apocalypse",
+    "name": "Frostfire",
+    "primary": "s4_r6_c5",
+    "alternates": [
+      "s7_r0_c3",
+      "s3_r6_c5"
+    ]
+  },
+  "thermal_shock": {
+    "fusion": "Apocalypse",
+    "name": "Thermal Shock",
+    "primary": "s7_r6_c1",
+    "alternates": [
+      "s8_r8_c3",
+      "s7_r6_c2"
+    ]
+  },
+  "thermal_shocked": {
+    "fusion": "Apocalypse",
+    "name": "Thermal Shocked",
+    "sharesWith": "thermal_shock"
+  },
+  "death_mark": {
+    "fusion": "Assassin",
+    "name": "Death Mark",
+    "primary": "s1_r4_c6",
+    "alternates": [
+      "s1_r5_c6",
+      "s3_r2_c6"
+    ]
+  },
+  "subcontract": {
+    "fusion": "Assassin",
+    "name": "Subcontract",
+    "primary": "s4_r3_c6",
+    "alternates": [
+      "s4_r3_c5",
+      "s6_r7_c7"
+    ]
+  },
+  "whispered_names": {
+    "fusion": "Assassin",
+    "name": "Whispered Names",
+    "primary": "s4_r5_c3",
+    "alternates": [
+      "s4_r3_c5",
+      "s1_r2_c2"
+    ]
+  },
+  "shimmer": {
+    "fusion": "Aurora",
+    "name": "Shimmer",
+    "primary": "s7_r8_c2",
+    "alternates": [
+      "s3_r0_c2",
+      "s4_r9_c9"
+    ]
+  },
+  "dazzled": {
+    "fusion": "Aurora",
+    "name": "Dazzled",
+    "primary": "s5_r9_c9",
+    "alternates": [
+      "s3_r8_c5",
+      "s8_r3_c9"
+    ]
+  },
+  "cell": {
+    "fusion": "Battery",
+    "name": "Cell",
+    "primary": "s5_r4_c0",
+    "alternates": [
+      "s2_r3_c7",
+      "s3_r1_c3"
+    ]
+  },
+  "corroded": {
+    "fusion": "Battery",
+    "name": "Corroded",
+    "primary": "s4_r1_c1",
+    "alternates": [
+      "s1_r6_c7",
+      "s1_r8_c9"
+    ]
+  },
+  "battery_core": {
+    "fusion": "Battery",
+    "name": "Battery Core",
+    "primary": "s2_r3_c7",
+    "alternates": [
+      "s7_r9_c0",
+      "s5_r4_c0"
+    ]
+  },
+  "withered": {
+    "fusion": "Blight",
+    "name": "Withered",
+    "primary": "s5_r9_c5",
+    "alternates": [
+      "s7_r4_c7",
+      "s7_r2_c2"
+    ]
+  },
+  "imp_bitten": {
+    "fusion": "Blight",
+    "name": "Imp-Bitten",
+    "primary": "s2_r8_c1",
+    "alternates": [
+      "s7_r1_c3",
+      "s1_r9_c9"
+    ]
+  },
+  "hemorrhage": {
+    "fusion": "Blood",
+    "name": "Hemorrhage",
+    "primary": "s1_r1_c2",
+    "alternates": [
+      "s1_r6_c7",
+      "s7_r2_c0"
+    ]
+  },
+  "sulfur": {
+    "fusion": "Brimstone",
+    "name": "Sulfur",
+    "primary": "s2_r7_c9",
+    "alternates": [
+      "s8_r1_c6",
+      "s2_r3_c4"
+    ]
+  },
+  "aloft": {
+    "fusion": "Cloud",
+    "name": "Aloft",
+    "primary": "s4_r9_c5",
+    "alternates": [
+      "s5_r7_c0",
+      "s8_r7_c0"
+    ]
+  },
+  "drifting_hit": {
+    "fusion": "Cloud",
+    "name": "Drifting Damage",
+    "primary": "s1_r4_c2",
+    "alternates": [
+      "s2_r6_c8",
+      "s4_r3_c1"
+    ]
+  },
+  "idle_updraft": {
+    "fusion": "Cloud",
+    "name": "Idle Updraft",
+    "primary": "s5_r7_c0",
+    "alternates": [
+      "s8_r7_c0",
+      "s3_r5_c7"
+    ]
+  },
+  "low_ceiling": {
+    "fusion": "Cloud",
+    "name": "Low Ceiling",
+    "primary": "s2_r9_c0",
+    "alternates": [
+      "s3_r7_c5",
+      "s6_r8_c5"
+    ]
+  },
+  "squall_marked": {
+    "fusion": "Cloud",
+    "name": "Squall-marked",
+    "primary": "s7_r9_c8",
+    "alternates": [
+      "s2_r7_c8",
+      "s1_r4_c0"
+    ]
+  },
+  "cloud_titan_mark": {
+    "fusion": "Cloud",
+    "name": "Stormcloud",
+    "primary": "s3_r7_c5",
+    "alternates": [
+      "s2_r9_c0",
+      "s7_r9_c8"
+    ]
+  },
+  "brittle": {
+    "fusion": "Crystal",
+    "name": "Brittle",
+    "primary": "s8_r2_c7",
+    "alternates": [
+      "s2_r8_c9",
+      "s8_r3_c3"
+    ]
+  },
+  "diamond": {
+    "fusion": "Crystal",
+    "name": "Diamond",
+    "primary": "s3_r5_c9",
+    "alternates": [
+      "s5_r3_c1",
+      "s3_r9_c7"
+    ]
+  },
+  "soaked": {
+    "fusion": "Current",
+    "name": "Soaked",
+    "primary": "s1_r0_c5",
+    "alternates": [
+      "s5_r8_c7",
+      "s4_r5_c5"
+    ]
+  },
+  "current_conductor": {
+    "fusion": "Current",
+    "name": "Conductor",
+    "primary": "s7_r9_c0",
+    "alternates": [
+      "s8_r1_c1",
+      "s2_r5_c1"
+    ]
+  },
+  "hex_pain": {
+    "fusion": "Curse",
+    "name": "Hex of Pain",
+    "primary": "s2_r6_c4",
+    "alternates": [
+      "s2_r6_c5",
+      "s4_r7_c6"
+    ]
+  },
+  "hex_silence": {
+    "fusion": "Curse",
+    "name": "Hex of Silence",
+    "primary": "s8_r8_c5",
+    "alternates": [
+      "s5_r1_c7",
+      "s1_r9_c5"
+    ]
+  },
+  "hex_ruin": {
+    "fusion": "Curse",
+    "name": "Hex of Ruin",
+    "primary": "s4_r1_c5",
+    "alternates": [
+      "s6_r2_c2",
+      "s5_r2_c3"
+    ]
+  },
+  "cat_curse": {
+    "fusion": "Curse",
+    "name": "Bad Luck",
+    "primary": "s4_r8_c6",
+    "alternates": [
+      "s5_r0_c5",
+      "s1_r4_c7"
+    ]
+  },
+  "evil_eye": {
+    "fusion": "Curse",
+    "name": "Evil Eye",
+    "primary": "s1_r0_c9",
+    "alternates": [
+      "s2_r9_c9",
+      "s1_r1_c0"
+    ]
+  },
+  "hellfire": {
+    "fusion": "Devil",
+    "name": "Hellfire",
+    "primary": "s2_r1_c0",
+    "alternates": [
+      "s3_r7_c6",
+      "s1_r6_c9"
+    ]
+  },
+  "contract": {
+    "fusion": "Devil",
+    "name": "Contract",
+    "primary": "s2_r8_c4",
+    "alternates": [
+      "s8_r7_c8",
+      "s5_r8_c2"
+    ]
+  },
+  "devils_ledger": {
+    "fusion": "Devil",
+    "name": "Devil's Ledger",
+    "primary": "s5_r8_c2",
+    "alternates": [
+      "s5_r1_c8",
+      "s8_r8_c0"
+    ]
+  },
+  "banished": {
+    "fusion": "Dimension",
+    "name": "Banished",
+    "primary": "s5_r4_c6",
+    "alternates": [
+      "s6_r8_c4",
+      "s5_r9_c6"
+    ]
+  },
+  "banished_ally": {
+    "fusion": "Dimension",
+    "name": "Banished (ally)",
+    "sharesWith": "banished"
+  },
+  "entangled": {
+    "fusion": "Dimension",
+    "name": "Entangled",
+    "primary": "s3_r1_c4",
+    "alternates": [
+      "s3_r4_c3",
+      "s2_r4_c1"
+    ]
+  },
+  "entangled_buffs": {
+    "fusion": "Dimension",
+    "name": "Entangled (Buffs)",
+    "sharesWith": "entangled"
+  },
+  "exalted": {
+    "fusion": "Divine",
+    "name": "Exalted",
+    "primary": "s5_r3_c0",
+    "alternates": [
+      "s2_r3_c3",
+      "s3_r1_c9"
+    ]
+  },
+  "dragonfire": {
+    "fusion": "Dragon",
+    "name": "Dragonfire",
+    "primary": "s2_r1_c5",
+    "alternates": [
+      "s6_r4_c0",
+      "s6_r5_c5"
+    ]
+  },
+  "wyrm_heart": {
+    "fusion": "Dragon",
+    "name": "Wyrm's Heart",
+    "primary": "s4_r0_c3",
+    "alternates": [
+      "s6_r0_c4",
+      "s4_r8_c2"
+    ]
+  },
+  "hoard": {
+    "fusion": "Dragon",
+    "name": "Hoard",
+    "primary": "s6_r7_c7",
+    "alternates": [
+      "s6_r8_c8",
+      "s4_r3_c6"
+    ]
+  },
+  "burning_wake": {
+    "fusion": "Dragon",
+    "name": "Burning Wake",
+    "primary": "s3_r6_c7",
+    "alternates": [
+      "s3_r6_c8",
+      "s1_r6_c9"
+    ]
+  },
+  "warming_wings": {
+    "fusion": "Dragon",
+    "name": "Warming Wings",
+    "primary": "s3_r5_c7",
+    "alternates": [
+      "s2_r4_c8",
+      "s5_r1_c3"
+    ]
+  },
+  "elder_wyrm": {
+    "fusion": "Dragon",
+    "name": "Elder Wyrm",
+    "primary": "s6_r5_c9",
+    "alternates": [
+      "s6_r6_c6",
+      "s6_r3_c0"
+    ]
+  },
+  "unhallowed": {
+    "fusion": "Evil",
+    "name": "Unhallowed",
+    "primary": "s2_r0_c1",
+    "alternates": [
+      "s3_r2_c1",
+      "s6_r6_c7"
+    ]
+  },
+  "telltale_venom": {
+    "fusion": "Evolution",
+    "name": "Telltale Venom",
+    "primary": "s2_r4_c3",
+    "alternates": [
+      "s8_r0_c7",
+      "s4_r1_c3"
+    ]
+  },
+  "delirium": {
+    "fusion": "Evolution",
+    "name": "Delirium",
+    "primary": "s6_r6_c0",
+    "alternates": [
+      "s2_r8_c7",
+      "s5_r7_c3"
+    ]
+  },
+  "hormesis": {
+    "fusion": "Evolution",
+    "name": "Hormesis",
+    "primary": "s6_r5_c8",
+    "alternates": [
+      "s7_r4_c1",
+      "s2_r3_c5"
+    ]
+  },
+  "parasite_host": {
+    "fusion": "Evolution",
+    "name": "Parasite Host",
+    "primary": "s1_r6_c1",
+    "alternates": [
+      "s7_r8_c7",
+      "s1_r9_c8"
+    ]
+  },
+  "charmed": {
+    "fusion": "Faerie",
+    "name": "Charmed",
+    "primary": "s2_r4_c0",
+    "alternates": [
+      "s2_r1_c1",
+      "s4_r8_c2"
+    ]
+  },
+  "bewildered": {
+    "fusion": "Faerie",
+    "name": "Charmed (own side)",
+    "sharesWith": "charmed"
+  },
+  "spectral": {
+    "fusion": "Ghost",
+    "name": "Spectral",
+    "primary": "s4_r1_c7",
+    "alternates": [
+      "s6_r1_c5",
+      "s1_r2_c2"
+    ]
+  },
+  "haunt": {
+    "fusion": "Ghost",
+    "name": "Haunt",
+    "primary": "s6_r5_c1",
+    "alternates": [
+      "s2_r8_c1",
+      "s4_r1_c7"
+    ]
+  },
+  "vanished": {
+    "fusion": "Ghost",
+    "name": "Vanished",
+    "primary": "s6_r2_c9",
+    "alternates": [
+      "s8_r9_c2",
+      "s5_r9_c6"
+    ]
+  },
+  "spirit_mark": {
+    "fusion": "Ghost",
+    "name": "Spirit Mark",
+    "primary": "s4_r7_c1",
+    "alternates": [
+      "s7_r4_c4",
+      "s6_r1_c5"
+    ]
+  },
+  "beckoner": {
+    "fusion": "Ghost",
+    "name": "Beckoning",
+    "primary": "s5_r5_c1",
+    "alternates": [
+      "s2_r9_c1",
+      "s5_r5_c6"
+    ]
+  },
+  "icebound": {
+    "fusion": "Glacier",
+    "name": "Icebound",
+    "primary": "s7_r9_c3",
+    "alternates": [
+      "s8_r3_c8",
+      "s7_r5_c2"
+    ]
+  },
+  "meltwater": {
+    "fusion": "Glacier",
+    "name": "Meltwater",
+    "primary": "s5_r8_c7",
+    "alternates": [
+      "s8_r4_c7",
+      "s4_r5_c7"
+    ]
+  },
+  "grave_keeper": {
+    "fusion": "Grave",
+    "name": "Gravekeeper",
+    "primary": "s1_r3_c7",
+    "alternates": [
+      "s5_r6_c2",
+      "s1_r5_c7"
+    ]
+  },
+  "suppressed": {
+    "fusion": "Ion",
+    "name": "Suppressed",
+    "primary": "s5_r1_c7",
+    "alternates": [
+      "s1_r9_c5",
+      "s2_r0_c0"
+    ]
+  },
+  "blackout": {
+    "fusion": "Ion",
+    "name": "Blackout",
+    "primary": "s5_r6_c6",
+    "alternates": [
+      "s7_r0_c7",
+      "s8_r7_c7"
+    ]
+  },
+  "blacked_out": {
+    "fusion": "Ion",
+    "name": "Blackout (minion)",
+    "sharesWith": "blackout"
+  },
+  "soulfrost": {
+    "fusion": "Lich",
+    "name": "Soulfrost",
+    "primary": "s4_r6_c6",
+    "alternates": [
+      "s8_r3_c8",
+      "s6_r1_c4"
+    ]
+  },
+  "phylactery_bond": {
+    "fusion": "Lich",
+    "name": "Phylactery",
+    "primary": "s3_r9_c6",
+    "alternates": [
+      "s4_r5_c2",
+      "s6_r5_c4"
+    ]
+  },
+  "life_grove": {
+    "fusion": "Life",
+    "name": "Grove Tender",
+    "primary": "s7_r8_c6",
+    "alternates": [
+      "s8_r0_c5",
+      "s6_r5_c7"
+    ]
+  },
+  "bloom_timer": {
+    "fusion": "Life",
+    "name": "Blooming",
+    "primary": "s7_r9_c1",
+    "alternates": [
+      "s3_r1_c0",
+      "s4_r5_c9"
+    ]
+  },
+  "wild_growth": {
+    "fusion": "Life",
+    "name": "Wild Growth",
+    "primary": "s4_r2_c0",
+    "alternates": [
+      "s3_r2_c2",
+      "s7_r0_c6"
+    ]
+  },
+  "rebound_mark": {
+    "fusion": "Magnet",
+    "name": "Rebound",
+    "primary": "s7_r3_c7",
+    "alternates": [
+      "s5_r8_c4",
+      "s5_r2_c0"
+    ]
+  },
+  "opposite_pole": {
+    "fusion": "Magnet",
+    "name": "Opposite Pole",
+    "primary": "s6_r3_c8",
+    "alternates": [
+      "s5_r1_c2",
+      "s4_r1_c0"
+    ]
+  },
+  "contraption": {
+    "fusion": "Mechanic",
+    "name": "Contraption",
+    "primary": "s7_r2_c9",
+    "alternates": [
+      "s7_r5_c4",
+      "s3_r8_c8"
+    ]
+  },
+  "upgraded": {
+    "fusion": "Mechanic",
+    "name": "Upgrade",
+    "primary": "s7_r5_c4",
+    "alternates": [
+      "s3_r8_c8",
+      "s6_r6_c4"
+    ]
+  },
+  "fog": {
+    "fusion": "Mist",
+    "name": "Fog",
+    "primary": "s2_r6_c8",
+    "alternates": [
+      "s4_r3_c1",
+      "s2_r9_c0"
+    ]
+  },
+  "lunar_cycle": {
+    "fusion": "Moon",
+    "name": "Lunar Cycle",
+    "primary": "s3_r9_c2",
+    "alternates": [
+      "s2_r1_c3",
+      "s1_r5_c8"
+    ]
+  },
+  "moonshard": {
+    "fusion": "Moon",
+    "name": "Moonshard",
+    "primary": "s6_r3_c4",
+    "alternates": [
+      "s1_r5_c8",
+      "s1_r6_c4"
+    ]
+  },
+  "wolf_howl": {
+    "fusion": "Moon",
+    "name": "Howl",
+    "primary": "s8_r1_c0",
+    "alternates": [
+      "s2_r6_c3",
+      "s4_r5_c8"
+    ]
+  },
+  "face_of_the_moon": {
+    "fusion": "Moon",
+    "name": "Face of the Moon",
+    "primary": "s2_r1_c3",
+    "alternates": [
+      "s7_r2_c1",
+      "s3_r9_c2"
+    ]
+  },
+  "legend": {
+    "fusion": "Myth",
+    "name": "Legend",
+    "primary": "s3_r9_c5",
+    "alternates": [
+      "s2_r0_c9",
+      "s2_r0_c8"
+    ]
+  },
+  "mythic": {
+    "fusion": "Myth",
+    "name": "Mythic",
+    "primary": "s7_r3_c8",
+    "alternates": [
+      "s2_r8_c8",
+      "s7_r3_c9"
+    ]
+  },
+  "saga": {
+    "fusion": "Myth",
+    "name": "Saga",
+    "primary": "s8_r8_c0",
+    "alternates": [
+      "s8_r1_c5",
+      "s2_r8_c4"
+    ]
+  },
+  "dusk": {
+    "fusion": "Night",
+    "name": "Dusk",
+    "primary": "s3_r4_c8",
+    "alternates": [
+      "s7_r0_c7",
+      "s2_r1_c3"
+    ]
+  },
+  "frozen_sleep": {
+    "fusion": "Night",
+    "name": "Frozen Sleep",
+    "primary": "s6_r2_c7",
+    "alternates": [
+      "s2_r0_c4",
+      "s5_r5_c8"
+    ]
+  },
+  "first_light": {
+    "fusion": "Night",
+    "name": "First Light",
+    "primary": "s3_r8_c0",
+    "alternates": [
+      "s6_r8_c3",
+      "s3_r4_c8"
+    ]
+  },
+  "dormant": {
+    "fusion": "Night",
+    "name": "Dormant",
+    "primary": "s8_r5_c8",
+    "alternates": [
+      "s5_r6_c2",
+      "s4_r9_c6"
+    ]
+  },
+  "dormant_enemy": {
+    "fusion": "Night",
+    "name": "Dormant (enemy)",
+    "sharesWith": "dormant"
+  },
+  "ninja_flurry": {
+    "fusion": "Ninja",
+    "name": "Flurry",
+    "primary": "s2_r3_c0",
+    "alternates": [
+      "s7_r5_c0",
+      "s5_r4_c4"
+    ]
+  },
+  "substitution": {
+    "fusion": "Ninja",
+    "name": "Substitution",
+    "primary": "s5_r1_c2",
+    "alternates": [
+      "s4_r1_c0",
+      "s1_r3_c8"
+    ]
+  },
+  "trek": {
+    "fusion": "Nomad",
+    "name": "Trek",
+    "primary": "s2_r5_c5",
+    "alternates": [
+      "s3_r8_c3",
+      "s4_r8_c4"
+    ]
+  },
+  "nomad_trek": {
+    "fusion": "Nomad",
+    "name": "Wanderer",
+    "sharesWith": "trek"
+  },
+  "mirage": {
+    "fusion": "Nomad",
+    "name": "Mirage",
+    "primary": "s7_r7_c4",
+    "alternates": [
+      "s4_r1_c0",
+      "s3_r2_c9"
+    ]
+  },
+  "mirage_lull": {
+    "fusion": "Nomad",
+    "name": "Mirage (lull)",
+    "sharesWith": "mirage"
+  },
+  "brimming": {
+    "fusion": "Ocean",
+    "name": "Brimming",
+    "primary": "s8_r1_c1",
+    "alternates": [
+      "s7_r4_c1",
+      "s6_r3_c2"
+    ]
+  },
+  "brimming_shield": {
+    "fusion": "Ocean",
+    "name": "Brimming Shield",
+    "primary": "s1_r8_c4",
+    "alternates": [
+      "s1_r8_c3",
+      "s1_r5_c0"
+    ]
+  },
+  "slack_water_calm": {
+    "fusion": "Ocean",
+    "name": "Slack Water",
+    "primary": "s7_r3_c3",
+    "alternates": [
+      "s6_r8_c7",
+      "s8_r4_c8"
+    ]
+  },
+  "swell_of_the_deep": {
+    "fusion": "Ocean",
+    "name": "Swell of the Deep",
+    "primary": "s6_r3_c2",
+    "alternates": [
+      "s6_r5_c5",
+      "s8_r4_c4"
+    ]
+  },
+  "rebirth": {
+    "fusion": "Phoenix",
+    "name": "Rebirth",
+    "primary": "s6_r4_c9",
+    "alternates": [
+      "s2_r8_c8",
+      "s3_r7_c1"
+    ]
+  },
+  "ashes": {
+    "fusion": "Phoenix",
+    "name": "Ashes",
+    "primary": "s2_r3_c4",
+    "alternates": [
+      "s7_r8_c2",
+      "s7_r8_c1"
+    ]
+  },
+  "heat": {
+    "fusion": "Plasma",
+    "name": "Heat",
+    "primary": "s3_r2_c9",
+    "alternates": [
+      "s7_r0_c9",
+      "s3_r5_c1"
+    ]
+  },
+  "plasma_core": {
+    "fusion": "Plasma",
+    "name": "Plasma Core",
+    "primary": "s2_r5_c1",
+    "alternates": [
+      "s8_r9_c9",
+      "s3_r0_c8"
+    ]
+  },
+  "breaker_arc": {
+    "fusion": "Plasma",
+    "name": "Broken Circuit",
+    "primary": "s3_r2_c4",
+    "alternates": [
+      "s8_r8_c3",
+      "s7_r9_c0"
+    ]
+  },
+  "lens": {
+    "fusion": "Prism",
+    "name": "Lens",
+    "primary": "s5_r6_c7",
+    "alternates": [
+      "s5_r3_c1",
+      "s2_r3_c2"
+    ]
+  },
+  "galvanized": {
+    "fusion": "Reanimation",
+    "name": "Galvanized",
+    "primary": "s3_r3_c6",
+    "alternates": [
+      "s5_r6_c6",
+      "s2_r5_c1"
+    ]
+  },
+  "reanimating": {
+    "fusion": "Reanimation",
+    "name": "Reanimating",
+    "primary": "s7_r8_c4",
+    "alternates": [
+      "s5_r6_c2",
+      "s1_r3_c7"
+    ]
+  },
+  "reanimated": {
+    "fusion": "Reanimation",
+    "name": "Reanimated",
+    "primary": "s6_r0_c6",
+    "alternates": [
+      "s4_r7_c1",
+      "s8_r5_c8"
+    ]
+  },
+  "deadhand_reprieve": {
+    "fusion": "Reanimation",
+    "name": "Reprieve",
+    "primary": "s7_r8_c9",
+    "alternates": [
+      "s2_r9_c1",
+      "s6_r7_c0"
+    ]
+  },
+  "rite": {
+    "fusion": "Ritual",
+    "name": "Rite",
+    "primary": "s6_r2_c2",
+    "alternates": [
+      "s5_r2_c8",
+      "s4_r1_c5"
+    ]
+  },
+  "veiled_by_smoke": {
+    "fusion": "Ritual",
+    "name": "Veiled by Smoke",
+    "primary": "s4_r3_c1",
+    "alternates": [
+      "s6_r3_c1",
+      "s2_r6_c8"
+    ]
+  },
+  "sanctum": {
+    "fusion": "Sanctuary",
+    "name": "Sanctum",
+    "primary": "s6_r2_c1",
+    "alternates": [
+      "s2_r6_c9",
+      "s3_r6_c6"
+    ]
+  },
+  "sanctum_steady": {
+    "fusion": "Sanctuary",
+    "name": "Steadfast (Sanctum)",
+    "primary": "s2_r3_c9",
+    "alternates": [
+      "s3_r7_c3",
+      "s2_r7_c1"
+    ]
+  },
+  "living_temple": {
+    "fusion": "Sanctuary",
+    "name": "Living Temple",
+    "primary": "s2_r6_c9",
+    "alternates": [
+      "s3_r6_c6",
+      "s3_r1_c6"
+    ]
+  },
+  "stately_might": {
+    "fusion": "Sanctuary",
+    "name": "Might (Stately Measure)",
+    "sharesWith": "might"
+  },
+  "shieldbearer": {
+    "fusion": "Sanctuary",
+    "name": "Shieldbearer's Mark",
+    "primary": "s6_r1_c9",
+    "alternates": [
+      "s1_r5_c0",
+      "s8_r6_c6"
+    ]
+  },
+  "dose": {
+    "fusion": "Serum",
+    "name": "Dose",
+    "primary": "s8_r6_c8",
+    "alternates": [
+      "s8_r7_c3",
+      "s8_r6_c0"
+    ]
+  },
+  "engulfed": {
+    "fusion": "Slime",
+    "name": "Engulfed",
+    "primary": "s2_r2_c9",
+    "alternates": [
+      "s4_r9_c0",
+      "s7_r4_c1"
+    ]
+  },
+  "spores": {
+    "fusion": "Spore",
+    "name": "Spores",
+    "primary": "s7_r5_c5",
+    "alternates": [
+      "s8_r9_c4",
+      "s7_r4_c6"
+    ]
+  },
+  "mushroom_puff": {
+    "fusion": "Spore",
+    "name": "Puff",
+    "primary": "s5_r7_c4",
+    "alternates": [
+      "s4_r6_c0",
+      "s2_r6_c8"
+    ]
+  },
+  "sporeling_feed": {
+    "fusion": "Spore",
+    "name": "Fed by the Colony",
+    "primary": "s4_r6_c0",
+    "alternates": [
+      "s2_r8_c6",
+      "s5_r7_c4"
+    ]
+  },
+  "fester_pod": {
+    "fusion": "Spore",
+    "name": "Fester Pod",
+    "primary": "s8_r9_c4",
+    "alternates": [
+      "s7_r4_c6",
+      "s7_r5_c5"
+    ]
+  },
+  "infest": {
+    "fusion": "Spore",
+    "name": "Infested",
+    "primary": "s7_r9_c2",
+    "alternates": [
+      "s1_r9_c8",
+      "s1_r6_c1"
+    ]
+  },
+  "fungal_colossus": {
+    "fusion": "Spore",
+    "name": "Fungal Colossus",
+    "primary": "s2_r8_c6",
+    "alternates": [
+      "s4_r9_c6",
+      "s4_r6_c0"
+    ]
+  },
+  "suspended": {
+    "fusion": "Stasis",
+    "name": "Suspended",
+    "primary": "s7_r5_c2",
+    "alternates": [
+      "s8_r9_c7",
+      "s7_r5_c3"
+    ]
+  },
+  "suspended_ally": {
+    "fusion": "Stasis",
+    "name": "Suspended (ally)",
+    "sharesWith": "suspended"
+  },
+  "frozen_instant_hit": {
+    "fusion": "Stasis",
+    "name": "Frozen Instant",
+    "primary": "s3_r0_c0",
+    "alternates": [
+      "s5_r9_c7",
+      "s7_r5_c3"
+    ]
+  },
+  "tempest": {
+    "fusion": "Storm",
+    "name": "Tempest",
+    "primary": "s2_r7_c8",
+    "alternates": [
+      "s1_r4_c0",
+      "s7_r9_c8"
+    ]
+  },
+  "eye_of_the_storm": {
+    "fusion": "Storm",
+    "name": "Eye of the Storm",
+    "primary": "s1_r1_c9",
+    "alternates": [
+      "s1_r0_c7",
+      "s5_r9_c6"
+    ]
+  },
+  "storm_heart": {
+    "fusion": "Storm",
+    "name": "Storm Heart",
+    "primary": "s4_r8_c2",
+    "alternates": [
+      "s4_r0_c3",
+      "s2_r7_c8"
+    ]
+  },
+  "corona": {
+    "fusion": "Sun",
+    "name": "Corona",
+    "primary": "s1_r7_c5",
+    "alternates": [
+      "s5_r3_c9",
+      "s5_r2_c9"
+    ]
+  },
+  "sun_heart": {
+    "fusion": "Sun",
+    "name": "Sun's Heart",
+    "primary": "s1_r9_c7",
+    "alternates": [
+      "s7_r2_c1",
+      "s6_r3_c5"
+    ]
+  },
+  "high_noon_shut": {
+    "fusion": "Sun",
+    "name": "High Noon",
+    "primary": "s8_r5_c3",
+    "alternates": [
+      "s3_r6_c3",
+      "s7_r0_c7"
+    ]
+  },
+  "deafened": {
+    "fusion": "Thunder",
+    "name": "Deafened",
+    "primary": "s8_r9_c3",
+    "alternates": [
+      "s5_r7_c9",
+      "s8_r8_c5"
+    ]
+  },
+  "resound_echo": {
+    "fusion": "Thunder",
+    "name": "Echo",
+    "primary": "s7_r7_c9",
+    "alternates": [
+      "s8_r8_c8",
+      "s8_r9_c3"
+    ]
+  },
+  "resound_echo_wide": {
+    "fusion": "Thunder",
+    "name": "Rolling Echo",
+    "primary": "s8_r8_c8",
+    "alternates": [
+      "s7_r7_c9",
+      "s8_r0_c1"
+    ]
+  },
+  "resound_echo_fork": {
+    "fusion": "Thunder",
+    "name": "Forked Echo",
+    "primary": "s4_r7_c7",
+    "alternates": [
+      "s8_r0_c1",
+      "s4_r7_c9"
+    ]
+  },
+  "resound_echo_stun": {
+    "fusion": "Thunder",
+    "name": "Concussive Echo",
+    "primary": "s2_r9_c4",
+    "alternates": [
+      "s8_r3_c3",
+      "s3_r2_c0"
+    ]
+  },
+  "overcapacity": {
+    "fusion": "Thunder",
+    "name": "Overcapacity",
+    "primary": "s8_r1_c8",
+    "alternates": [
+      "s1_r1_c1",
+      "s2_r6_c0"
+    ]
+  },
+  "vow": {
+    "fusion": "Vengeance",
+    "name": "Vow",
+    "primary": "s7_r3_c0",
+    "alternates": [
+      "s6_r8_c0",
+      "s8_r5_c7"
+    ]
+  },
+  "wrath": {
+    "fusion": "Vengeance",
+    "name": "Wrath",
+    "primary": "s8_r8_c9",
+    "alternates": [
+      "s6_r6_c1",
+      "s3_r6_c5"
+    ]
+  },
+  "vengeance_ledger": {
+    "fusion": "Vengeance",
+    "name": "Ledger of Wrongs",
+    "primary": "s5_r1_c8",
+    "alternates": [
+      "s8_r1_c5",
+      "s5_r8_c2"
+    ]
+  },
+  "exposed": {
+    "fusion": "Vigilante",
+    "name": "Exposed",
+    "primary": "s6_r5_c6",
+    "alternates": [
+      "s5_r6_c7",
+      "s2_r4_c6"
+    ]
+  },
+  "informant_watch": {
+    "fusion": "Vigilante",
+    "name": "Informant",
+    "primary": "s2_r8_c5",
+    "alternates": [
+      "s6_r5_c6",
+      "s4_r3_c5"
+    ]
+  },
+  "patrol_watch": {
+    "fusion": "Vigilante",
+    "name": "Night Patrol (watched)",
+    "primary": "s3_r1_c7",
+    "alternates": [
+      "s2_r8_c5",
+      "s6_r1_c8"
+    ]
+  },
+  "setup_watch": {
+    "fusion": "Vigilante",
+    "name": "Setup",
+    "primary": "s6_r4_c6",
+    "alternates": [
+      "s2_r4_c1",
+      "s7_r2_c5"
+    ]
+  },
+  "swept": {
+    "fusion": "Vigilante",
+    "name": "Swept",
+    "primary": "s3_r2_c7",
+    "alternates": [
+      "s3_r3_c2",
+      "s8_r0_c8"
+    ]
+  },
+  "snowbound": {
+    "fusion": "Winter",
+    "name": "Snowbound",
+    "primary": "s5_r7_c1",
+    "alternates": [
+      "s8_r1_c2",
+      "s7_r9_c3"
+    ]
+  },
+  "fervor": {
+    "fusion": "Zealot",
+    "name": "Fervor",
+    "primary": "s8_r6_c7",
+    "alternates": [
+      "s6_r8_c0",
+      "s3_r7_c6"
+    ]
+  },
+  "fervent_chant": {
+    "fusion": "Zealot",
+    "name": "Fervent Chant",
+    "primary": "s2_r9_c8",
+    "alternates": [
+      "s8_r0_c2",
+      "s8_r0_c3"
+    ]
+  },
+  "take_the_blow": {
+    "fusion": "Zealot",
+    "name": "Take the Blow",
+    "primary": "s1_r5_c0",
+    "alternates": [
+      "s6_r1_c9",
+      "s8_r6_c6"
+    ]
+  },
+  "unction_shield": {
+    "fusion": "Zealot",
+    "name": "Unction (shield)",
+    "primary": "s6_r8_c2",
+    "alternates": [
+      "s3_r9_c9",
+      "s6_r0_c9"
+    ]
+  }
+}

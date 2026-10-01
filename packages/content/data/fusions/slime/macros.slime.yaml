@@ -1,0 +1,15 @@
+# Slime actions.
+
+# Creates an Ooze with `ooze_hp` HP (max 4 allied Oozes).
+make_ooze:
+  - op: if
+    cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }, atMost: 3 } }
+    then:
+      - { op: summon, minion: ooze }
+      - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ var: ooze_hp }, -20] } }
+      - { op: heal, to: lastSummoned, amount: 999, raw: true }
+
+# A new Ooze with `ooze_hp` HP Engulfs `it` for 3 turns.
+engulf_new:
+  - { op: macro, id: make_ooze }
+  - { op: apply, to: it, effect: engulfed, from: lastSummoned, bindTo: lastSummoned, duration: { enemyTurns: 3 } }

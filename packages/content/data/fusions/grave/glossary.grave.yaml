@@ -1,0 +1,16 @@
+# Grave keywords (docs/glossary.md).
+
+graves:
+  name: Graves
+  text: >-
+    A Grave character's count (max 6): +1 whenever any unit or minion dies, on either side. Some skills also dig a
+    Grave directly.
+  element: Grave
+  forms: [Grave, Graves]
+raise:
+  name: Raise
+  text: >-
+    Spends Graves to create Undead minions, as the skill lists. A Skeleton has 20 HP and Rattle Blade (nc): 10
+    damage. A Ghoul has 30 HP and Gnaw (r): 10 damage, and it heals 10.
+  element: Grave
+  forms: [Raise, Raises]

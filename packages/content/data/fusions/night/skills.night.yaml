@@ -1,0 +1,693 @@
+# The 30 Night (Ice + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# Dusk (hidden countdown) strikes Midnight: Frozen Sleep, then First Light. Dormant takes a unit out
+# of the fight. Macros: `dusk` (set the variable `dusk` first), `deepen_dusk`, `midnight`.
+
+strike.night:
+  archetype: Strike
+  element: Night
+  name: Gloaming Blow
+  description: >-
+    Deals 20 damage to target enemy, and their Dusk deepens by 1. 15 more against Frozen Sleep.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: it, effect: frozen_sleep } }, then: 35, else: 20 } }
+    - { op: forEach, in: primary, do: [{ op: macro, id: deepen_dusk }] }
+
+smash.night:
+  archetype: Smash
+  element: Night
+  name: Moonfall
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. The user gains Frostborn for 1 turn, plus 1
+    turn for each enemy hit who has no Buffs.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: apply
+      to: actor
+      effect: frostborn
+      duration:
+        enemyTurns: { sum: [1, { countOf: { filter: allEnemies, where: { not: { hasKind: { unit: it, kind: Buff } } } } }] }
+
+charge.night:
+  archetype: Charge
+  element: Night
+  name: Silent Descent
+  description: Deals 15 damage to target enemy, who gains Dusk 3; if the user is Stealthed, they also gain 1 Focus. Stealthy.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: set, var: dusk, value: 3 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dusk }] }
+    - op: if
+      cond: { has: { unit: actor, effect: stealth } }
+      then:
+        - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+
+riposte.night:
+  archetype: Riposte
+  element: Night
+  name: Snowdrift Shelter
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user. When it does, the user's ally with the
+    least HP becomes Dormant for 1 turn. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: snowdrift_shelter
+        name: Snowdrift Shelter
+        kind: Buff
+        element: Night
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer; the weakest ally becomes Dormant.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: weakestAlly, effect: dormant, duration: { enemyTurns: 1 } }
+
+rage.night:
+  archetype: Rage
+  element: Night
+  name: Polar Night
+  description: For 3 turns, the user gains 1 Might and Immune, and using skills doesn't end their Stealth.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: polar_night
+        name: Polar Night
+        kind: Buff
+        element: Night
+        description: The bearer's skills count as Stealthy.
+        modifiers:
+          - { mod: nextSkillStealthy }
+
+shot.night:
+  archetype: Shot
+  element: Night
+  name: Evening Star
+  description: Deals 10 damage to target enemy, who gains Dusk 4, or has their Dusk deepened by 1.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: set, var: dusk, value: 4 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dusk }] }
+
+snipe.night:
+  archetype: Snipe
+  element: Night
+  name: Last Light
+  description: >-
+    On the following turn, deals 40 damage to target enemy, or 70 Piercing if they're in Frozen Sleep. The
+    target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: last_light
+        name: Last Light (aiming)
+        kind: Neutral
+        element: Night
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn; harder against Frozen Sleep.
+        onExpire:
+          - op: forEach
+            in: effectTargets
+            do:
+              - op: if
+                cond: { has: { unit: it, effect: frozen_sleep } }
+                then: [{ op: damage, to: it, amount: 70, type: Piercing }]
+                else: [{ op: damage, to: it, amount: 40 }]
+
+trap.night:
+  archetype: Trap
+  element: Night
+  name: Breaking Ice
+  description: >-
+    For 3 turns, the first enemy to use a Harmful skill on target ally breaks through: they take 20
+    Piercing damage and are Stunned for 1 turn. Invisible.
+  cost: AI
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: breaking_ice
+        name: Breaking Ice
+        kind: Buff
+        element: Night
+        visibility: hidden
+        description: The first enemy to use a Harmful skill on the bearer breaks through the ice.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            consume: true
+            do:
+              - { op: damage, to: eventSource, amount: 20, type: Piercing }
+              - { op: apply, to: eventSource, effect: stun, duration: { enemyTurns: 1 } }
+
+maneuver.night:
+  archetype: Maneuver
+  element: Night
+  name: Hibernate
+  description: The user becomes Dormant for 2 turns.
+  cost: r
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: dormant, duration: { enemyTurns: 2 } }
+
+companion.night:
+  archetype: Companion
+  element: Night
+  name: Snow Owl
+  description: >-
+    Summons a Snow Owl (25 HP) permanently. At the end of each of your turns, a random enemy without Dusk
+    gains Dusk 4. Silent Talons (A): 15 damage, 30 against Frozen Sleep.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: snow_owl }
+
+bolt.night:
+  archetype: Bolt
+  element: Night
+  name: Rime Lance
+  description: >-
+    Deals 20 damage to target enemy and Marks them for 1 turn. Whoever spends the Mark also leaves them
+    Frostbitten for 2 turns.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: rime_lance
+        name: Rime Lance
+        kind: Neutral
+        element: Night
+        description: When the Mark is spent, its bearer is Frostbitten for 2 turns.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [mark], reason: [consumed, removed] }
+            consume: true
+            do:
+              - { op: apply, to: eventTarget, effect: frostbitten, duration: { enemyTurns: 2 } }
+
+blast.night:
+  archetype: Blast
+  element: Night
+  name: Eventide
+  description: Deals 20 damage to all enemies, and each gains Dusk 3 or has it deepened.
+  cost: AIr
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: set, var: dusk, value: 3 }
+    - { op: forEach, in: targets, do: [{ op: macro, id: dusk }] }
+
+consume.night:
+  archetype: Consume
+  element: Night
+  name: Stolen Hours
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. Then the user steals an hour: every Debuff on
+    the user's side loses 1 turn, and every Debuff on target enemy gains 1.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - { op: extendEffects, on: allAllies, kind: Debuff, by: -2 }
+    - { op: extendEffects, on: primary, kind: Debuff, by: 2 }
+
+summon.night:
+  archetype: Summon
+  element: Night
+  name: Call the Revenant
+  description: >-
+    Summons a Rime Revenant (20 HP) for 3 turns. At the end of each of the user's turns, it deals 15
+    damage to the last enemy who damaged the user (or a random enemy).
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: rime_revenant, duration: { enemyTurns: 3 } }
+
+channel.night:
+  archetype: Channel
+  element: Night
+  name: Winter Solstice
+  description: >-
+    The user becomes Dormant for 2 turns and channels from inside the sleep: at the end of each of their
+    turns, 10 damage to all enemies. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - { op: apply, to: actor, effect: dormant, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: winter_solstice
+        name: Winter Solstice
+        kind: Neutral
+        element: Night
+        interruptible: true
+        description: Each turn, 10 damage to all enemies from inside the sleep.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+
+stab.night:
+  archetype: Stab
+  element: Night
+  name: Rime Stiletto
+  description: Deals 10 damage to target enemy, or 25 if they're Asleep, without waking them.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: sleep } }
+      then: [{ op: damage, to: primary, amount: 25, wakes: false }]
+      else: [{ op: damage, to: primary, amount: 10 }]
+
+ravage.night:
+  archetype: Ravage
+  element: Night
+  name: Blackfrost Fang
+  description: >-
+    Deals 25 Piercing damage to target enemy. Their Blindness freezes over: it ends, and they're
+    Frostbitten and Numb for 2 turns.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - op: if
+      cond: { has: { unit: primary, effect: blinded } }
+      then:
+        - { op: removeEffect, from: primary, effect: blinded }
+        - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
+        - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 2 } }
+
+mislead.night:
+  archetype: Mislead
+  element: Night
+  name: False Dawn
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and if they have Dusk, Midnight
+    strikes now. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: false_dawn
+        name: False Dawn
+        kind: Debuff
+        element: Night
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and Midnight strikes if they have Dusk.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: dusk } }
+                then:
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: midnight }] }
+
+stun.night:
+  archetype: Stun
+  element: Night
+  name: Lulled Under Snow
+  description: >-
+    Deals 15 damage to target enemy, and they become Dormant for 1 turn: out of the fight, but out of the
+    user's side's reach too.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: dormant_enemy, duration: { enemyTurns: 1 } }
+
+dance.night:
+  archetype: Dance
+  element: Night
+  name: Drowsing Waltz
+  description: >-
+    For 4 turns, the user gains 1 Might and 2 Swiftness. The first hit meanwhile that would leave them
+    below 30 HP is stopped at 30, and they become Dormant for 1 turn instead.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: drowsing_waltz
+        name: Drowsing Waltz
+        kind: Buff
+        element: Night
+        description: The first hit that would leave the bearer below 30 HP stops at 30, and they become Dormant.
+        modifiers:
+          - { mod: hpFloor, amount: 30 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 30 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: apply, to: bearer, effect: dormant, duration: { enemyTurns: 1 } }
+
+heal.night:
+  archetype: Heal
+  element: Night
+  name: Winter Rest
+  description: Target ally heals 15 and becomes Dormant for 1 turn, pulling them out of the fight.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: dormant, duration: { enemyTurns: 1 } }
+
+bless.night:
+  archetype: Bless
+  element: Night
+  name: Promise of Dawn
+  description: >-
+    Nothing happens yet. 2 turns from now, target ally gains 2 Might, 2 Swiftness and 3 Renew for 3 turns.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: apply
+      to: primary
+      duration: { raw: 4 }
+      effect:
+        id: promise_of_dawn
+        name: Promise of Dawn
+        kind: Buff
+        element: Night
+        description: When this ends, the bearer gains 2 Might, 2 Swiftness and 3 Renew.
+        onExpire:
+          - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+          - { op: apply, to: bearer, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+          - { op: apply, to: bearer, effect: renew, stacks: 3 }
+
+curse.night:
+  archetype: Curse
+  element: Night
+  name: Starless Sky
+  description: >-
+    Target enemy gains Dusk 4, or has their Dusk deepened by 1. For 2 turns, each skill they use deepens
+    it by 1 more.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: dusk, value: 4 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dusk }] }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: starless_sky
+        name: Starless Sky
+        kind: Debuff
+        element: Night
+        visibility: hidden
+        description: Each skill the bearer uses deepens their Dusk by 1.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: deepen_dusk }] }
+
+smite.night:
+  archetype: Smite
+  element: Night
+  name: Hidden Moon
+  description: >-
+    Deals 20 damage to target enemy, who is Sanctified for 1 turn. For 1 turn, allies who damage them keep
+    their Stealth (their next skill counts as Stealthy). Stealthy.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Stealthy]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hidden_moon
+        name: Hidden Moon
+        kind: Debuff
+        element: Night
+        description: The applier's allies who damage the bearer keep their Stealth.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { has: { unit: eventSource, effect: stealth } }
+                then:
+                  - { op: apply, to: eventSource, effect: veiled_by_smoke, until: { skillUsed: {} } }
+
+prayer.night:
+  archetype: Prayer
+  element: Night
+  name: Hibernal Vigil
+  description: All allies heal 15 and become Dormant for 1 turn; the whole team skips a turn to fortify.
+  cost: Irr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: dormant, duration: { enemyTurns: 1 } }
+
+cleave.night:
+  archetype: Cleave
+  element: Night
+  name: Crescent Cleave
+  description: >-
+    Deals 25 damage to target enemy, and 15 to another enemy with Dusk (random if none has it).
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: dusk } } } }, atLeast: 1 } }
+      then:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary, where: { has: { unit: it, effect: dusk } } }, amount: 15 }
+      else:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+
+shout.night:
+  archetype: Shout
+  element: Night
+  name: Hoarfrost Howl
+  description: All enemies are Intimidated for 2 turns. Meanwhile, each Frost debuff they gain lasts 1 turn longer.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hoarfrost_howl
+        name: Hoarfrost Howl
+        kind: Debuff
+        element: Night
+        description: Each Frost debuff the bearer gains lasts 1 turn longer.
+        triggers:
+          - on: effectGained
+            when: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost] }
+            do:
+              - { op: eventEffect, extendBy: 2 }
+
+withstand.night:
+  archetype: Withstand
+  element: Night
+  name: Frostfall Cloak
+  description: >-
+    The user gains 20 Shield for 1 turn. If an enemy breaks it, the user gains Stealth for 1 turn per
+    Frost debuff that enemy has (max 3).
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frostfall_cloak
+        name: Frostfall Cloak
+        kind: Buff
+        element: Night
+        shield: true
+        description: A Shield; if an enemy breaks it, Stealth for 1 turn per Frost debuff on the breaker.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - op: if
+                cond: { and: [{ isEnemy: eventSource }, { not: { hasShield: bearer } }] }
+                then:
+                  - op: set
+                    var: frost
+                    value:
+                      if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }, atLeast: 3 } }
+                      then: 3
+                      else: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }
+                  - op: if
+                    cond: { compare: { value: { var: frost }, atLeast: 1 } }
+                    then:
+                      - { op: removeEffect, from: bearer, effect: stealth }
+                      - { op: apply, to: bearer, effect: stealth, duration: { enemyTurns: { var: frost } } }
+
+taunt.night:
+  archetype: Taunt
+  element: Night
+  name: Feigned Sleep
+  description: >-
+    Target enemy is Taunted by the user for 2 turns, then the user becomes Dormant for 1 turn: while the
+    user sleeps out of reach, the Taunted enemy has no one they may target.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: dormant, duration: { enemyTurns: 1 } }
+
+titan.night:
+  archetype: Titan
+  element: Night
+  name: Sleeping Giant
+  description: >-
+    The user becomes Dormant for 2 turns, gaining 20 Shield per turn instead of 10. When they wake, every
+    enemy gains Dusk 2.
+  cost: IW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sleeping_giant
+        name: Dormant
+        kind: Buff
+        element: Night
+        countsAs: [dormant]
+        description: Out of the fight, gaining 20 Shield per turn; wakes with 1 Focus, and every enemy gains Dusk 2.
+        modifiers:
+          - { mod: cannotUseSkills }
+          - { mod: untargetable, by: enemies, bypassable: false }
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: bearer, effect: shield, value: 20, duration: { enemyTurns: 1 } }
+        onExpire:
+          - { op: apply, to: bearer, effect: focus, until: { skillUsed: {} } }
+          - { op: set, var: dusk, value: 2 }
+          - { op: forEach, in: allEnemies, do: [{ op: macro, id: dusk }] }
+
+# Minion skills.
+
+snow_owl_silent_talons:
+  archetype: Minion
+  element: Night
+  name: Silent Talons
+  description: Deals 15 damage to target enemy, 30 against Frozen Sleep.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { if: { has: { unit: it, effect: frozen_sleep } }, then: 30, else: 15 } }

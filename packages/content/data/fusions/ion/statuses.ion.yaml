@@ -1,0 +1,29 @@
+# Ion (Lightning + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+
+suppressed:
+  name: Suppressed
+  kind: Debuff
+  element: Ion
+  stacking: unique
+  description: The bearer's Buffs have no effect while it lasts; they still tick down and can still be removed.
+  modifiers:
+    - { mod: suppressBuffs }
+
+# Blackout on a character: their minions are blacked out with it (macro `blackout`).
+blackout:
+  name: Blackout
+  kind: Debuff
+  element: Ion
+  stacking: unique
+  description: The bearer's minions can't use skills and their effects pause.
+
+blacked_out:
+  name: Blackout
+  kind: Debuff
+  element: Ion
+  stacking: unique
+  countsAs: [blackout]
+  description: A blacked-out minion can't act, and its effects pause.
+  modifiers:
+    - { mod: cannotUseSkills }
+    - { mod: suspendEffects }

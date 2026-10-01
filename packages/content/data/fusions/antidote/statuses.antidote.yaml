@@ -1,0 +1,63 @@
+# Antidote (Poison + Holy) statuses, from the "Fusion Spec Kits" design doc.
+
+# Inoculated: the next Debuff is stopped, and the bearer is immune to it for 3 turns.
+inoculated:
+  name: Inoculated
+  kind: Buff
+  element: Antidote
+  stacking: unique
+  description: The next Debuff applied to the bearer is prevented, and they're immune to that Debuff for 3 turns.
+  triggers:
+    - on: effectGained
+      when: { kind: Debuff }
+      consume: true
+      do:
+        - { op: immunize, to: bearer, duration: { enemyTurns: 3 } }
+        - { op: eventEffect, remove: true }
+        # Antivenom: whoever tried it takes 10 Affliction.
+        - op: if
+          cond: { has: { unit: bearer, effect: antivenom } }
+          then:
+            - { op: damage, to: eventSource, amount: 10, type: Affliction, direct: false }
+            - { op: removeEffect, from: bearer, effect: antivenom }
+
+# Immunity to one Debuff (its key is set by the `immunize` op).
+immunity:
+  name: Immunity
+  kind: Buff
+  element: Antidote
+  stacking: independent
+  description: The bearer can't gain the Debuff this immunity was made against.
+  modifiers:
+    - { mod: immuneToEffects, effects: [], fromData: true }
+
+# Antivenom's rider: the Inoculation it gives stings whoever it stops.
+antivenom:
+  name: Antivenom
+  kind: Neutral
+  element: Antidote
+  stacking: unique
+  description: When the bearer's Inoculation stops a Debuff, its source takes 10 Affliction.
+
+# Find the Wound: at or below 60 HP, the bearer is Prey (see the poison "prey" condition).
+find_the_wound:
+  name: Found Wound
+  kind: Debuff
+  element: Antidote
+  stacking: unique
+  description: While at or below 60 HP, the bearer counts as Prey.
+
+# Shared Absolution: Sanctify on the bearer also heals the damager's allies (15 each).
+shared_absolution:
+  name: Shared Absolution
+  kind: Debuff
+  element: Antidote
+  stacking: unique
+  description: While Sanctified, each direct hit on the bearer also heals every other ally of the damager 15.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: sanctify } }
+          then: [{ op: heal, to: { filter: allAllies, where: { kind: { unit: it, is: character } }, exclude: eventSource }, amount: 15 }]

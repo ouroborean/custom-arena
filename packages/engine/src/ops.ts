@@ -20,10 +20,10 @@ import {
 import { dealDamage, heal, killUnit } from './damage.js';
 import { costTotal } from './energy.js';
 import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration, Selector, SkillDef, TriggerSpec, Value } from './defs.js';
-import { applyEffect, removeEffect, revealEffect } from './effects.js';
+import { applyEffect, interruptChannels, isProtected, removeEffect, restack, revealEffect } from './effects.js';
 import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
-import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
+import { COLORS, type EffectInstance, type Energy, type SkillSlot, type Unit, type UnitId } from './types.js';
 
 export interface Scope {
   actor: UnitId;
@@ -37,6 +37,8 @@ export interface Scope {
   it?: UnitId;
   vars: Record<string, number | boolean>;
   lastDamage: number;
+  /** Healing the most recent heal op couldn't give (target full). */
+  lastOverheal?: number;
   lastDamaged: UnitId[];
   lastSummoned?: UnitId;
   /** Default for damage ops: true for a skill's own ops, false for triggers and ticks. */
@@ -109,7 +111,58 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return sc.lastSummoned ? one(ctx, sc.lastSummoned) : [];
     case 'allUnits':
       return ctx.s.units.filter((u) => u.alive);
+    // Fusion kits: "the ally with the least HP", "the enemy with the least / most HP" (characters
+    // only; ties go to the earliest in team order).
+    case 'weakestAlly':
+      return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'weakestOtherAlly':
+      return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && u.id !== actor.id && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'weakestEnemy':
+      return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'bearerAllies': {
+      const b = one(ctx, sc.bearer)[0];
+      if (!b) return [];
+      return livingUnits(ctx.s, b.owner).filter((u) => u.id !== b.id);
+    }
+    case 'randomAnyEnemy':
+      return sample(ctx.s.rng, ctx.s.units.filter((u) => u.alive && isEnemy(actor, u)), 1);
+    case 'randomBearerAlly': {
+      const b = one(ctx, sc.bearer)[0];
+      if (!b) return [];
+      return sample(ctx.s.rng, livingUnits(ctx.s, b.owner).filter((u) => u.id !== b.id), 1);
+    }
+    case 'primaryPartners': {
+      const p = sc.targets[0];
+      if (!p) return [];
+      const groups = new Set(
+        modsOn(ctx.s, ctx.c, p, 'entangleLink').map(({ effect }) => effect.data.group),
+      );
+      const ids = new Set(ctx.s.effects.filter((x) => groups.has(x.data.group) && x.bearer !== p).map((x) => x.bearer));
+      return [...ids].flatMap((id) => one(ctx, id)).filter((u) => u.alive);
+    }
+    case 'lastAttacker': {
+      const u = actor.lastAttacker ? findUnit(ctx.s, actor.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
+    case 'summonerLastAttacker': {
+      const s = actor.summonedBy ? findUnit(ctx.s, actor.summonedBy) : undefined;
+      const u = s?.lastAttacker ? findUnit(ctx.s, s.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
+    case 'primaryLastAttacker': {
+      const p = sc.targets[0] ? findUnit(ctx.s, sc.targets[0]) : undefined;
+      const u = p?.lastAttacker ? findUnit(ctx.s, p.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
+    case 'strongestEnemy':
+      return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'max');
   }
+}
+
+function extremeHp(units: Unit[], pick: 'min' | 'max'): Unit[] {
+  let best: Unit | undefined;
+  for (const u of units) if (!best || (pick === 'min' ? u.hp < best.hp : u.hp > best.hp)) best = u;
+  return best ? [best] : [];
 }
 
 export function select(ctx: Ctx, sel: Selector, sc: Scope): Unit[] {
@@ -149,6 +202,28 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('lastDamage' in v) return sc.lastDamage;
   if ('effectValue' in v) return sc.self?.value ?? 0;
+  if ('timesUsed' in v) return timesUsed(ctx, sc);
+  if ('counter' in v) return unit(ctx, sc.actor).counters[`c:${v.counter}`] ?? 0;
+  if ('counterOf' in v) {
+    const u = select(ctx, v.counterOf.unit, sc)[0];
+    return u ? (u.counters[`c:${v.counterOf.name}`] ?? 0) : 0;
+  }
+  if ('turn' in v) return ctx.s.turn;
+  if ('lastOverheal' in v) return sc.lastOverheal ?? 0;
+  if ('effectValueOf' in v) {
+    const u = select(ctx, v.effectValueOf.unit, sc)[0];
+    return u ? effectsOn(ctx.s, u.id).filter((e) => effectKeyOf(e) === v.effectValueOf.effect).reduce((n, e) => n + e.value, 0) : 0;
+  }
+  if ('effectData' in v) {
+    const d = sc.self?.data[v.effectData];
+    return typeof d === 'number' ? d : 0;
+  }
+  if ('kindCount' in v) {
+    const u = select(ctx, v.kindCount.unit, sc)[0];
+    if (!u) return 0;
+    const of = effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === v.kindCount.kind);
+    return v.kindCount.stacks ? of.reduce((n, e) => n + e.stacks, 0) : of.length;
+  }
   if ('effectStacks' in v) return sc.self?.stacks ?? 0;
   if ('stacks' in v) {
     const u = select(ctx, v.stacks.unit, sc)[0];
@@ -157,7 +232,15 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   if ('count' in v) {
     const keys = new Set(v.count.effects);
     const where = v.count.in ? new Set(select(ctx, v.count.in, sc).map((u) => u.id)) : null;
-    return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
+    // A listed effect counts once; one that only counts as listed keys counts once per key (Frozen Sleep:
+    // Frostbitten, Chilled and Numb).
+    let n = 0;
+    for (const e of ctx.s.effects) {
+      if (where && !where.has(e.bearer)) continue;
+      if (keys.has(effectKeyOf(e))) n++;
+      else for (const k of new Set(effectDef(ctx.c, e).countsAs ?? [])) if (keys.has(k)) n++;
+    }
+    return n;
   }
   if ('countOf' in v) return select(ctx, v.countOf, sc).length;
   if ('totalStacks' in v) {
@@ -178,6 +261,25 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   if ('skillCost' in v) {
     const d = scopeSkill(ctx, sc);
     return d ? costTotal(d.cost) : 0;
+  }
+  if ('skillCooldown' in v) return scopeSkill(ctx, sc)?.cooldown ?? 0;
+  if ('energyOf' in v) {
+    const u = select(ctx, v.energyOf.unit, sc)[0];
+    if (!u) return 0;
+    const pool = ctx.s.players[u.owner].energy;
+    return v.energyOf.colors ? COLORS.filter((c) => pool[c] > 0).length : COLORS.reduce((n, c) => n + pool[c], 0);
+  }
+  if ('totalHp' in v) return select(ctx, v.totalHp, sc).reduce((n, u) => n + u.hp, 0);
+  if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
+  if ('useSeq' in v) return ctx.useStartSeq ?? -1;
+  if ('recentDeaths' in v) {
+    return ctx.s.units.filter((u) => !u.alive && (u.counters['c:died_turn'] ?? -9) >= ctx.s.turn - 2).length;
+  }
+  if ('minionsLost' in v) {
+    const me = unit(ctx, sc.actor);
+    return ctx.s.units.filter(
+      (u) => u.kind === 'minion' && !u.alive && u.owner === me.owner && (u.counters['c:died_turn'] ?? -9) >= ctx.s.turn - 2,
+    ).length;
   }
   if ('deadCount' in v) {
     const me = unit(ctx, sc.actor);
@@ -209,8 +311,11 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('has' in c) {
     const u = select(ctx, c.has.unit, sc)[0];
     if (!u) return false;
-    if (!c.has.mine) return hasEffect(ctx.s, u.id, c.has.effect);
-    return effectsOn(ctx.s, u.id).some((e) => effectKeyOf(e) === c.has.effect && e.source === sc.actor);
+    // A status can count as another for these checks (Cloud's Aloft counts as Leaping).
+    const matches = (e: EffectInstance) =>
+      effectKeyOf(e) === c.has.effect || (!c.has.exact && (effectDef(ctx.c, e).countsAs?.includes(c.has.effect) ?? false));
+    if (!c.has.mine) return hasEffect(ctx.s, u.id, c.has.effect) || effectsOn(ctx.s, u.id).some(matches);
+    return effectsOn(ctx.s, u.id).some((e) => matches(e) && e.source === sc.actor);
   }
   if ('hasFromArchetype' in c) {
     const u = select(ctx, c.hasFromArchetype.unit, sc)[0];
@@ -243,6 +348,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     return !!u && withIt(sc, u.id, () => evalCond(ctx, named, sc));
   }
   if ('isActor' in c) return select(ctx, c.isActor, sc)[0]?.id === sc.actor;
+  if ('isPrimary' in c) return !!sc.targets[0] && select(ctx, c.isPrimary, sc)[0]?.id === sc.targets[0];
   if ('isEnemy' in c) {
     const u = select(ctx, c.isEnemy, sc)[0];
     return !!u && isEnemy(unit(ctx, sc.actor), u);
@@ -280,15 +386,26 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('or' in c) return c.or.some((x) => evalCond(ctx, x, sc));
   if ('not' in c) return !evalCond(ctx, c.not, sc);
   if ('flag' in c) return !!sc.self?.data[c.flag];
+  if ('eventTargetIs' in c) {
+    const u = select(ctx, c.eventTargetIs, sc)[0];
+    return !!u && sc.eventTarget === u.id;
+  }
   if ('isEventTarget' in c) {
     const u = select(ctx, c.isEventTarget, sc)[0];
-    return !!u && (sc.eventTargets ?? []).includes(u.id);
+    // Events with a single target (damage, healing, signals) have no target list.
+    return !!u && (sc.eventTargets ? sc.eventTargets.includes(u.id) : sc.eventTarget === u.id);
   }
   if ('appliedFromArchetype' in c) {
     return ctx.s.effects.some((e) => e.source === sc.actor && archetypeOf(ctx.c, e.sourceSkill) === c.appliedFromArchetype);
   }
   if ('eventTargetHad' in c) {
-    return (sc.snapshot ?? []).some((e) => e.source === sc.actor && c.eventTargetHad.archetypes.includes(archetypeOf(ctx.c, e.sourceSkill) ?? ''));
+    const { archetypes, effects } = c.eventTargetHad;
+    return (sc.snapshot ?? []).some(
+      (e) =>
+        e.source === sc.actor &&
+        (!archetypes || archetypes.includes(archetypeOf(ctx.c, e.sourceSkill) ?? '')) &&
+        (!effects || effects.includes(effectKeyOf(e)) || (effectDef(ctx.c, e).countsAs ?? []).some((k) => effects.includes(k))),
+    );
   }
   if ('eventSkill' in c) {
     const d = scopeSkill(ctx, sc);
@@ -296,6 +413,8 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (c.eventSkill.archetypes && !c.eventSkill.archetypes.includes(d.archetype)) return false;
     if (c.eventSkill.costAtLeast !== undefined && costTotal(d.cost) < c.eventSkill.costAtLeast) return false;
     if (c.eventSkill.tags && !c.eventSkill.tags.some((t) => d.tags.includes(t))) return false;
+    if (c.eventSkill.elements && !c.eventSkill.elements.includes(d.element)) return false;
+    if (c.eventSkill.single !== undefined && c.eventSkill.single !== ['enemy', 'ally', 'any'].includes(d.target)) return false;
     return true;
   }
   if ('channeling' in c) {
@@ -311,7 +430,14 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     // Blocks limited to certain skills (an Ice Hammer's Taunt lock) don't count.
     return !!u && modsOn(ctx.s, ctx.c, u.id, 'cannotUseSkills').some(({ spec }) => !spec.archetypes && !spec.skillsWith);
   }
+  if ('crest' in c) return timesUsed(ctx, sc) % 2 === 0;
   return !!sc.vars[c.varTrue];
+}
+
+/** How many times the actor has used the skill in scope before this use. */
+function timesUsed(ctx: Ctx, sc: Scope): number {
+  const id = sc.skill?.id;
+  return id ? (unit(ctx, sc.actor).counters[`uses:${id}`] ?? 0) : 0;
 }
 
 // ---------------------------------------------------------------- ops
@@ -357,12 +483,12 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       // The skill "dealing" it: the one being used, or the one that applied the ticking/delayed effect.
       const damageSkill = sc.skill?.id ?? sc.self?.sourceSkill;
       for (const t of select(ctx, op.to, sc)) {
-        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)) * catalyze(ctx, t);
         const dealt = dealDamage(ctx, {
           source: dealer,
           target: t,
           amount,
-          type: op.type ?? 'Normal',
+          type: (op.type ?? 'Normal') === 'Normal' && modsOn(ctx.s, ctx.c, dealer.id, 'normalAsPiercing').length > 0 ? 'Piercing' : (op.type ?? 'Normal'),
           direct: op.direct ?? sc.direct,
           bypass: op.bypass ?? sc.bypass,
           ...(respectsInvulnerable ? { respectsInvulnerable } : {}),
@@ -377,7 +503,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'heal':
       for (const t of select(ctx, op.to, sc)) {
-        heal(ctx, actor, t, withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)), { raw: op.raw, quiet: op.quiet });
+        const want = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)) * catalyze(ctx, t);
+        const room = t.maxHp - t.hp;
+        heal(ctx, actor, t, want, { raw: op.raw, quiet: op.quiet });
+        sc.lastOverheal = Math.max(0, want - room);
       }
       return;
     case 'apply': {
@@ -386,8 +515,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
       const src = op.from ? select(ctx, op.from, sc)[0] : actor;
       if (!src) return; // e.g. the minion it should come from wasn't summoned
+      // (Looked for on the actor, then on the bearer of the effect running this: Fertile Silt on an ally.)
       const linkedTo = op.linkTo
-        ? effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id
+        ? (effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id ??
+          (sc.bearer ? effectsOn(ctx.s, sc.bearer).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id : undefined))
         : op.linkToEvent
           ? ctx.s.effects.find((e) => e.id === sc.eventEffect)?.id
           : undefined;
@@ -398,8 +529,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (duration === null) return; // e.g. "1 turn per 15 missing health" with too little missing
       for (const t of select(ctx, op.to, sc)) {
         withIt(sc, t.id, () => {
-          const stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
+          let stacks = op.stacks === undefined ? 1 : evalValue(ctx, op.stacks, sc);
           if (stacks <= 0) return; // "1 Might per Ignite" with no Ignites applies nothing
+          // Catalyst doubles what a skill applies, but not another Catalyst.
+          const doubled = (def.modifiers ?? []).some((m) => m.mod === 'catalyst') ? 1 : catalyze(ctx, t);
+          stacks *= doubled;
           applyEffect(ctx, {
             def,
             inline: typeof op.effect !== 'string',
@@ -408,7 +542,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
             sourceSkill: sc.skill,
             stacks,
             value: op.value === undefined ? 0 : evalValue(ctx, op.value, sc),
-            duration,
+            duration: doubled > 1 && duration ? doubleDuration(duration) : duration,
             targets: remembered,
             until: op.until,
             boundTo,
@@ -432,13 +566,265 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'kill':
       for (const t of select(ctx, op.to, sc)) killUnit(ctx, t, actor, sc.skill?.id);
       return;
+    case 'interrupt':
+      for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
+      return;
+    case 'entangle': {
+      const units = [...new Set([...select(ctx, op.to, sc), ...(op.with ? select(ctx, op.with, sc) : [])])];
+      if (units.length < 2) return;
+      const group = nextId(ctx, 'g');
+      const def = resolveEffectDef(ctx.c, op.effect);
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return;
+      for (const u of units) {
+        const e = applyEffect(ctx, { def, inline: false, bearer: u, source: actor, sourceSkill: sc.skill, duration });
+        if (e) e.data.group = group;
+      }
+      return;
+    }
+    case 'moveEffects': {
+      const to = select(ctx, op.to, sc)[0];
+      if (!to) return;
+      const moving = select(ctx, op.from, sc).filter((u) => u !== to).flatMap((from) => effectsOn(ctx.s, from.id)).filter(
+        (e) =>
+          (op.kind ? effectDef(ctx.c, e).kind === op.kind : true) &&
+          (op.effects ? op.effects.includes(effectKeyOf(e)) : true) &&
+          !isProtected(ctx, e), // protected effects can't be moved either (Festering Howl)
+      );
+      for (const e of moving) {
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: to,
+          source: findUnit(ctx.s, e.source) ?? actor,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+        e.data.moved = true; // a move isn't a cleanse (Curse's Lingering)
+        removeEffect(ctx, e, 'removed');
+      }
+      return;
+    }
+    case 'transmute': {
+      let total = 0;
+      const event = op.event ? ctx.s.effects.find((x) => x.id === sc.eventEffect) : undefined;
+      for (const u of select(ctx, op.on, sc)) {
+        const recipes = isEnemy(actor, u) ? TRANSMUTE_ENEMY : TRANSMUTE_ALLY;
+        let pool = effectsOn(ctx.s, u.id).filter(
+          (e) =>
+            (!op.event || e === event) &&
+            (!op.effects || op.effects.includes(effectKeyOf(e))) &&
+            (!op.kind || effectDef(ctx.c, e).kind === op.kind) &&
+            !isProtected(ctx, e),
+        );
+        const recipeFor = (e: EffectInstance): string | undefined =>
+          recipes[effectKeyOf(e)] ?? (!isEnemy(actor, u) && effectDef(ctx.c, e).kind === 'Debuff' ? 'renew' : undefined);
+        if (!op.removeUnmatched) pool = pool.filter((e) => recipeFor(e) !== undefined);
+        if (op.count !== undefined) pool = sample(ctx.s.rng, pool, op.count);
+        // Everything leaves first, so a removed Immune doesn't block the new Debuffs.
+        const recipesNow = pool.map((e) => [e, recipeFor(e)] as const);
+        for (const e of pool) removeEffect(ctx, e, 'removed');
+        for (const [e, into] of recipesNow) {
+          if (!into || !ctx.c.statuses[into]) continue;
+          applyEffect(ctx, {
+            def: ctx.c.statuses[into]!,
+            inline: false,
+            bearer: u,
+            source: actor,
+            sourceSkill: sc.skill,
+            stacks: e.stacks,
+            duration: e.duration === null ? 'permanent' : { raw: e.duration },
+          });
+          total += e.stacks;
+        }
+      }
+      sc.vars.transmuted = total;
+      return;
+    }
+    case 'shareEffects': {
+      const ua = select(ctx, op.a, sc)[0];
+      const ub = select(ctx, op.b, sc)[0];
+      if (!ua || !ub || ua === ub) return;
+      const snap = (u: Unit) => effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === op.kind);
+      const fromA = snap(ua);
+      const fromB = snap(ub);
+      const copy = (e: EffectInstance, to: Unit) => {
+        const src = findUnit(ctx.s, e.source) ?? actor;
+        applyEffect(ctx, {
+          def: effectDef(ctx.c, e),
+          inline: !!e.inline,
+          bearer: to,
+          source: src,
+          sourceSkill: e.sourceSkill ? ctx.c.skills[e.sourceSkill] : undefined,
+          stacks: e.stacks,
+          value: e.value,
+          duration: e.duration === null ? 'permanent' : { raw: e.duration },
+        });
+      };
+      for (const e of fromA) copy(e, ub);
+      for (const e of fromB) copy(e, ua);
+      return;
+    }
+    case 'reveal': {
+      if (op.event) {
+        const e = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+        if (e) revealEffect(ctx, e);
+      }
+      if (op.by) {
+        const ids = new Set(select(ctx, op.by, sc).map((u) => u.id));
+        for (const e of ctx.s.effects.filter((x) => ids.has(x.source))) {
+          const hidden = effectDef(ctx.c, e).visibility === 'hidden' || !!e.data.invisible;
+          revealEffect(ctx, e);
+          if (op.end && hidden) removeEffect(ctx, e, 'removed');
+        }
+      }
+      return;
+    }
+    case 'setCounter':
+      for (const t of op.on ? select(ctx, op.on, sc) : [actor]) t.counters[`c:${op.name}`] = withIt(sc, t.id, () => evalValue(ctx, op.value, sc));
+      return;
+    case 'transformMinion': {
+      const def = ctx.c.minions[op.minion];
+      if (!def) throw new Error(`Unknown minion ${op.minion}`);
+      for (const t of select(ctx, op.to, sc)) {
+        if (t.kind !== 'minion' || !t.alive) continue;
+        // The old kind's own passives go; the new kind's come.
+        for (const e of effectsOn(ctx.s, t.id)) if (e.source === t.id && e.sourceSkill === undefined) removeEffect(ctx, e, 'removed');
+        t.defId = def.id;
+        t.name = def.name;
+        t.maxHp = def.hp;
+        t.hp = def.hp;
+        t.skills = def.skills.map((defId) => ({ defId, cooldown: 0 }));
+        emit(ctx, { t: 'summoned', unit: t.id, defId: def.id, by: t.summonedBy ?? t.id });
+        for (const p of def.passives) applyEffect(ctx, { def: resolveEffectDef(ctx.c, p), inline: typeof p !== 'string', bearer: t, source: t });
+      }
+      return;
+    }
+    case 'growShield': {
+      const def = resolveEffectDef(ctx.c, op.effect);
+      const max = op.max ?? Number.POSITIVE_INFINITY;
+      for (const t of select(ctx, op.to, sc)) {
+        const amount = withIt(sc, t.id, () => evalValue(ctx, op.amount, sc));
+        const e = effectsOn(ctx.s, t.id).find((x) => effectKeyOf(x) === op.effect);
+        if (e) {
+          e.value = Math.min(max, e.value + amount);
+          if (e.value <= 0) removeEffect(ctx, e, 'depleted');
+        } else if (amount > 0) {
+          applyEffect(ctx, { def, inline: false, bearer: t, source: actor, sourceSkill: sc.skill, value: Math.min(max, amount), duration: 'permanent' });
+        }
+      }
+      return;
+    }
+    case 'removeShields':
+      for (const t of select(ctx, op.from, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) removeEffect(ctx, e, 'removed');
+      }
+      return;
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
       }
       return;
+    case 'expire':
+      for (const u of select(ctx, op.on, sc)) {
+        for (const e of effectsOn(ctx.s, u.id)) {
+          if (effectKeyOf(e) === op.effect || effectDef(ctx.c, e).countsAs?.includes(op.effect)) expireEffect(ctx, e, op.times ?? 1);
+        }
+      }
+      return;
+    case 'shiftEnergy': {
+      const u = select(ctx, op.of, sc)[0];
+      if (!u) return;
+      const pool = ctx.s.players[u.owner].energy;
+      for (let i = 0; i < (op.count ?? 1); i++) {
+        const held = COLORS.flatMap((c) => Array<typeof c>(pool[c]).fill(c));
+        if (held.length === 0) return;
+        const from = pick(ctx.s.rng, held);
+        const to = pick(ctx.s.rng, COLORS.filter((c) => c !== from));
+        pool[from] -= 1;
+        pool[to] += 1;
+        const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+        gained[from] = -1;
+        gained[to] = 1;
+        emit(ctx, { t: 'energyGained', player: u.owner, gained }, u.owner);
+      }
+      return;
+    }
+    case 'stealEnergy': {
+      const u = select(ctx, op.from, sc)[0];
+      if (!u || u.owner === actor.owner) return;
+      const pool = ctx.s.players[u.owner].energy;
+      const most = COLORS.reduce((best, c) => (pool[c] > pool[best] ? c : best), COLORS[0]!);
+      if (pool[most] <= 0) return;
+      pool[most] -= 1;
+      ctx.s.players[actor.owner].energy[most] += 1;
+      emit(ctx, { t: 'energyGained', player: u.owner, gained: { S: 0, A: 0, I: 0, W: 0, [most]: -1 } }, u.owner);
+      emit(ctx, { t: 'energyGained', player: actor.owner, gained: { S: 0, A: 0, I: 0, W: 0, [most]: 1 } }, actor.owner);
+      return;
+    }
+    case 'spendEnergy': {
+      const pool = ctx.s.players[actor.owner].energy;
+      const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+      for (let i = 0; i < op.amount; i++) {
+        const held = COLORS.filter((c) => pool[c] > 0);
+        if (held.length === 0) break;
+        const c = pick(ctx.s.rng, held);
+        pool[c] -= 1;
+        gained[c] -= 1;
+      }
+      emit(ctx, { t: 'energyGained', player: actor.owner, gained }, actor.owner);
+      return;
+    }
+    case 'invertCooldowns':
+      for (const u of select(ctx, op.on, sc)) {
+        for (const slot of u.skills) slot.cooldown = slot.cooldown > 0 ? 0 : op.ready;
+      }
+      return;
+    case 'copyEffects': {
+      const from = select(ctx, op.from, sc)[0];
+      if (!from) return;
+      for (const to of select(ctx, op.to, sc)) {
+        if (to === from) continue;
+        const pool = op.fromSnapshot ? (sc.snapshot ?? []) : effectsOn(ctx.s, from.id);
+        for (const e of pool.filter((x) => effectDef(ctx.c, x).kind === op.kind)) {
+          applyEffect(ctx, {
+            def: effectDef(ctx.c, e),
+            inline: !!e.inline,
+            bearer: to,
+            source: actor,
+            stacks: e.stacks,
+            value: e.value,
+            duration: e.duration === null ? 'permanent' : { raw: e.duration },
+          });
+        }
+      }
+      return;
+    }
+    case 'swapCooldowns': {
+      const longest = (u: Unit | undefined) =>
+        u?.skills
+          .filter((_, i) => !(u.id === actor.id && i === sc.slot))
+          .reduce<SkillSlot | undefined>((best, s) => (!best || s.cooldown > best.cooldown ? s : best), undefined);
+      const sa = longest(select(ctx, op.a, sc)[0]);
+      const sb = longest(select(ctx, op.b, sc)[0]);
+      if (sa && sb) [sa.cooldown, sb.cooldown] = [sb.cooldown, sa.cooldown];
+      return;
+    }
+    case 'revive':
+      for (const u of ctx.s.units.filter((x) => !x.alive && x.kind === 'character' && x.owner === actor.owner)) {
+        u.alive = true;
+        u.hp = Math.min(op.hp, u.maxHp);
+        u.counters['c:revived_turn'] = ctx.s.turn;
+        emit(ctx, { t: 'revived', unit: u.id, hp: u.hp });
+      }
+      return;
     case 'addMaxHp':
-      for (const t of select(ctx, op.to, sc)) t.maxHp += op.amount;
+      for (const t of select(ctx, op.to, sc)) {
+        t.maxHp = Math.max(1, t.maxHp + withIt(sc, t.id, () => evalValue(ctx, op.amount, sc)));
+        t.hp = Math.min(t.hp, t.maxHp);
+      }
       return;
     case 'scaleShields':
       for (const t of select(ctx, op.on, sc)) {
@@ -476,7 +862,13 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'castSkill': {
       const own = op.archetype ? actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype) : undefined;
-      const def = op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
+      const mimicked = op.lastUsedBy ? select(ctx, op.lastUsedBy, sc)[0] : undefined;
+      // "The skill that killed it": mid-use, that's the skill being used now; otherwise their last one.
+      const mimicSlot = mimicked ? (mimicked.counters.usingSlot ?? mimicked.counters.lastSlot) : undefined;
+      const mimicId = mimicked && mimicSlot !== undefined ? mimicked.skills[mimicSlot]?.defId : undefined;
+      const def = op.lastUsedBy
+        ? mimicId ? ctx.c.skills[mimicId] : undefined
+        : op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
       if (!def) return;
       for (const t of select(ctx, op.on, sc)) {
         const caster = op.as === 'it' ? t : actor;
@@ -490,18 +882,26 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
                 ? ctx.s.units.filter((u) => u.alive && u.owner === caster.owner).map((u) => u.id)
                 : def.target === 'none'
                   ? []
-                  : [t.id];
+                  : def.target === 'ally' && op.lastUsedBy
+                    ? [caster.id]
+                    : [t.id];
+        if ((ctx.castDepth ?? 0) >= 2) continue;
         emit(ctx, { t: 'skillUsed', actor: caster.id, skill: def.id, targets });
-        runOps(ctx, def.ops, {
-          actor: caster.id,
-          targets,
-          vars: {},
-          lastDamage: 0,
-          lastDamaged: [],
-          direct: true,
-          bypass: def.tags.includes('Bypass'),
-          skill: def,
-        });
+        ctx.castDepth = (ctx.castDepth ?? 0) + 1;
+        try {
+          runOps(ctx, def.ops, {
+            actor: caster.id,
+            targets,
+            vars: {},
+            lastDamage: 0,
+            lastDamaged: [],
+            direct: true,
+            bypass: def.tags.includes('Bypass'),
+            skill: def,
+          });
+        } finally {
+          ctx.castDepth -= 1;
+        }
       }
       return;
     }
@@ -511,6 +911,19 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (op.permanent) e.duration = null;
       if (op.extendBy && e.duration !== null) e.duration += op.extendBy;
       if (op.expireNow && effectDef(ctx.c, e).onExpire) expireEffect(ctx, e);
+      if (op.remove) removeEffect(ctx, e, 'removed');
+      return;
+    }
+    case 'immunize': {
+      const ev = ctx.s.effects.find((x) => x.id === sc.eventEffect);
+      const key = op.effect ?? (ev ? effectKeyOf(ev) : undefined);
+      if (!key) return;
+      const duration = resolveDuration(ctx, op.duration, sc);
+      if (duration === null) return;
+      for (const t of select(ctx, op.to, sc)) {
+        const e = applyEffect(ctx, { def: resolveEffectDef(ctx.c, 'immunity'), inline: false, bearer: t, source: actor, sourceSkill: sc.skill, duration });
+        if (e) e.data.immuneKey = key;
+      }
       return;
     }
     case 'copyEventEffect': {
@@ -527,6 +940,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           value: e.value,
           duration: e.duration === null ? 'permanent' : { raw: e.duration },
           quiet: true,
+          noChain: op.noChain,
         });
       }
       return;
@@ -546,9 +960,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       for (const t of select(ctx, op.from, sc)) {
         let left = op.amount;
         for (const e of effectsOn(ctx.s, t.id)) {
-          if (left <= 0 || effectKeyOf(e) !== op.effect) continue;
+          if (left <= 0 || effectKeyOf(e) !== op.effect || isProtected(ctx, e)) continue;
           const take = Math.min(e.stacks, left);
           e.stacks -= take;
+          restack(ctx, e, e.stacks + take);
           left -= take;
           if (e.stacks <= 0) removeEffect(ctx, e, 'consumed');
         }
@@ -598,7 +1013,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const s of actor.skills) if (op.archetypes.includes(archetypeOf(ctx.c, s.defId) ?? '')) s.cooldown = 0;
         return;
       }
-      const slot = op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
+      const last = actor.counters.lastSlot;
+      const slot = op.lastUsed
+        ? last === undefined ? undefined : actor.skills[last]
+        : op.skill ? actor.skills.find((x) => x.defId === op.skill) : sc.slot === undefined ? undefined : actor.skills[sc.slot];
       if (slot) slot.cooldown = 0;
       return;
     }
@@ -610,6 +1028,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           if (op.skill && slot.defId !== op.skill) return false;
           if (op.archetypes && !op.archetypes.includes(archetypeOf(ctx.c, slot.defId) ?? '')) return false;
           if (op.exceptEvent && slot.defId === sc.eventSkill) return false;
+          if (op.onlyEvent && slot.defId !== sc.eventSkill) return false;
           return true;
         }),
       );
@@ -658,6 +1077,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'addStacksSelf':
       if (sc.self) {
         sc.self.stacks += op.amount;
+        restack(ctx, sc.self, sc.self.stacks - op.amount);
         if (sc.self.stacks <= 0) removeEffect(ctx, sc.self, 'consumed');
       }
       return;
@@ -674,7 +1094,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
 }
 
 /** Ends an effect as if its time ran out: removed as 'expired', then its onExpire payload runs. */
-export function expireEffect(ctx: Ctx, e: EffectInstance): void {
+export function expireEffect(ctx: Ctx, e: EffectInstance, times = 1): void {
   if (!ctx.s.effects.includes(e)) return;
   const onExpire = effectDef(ctx.c, e).onExpire;
   removeEffect(ctx, e, 'expired');
@@ -693,7 +1113,7 @@ export function expireEffect(ctx: Ctx, e: EffectInstance): void {
     bypass: false,
   };
   if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
-  runOps(ctx, onExpire, sc);
+  for (let i = 0; i < times; i++) runOps(ctx, onExpire, sc);
 }
 
 const LIFETIME: EffectDef = {
@@ -895,8 +1315,23 @@ export function flushTriggers(ctx: Ctx): void {
   }
 }
 
+/**
+ * Thunder's Deafened: counters, reflects and Traps applied by a unit with `muteTraps` don't trigger.
+ * Each muted attempt is announced as the `trapMuted` signal (from that unit).
+ */
+export function mutedTrap(ctx: Ctx, e: EffectInstance, spec: TriggerSpec): boolean {
+  if (!spec.intercept && e.sourceArchetype !== 'Trap' && effectKeyOf(e) !== 'trap') return false;
+  const src = findUnit(ctx.s, e.source);
+  if (!src || modsOn(ctx.s, ctx.c, src.id, 'muteTraps').length === 0) return false;
+  broadcastSignal(ctx, 'trapMuted', src, { target: unit(ctx, e.bearer) });
+  return true;
+}
+
 export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void {
-  revealEffect(ctx, e);
+  if (mutedTrap(ctx, e, p.spec)) return;
+  // A hidden effect's routine turn checks don't give it away; reacting to something does.
+  // (`silent` triggers are bookkeeping, like a hidden Trap growing: they don't reveal it either.)
+  if (!PERIODIC.has(p.spec.on) && !p.spec.silent) revealEffect(ctx, e);
   const sc: Scope = {
     actor: e.source,
     targets: e.targets,
@@ -982,3 +1417,29 @@ export function enqueueTriggers(
   }
 }
 
+
+/** Alchemy's Transmute recipes, by the unit's side relative to the actor. */
+const TRANSMUTE_ENEMY: Record<string, string> = { might: 'weakness', armor: 'vulnerable', focus: 'confusion', renew: 'weakness' };
+const TRANSMUTE_ALLY: Record<string, string> = { weakness: 'might', vulnerable: 'armor', confusion: 'focus' };
+
+/**
+ * Alchemy's Catalyst: 2 while a skill resolves and `t` carries a Catalyst (which is marked spent,
+ * to end when the skill has resolved), else 1.
+ */
+function catalyze(ctx: Ctx, t: Unit): number {
+  if (!ctx.inSkill) return 1;
+  // A Catalyst the current skill itself applied waits for the next skill.
+  const cat = modsOn(ctx.s, ctx.c, t.id, 'catalyst').find(
+    ({ effect }) => ctx.useStartSeq === undefined || (Number(effect.data.armedAt ?? effect.seq)) <= ctx.useStartSeq,
+  );
+  if (!cat) return 1;
+  cat.effect.data.catalyzed = true;
+  return 2;
+}
+
+function doubleDuration(d: ResolvedDuration): ResolvedDuration {
+  if (d === 'permanent' || 'thisTurn' in d) return d;
+  if ('enemyTurns' in d) return { enemyTurns: d.enemyTurns * 2 };
+  if ('ownTurns' in d) return { ownTurns: d.ownTurns * 2 };
+  return { raw: d.raw * 2 };
+}

@@ -1,0 +1,9 @@
+# Ghost keywords (docs/glossary.md).
+
+spectral:
+  status: spectral
+  element: Ghost
+haunt:
+  status: haunt
+  element: Ghost
+  forms: [Haunt, Haunted, Haunts]

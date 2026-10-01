@@ -1,0 +1,15 @@
+# Phoenix keywords (docs/glossary.md).
+
+rebirth:
+  status: rebirth
+  element: Phoenix
+ashes:
+  status: ashes
+  element: Phoenix
+kindle:
+  name: Kindle
+  text: >-
+    A Kindle skill can target an enemy or an ally. On an enemy it burns, dealing its damage and its
+    Ignite; on an ally it mends: the damage becomes healing and each Ignite becomes 2 Renew.
+  element: Phoenix
+  forms: [Kindle, Kindles]

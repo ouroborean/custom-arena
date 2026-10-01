@@ -1,0 +1,21 @@
+# Ghost actions, run on `it` (the Haunted unit).
+
+# Moves the Haunts on `it` to a random ally of theirs, unless Phantom Blade pinned them this turn.
+haunt_drift:
+  - op: if
+    cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: it, name: haunt_pinned } }] }] }, atLeast: 1 } }
+    then:
+      - op: forEach
+        # An ally already Haunted would merge the two; a Haunt only drifts to an un-Haunted one.
+        in: { randomEnemy: 1, exclude: it, where: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: ghost_haunted, unit: it } } }] } }
+        do:
+          - { op: signal, name: haunt_drift }
+          - op: if
+            cond: { has: { unit: bearer, effect: frozen_with_fear } }
+            then:
+              - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
+              - { op: removeEffect, from: bearer, effect: frozen_with_fear }
+          - op: if
+            cond: { has: { unit: bearer, effect: spirit_mark } }
+            then: [{ op: apply, to: it, effect: horrified, duration: { enemyTurns: 1 } }]
+          - { op: moveEffects, from: bearer, to: it, effects: [haunt, breath_haunt, restless_haunt, spirit_mark] }

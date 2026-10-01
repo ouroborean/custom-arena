@@ -1,0 +1,17 @@
+# Plasma keywords (docs/glossary.md).
+
+heat:
+  status: heat
+  element: Plasma
+meltdown:
+  name: Melt Down
+  text: >-
+    At the end of a Plasma character's turn with 5 Heat: they take 20 Affliction, every enemy takes
+    20 Affliction and is Sapped, and their Heat returns to 0.
+  element: Plasma
+  forms: [Melt Down, Melts Down, Meltdown]
+vent:
+  name: Vent
+  text: Removes all the user's Heat, for the benefit the skill lists per Heat removed.
+  element: Plasma
+  forms: [Vent, Vents]

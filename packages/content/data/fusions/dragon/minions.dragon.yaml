@@ -1,0 +1,42 @@
+# Dragon minions.
+
+drake:
+  name: Drake
+  hp: 40
+  skills: [drake_claw]
+  passives:
+    - id: drake_hoard
+      name: Hoard Hunter
+      kind: Neutral
+      element: Dragon
+      description: At the end of its owner's turn, if any enemy is Ignited, its owner gains 1 Hoard.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { any: { in: allEnemies, cond: { has: { unit: it, effect: ignite } } } }
+              then:
+                - { op: apply, to: summoner, effect: hoard }
+
+# Does nothing; if it's still alive when its 3 turns run out, it hatches into a Wyrmling.
+dragon_egg:
+  name: Dragon Egg
+  hp: 30
+  onSummon:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: egg_hatching
+        name: Hatching
+        kind: Neutral
+        element: Dragon
+        description: Hatches into a permanent Wyrmling when this runs out, if the egg is still alive.
+        onExpire:
+          - { op: summon, minion: wyrmling }
+          - { op: kill, to: bearer }
+
+wyrmling:
+  name: Wyrmling
+  hp: 30
+  skills: [wyrmling_bite]

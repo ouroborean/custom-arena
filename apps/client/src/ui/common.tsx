@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
+import { portraitUrl, useAssets } from '../assets.js';
 import { useStore, type InspectTarget } from '../store.js';
 
 export function Tooltip({ content, children, block }: { content: ReactNode; children: ReactNode; block?: boolean }) {
@@ -25,15 +26,42 @@ export function Tooltip({ content, children, block }: { content: ReactNode; chil
   );
 }
 
+export type PipColor = 'S' | 'A' | 'I' | 'W' | 'r';
+
+export const ENERGY_NAMES: Record<PipColor, string> = { S: 'Strength', A: 'Agility', I: 'Intelligence', W: 'Wisdom', r: 'Random' };
+
+/**
+ * Pip outlines on a 0–12 grid. Every color has its own shape so energy never depends on telling
+ * red from green (GDD Phase 8 "color-blind energy pip shapes"): Strength ■, Agility ▲,
+ * Intelligence ◆, Wisdom ⬢, and random as a hollow square.
+ */
+const PIP_SHAPES: Record<PipColor, string> = {
+  S: '1,1 11,1 11,11 1,11',
+  A: '6,0.8 11.4,11 0.6,11',
+  I: '6,0.4 11.6,6 6,11.6 0.4,6',
+  W: '3.3,1 8.7,1 11.5,6 8.7,11 3.3,11 0.5,6',
+  r: '1.5,1.5 10.5,1.5 10.5,10.5 1.5,10.5',
+};
+
+/** One energy pip: a shape in the color's fill with a hard outline. */
+export function EnergyPip({ color, size = 11, title }: { color: PipColor; size?: number; title?: string }) {
+  return (
+    <svg className={`pip-svg ${color}`} width={size} height={size} viewBox="0 0 12 12" role="img" aria-label={title ?? ENERGY_NAMES[color]}>
+      <polygon points={PIP_SHAPES[color]} />
+    </svg>
+  );
+}
+
 export function CostPips({ cost, large }: { cost: Cost; large?: boolean }) {
-  const pips: { c: string; key: string }[] = [];
+  const pips: { c: PipColor; key: string }[] = [];
   for (const c of COLORS) for (let i = 0; i < cost[c]; i++) pips.push({ c, key: `${c}${i}` });
   for (let i = 0; i < cost.r; i++) pips.push({ c: 'r', key: `r${i}` });
+  const label = pips.length ? pips.map((p) => ENERGY_NAMES[p.c]).join(', ') : 'free';
   return (
-    <span className="cost" aria-label={`Cost ${pips.map((p) => p.c).join('') || 'free'}`}>
+    <span className="cost" role="img" aria-label={`Cost: ${label}`}>
       {pips.length === 0 && <span className="pip free">0</span>}
       {pips.map((p) => (
-        <span key={p.key} className={`pip ${p.c}${large ? ' lg' : ''}`} />
+        <EnergyPip key={p.key} color={p.c} size={large ? 20 : 11} />
       ))}
     </span>
   );
@@ -286,6 +314,19 @@ export function skillCode(def: SkillDef): string {
   return SKILL_CODES[def.archetype] ?? consonantCode(def.name);
 }
 
+const MINOR_WORDS = new Set(['of', 'the', 'and', 'a', 'an']);
+
+/** A three-letter code that tells items apart: "Emblem of the Abyss" is EAB, "Holy Censer" HCN. */
+export function itemCode(name: string): string {
+  const words = name
+    .split(/[\s-]+/)
+    .map((w) => w.replace(/[^A-Za-z]/g, ''))
+    .filter((w) => w && !MINOR_WORDS.has(w.toLowerCase()));
+  if (words.length >= 3) return words.slice(0, 3).map((w) => w[0]!.toUpperCase()).join('');
+  if (words.length === 2) return words[0]![0]!.toUpperCase() + consonantCode(words[1]!).slice(0, 2);
+  return consonantCode(name);
+}
+
 export function statusCode(key: string, name: string): string {
   return STATUS_CODES[key] ?? consonantCode(name);
 }
@@ -293,6 +334,29 @@ export function statusCode(key: string, name: string): string {
 /** CSS class for an element accent ("" for no element). */
 export function elementClass(element: string | undefined): string {
   return element && element !== 'None' ? `has-el el-${element.toLowerCase()}` : '';
+}
+
+const BASE_ELEMENTS = new Set(['fire', 'poison', 'holy', 'ice', 'water', 'unholy', 'lightning', 'wind', 'shadow', 'earth']);
+
+/**
+ * How a skill or status glyph is painted: neutral grey with no element, the element's glyph color
+ * (theme.css --glyph-*), or for a fusion a diagonal gradient from one of its elements to the other. A
+ * doubled element (Fire + Fire) fades into a deeper shade of itself so it still reads as a fusion.
+ */
+export function glyphPaint(element: string | undefined, content: ContentBundle): string {
+  if (!element || element === 'None') return 'var(--glyph-neutral)';
+  const key = element.toLowerCase();
+  if (BASE_ELEMENTS.has(key)) return `var(--glyph-${key})`;
+  const fusion = content.fusions[key] ?? Object.values(content.fusions).find((f) => f.name === element);
+  if (!fusion) return 'var(--glyph-neutral)';
+  const [a, b] = fusion.elements.map((e) => `var(--glyph-${e.toLowerCase()})`) as [string, string];
+  return `linear-gradient(135deg, ${a} 20%, ${a === b ? `color-mix(in srgb, ${b} 55%, #000)` : b} 80%)`;
+}
+
+/** A white-on-transparent icon file used as a mask, so it takes any paint: a color or a gradient. */
+export function Glyph({ url, paint }: { url: string; paint: string }) {
+  const mask = `url("${url}")`;
+  return <span className="glyph" aria-hidden style={{ background: paint, maskImage: mask, WebkitMaskImage: mask }} />;
 }
 
 export type SkillCategory = 'attack' | 'control' | 'support';
@@ -305,6 +369,15 @@ export function skillCategory(def: SkillDef): SkillCategory {
 export const CATEGORY_LABEL: Record<SkillCategory, string> = { attack: 'Attack', control: 'Control', support: 'Support' };
 
 /** Flat two-tone diagonal split in the class color. */
+/** Portrait art from the manifest (drawn under the name tag), or nothing to keep the generated look. */
+export function PortraitArt({ artKey, portraitId }: { artKey: string; portraitId?: string }) {
+  const portraits = useAssets((s) => s.portraits);
+  const [broken, setBroken] = useState(false);
+  const url = portraitUrl(portraits, artKey, portraitId);
+  if (!url || broken) return null;
+  return <img className="portrait-art" src={url} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />;
+}
+
 export function portraitStyle(classOrDefId: string): CSSProperties {
   const h = hueFor(classOrDefId);
   return {

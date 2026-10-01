@@ -6,24 +6,26 @@ import { formatAmounts } from '@arena/meta';
 import type { GrantSpec } from '@arena/engine';
 import { api, ApiError, type ChapterStatus } from '../api.js';
 import { content } from '../content.js';
+import { useT } from '../i18n/index.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
 
-function grantText(g: GrantSpec | undefined): string {
-  const parts = [
-    formatAmounts(content, g?.currency ?? {}),
-    ...(g?.items ?? []).map((i) => content.items[i]?.name ?? i),
-    ...(g?.rolls ? [`${g.rolls} free character${g.rolls > 1 ? 's' : ''}`] : []),
-  ].filter((p) => p !== 'nothing');
-  return parts.length ? parts.join(' · ') : '—';
-}
-
 export function Tutorial() {
+  const t = useT();
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
   const [chapters, setChapters] = useState<ChapterStatus[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
+
+  const grantText = (g: GrantSpec | undefined): string => {
+    const parts = [
+      formatAmounts(content, g?.currency ?? {}),
+      ...(g?.items ?? []).map((i) => content.items[i]?.name ?? i),
+      ...(g?.rolls ? [t('grant.freeCharacters', { count: g.rolls })] : []),
+    ].filter((p) => p !== 'nothing');
+    return parts.length ? parts.join(' · ') : t('common.none');
+  };
 
   useEffect(() => {
     api.story().then(
@@ -50,17 +52,17 @@ export function Tutorial() {
       <div className="meta-header">
         <Brand />
         <button type="button" className="btn small" onClick={() => go('home')}>
-          Home
+          {t('common.home')}
         </button>
       </div>
-      <h1 className="page-title">Tutorial</h1>
+      <h1 className="page-title">{t('tutorial.title')}</h1>
       {error && (
         <p className="notice error" role="alert">
           {error}
         </p>
       )}
       {!chapters ? (
-        <p className="muted">Loading…</p>
+        <p className="muted">{t('common.loading')}</p>
       ) : (
         chapters.map((c) => {
           const def = content.chapters[c.id]!;
@@ -73,11 +75,9 @@ export function Tutorial() {
                   return (
                     <li key={e.id} className={`encounter${e.cleared ? ' cleared' : ''}${e.unlocked ? '' : ' locked'}`}>
                       <div className="encounter-main">
-                        <b>
-                          Lesson {i + 1}: {enc.name}
-                        </b>
+                        <b>{t('tutorial.lesson', { n: i + 1, name: enc.name })}</b>
                         <span className="muted">{enc.description}</span>
-                        <span className="muted">{e.cleared ? 'Done' : `Reward: ${grantText(enc.rewards?.first)}`}</span>
+                        <span className="muted">{e.cleared ? t('tutorial.done') : t('tutorial.reward', { reward: grantText(enc.rewards?.first) })}</span>
                       </div>
                       <button
                         type="button"
@@ -85,7 +85,7 @@ export function Tutorial() {
                         disabled={!e.unlocked || starting !== null}
                         onClick={() => void start(e.id)}
                       >
-                        {starting === e.id ? 'Starting…' : e.cleared ? 'Again' : 'Start'}
+                        {starting === e.id ? t('common.starting') : e.cleared ? t('tutorial.again') : t('tutorial.start')}
                       </button>
                     </li>
                   );
@@ -93,8 +93,8 @@ export function Tutorial() {
               </ol>
               {def.reward && (
                 <p className="muted">
-                  Finish every lesson: {grantText(def.reward)}
-                  {c.complete ? ' (claimed)' : ''}
+                  {t('tutorial.chapterReward', { reward: grantText(def.reward) })}
+                  {c.complete ? ` ${t('common.claimed')}` : ''}
                 </p>
               )}
             </section>

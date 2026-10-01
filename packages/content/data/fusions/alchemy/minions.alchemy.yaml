@@ -1,0 +1,34 @@
+# Alchemy minions.
+
+homunculus:
+  name: Homunculus
+  hp: 30
+  passives:
+    - id: homunculus_work
+      name: Homunculus
+      kind: Neutral
+      element: Alchemy
+      description: >-
+        At the end of its owner's turn, one stack of Might, Armor, Focus or Renew on a random enemy
+        is Transmuted, and a random ally gains 1 Renew.
+      triggers:
+        - on: turnEnd
+          do:
+            - op: forEach
+              in:
+                randomEnemy: 1
+                where:
+                  or:
+                    - { has: { unit: it, effect: might } }
+                    - { has: { unit: it, effect: armor } }
+                    - { has: { unit: it, effect: focus } }
+                    - { has: { unit: it, effect: renew } }
+              do:
+                - { op: transmute, on: it, effects: [might, armor, focus, renew], count: 1 }
+                - { op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: renew }
+  skills: []
+
+alembic:
+  name: Alembic
+  hp: 15
+  skills: [alembic_brew]

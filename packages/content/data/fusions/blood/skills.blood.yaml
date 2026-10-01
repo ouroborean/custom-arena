@@ -1,0 +1,774 @@
+# The 30 Blood (Water + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# BloodPrice skills pay their random costs with 10 HP each (the engine stores it in the user's
+# `blood_paid` counter). Hemorrhage bleeds and grows until healed.
+
+strike.blood:
+  archetype: Strike
+  element: Blood
+  name: Wringing Cut
+  description: >-
+    Deals 20 damage to target enemy. The cut wrings their weakness out as soul: the user removes up to 2
+    Weakness from them and gains a Soul Fragment for each.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: set
+      var: wrung
+      value: { if: { compare: { value: { totalStacks: { in: primary, effect: weakness } }, atLeast: 2 } }, then: 2, else: { totalStacks: { in: primary, effect: weakness } } }
+    - { op: removeStacks, from: primary, effect: weakness, amount: 2 }
+    - { op: apply, to: actor, effect: soul_fragment, stacks: { var: wrung } }
+
+smash.blood:
+  archetype: Smash
+  element: Blood
+  name: Crimson Wave
+  description: >-
+    Deals 25 damage to target enemy and 10 to their allies. The target gains 1 Hemorrhage, then each of
+    their allies gains half the target's Hemorrhage, rounded up.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: apply, to: primary, effect: hemorrhage }
+    - { op: apply, to: primaryAllies, effect: hemorrhage, stacks: { div: [{ sum: [{ stacks: { unit: primary, effect: hemorrhage } }, 1] }, 2] } }
+
+charge.blood:
+  archetype: Charge
+  element: Blood
+  name: Quickened Pulse
+  description: >-
+    Deals 15 damage to target enemy, and the user gets 1 Focus for their next skill. Until the end of their
+    next turn, every 10 HP they're healed also gives them 1 Renew.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: quickened_pulse
+        name: Quickened Pulse
+        kind: Buff
+        element: Blood
+        description: Every 10 HP the bearer is healed also gives 1 Renew.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: bearer, effect: renew, stacks: { div: [{ eventAmount: true }, 10] } }
+
+riposte.blood:
+  archetype: Riposte
+  element: Blood
+  name: Blood Spite
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user; its user gains 1 Hemorrhage for every 20
+    HP the user is missing. Blood Price. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible, BloodPrice]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: blood_spite
+        name: Blood Spite
+        kind: Buff
+        element: Blood
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer and bleeds its user by their wounds.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: eventSource, effect: hemorrhage, stacks: { div: [{ missingHp: bearer }, 20] } }
+
+rage.blood:
+  archetype: Rage
+  element: Blood
+  name: Crimson Frenzy
+  description: >-
+    For 3 turns, the user gains Lifesteal and 1 Might for every 20 HP they're missing, rechecked as each
+    hit lands. Blood Price.
+  cost: Ir
+  cooldown: 4
+  tags: [Helpful, Strategic, BloodPrice]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: crimson_frenzy
+        name: Crimson Frenzy
+        kind: Buff
+        element: Blood
+        description: +5 direct damage per 20 HP the bearer is missing.
+        modifiers:
+          - { mod: damageDealt, amount: 0, when: { direct: true }, value: { mul: [5, { div: [{ missingHp: actor }, 20] }] } }
+
+shot.blood:
+  archetype: Shot
+  element: Blood
+  name: Blood Dart
+  description: >-
+    Deals 15 damage to target enemy, who gains 1 Hemorrhage. If they were already bleeding, the user heals
+    back the HP they paid. Blood Price.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic, BloodPrice]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: hemorrhage } }
+      then:
+        - { op: heal, to: actor, amount: { counter: blood_paid } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: hemorrhage }
+
+snipe.blood:
+  archetype: Snipe
+  element: Blood
+  name: Crimson Lance
+  description: >-
+    On the following turn, deals 40 damage to target enemy, plus the damage the user took in between (max
+    30 more). The target of this skill is invisible. Blood Price. Channeled.
+  cost: Ir
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, BloodPrice]
+  target: enemy
+  ops:
+    - { op: setCounter, name: crimson_lance, value: 0 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: crimson_lance
+        name: Crimson Lance (aiming)
+        kind: Neutral
+        element: Blood
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn, adding the damage the bearer took.
+        triggers:
+          - on: damaged
+            do:
+              - { op: setCounter, name: crimson_lance, value: { sum: [{ counter: crimson_lance }, { eventAmount: true }] } }
+        onExpire:
+          - op: damage
+            to: effectTargets
+            amount: { sum: [40, { if: { compare: { value: { counter: crimson_lance }, atLeast: 30 } }, then: 30, else: { counter: crimson_lance } }] }
+
+trap.blood:
+  archetype: Trap
+  element: Blood
+  name: Tainted Cure
+  description: >-
+    For 3 turns, the next healing target enemy receives becomes Hemorrhage instead: 1 stack per 10 HP it
+    would have healed (max 5). Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: tainted_cure
+        name: Tainted Cure
+        kind: Debuff
+        element: Blood
+        visibility: hidden
+        description: The next healing the bearer receives turns into Hemorrhage.
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { eventAmount: true }, raw: true, type: Affliction, direct: false, bypass: true }
+              - op: apply
+                to: bearer
+                effect: hemorrhage
+                stacks: { if: { compare: { value: { eventAmount: true }, atLeast: 50 } }, then: 5, else: { div: [{ eventAmount: true }, 10] } }
+
+maneuver.blood:
+  archetype: Maneuver
+  element: Blood
+  name: Pale Step
+  description: >-
+    The user becomes Immortal for 1 turn and drains a Soul Fragment from each enemy who damages them during
+    it. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pale_step
+        name: Pale Step
+        kind: Buff
+        element: Blood
+        description: Each enemy who damages the bearer has a Soul Fragment drained.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: removeStacks, from: eventSource, effect: soul_fragment, amount: 1 }
+              - { op: apply, to: bearer, effect: soul_fragment }
+
+companion.blood:
+  archetype: Companion
+  element: Blood
+  name: Bloodbound Familiar
+  description: >-
+    Summons a Bloodbound Familiar permanently. It has no HP of its own and shares the user's: damage and
+    healing to it go to the user, and it dies only with them. Bite (r): 15 damage.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: bloodbound_familiar }
+
+bolt.blood:
+  archetype: Bolt
+  element: Blood
+  name: Sanguine Bolt
+  description: >-
+    Deals 25 damage to target enemy, and the HP the user paid heals their lowest-HP ally, doubled. Blood
+    Price.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic, BloodPrice]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: heal, to: weakestAlly, amount: { mul: [2, { counter: blood_paid }] } }
+
+blast.blood:
+  archetype: Blast
+  element: Blood
+  name: Red Rain
+  description: >-
+    Deals 25 damage to all enemies. The user spends all their Soul Fragments: each one gives every enemy 1
+    Hemorrhage. Blood Price.
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, BloodPrice]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 25 }
+    - { op: set, var: rain, value: { stacks: { unit: actor, effect: soul_fragment } } }
+    - { op: removeEffect, from: actor, effect: soul_fragment }
+    - { op: apply, to: targets, effect: hemorrhage, stacks: { var: rain } }
+
+consume.blood:
+  archetype: Consume
+  element: Blood
+  name: Transfusion
+  description: >-
+    Deals 5 damage to target enemy. If they have Hemorrhage, the user drinks it: it ends, and they heal 10
+    per stack. If not, the target gains 1 Hemorrhage.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - op: if
+      cond: { has: { unit: primary, effect: hemorrhage } }
+      then:
+        - { op: heal, to: actor, amount: { mul: [10, { stacks: { unit: primary, effect: hemorrhage } }] } }
+        - { op: removeEffect, from: primary, effect: hemorrhage }
+      else:
+        - { op: apply, to: primary, effect: hemorrhage }
+
+summon.blood:
+  archetype: Summon
+  element: Blood
+  name: Blood Elemental
+  description: >-
+    Summons a Blood Elemental for 3 turns, with HP equal to what the user paid. Blood Lash (nc): 10 damage
+    and 1 Hemorrhage. Blood Price.
+  cost: rr
+  cooldown: 1
+  tags: [Helpful, Strategic, BloodPrice]
+  target: self
+  ops:
+    - { op: summon, minion: blood_elemental, duration: { enemyTurns: 3 } }
+    - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ counter: blood_paid }, -20] } }
+    - { op: heal, to: lastSummoned, amount: { sum: [{ counter: blood_paid }, -20] }, raw: true, quiet: true }
+
+channel.blood:
+  archetype: Channel
+  element: Blood
+  name: Exsanguinate
+  description: >-
+    For up to 3 turns, at the end of each of the user's turns, target enemy gains 1 Hemorrhage, and the user
+    heals for what their Hemorrhage deals. Blood Price. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, Strategic, Channeled, BloodPrice]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: exsanguinate
+        name: Exsanguinate
+        kind: Neutral
+        element: Blood
+        interruptible: true
+        description: Each turn, the target bleeds more, and the bearer drinks it.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: effectTargets, effect: hemorrhage }
+              - { op: heal, to: bearer, amount: { mul: [5, { totalStacks: { in: effectTargets, effect: hemorrhage } }] } }
+
+stab.blood:
+  archetype: Stab
+  element: Blood
+  name: Bloodletter's Knife
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The user's Renew heals them once
+    now, without losing a stack.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: heal, to: actor, amount: { mul: [5, { totalStacks: { in: actor, effect: renew } }] } }
+
+ravage.blood:
+  archetype: Ravage
+  element: Blood
+  name: Arterial Strike
+  description: >-
+    Deals 30 Piercing damage to target enemy, who gains 2 Hemorrhage. If they're healed before the user's
+    next turn, the healer takes the Hemorrhage instead.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30, type: Piercing }
+    - { op: apply, to: primary, effect: hemorrhage, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: arterial_strike
+        name: Arterial Strike
+        kind: Debuff
+        element: Blood
+        description: Whoever heals the bearer takes their Hemorrhage (see Hemorrhage).
+
+mislead.blood:
+  archetype: Mislead
+  element: Blood
+  name: Red Herring
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they pay its cost again in blood:
+    10 HP per energy. Blood Price. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible, BloodPrice]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: red_herring
+        name: Red Herring
+        kind: Debuff
+        element: Blood
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they pay its cost in blood.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: { mul: [10, { skillCost: true }] }, raw: true, type: Affliction, direct: false, bypass: true }
+
+stun.blood:
+  archetype: Stun
+  element: Blood
+  name: Swoon
+  description: >-
+    Deals 15 damage to target enemy, and they faint: Stunned until they're healed, up to 2 turns.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: swoon
+        name: Swoon
+        kind: Debuff
+        element: Blood
+        description: Healing wakes the bearer from the faint.
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: removeEffect, from: bearer, effect: stun }
+
+dance.blood:
+  archetype: Dance
+  element: Blood
+  name: Danse Sanguine
+  description: >-
+    Target enemy gains 1 Hemorrhage. For 3 turns, each time the user damages a bleeding enemy, that
+    Hemorrhage grows by 1 and the user gains 1 Swiftness (max 2).
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: hemorrhage }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: danse_sanguine
+        name: Danse Sanguine
+        kind: Buff
+        element: Blood
+        description: Damaging a bleeding enemy deepens their Hemorrhage and gives Swiftness (max 2).
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: eventTarget, effect: hemorrhage } }
+                then:
+                  - { op: apply, to: eventTarget, effect: hemorrhage }
+                  - op: if
+                    cond: { not: { stackTotal: { unit: bearer, effects: [swiftness], moreThan: 1 } } }
+                    then: [{ op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 2 } }]
+
+heal.blood:
+  archetype: Heal
+  element: Blood
+  name: Restitution
+  description: Target ally heals 20, and the enemy who damaged them most recently loses as much HP.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: damage, to: primaryLastAttacker, amount: 20, raw: true, type: Affliction, direct: false, bypass: true }
+
+bless.blood:
+  archetype: Bless
+  element: Blood
+  name: Blood Doping
+  description: >-
+    For 2 turns, target ally gains 2 Might and 2 Swiftness. When it ends, they crash: Stunned for 1 turn,
+    which Swiftness can't stop.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, stacks: 2, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: swiftness, stacks: 2, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: blood_doping
+        name: Blood Doping
+        kind: Buff
+        element: Blood
+        description: When this ends, the bearer crashes for 1 turn.
+        onExpire:
+          - op: apply
+            to: bearer
+            duration: { enemyTurns: 1 }
+            effect:
+              id: blood_crash
+              name: Crash
+              kind: Neutral
+              element: Blood
+              description: Stunned; Swiftness can't stop it.
+              modifiers:
+                - { mod: cannotUseSkills }
+
+curse.blood:
+  archetype: Curse
+  element: Blood
+  name: Hemophilia
+  description: Target enemy gains 2 Hemorrhage, which healing can't remove for 2 turns.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: hemorrhage, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hemophilia
+        name: Hemophilia
+        kind: Debuff
+        element: Blood
+        description: Healing doesn't stop the bearer's Hemorrhage.
+
+smite.blood:
+  archetype: Smite
+  element: Blood
+  name: Bloodmark
+  description: >-
+    Deals 20 damage to target enemy, who gains 1 Hemorrhage. For 2 turns, allies who damage them heal 5 per
+    Hemorrhage stack they have.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: hemorrhage }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bloodmark
+        name: Bloodmark
+        kind: Debuff
+        element: Blood
+        description: The applier's allies who damage the bearer heal 5 per Hemorrhage on them.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: heal, to: eventSource, amount: { mul: [5, { stacks: { unit: bearer, effect: hemorrhage } }] } }
+
+prayer.blood:
+  archetype: Prayer
+  element: Blood
+  name: Blood Chant
+  description: >-
+    All allies heal 20. Until the end of the user's next turn, their allies' random costs are paid in HP, 10
+    each. Blood Price.
+  cost: Irr
+  cooldown: 2
+  tags: [Helpful, Strategic, BloodPrice]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: apply
+      to: { filter: targets, where: { not: { isActor: it } } }
+      duration: { ownTurns: 1 }
+      effect:
+        id: blood_chant
+        name: Blood Chant
+        kind: Buff
+        element: Blood
+        description: The bearer's random costs are paid with 10 HP each.
+        modifiers:
+          - { mod: bloodPrice }
+
+cleave.blood:
+  archetype: Cleave
+  element: Blood
+  name: Leeching Sweep
+  description: >-
+    Deals 25 damage to target enemy and 15 to a random other enemy. For 2 turns, the user's Lifesteal heals
+    them twice over for their ticking and Affliction damage.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: leeching_sweep
+        name: Leeching Sweep
+        kind: Buff
+        element: Blood
+        description: While the bearer has Lifesteal, their indirect damage heals them a second time.
+        triggers:
+          - on: dealtDamage
+            when: { direct: false, byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: lifesteal } }
+                then: [{ op: heal, to: bearer, amount: { eventAmount: true } }]
+
+shout.blood:
+  archetype: Shout
+  element: Blood
+  name: Bloodcurdle
+  description: >-
+    All enemies are Intimidated for 2 turns. Meanwhile, the user drains a Soul Fragment from each of them
+    who uses a Helpful skill.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bloodcurdle
+        name: Bloodcurdle
+        kind: Debuff
+        element: Blood
+        description: Each Helpful skill the bearer uses drains a Soul Fragment to the applier.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            do:
+              - { op: removeStacks, from: bearer, effect: soul_fragment, amount: 1 }
+              - { op: apply, to: actor, effect: soul_fragment }
+
+withstand.blood:
+  archetype: Withstand
+  element: Blood
+  name: Clotting Ward
+  description: The user gains 25 Shield for 1 turn. While it holds, their Renew also heals at the start of their turn.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { raw: 3 }
+      effect:
+        id: clotting_ward
+        name: Clotting Ward
+        kind: Buff
+        element: Blood
+        shield: true
+        description: A Shield; while it holds, the bearer's Renew also heals at the start of their turn.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: heal, to: bearer, amount: { mul: [5, { totalStacks: { in: bearer, effect: renew } }] } }
+              - { op: removeSelf }
+
+taunt.blood:
+  archetype: Taunt
+  element: Blood
+  name: Bloodied Waters
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Each skill they aim at the user meanwhile gives them 1
+    Confusion for 2 turns.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bloodied_waters
+        name: Bloodied Waters
+        kind: Debuff
+        element: Blood
+        description: Each skill the bearer aims at the applier Confuses them.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { isEventTarget: actor }
+                then: [{ op: apply, to: bearer, effect: confusion, duration: { enemyTurns: 2 } }]
+
+titan.blood:
+  archetype: Titan
+  element: Blood
+  name: Crimson Colossus
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immortal, and all of their skills' random costs are paid in HP.
+    Blood Price.
+  cost: Wrr
+  cooldown: 4
+  tags: [Helpful, Strategic, BloodPrice]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: crimson_colossus
+        name: Crimson Colossus
+        kind: Buff
+        element: Blood
+        description: The bearer's random costs are paid with 10 HP each.
+        modifiers:
+          - { mod: bloodPrice }
+
+# Minion skills.
+
+bloodbound_familiar_bite:
+  archetype: Minion
+  element: Blood
+  name: Bite
+  description: Deals 15 damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+
+blood_elemental_lash:
+  archetype: Minion
+  element: Blood
+  name: Blood Lash
+  description: Deals 10 damage to target enemy, who gains 1 Hemorrhage.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: hemorrhage }

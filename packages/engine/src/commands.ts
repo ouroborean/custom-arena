@@ -1,13 +1,13 @@
 // Commands: the only way state changes after match creation (GDD §11.7).
 // `applyCommand` never mutates its input; it works on a clone and returns the new state + events.
 
-import { effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
+import { checkpoint, effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
 import type { ContentBundle } from './defs.js';
 import { autoAllocate, isPayable, isValidAllocation, sumCosts } from './energy.js';
 import { resolveTargets, unmetRequirement, useQueuedSkill } from './pipeline.js';
-import { cannotUseReason, modifiedCost } from './queries.js';
+import { bloodPriceHp, cannotUseReason, modifiedCost } from './queries.js';
 import { checkGameOver, endTurn, finish } from './turn.js';
-import { COLORS, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
+import { COLORS, type ApplyOptions, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
 
 export class CommandError extends Error {
   constructor(
@@ -29,31 +29,35 @@ export function checkQueue(ctx: Ctx, player: PlayerId, cmd: Extract<Command, { t
   const actor = findUnit(s, cmd.actor);
   if (!actor || actor.owner !== player) return new CommandError('bad_actor', 'Not your unit');
   if (!actor.alive) return new CommandError('bad_actor', `${actor.name} is dead`);
-  if (s.players[player].queue.some((q) => q.actor === actor.id)) {
-    return new CommandError('already_queued', `${actor.name} already has a queued skill`);
-  }
   const slot = actor.skills[cmd.slot];
   if (!slot) return new CommandError('bad_slot', 'No such skill');
   const def = skillDef(ctx.c, slot.defId);
+  // One skill per character per turn, plus one FreeAction skill (Dimension's Folded Moment).
+  const free = def.tags.includes('FreeAction');
+  const queued = s.players[player].queue.filter((q) => q.actor === actor.id);
+  if (queued.some((q) => skillDef(ctx.c, actor.skills[q.slot]!.defId).tags.includes('FreeAction') === free)) {
+    return new CommandError('already_queued', `${actor.name} already has a queued skill`);
+  }
   if (slot.cooldown > 0) return new CommandError('on_cooldown', `${def.name} is on cooldown (${slot.cooldown})`);
   const blocked = cannotUseReason(ctx, actor, def) ?? unmetRequirement(ctx, actor, def);
   if (blocked) return new CommandError('cannot_act', `${actor.name} can't use ${def.name}: ${blocked}`);
   const tr = resolveTargets(ctx, actor, def, cmd.targets, true);
   if (!tr.ok) return new CommandError('bad_target', tr.reason);
+  if (bloodPriceHp(ctx, actor, def) >= actor.hp) return new CommandError('cannot_act', `${def.name}'s Blood Price would kill ${actor.name}`);
   const cost = modifiedCost(ctx, actor, def);
   const reserved = sumCosts([...s.players[player].queue.map((q) => q.cost), cost]);
   if (!isPayable(s.players[player].energy, reserved)) return new CommandError('no_energy', 'Not enough energy');
   return null;
 }
 
-export function applyCommand(content: ContentBundle, state: GameState, player: PlayerId, cmd: Command): ApplyResult {
+export function applyCommand(content: ContentBundle, state: GameState, player: PlayerId, cmd: Command, opts: ApplyOptions = {}): ApplyResult {
   const s = structuredClone(state);
-  const ctx = makeCtx(s, content);
+  const ctx = makeCtx(s, content, opts.checkpoints);
   if (s.phase === 'finished') reject('finished', 'The match is over');
 
   if (cmd.t === 'surrender') {
     finish(ctx, { winner: other(player), reason: 'surrender' });
-    return { state: s, events: ctx.events };
+    return result(ctx);
   }
   if (player !== s.activePlayer) reject('not_your_turn', 'It is not your turn');
   const ps = s.players[player];
@@ -105,7 +109,11 @@ export function applyCommand(content: ContentBundle, state: GameState, player: P
       commitTurn(ctx, player, cmd.allocation);
       break;
   }
-  return { state: s, events: ctx.events };
+  return result(ctx);
+}
+
+function result(ctx: Ctx): ApplyResult {
+  return ctx.checkpoints ? { state: ctx.s, events: ctx.events, checkpoints: ctx.checkpoints } : { state: ctx.s, events: ctx.events };
 }
 
 function commitTurn(ctx: Ctx, player: PlayerId, allocation: Energy | undefined): void {
@@ -133,6 +141,7 @@ function commitTurn(ctx: Ctx, player: PlayerId, allocation: Energy | undefined):
 
   for (const q of [...ps.queue]) {
     useQueuedSkill(ctx, q);
+    checkpoint(ctx);
     if (checkGameOver(ctx)) return;
   }
   endTurn(ctx);

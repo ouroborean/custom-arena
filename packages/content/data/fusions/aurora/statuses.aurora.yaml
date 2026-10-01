@@ -1,0 +1,21 @@
+# Aurora (Ice + Lightning) statuses, from the "Fusion Spec Kits" design doc.
+
+shimmer:
+  name: Shimmer
+  kind: Buff
+  element: Aurora
+  stacking: unique
+  description: The bearer may pay colored costs with any color, as if they were random.
+  modifiers:
+    - { mod: costToRandom }
+
+dazzled:
+  name: Dazzled
+  kind: Debuff
+  element: Aurora
+  stacking: unique
+  description: At the start of each of the bearer's turns, one of their player's energies changes to a random other color.
+  triggers:
+    - on: turnStart
+      do:
+        - { op: shiftEnergy, of: bearer }

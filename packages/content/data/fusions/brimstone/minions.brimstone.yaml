@@ -1,0 +1,36 @@
+# Brimstone minions.
+
+belching_toad:
+  name: Belching Toad
+  hp: 30
+  passives:
+    - id: belching_toad_gulp
+      name: Belching Toad
+      kind: Neutral
+      element: Brimstone
+      description: At the end of its owner's turn, swallows a Debuff from a random ally and belches it onto a random enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: stealRandom, from: { randomAlly: 1, where: { hasKind: { unit: it, kind: Debuff } } }, to: { randomEnemy: 1 }, kind: Debuff }
+  skills: []
+
+stoker:
+  name: Stoker
+  hp: 10
+  passives:
+    - id: stoker_flame
+      name: Stoker
+      kind: Neutral
+      element: Brimstone
+      description: At the end of its owner's turn, Ignites an enemy with Sulfur (or any enemy if none has it).
+      triggers:
+        - on: turnEnd
+          do:
+            - op: if
+              cond: { compare: { value: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: sulfur } } } }, atLeast: 1 } }
+              then:
+                - { op: apply, to: { randomEnemy: 1, where: { has: { unit: it, effect: sulfur } } }, effect: ignite }
+              else:
+                - { op: apply, to: { randomEnemy: 1 }, effect: ignite }
+  skills: []
