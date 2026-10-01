@@ -150,7 +150,8 @@ export type Cond =
   /** An effect the actor applied from a skill of this archetype is on the board (e.g. an active Taunt). */
   | { appliedFromArchetype: string }
   /** At the time of the event, its unit carried an effect the actor applied from one of these archetypes. */
-  | { eventTargetHad: { archetypes: string[] } }
+  /** `effects`: instead, an effect the actor applied with one of these keys (or counting as one). */
+  | { eventTargetHad: { archetypes?: string[]; effects?: string[] } }
   /** The skill behind the event (or in scope) matches. */
   | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[] } }
   /** The unit is channeling (carries an interruptible effect). */
@@ -219,6 +220,8 @@ export type Op =
   | { op: 'kill'; to: Selector }
   /** Every fallen character on the actor's side returns with `hp` HP and no effects (Phoenix's Second Dawn). */
   | { op: 'revive'; hp: number }
+  /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
+  | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
   | { op: 'interrupt'; to: Selector }
   /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */

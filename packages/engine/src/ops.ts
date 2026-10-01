@@ -345,7 +345,13 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     return ctx.s.effects.some((e) => e.source === sc.actor && archetypeOf(ctx.c, e.sourceSkill) === c.appliedFromArchetype);
   }
   if ('eventTargetHad' in c) {
-    return (sc.snapshot ?? []).some((e) => e.source === sc.actor && c.eventTargetHad.archetypes.includes(archetypeOf(ctx.c, e.sourceSkill) ?? ''));
+    const { archetypes, effects } = c.eventTargetHad;
+    return (sc.snapshot ?? []).some(
+      (e) =>
+        e.source === sc.actor &&
+        (!archetypes || archetypes.includes(archetypeOf(ctx.c, e.sourceSkill) ?? '')) &&
+        (!effects || effects.includes(effectKeyOf(e)) || (effectDef(ctx.c, e).countsAs ?? []).some((k) => effects.includes(k))),
+    );
   }
   if ('eventSkill' in c) {
     const d = scopeSkill(ctx, sc);
@@ -659,6 +665,13 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         for (const e of effectsOn(ctx.s, t.id)) if (effectKeyOf(e) === op.effect) removeEffect(ctx, e, 'consumed');
       }
       return;
+    case 'expire':
+      for (const u of select(ctx, op.on, sc)) {
+        for (const e of effectsOn(ctx.s, u.id)) {
+          if (effectKeyOf(e) === op.effect || effectDef(ctx.c, e).countsAs?.includes(op.effect)) expireEffect(ctx, e, op.times ?? 1);
+        }
+      }
+      return;
     case 'revive':
       for (const u of ctx.s.units.filter((x) => !x.alive && x.kind === 'character' && x.owner === actor.owner)) {
         u.alive = true;
@@ -909,7 +922,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
 }
 
 /** Ends an effect as if its time ran out: removed as 'expired', then its onExpire payload runs. */
-export function expireEffect(ctx: Ctx, e: EffectInstance): void {
+export function expireEffect(ctx: Ctx, e: EffectInstance, times = 1): void {
   if (!ctx.s.effects.includes(e)) return;
   const onExpire = effectDef(ctx.c, e).onExpire;
   removeEffect(ctx, e, 'expired');
@@ -928,7 +941,7 @@ export function expireEffect(ctx: Ctx, e: EffectInstance): void {
     bypass: false,
   };
   if (e.sourceSkill) sc.skill = ctx.c.skills[e.sourceSkill];
-  runOps(ctx, onExpire, sc);
+  for (let i = 0; i < times; i++) runOps(ctx, onExpire, sc);
 }
 
 const LIFETIME: EffectDef = {

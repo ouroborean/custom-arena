@@ -114,7 +114,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
     }),
     z.strictObject({ isEventTarget: selectorSchema }),
     z.strictObject({ appliedFromArchetype: z.string() }),
-    z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1) }) }),
+    z.strictObject({ eventTargetHad: z.strictObject({ archetypes: z.array(z.string()).min(1).optional(), effects: z.array(z.string()).min(1).optional() }) }),
     z.strictObject({
       eventSkill: z.strictObject({
         archetypes: z.array(z.string()).optional(),
@@ -314,6 +314,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('revive'), hp: z.number().int().min(1) }),
+    z.strictObject({ op: z.literal('expire'), on: selectorSchema, effect: z.string(), times: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
     z.strictObject({ op: z.literal('setCounter'), name: z.string().min(1), value: valueSchema, on: selectorSchema.optional() }),

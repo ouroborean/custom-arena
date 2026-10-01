@@ -13,7 +13,7 @@ mechanic:     { name: Mechanic,    elements: [Fire, Wind] }
 brimstone:    { name: Brimstone,   elements: [Fire, Poison] }
 sun:          { name: Sun,         elements: [Fire, Earth], passives: [sun_heart] }
 phoenix:      { name: Phoenix,     elements: [Fire, Holy] }
-devil:        { name: Devil,       elements: [Fire, Unholy] }
+devil:        { name: Devil,       elements: [Fire, Unholy], passives: [devils_ledger] }
 ritual:       { name: Ritual,      elements: [Fire, Shadow] }
 
 # Ice + …

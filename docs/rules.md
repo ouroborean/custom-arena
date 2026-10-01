@@ -1043,3 +1043,23 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Second Dawn | New `revive` op and `revived` event: fallen characters on the user's side return with 20 HP and no effects. |
 | Cocoon of Flame | Shield and a can't-act effect for 3 ticks (through the user's next turn); what's left heals every ally. |
 | Blazing Challenge | Each hit from the Taunted enemy gives 1 Focus for the next skill (any skill, not only Kindle). |
+
+### 21.18 Devil (Fire + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Hellfire** | Debuff counting as Ignite and Horrified: 5 Affliction at the end of its applier's turn (with Fire's burn aftermath), and immune to Buffs. |
+| **Contract** | An inline effect that counts as `contract` (the benefit is applied beside it; its onExpire is the price). Contracts on the user's side are Buffs; ones forced on enemies (Fine Print, Hellraze) are Neutral, so Horrified doesn't stop them. New `expire` op collects early (Collect; Collection Day collects twice). |
+| **Devil's Ledger** | Fusion passive: when a unit dies holding a Contract this character gave, they gain 2 Soul Fragments; when one dies with their Price on Their Head, the killer's cooldowns drop by 10 and the user gains 1 energy. `eventTargetHad` now takes `effects`. Contracts from the Imp Notary's Offer belong to the Imp, not the Ledger. |
+| Hellbolt | Each Helpful skill used on the Hellfired target (whose Buffs fail) gives the user 1 Soul Fragment. |
+| Imp Captain | Simplified: only the Captain's own hits gain 5 per Soul Fragment of its summoner. |
+| Soulburn | 3 turns; the user heals a flat 15 per turn. |
+| Toasting Fork | The user heals 5 at the end of each of their turns while the target is Ignited. |
+| Soul Snare | Counts Ignite, Hellfire, Frostfire and Scorched on them. |
+| Binding Clause | Simplified: 2 turns of Stun on a Contract holder. |
+| Dance with the Devil | Their Ignites also tick at the start of each of their turns. |
+| Fair Trade | Only when the enemy has more HP; the transfer ignores modifiers. |
+| Pact of Flame | The price is 20 minus all healing received meanwhile (Lifesteal included). |
+| Double or Nothing | Simplified heads: each Debuff lasts 2 turns longer, and Weakness, Vulnerable, Toxin and Confusion gain 1 stack. |
+| Choir of the Pit | Each Helpful skill used on a Horrified enemy gives a random ally of the user 1 Might. |
+| Pyre Swing / Dare the Damned | A kill is detected by damage reaching the target's HP; Dare explodes on each hit that leaves the user at Immortal's floor. |
