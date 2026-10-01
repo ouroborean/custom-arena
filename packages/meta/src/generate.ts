@@ -20,7 +20,9 @@ export interface RollResult {
 
 /** Elements that have variants in this content bundle (the base element pool). */
 export function rollableElements(content: ContentBundle): string[] {
-  return [...new Set(Object.values(content.skills).map((s) => s.element).filter((e) => e !== 'None'))].sort();
+  // Fusion elements (Dragon…) come from two infusions; no character is born with one.
+  const fusions = new Set(Object.values(content.fusions ?? {}).map((f) => f.name));
+  return [...new Set(Object.values(content.skills).map((s) => s.element).filter((e) => e !== 'None' && !fusions.has(e)))].sort();
 }
 
 function weighted<T>(rng: RngState, items: readonly T[], weight: (t: T) => number): T {
