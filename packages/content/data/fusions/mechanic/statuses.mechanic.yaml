@@ -1,0 +1,22 @@
+# Mechanic (Fire + Wind) statuses, from the "Fusion Spec Kits" design doc.
+
+# Every Contraption minion carries this.
+contraption:
+  name: Contraption
+  kind: Neutral
+  element: Mechanic
+  stacking: unique
+  description: A machine. Can't be healed or gain Renew (only Repair restores it), and ignores Stun, Sleep and Confusion.
+  modifiers:
+    - { mod: healingReceived, mul: 0 }
+    - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s, sleep, confusion, renew] }
+
+upgraded:
+  name: Upgrade
+  kind: Neutral
+  element: Mechanic
+  stacking: merge
+  maxStacks: 3
+  description: Upgrade level (max 3). +5 damage per level (each level also gave +10 max HP).
+  modifiers:
+    - { mod: damageDealt, amount: 5, perStack: true }

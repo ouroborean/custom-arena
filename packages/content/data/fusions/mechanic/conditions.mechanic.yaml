@@ -1,0 +1,7 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# Can be Upgraded: a minion, or a character in a Mech Suit.
+upgradeable:
+  or:
+    - { kind: { unit: it, is: minion } }
+    - { has: { unit: it, effect: mech_suit } }

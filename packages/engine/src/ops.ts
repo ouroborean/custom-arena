@@ -130,6 +130,11 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       const u = actor.lastAttacker ? findUnit(ctx.s, actor.lastAttacker) : undefined;
       return u?.alive ? [u] : [];
     }
+    case 'primaryLastAttacker': {
+      const p = sc.targets[0] ? findUnit(ctx.s, sc.targets[0]) : undefined;
+      const u = p?.lastAttacker ? findUnit(ctx.s, p.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
     case 'strongestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'max');
   }

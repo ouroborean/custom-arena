@@ -82,13 +82,14 @@ describe('resolveLoadout', () => {
     expect(crystal.problems).toEqual([]);
   });
 
-  it('a skill holds up to two infusions; two make their fusion element, which no skill has yet', () => {
-    // Strike already has its locked native Fire: a second infusion would make Fire + Wind, Mechanic.
+  it('a skill holds up to two infusions; two make their fusion element, if it has that skill', () => {
+    // Strike already has its locked native Fire: a second infusion makes Fire + Wind, Mechanic.
     const onLocked = resolveLoadout(content, warrior(), of(['wind_shard'], [{ skill: 'strike', element: 'Wind' }]));
-    expect(onLocked.problems).toEqual(["Strike: Fire + Wind make Mechanic, and fusion elements aren't in the game yet"]);
-    expect(skillOf(onLocked, 'strike')?.infusion).toBe('Fire'); // the native infusion stays
-    const two = resolveLoadout(content, warrior(), of(['ice_shard', 'wind_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Wind' }]));
-    expect(two.problems).toEqual(["Smash: Ice + Wind make Winter, and fusion elements aren't in the game yet"]);
+    expect(onLocked.problems).toEqual([]);
+    expect(skillOf(onLocked, 'strike')?.infusion).toBe('Mechanic');
+    // Holy + Shadow (Vigilante) isn't implemented yet. (Revisit once every fusion kit is in.)
+    const two = resolveLoadout(content, warrior(), of(['holy_shard', 'shadow_shard'], [{ skill: 'smash', element: 'Holy' }, { skill: 'smash', element: 'Shadow' }]));
+    expect(two.problems).toEqual(["Smash: Holy + Shadow make Vigilante, and fusion elements aren't in the game yet"]);
     const three = resolveLoadout(
       content,
       warrior(),

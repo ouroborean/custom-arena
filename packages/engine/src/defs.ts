@@ -55,6 +55,7 @@ export type NamedSelector =
   | 'weakestEnemy' // the actor's targetable enemy character with the least HP
   | 'strongestEnemy' // the actor's targetable enemy character with the most HP
   | 'lastAttacker' // the last enemy who damaged the actor (if still alive)
+  | 'primaryLastAttacker' // the last enemy who damaged the first target (Mechanic's Rivet Gun)
   | 'primaryPartners'; // units Entangled with the first target (Dimension)
 
 export type Selector =
@@ -469,6 +470,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'catalyst' }
   /** The bearer's Normal damage is dealt as Piercing (Alchemy's Universal Solvent). */
   | { mod: 'normalAsPiercing' }
+  /** The bearer can't gain these effects (Mechanic's Contraptions: Stun, Sleep, Confusion, Renew). */
+  | { mod: 'immuneToEffects'; effects: string[] }
   /**
    * Dimension's Entangled: effects applied to the bearer are applied to every unit sharing this
    * effect's link group too (only these kinds, if given). Made by the `entangle` op.

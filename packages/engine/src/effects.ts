@@ -82,6 +82,11 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
     }
   }
 
+  // Mechanic's Contraptions (and similar): can't gain these effects at all.
+  if (modsOn(ctx.s, ctx.c, bearer.id, 'immuneToEffects').some(({ spec }) => spec.effects.includes(def.id))) {
+    emit(ctx, { t: 'effectBlocked', defId: def.id, bearer: bearer.id, reason: 'immune' }, privateTo);
+    return null;
+  }
   // Immune (and similar): cannot receive effects of this kind.
   if (modsOn(ctx.s, ctx.c, bearer.id, 'immuneTo').some(({ spec }) => spec.kind === def.kind)) {
     emit(ctx, { t: 'effectBlocked', defId: def.id, bearer: bearer.id, reason: 'immune' }, privateTo);

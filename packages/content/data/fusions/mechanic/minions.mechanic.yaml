@@ -1,0 +1,88 @@
+# Mechanic minions. Contraptions carry the `contraption` passive and the `contraption` tag.
+
+turret:
+  name: Turret
+  hp: 20
+  tags: [contraption]
+  passives:
+    - contraption
+    - id: turret_fire
+      name: Turret
+      kind: Neutral
+      element: Mechanic
+      description: At the end of its owner's turn, deals 10 damage to a random enemy.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+  skills: []
+
+# Turret Drop's pair: when one is destroyed, the other is Upgraded.
+paired_turret:
+  name: Turret
+  hp: 20
+  tags: [contraption, turret]
+  passives:
+    - contraption
+    - id: paired_turret_fire
+      name: Turret
+      kind: Neutral
+      element: Mechanic
+      description: At the end of its owner's turn, deals 10 damage to a random enemy. When it's destroyed, its partner is Upgraded.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+  onDeath:
+    - op: forEach
+      in: { filter: allAllies, where: { minion: { unit: it, types: [paired_turret] } } }
+      do:
+        - { op: macro, id: upgrade }
+  skills: []
+
+mortar:
+  name: Mortar
+  hp: 20
+  tags: [contraption]
+  passives: [contraption]
+  skills: []
+
+clockwork_hound:
+  name: Clockwork Hound
+  hp: 30
+  tags: [contraption]
+  passives:
+    - contraption
+    - id: clockwork_hound_hunt
+      name: Clockwork Hound
+      kind: Neutral
+      element: Mechanic
+      description: At the end of its owner's turn, deals 10 damage to a random enemy; every other turn it Upgrades itself.
+      triggers:
+        - on: turnEnd
+          do:
+            - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
+            - op: if
+              cond: { flag: wound }
+              then:
+                - { op: forEach, in: bearer, do: [{ op: macro, id: upgrade }] }
+                - { op: setFlag, flag: wound, value: false }
+              else:
+                - { op: setFlag, flag: wound }
+  skills: []
+
+dummy:
+  name: Dummy
+  hp: 15
+  tags: [contraption]
+  passives: [contraption]
+  onDeath:
+    - { op: macro, id: explode }
+  skills: []
+
+decoy:
+  name: Decoy
+  hp: 20
+  tags: [contraption]
+  passives: [contraption]
+  skills: []

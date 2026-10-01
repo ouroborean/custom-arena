@@ -969,3 +969,21 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Flare Beacon | +1 Taunt turn if any Heat was vented, and 1 Sapped per 2. |
 | Reactor Core | Armor computed live from Heat (−5 Normal damage per Heat). |
 | Jumper Sparks | The Charge goes to a random ally character. |
+
+### 21.14 Mechanic (Fire + Wind)
+
+| Term | Ruling |
+|---|---|
+| **Contraptions** | Minions tagged `contraption` that carry the `contraption` passive: healing received ×0 and the new `immuneToEffects` modifier (Stun, Sleep, Confusion, Renew). Repair is a raw heal, which skips healing modifiers. |
+| **Upgrade** | Macro `upgrade` on a unit that's a minion or in a Mech Suit (condition `upgradeable`): if below level 3, +1 `upgraded` (+5 damage per level, Neutral), +10 max HP and 10 HP. |
+| Rivet Gun | New target `primaryLastAttacker`: the last enemy who damaged the target. If it's a minion, it's Upgraded ("this turn" isn't tracked). |
+| Mortar | The Mortar lasts 2 turns; the channel fires from it if it's still standing when the channel ends. |
+| Jetpack | A companion Buff, linked to the Leap: once a damaging skill resolves, it Explodes. |
+| Pressure Cascade | Counts allies who used any skill earlier this turn. |
+| Turret Drop | A `paired_turret` whose new `onDeath` Upgrades the other. |
+| Chainsaw | A destroyed minion is detected by the damage dealt reaching its HP. |
+| Concussion Grenade | Lands when its 2-tick timer expires (end of the enemy's turn), unless the target used a mobility skill. |
+| Tune-Up | A damaging skill that ends the Leap restores it; damage taken removes it. |
+| Signal Flare | Simplified: allied minions aren't redirected to the target; each one that damages it is Upgraded. |
+| Steam Whistle | A minion already at level 3 isn't Upgraded and loses nothing. |
+| Mech Suit | Shield 20, Immune and a Mech Suit Buff (counts as a Contraption, immune to Stuns and Sleep, can be Upgraded); then Leap. |
