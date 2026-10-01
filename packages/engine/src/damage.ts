@@ -65,6 +65,10 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     return 0;
   }
 
+  // Blood's Bloodbound Familiar: it shares its summoner's HP, so the hit lands on them.
+  const linked = hpLinkOf(ctx, target);
+  if (linked) return dealDamage(ctx, { ...a, target: linked });
+
   // Rod of Domination: damage from others lands on a random allied minion instead.
   if (source !== target && modsOn(ctx.s, ctx.c, target.id, 'redirectDamage').length > 0) {
     const minions = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && u.kind === 'minion');
@@ -280,8 +284,17 @@ function enqueueOn(
 }
 
 /** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
+/** The summoner whose HP an `hpLink` minion shares, if it's alive. */
+function hpLinkOf(ctx: Ctx, u: Unit): Unit | undefined {
+  if (!u.summonedBy || modsOn(ctx.s, ctx.c, u.id, 'hpLink').length === 0) return undefined;
+  const s = findUnit(ctx.s, u.summonedBy);
+  return s?.alive ? s : undefined;
+}
+
 export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number, opts: { raw?: boolean | undefined; quiet?: boolean | undefined } = {}): number {
   if (!target.alive || amount <= 0) return 0;
+  const linked = hpLinkOf(ctx, target);
+  if (linked) return heal(ctx, source, linked, amount, opts);
   // Evil's Unhallowed: the healing hurts instead (its 'healed' triggers still hear it).
   if (modsOn(ctx.s, ctx.c, target.id, 'invertHealing').length > 0) {
     const hurt = opts.raw ? amount : modifiedHealing(ctx, target, amount);

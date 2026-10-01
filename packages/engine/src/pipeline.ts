@@ -217,7 +217,8 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
 
   const targets = wardTargets(ctx, actor, def, fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets)));
   // Blood's Blood Price: the random costs are paid in HP now (it fails if that would kill).
-  const blood = bloodPriceHp(ctx, actor, def);
+  // (Locked at queue time: random costs already paid in energy aren't charged again.)
+  const blood = (action.cost.r ?? 0) > 0 ? 0 : bloodPriceHp(ctx, actor, def);
   actor.counters['c:blood_paid'] = blood;
   if (blood > 0) {
     if (blood >= actor.hp) return fail(ctx, actor, def, 'Blood Price would kill', false);

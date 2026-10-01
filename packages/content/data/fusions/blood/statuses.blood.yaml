@@ -19,6 +19,13 @@ hemorrhage:
           then: [{ op: addStacksSelf, amount: 1 }]
     - on: healed
       do:
+        # Arterial Strike: the healer takes the Hemorrhage as it stands.
+        - op: if
+          cond: { has: { unit: bearer, effect: arterial_strike } }
+          then:
+            - { op: apply, to: eventSource, effect: hemorrhage, stacks: { effectStacks: true } }
+            - { op: removeEffect, from: bearer, effect: arterial_strike }
+            - { op: removeSelf }
         - op: if
           cond: { not: { has: { unit: bearer, effect: hemophilia } } }
           then: [{ op: removeSelf }]

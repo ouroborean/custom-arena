@@ -316,6 +316,7 @@ summon.blood:
   ops:
     - { op: summon, minion: blood_elemental, duration: { enemyTurns: 3 } }
     - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ counter: blood_paid }, -20] } }
+    - { op: heal, to: lastSummoned, amount: { sum: [{ counter: blood_paid }, -20] }, raw: true, quiet: true }
 
 channel.blood:
   archetype: Channel
@@ -385,12 +386,7 @@ ravage.blood:
         name: Arterial Strike
         kind: Debuff
         element: Blood
-        description: Whoever heals the bearer takes their Hemorrhage.
-        triggers:
-          - on: healed
-            consume: true
-            do:
-              - { op: apply, to: eventSource, effect: hemorrhage, stacks: 2 }
+        description: Whoever heals the bearer takes their Hemorrhage (see Hemorrhage).
 
 mislead.blood:
   archetype: Mislead
@@ -588,8 +584,8 @@ prayer.blood:
   element: Blood
   name: Blood Chant
   description: >-
-    All allies heal 20. Until the user's next turn, their allies' random costs are paid in HP, 10 each.
-    Blood Price.
+    All allies heal 20. Until the end of the user's next turn, their allies' random costs are paid in HP, 10
+    each. Blood Price.
   cost: Irr
   cooldown: 2
   tags: [Helpful, Strategic, BloodPrice]
@@ -598,7 +594,7 @@ prayer.blood:
     - { op: heal, to: targets, amount: 20 }
     - op: apply
       to: { filter: targets, where: { not: { isActor: it } } }
-      duration: { raw: 2 }
+      duration: { ownTurns: 1 }
       effect:
         id: blood_chant
         name: Blood Chant
@@ -693,6 +689,7 @@ withstand.blood:
           - on: turnStart
             do:
               - { op: heal, to: bearer, amount: { mul: [5, { totalStacks: { in: bearer, effect: renew } }] } }
+              - { op: removeSelf }
 
 taunt.blood:
   archetype: Taunt

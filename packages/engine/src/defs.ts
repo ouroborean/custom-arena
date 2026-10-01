@@ -563,6 +563,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'targetExclude'; where: Cond }
   /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
   | { mod: 'redirectDamage' }
+  /** The minion shares its summoner's HP: damage and healing to it go to them (Bloodbound Familiar). */
+  | { mod: 'hpLink' }
   /** Skills of this effect's source Bypass against the bearer. */
   /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
   | { mod: 'exposed'; anyEnemy?: boolean }

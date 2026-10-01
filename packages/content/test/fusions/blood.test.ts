@@ -373,8 +373,7 @@ describe('Blood skills', () => {
     expect(a.unit(fam.id).alive).toBe(true);
   });
 
-  // BUG: "damage to it goes to the user" — a 20-damage Strike on the Familiar costs the user only 9 (its 10 HP minus the floor of 1).
-  it.fails('Bloodbound Familiar: the full damage dealt to it goes to the user', () => {
+  it('Bloodbound Familiar: the full damage dealt to it goes to the user', () => {
     const a = arena({ p0: [['companion.blood']], p1: [['strike']] });
     a.use(A1, 'companion.blood').end();
     const fam = minion(a, 'bloodbound_familiar')!;
@@ -382,8 +381,7 @@ describe('Blood skills', () => {
     expect(a.hp(A1)).toBe(80);
   });
 
-  // BUG: "healing to it goes to the user" — the Familiar is always at full HP, so a heal on it heals the user 0.
-  it.fails('Bloodbound Familiar: healing it heals the user', () => {
+  it('Bloodbound Familiar: healing it heals the user', () => {
     const a = arena({ p0: [['companion.blood'], ['heal']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'companion.blood').end().pass(1);
     const fam = minion(a, 'bloodbound_familiar')!;
@@ -391,8 +389,7 @@ describe('Blood skills', () => {
     expect(a.hp(A1)).toBe(75);
   });
 
-  // BUG: "it dies only with them" — the Familiar stays alive after its summoner dies.
-  it.fails('Bloodbound Familiar: dies when the user dies', () => {
+  it('Bloodbound Familiar: dies when the user dies', () => {
     const a = arena({ p0: [['companion.blood'], ['shot']], p1: [['shot']] });
     a.use(A1, 'companion.blood').end();
     const fam = minion(a, 'bloodbound_familiar')!;
@@ -452,8 +449,7 @@ describe('Blood skills', () => {
     expect(a.hp(A1)).toBe(80); // ruling: it doesn't return its HP
   });
 
-  // BUG: "with HP equal to what the user paid" — paying 30 gives max HP 30 but current HP stays 20.
-  it.fails('Blood Elemental: paying more (Confusion) makes a bigger Elemental', () => {
+  it('Blood Elemental: paying more (Confusion) makes a bigger Elemental', () => {
     const a = arena({ p0: [['summon.blood']], p1: [['curse']] });
     a.pass(1).use(B1, 'curse', A1).end();
     a.use(A1, 'summon.blood').end();
@@ -511,8 +507,7 @@ describe('Blood skills', () => {
     expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([60, 3]);
   });
 
-  // SPEC: "the healer takes the Hemorrhage" / status "takes their Hemorrhage": the target's current stacks (3 after a tick) or the 2 applied? The healer gets 2.
-  it.fails('Arterial Strike: if healed before the user\'s next turn, the healer takes the Hemorrhage', () => {
+  it('Arterial Strike: if healed before the user\'s next turn, the healer takes the Hemorrhage', () => {
     const a = arena({ p0: [['ravage.blood']], p1: [['shot'], ['heal']] });
     a.use(A1, 'ravage.blood', B1).end();
     a.use(B2, 'heal', B1).end();
@@ -680,19 +675,26 @@ describe('Blood skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([50, 70]); // the user also paid 20
   });
 
-  // BUG: an ally queued after Blood Chant pays the random cost twice: energy (locked at queue time) and 10 HP.
-  it.fails('Blood Chant: until the user\'s next turn, other allies pay random costs in HP (10 each), not energy', () => {
-    const a = arena({ p0: [['prayer.blood'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'prayer.blood').use(A2, 'shot', B1);
-    const before = energyTotal(a, 0);
-    a.end();
-    // Only Blood Chant's I is paid in energy; A2's Shot costs them 10 HP.
-    expect([energyTotal(a, 0), a.hp(A2), a.hp(B1)]).toEqual([before - 1, 90, 85]);
-  });
-
-  it('Blood Chant: by the user\'s next turn, allies pay energy again', () => {
+  it('Blood Chant: through the user\'s next turn, other allies pay random costs in HP (10 each), not energy', () => {
     const a = arena({ p0: [['prayer.blood'], ['shot']], p1: [['shot']] });
     a.use(A1, 'prayer.blood').end().pass(1);
+    a.use(A2, 'shot', B1);
+    expect(a.state.players[0].queue[0]!.cost.r).toBe(0);
+    a.end();
+    expect([a.hp(A2), a.hp(B1)]).toEqual([90, 85]);
+  });
+
+  it('Blood Chant: an ally who queued alongside it already paid energy, and pays no HP on top', () => {
+    const a = arena({ p0: [['prayer.blood'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'prayer.blood').use(A2, 'shot', B1);
+    expect(a.state.players[0].queue[1]!.cost.r).toBe(1);
+    a.end();
+    expect(a.hp(A2)).toBe(100);
+  });
+
+  it('Blood Chant: after the user\'s next turn, allies pay energy again', () => {
+    const a = arena({ p0: [['prayer.blood'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'prayer.blood').end().pass(3);
     a.use(A2, 'shot', B1);
     expect(a.state.players[0].queue[0]!.cost.r).toBe(1);
     a.end();
@@ -744,8 +746,7 @@ describe('Blood skills', () => {
     expect(a.hp(A1)).toBe(65);
   });
 
-  // BUG: ruling 21.33 "lasts until the start of the user's next turn" — the Shield is still up through the user's turn.
-  it.fails('Clotting Ward: the Shield ends at the start of the user\'s next turn', () => {
+  it('Clotting Ward: the Shield ends at the start of the user\'s next turn', () => {
     const a = arena({ p0: [['withstand.blood']], p1: [['shot']] });
     a.use(A1, 'withstand.blood').end().end();
     expect(a.has(A1, 'clotting_ward')).toBe(false);
