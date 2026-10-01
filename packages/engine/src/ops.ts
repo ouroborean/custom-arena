@@ -23,7 +23,7 @@ import type { Cond, DurationSpec, EffectDef, NamedSelector, Op, ResolvedDuration
 import { applyEffect, interruptChannels, isProtected, removeEffect, revealEffect } from './effects.js';
 import { canTarget, modsOn } from './queries.js';
 import { nextInt, pick, sample } from './rng.js';
-import { COLORS, type EffectInstance, type Energy, type Unit, type UnitId } from './types.js';
+import { COLORS, type EffectInstance, type Energy, type SkillSlot, type Unit, type UnitId } from './types.js';
 
 export interface Scope {
   actor: UnitId;
@@ -233,6 +233,8 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
     const d = scopeSkill(ctx, sc);
     return d ? costTotal(d.cost) : 0;
   }
+  if ('skillCooldown' in v) return scopeSkill(ctx, sc)?.cooldown ?? 0;
+  if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
   if ('deadCount' in v) {
     const me = unit(ctx, sc.actor);
     return ctx.s.units.filter(
@@ -672,6 +674,16 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
         }
       }
       return;
+    case 'swapCooldowns': {
+      const longest = (u: Unit | undefined) =>
+        u?.skills
+          .filter((_, i) => !(u.id === actor.id && i === sc.slot))
+          .reduce<SkillSlot | undefined>((best, s) => (!best || s.cooldown > best.cooldown ? s : best), undefined);
+      const sa = longest(select(ctx, op.a, sc)[0]);
+      const sb = longest(select(ctx, op.b, sc)[0]);
+      if (sa && sb) [sa.cooldown, sb.cooldown] = [sb.cooldown, sa.cooldown];
+      return;
+    }
     case 'revive':
       for (const u of ctx.s.units.filter((x) => !x.alive && x.kind === 'character' && x.owner === actor.owner)) {
         u.alive = true;

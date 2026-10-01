@@ -1080,3 +1080,18 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Veilbrand | Simplified: a Stealthed attacker who damages the Ignited target gets their next skill counted as Stealthy. |
 | Cinder Tether | Healing either receives is undone and dealt to the other as Affliction. |
 | Smokewall | A Shield checked at the start of the user's turns: it ends once they're no longer Stealthed. |
+
+### 21.20 Glacier (Ice + Water)
+
+| Term | Ruling |
+|---|---|
+| **Icebound** | New `freezeCooldowns` modifier: the bearer's cooldowns skip their tick. It's checked as the turn ends, before durations count down, so a 1-turn Icebound covers the enemy's own cooldown tick. |
+| **Meltwater** | New `cooldownTick` modifier: cooldowns tick 1 extra at the end of the bearer's turns. Skills it frees are counted in the unit's `thawed` counter (Spring Thaw reads it at the start of the next turn). |
+| New values / ops | `skillCooldown` (the base cooldown of the skill in scope, for Pressure Ridge and Thin Ice), `skillsOnCooldown` (Under the Ice, Glacier Form) and `swapCooldowns` (Borrowed Hour; the skill being used is skipped). |
+| Crevasse | Simplified: the triggering Harmful skill Icebinds them for 2 turns and raises all their cooldowns by 1 (not that skill's cooldown doubled). |
+| Glacial Erratic | A companion effect hears the Mark expire unspent (`ownEffectEnded`, reason expired) and deals 30. |
+| Stolen Thaw | Simplified: 2 turns of Meltwater, not the Icebound's remaining time. |
+| Hoarfrost Pick | Frost debuffs on the target can't be removed (they don't pass through Immune). |
+| Frozen in Time | Simplified: Icebound for 2 turns keeps their cooldowns where they are, and they rise by 1. |
+| Calving | Simplified: the two share all their Debuffs once (`shareEffects`). |
+| Advancing Glacier | The Ice Tongue counts its own turns. |

@@ -99,6 +99,9 @@ export function endTurn(ctx: Ctx): void {
     if (checkGameOver(ctx)) return;
   }
 
+  // Glacier's Icebound: units frozen as the turn ends, before anything expires.
+  const icebound = new Set(s.units.filter((u) => modsOn(s, ctx.c, u.id, 'freezeCooldowns').length > 0).map((u) => u.id));
+
   // b. Every effect on the board counts down; those reaching 0 expire (Q1).
   const expired: EffectInstance[] = [];
   for (const e of s.effects) {
@@ -119,7 +122,16 @@ export function endTurn(ctx: Ctx): void {
   // c. The active player's cooldowns tick (owner's turns only, Q15).
   for (const u of s.units) {
     if (u.owner !== p) continue;
-    for (const slot of u.skills) slot.cooldown = Math.max(0, slot.cooldown - 1);
+    // Glacier: Icebound freezes them; Meltwater ticks them faster (`thawed` counts skills it freed).
+    if (icebound.has(u.id)) continue;
+    const extra = modsOn(s, ctx.c, u.id, 'cooldownTick').reduce((n, { spec }) => n + spec.amount, 0);
+    let thawed = 0;
+    for (const slot of u.skills) {
+      const before = Math.max(0, slot.cooldown - 1);
+      slot.cooldown = Math.max(0, before - extra);
+      if (before > 0 && slot.cooldown === 0) thawed++;
+    }
+    u.counters.thawed = thawed;
   }
 
   const ps = s.players[p];

@@ -106,6 +106,10 @@ export type Value =
   | { if: Cond; then: Value; else: Value }
   /** Total base cost of the skill in scope (the skill being used, or the one behind the event). */
   | { skillCost: true }
+  /** Base cooldown of the skill in scope (the skill being used, or the one behind the event). */
+  | { skillCooldown: true }
+  /** How many of the (first) selected unit's skills are on cooldown. */
+  | { skillsOnCooldown: Selector }
   /** Dead characters on the actor's enemy / own side. */
   | { deadCount: 'enemies' | 'allies' }
   /** The actor's other characters that have used a skill this turn. */
@@ -220,6 +224,8 @@ export type Op =
   | { op: 'kill'; to: Selector }
   /** Every fallen character on the actor's side returns with `hp` HP and no effects (Phoenix's Second Dawn). */
   | { op: 'revive'; hp: number }
+  /** Swaps the longest remaining cooldown of `a` with that of `b` (the actor's skill being used is skipped). */
+  | { op: 'swapCooldowns'; a: Selector; b: Selector }
   /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
   | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
@@ -477,6 +483,10 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'normalAsPiercing' }
   /** The bearer can't gain these effects (Mechanic's Contraptions: Stun, Sleep, Confusion, Renew). */
   | { mod: 'immuneToEffects'; effects: string[] }
+  /** Glacier's Icebound: the bearer's cooldowns don't tick down. */
+  | { mod: 'freezeCooldowns' }
+  /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
+  | { mod: 'cooldownTick'; amount: number }
   /**
    * Dimension's Entangled: effects applied to the bearer are applied to every unit sharing this
    * effect's link group too (only these kinds, if given). Made by the `entangle` op.
