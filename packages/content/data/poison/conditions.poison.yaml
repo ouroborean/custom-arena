@@ -10,3 +10,8 @@ prey:
     # Evolution: Telltale Venom (any Toxin counts) and Delirium (each Debuff stack counts as 2).
     - { and: [{ has: { unit: it, effect: telltale_venom } }, { has: { unit: it, effect: toxin } }] }
     - { and: [{ has: { unit: it, effect: delirium } }, { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 1 } }] }
+    # Brimstone: Acrid Orb (while Marked) and Scent of Cinders (while Ignited or Scorched).
+    - { and: [{ has: { unit: it, effect: acrid_orb } }, { has: { unit: it, effect: mark } }] }
+    - and:
+        - { has: { unit: it, effect: cinder_scent } }
+        - { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }

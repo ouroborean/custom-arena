@@ -1,0 +1,732 @@
+# The 30 Brimstone (Fire + Poison) variants, from the "Fusion Spec Kits" design doc.
+# Sulfur Erupts (macro `erupt`) when its bearer takes Ignite damage (Fire's burn aftermath) or is
+# hit by an Explosion (Fire's explode macro).
+
+strike.brimstone:
+  archetype: Strike
+  element: Brimstone
+  name: Fuming Blow
+  description: Deals 20 damage to target enemy, who gains 1 Sulfur. If that brings them to 4, their Sulfur Erupts at once.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sulfur }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: primary, effect: sulfur } }, atLeast: 4 } }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
+
+smash.brimstone:
+  archetype: Smash
+  element: Brimstone
+  name: Brimquake
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. For 2 turns, Explosions deal 10 more to
+    each enemy it hit.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primaryAllies, amount: 15 }
+    - op: apply
+      to: lastDamaged
+      duration: { enemyTurns: 2 }
+      effect: &brimquake
+        id: brimquake
+        name: Brimquake
+        kind: Debuff
+        element: Brimstone
+        description: Each Explosion from the bearer's enemies deals them 10 more.
+        triggers:
+          - on: signal
+            signal: explosion
+            when: { side: enemy }
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+    - { op: apply, to: primary, duration: { enemyTurns: 2 }, effect: *brimquake }
+
+charge.brimstone:
+  archetype: Charge
+  element: Brimstone
+  name: Choking Lunge
+  description: >-
+    Deals 10 damage to target enemy, and the user gets 1 Focus for their next skill. Until the user's
+    next turn, Toxin on the target also ticks at the start of the target's turn.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: choking_lunge
+        name: Choking
+        kind: Debuff
+        element: Brimstone
+        description: The bearer's Toxin also ticks at the start of their turn.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: damage, to: bearer, amount: { mul: [5, { totalStacks: { in: bearer, effect: toxin } }] }, type: Affliction, direct: false }
+
+riposte.brimstone:
+  archetype: Riposte
+  element: Brimstone
+  name: Brimstone Hide
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user. Its user gains 2 Sulfur; if they're
+    Ignited, it Erupts at once and the user heals as much as it deals them. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: brimstone_hide
+        name: Brimstone Hide
+        kind: Buff
+        element: Brimstone
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer; their users gain Sulfur, Erupting if Ignited.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: apply, to: eventSource, effect: sulfur, stacks: 2 }
+              - op: if
+                cond: { has: { unit: eventSource, effect: ignite } }
+                then:
+                  - { op: forEach, in: eventSource, do: [{ op: macro, id: erupt }] }
+                  - { op: heal, to: bearer, amount: { var: erupted } }
+
+rage.brimstone:
+  archetype: Rage
+  element: Brimstone
+  name: Scent of Cinders
+  description: For 3 turns, the user gains 1 Might and Immune, and every Ignited or Scorched enemy counts as Prey.
+  cost: S
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 3 }
+      effect:
+        id: cinder_scent
+        name: Scent of Cinders
+        kind: Debuff
+        element: Brimstone
+        description: While Ignited or Scorched, the bearer counts as Prey.
+
+shot.brimstone:
+  archetype: Shot
+  element: Brimstone
+  name: Sulfur Sting
+  description: Deals 5 Piercing damage to target enemy, who gains 1 Sulfur. If they're Prey, their Sulfur Erupts.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: sulfur }
+    - op: if
+      cond: { check: { cond: prey, unit: primary } }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
+
+snipe.brimstone:
+  archetype: Snipe
+  element: Brimstone
+  name: Pitch Javelin
+  description: >-
+    On the following turn, deals 25 Affliction damage to target enemy, who gains 2 Sulfur, and their
+    next Eruption is doubled. The target of this skill is invisible. Channeled, Uncounterable.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pitch_javelin
+        name: Pitch Javelin (aiming)
+        kind: Neutral
+        element: Brimstone
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn unless interrupted.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 25, type: Affliction }
+          - { op: apply, to: effectTargets, effect: sulfur, stacks: 2 }
+          - op: apply
+            to: effectTargets
+            effect:
+              id: pitch_javelin_mark
+              name: Pitch-Soaked
+              kind: Debuff
+              element: Brimstone
+              description: The bearer's next Eruption is doubled.
+
+trap.brimstone:
+  archetype: Trap
+  element: Brimstone
+  name: Brimstone Pit
+  description: >-
+    For 3 turns, each time target enemy uses a Strategic skill, they gain 1 Sulfur. The first damaging
+    skill they use makes it all Erupt. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: brimstone_pit
+        name: Brimstone Pit
+        kind: Debuff
+        element: Brimstone
+        visibility: hidden
+        description: Strategic skills give the bearer Sulfur; their first damaging skill makes it Erupt.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true }
+            do:
+              - { op: apply, to: bearer, effect: sulfur }
+          - on: skillUsed
+            when: { strategic: false }
+            consume: true
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: erupt }] }
+
+maneuver.brimstone:
+  archetype: Maneuver
+  element: Brimstone
+  name: Choking Pall
+  description: The user becomes Invulnerable for 1 turn, and every other unit, ally or enemy, is Blinded for 1 turn. Unstunnable.
+  cost: S
+  cooldown: 2
+  tags: [Helpful, Strategic, Unstunnable]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: { filter: allUnits, where: { not: { isActor: it } } }, effect: blinded, duration: { enemyTurns: 1 } }
+
+companion.brimstone:
+  archetype: Companion
+  element: Brimstone
+  name: Belching Toad
+  description: >-
+    Summons a Belching Toad (30 HP) permanently. At the end of each of your turns, it swallows a
+    Debuff from a random ally and belches it onto a random enemy.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: belching_toad }
+
+bolt.brimstone:
+  archetype: Bolt
+  element: Brimstone
+  name: Acrid Orb
+  description: Deals 20 damage to target enemy and Marks them for 1 turn. Until the Mark is spent, they count as Prey.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: acrid_orb
+        name: Acrid
+        kind: Debuff
+        element: Brimstone
+        description: While Marked, the bearer counts as Prey.
+
+blast.brimstone:
+  archetype: Blast
+  element: Brimstone
+  name: Burning Downpour
+  description: Deals 15 damage to all enemies. Then each one's Ignite ticks once for every 2 Toxin they have (max 3).
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: ignite } } }
+      do:
+        - op: repeat
+          times:
+            if: { compare: { value: { totalStacks: { in: it, effect: toxin } }, atLeast: 6 } }
+            then: 3
+            else: { div: [{ totalStacks: { in: it, effect: toxin } }, 2] }
+          do:
+            - { op: macro, id: ignite_tick }
+
+consume.brimstone:
+  archetype: Consume
+  element: Brimstone
+  name: Consumed by Fire
+  description: >-
+    Target enemy's Sulfur Erupts. Then, if they're below 15 HP (30 for minions), they're
+    executed.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
+    - op: if
+      cond:
+        or:
+          - { and: [{ kind: { unit: primary, is: character } }, { hpAtMost: { unit: primary, value: 14 } }] }
+          - { and: [{ kind: { unit: primary, is: minion } }, { hpAtMost: { unit: primary, value: 29 } }] }
+      then:
+        - { op: kill, to: primary }
+
+summon.brimstone:
+  archetype: Summon
+  element: Brimstone
+  name: Stokers
+  description: >-
+    Summons 2 Stokers (10 HP) for 2 turns. At the end of each of your turns, each Ignites an enemy with
+    Sulfur.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: stoker, count: 2, duration: { enemyTurns: 2 } }
+
+channel.brimstone:
+  archetype: Channel
+  element: Brimstone
+  name: Hellmouth
+  description: >-
+    For up to 8 turns, at the end of each of the user's turns, deals 5 Affliction damage to all
+    enemies, and a random enemy gains 1 Sulfur. When it ends or is broken, every enemy's Sulfur
+    Erupts. Channeled.
+  cost: Irr
+  cooldown: 8
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 8 }
+      effect:
+        id: hellmouth
+        name: Hellmouth
+        kind: Neutral
+        element: Brimstone
+        interruptible: true
+        description: Each turn, 5 Affliction to all enemies and 1 Sulfur to a random one. When it ends, all Sulfur Erupts.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 5, type: Affliction }
+              - { op: apply, to: { randomEnemy: 1 }, effect: sulfur }
+    - op: apply
+      to: actor
+      effect:
+        id: hellmouth_maw
+        name: Hellmouth
+        kind: Neutral
+        element: Brimstone
+        description: When the Hellmouth ends or is broken, every enemy's Sulfur Erupts.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [hellmouth] }
+            do:
+              - { op: removeSelf }
+              - op: forEach
+                in: { filter: allEnemies, where: { has: { unit: it, effect: sulfur } } }
+                do:
+                  - { op: macro, id: erupt }
+
+stab.brimstone:
+  archetype: Stab
+  element: Brimstone
+  name: Strike the Match
+  description: >-
+    Deals 5 Piercing damage to target enemy and Ignites them. If they have Sulfur for this Ignite to
+    set off, the user gains 1 random energy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: ignite }
+    - op: if
+      cond: { has: { unit: primary, effect: sulfur } }
+      then:
+        - { op: gainEnergy, amount: 1 }
+
+ravage.brimstone:
+  archetype: Ravage
+  element: Brimstone
+  name: Caustic Flame
+  description: Deals 20 Affliction damage to target enemy, +10 per Toxin on them. Then their Toxin is burned away.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, type: Affliction, amount: { sum: [20, { mul: [10, { totalStacks: { in: primary, effect: toxin } }] }] } }
+    - { op: removeEffect, from: primary, effect: toxin }
+
+mislead.brimstone:
+  archetype: Mislead
+  element: Brimstone
+  name: Choking Fumes
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they gain 1 Sulfur per
+    energy it cost. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: choking_fumes
+        name: Choking Fumes
+        kind: Debuff
+        element: Brimstone
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and they gain 1 Sulfur per energy it cost.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: sulfur, stacks: { skillCost: true } }
+
+stun.brimstone:
+  archetype: Stun
+  element: Brimstone
+  name: Asphyxiate
+  description: >-
+    Deals 10 damage to target enemy, who is Stunned for 1 turn. Swiftness, Immune and Unstunnable
+    don't stop it. Bypass.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Bypass]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: asphyxiated
+        name: Asphyxiated
+        kind: Neutral
+        element: Brimstone
+        description: Stunned; Swiftness and Immune can't stop it.
+        modifiers:
+          - { mod: cannotUseSkills }
+
+dance.brimstone:
+  archetype: Dance
+  element: Brimstone
+  name: Sulfur Dance
+  description: The user gains Immune for 1 turn and Explodes; every enemy with Sulfur Erupts.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 1 } }
+    - { op: macro, id: explode }
+
+heal.brimstone:
+  archetype: Heal
+  element: Brimstone
+  name: Sulfur Tonic
+  description: Target ally heals 20, and their Toxin is drawn off; a random enemy gains that much Sulfur.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - { op: set, var: drawn, value: { totalStacks: { in: primary, effect: toxin } } }
+    - { op: removeEffect, from: primary, effect: toxin }
+    - { op: apply, to: { randomEnemy: 1 }, effect: sulfur, stacks: { var: drawn } }
+
+bless.brimstone:
+  archetype: Bless
+  element: Brimstone
+  name: Brimfire Crest
+  description: >-
+    For 3 turns, target ally gains 1 Might and Flameborn, and their Flameborn heals them for all the
+    Affliction damage they deal, not just their Ignites'.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: flameborn, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: brimfire_crest
+        name: Brimfire Crest
+        kind: Buff
+        element: Brimstone
+        description: The bearer heals for all the indirect damage they deal.
+        triggers:
+          - on: dealtDamage
+            when: { direct: false, byEnemy: true }
+            do:
+              - { op: heal, to: bearer, amount: { eventAmount: true } }
+
+curse.brimstone:
+  archetype: Curse
+  element: Brimstone
+  name: Sulfurous Miasma
+  description: Target enemy's Toxin turns into Sulfur, stack for stack (max 4), and they're Confused for 2 turns.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: toxin, value: { totalStacks: { in: primary, effect: toxin } } }
+    - { op: removeEffect, from: primary, effect: toxin }
+    - { op: apply, to: primary, effect: sulfur, stacks: { var: toxin } }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+
+smite.brimstone:
+  archetype: Smite
+  element: Brimstone
+  name: Brand of Sulfur
+  description: >-
+    Deals 15 damage to target enemy, who gains 2 Sulfur. For 1 turn, allies who damage them heal 5
+    per Sulfur on them.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sulfur, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: brand_of_sulfur
+        name: Brand of Sulfur
+        kind: Debuff
+        element: Brimstone
+        description: The applier's allies who damage the bearer heal 5 per Sulfur on them.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - { op: heal, to: eventSource, amount: { mul: [5, { stacks: { unit: bearer, effect: sulfur } }] } }
+
+prayer.brimstone:
+  archetype: Prayer
+  element: Brimstone
+  name: Hellsong
+  description: >-
+    All allies heal 15 and gain Flameborn for 2 turns, which also heals them 10 for each Eruption
+    their side causes.
+  cost: Sr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: flameborn, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: hellsong
+        name: Hellsong
+        kind: Buff
+        element: Brimstone
+        description: Heals 10 for each Eruption the bearer's side causes.
+        triggers:
+          - on: signal
+            signal: eruption
+            when: { side: ally }
+            do:
+              - { op: heal, to: bearer, amount: 10 }
+
+cleave.brimstone:
+  archetype: Cleave
+  element: Brimstone
+  name: Burning Tail
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy, who gains as much Sulfur as the
+    target has.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: apply, to: it, effect: sulfur, stacks: { stacks: { unit: primary, effect: sulfur } } }
+
+shout.brimstone:
+  archetype: Shout
+  element: Brimstone
+  name: Stench of Sulfur
+  description: >-
+    All enemies gain 1 Sulfur. For 2 turns, whenever Sulfur the user gave is cleansed away, its bearer
+    takes 10 Affliction damage instead.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: sulfur }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: stench_of_sulfur
+        name: Stench of Sulfur
+        kind: Buff
+        element: Brimstone
+        description: Sulfur the bearer gave that's cleansed away burns its bearer for 10 Affliction.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [sulfur], reason: [removed] }
+            do:
+              - { op: damage, to: eventTarget, amount: 10, type: Affliction }
+
+withstand.brimstone:
+  archetype: Withstand
+  element: Brimstone
+  name: Cinder Mantle
+  description: The user gains 25 Shield for 1 turn. If an enemy breaks it, the user becomes Flameborn for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: cinder_mantle
+        name: Cinder Mantle
+        kind: Buff
+        element: Brimstone
+        shield: true
+        description: A Shield; if it's broken, the bearer becomes Flameborn.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: cinder_mantle_watch
+        name: Cinder Mantle
+        kind: Buff
+        element: Brimstone
+        description: If the Cinder Mantle is broken, the bearer becomes Flameborn for 2 turns.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [cinder_mantle], reason: [depleted] }
+            do:
+              - { op: apply, to: bearer, effect: flameborn, duration: { enemyTurns: 2 } }
+
+taunt.brimstone:
+  archetype: Taunt
+  element: Brimstone
+  name: Lure of the Pit
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Whenever another enemy uses a Helpful skill
+    meanwhile, the Taunt jumps to them.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: { filter: allEnemies, exclude: primary, where: { kind: { unit: it, is: character } } }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: lure_of_the_pit
+        name: Lure of the Pit
+        kind: Debuff
+        element: Brimstone
+        description: If the bearer uses a Helpful skill, the applier's Taunt jumps to them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            do:
+              - { op: removeEffect, from: allEnemies, effect: taunt }
+              - { op: apply, to: bearer, effect: taunt, duration: { enemyTurns: 1 } }
+
+titan.brimstone:
+  archetype: Titan
+  element: Brimstone
+  name: Pit Lord
+  description: >-
+    For 3 turns, the user gains 3 Armor and Immune, and each enemy who uses a Harmful skill on them
+    gains 1 Sulfur.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: pit_lord
+        name: Pit Lord
+        kind: Buff
+        element: Brimstone
+        description: Each enemy who uses a Harmful skill on the bearer gains 1 Sulfur.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            do:
+              - { op: apply, to: eventSource, effect: sulfur }

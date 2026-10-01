@@ -987,3 +987,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Signal Flare | Simplified: allied minions aren't redirected to the target; each one that damages it is Upgraded. |
 | Steam Whistle | A minion already at level 3 isn't Upgraded and loses nothing. |
 | Mech Suit | Shield 20, Immune and a Mech Suit Buff (counts as a Contraption, immune to Stuns and Sleep, can be Upgraded); then Leap. |
+
+### 21.15 Brimstone (Fire + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Sulfur / Erupt** | `sulfur` (Debuff, max 4, merging). Macro `erupt`: 10 Affliction per stack to the bearer, 5 per stack to each allied character of theirs, then the stacks become Toxin and an `eruption` signal goes out. Fire's `burn_aftermath` (any Ignite or Frostfire tick) and `explode` (each enemy hit) call it, so Sulfur works with every Fire skill. |
+| Pitch Javelin | Its mark doubles the next Eruption (bearer and splash). |
+| Prey hooks | Acrid Orb (while Marked) and Scent of Cinders (while Ignited or Scorched) are added to Poison's `prey` condition. |
+| Brimquake | The extra 10 is Affliction, per Explosion from the bearer's enemies. |
+| Burning Downpour / extra ticks | Macro `ignite_tick`: 5 Affliction, and an Eruption if the target has Sulfur. |
+| Belching Toad | Moves a random Debuff (not the newest) from a random ally to a random enemy. |
+| Stokers | Ignite a random enemy with Sulfur (no "most Sulfur" target yet). |
+| Hellmouth | A companion effect hears the channel end (`ownEffectEnded`), whether it expires or is broken. |
+| Strike the Match | The energy comes at once if the target already has Sulfur for the Ignite to set off. |
+| Asphyxiate | A Neutral, inline stun: Swiftness (keyed to Stun) and Immune (Debuffs) don't touch it. |
+| Brimfire Crest | Heals for all indirect damage the bearer deals to enemies; Flameborn's own Ignite healing is skipped meanwhile so it isn't counted twice. |
+| Stench of Sulfur | Simplified: Sulfur the user gave that's cleansed away deals its bearer 10 Affliction. |
+| Lure of the Pit | The jumped Taunt lasts 1 turn. |
+| Pit Lord | Each enemy who uses a Harmful skill on the user gains 1 Sulfur (Immune already blocks the Debuffs). |

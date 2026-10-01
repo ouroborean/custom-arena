@@ -1,0 +1,12 @@
+# Brimstone (Fire + Poison) statuses, from the "Fusion Spec Kits" design doc.
+
+sulfur:
+  name: Sulfur
+  kind: Debuff
+  element: Brimstone
+  stacking: merge
+  maxStacks: 4
+  description: >-
+    Max 4. Does nothing on its own. When the bearer takes Ignite damage or is hit by an Explosion,
+    it Erupts: 10 Affliction per stack to them and 5 per stack to each of their allies, and every
+    stack turns into 1 Toxin.

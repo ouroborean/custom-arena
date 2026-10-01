@@ -6,8 +6,9 @@
 # After an Ignite (or Dragonfire) burns, in its scope (actor = whoever applied it): Flameborn
 # heals the applier; Dragon's Hoard and Warming Wings react to the applier's burns.
 burn_aftermath:
+  # Brimfire Crest already heals for all the Affliction its bearer deals.
   - op: if
-    cond: { has: { unit: actor, effect: flameborn } }
+    cond: { and: [{ has: { unit: actor, effect: flameborn } }, { not: { has: { unit: actor, effect: brimfire_crest } } }] }
     then:
       - { op: heal, to: actor, amount: { lastDamage: true } }
   - op: if
@@ -18,7 +19,17 @@ burn_aftermath:
     cond: { and: [{ has: { unit: actor, effect: warming_wings } }, { compare: { value: { lastDamage: true }, atLeast: 1 } }] }
     then:
       - { op: heal, to: weakestAlly, amount: { lastDamage: true } }
+  # Brimstone: Ignite damage makes the bearer's Sulfur Erupt.
+  - op: if
+    cond: { has: { unit: bearer, effect: sulfur } }
+    then:
+      - { op: forEach, in: bearer, do: [{ op: macro, id: erupt }] }
 
 explode:
   - { op: damage, to: allEnemies, amount: 10, type: Affliction, direct: false, respectsInvulnerable: true }
   - { op: signal, name: explosion }
+  # Brimstone: an Explosion makes the Sulfur on everyone it hits Erupt.
+  - op: forEach
+    in: { filter: allEnemies, where: { has: { unit: it, effect: sulfur } } }
+    do:
+      - { op: macro, id: erupt }
