@@ -1427,3 +1427,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Twitching Dance | Simplified: each direct hit while at full HP or Reanimated gives 1 Charge. |
 | Raise the Fallen | `revive` now stamps `revived_turn`; everyone revived this way is Reanimated (simplified: including characters who were Reanimated before). |
 | Lure the Living | Simplified: a 2-turn Taunt; the Horrify happens if the user truly dies meanwhile. |
+
+### 21.40 Ion (Lightning + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Suppressed** | New `suppressBuffs` modifier: while present, the modifiers of the bearer's Buffs are ignored (Armor, Might, Invulnerable and so on). Simplified: Buff triggers and Shield absorption still work. |
+| **Blackout** | Macro `blackout`: a marker on the enemy and `blacked_out` (can't act, effects suspended) on every enemy minion for the same time. Simplified: the bearer's own channels aren't paused. |
+| Power Cut | Simplified: until their next skill resolves, they're Numb (can't apply Buffs). |
+| Seeker Spark | Hits every Stealthed enemy (Bypassing) and ends their Stealth; otherwise the target. |
+| Ion Cannon | Simplified: Suppresses the target for 1 turn as it lands (not only Buffs gained since). |
+| Blind Spot | Simplified: Ghosted and Invulnerable for 1 turn (no Blind redirect). |
+| Jammer | Its onSummon gives every enemy (and their minions) Blackout bound to it. |
+| Dark Hum | Counts `energyFromEffect` (Charge turning into energy) on the user. |
+| Shutdown | Waking from the Sleep ends the Suppression and Blackout. |
+| Ghost in the Machine | A random enemy with Buffs is Suppressed; the user copies their Buffs once. |
+| Jammed Frequency | Simplified: every enemy skill gets +1 cooldown. |
+| Decoy Signal | The Signal Ghost's `onDeath` blacks out its last attacker. |

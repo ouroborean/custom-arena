@@ -513,6 +513,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'fogged' }
   /** Blood: the bearer's skills pay their random costs with 10 HP each. */
   | { mod: 'bloodPrice' }
+  /** Ion's Suppressed: the bearer's Buffs' modifiers have no effect. */
+  | { mod: 'suppressBuffs' }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**

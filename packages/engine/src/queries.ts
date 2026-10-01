@@ -18,8 +18,13 @@ export function modsOn<K extends ModifierSpec['mod']>(
   kind: K,
 ): { spec: ModOf<K>; effect: EffectInstance }[] {
   const out: { spec: ModOf<K>; effect: EffectInstance }[] = [];
-  for (const e of effectsOn(s, bearer)) {
-    for (const m of effectDef(c, e).modifiers ?? []) {
+  const effects = effectsOn(s, bearer);
+  // Ion's Suppressed: the bearer's Buffs have no effect (their modifiers are ignored).
+  const suppressed = effects.some((e) => (effectDef(c, e).modifiers ?? []).some((m) => m.mod === 'suppressBuffs'));
+  for (const e of effects) {
+    const def = effectDef(c, e);
+    if (suppressed && def.kind === 'Buff') continue;
+    for (const m of def.modifiers ?? []) {
       if (m.mod !== kind) continue;
       // Conditional modifiers (equipment: "while at or above 80 Health") are checked for the bearer.
       if (m.if && !evalCond(makeCtx(s, c), m.if, bearerScope(bearer))) continue;

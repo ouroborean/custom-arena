@@ -1,0 +1,6 @@
+# Ion actions.
+
+# Blackout on the enemy `it` for `blackout` turns, and on every enemy minion for as long.
+blackout:
+  - { op: apply, to: it, effect: blackout, duration: { enemyTurns: { var: blackout } } }
+  - { op: apply, to: { filter: allEnemies, where: { kind: { unit: it, is: minion } } }, effect: blacked_out, duration: { enemyTurns: { var: blackout } } }
