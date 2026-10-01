@@ -213,7 +213,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const tr = resolveTargets(ctx, actor, def, action.targets, false);
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
-  const targets = blindTargets(ctx, actor, def, tr.targets);
+  const targets = fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets));
   // Cloud's Drift: the use hangs in the air (cooldown starts now) and lands next turn (landDrifting).
   if (def.tags.includes('Drift') || modsOn(ctx.s, ctx.c, actor.id, 'driftSkills').length > 0) {
     if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
@@ -256,6 +256,25 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
   const legal = ctx.s.units.filter((u) => u.alive && resolveTargets(ctx, actor, def, [u.id], true).ok);
   if (legal.length === 0) return targets;
   return [legal[nextInt(ctx.s.rng, legal.length)]!.id];
+}
+
+/**
+ * Mist's Fog: an enemy single-target skill aimed at a Fogged unit lands on a random legal unit of
+ * that side instead. A redirect onto someone else sends a `fog_redirect` signal from the Fogged unit
+ * (its target is the skill's user).
+ */
+function fogTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): UnitId[] {
+  if (def.target !== 'enemy' && def.target !== 'ally' && def.target !== 'any') return targets;
+  const first = targets[0] ? findUnit(ctx.s, targets[0]) : undefined;
+  if (!first || !isEnemy(actor, first) || modsOn(ctx.s, ctx.c, first.id, 'fogged').length === 0) return targets;
+  const legal = ctx.s.units.filter((u) => u.alive && u.owner === first.owner && resolveTargets(ctx, actor, def, [u.id], true).ok);
+  if (legal.length === 0) return targets;
+  const pick = legal[nextInt(ctx.s.rng, legal.length)]!;
+  if (pick.id !== first.id) {
+    first.counters.fog_redirect_turn = ctx.s.turn;
+    broadcastSignal(ctx, 'fog_redirect', first, { target: actor });
+  }
+  return [pick.id];
 }
 
 export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[], opts: { landing?: boolean } = {}): void {

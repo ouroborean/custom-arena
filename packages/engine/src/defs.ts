@@ -501,6 +501,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'freezeCooldowns' }
   /** Stasis's Suspended: the bearer's other effects don't tick, count down or fire turn-start triggers. */
   | { mod: 'suspendEffects' }
+  /** Mist's Fog: enemy single-target skills aimed at the bearer land on a random unit of their side. */
+  | { mod: 'fogged' }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**

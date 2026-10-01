@@ -1,0 +1,14 @@
+# Mist (Water + Wind) statuses, from the "Fusion Spec Kits" design doc.
+
+fog:
+  name: Fog
+  kind: Buff
+  element: Mist
+  stacking: unique
+  description: >-
+    Enemy single-target skills aimed at the bearer hit a random unit on their side instead. When Fog
+    ends, it condenses into 2 Renew.
+  modifiers:
+    - { mod: fogged }
+  onExpire:
+    - { op: apply, to: bearer, effect: renew, stacks: 2 }

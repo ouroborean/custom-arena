@@ -1240,3 +1240,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Overflow | +5 to Soaked enemies and conducting single-target hits for 3 turns. |
 | Waterlogged | Each indirect hit on them adds 1 Confusion (max 3). |
 | Backwash Lure | Any healing the user receives (not only Renew) strikes the enemy they Taunted. |
+
+### 21.29 Mist (Water + Wind)
+
+| Term | Ruling |
+|---|---|
+| **Fog** | New `fogged` modifier, handled in the pipeline after Blind: an enemy single-target skill aimed at a Fogged unit lands on a random legal unit of that side. A redirect onto someone else stamps the Fogged unit's `fog_redirect_turn` counter and sends a `fog_redirect` signal (source: the Fogged unit, target: the skill's user). Fog's onExpire condenses it into 2 Renew; variants condense into 3 (Mercy of the Mist) or 6 (Marid Form). Removing Fog (Morning Dew, Veil of Mist) doesn't condense it. |
+| Fogbank | The counter goes on every Fogged ally; the first one to fire removes the rest. |
+| Mistpiercer | Any damage to the user meanwhile cuts the shot to 30. |
+| Choking Fog | Blind's `randomPrimaryTarget` until their first Harmful skill, which also Confuses them. |
+| Condensation | Simplified: 20 more healing if the target was healed since the user's last turn. |
+| Will-o'-Mists | Each one's onSummon gives every ally a Fog bound to it. |
+| Whisper Knife | Simplified: Uncounterable (it still triggers damage reactions). |
+| Squall in the Fog | Hits a random enemy (no target choice). |
+| Heavy Air | Counts as Cloud's Low Ceiling, which Wind's `immobile` condition checks. |
+| Stolen Wind | Simplified: the user takes all mobility buffs from both enemies hit. |
+| Foghorn | Simplified: for 1 turn, Harmful skills aimed at the user are reflected. |
+| Voice in the Fog | A hidden `forceTarget` Debuff. |

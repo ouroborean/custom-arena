@@ -1,0 +1,34 @@
+# Mist minions.
+
+mist_heron:
+  name: Mist Heron
+  hp: 35
+  passives:
+    - id: mist_heron_fog
+      name: Fog
+      kind: Buff
+      element: Mist
+      countsAs: [fog]
+      description: The Heron always has Fog.
+      modifiers:
+        - { mod: fogged }
+  skills: [mist_heron_spear_beak]
+
+will_o_mist:
+  name: Will-o'-Mist
+  hp: 10
+  # While any stands, every ally has Fog.
+  onSummon:
+    - op: apply
+      to: allAllies
+      bindTo: actor
+      effect:
+        id: will_o_mist_fog
+        name: Fog
+        kind: Buff
+        element: Mist
+        countsAs: [fog]
+        description: Fog while the Will-o'-Mist stands.
+        modifiers:
+          - { mod: fogged }
+  skills: [will_o_mist_pale_touch]

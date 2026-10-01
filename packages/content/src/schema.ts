@@ -273,6 +273,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('immuneToEffects'), effects: z.array(z.string()) }),
   mod({ mod: z.literal('freezeCooldowns') }),
   mod({ mod: z.literal('suspendEffects') }),
+  mod({ mod: z.literal('fogged') }),
   mod({ mod: z.literal('cooldownTick'), amount: z.number().int() }),
   mod({ mod: z.literal('entangleLink'), kinds: z.array(effectKind).optional() }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
