@@ -317,8 +317,7 @@ describe('Life skills', () => {
 
   // A single cast lasts 2 turns, and the target acts once per turn, so it sees at most 2 skills; the
   // roots are renewed by a second trapper to reach a third tightening.
-  // BUG: the text says the Seedling sprouts at the 3rd tightening; re-casting the roots on a target that has 1 adds to the count (log: "Strangling Roots ×3"), so the Seedling sprouts at the 2nd.
-  it.fails('Strangling Roots: at the 3rd tightening a Seedling sprouts for the user, not before', () => {
+  it('Strangling Roots: at the 3rd tightening a Seedling sprouts for the user, not before', () => {
     const a = arena({ p0: [['trap.life'], ['trap.life']], p1: [['shot']] });
     a.use(A1, 'trap.life', B1).end().use(B1, 'shot', A1).end();
     a.use(A2, 'trap.life', B1).end().use(B1, 'shot', A1).end();
@@ -676,8 +675,7 @@ describe('Life skills', () => {
     expect([a.hp(A1), a.unit(b.id).hp]).toEqual([85, 30]);
   });
 
-  // BUG: §21.7 says Tangleweed's minion exclusion is targeting only and area skills still hit them; the Tangled enemy's Blast skips the Boulder.
-  it.fails('Tangleweed: area skills still hit the minions (simplified)', () => {
+  it('Tangleweed: area skills still hit the minions (simplified)', () => {
     const a = arena({ p0: [['curse.life', 'bolt.life']], p1: [['blast']] });
     a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'curse.life', B1).end();
     const b = minions(a, 0, 'boulder')[0]!;
@@ -745,8 +743,7 @@ describe('Life skills', () => {
     expect(a.unit(b.id).hp).toBe(45);
   });
 
-  // SPEC: "Every allied Seedling Blooms now" — does that include a Seedling made by a non-Life ally (which never Blooms on its own)? Currently it doesn't.
-  it.fails('Call of the Grove: a Seedling made by a non-Life ally Blooms too', () => {
+  it('Call of the Grove: a Seedling made by a non-Life ally Blooms too', () => {
     const a = arena({ p0: [['shout.life'], ['summon.earth']], p1: [['shot']] });
     a.use(A2, 'summon.earth').end().pass(1).use(A1, 'shout.life').end();
     expect(minions(a, 0, 'treant')).toHaveLength(2);
@@ -799,8 +796,7 @@ describe('Life skills', () => {
     expect([a.hp(A1), a.unit(b.id).hp]).toEqual([100, 30]);
   });
 
-  // BUG: the text says a Seedling that survives the Taunt Blooms when it ends; the Taunt expires (end of turn 4) and both Seedlings stay Seedlings.
-  it.fails('Warden Oak: allied Seedlings that survive it Bloom when it ends, ahead of their own timer', () => {
+  it('Warden Oak: allied Seedlings that survive it Bloom when it ends, ahead of their own timer', () => {
     // The Seedlings' own Bloom is due at the end of turn 5; the Taunt ends at the end of turn 4.
     const a = arena({ p0: [['taunt.life'], ['summon.life']], p1: [['shot']] });
     a.use(A2, 'summon.life').use(A1, 'taunt.life', B1).end().pass(2); // turns 2, 3

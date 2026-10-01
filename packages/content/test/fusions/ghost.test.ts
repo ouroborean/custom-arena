@@ -96,8 +96,7 @@ describe('Ghost skills', () => {
     expect(a.hp(B1)).toBe(90 - 10 - 10); // splash, then the second Haunt's tick
   });
 
-  // BUG: after the split, the two Haunts drift into each other's bearers and merge (Haunt is unique), so one is lost
-  it.fails('Poltergeist Crash: both Haunts survive the drift after a split', () => {
+  it('Poltergeist Crash: both Haunts survive the drift after a split', () => {
     const a = arena({ p0: [['curse.ghost', 'smash.ghost']], p1: [['withstand'], ['withstand']] });
     a.use(A1, 'curse.ghost', B1).end().pass(1).use(A1, 'smash.ghost', B2).end();
     expect([haunted(a, B1), haunted(a, B2)]).toEqual([true, true]);
@@ -315,8 +314,7 @@ describe('Ghost skills', () => {
     expect(a.stacks(A1, 'soul_fragment')).toBe(2);
   });
 
-  // BUG: with no ally to drift to, the Haunt stays (no drift), yet the user still gains a Soul Fragment
-  it.fails('Restless Dead: no drift (single enemy), no Soul Fragment', () => {
+  it('Restless Dead: no drift (single enemy), no Soul Fragment', () => {
     const a = arena({ p0: [['channel.ghost']], p1: [['withstand']] });
     a.use(A1, 'channel.ghost').end();
     expect([haunted(a, B1), a.stacks(A1, 'soul_fragment')]).toEqual([true, 0]);

@@ -742,9 +742,10 @@ withstand.lich:
           - on: shieldDamaged
             do:
               - { op: setCounter, name: hoarded, value: { sum: [{ counter: hoarded }, { eventAmount: true }] } }
+    # Outlives the Shield so it hears it end.
     - op: apply
       to: actor
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: hoarded_life_store
         name: Hoarded Life

@@ -434,14 +434,15 @@ mislead.glacier:
             intercept: counter
             consume: true
             do:
-              - op: apply
-                to: bearer
-                effect: icebound
-                duration:
-                  enemyTurns:
-                    if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }
-                    then: 3
-                    else: { if: { compare: { value: { skillCooldown: true }, atLeast: 1 } }, then: { skillCooldown: true }, else: 1 }
+              # 1 turn per turn of the countered skill's cooldown (max 3): a cooldown-0 skill gives none.
+              - op: if
+                cond: { compare: { value: { skillCooldown: true }, atLeast: 1 } }
+                then:
+                  - op: apply
+                    to: bearer
+                    effect: icebound
+                    duration:
+                      enemyTurns: { if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }, then: 3, else: { skillCooldown: true } }
 
 stun.glacier:
   archetype: Stun

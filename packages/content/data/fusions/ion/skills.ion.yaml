@@ -130,8 +130,12 @@ shot.ion:
     - op: if
       cond: { compare: { value: { countOf: { filter: allUnits, where: { and: [{ isEnemy: it }, { has: { unit: it, effect: stealth } }] } } }, atLeast: 1 } }
       then:
-        - { op: damage, to: { filter: allUnits, where: { and: [{ isEnemy: it }, { has: { unit: it, effect: stealth } }] } }, amount: 15, bypass: true }
-        - { op: removeEffect, from: { filter: allUnits, where: { isEnemy: it } }, effect: stealth }
+        # Their Stealth ends first, so the spark can reach them.
+        - op: forEach
+          in: { filter: allUnits, where: { and: [{ isEnemy: it }, { has: { unit: it, effect: stealth } }] } }
+          do:
+            - { op: removeEffect, from: it, effect: stealth }
+            - { op: damage, to: it, amount: 15, bypass: true }
       else:
         - { op: damage, to: primary, amount: 15 }
 

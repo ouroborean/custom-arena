@@ -6,7 +6,8 @@ haunt_drift:
     cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: it, name: haunt_pinned } }] }] }, atLeast: 1 } }
     then:
       - op: forEach
-        in: { randomEnemy: 1, exclude: it, where: { kind: { unit: it, is: character } } }
+        # An ally already Haunted would merge the two; a Haunt only drifts to an un-Haunted one.
+        in: { randomEnemy: 1, exclude: it, where: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: ghost_haunted, unit: it } } }] } }
         do:
           - { op: signal, name: haunt_drift }
           - op: if

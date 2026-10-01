@@ -70,7 +70,10 @@ export function effectiveTags(ctx: Ctx, u: Unit, def: SkillDef): SkillTag[] {
 
 /** Equipment forbidding `def` from picking `target` (Hand of Healing: not yourself). */
 export function isExcludedTarget(ctx: Ctx, u: Unit, def: SkillDef, target: Unit): boolean {
-  return modsFor(ctx, u.id, 'targetExclude', def).some(({ spec }) => evalCond(ctx, spec.where, { ...bearerScope(u.id), it: target.id }));
+  const single = def.target === 'enemy' || def.target === 'ally' || def.target === 'any';
+  return modsFor(ctx, u.id, 'targetExclude', def).some(
+    ({ spec }) => (single || !spec.singleOnly) && evalCond(ctx, spec.where, { ...bearerScope(u.id), it: target.id }),
+  );
 }
 
 /** An equipment rule letting `def` also target `target` (and how it resolves then), if any. */

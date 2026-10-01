@@ -469,8 +469,8 @@ dance.grave:
   element: Grave
   name: Graveside Vigil
   description: >-
-    The user gains 5 Shield per Grave, up to 25. If they already had Shield from this skill, they dig 1 Grave
-    first.
+    The user gains 5 Shield per Grave, up to 25, until the end of their next turn. If they already had Shield
+    from this skill, they dig 1 Grave first.
   cost: r
   cooldown: 0
   tags: [Helpful, Strategic]
@@ -484,7 +484,7 @@ dance.grave:
       then:
         - op: apply
           to: actor
-          duration: { enemyTurns: 1 }
+          duration: { ownTurns: 1 }
           value: { if: { compare: { value: { counter: graves }, atLeast: 5 } }, then: 25, else: { mul: [5, { counter: graves }] } }
           effect:
             id: graveside_vigil

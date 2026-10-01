@@ -490,9 +490,7 @@ describe('Grave skills', () => {
     expect(a.hp(A1)).toBe(95); // 30 − 25
   });
 
-  // SPEC: "If they already had Shield from this skill, they dig 1 Grave first" — its Shield lasts 1 turn
-  // (ruling) and the skill can only be used again on the user's next turn, so the branch looks unreachable.
-  it.fails('Graveside Vigil: used again while its Shield holds, digs 1 Grave first', () => {
+  it('Graveside Vigil: used again while its Shield holds, digs 1 Grave first', () => {
     const a = grave({ p0: [['dance.grave']], p1: [['shot']] });
     setGraves(a, 3).use(A1, 'dance.grave').end().pass(1).use(A1, 'dance.grave').end();
     expect(graves(a)).toBe(4);

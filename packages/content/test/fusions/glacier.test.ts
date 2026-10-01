@@ -395,8 +395,7 @@ describe('Glacier skills', () => {
     expect(appliedDur(a, B1, 'icebound')).toBe(7);
   });
 
-  // BUG: text says Icebound 1 turn per turn of cooldown, so a cd-0 skill gives none; it gives 1 turn
-  it.fails('Thin Ice: a countered cd-0 skill gives no Icebound', () => {
+  it('Thin Ice: a countered cd-0 skill gives no Icebound', () => {
     const b = arena({ p0: [['mislead.glacier']], p1: [['shot']] });
     b.use(A1, 'mislead.glacier', B1).end().use(B1, 'shot', A1).end();
     expect([b.hp(A1), b.has(B1, 'icebound')]).toEqual([100, false]);

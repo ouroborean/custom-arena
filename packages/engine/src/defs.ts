@@ -561,7 +561,7 @@ export type ModifierSpec = ModifierBase &
   /** Using these skills doesn't end the bearer's channels. */
   | { mod: 'keepChannels' }
   /** The bearer's skills can't pick targets matching `where` (it = candidate). */
-  | { mod: 'targetExclude'; where: Cond }
+  | { mod: 'targetExclude'; where: Cond; singleOnly?: boolean }
   /** Damage to the bearer from others goes to a random allied minion instead, if there is one. */
   | { mod: 'redirectDamage' }
   /** The minion shares its summoner's HP: damage and healing to it go to them (Bloodbound Familiar). */

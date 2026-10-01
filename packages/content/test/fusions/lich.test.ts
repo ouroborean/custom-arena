@@ -526,16 +526,14 @@ describe('Lich skills', () => {
     expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
   });
 
-  // BUG: Hoarded Life: "When it ends, the damage it absorbed ... creates [a Phylactery] with that much HP (at least 10)" vs no Phylactery appears when the Shield expires
-  it.fails('Hoarded Life: 25 Shield for 1 turn; what it absorbed heals the Phylactery or creates one with that HP', () => {
+  it('Hoarded Life: 25 Shield for 1 turn; what it absorbed heals the Phylactery or creates one with that HP', () => {
     const a = arena({ p0: [['withstand.lich']], p1: [['strike']] });
     a.use(A1, 'withstand.lich').end();
     a.use(B1, 'strike', A1).end();
     expect([a.hp(A1), jar(a)?.hp]).toEqual([100, 20]);
   });
 
-  // BUG: Hoarded Life: "creates one with that much HP (at least 10)" vs no Phylactery appears when the Shield expires
-  it.fails('Hoarded Life: at least 10, even if nothing was absorbed', () => {
+  it('Hoarded Life: at least 10, even if nothing was absorbed', () => {
     const a = arena({ p0: [['withstand.lich']], p1: [['shot']] });
     a.use(A1, 'withstand.lich').end().pass(2);
     expect(jar(a)?.hp).toBe(10);

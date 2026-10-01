@@ -164,9 +164,7 @@ describe('Ion skills', () => {
     expect([a.hp(B1), a.has(B2, 'stealth')]).toEqual([100, false]);
   });
 
-  // BUG: "deals 15 damage … to the Stealthed enemies instead" (ruling: Bypassing) — the Stealthed enemy is
-  // "unaffected (untargetable)": it loses Stealth but takes no damage.
-  it.fails('Seeker Spark: if there are Stealthed enemies, it hits them instead (Bypassing) and ends their Stealth', () => {
+  it('Seeker Spark: if there are Stealthed enemies, it hits them instead (Bypassing) and ends their Stealth', () => {
     const a = arena({ p0: [['shot.ion']], p1: [['shot'], ['shot']] });
     a.give(B2, 'stealth').give(B2, 'invulnerable').use(A1, 'shot.ion', B1).end();
     expect([a.hp(B1), a.hp(B2), a.has(B2, 'stealth')]).toEqual([100, 85, false]);

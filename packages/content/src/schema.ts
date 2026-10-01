@@ -251,7 +251,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('freeSkills') }),
   mod({ mod: z.literal('costSpecific'), amount: z.number().int().max(-1) }),
   mod({ mod: z.literal('keepChannels') }),
-  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema) }),
+  mod({ mod: z.literal('targetExclude'), where: z.lazy(() => condSchema), singleOnly: z.boolean().optional() }),
   mod({ mod: z.literal('redirectDamage') }),
   mod({ mod: z.literal('hpLink') }),
   mod({ mod: z.literal('exposed'), anyEnemy: z.boolean().optional(), total: z.boolean().optional() }),

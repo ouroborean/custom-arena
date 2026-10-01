@@ -389,7 +389,10 @@ channel.ghost:
           - on: turnEnd
             do:
               - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
-              - { op: apply, to: actor, effect: soul_fragment }
+              # A Soul Fragment only when it actually drifts (an un-Haunted ally to go to).
+              - op: if
+                cond: { any: { in: bearerAllies, cond: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: ghost_haunted, unit: it } } }] } } }
+                then: [{ op: apply, to: actor, effect: soul_fragment }]
               - { op: forEach, in: bearer, do: [{ op: macro, id: haunt_drift }] }
 
 stab.ghost:

@@ -184,7 +184,8 @@ trap.life:
         kind: Debuff
         element: Life
         visibility: hidden
-        stacking: merge
+        # Re-casting refreshes it; only the bearer's skills tighten it (its stacks count the tightenings).
+        stacking: unique
         description: Each skill the bearer uses gives them 1 Weakness (max 3); at 3, a Seedling sprouts for the trapper.
         triggers:
           - on: skillUsed
@@ -613,7 +614,7 @@ curse.life:
         element: Life
         description: The bearer can't target minions.
         modifiers:
-          - { mod: targetExclude, where: { kind: { unit: it, is: minion } } }
+          - { mod: targetExclude, where: { kind: { unit: it, is: minion } }, singleOnly: true }
 
 smite.life:
   archetype: Smite
@@ -689,7 +690,7 @@ shout.life:
   target: self
   ops:
     - op: forEach
-      in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [seedling], mine: true } }, { not: { minion: { unit: it, types: [treant] } } }] } }
+      in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [seedling] } }, { not: { minion: { unit: it, types: [treant] } } }] } }
       do: [{ op: macro, id: bloom_it }]
     - op: forEach
       in: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
@@ -734,7 +735,7 @@ taunt.life:
           effect: taunt
           duration: { enemyTurns: 2 }
         - op: apply
-          to: { filter: allAllies, where: { minion: { unit: it, types: [seedling], mine: true } } }
+          to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
           duration: { enemyTurns: 2 }
           effect:
             id: guardian_oak
