@@ -1,0 +1,24 @@
+# Spore minions.
+
+mushroom:
+  name: Mushroom
+  hp: 15
+  tags: [seedling]
+  onSummon:
+    - { op: apply, to: actor, effect: mushroom_puff }
+  skills: [seedling_channel_earth]
+
+sporeling:
+  name: Sporeling
+  hp: 40
+  tags: [seedling]
+  onSummon:
+    - { op: apply, to: actor, effect: sporeling_feed }
+  skills: [sporeling_infecting_lash]
+
+bloater:
+  name: Bloater
+  hp: 20
+  onDeath:
+    - { op: apply, to: allEnemies, effect: spores, from: summoner }
+  skills: [bloater_rancid_spit]

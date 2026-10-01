@@ -1,0 +1,13 @@
+# Spore keywords (docs/glossary.md).
+
+spores:
+  status: spores
+  element: Spore
+  forms: [Spore, Spores]
+mushroom:
+  name: Mushroom
+  text: >-
+    A 15 HP minion that counts as a Seedling, sprouting from a unit that reaches 3 Spores. At the end of its
+    side's turns it Puffs, giving a random enemy 1 Spore.
+  element: Spore
+  forms: [Mushroom, Mushrooms]

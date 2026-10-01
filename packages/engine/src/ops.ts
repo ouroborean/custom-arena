@@ -117,6 +117,16 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
     case 'weakestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'bearerAllies': {
+      const b = one(ctx, sc.bearer)[0];
+      if (!b) return [];
+      return livingUnits(ctx.s, b.owner).filter((u) => u.id !== b.id);
+    }
+    case 'randomBearerAlly': {
+      const b = one(ctx, sc.bearer)[0];
+      if (!b) return [];
+      return sample(ctx.s.rng, livingUnits(ctx.s, b.owner).filter((u) => u.id !== b.id), 1);
+    }
     case 'primaryPartners': {
       const p = sc.targets[0];
       if (!p) return [];
@@ -247,6 +257,12 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('totalHp' in v) return select(ctx, v.totalHp, sc).reduce((n, u) => n + u.hp, 0);
   if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
+  if ('minionsLost' in v) {
+    const me = unit(ctx, sc.actor);
+    return ctx.s.units.filter(
+      (u) => u.kind === 'minion' && !u.alive && u.owner === me.owner && (u.counters['c:died_turn'] ?? -9) >= ctx.s.turn - 2,
+    ).length;
+  }
   if ('deadCount' in v) {
     const me = unit(ctx, sc.actor);
     return ctx.s.units.filter(
@@ -880,6 +896,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           value: e.value,
           duration: e.duration === null ? 'permanent' : { raw: e.duration },
           quiet: true,
+          noChain: op.noChain,
         });
       }
       return;

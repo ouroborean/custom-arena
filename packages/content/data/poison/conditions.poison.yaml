@@ -23,6 +23,10 @@ prey:
     - and:
         - { has: { unit: it, effect: frozen_quarry } }
         - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, frostbitten, chilled, numb], moreThan: 2 } }
+    # Spore: Fester Pod makes every Debuff count toward it.
+    - and:
+        - { has: { unit: it, effect: fester_pod } }
+        - { compare: { value: { kindCount: { unit: it, kind: Debuff } }, atLeast: 3 } }
     - and:
         - { has: { unit: it, effect: cinder_scent } }
         - { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }

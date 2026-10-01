@@ -81,6 +81,8 @@ const namedSelector = z.enum([
   'primaryLastAttacker',
   'summonerLastAttacker',
   'primaryPartners',
+  'bearerAllies',
+  'randomBearerAlly',
 ]);
 
 export const selectorSchema: z.ZodType<Selector> = z.lazy(() =>
@@ -172,6 +174,7 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ energyOf: z.strictObject({ unit: selectorSchema, colors: z.boolean().optional() }) }),
     z.strictObject({ totalHp: selectorSchema }),
     z.strictObject({ deadCount: z.enum(['enemies', 'allies']) }),
+    z.strictObject({ minionsLost: z.literal(true) }),
     z.strictObject({ alliesActed: z.literal(true) }),
     z.strictObject({ eventAmount: z.literal(true) }),
     z.strictObject({ eventDuration: z.literal(true) }),
@@ -383,7 +386,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
       expireNow: z.boolean().optional(),
       remove: z.boolean().optional(),
     }),
-    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('copyEventEffect'), to: selectorSchema, noChain: z.boolean().optional() }),
     z.strictObject({
       op: z.literal('removeRandom'),
       from: selectorSchema,

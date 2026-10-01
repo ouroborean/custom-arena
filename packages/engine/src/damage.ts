@@ -297,6 +297,7 @@ export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void
   if (!u.alive) return;
   u.alive = false;
   u.hp = 0;
+  u.counters['c:died_turn'] = ctx.s.turn;
   emit(ctx, { t: 'died', unit: u.id });
   // "When an ally dies…": everyone hears it, with what the unit carried at the time.
   broadcastSignal(ctx, 'died', killer ?? u, { target: u, snapshot: effectsOn(ctx.s, u.id).slice(), eventSkill: skill });

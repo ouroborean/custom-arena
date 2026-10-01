@@ -57,7 +57,9 @@ export type NamedSelector =
   | 'lastAttacker' // the last enemy who damaged the actor (if still alive)
   | 'primaryLastAttacker' // the last enemy who damaged the first target (Mechanic's Rivet Gun)
   | 'summonerLastAttacker' // the last enemy who damaged the actor's summoner (Night's Rime Revenant)
-  | 'primaryPartners'; // units Entangled with the first target (Dimension)
+  | 'primaryPartners' // units Entangled with the first target (Dimension)
+  | 'bearerAllies' // the bearer's living allies, not the bearer
+  | 'randomBearerAlly'; // one random living ally of the bearer, not the bearer (Spore spreading)
 
 export type Selector =
   | NamedSelector
@@ -117,6 +119,8 @@ export type Value =
   | { totalHp: Selector }
   /** Dead characters on the actor's enemy / own side. */
   | { deadCount: 'enemies' | 'allies' }
+  /** Allied minions that died since the actor's side last started a turn (Spore's Compost Bed). */
+  | { minionsLost: true }
   /** The actor's other characters that have used a skill this turn. */
   | { alliesActed: true }
   /** The amount carried by the event (healing received). */
@@ -335,7 +339,7 @@ export type Op =
   /** `remove`: takes it off its bearer (Mirror's Looking Glass). */
   | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean; remove?: boolean }
   /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
-  | { op: 'copyEventEffect'; to: Selector }
+  | { op: 'copyEventEffect'; to: Selector; noChain?: boolean }
   /** Removes `count` (default 1) random effects of a kind from each selected unit. */
   | { op: 'removeRandom'; from: Selector; kind: EffectKind; count?: number }
   /** Changes the remaining cooldown of every skill of the selected units (optionally not the skill being used). */

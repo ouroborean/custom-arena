@@ -1540,3 +1540,25 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Scatter | Each ally targeted by an enemy skill gains Stealth for 1 turn (once per ally). |
 | Smoke Bomb | Every character on both sides, the user included, gains Stealth for 2 turns. |
 | Mocking Shadows | Each skill the Taunted enemy uses deals them 5 Piercing per Clone of the applier's side. |
+
+### 21.46 Spore (Poison + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Spores** | Debuff, merging per applying side. At 3 stacks, macro `sprout` runs for the applier (a Mushroom, or Fungal Colossus's absorb) and the bearer loses 3. At the end of the applier's turn, a bearer with 2+ passes 1 to a random ally (`randomBearerAlly`). |
+| **Mushroom** | 15 HP Seedling-tagged minion with Channel Earth; its Puff (status `mushroom_puff`) gives a random enemy 1 Spore, sourced from its summoner, at the end of its side's turns, starting the turn it sprouts. Each sprout sends `mushroom_sprouted`. |
+| Moldering Fist | "If a Mushroom sprouts" = they had 2+ Spores before the hit. |
+| Spore Trail | The trail lasts 3 raw ticks (through the user's next turn). |
+| Bursting Cap | Stacks = targets of the countered skill (at least 1). |
+| Tainted Hands | Fires when the Helpful skill resolves. |
+| Spore Molt | Simplified: one Spore per Debuff effect shed, not per stack. |
+| Sporeling | Grows whenever a Mushroom sprouts for its side, from anyone. |
+| Binding Hypha | `protectEffects: [toxin]`, linked to the Mark. |
+| Rooted Rhythm | Simplified: only minions on the field when it's used are covered. |
+| Compost Bed | Value `minionsLost`: allied minions that died in the last 2 turns (engine counter `c:died_turn`). |
+| Mycorrhizal Bond | Copies use `copyEventEffect` with `noChain`, so they don't echo back. |
+| Cordyceps Brand | Healing received ×0.5; the same amount heals a random ally of the applier. |
+| Fruiting Psalm | Spores the user gives their own allies sprout for the user (the applier rule). |
+| Spore Whirl | Simplified: the second target is a random other enemy with Spores, not the one with the most. |
+| Carrion Bloom | Simplified: checked at the end of the user's turns, not the moment they become Prey. |
+| Fester Pod | Prey also counts any 3+ Debuff effects while Fester Pod lasts. |

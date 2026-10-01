@@ -25,6 +25,8 @@ export interface ApplyArgs {
   linkedTo?: string | undefined;
   /** Don't fire effectApplied triggers (effects applied by passives about other applications). */
   quiet?: boolean;
+  /** Don't fire the bearer's effectGained triggers (copies that would echo back: Mycorrhizal Bond). */
+  noChain?: boolean;
   /** The effect ends once `unit` carries no effect from a skill of `archetype` ("during Titan"). */
   whileActorHas?: { unit: UnitId; archetype: string };
 }
@@ -161,7 +163,7 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
         },
         privateTo,
       );
-      enqueueEffectGained(ctx, bearer, def, existing, source);
+      if (!a.noChain) enqueueEffectGained(ctx, bearer, def, existing, source);
       if (!a.quiet) announceApplied(ctx, a, existing);
       return existing;
     }
@@ -217,7 +219,7 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
 
   // A new stun interrupts any channel whose skill it now blocks (GDD §3.10).
   if ((def.modifiers ?? []).some((m) => m.mod === 'cannotUseSkills')) interruptChannels(ctx, bearer, 'stun');
-  enqueueEffectGained(ctx, bearer, def, inst, source);
+  if (!a.noChain) enqueueEffectGained(ctx, bearer, def, inst, source);
   if (!a.quiet) announceApplied(ctx, a, inst);
   return inst;
 }
