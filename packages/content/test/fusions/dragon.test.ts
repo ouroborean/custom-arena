@@ -180,8 +180,7 @@ describe('Dragon skills', () => {
     expect(a.has(B1, 'might')).toBe(true); // later Buffs stay
   });
 
-  // BUG: Gilded Bait says the target loses the Buff that sprang it; the Buff (Shield here, Might with Bless) stays.
-  it.fails('Gilded Bait: the target loses the first Buff they gain', () => {
+  it('Gilded Bait: the target loses the first Buff they gain', () => {
     const a = arena({ p0: [['trap.dragon']], p1: [['withstand']] });
     a.use(A1, 'trap.dragon', B1).end();
     a.use(B1, 'withstand').end();
@@ -522,8 +521,7 @@ describe('Dragon costs and cooldowns (design doc kit table)', () => {
     expect([s.cost, s.cooldown]).toEqual([parseCost(cost), cd]);
   });
 
-  // BUG: the kit table lists Skyfall Breath at Sr · 2, but the skill costs Srr.
-  it.fails('snipe.dragon costs Sr, cooldown 2', () => {
+  it('snipe.dragon costs Sr, cooldown 2', () => {
     const s = content.skills['snipe.dragon']!;
     expect([s.cost, s.cooldown]).toEqual([parseCost('Sr'), 2]);
   });

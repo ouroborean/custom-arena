@@ -652,8 +652,7 @@ describe('Evil skills', () => {
     expect(a.hp(A2)).toBe(75);
   });
 
-  // BUG: Borrowed Blood says "at the end of each of their next 2 turns"; the first 10 is lost at the end of the cast turn (turns 1 and 3, not 3 and 5)
-  it.fails('Borrowed Blood: heals 35, then the ally loses 10 at the end of each of their next 2 turns', () => {
+  it('Borrowed Blood: heals 35, then the ally loses 10 at the end of each of their next 2 turns', () => {
     const a = arena({ p0: [['heal.evil'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).give(A2, 'shield', { value: 50 }).use(A1, 'heal.evil', A2).end();
     expect(a.hp(A2)).toBe(85);
@@ -665,8 +664,7 @@ describe('Evil skills', () => {
     expect(a.hp(A2)).toBe(65);
   });
 
-  // BUG: same timing as above (the cast turn counts as the first of the "next 2 turns")
-  it.fails('Borrowed Blood: no loss on a turn the ally damaged an enemy', () => {
+  it('Borrowed Blood: no loss on a turn the ally damaged an enemy', () => {
     const a = arena({ p0: [['heal.evil'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'heal.evil', A2).end().pass(1);
     a.use(A2, 'shot', B1).end(); // turn 3
@@ -813,8 +811,7 @@ describe('Evil skills', () => {
     expect(b.stacks(A1, 'armor')).toBe(2);
   });
 
-  // BUG: Lord of Souls says the user can't spend Fragments; a Tithe keeps the Fragments but still grants its bonus (Deathless Step gives Invulnerable)
-  it.fails('Lord of Souls: the user can\'t spend Fragments (a Tithe gets none)', () => {
+  it('Lord of Souls: the user can\'t spend Fragments (a Tithe gets none)', () => {
     const a = arena({ p0: [['titan.evil', 'maneuver.evil']], p1: [['shot']] });
     a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'titan.evil').end().pass(1);
     a.use(A1, 'maneuver.evil').end();

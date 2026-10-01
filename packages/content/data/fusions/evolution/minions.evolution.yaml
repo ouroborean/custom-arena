@@ -17,7 +17,7 @@ parasite:
           signal: died
           do:
             - op: if
-              cond: { has: { unit: eventTarget, effect: parasite_host } }
+              cond: { eventTargetHad: { effects: [parasite_host] } }
               then:
                 - { op: kill, to: bearer }
 

@@ -312,7 +312,8 @@ companion.evolution:
   target: enemy
   ops:
     - { op: summon, minion: parasite }
-    - { op: apply, to: primary, effect: parasite_host }
+    # From the Parasite, so it knows its own host.
+    - { op: apply, to: primary, effect: parasite_host, from: lastSummoned }
 
 bolt.evolution:
   archetype: Bolt

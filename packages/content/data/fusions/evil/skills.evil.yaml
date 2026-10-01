@@ -547,7 +547,7 @@ heal.evil:
     - { op: heal, to: primary, amount: 35 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { ownTurns: 2 }
       effect:
         id: borrowed_blood
         name: Borrowed Blood
@@ -561,10 +561,16 @@ heal.evil:
               - { op: setFlag, flag: paid }
           - on: turnEnd
             do:
+              # The cast turn doesn't count; their next 2 turns do.
               - op: if
-                cond: { not: { flag: paid } }
+                cond: { flag: armed }
                 then:
-                  - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false, raw: true }
+                  - op: if
+                    cond: { not: { flag: paid } }
+                    then:
+                      - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false, raw: true }
+                else:
+                  - { op: setFlag, flag: armed }
               - { op: setFlag, flag: paid, value: false }
 
 bless.evil:

@@ -393,8 +393,7 @@ describe('Evolution skills', () => {
     expect([a.hp(A2), a.hp(A1)]).toEqual([60, 70]);
   });
 
-  // BUG: "it dies with them": when the host dies, the Parasite stays alive (only Parasite Host ends).
-  it.fails('Brood Parasite: dies with its host', () => {
+  it('Brood Parasite: dies with its host', () => {
     const a = arena({ p0: [['companion.evolution', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'companion.evolution', B1).end().pass(1);
     const p = minions(a, 'parasite')[0]!;
@@ -882,8 +881,7 @@ describe('Evolution skills', () => {
     expect(a.has(B1, 'toxin')).toBe(false);
   });
 
-  // BUG: "can't be moved": Slough Off II leaves the protected Toxin on the bearer but still gives the attacker a copy.
-  it.fails("Festering Howl: their Toxin can't be moved (Slough Off II)", () => {
+  it("Festering Howl: their Toxin can't be moved (Slough Off II)", () => {
     const a = arena({ p0: [['shout.evolution', 'shot']], p1: [['maneuver.evolution']] });
     a.use(A1, 'shot', B1).end(); // A1 is the last enemy who damaged B1
     a.use(B1, 'maneuver.evolution').end(); // B1's Slough Off is now at Stage II

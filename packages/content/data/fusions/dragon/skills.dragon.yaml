@@ -148,7 +148,7 @@ snipe.dragon:
   description: >-
     The user circles overhead, Untargetable by enemies until it lands. On the following turn, deals
     35 damage to target enemy, plus Breath. The target of this skill is invisible. Channeled.
-  cost: Srr
+  cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
   target: enemy
@@ -198,7 +198,7 @@ trap.dragon:
             when: { kind: Buff }
             consume: true
             do:
-              - { op: eventEffect, expireNow: true }
+              - { op: eventEffect, remove: true }
               - { op: forEach, in: bearer, do: [{ op: macro, id: dragonfire_it }] }
 
 maneuver.dragon:

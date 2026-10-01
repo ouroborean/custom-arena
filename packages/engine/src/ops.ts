@@ -575,7 +575,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const to = select(ctx, op.to, sc)[0];
       if (!to) return;
       const moving = select(ctx, op.from, sc).filter((u) => u !== to).flatMap((from) => effectsOn(ctx.s, from.id)).filter(
-        (e) => (op.kind ? effectDef(ctx.c, e).kind === op.kind : true) && (op.effects ? op.effects.includes(effectKeyOf(e)) : true),
+        (e) =>
+          (op.kind ? effectDef(ctx.c, e).kind === op.kind : true) &&
+          (op.effects ? op.effects.includes(effectKeyOf(e)) : true) &&
+          !isProtected(ctx, e), // protected effects can't be moved either (Festering Howl)
       );
       for (const e of moving) {
         applyEffect(ctx, {

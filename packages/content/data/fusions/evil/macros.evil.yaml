@@ -13,9 +13,13 @@ tithe:
   - op: set
     var: spent
     value:
-      if: { compare: { value: { sum: [{ stacks: { unit: actor, effect: soul_fragment } }, { mul: [-1, { var: tithe }] }] }, atLeast: 0 } }
-      then: { var: tithe }
-      else: { stacks: { unit: actor, effect: soul_fragment } }
+      # Lord of Souls: the user can't spend Fragments, so a Tithe gets nothing.
+      if: { has: { unit: actor, effect: lord_of_souls } }
+      then: 0
+      else:
+        if: { compare: { value: { sum: [{ stacks: { unit: actor, effect: soul_fragment } }, { mul: [-1, { var: tithe }] }] }, atLeast: 0 } }
+        then: { var: tithe }
+        else: { stacks: { unit: actor, effect: soul_fragment } }
   - op: repeat
     times: { var: spent }
     do:
