@@ -467,6 +467,7 @@ export const triggerSchema: z.ZodType<TriggerSpec> = z.lazy(() =>
     intercept: z.enum(['counter', 'reflect']).optional(),
     do: z.array(opSchema).optional(),
     consume: z.boolean().optional(),
+    silent: z.boolean().optional(),
   }),
 ) as z.ZodType<TriggerSpec>;
 

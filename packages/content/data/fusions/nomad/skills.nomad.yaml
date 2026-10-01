@@ -203,6 +203,7 @@ trap.nomad:
           - on: signal
             signal: trek_rose
             when: { side: enemy }
+            silent: true
             do:
               - op: if
                 cond: { isActor: eventSource }
@@ -336,7 +337,7 @@ channel.nomad:
   name: The Long Road
   description: >-
     At the end of each of the user's turns, deals 10 damage to all enemies; it continues only while their Trek
-    keeps rising, up to 4 turns. Channeled.
+    keeps rising, up to 4 turns. Channeled, but the user's other skills don't end it.
   cost: Ir
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -353,6 +354,9 @@ channel.nomad:
         element: Nomad
         interruptible: true
         description: Each turn, 10 damage to all enemies, while the bearer's Trek keeps rising.
+        # Walking the road is the point: using skills (which raises Trek) doesn't end this channel.
+        modifiers:
+          - { mod: keepChannels }
         triggers:
           - on: turnEnd
             do:
@@ -464,7 +468,10 @@ heal.nomad:
     - op: heal
       to: primary
       amount:
-        if: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: primary, name: actedTurn } }] }] }, atMost: 1 } }
+        if:
+          and:
+            - { compare: { value: { counterOf: { unit: primary, name: actedTurn } }, atLeast: 1 } }
+            - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: primary, name: actedTurn } }] }] }, atMost: 1 } }
         then: 35
         else: 20
 

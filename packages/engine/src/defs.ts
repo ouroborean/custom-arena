@@ -677,6 +677,8 @@ export interface TriggerSpec {
   /** For skillUsed / skillTargeted: negate (counter) or redirect (reflect) the skill. */
   intercept?: 'counter' | 'reflect';
   do?: Op[];
+  /** A hidden effect reacting this way isn't revealed (bookkeeping, e.g. a Trap growing). */
+  silent?: boolean;
   /** Remove the effect after it fires. */
   consume?: boolean;
 }

@@ -20,6 +20,7 @@ dusk:
             - op: if
               cond: { compare: { value: { effectStacks: true }, atMost: 1 } }
               then:
+                - { op: set, var: midnight_at_dawn, value: 1 }
                 - { op: forEach, in: bearer, do: [{ op: macro, id: midnight }] }
               else:
                 - { op: addStacksSelf, amount: -1 }

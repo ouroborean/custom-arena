@@ -202,9 +202,7 @@ describe('Nomad skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
-  // BUG: Invisible, but the Trap's growth on a Trek rise counts as triggering it, revealing it to the enemy
-  // before it has been sprung
-  it.fails('Sinking Sands: stays hidden from the enemy until it is sprung', () => {
+  it('Sinking Sands: stays hidden from the enemy until it is sprung', () => {
     const a = arena({ p0: [['trap.nomad']], p1: [['shot']], passives: TREK });
     a.use(A1, 'trap.nomad', B1).end(); // Trek rises once at the end of this turn
     expect([seen(a, 0, B1, 'sinking_sands'), seen(a, 1, B1, 'sinking_sands')]).toEqual([true, false]);
@@ -371,10 +369,7 @@ describe('Nomad skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]);
   });
 
-  // SPEC: "continues only while their Trek keeps rising" — but Trek only rises when the user uses a skill, and
-  // using a skill ends the user's channels (Q6), so a rising Trek always ends The Long Road (at most 2 ticks:
-  // the first turn, plus one idle turn before the reset ends it).
-  it.fails('The Long Road: continues while the user\'s Trek keeps rising, up to 4 turns', () => {
+  it('The Long Road: continues while the user\'s Trek keeps rising, up to 4 turns', () => {
     const a = arena({ p0: [['channel.nomad', 'withstand', 'maneuver', 'rage', 'stab']], p1: [['withstand'], ['withstand']], passives: TREK });
     const seen: number[] = [];
     a.use(A1, 'channel.nomad').end();
@@ -488,8 +483,7 @@ describe('Nomad skills', () => {
     expect(b.state.players[0].queue[0]?.cost.r).toBe(0);
   });
 
-  // BUG: on the match's first turn, an ally who has never used a skill is healed 35 instead of 20
-  it.fails('Waterskin: 20 to an ally who hasn\'t used a skill (first turn of the match)', () => {
+  it('Waterskin: 20 to an ally who hasn\'t used a skill (first turn of the match)', () => {
     const a = arena({ p0: [['heal.nomad'], ['shot']], p1: [['withstand']], passives: TREK });
     a.setHp(A2, 50).use(A1, 'heal.nomad', A2).end();
     expect(a.hp(A2)).toBe(70);

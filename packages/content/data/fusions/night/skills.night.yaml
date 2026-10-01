@@ -600,7 +600,6 @@ withstand.night:
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: setCounter, name: frostfall, value: 0 }
     - op: apply
       to: actor
       value: 20
@@ -611,34 +610,24 @@ withstand.night:
         kind: Buff
         element: Night
         shield: true
-        description: A Shield; if it breaks, Stealth per Frost debuff on the breaker.
+        description: A Shield; if an enemy breaks it, Stealth for 1 turn per Frost debuff on the breaker.
         triggers:
           - on: shieldDamaged
             do:
-              - op: setCounter
-                name: frostfall
-                value:
-                  if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }, atLeast: 3 } }
-                  then: 3
-                  else: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: frostfall_watch
-        name: Frostfall Cloak
-        kind: Neutral
-        element: Night
-        description: If the cloak breaks, the bearer gains Stealth.
-        triggers:
-          - on: ownEffectEnded
-            when: { effects: [frostfall_cloak], reason: [depleted] }
-            consume: true
-            do:
               - op: if
-                cond: { compare: { value: { counter: frostfall }, atLeast: 1 } }
+                cond: { and: [{ isEnemy: eventSource }, { not: { hasShield: bearer } }] }
                 then:
-                  - { op: apply, to: bearer, effect: stealth, duration: { enemyTurns: { counter: frostfall } } }
+                  - op: set
+                    var: frost
+                    value:
+                      if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }, atLeast: 3 } }
+                      then: 3
+                      else: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound, soulfrost], in: eventSource } }
+                  - op: if
+                    cond: { compare: { value: { var: frost }, atLeast: 1 } }
+                    then:
+                      - { op: removeEffect, from: bearer, effect: stealth }
+                      - { op: apply, to: bearer, effect: stealth, duration: { enemyTurns: { var: frost } } }
 
 taunt.night:
   archetype: Taunt

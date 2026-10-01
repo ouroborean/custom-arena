@@ -232,7 +232,15 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   if ('count' in v) {
     const keys = new Set(v.count.effects);
     const where = v.count.in ? new Set(select(ctx, v.count.in, sc).map((u) => u.id)) : null;
-    return ctx.s.effects.filter((e) => keys.has(effectKeyOf(e)) && (!where || where.has(e.bearer))).length;
+    // A listed effect counts once; one that only counts as listed keys counts once per key (Frozen Sleep:
+    // Frostbitten, Chilled and Numb).
+    let n = 0;
+    for (const e of ctx.s.effects) {
+      if (where && !where.has(e.bearer)) continue;
+      if (keys.has(effectKeyOf(e))) n++;
+      else for (const k of new Set(effectDef(ctx.c, e).countsAs ?? [])) if (keys.has(k)) n++;
+    }
+    return n;
   }
   if ('countOf' in v) return select(ctx, v.countOf, sc).length;
   if ('totalStacks' in v) {
@@ -1320,7 +1328,8 @@ export function mutedTrap(ctx: Ctx, e: EffectInstance, spec: TriggerSpec): boole
 export function runTrigger(ctx: Ctx, e: EffectInstance, p: PendingTrigger): void {
   if (mutedTrap(ctx, e, p.spec)) return;
   // A hidden effect's routine turn checks don't give it away; reacting to something does.
-  if (!PERIODIC.has(p.spec.on)) revealEffect(ctx, e);
+  // (`silent` triggers are bookkeeping, like a hidden Trap growing: they don't reveal it either.)
+  if (!PERIODIC.has(p.spec.on) && !p.spec.silent) revealEffect(ctx, e);
   const sc: Scope = {
     actor: e.source,
     targets: e.targets,

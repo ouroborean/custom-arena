@@ -66,8 +66,7 @@ describe('Night keywords', () => {
     expect([a.reject(() => a.use(B1, 'shot', A1)), a.has(B1, 'dusk')]).toEqual(['cannot_act', false]);
   });
 
-  // BUG: Frozen Sleep: "Midnight puts the bearer in Frozen Sleep for 1 turn" vs it starts on their turn and lasts through their next one too, so they lose 2 turns
-  it.fails('Frozen Sleep: lasts 1 turn; they act again on their following turn', () => {
+  it('Frozen Sleep: lasts 1 turn; they act again on their following turn', () => {
     const a = arena({ p0: [['shot.night', 'shot']], p1: [['shot']], hp: 200 });
     a.use(A1, 'shot.night', B1).end();
     expect(midnightTurn(a)).toBe(10);
@@ -83,8 +82,7 @@ describe('Night keywords', () => {
     expect(b.reject(() => b.use(B1, 'shot', A1))).toBe('cannot_act');
   });
 
-  // SPEC: Frozen Sleep "counts as Frostbitten, Chilled and Numb", but skills that count Frost debuffs (Rimecut: +5 each) don't see it. Should they?
-  it.fails('Frozen Sleep: counts as Frost debuffs for skills that count them', () => {
+  it('Frozen Sleep: counts as Frost debuffs for skills that count them', () => {
     const a = arena({ p0: [['stab.myth']], p1: [['shot']] });
     a.give(B1, 'frozen_sleep', { duration: 4 }).use(A1, 'stab.myth', B1).end();
     expect(a.hp(B1)).toBe(75);
@@ -433,8 +431,7 @@ describe('Night skills', () => {
     expect([a.hp(B1), a.has(B1, 'sanctify'), a.has(A1, 'stealth')]).toEqual([80, true, true]);
   });
 
-  // BUG: Hidden Moon: "allies who damage them keep their Stealth" vs a Stealthed ally's hit on the target still ends their Stealth
-  it.fails('Hidden Moon: allies who damage them keep their Stealth', () => {
+  it('Hidden Moon: allies who damage them keep their Stealth', () => {
     const a = arena({ p0: [['smite.night'], ['shot']], p1: [['shot']] });
     a.give(A2, 'stealth', { duration: 6 }).use(A1, 'smite.night', B1).use(A2, 'shot', B1).end();
     expect(a.has(A2, 'stealth')).toBe(true);
@@ -471,8 +468,7 @@ describe('Night skills', () => {
     expect(dur(a, B1, 'frostbitten')).toBe(dur(control, B1, 'frostbitten')! + 2);
   });
 
-  // BUG: Frostfall Cloak: "If an enemy breaks it, the user gains Stealth for 1 turn per Frost debuff that enemy has" vs no Stealth when a Chilled, Numb (or Frostbitten) enemy breaks it
-  it.fails('Frostfall Cloak: 20 Shield for 1 turn; an enemy breaking it gives Stealth 1 turn per Frost debuff they have', () => {
+  it('Frostfall Cloak: 20 Shield for 1 turn; an enemy breaking it gives Stealth 1 turn per Frost debuff they have', () => {
     const a = arena({ p0: [['withstand.night']], p1: [['smash']] });
     a.give(B1, 'chilled', { source: A1 }).give(B1, 'numb', { source: A1 });
     a.use(A1, 'withstand.night').end();
