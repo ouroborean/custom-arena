@@ -92,6 +92,24 @@ async function spareInstances(db: Db, userId: string, ids: string[]) {
   return rows;
 }
 
+/**
+ * Testing (ctx.allItems): tops the user up to EQUIPMENT_SLOTS unequipped copies of every item, so all
+ * equipment is unlocked and any item can fill every slot of a loadout. Runs on each inventory fetch.
+ */
+async function grantAllItems(ctx: AppContext, userId: string): Promise<void> {
+  const [owned, equipped] = await Promise.all([
+    ctx.db.select({ id: itemInstances.id, itemId: itemInstances.itemId }).from(itemInstances).where(eq(itemInstances.userId, userId)),
+    equippedOn(ctx.db, userId),
+  ]);
+  const free = new Map<string, number>();
+  for (const o of owned) if (!equipped.has(o.id)) free.set(o.itemId, (free.get(o.itemId) ?? 0) + 1);
+  const add: { userId: string; itemId: string; source: string }[] = [];
+  for (const itemId of Object.keys(ctx.content.items).sort()) {
+    for (let n = free.get(itemId) ?? 0; n < EQUIPMENT_SLOTS; n++) add.push({ userId, itemId, source: 'dev' });
+  }
+  if (add.length) await ctx.db.insert(itemInstances).values(add);
+}
+
 /** Gives a new account a few items to try equipment with (drops, crafting and gold come after). */
 export async function grantStarterKit(ctx: AppContext, userId: string): Promise<void> {
   const rng = seedRng(ctx.rollSeed());
@@ -123,6 +141,7 @@ export function equipmentRoutes(ctx: AppContext) {
 
     app.get('/api/inventory', async (req) => {
       const userId = req.user!.id;
+      if (ctx.allItems) await grantAllItems(ctx, userId);
       const [items, equipped, wallet] = await Promise.all([
         ctx.db.select().from(itemInstances).where(eq(itemInstances.userId, userId)).orderBy(itemInstances.acquiredAt),
         equippedOn(ctx.db, userId),

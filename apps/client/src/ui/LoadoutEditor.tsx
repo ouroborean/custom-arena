@@ -25,7 +25,7 @@ import {
 } from '@arena/meta';
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
-import { CostPips, elementClass, itemCode, Tooltip } from './common.js';
+import { CostPips, elementClass, itemCode, SkillGlyph, Tooltip } from './common.js';
 
 const GROUPS: { id: string; label: string; types: readonly ItemType[] }[] = [
   { id: 'all', label: 'All', types: [] },
@@ -517,6 +517,7 @@ function SkillInfusions({
         }
       >
         <span className={`skill-chip ${elementClass(current?.element)}`} tabIndex={0}>
+          {current && <SkillGlyph def={current} content={content} />}
           {current?.name ?? skill.base}
           {current && <CostPips cost={current.cost} />}
         </span>

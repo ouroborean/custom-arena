@@ -90,6 +90,10 @@ Run `npm run server` and `npm run dev` together for the full game; without the s
 offers the offline sandbox. Set `DATABASE_URL=postgres://…` to use a PostgreSQL server instead of
 the embedded PGlite database. A local test account is described in `apps/server/fixtures/dev-account.json`.
 
+**All equipment is unlocked while testing:** outside production, every account owns four free copies
+of every item, refilled whenever the inventory loads. Set `ALL_ITEMS=0` to play with real drops
+instead; production (`NODE_ENV=production`) never does this.
+
 ## Adding content
 
 Skills are data. See `packages/content/data/base/skills.yaml` for the 30 base skills and the op
