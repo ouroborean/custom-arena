@@ -1,0 +1,30 @@
+# Faerie (Wind + Poison) statuses, from the "Fusion Spec Kits" design doc.
+
+charmed:
+  name: Charmed
+  kind: Debuff
+  element: Faerie
+  stacking: unique
+  description: >-
+    The bearer's single-target skills pick their target at random from every other unit in the battle,
+    friend or foe.
+  modifiers:
+    - { mod: charmed }
+
+# Bewildering Petals: random picks only among the bearer's own allies.
+bewildered:
+  name: Charmed
+  kind: Debuff
+  element: Faerie
+  stacking: unique
+  countsAs: [charmed]
+  description: The bearer's single-target skills land on a random ally of their own.
+  modifiers:
+    - { mod: charmed, own: true }
+
+gossamer_mark:
+  name: Gossamer
+  kind: Debuff
+  element: Faerie
+  stacking: unique
+  description: Struck the Gossamer Veil.

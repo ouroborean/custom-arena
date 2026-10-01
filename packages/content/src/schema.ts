@@ -277,6 +277,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('fogged') }),
   mod({ mod: z.literal('bloodPrice') }),
   mod({ mod: z.literal('suppressBuffs') }),
+  mod({ mod: z.literal('charmed'), own: z.boolean().optional() }),
   mod({ mod: z.literal('cooldownTick'), amount: z.number().int() }),
   mod({ mod: z.literal('entangleLink'), kinds: z.array(effectKind).optional() }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),

@@ -261,6 +261,12 @@ export function landDrifting(ctx: Ctx): void {
 /** Blinded: a single-target skill's primary target is re-rolled among every legal target (GDD §3.6). */
 function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): UnitId[] {
   if (def.target !== 'enemy' && def.target !== 'ally' && def.target !== 'any') return targets;
+  // Faerie's Charmed: any other living unit, friend or foe (only the bearer's own allies with `own`).
+  const charm = modsOn(ctx.s, ctx.c, actor.id, 'charmed')[0];
+  if (charm) {
+    const pool = ctx.s.units.filter((u) => u.alive && u !== actor && (!charm.spec.own || u.owner === actor.owner));
+    if (pool.length > 0) return [pool[nextInt(ctx.s.rng, pool.length)]!.id];
+  }
   if (modsOn(ctx.s, ctx.c, actor.id, 'randomPrimaryTarget').length === 0) return targets;
   const legal = ctx.s.units.filter((u) => u.alive && resolveTargets(ctx, actor, def, [u.id], true).ok);
   if (legal.length === 0) return targets;

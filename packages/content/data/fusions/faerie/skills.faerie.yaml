@@ -1,0 +1,750 @@
+# The 30 Faerie (Wind + Poison) variants, from the "Fusion Spec Kits" design doc.
+# Charmed: the bearer's single-target skills pick any other living unit at random.
+
+strike.faerie:
+  archetype: Strike
+  element: Faerie
+  name: Thorned Kiss
+  description: Deals 20 damage to target enemy, who gains 1 Toxin. If that makes them Prey, they're Charmed for 1 turn.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: toxin }
+    - op: if
+      cond: { check: { cond: prey, unit: primary } }
+      then: [{ op: apply, to: primary, effect: charmed, duration: { enemyTurns: 1 } }]
+
+smash.faerie:
+  archetype: Smash
+  element: Faerie
+  name: Fairy Ring
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. Each one hit who has a mobility buff loses them
+    all and is Charmed for 1 turn.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: forEach
+      in:
+        filter: allEnemies
+        where:
+          or:
+            - { has: { unit: it, effect: swiftness } }
+            - { has: { unit: it, effect: rushing } }
+            - { has: { unit: it, effect: leaping } }
+      do:
+        - { op: removeEffect, from: it, effect: swiftness }
+        - { op: removeEffect, from: it, effect: rushing }
+        - { op: removeEffect, from: it, effect: leaping }
+        - { op: apply, to: it, effect: charmed, duration: { enemyTurns: 1 } }
+
+charge.faerie:
+  archetype: Charge
+  element: Faerie
+  name: Thistledown Hop
+  description: Deals 15 damage to target enemy, then the user Leaps.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      duration: { raw: 1 }
+      effect:
+        id: thistledown_hop
+        name: Thistledown Hop
+        kind: Buff
+        element: Faerie
+        description: The user Leaps once this skill has resolved.
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: leap }] }
+
+riposte.faerie:
+  archetype: Riposte
+  element: Faerie
+  name: Prank
+  description: >-
+    For 1 turn, the first Harmful skill used on the user is countered: a random ally of its user takes 15
+    damage instead, and its user is Charmed for 1 turn. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: prank
+        name: Prank
+        kind: Buff
+        element: Faerie
+        visibility: hidden
+        description: The first Harmful skill used on the bearer lands on its user's ally instead.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: { randomEnemy: 1, exclude: eventSource }, amount: 15 }
+              - { op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }
+
+rage.faerie:
+  archetype: Rage
+  element: Faerie
+  name: Wild Hunt
+  description: >-
+    For 3 turns, the user is Immune and gains 1 Might. Whenever they hit an enemy while Leaping, that enemy is
+    marked as Prey for 2 turns.
+  cost: W
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: wild_hunt
+        name: Wild Hunt
+        kind: Buff
+        element: Faerie
+        description: Enemies hit while Leaping are marked as Prey.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: leaping } }
+                then: [{ op: apply, to: eventTarget, effect: prey, duration: { enemyTurns: 2 } }]
+
+shot.faerie:
+  archetype: Shot
+  element: Faerie
+  name: Pixie Dust
+  description: >-
+    Deals 10 damage to target enemy, who gains 1 Confusion. If they already had Confusion, they're Charmed for
+    1 turn instead.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: confusion } }
+      then: [{ op: apply, to: primary, effect: charmed, duration: { enemyTurns: 1 } }]
+      else: [{ op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }]
+
+snipe.faerie:
+  archetype: Snipe
+  element: Faerie
+  name: Elfshot
+  description: >-
+    On the following turn, deals 30 Affliction damage to target enemy; if another enemy has more Toxin by then,
+    it veers to them instead. The target of this skill is invisible. Channeled, Uncounterable.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: elfshot
+        name: Elfshot (aiming)
+        kind: Neutral
+        element: Faerie
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes at the end of the following turn, veering to a more poisoned enemy.
+        onExpire:
+          - op: if
+            cond:
+              compare:
+                value:
+                  countOf:
+                    filter: allEnemies
+                    where: { compare: { value: { sum: [{ totalStacks: { in: it, effect: toxin } }, { mul: [-1, { totalStacks: { in: effectTargets, effect: toxin } }] }] }, atLeast: 1 } }
+                atLeast: 1
+            then:
+              - op: damage
+                to:
+                  randomEnemy: 1
+                  where: { compare: { value: { sum: [{ totalStacks: { in: it, effect: toxin } }, { mul: [-1, { totalStacks: { in: effectTargets, effect: toxin } }] }] }, atLeast: 1 } }
+                amount: 30
+                type: Affliction
+            else:
+              - { op: damage, to: effectTargets, amount: 30, type: Affliction }
+
+trap.faerie:
+  archetype: Trap
+  element: Faerie
+  name: Toadstool Circle
+  description: >-
+    For 2 turns, whenever target enemy uses a Helpful skill, they gain 1 Toxin and are Charmed for 1 turn.
+    Invisible.
+  cost: I
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: toadstool_circle
+        name: Toadstool Circle
+        kind: Debuff
+        element: Faerie
+        visibility: hidden
+        description: Each Helpful skill the bearer uses poisons and Charms them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            do:
+              - { op: apply, to: bearer, effect: toxin }
+              - { op: apply, to: bearer, effect: charmed, duration: { enemyTurns: 1 } }
+
+maneuver.faerie:
+  archetype: Maneuver
+  element: Faerie
+  name: Petal Step
+  description: The user Leaps; their Leap's bonus damage is 5 per Toxin on the target it hits instead of 5.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: apply
+      to: actor
+      linkTo: leaping
+      effect:
+        id: petal_step
+        name: Petal Step
+        kind: Buff
+        element: Faerie
+        description: The Leap's bonus is 5 per Toxin on the target instead of 5.
+        modifiers:
+          - { mod: damageDealt, amount: 0, when: { direct: true }, value: { sum: [{ mul: [5, { totalStacks: { in: it, effect: toxin } }] }, -5] } }
+
+companion.faerie:
+  archetype: Companion
+  element: Faerie
+  name: Pixie
+  description: >-
+    Summons a Pixie (25 HP) permanently; it's Untargetable while any enemy is Charmed. Befuddle (A): target
+    enemy is Charmed for 1 turn, or 2 if they're Prey.
+  cost: W
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: pixie }
+
+bolt.faerie:
+  archetype: Bolt
+  element: Faerie
+  name: Wisp Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Marked for 1 turn. For 2 turns, whenever the user starts a turn
+    Rushing, a random ally gains 1 Swiftness and 1 Focus too.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: wisp_bolt
+        name: Wisp Bolt
+        kind: Buff
+        element: Faerie
+        description: Each turn the bearer starts Rushing, a random ally gains Swiftness and Focus.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: rushing } }
+                then:
+                  - op: forEach
+                    in: { randomAlly: 1, exclude: bearer, where: { kind: { unit: it, is: character } } }
+                    do:
+                      - { op: apply, to: it, effect: swiftness, duration: { enemyTurns: 1 } }
+                      - { op: apply, to: it, effect: focus, until: { skillUsed: {} } }
+
+blast.faerie:
+  archetype: Blast
+  element: Faerie
+  name: Dust Storm
+  description: Deals 15 damage to all enemies; each is Charmed for their next skill.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 15 }
+    - { op: apply, to: targets, effect: charmed, until: { skillUsed: {} }, duration: { enemyTurns: 1 } }
+
+consume.faerie:
+  archetype: Consume
+  element: Faerie
+  name: Changeling's Bargain
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. Then a changeling swap: one of the user's Debuffs
+    moves to them, and one of their Buffs moves to the user.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - { op: stealRandom, from: actor, to: primary, kind: Debuff }
+    - { op: stealRandom, from: primary, to: actor, kind: Buff }
+
+summon.faerie:
+  archetype: Summon
+  element: Faerie
+  name: Sprite Swarm
+  description: >-
+    Summons 2 Sprites (10 HP) for 3 turns; an enemy who damages a Sprite is Charmed for 1 turn. Pinch (nc): 5
+    Piercing damage.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: sprite, count: 2, duration: { enemyTurns: 3 } }
+
+channel.faerie:
+  archetype: Channel
+  element: Faerie
+  name: Midsummer Revel
+  description: >-
+    For 3 turns, at the end of each of the user's turns, a random enemy is Charmed for 1 turn, and every
+    Charmed enemy takes 10 Affliction damage. Channeled.
+  cost: II
+  cooldown: 3
+  tags: [Harmful, Strategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: midsummer_revel
+        name: Midsummer Revel
+        kind: Neutral
+        element: Faerie
+        interruptible: true
+        description: Each turn, a random enemy is Charmed, and every Charmed enemy takes 10 Affliction.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: { randomEnemy: 1 }, effect: charmed, duration: { enemyTurns: 1 } }
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: charmed } } }, amount: 10, type: Affliction, direct: false }
+
+stab.faerie:
+  archetype: Stab
+  element: Faerie
+  name: Nettle Prick
+  description: >-
+    Target enemy takes 10 Piercing damage, and until the user's next turn their Toxin also ticks at the start of
+    their own turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: nettle_prick
+        name: Nettle Prick
+        kind: Debuff
+        element: Faerie
+        description: The bearer's Toxin also ticks at the start of their turn.
+        triggers:
+          - on: turnStart
+            do:
+              - { op: damage, to: bearer, amount: { mul: [5, { totalStacks: { in: bearer, effect: toxin } }] }, type: Affliction, direct: false }
+
+ravage.faerie:
+  archetype: Ravage
+  element: Faerie
+  name: Wasp Dive
+  description: The user spends all their Swiftness, then deals 25 Piercing damage to target enemy, +10 per stack spent.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: dive, value: { totalStacks: { in: actor, effect: swiftness } } }
+    - { op: removeEffect, from: actor, effect: swiftness }
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [25, { mul: [10, { var: dive }] }] } }
+
+mislead.faerie:
+  archetype: Mislead
+  element: Faerie
+  name: Fae Wager
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user gains 1 Swiftness and 1
+    Focus. If they don't, the fae collect: the user is Charmed for 1 turn. Invisible.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: fae_wager
+        name: Fae Wager
+        kind: Debuff
+        element: Faerie
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered and pays the applier; if none comes, the fae collect from the applier.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 1 } }
+              - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+        onExpire:
+          - { op: apply, to: actor, effect: charmed, duration: { enemyTurns: 1 } }
+
+stun.faerie:
+  archetype: Stun
+  element: Faerie
+  name: Enchanted Slumber
+  description: >-
+    Target enemy falls Asleep for 3 turns. Damage doesn't wake them; instead, each hit they take cuts 1 turn
+    from the Sleep.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: enchanted_slumber
+        name: Enchanted Slumber
+        kind: Debuff
+        element: Faerie
+        countsAs: [sleep]
+        description: Asleep; each hit cuts 1 turn from it instead of waking them.
+        modifiers:
+          - { mod: cannotUseSkills }
+        triggers:
+          - on: damaged
+            do:
+              - { op: extendSelf, by: -2 }
+
+dance.faerie:
+  archetype: Dance
+  element: Faerie
+  name: Fey Reel
+  description: For 3 turns, the user gains 2 Might, 2 Swiftness and 1 Focus, and is Charmed.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: charmed, duration: { enemyTurns: 3 } }
+
+heal.faerie:
+  archetype: Heal
+  element: Faerie
+  name: Fairy Tonic
+  description: Target unit heals 20. An ally also loses all Toxin; an enemy is Charmed for 1 turn.
+  cost: A
+  cooldown: 1
+  tags: [Radiant, Strategic]
+  target: any
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: if
+      cond: { isEnemy: primary }
+      then: [{ op: apply, to: primary, effect: charmed, duration: { enemyTurns: 1 } }]
+      else: [{ op: removeEffect, from: primary, effect: toxin }]
+
+bless.faerie:
+  archetype: Bless
+  element: Faerie
+  name: Fairy Wings
+  description: >-
+    Target ally gains 2 Swiftness. For 3 turns, each Stun their Swiftness shrugs off Charms its source for 1
+    turn.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: fairy_wings
+        name: Fairy Wings
+        kind: Buff
+        element: Faerie
+        description: Each Stun the bearer's Swiftness shrugs off Charms its source.
+        triggers:
+          - on: incomingNegated
+            do:
+              - { op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }
+
+curse.faerie:
+  archetype: Curse
+  element: Faerie
+  name: Enthrall
+  description: >-
+    Target enemy is Charmed for 2 turns. Each ally of theirs they damage while Charmed is Charmed for 1 turn
+    too.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: charmed, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: enthrall
+        name: Enthrall
+        kind: Debuff
+        element: Faerie
+        description: Each ally of the bearer they damage while Charmed is Charmed too.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { and: [{ isEnemy: eventTarget }, { has: { unit: bearer, effect: charmed } }] }
+                then: [{ op: apply, to: eventTarget, effect: charmed, duration: { enemyTurns: 1 } }]
+
+smite.faerie:
+  archetype: Smite
+  element: Faerie
+  name: Fey Mark
+  description: >-
+    Deals 20 damage to target enemy. Each ally of theirs who has used a Helpful skill on them since the user's
+    last turn is Charmed for 1 turn.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: { filter: allEnemies, where: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: it, name: actedTurn } }] }] }, atMost: 1 } } }
+      effect: charmed
+      duration: { enemyTurns: 1 }
+
+prayer.faerie:
+  archetype: Prayer
+  element: Faerie
+  name: Fairy Song
+  description: All allies heal 20 and lose their Toxin; each stack removed goes to a random enemy.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - { op: set, var: song, value: { totalStacks: { in: targets, effect: toxin } } }
+    - { op: removeEffect, from: targets, effect: toxin }
+    - { op: repeat, times: { var: song }, do: [{ op: apply, to: { randomEnemy: 1 }, effect: toxin }] }
+
+cleave.faerie:
+  archetype: Cleave
+  element: Faerie
+  name: Bewildering Petals
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. The target is Charmed for 1 turn, and
+    meanwhile their random picks can land only on their own allies.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: apply, to: primary, effect: bewildered, duration: { enemyTurns: 1 } }
+
+shout.faerie:
+  archetype: Shout
+  element: Faerie
+  name: Fae Laughter
+  description: >-
+    All enemies are Intimidated for 2 turns; the first of them to use a single-target skill is Charmed for it,
+    so it picks at random.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: fae_laughter
+        name: Fae Laughter
+        kind: Debuff
+        element: Faerie
+        countsAs: [charmed]
+        description: Charmed for the first skill any of them uses.
+        modifiers:
+          - { mod: charmed }
+        triggers:
+          - on: skillResolved
+            do:
+              - { op: removeEffect, from: allEnemies, effect: fae_laughter }
+
+withstand.faerie:
+  archetype: Withstand
+  element: Faerie
+  name: Gossamer Veil
+  description: The user gains 20 Shield for 1 turn. When it's gone, each enemy who hit it is Charmed for 1 turn.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 1 }
+      effect:
+        id: gossamer_veil
+        name: Gossamer Veil
+        kind: Buff
+        element: Faerie
+        shield: true
+        description: A Shield; enemies who strike it are Charmed when it's gone.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: apply, to: eventSource, effect: gossamer_mark, duration: { raw: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: gossamer_watch
+        name: Gossamer Veil
+        kind: Neutral
+        element: Faerie
+        description: When the veil is gone, those who struck it are Charmed.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [gossamer_veil] }
+            consume: true
+            do:
+              - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: gossamer_mark } } }, effect: charmed, duration: { enemyTurns: 1 } }
+
+taunt.faerie:
+  archetype: Taunt
+  element: Faerie
+  name: Fickle Heart
+  description: >-
+    Target enemy is Taunted by a random ally of theirs for 1 turn, or 2 if they're Prey, so that ally is all
+    they can target.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      effect: taunt
+      from: { randomEnemy: 1, exclude: primary }
+      duration: { enemyTurns: { if: { check: { cond: prey, unit: primary } }, then: 2, else: 1 } }
+
+titan.faerie:
+  archetype: Titan
+  element: Faerie
+  name: Faerie Queen
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune; each enemy who uses a single-target skill on them is Charmed
+    for 1 turn afterwards.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: faerie_queen
+        name: Faerie Queen
+        kind: Buff
+        element: Faerie
+        description: Enemies who target the bearer with a single-target skill are Charmed.
+        triggers:
+          - on: skillTargeted
+            when: { side: enemy }
+            do:
+              - op: if
+                cond: { eventSkill: { single: true } }
+                then: [{ op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }]
+
+# Minion skills.
+
+pixie_befuddle:
+  archetype: Minion
+  element: Faerie
+  name: Befuddle
+  description: Target enemy is Charmed for 1 turn, or 2 if they're Prey.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: charmed, duration: { enemyTurns: { if: { check: { cond: prey, unit: primary } }, then: 2, else: 1 } } }
+
+sprite_pinch:
+  archetype: Minion
+  element: Faerie
+  name: Pinch
+  description: Deals 5 Piercing damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5, type: Piercing }

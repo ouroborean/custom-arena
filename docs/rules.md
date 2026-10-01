@@ -1444,3 +1444,23 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Ghost in the Machine | A random enemy with Buffs is Suppressed; the user copies their Buffs once. |
 | Jammed Frequency | Simplified: every enemy skill gets +1 cooldown. |
 | Decoy Signal | The Signal Ghost's `onDeath` blacks out its last attacker. |
+
+### 21.41 Faerie (Wind + Poison)
+
+| Term | Ruling |
+|---|---|
+| **Charmed** | New `charmed` modifier, checked with Blind in the pipeline: the bearer's single-target skill lands on a random other living unit, friend or foe (`own`: only their own allies, for Bewildering Petals). |
+| Thistledown Hop | The Leap comes at the end of the turn (a 1-tick timer), so the Hop's own hit doesn't spend it. Simplified: the next damaging skill ends it as usual. |
+| Prank | Simplified: countered; a random ally of its user takes 15, and its user is Charmed. |
+| Wild Hunt | Every enemy hit while Leaping is marked Prey for 2 turns. |
+| Elfshot | Veers to a random enemy with more Toxin than the target, if any. |
+| Toadstool Circle | The Charm lands after the Helpful skill (on their following skills). |
+| Petal Step | +5 per Toxin on the target, minus Leaping's own 5, until the Leap ends. |
+| Wisp Bolt | Simplified: each turn the user starts Rushing, a random ally gains 1 Swiftness and 1 Focus. |
+| Dust Storm | Charmed until each enemy's next skill. |
+| Changeling's Bargain | Random Debuff and Buff (not the newest). |
+| Enchanted Slumber | Its own Sleep (counts as Sleep): each hit takes 2 ticks off it instead of waking them. |
+| Fey Mark | Simplified: every enemy who acted in the last round is Charmed. |
+| Fae Laughter | All enemies are Charmed until the first of them resolves a skill. |
+| Gossamer Veil | Simplified: when the Shield is gone, everyone who struck it is Charmed (no fallback). |
+| Faerie Queen | Applies to single-target skills aimed at the user. |

@@ -515,6 +515,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'bloodPrice' }
   /** Ion's Suppressed: the bearer's Buffs' modifiers have no effect. */
   | { mod: 'suppressBuffs' }
+  /** Faerie's Charmed: single-target skills pick any other living unit (`own`: only the bearer's allies). */
+  | { mod: 'charmed'; own?: boolean }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**
