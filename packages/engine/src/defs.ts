@@ -69,6 +69,10 @@ export type Value =
   | { lastDamage: true }
   | { effectValue: true }
   | { effectStacks: true }
+  /** A number the executing effect tracks in its data (e.g. "prevented" for Diamond). */
+  | { effectData: string }
+  /** How many effects of this kind the unit carries. */
+  | { kindCount: { unit: Selector; kind: EffectKind } }
   | { stacks: { unit: Selector; effect: string } }
   /** Number of active effect instances with these keys, on `in` (default: the whole board). */
   | { count: { effects: string[]; in?: Selector } }
@@ -197,6 +201,8 @@ export type Op =
   | { op: 'kill'; to: Selector }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
   | { op: 'interrupt'; to: Selector }
+  /** Removes every Shield effect from the targets (Crystal's Glass Harmonic). */
+  | { op: 'removeShields'; from: Selector }
   /** Removes every instance of an effect (by key) from the selected units. */
   | { op: 'removeEffect'; from: Selector; effect: string }
   /** Removes every effect of this kind (e.g. all Debuffs) from the selected units. */
@@ -357,6 +363,15 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'healFromDirectDamage' }
   /** The bearer's skills Bypass (ignore Invulnerable and Isolated) — Ghosted. */
   | { mod: 'grantBypass' }
+  /**
+   * Crystal's Diamond: no single hit takes more than `amount` HP (after Armor and Shield). What it
+   * prevents is added to the effect's `data.prevented`.
+   */
+  | { mod: 'maxHpLossPerHit'; amount: number }
+  /** No more than `amount` HP lost in one turn (Crystal's Faceted Ward); also tracks `prevented`. */
+  | { mod: 'maxHpLossPerTurn'; amount: number }
+  /** Hits on the bearer use the Shield this effect is linked to first (Crystal's Latticework). */
+  | { mod: 'borrowShield' }
   /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
   | { mod: 'hpFloor'; amount: number }
   /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */

@@ -106,9 +106,13 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   let absorbed = 0;
   const hitShields: EffectInstance[] = [];
   if (a.type !== 'Affliction' && !shattered) {
-    for (const e of effectsOn(ctx.s, target.id)) {
+    // The bearer's own Shields, then any Shield they borrow (Crystal's Latticework).
+    const borrowed = modsOn(ctx.s, ctx.c, target.id, 'borrowShield')
+      .map(({ effect }) => ctx.s.effects.find((x) => x.id === effect.data.linkedTo))
+      .filter((x): x is EffectInstance => !!x && x.bearer !== target.id);
+    for (const e of [...effectsOn(ctx.s, target.id), ...borrowed]) {
       if (remaining === 0) break;
-      if (!effectDef(ctx.c, e).shield) continue;
+      if (!effectDef(ctx.c, e).shield || !ctx.s.effects.includes(e)) continue;
       const take = Math.min(e.value, remaining);
       e.value -= take;
       remaining -= take;
@@ -116,6 +120,24 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
       if (take > 0) hitShields.push(e);
       if (e.value <= 0) removeEffect(ctx, e, 'depleted');
     }
+  }
+  // Crystal's Diamond and Faceted Ward: caps on HP lost per hit and per turn.
+  for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'maxHpLossPerHit')) {
+    if (remaining <= spec.amount) continue;
+    effect.data.prevented = ((effect.data.prevented as number | undefined) ?? 0) + remaining - spec.amount;
+    remaining = spec.amount;
+  }
+  for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'maxHpLossPerTurn')) {
+    if (effect.data.turn !== ctx.s.turn) {
+      effect.data.turn = ctx.s.turn;
+      effect.data.lost = 0;
+    }
+    const left = Math.max(0, spec.amount - (effect.data.lost as number));
+    if (remaining > left) {
+      effect.data.prevented = ((effect.data.prevented as number | undefined) ?? 0) + remaining - left;
+      remaining = left;
+    }
+    effect.data.lost = (effect.data.lost as number) + remaining;
   }
   // Immortal: HP can't be pushed below the floor (HP already under it doesn't drop further).
   const floors = modsOn(ctx.s, ctx.c, target.id, 'hpFloor').map(({ spec }) => spec.amount);
@@ -138,7 +160,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     if (modsOn(ctx.s, ctx.c, source.id, 'lifesteal').length > 0) heal(ctx, source, source, remaining);
   }
 
-  enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true, a.skill);
+  enqueueDamagedTriggers(ctx, source, target, a.direct, a.wakes ?? true, a.skill, remaining + absorbed);
   // Anyone can listen for damage anywhere (Blood Chalice).
   broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
   for (const e of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill);
@@ -149,7 +171,8 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   return amount;
 }
 
-function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean, wakes: boolean, skill?: string): void {
+/** `amount`: the hit's size (HP lost plus Shield absorbed), as eventAmount. */
+function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: boolean, wakes: boolean, skill: string | undefined, amount: number): void {
   for (const e of effectsOn(ctx.s, target.id)) {
     for (const spec of effectDef(ctx.c, e).triggers ?? []) {
       if (spec.on !== 'damaged') continue;
@@ -165,7 +188,15 @@ function enqueueDamagedTriggers(ctx: Ctx, source: Unit, target: Unit, direct: bo
         if (e.data.pendingConsume) continue;
         e.data.pendingConsume = true;
       }
-      const p: PendingTrigger = { effect: e.id, inst: e, spec, eventSource: source.id, eventTarget: target.id, ...(skill ? { eventSkill: skill } : {}) };
+      const p: PendingTrigger = {
+        effect: e.id,
+        inst: e,
+        spec,
+        eventSource: source.id,
+        eventTarget: target.id,
+        eventAmount: amount,
+        ...(skill ? { eventSkill: skill } : {}),
+      };
       ctx.triggerQueue.push(p);
     }
   }

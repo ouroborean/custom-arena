@@ -163,6 +163,14 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('lastDamage' in v) return sc.lastDamage;
   if ('effectValue' in v) return sc.self?.value ?? 0;
+  if ('effectData' in v) {
+    const d = sc.self?.data[v.effectData];
+    return typeof d === 'number' ? d : 0;
+  }
+  if ('kindCount' in v) {
+    const u = select(ctx, v.kindCount.unit, sc)[0];
+    return u ? effectsOn(ctx.s, u.id).filter((e) => effectDef(ctx.c, e).kind === v.kindCount.kind).length : 0;
+  }
   if ('effectStacks' in v) return sc.self?.stacks ?? 0;
   if ('stacks' in v) {
     const u = select(ctx, v.stacks.unit, sc)[0];
@@ -448,6 +456,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       return;
     case 'interrupt':
       for (const t of select(ctx, op.to, sc)) interruptChannels(ctx, t, 'skillUse');
+      return;
+    case 'removeShields':
+      for (const t of select(ctx, op.from, sc)) {
+        for (const e of effectsOn(ctx.s, t.id)) if (effectDef(ctx.c, e).shield) removeEffect(ctx, e, 'removed');
+      }
       return;
     case 'removeEffect':
       for (const t of select(ctx, op.from, sc)) {

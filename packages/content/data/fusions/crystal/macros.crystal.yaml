@@ -1,0 +1,24 @@
+# Crystal actions.
+
+# Shatter: 20 more damage, Shattered for 2 turns, and the Brittle is gone.
+shatter_bearer:
+  - { op: removeEffect, from: bearer, effect: brittle }
+  - { op: damage, to: bearer, amount: 20, direct: false }
+  - { op: apply, to: bearer, effect: shattered, duration: { enemyTurns: 2 } }
+
+shatter_it:
+  - { op: removeEffect, from: it, effect: brittle }
+  - { op: damage, to: it, amount: 20, direct: false }
+  - { op: apply, to: it, effect: shattered, duration: { enemyTurns: 2 } }
+
+# Each Frost debuff on `it` (not Brittle) ends, and they gain 1 Brittle for it.
+crystallize_it:
+  - op: if
+    cond: { has: { unit: it, effect: frostbitten } }
+    then: [{ op: removeEffect, from: it, effect: frostbitten }, { op: apply, to: it, effect: brittle }]
+  - op: if
+    cond: { has: { unit: it, effect: chilled } }
+    then: [{ op: removeEffect, from: it, effect: chilled }, { op: apply, to: it, effect: brittle }]
+  - op: if
+    cond: { has: { unit: it, effect: numb } }
+    then: [{ op: removeEffect, from: it, effect: numb }, { op: apply, to: it, effect: brittle }]

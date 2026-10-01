@@ -145,6 +145,8 @@ export const valueSchema: z.ZodType<Value> = z.lazy(() =>
     z.strictObject({ lastDamage: z.literal(true) }),
     z.strictObject({ effectValue: z.literal(true) }),
     z.strictObject({ effectStacks: z.literal(true) }),
+    z.strictObject({ effectData: z.string().min(1) }),
+    z.strictObject({ kindCount: z.strictObject({ unit: selectorSchema, kind: z.enum(['Buff', 'Debuff', 'Neutral']) }) }),
     z.strictObject({ stacks: z.strictObject({ unit: selectorSchema, effect: z.string() }) }),
     z.strictObject({ count: z.strictObject({ effects: z.array(z.string()).min(1), in: selectorSchema.optional() }) }),
     z.strictObject({ countOf: selectorSchema }),
@@ -237,6 +239,9 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
     ops: z.lazy(() => z.array(opSchema)).optional(),
   }),
   mod({ mod: z.literal('grantBypass') }),
+  mod({ mod: z.literal('maxHpLossPerHit'), amount: z.number().int().min(0) }),
+  mod({ mod: z.literal('maxHpLossPerTurn'), amount: z.number().int().min(0) }),
+  mod({ mod: z.literal('borrowShield') }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -286,6 +291,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('kill'), to: selectorSchema }),
     z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
+    z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),
     z.strictObject({ op: z.literal('removeEffect'), from: selectorSchema, effect: z.string() }),
     z.strictObject({ op: z.literal('addMaxHp'), to: selectorSchema, amount: z.number().int() }),
     z.strictObject({ op: z.literal('scaleShields'), on: selectorSchema, factor: z.number().positive() }),

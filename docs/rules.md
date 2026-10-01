@@ -658,3 +658,36 @@ Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusio
 | Dragon's Slumber | The user Sleeps for up to 3 turns. At the end of each of their turns while asleep, all allies heal 20. Waking ends it. |
 | Wyrm's Domain | Placed on each ally. Every Harmful skill aimed at one of them by an enemy the user hasn't Taunted deals that enemy 10 damage, once per ally targeted. |
 | Elder Wyrm | Hoard gives 1 Armor per stack while it lasts. |
+
+### 21.2 Crystal (Ice + Ice)
+
+| Term | Ruling |
+|---|---|
+| **Brittle** | Max 3, merging. +5 direct damage taken per stack. When a direct hit lands on a unit with 3, it Shatters them: Brittle is removed, then 20 more (indirect) damage and Shattered for 2 turns. **Simplified:** Brittle doesn't count as a Frost debuff for other kits' checks. |
+| **Diamond** | New `maxHpLossPerHit` modifier: no single hit takes more than 15 HP, counted after Armor and Shield (ticks included). It tracks what it prevented in the effect's `prevented`. |
+
+| Skill | Ruling |
+|---|---|
+| Faceted Hammer | Frostbitten, Chilled and Numb each end for 1 more Brittle (Brittle caps at 3). |
+| Crystal Quake | The burst counts the target's Brittle after this hit adds 1. |
+| Shard Rush | Frost debuffs (and Brittle) the next skill applies last 1 more turn. |
+| Rime Splinter | Their Frost debuffs and Brittle are extended by a turn. **Simplified:** they can still be removed. |
+| Hairline Fracture | Tops Brittle up to 3 on the target's first Harmful skill. |
+| Crystal Cocoon | Counts Debuffs before removing them; Diamond for that many turns when Invulnerable ends. |
+| Crystal Golem | At the start of its owner's turn, their ally (or self) with the least HP gains Diamond for 1 turn. |
+| Quartz Spike | When the user's Mark is spent (consumed) within the turn, its target gains 2 Brittle. |
+| Hard Freeze | Chilled → Frostbitten first; a unit that wasn't Chilled has Numb → Chilled. |
+| Ice Pick | Removes Frostbitten, else Chilled, else Numb, for 10 more. |
+| Price of Frost | After it counters, every enemy carries a 2-turn toll: +1 cost while Chilled. |
+| Perfect Form | One effect gives +10 direct damage (2 Might) and −1 cost (1 Focus); Swiftness is separate. A hit of 25+ (HP plus Shield) removes the effect and the user's Swiftness, and Stuns them for 1 turn. |
+| Faceted Ward | New `maxHpLossPerTurn` modifier: at most 25 HP lost per turn, ticks included. |
+| Diamond Skin | Its own Diamond; on expiry it heals half of what it prevented, up to 30. |
+| Fault Lines | Every skill the target uses gives them 1 Brittle. |
+| Cold Clarity | Enemies of the target who damage it within the turn become Frostborn for 1 turn. |
+| Seeking Shards | The second hit goes to a random Frostbitten enemy (not the primary) if there is one, and Numbs them. |
+| Glass Harmonic | New `removeShields` op: every Shield effect on every unit ends, then everyone is Shattered for 1 turn. |
+| Latticework | The user's 30 Shield; every other ally carries a linked status (new `borrowShield` modifier), so their hits drain it after their own Shields. It ends with the Shield. |
+| Flawless Challenge | Diamond against every hit. **Simplified:** each capped hit from an enemy the user Taunted extends that Taunt by 1 turn (it doesn't restrict the cap to them). |
+| Diamond Colossus | Diamond and Immune; on expiry every enemy gains 2 Brittle. |
+
+Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifiers; `effectData` and `kindCount` values; the `removeShields` op; and `damaged` triggers now carry the hit's size as `eventAmount`.
