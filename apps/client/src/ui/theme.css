@@ -36,23 +36,25 @@
   --e-W: #f3f3f0;
   --e-r: #0c0c10;
 
-  /* elements (per the design sheets' color key) */
+  /* elements: Fire orange, Unholy dark red, Water blue, Ice light blue, Wind white, Shadow dark
+     grey, Holy yellow, Lightning purple, Poison light green, Earth brown (no element: grey) */
   --el-fire: #ff6a00;
   --el-poison: #8be03c;
   --el-holy: #ffe98a;
   --el-ice: #8fd8ff;
   --el-water: #2f6bff;
-  --el-unholy: #a24dff;
-  --el-lightning: #ffcc00;
-  --el-wind: #f3f3f3;
-  --el-shadow: #999999;
+  --el-unholy: #b3203a;
+  --el-lightning: #a24dff;
+  --el-wind: #ffffff;
+  --el-shadow: #4d4d57;
   --el-earth: #b5793a;
+  /* Shadow's dark grey is too dark for text on the dark panels; labels use a readable mid grey. */
+  --el-shadow-text: #82828f;
 
-  /* skill and status glyphs: neutral grey by default, else the element's color. Shadow and Wind
-     differ from their accents so they stand apart from neutral: a much darker grey, a clean white. */
+  /* skill and status glyphs: neutral grey with no element, else the element's color */
   --glyph-neutral: #9a9aa6;
-  --glyph-shadow: #4d4d57;
-  --glyph-wind: #ffffff;
+  --glyph-shadow: var(--el-shadow);
+  --glyph-wind: var(--el-wind);
   --glyph-fire: var(--el-fire);
   --glyph-poison: var(--el-poison);
   --glyph-holy: var(--el-holy);
@@ -950,6 +952,7 @@ button.portrait.targetable {
 
 .el-shadow {
   --el: var(--el-shadow);
+  --el-text: var(--el-shadow-text);
 }
 
 .el-earth {
@@ -987,7 +990,7 @@ button.portrait.targetable {
 .tag-pill.has-el,
 .skill-chip.has-el {
   border-color: var(--el);
-  color: var(--el);
+  color: var(--el-text, var(--el));
 }
 
 .tile .code {
@@ -3616,7 +3619,6 @@ input[type="password"] {
   cursor: not-allowed;
 }
 
-.infusion-hybrid,
 .infusion-open {
   border: 2px dashed var(--line);
   padding: 1px 7px;

@@ -208,8 +208,9 @@ error.
   one crowned-skull icon.
 - Glyphs are white on transparent and drawn as CSS masks, so the client paints them: neutral grey
   with no element, the element's color, or a diagonal gradient between a fusion's two elements (a
-  doubled element fades into a deeper shade). Shadow is a much darker grey and Wind a clean white,
-  so both stand apart from neutral. The paints are the `--glyph-*` tokens in `theme.css`.
+  doubled element fades into a deeper shade). The element colors are the `--el-*` tokens in
+  `theme.css`: Fire orange, Unholy dark red, Water blue, Ice light blue, Wind white, Shadow dark grey,
+  Holy yellow, Lightning purple, Poison light green, Earth brown; no element is grey.
 - A status takes its own element; an effect defined inside a skill shows that skill's glyph and
   element. Anything without a glyph (item passives and item trackers) keeps its letter code.
 - The picks live in the repo's `icons/` folder (`_*-candidates.json`, `_minion-skill-icons.json`);
