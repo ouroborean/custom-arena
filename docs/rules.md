@@ -1324,3 +1324,26 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Blood Chant | Simplified: until the user's next turn, the other allies pay their own random costs in HP. |
 | Clotting Ward | Lasts until the start of the user's next turn, and their Renew heals once more at that moment. |
 | Leeching Sweep | While the user has Lifesteal, their indirect damage to enemies also heals them. |
+
+### 21.34 Mirror (Water + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Reflect** | The engine's reflect intercept, set up per skill. |
+| **Mimic** | `castSkill` with the new `lastUsedBy` (the skill in that unit's `lastSlot`) or `eventSkill`, cast by the user at no cost; a copied ally-target skill lands on its caster. Nested casts stop at depth 2, so Mimics can't copy each other forever. |
+| Splintered Pane | Simplified: the first Harmful skill aimed at the user before their next turn is Reflected (not only multi-target ones). |
+| Looking Glass | Debuffs an enemy gives the user are copied onto that enemy and removed from the user (new `eventEffect.remove`). |
+| Contrary Fury | Weakness and Vulnerable are offset and flipped: +10 direct damage per Weakness, −10 Normal damage taken per Vulnerable. |
+| False Reflection / Mirrored Mending | The Helpful skill is countered and recast by the user on their own side. |
+| Through the Glass | The Reflect sits on every other ally; the first to fire removes the rest. |
+| Glintbolt | Simplified: when the Mark is spent, every ally's cooldowns drop by 1. |
+| Dark Tide | Simplified: Mimics the last skill of a random enemy character. |
+| Changing Places | The HP swap ignores healing and damage modifiers. |
+| Mirror Shade | When it dies, its last attacker recasts their last skill on themselves. |
+| Hall of Mirrors | Simplified: enemy Harmful skills aimed at the user are Reflected while it channels. |
+| Foiled Ambush | Simplified: doubled against Confused or Blinded targets. |
+| Hypnotic Ripple | When the Sleep is broken early, a random ally of the sleeper falls Asleep. |
+| Inverted Echo | New `invertCooldowns`: ready skills go on cooldown 1, cooling ones become ready. |
+| Silvered Guard | The Mimic copies the user's last attacker's last skill. |
+| Mocking Reflection | Each Harmful skill the Taunted enemy resolves is Mimicked back at them. |
+| Mirror of the Faceless | New `copyEffects`: the enemy's Buffs are copied once (not refreshed each turn). |

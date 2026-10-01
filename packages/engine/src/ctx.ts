@@ -33,6 +33,8 @@ export interface Ctx {
   entangling?: boolean;
   /** Set while a skill resolves (Alchemy's Catalyst only doubles skills). */
   inSkill?: boolean;
+  /** Nested castSkill depth (Mirror's Mimic can't copy a copy forever). */
+  castDepth?: number;
   /** State snapshots for `checkpoint` events, or null when they weren't asked for. */
   checkpoints: GameState[] | null;
 }

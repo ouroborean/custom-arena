@@ -238,6 +238,10 @@ export type Op =
   | { op: 'stealEnergy'; from: Selector }
   /** The actor's player pays `amount` random energy (as much as they have). */
   | { op: 'spendEnergy'; amount: number }
+  /** Mirror's Inverted Echo: skills on cooldown become ready, ready ones go on cooldown for `ready` turns. */
+  | { op: 'invertCooldowns'; on: Selector; ready: number }
+  /** Gives `to` copies of `from`'s effects of `kind` (same stacks, value and time left). */
+  | { op: 'copyEffects'; from: Selector; to: Selector; kind: EffectKind }
   /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
   | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
@@ -323,9 +327,11 @@ export type Op =
    * resolve their own targets. `as: 'it'` casts it as each unit of `on` instead (e.g. on a minion).
    */
   /** `archetype` falls back to `skill` when the actor has no skill of it; `eventSkill` casts the event's skill. */
-  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; on: Selector; as?: 'actor' | 'it' }
+  /** `lastUsedBy`: the last skill that unit used (Mirror's Mimic); an ally-target copy lands on its caster. */
+  | { op: 'castSkill'; skill?: string; archetype?: string; eventSkill?: boolean; lastUsedBy?: Selector; on: Selector; as?: 'actor' | 'it' }
   /** Changes the effect the event is about (the one just applied). `expireNow` ends it as if its time ran out. */
-  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean }
+  /** `remove`: takes it off its bearer (Mirror's Looking Glass). */
+  | { op: 'eventEffect'; permanent?: boolean; extendBy?: number; expireNow?: boolean; remove?: boolean }
   /** Gives `to` a copy of the event's effect (same kind, stacks, value and time left), from the actor. */
   | { op: 'copyEventEffect'; to: Selector }
   /** Removes `count` (default 1) random effects of a kind from each selected unit. */

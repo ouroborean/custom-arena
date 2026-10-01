@@ -731,6 +731,30 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       emit(ctx, { t: 'energyGained', player: actor.owner, gained }, actor.owner);
       return;
     }
+    case 'invertCooldowns':
+      for (const u of select(ctx, op.on, sc)) {
+        for (const slot of u.skills) slot.cooldown = slot.cooldown > 0 ? 0 : op.ready;
+      }
+      return;
+    case 'copyEffects': {
+      const from = select(ctx, op.from, sc)[0];
+      if (!from) return;
+      for (const to of select(ctx, op.to, sc)) {
+        if (to === from) continue;
+        for (const e of effectsOn(ctx.s, from.id).filter((x) => effectDef(ctx.c, x).kind === op.kind)) {
+          applyEffect(ctx, {
+            def: effectDef(ctx.c, e),
+            inline: !!e.inline,
+            bearer: to,
+            source: actor,
+            stacks: e.stacks,
+            value: e.value,
+            duration: e.duration === null ? 'permanent' : { raw: e.duration },
+          });
+        }
+      }
+      return;
+    }
     case 'swapCooldowns': {
       const longest = (u: Unit | undefined) =>
         u?.skills
@@ -790,7 +814,11 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     }
     case 'castSkill': {
       const own = op.archetype ? actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype) : undefined;
-      const def = op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
+      const mimicked = op.lastUsedBy ? select(ctx, op.lastUsedBy, sc)[0] : undefined;
+      const mimicId = mimicked && mimicked.counters.lastSlot !== undefined ? mimicked.skills[mimicked.counters.lastSlot]?.defId : undefined;
+      const def = op.lastUsedBy
+        ? mimicId ? ctx.c.skills[mimicId] : undefined
+        : op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));
       if (!def) return;
       for (const t of select(ctx, op.on, sc)) {
         const caster = op.as === 'it' ? t : actor;
@@ -804,18 +832,26 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
                 ? ctx.s.units.filter((u) => u.alive && u.owner === caster.owner).map((u) => u.id)
                 : def.target === 'none'
                   ? []
-                  : [t.id];
+                  : def.target === 'ally' && op.lastUsedBy
+                    ? [caster.id]
+                    : [t.id];
+        if ((ctx.castDepth ?? 0) >= 2) continue;
         emit(ctx, { t: 'skillUsed', actor: caster.id, skill: def.id, targets });
-        runOps(ctx, def.ops, {
-          actor: caster.id,
-          targets,
-          vars: {},
-          lastDamage: 0,
-          lastDamaged: [],
-          direct: true,
-          bypass: def.tags.includes('Bypass'),
-          skill: def,
-        });
+        ctx.castDepth = (ctx.castDepth ?? 0) + 1;
+        try {
+          runOps(ctx, def.ops, {
+            actor: caster.id,
+            targets,
+            vars: {},
+            lastDamage: 0,
+            lastDamaged: [],
+            direct: true,
+            bypass: def.tags.includes('Bypass'),
+            skill: def,
+          });
+        } finally {
+          ctx.castDepth -= 1;
+        }
       }
       return;
     }
@@ -825,6 +861,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (op.permanent) e.duration = null;
       if (op.extendBy && e.duration !== null) e.duration += op.extendBy;
       if (op.expireNow && effectDef(ctx.c, e).onExpire) expireEffect(ctx, e);
+      if (op.remove) removeEffect(ctx, e, 'removed');
       return;
     }
     case 'copyEventEffect': {

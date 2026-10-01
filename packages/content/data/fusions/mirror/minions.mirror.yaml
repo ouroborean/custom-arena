@@ -1,0 +1,19 @@
+# Mirror minions.
+
+doppelganger:
+  name: Doppelganger
+  hp: 30
+  skills: [doppelganger_mimicry]
+
+# When it's killed, the skill that killed it is turned back on its user.
+mirror_shade:
+  name: Mirror Shade
+  hp: 20
+  onDeath:
+    - { op: castSkill, lastUsedBy: lastAttacker, on: lastAttacker, as: it }
+  skills: [mirror_shade_glass_shard]
+
+mirror_reflection:
+  name: Reflection
+  hp: 5
+  skills: []
