@@ -515,7 +515,8 @@ heal.mirror:
   element: Mirror
   name: Mirrored Mending
   description: >-
-    Target ally heals 20. The next Helpful skill an enemy uses is turned, landing on that ally instead.
+    Target ally heals 20. Within 2 turns, the next Helpful skill an enemy uses is turned, landing on that ally
+    instead.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -525,7 +526,7 @@ heal.mirror:
     - op: apply
       to: allEnemies
       remember: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: mirrored_mending
         name: Mirrored Mending

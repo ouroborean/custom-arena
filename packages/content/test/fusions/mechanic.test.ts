@@ -197,8 +197,7 @@ describe('Mechanic skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  // BUG: the Jetpack rider is removed together with the Leap when the damaging skill spends it, so no Explosion.
-  it.fails('Jetpack: the damaging skill that ends the Leap also causes an Explosion', () => {
+  it('Jetpack: the damaging skill that ends the Leap also causes an Explosion', () => {
     const a = arena({ p0: [['maneuver.mechanic', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'maneuver.mechanic').end();
     expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([true, true]);

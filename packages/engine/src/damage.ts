@@ -81,6 +81,9 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     return 0;
   }
 
+  // "Each enemy this skill hit" (Ninja's Flurry), even if Armor stops it: stamped with the skill use in progress.
+  if (enemy && a.direct && ctx.inSkill && ctx.useStartSeq !== undefined) target.counters['c:hit_in_use'] = ctx.useStartSeq;
+
   // Life's Common Root: the hit is split evenly across every unit on that side that shares it.
   if (!a.split && modsOn(ctx.s, ctx.c, target.id, 'shareDamage').length > 0) {
     const group = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && modsOn(ctx.s, ctx.c, u.id, 'shareDamage').length > 0);

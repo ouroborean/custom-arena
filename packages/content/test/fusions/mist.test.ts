@@ -578,9 +578,7 @@ describe('Mist skills', () => {
     expect(a.hp(A2)).toBe(85); // over
   });
 
-  // SPEC: "hit the user instead, whoever they aim at" reads as a redirect at resolution, but (ruling: a hidden
-  // forceTarget Debuff) the target can't even queue a skill on anyone else ('taunted'), which also reveals it.
-  it.fails('Voice in the Fog: a skill aimed at another ally is turned onto the user', () => {
+  it('Voice in the Fog: a skill aimed at another ally is turned onto the user', () => {
     const a = arena({ p0: three(['taunt.mist']), p1: three() });
     a.use(A1, 'taunt.mist', B1).end().use(B1, 'shot', A2).end();
     expect(sideHp(a, [A1, A2])).toEqual([85, 100]);

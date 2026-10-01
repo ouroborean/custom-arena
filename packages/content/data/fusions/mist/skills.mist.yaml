@@ -662,9 +662,9 @@ taunt.mist:
         kind: Debuff
         element: Mist
         visibility: hidden
-        description: The bearer's single-target Harmful skills must target the applier.
+        description: The bearer's single-target Harmful skills land on the applier, whoever they aim at.
         modifiers:
-          - { mod: forceTarget }
+          - { mod: lured }
 
 titan.mist:
   archetype: Titan

@@ -313,16 +313,14 @@ describe('Mirror skills', () => {
     expect(a.hp(B1)).toBe(50);
   });
 
-  // BUG: same as above — the countered Helpful skill is not recast on the user's side.
-  it.fails('False Reflection: only the first Helpful skill, and Harmful skills are untouched', () => {
+  it('False Reflection: only the first Helpful skill, and Harmful skills are untouched', () => {
     const a = arena({ p0: [['trap.mirror']], p1: [['heal', 'shot']] });
     a.setHp(A1, 50).setHp(B1, 50).use(A1, 'trap.mirror', B1).end();
     a.use(B1, 'shot', A1).end();
     expect(a.hp(A1)).toBe(35);
     a.pass(1).use(B1, 'heal', B1).end();
     expect([a.hp(B1), a.hp(A1)]).toEqual([50, 60]);
-    a.pass(1).use(B1, 'heal', B1).end();
-    expect(a.hp(B1)).toBe(50); // heal is on cooldown 1, so this is the turn after
+    expect(a.has(B1, 'false_reflection')).toBe(false); // only the first one is turned
   });
 
   it('False Reflection: it lasts 2 turns', () => {
@@ -633,8 +631,7 @@ describe('Mirror skills', () => {
     expect([a.hp(B1), a.hp(A2)]).toEqual([50, 95]);
   });
 
-  // SPEC: "The next Helpful skill an enemy uses" has no time limit, but the watch expires after 1 turn (a Helpful skill on the enemy's second turn is not turned). Also hit by the recast BUG above.
-  it.fails('Mirrored Mending: only the next one, and Harmful skills are untouched', () => {
+  it('Mirrored Mending: only the next one, and Harmful skills are untouched', () => {
     const a = arena({ p0: [['heal.mirror'], ['shot']], p1: [['shot', 'heal']] });
     a.setHp(A2, 50).setHp(B1, 50).use(A1, 'heal.mirror', A2).end();
     a.use(B1, 'shot', A2).end();

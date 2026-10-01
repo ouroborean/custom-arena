@@ -41,9 +41,7 @@ describe('Ninja keywords', () => {
     expect(clones(a)).toHaveLength(2);
   });
 
-  // BUG: each Clone's Substitution redirects its own first skill each turn, so with 3 Clones the first three
-  // single-target skills on the Ninja each turn hit Clones (the glossary says only the first one does)
-  it.fails('Substitution: the first single-target enemy skill on the Ninja each turn hits a Clone instead', () => {
+  it('Substitution: the first single-target enemy skill on the Ninja each turn hits a Clone instead', () => {
     const a = arena({ p0: [['summon.ninja']], p1: [['shot'], ['shot']] });
     a.use(A1, 'summon.ninja').end();
     expect(a.has(A1, 'substitution')).toBe(true);
@@ -122,8 +120,7 @@ describe('Ninja skills', () => {
     expect([a.hp(B1), clones(a).length]).toEqual([75, 1]); // 20 + Flurry
   });
 
-  // BUG: Flurry should hit each enemy the skill hits, but Whirlwind's 10 to the others draws no Flurry
-  it.fails('Whirlwind of Blades: 20 to the target and 10 to the others, each Flurried', () => {
+  it('Whirlwind of Blades: 20 to the target and 10 to the others, each Flurried', () => {
     const a = arena({ p0: [['smash.ninja']], p1: [['withstand'], ['withstand']] });
     a.use(A1, 'smash.ninja', B1).end();
     expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
@@ -247,19 +244,17 @@ describe('Ninja skills', () => {
     expect(a.hp(B1)).toBe(90);
   });
 
-  // SPEC: Track should make a Stealthed enemy lose Stealth, but Stealth makes them untargetable (Bypass doesn't
-  // pierce it), so Track can never be aimed at a Stealthed enemy. Should Track ignore Stealth for targeting?
-  it.fails('Ninken Track: a Stealthed enemy loses Stealth', () => {
+  it("Ninken Track: every Stealthed enemy loses Stealth (untargeted, so Stealth can't dodge it)", () => {
     const a = arena({ p0: [['companion.ninja']], p1: [['withstand']] });
     a.use(A1, 'companion.ninja').end().pass(1).give(B1, 'stealth', { duration: 4 });
-    a.use(minions(a, 0, 'ninken')[0]!.id, 'ninken_track', B1).end();
+    a.use(minions(a, 0, 'ninken')[0]!.id, 'ninken_track').end();
     expect(a.has(B1, 'stealth')).toBe(false);
   });
 
-  it('Ninken Track: the target can\'t gain Stealth for 1 turn', () => {
+  it("Ninken Track: enemies can't gain Stealth for 1 turn", () => {
     const a = arena({ p0: [['companion.ninja']], p1: [['bless.shadow']] });
     a.use(A1, 'companion.ninja').end().pass(1);
-    a.use(minions(a, 0, 'ninken')[0]!.id, 'ninken_track', B1).end();
+    a.use(minions(a, 0, 'ninken')[0]!.id, 'ninken_track').end();
     a.use(B1, 'bless.shadow', B1).end();
     expect(a.has(B1, 'stealth')).toBe(false);
     const b = arena({ p0: [['companion.ninja']], p1: [['bless.shadow']] });
@@ -483,8 +478,7 @@ describe('Ninja skills', () => {
     expect(content.skills['cleave.ninja']!.tags).toContain('Stealthy');
   });
 
-  // BUG: Flurry should hit each enemy the skill hits, but Shadow Whirl's 15 to the second enemy draws no Flurry
-  it.fails('Shadow Whirl: both enemies it hits are Flurried', () => {
+  it('Shadow Whirl: both enemies it hits are Flurried', () => {
     const a = arena({ p0: [['cleave.ninja']], p1: [['withstand'], ['withstand']] });
     a.use(A1, 'cleave.ninja', B1).end();
     expect(200 - a.hp(B1) - a.hp(B2)).toBe(20 + 15 + 10 + 5 + 5); // 1 Clone: +5 on each enemy hit

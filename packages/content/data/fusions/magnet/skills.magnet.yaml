@@ -172,7 +172,8 @@ snipe.magnet:
           - op: forEach
             in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
             do:
-              - { op: damage, to: effectTargets, amount: { sum: [20, { hp: it }] } }
+              - { op: set, var: boulderHp, value: { hp: it } }
+              - { op: damage, to: effectTargets, amount: { sum: [20, { var: boulderHp }] } }
               - { op: kill, to: it }
 
 trap.magnet:
@@ -503,8 +504,9 @@ curse.magnet:
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    # Every ally, Isolated ones included: it doesn't target them.
     - op: forEach
-      in: allAllies
+      in: { filter: allUnits, where: { not: { isEnemy: it } } }
       do:
         - { op: stealRandom, from: it, to: primary, kind: Debuff }
 

@@ -11,8 +11,11 @@ ninja_flurry:
     - on: skillResolved
       when: { harmful: true }
       do:
+        # Every enemy the skill hit directly, splash included.
         - op: damage
-          to: { filter: eventTargets, where: { isEnemy: it } }
+          to:
+            filter: allEnemies
+            where: { compare: { value: { sum: [{ counterOf: { unit: it, name: hit_in_use } }, { mul: [-1, { useSeq: true }] }] }, atLeast: 0, atMost: 0 } }
           amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] }
           type: Piercing
           direct: false

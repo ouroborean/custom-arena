@@ -125,6 +125,8 @@ export type Value =
   | { minionsLost: true }
   /** Units on either side that died since the actor's side last started a turn (Grave's Requiem). */
   | { recentDeaths: true }
+  /** Identifies the skill use in progress (compare with counter `hit_in_use`: units it hit directly). */
+  | { useSeq: true }
   /** The actor's other characters that have used a skill this turn. */
   | { alliesActed: true }
   /** The amount carried by the event (healing received). */
@@ -566,6 +568,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'redirectDamage' }
   /** The minion shares its summoner's HP: damage and healing to it go to them (Bloodbound Familiar). */
   | { mod: 'hpLink' }
+  /** The bearer's single-target Harmful skills land on this effect's source (Mist's Voice in the Fog). */
+  | { mod: 'lured' }
   /** Skills of this effect's source Bypass against the bearer. */
   /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
   | { mod: 'exposed'; anyEnemy?: boolean; total?: boolean }

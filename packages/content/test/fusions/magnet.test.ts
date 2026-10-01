@@ -169,8 +169,7 @@ describe('Magnet skills', () => {
     expect([a.hp(B1) < 100, a.hp(B2), minions(a, 'boulder', 0).length]).toEqual([true, 100, 0]);
   });
 
-  // BUG: "20 damage plus its remaining HP" (20 + 45 = 65) — the launch deals 120.
-  it.fails('Mass Driver: creates a Boulder; on the following turn a Boulder is launched for 20 + its HP', () => {
+  it('Mass Driver: creates a Boulder; on the following turn a Boulder is launched for 20 + its HP', () => {
     const a = arena({ p0: [['snipe.magnet']], p1: [['shot'], ['shot']] });
     a.use(A1, 'snipe.magnet', B1).end();
     expect([minions(a, 'boulder', 0).length, a.hp(B1)]).toEqual([1, 100]);
@@ -398,8 +397,7 @@ describe('Magnet skills', () => {
     expect([debuffs(a, A1).length, debuffs(a, B1).length, debuffs(a, B2).length]).toEqual([1, 1, 0]);
   });
 
-  // BUG: "Each ally Repels one Debuff onto target enemy" — only the user's own Debuff moves; other allies keep theirs.
-  it.fails('Offload: each ally Repels one Debuff onto the target', () => {
+  it('Offload: each ally Repels one Debuff onto the target', () => {
     const a = arena({ p0: [['curse.magnet'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
     a.give(A1, 'confusion', { source: B1 }).give(A2, 'weakness', { source: B1 }).give(A2, 'isolated', { source: B1 });
     a.use(A1, 'curse.magnet', B1).end();

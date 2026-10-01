@@ -212,7 +212,7 @@ maneuver.mechanic:
     - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
     - op: apply
       to: actor
-      linkTo: leaping
+      duration: { ownTurns: 2 }
       effect:
         id: jetpack
         name: Jetpack
@@ -220,10 +220,13 @@ maneuver.mechanic:
         element: Mechanic
         description: When a damaging skill ends the bearer's Leap, it also causes an Explosion.
         triggers:
+          # A direct hit while Leaping spends the Leap (Leaping ends as that skill resolves): Explode then.
           - on: dealtDamage
             when: { direct: true }
             do:
-              - { op: setFlag, flag: hit }
+              - op: if
+                cond: { has: { unit: bearer, effect: leaping } }
+                then: [{ op: setFlag, flag: hit }]
           - on: skillResolved
             do:
               - op: if

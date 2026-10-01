@@ -263,6 +263,7 @@ export function evalValue(ctx: Ctx, v: Value, sc: Scope): number {
   }
   if ('totalHp' in v) return select(ctx, v.totalHp, sc).reduce((n, u) => n + u.hp, 0);
   if ('skillsOnCooldown' in v) return select(ctx, v.skillsOnCooldown, sc)[0]?.skills.filter((s) => s.cooldown > 0).length ?? 0;
+  if ('useSeq' in v) return ctx.useStartSeq ?? -1;
   if ('recentDeaths' in v) {
     return ctx.s.units.filter((u) => !u.alive && (u.counters['c:died_turn'] ?? -9) >= ctx.s.turn - 2).length;
   }

@@ -224,7 +224,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const tr = resolveTargets(ctx, actor, def, action.targets, false);
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
-  const targets = wardTargets(ctx, actor, def, fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets)));
+  const targets = wardTargets(ctx, actor, def, fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, lureTargets(ctx, actor, def, tr.targets))));
   // Blood's Blood Price: the random costs are paid in HP now (it fails if that would kill).
   // (Locked at queue time: random costs already paid in energy aren't charged again.)
   const blood = (action.cost.r ?? 0) > 0 ? 0 : bloodPriceHp(ctx, actor, def);
@@ -296,11 +296,32 @@ function wardTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): U
   if (!first || !isEnemy(actor, first)) return targets;
   for (const { effect } of modsOn(ctx.s, ctx.c, first.id, 'warded')) {
     if (effect.data.wardTurn === ctx.s.turn) continue;
+    // Several copies of one Ward (Ninja's Substitution from each Clone) still redirect once a turn in all.
+    const onceKey = `wardTurn:${effect.inline ? effect.inline.id : effect.defId}`;
+    if (first.counters[onceKey] === ctx.s.turn) continue;
     const angel = findUnit(ctx.s, effect.source);
     if (!angel?.alive || angel === first || !resolveTargets(ctx, actor, def, [angel.id], true).ok) continue;
     effect.data.wardTurn = ctx.s.turn;
+    first.counters[onceKey] = ctx.s.turn;
     broadcastSignal(ctx, 'ward_redirect', angel, { target: actor });
     return [angel.id];
+  }
+  return targets;
+}
+
+/**
+ * Mist's Voice in the Fog (`lured`): the bearer's single-target Harmful skills land on the effect's source,
+ * whoever they were aimed at (resolved invisibly at resolution, not at queue time).
+ */
+function lureTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): UnitId[] {
+  if (def.target !== 'enemy' && def.target !== 'any') return targets;
+  if (!def.tags.includes('Harmful')) return targets;
+  const first = targets[0] ? findUnit(ctx.s, targets[0]) : undefined;
+  if (!first || !isEnemy(actor, first)) return targets;
+  for (const { effect } of modsOn(ctx.s, ctx.c, actor.id, 'lured')) {
+    const lurer = findUnit(ctx.s, effect.source);
+    if (!lurer?.alive || lurer === first || !resolveTargets(ctx, actor, def, [lurer.id], true).ok) continue;
+    return [lurer.id];
   }
   return targets;
 }

@@ -218,8 +218,8 @@ companion.ninja:
   element: Ninja
   name: Ninken
   description: >-
-    Summons a Ninken (30 HP) permanently. Snap (r): 10 Piercing damage. Track (r): target enemy loses Stealth
-    and can't regain it for 1 turn.
+    Summons a Ninken (30 HP) permanently. Snap (r): 10 Piercing damage. Track (r, cooldown 2): every enemy
+    loses Stealth and can't gain it for 1 turn.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -662,7 +662,7 @@ taunt.ninja:
         triggers:
           - on: skillUsed
             do:
-              - { op: damage, to: bearer, type: Piercing, direct: false, amount: { mul: [5, { countOf: { filter: allEnemies, where: { minion: { unit: it, types: [shadow_clone] } } } }] } }
+              - { op: damage, to: bearer, type: Piercing, direct: false, amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] } }
 
 titan.ninja:
   archetype: Titan
@@ -709,15 +709,15 @@ ninken_track:
   archetype: Minion
   element: Ninja
   name: Track
-  description: Target enemy loses Stealth and can't regain it for 1 turn.
+  description: The hound sniffs out every enemy, Stealthed or not; they lose Stealth and can't gain it for 1 turn.
   cost: r
-  cooldown: 0
-  tags: [Harmful, Strategic, Bypass]
-  target: enemy
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: self
   ops:
-    - { op: removeEffect, from: primary, effect: stealth }
+    - { op: removeEffect, from: { filter: allUnits, where: { isEnemy: it } }, effect: stealth }
     - op: apply
-      to: primary
+      to: { filter: allUnits, where: { isEnemy: it } }
       duration: { enemyTurns: 1 }
       effect:
         id: tracked
