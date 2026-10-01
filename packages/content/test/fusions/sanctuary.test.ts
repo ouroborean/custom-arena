@@ -663,8 +663,7 @@ describe('Sanctuary skills', () => {
     expect(sanctum(a)).toBe(1); // 3-turn Sanctum outlived thanks to the Living Temple
   });
 
-  // BUG: Living Temple says the user "counts as a Wardstone", but Penance in Stone doesn't count it (1-turn Stun).
-  it.fails('Living Temple: Penance in Stone counts the user as a Wardstone', () => {
+  it('Living Temple: Penance in Stone counts the user as a Wardstone', () => {
     const a = arena({ p0: [['titan.sanctuary', 'stun.sanctuary']], p1: [['shot'], ['shot']] });
     a.use(A1, 'titan.sanctuary').end().pass(1).use(A1, 'stun.sanctuary', B2).end().pass(2);
     expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('cannot_act'); // still Stunned on their 2nd turn

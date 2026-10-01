@@ -150,9 +150,7 @@ describe('Phoenix skills', () => {
     expect([a.hp(B1), a.has(B1, 'ignite'), a.stacks(A1, 'might')]).toEqual([75, true, 1]);
   });
 
-  // BUG: "the user gains 1 Might" states no duration, so by Q16 (as with base Strike, rules §10) it's permanent;
-  // the Talon's Might runs out after 1 turn.
-  it.fails('Firebrand Talon: the Might has no stated duration, so it stays', () => {
+  it('Firebrand Talon: the Might has no stated duration, so it stays', () => {
     const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
     a.use(A1, 'strike.phoenix', B1).end().pass(3);
     expect(a.stacks(A1, 'might')).toBe(1);

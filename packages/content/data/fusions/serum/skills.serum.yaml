@@ -347,6 +347,13 @@ channel.serum:
                       - { op: damage, to: it, amount: { mul: [5, { totalStacks: { in: it, effect: dose } }] }, type: Affliction, direct: false }
                     else:
                       - { op: removeSelf }
+          # The Overdose resolves just after the new Dose: the drip ends once its target has none left.
+          - on: signal
+            signal: overdose
+            do:
+              - op: if
+                cond: { not: { any: { in: effectTargets, cond: { has: { unit: it, effect: dose } } } } }
+                then: [{ op: removeSelf }]
 
 stab.serum:
   archetype: Stab

@@ -339,9 +339,7 @@ describe('Ritual skills', () => {
     expect(a.hp(B1)).toBe(200 - 25 - 10); // 25, plus the Blade's Explosion
   });
 
-  // BUG: "or 25 if it's the skill that completes the user's Rite" — a Knife that only takes the Rite from 2 steps
-  // to 1 (not completing it) already deals 25.
-  it.fails('Ritual Knife: a Knife that doesn\'t complete the Rite deals only 10', () => {
+  it('Ritual Knife: a Knife that doesn\'t complete the Rite deals only 10', () => {
     const a = arena({ p0: [['stab.ritual', 'strike.ritual']], p1: [['shot'], ['shot']], hp: 200 });
     a.use(A1, 'strike.ritual', B2).end().pass(1);
     a.use(A1, 'stab.ritual', B1).end();
@@ -412,9 +410,9 @@ describe('Ritual skills', () => {
     a.pass(1).use(A2, 'strike.phoenix', B1);
     const hp = a.hp(B1);
     a.end();
-    // 20 + 5 (Double Wick's Might), then 5 × 2 Ignites.
+    // 20 + 5 (Double Wick's Might) + 5 (the first Talon's permanent Might), then 5 × 2 Ignites.
     expect(a.effects(B1).filter((e) => e.defId === 'ignite').reduce((n, e) => n + e.stacks, 0)).toBe(2);
-    expect(hp - a.hp(B1)).toBe(20 + 5 + 10);
+    expect(hp - a.hp(B1)).toBe(20 + 5 + 5 + 10);
   });
 
   it('Double Wick: without it, a second Ignite just refreshes the first', () => {

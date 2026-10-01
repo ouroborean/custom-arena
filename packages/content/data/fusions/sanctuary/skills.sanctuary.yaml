@@ -409,7 +409,7 @@ stun.sanctuary:
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: set, var: wards, value: { sum: [1, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [wardstone] } } } }] } }
+    - { op: set, var: wards, value: { sum: [1, { countOf: { filter: allAllies, where: { check: { cond: counts_as_wardstone, unit: it } } } }] } }
     - op: apply
       to: primary
       effect: stun

@@ -57,9 +57,7 @@ describe('Slime keywords: Oozes', () => {
     expect(oozeHp(a)).toEqual([5, 5]); // 20 − 10 = 10, shared
   });
 
-  // BUG: ruling "a new Ooze with half its HP appears, it keeps the rest": an Ooze left at 15 splits into 7 + 7
-  // (1 HP is lost on an odd split).
-  it.fails('Split: odd HP is shared too (the new Ooze gets half, the old one keeps the rest)', () => {
+  it('Split: odd HP is shared too (the new Ooze gets half, the old one keeps the rest)', () => {
     const a = arena({ p0: [['blast.slime']], p1: [['shot.current'], ['shot'], ['shot']] });
     a.use(A1, 'blast.slime').end();
     const o = oozes(a)[0]!;
@@ -486,13 +484,11 @@ describe('Slime skills', () => {
     expect(a.unit(boulder.id).hp).toBe(10);
   });
 
-  // BUG: "each time they're healed, they gain 1 Might (max 2)" (ruling: any healing): healed by Heal and by the
-  // Renew tick, the ally gains no Might at all.
-  it.fails('Fertile Silt: 2 Renew; for 3 turns each time the ally is healed, 1 Might (max 2)', () => {
+  it('Fertile Silt: 2 Renew; for 3 turns each time the ally is healed, 1 Might (max 2)', () => {
     const a = arena({ p0: [['bless.slime'], ['shot'], ['heal']], p1: three() });
     a.setHp(A2, 30).use(A1, 'bless.slime', A2).use(A3, 'heal', A2).end(); // the heal, then the Renew tick
     expect(a.stacks(A2, 'might')).toBe(2);
-    a.pass(1).use(A3, 'heal', A2).end().pass(1);
+    a.pass(3).use(A3, 'heal', A2).end(); // turn 5, still within the 3 turns: capped at 2
     expect(a.stacks(A2, 'might')).toBe(2);
   });
 
@@ -502,8 +498,7 @@ describe('Slime skills', () => {
     expect([a.hp(A2), a.stacks(A2, 'renew')]).toEqual([40, 1]); // ticked once: 2 × 5
   });
 
-  // BUG: (same as above) one heal should give one Might.
-  it.fails('Fertile Silt: one heal, one Might', () => {
+  it('Fertile Silt: one heal, one Might', () => {
     const a = arena({ p0: [['bless.slime'], ['shot']], p1: three() });
     a.setHp(A2, 30).use(A1, 'bless.slime', A2).end();
     expect(a.stacks(A2, 'might')).toBe(1); // the first Renew tick

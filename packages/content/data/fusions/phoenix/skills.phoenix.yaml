@@ -16,7 +16,8 @@ strike.phoenix:
   ops:
     - { op: set, var: burn, value: 20 }
     - { op: macro, id: kindle }
-    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 1 } }
+    # No duration given: permanent (Q16), as with base Strike.
+    - { op: apply, to: actor, effect: might }
 
 smash.phoenix:
   archetype: Smash

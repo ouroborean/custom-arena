@@ -1,0 +1,7 @@
+# Named conditions, checked with { check: { cond: <name>, unit: <selector> } }.
+
+# A Wardstone, or a character who counts as one (Living Temple).
+counts_as_wardstone:
+  or:
+    - { minion: { unit: it, types: [wardstone] } }
+    - { has: { unit: it, effect: living_temple } }

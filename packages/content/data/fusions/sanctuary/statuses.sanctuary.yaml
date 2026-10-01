@@ -19,10 +19,7 @@ sanctum:
           cond: { compare: { value: { effectStacks: true }, atLeast: 3 } }
           then: [{ op: apply, to: allAllies, effect: sanctum_steady, duration: { enemyTurns: 1 } }]
         - op: if
-          cond:
-            or:
-              - { any: { in: allAllies, cond: { minion: { unit: it, types: [wardstone] } } } }
-              - { any: { in: allAllies, cond: { has: { unit: it, effect: living_temple } } } }
+          cond: { any: { in: allAllies, cond: { check: { cond: counts_as_wardstone, unit: it } } } }
           then: [{ op: extendSelf, by: 2 }]
 
 sanctum_steady:

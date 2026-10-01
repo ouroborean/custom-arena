@@ -244,8 +244,7 @@ describe('Spore skills', () => {
     expect(a.hp(B1)).toBe(100);
   });
 
-  // BUG: "they and every ally it affects gain 1 Spore" — only the user gains one; the healed ally gets none.
-  it.fails('Tainted Hands: each Helpful skill the target uses gives them and every ally it affects 1 Spore', () => {
+  it('Tainted Hands: each Helpful skill the target uses gives them and every ally it affects 1 Spore', () => {
     const a = arena({ p0: [['trap.spore']], p1: [['heal'], ['shot'], ['shot']] });
     a.use(A1, 'trap.spore', B1).end();
     a.setHp(B2, 50).use(B1, 'heal', B2).end();

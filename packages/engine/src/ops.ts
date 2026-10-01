@@ -515,8 +515,10 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       const boundTo = op.bindTo ? select(ctx, op.bindTo, sc)[0]?.id : undefined;
       const src = op.from ? select(ctx, op.from, sc)[0] : actor;
       if (!src) return; // e.g. the minion it should come from wasn't summoned
+      // (Looked for on the actor, then on the bearer of the effect running this: Fertile Silt on an ally.)
       const linkedTo = op.linkTo
-        ? effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id
+        ? (effectsOn(ctx.s, actor.id).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id ??
+          (sc.bearer ? effectsOn(ctx.s, sc.bearer).filter((e) => effectKeyOf(e) === op.linkTo).at(-1)?.id : undefined))
         : op.linkToEvent
           ? ctx.s.effects.find((e) => e.id === sc.eventEffect)?.id
           : undefined;

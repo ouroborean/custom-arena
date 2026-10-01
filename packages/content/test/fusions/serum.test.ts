@@ -315,8 +315,7 @@ describe('Serum skills', () => {
     expect(dose(a, B1)).toBe(0);
   });
 
-  // BUG: "It ends when they Overdose": after the Overdose the channel keeps going (next turn: +1 Dose, 5 Affliction).
-  it.fails('Drip: it ends when they Overdose', () => {
+  it('Drip: it ends when they Overdose', () => {
     const a = arena({ p0: [['channel.serum']], p1: three() });
     a.give(B1, 'dose', { stacks: 2, source: A1 }).use(A1, 'channel.serum', B1).end();
     expect(dose(a, B1)).toBe(3);

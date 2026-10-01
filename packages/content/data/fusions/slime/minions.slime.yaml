@@ -24,7 +24,8 @@ ooze:
                 - { op: summon, minion: ooze }
                 - { op: addMaxHp, to: lastSummoned, amount: { sum: [{ var: half }, -20] } }
                 - { op: heal, to: lastSummoned, amount: 999, raw: true }
-                - { op: damage, to: bearer, amount: { sum: [{ hp: bearer }, { mul: [-1, { var: half }] }] }, raw: true, type: Affliction, direct: false }
+                # The new Ooze takes half (rounded down); the old one keeps the rest.
+                - { op: damage, to: bearer, amount: { var: half }, raw: true, type: Affliction, direct: false }
                 - { op: signal, name: ooze_split }
   onDeath:
     - { op: signal, name: ooze_died }

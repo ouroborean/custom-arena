@@ -193,7 +193,8 @@ trap.spore:
             do:
               - { op: apply, to: bearer, effect: spores }
               - op: apply
-                to: { filter: eventTargets, where: { not: { isEnemy: it } }, exclude: bearer }
+                # The bearer's allies are the trapper's enemies.
+                to: { filter: eventTargets, where: { isEnemy: it }, exclude: bearer }
                 effect: spores
 
 maneuver.spore:

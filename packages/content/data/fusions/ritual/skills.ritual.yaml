@@ -439,12 +439,8 @@ stab.ritual:
     - op: damage
       to: primary
       amount:
-        if:
-          or:
-            - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: rite_done }] }] }, atMost: 0 } }
-            - and:
-                - { has: { unit: actor, effect: rite } }
-                - not: { stackTotal: { unit: actor, effects: [rite_sacrificial_blade, rite_circle_of_ash, rite_far_invocation, rite_of_ruin, rite_of_mending, rite_of_blindness, rite_vigil], moreThan: 1 } }
+        # The Rite completed on this use (its last step is the Knife itself).
+        if: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: rite_done }] }] }, atMost: 0 } }
         then: 25
         else: 10
 
