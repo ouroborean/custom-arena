@@ -481,6 +481,7 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     modifiers: z.array(modifierSchema).optional(),
     triggers: z.array(triggerSchema).optional(),
     onExpire: z.array(opSchema).optional(),
+    onDeath: z.array(opSchema).optional(),
   }),
 ) as z.ZodType<EffectDef>;
 

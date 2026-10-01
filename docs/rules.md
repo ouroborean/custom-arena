@@ -1697,3 +1697,25 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Crescent Lull | `wakes: false` hits; Sleep extended by 1 turn (2 ticks). |
 | Cairn Ward | Inline Shield; the Boulder is summoned at 45 HP and loses the difference. |
 | Wandering Light | The passed Taunt lasts 1 turn. |
+
+### 21.53 Zealot (Holy + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Fervor** | Buff, merging, max 5: +5 direct damage per stack to Zealot-element skills (modifier `elements` filter). +1 when an enemy hits the bearer directly or gives them a Debuff. Simplified: the +5 healing per stack isn't implemented. |
+| **Martyr** | Fervor's `onDeath` (new effect hook, run before channels are interrupted): the fallen unit's allies heal 10 per stack and gain 1 Might per 2 (permanent). |
+| Crusader's Wrath | Fervor is spent before the hits, so its own bonus doesn't also apply. |
+| Fanaticism | Debuffs from enemies are removed as they land, each giving 1 Fervor. |
+| Martyr's Spear | If the user dies while channeling, its `onDeath` deals 100 at once. |
+| Inquisition | Base Trap 15 (next Harmful skill); each skill they use while Condemned re-Condemns them. |
+| Flagellant | Blood Whip's +5 per Fervor comes from Fervor itself. |
+| Harrowing Nova | "Above half" = HP greater than missing HP, checked before and after each hit. |
+| Initiate | Take the Blow is a Ward (counts as Warded) from the Initiate, bound to it. |
+| Votive Dagger / Living Saint | Macro `martyr_payout`: the user's other allies get the payout. |
+| Unholy Unction | Simplified: Lifesteal for 3 turns, and each heal that leaves the ally at full HP grows a Shield by 10 (max 30). |
+| Communal Grace | Simplified: only this target's Sanctify. |
+| Fervent Chant | Status `fervent_chant` until the user's next turn: an `onDeath` payout as for 3 Fervor. |
+| Heretics' Circle | Simplified: if the target has any Debuff, each other enemy with any Debuff takes 15. |
+| Sermon of Dread | Simplified: Horrified enemies are Condemned once. |
+| Shield of Martyrs | Simplified: an ally's death gives the user 2 Fervor. |
+| Strike Me Down | Any killer of the user takes the damage. |

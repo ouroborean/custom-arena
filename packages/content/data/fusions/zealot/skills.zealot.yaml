@@ -1,0 +1,747 @@
+# The 30 Zealot (Holy + Unholy) variants, from the "Fusion Spec Kits" design doc.
+# Fervor (status `fervor`) and Martyr (its onDeath, macros `martyr` / `martyr_payout`).
+
+strike.zealot:
+  archetype: Strike
+  element: Zealot
+  name: Scourge
+  description: Deals 20 damage to target enemy, +5 for each Debuff on the user. The user gains 1 Fervor.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [5, { kindCount: { unit: actor, kind: Debuff } }] }] } }
+    - { op: apply, to: actor, effect: fervor }
+
+smash.zealot:
+  archetype: Smash
+  element: Zealot
+  name: Crusader's Wrath
+  description: >-
+    Spends all the user's Fervor: deals 20 damage to target enemy and 10 to their allies, +10 to each hit per stack
+    spent.
+  cost: SS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: zeal, value: { stacks: { unit: actor, effect: fervor } } }
+    - { op: removeEffect, from: actor, effect: fervor }
+    - { op: damage, to: primary, amount: { sum: [20, { mul: [10, { var: zeal }] }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [10, { mul: [10, { var: zeal }] }] } }
+
+charge.zealot:
+  archetype: Charge
+  element: Zealot
+  name: Fanatic's Charge
+  description: >-
+    Deals 15 damage to target enemy. The user's next skill costs 1 less for every 25 HP they're missing.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      stacks: { div: [{ missingHp: actor }, 25] }
+      until: { skillUsed: {} }
+      effect:
+        id: fanatics_charge
+        name: Fanatic's Charge
+        kind: Buff
+        element: Zealot
+        description: The bearer's next skill costs 1 less per stack.
+        modifiers:
+          - { mod: costGeneric, amount: -1, perStack: true }
+
+riposte.zealot:
+  archetype: Riposte
+  element: Zealot
+  name: Welcome the Blow
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, who gains 2 Fervor as if it had landed.
+    Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: welcome_the_blow
+        name: Welcome the Blow
+        kind: Buff
+        element: Zealot
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer, who gains 2 Fervor.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: fervor, stacks: 2 }
+
+rage.zealot:
+  archetype: Rage
+  element: Zealot
+  name: Fanaticism
+  description: >-
+    For 3 turns, the user gains 2 Might. Debuffs enemies would give them are prevented and give them 1 Fervor each
+    instead.
+  cost: A
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: fanaticism
+        name: Fanaticism
+        kind: Buff
+        element: Zealot
+        description: Debuffs from enemies are prevented, each giving 1 Fervor instead.
+        triggers:
+          - on: effectGained
+            when: { kind: Debuff }
+            do:
+              - op: if
+                cond: { isEnemy: eventSource }
+                then:
+                  - { op: eventEffect, remove: true }
+                  - { op: apply, to: bearer, effect: fervor }
+
+shot.zealot:
+  archetype: Shot
+  element: Zealot
+  name: Penitent's Flail
+  description: Deals 15 damage to target enemy. The user spends 1 Fervor, if they have one, to heal 15.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { has: { unit: actor, effect: fervor } }
+      then:
+        - { op: removeStacks, from: actor, effect: fervor, amount: 1 }
+        - { op: heal, to: actor, amount: 15 }
+
+snipe.zealot:
+  archetype: Snipe
+  element: Zealot
+  name: Martyr's Spear
+  description: >-
+    On the following turn, deals 50 damage to target enemy. If the user dies before it lands, it lands at once,
+    doubled. The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: martyrs_spear
+        name: Martyr's Spear
+        kind: Neutral
+        element: Zealot
+        visibility: hiddenTarget
+        interruptible: true
+        description: When this runs out, its target takes 50 damage; if the bearer dies first, 100 at once.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50 }
+        onDeath:
+          - { op: damage, to: effectTargets, amount: 100, direct: false }
+
+trap.zealot:
+  archetype: Trap
+  element: Zealot
+  name: Inquisition
+  description: >-
+    For 3 turns, target enemy has Trap 15, and each skill they use Condemns them again. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: trap, value: 15, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: inquisition
+        name: Inquisition
+        kind: Debuff
+        element: Zealot
+        visibility: hidden
+        description: Each skill the bearer uses Condemns them again.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: condemned } }
+                then: [{ op: apply, to: bearer, effect: condemned }]
+
+maneuver.zealot:
+  archetype: Maneuver
+  element: Zealot
+  name: Hair Shirt
+  description: >-
+    The user becomes Immortal for 1 turn. If they're brought to 5 HP meanwhile, they gain 3 Fervor. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hair_shirt
+        name: Hair Shirt
+        kind: Buff
+        element: Zealot
+        visibility: hidden
+        description: Brought to 5 HP, the bearer gains 3 Fervor.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 5 } }
+                then:
+                  - { op: apply, to: bearer, effect: fervor, stacks: 3 }
+                  - { op: removeSelf }
+
+companion.zealot:
+  archetype: Companion
+  element: Zealot
+  name: Flagellant
+  description: >-
+    Summons a Flagellant (40 HP, 1 Fervor) permanently. Self-Scourge (nc): it takes 10 Affliction and gains 1
+    Fervor. Blood Whip (r): 10 damage, +5 per Fervor it has.
+  cost: SI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: flagellant }
+
+bolt.zealot:
+  archetype: Bolt
+  element: Zealot
+  name: Heresy Bolt
+  description: >-
+    Deals 25 damage to target enemy and Sanctifies them for 1 turn; an ally who triggers the Sanctify also drains a
+    Soul Fragment from them.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: heresy_bolt
+        name: Heresy
+        kind: Debuff
+        element: Zealot
+        description: An ally of the applier who triggers the bearer's Sanctify also gains a Soul Fragment.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then: [{ op: apply, to: eventSource, effect: soul_fragment }]
+
+blast.zealot:
+  archetype: Blast
+  element: Zealot
+  name: Harrowing Nova
+  description: >-
+    Deals 25 Piercing damage to all enemies. The user drains a Soul Fragment from each enemy it drops from above
+    half HP to half or below.
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: targets
+      do:
+        - { op: set, var: above, value: { if: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { missingHp: it }] }] }, atLeast: 1 } }, then: 1, else: 0 } }
+        - { op: damage, to: it, amount: 25, type: Piercing }
+        - op: if
+          cond: { and: [{ varTrue: above }, { compare: { value: { sum: [{ hp: it }, { mul: [-1, { missingHp: it }] }] }, atMost: 0 } }] }
+          then: [{ op: apply, to: actor, effect: soul_fragment }]
+
+consume.zealot:
+  archetype: Consume
+  element: Zealot
+  name: Sin Eater
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. Then the user takes every Debuff their allies have
+    onto themselves, for the turns each had left.
+  cost: I
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - { op: moveEffects, from: { filter: allAllies, where: { not: { isActor: it } } }, to: actor, kind: Debuff }
+
+summon.zealot:
+  archetype: Summon
+  element: Zealot
+  name: Initiate
+  description: >-
+    Summons an Initiate (20 HP, 1 Fervor) for 3 turns. Take the Blow (nc): the next Harmful skill aimed at target
+    ally hits the Initiate instead.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: initiate, duration: { enemyTurns: 3 } }
+
+channel.zealot:
+  archetype: Channel
+  element: Zealot
+  name: Mortification
+  description: >-
+    For 3 turns, at the end of each of the user's turns, they take 10 Affliction, and a random enemy takes 10
+    damage per Fervor stack they have. Channeled.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: mortification
+        name: Mortification
+        kind: Neutral
+        element: Zealot
+        interruptible: true
+        description: Each turn, the bearer takes 10 Affliction and a random enemy 10 per Fervor.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+              - op: if
+                cond: { has: { unit: bearer, effect: fervor } }
+                then:
+                  - { op: damage, to: { randomEnemy: 1 }, amount: { mul: [10, { stacks: { unit: bearer, effect: fervor } }] } }
+
+stab.zealot:
+  archetype: Stab
+  element: Zealot
+  name: Votive Dagger
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. If it kills them, the user's allies get the Martyr
+    payout for the user's Fervor, and the user keeps it.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
+      then: [{ op: macro, id: martyr_payout }]
+
+ravage.zealot:
+  archetype: Ravage
+  element: Zealot
+  name: Strip the Faithless
+  description: >-
+    Deals 30 Piercing damage to target enemy. For 2 turns, each Horrified enemy loses a random Buff at the start of
+    their turn.
+  cost: AS
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 30, type: Piercing }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: strip_the_faithless
+        name: Strip the Faithless
+        kind: Debuff
+        element: Zealot
+        description: While Horrified, the bearer loses a random Buff at the start of each of their turns.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: horrified } }
+                then: [{ op: removeRandom, from: bearer, kind: Buff }]
+
+mislead.zealot:
+  archetype: Mislead
+  element: Zealot
+  name: Willing Martyrs
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each of its targets heals 10 per Fervor
+    the user has. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: willing_martyrs
+        name: Willing Martyrs
+        kind: Debuff
+        element: Zealot
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and its targets heal 10 per Fervor of the applier.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: heal, to: eventTargets, amount: { mul: [10, { stacks: { unit: actor, effect: fervor } }] } }
+
+stun.zealot:
+  archetype: Stun
+  element: Zealot
+  name: Mass Penance
+  description: >-
+    All enemies are Stunned for 1 turn. The user takes 15 Affliction damage for each one Stunned.
+  cost: A
+  cooldown: 4
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: stun, duration: { enemyTurns: 1 } }
+    - op: damage
+      to: actor
+      type: Affliction
+      direct: false
+      amount: { mul: [15, { countOf: { filter: allEnemies, where: { has: { unit: it, effect: stun } } } }] }
+
+dance.zealot:
+  archetype: Dance
+  element: Zealot
+  name: Ecstasy
+  description: >-
+    The user spends 1 Fervor for 1 Might, 1 Swiftness and 1 Focus until the end of their next turn. With none, they
+    gain 1 Fervor and 1 Confusion for 1 turn.
+  cost: W
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: fervor } }
+      then:
+        - { op: removeStacks, from: actor, effect: fervor, amount: 1 }
+        - { op: apply, to: actor, effect: might, duration: { raw: 3 } }
+        - { op: apply, to: actor, effect: swiftness, duration: { raw: 3 } }
+        - { op: apply, to: actor, effect: focus, duration: { raw: 3 } }
+      else:
+        - { op: apply, to: actor, effect: fervor }
+        - { op: apply, to: actor, effect: confusion, duration: { enemyTurns: 1 } }
+
+heal.zealot:
+  archetype: Heal
+  element: Zealot
+  name: Give of Yourself
+  description: The user takes 15 damage and gains 1 Fervor; target ally heals 20.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: damage, to: actor, amount: 15, type: Affliction, direct: false }
+    - { op: apply, to: actor, effect: fervor }
+    - { op: heal, to: primary, amount: 20 }
+
+bless.zealot:
+  archetype: Bless
+  element: Zealot
+  name: Unholy Unction
+  description: >-
+    For 3 turns, target ally gains 1 Might and Lifesteal, and each heal that finds them at full HP becomes 10
+    Shield.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: unholy_unction
+        name: Unholy Unction
+        kind: Buff
+        element: Zealot
+        description: Each heal that leaves the bearer at full HP becomes 10 Shield.
+        triggers:
+          - on: healed
+            do:
+              - op: if
+                cond: { compare: { value: { missingHp: bearer }, atMost: 0 } }
+                then: [{ op: growShield, to: bearer, effect: unction_shield, amount: 10, max: 30 }]
+
+curse.zealot:
+  archetype: Curse
+  element: Zealot
+  name: Communal Grace
+  description: >-
+    Target enemy is Sanctified for 2 turns. Meanwhile, whenever their Sanctify triggers, every other ally of the
+    damager heals 5 too.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: communal_grace
+        name: Communal Grace
+        kind: Debuff
+        element: Zealot
+        description: While Sanctified, a direct hit on the bearer also heals the damager's other allies 5.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then: [{ op: heal, to: { filter: allAllies, where: { kind: { unit: it, is: character } }, exclude: eventSource }, amount: 5 }]
+
+smite.zealot:
+  archetype: Smite
+  element: Zealot
+  name: Holy Hunger
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 2 turns. An Anointed ally who triggers the Sanctify
+    also gains Lifesteal for 1 turn.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: holy_hunger
+        name: Holy Hunger
+        kind: Debuff
+        element: Zealot
+        description: An Anointed ally who triggers the bearer's Sanctify gains Lifesteal for 1 turn.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: sanctify } }, { has: { unit: eventSource, effect: anointed } }] }
+                then: [{ op: apply, to: eventSource, effect: lifesteal, duration: { enemyTurns: 1 } }]
+
+prayer.zealot:
+  archetype: Prayer
+  element: Zealot
+  name: Fervent Chant
+  description: >-
+    All allies heal 25. Any ally who dies before the user's next turn is a Martyr as if they had 3 Fervor.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 25 }
+    - { op: apply, to: targets, effect: fervent_chant, duration: { enemyTurns: 1 } }
+
+cleave.zealot:
+  archetype: Cleave
+  element: Zealot
+  name: Heretics' Circle
+  description: >-
+    Deals 25 damage to target enemy, and 15 to each other enemy with a Debuff, if the target has one too.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: tainted, value: { if: { hasKind: { unit: primary, kind: Debuff } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { varTrue: tainted }
+      then:
+        - { op: damage, to: { filter: allEnemies, where: { hasKind: { unit: it, kind: Debuff } }, exclude: primary }, amount: 15 }
+
+shout.zealot:
+  archetype: Shout
+  element: Zealot
+  name: Sermon of Dread
+  description: >-
+    All enemies are Intimidated for 2 turns. Each Horrified enemy is also Condemned.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { filter: targets, where: { has: { unit: it, effect: horrified } } }, effect: condemned }
+
+withstand.zealot:
+  archetype: Withstand
+  element: Zealot
+  name: Shield of Martyrs
+  description: >-
+    The user gains 25 Shield for 1 turn. If an ally dies meanwhile, the user also gains 2 Fervor, on top of their
+    Martyr payout.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: shield_of_martyrs
+        name: Shield of Martyrs
+        kind: Buff
+        element: Zealot
+        description: If an ally dies, the bearer gains 2 Fervor.
+        triggers:
+          - on: signal
+            signal: died
+            do:
+              - op: if
+                cond: { not: { isEnemy: eventTarget } }
+                then: [{ op: apply, to: bearer, effect: fervor, stacks: 2 }]
+
+taunt.zealot:
+  archetype: Taunt
+  element: Zealot
+  name: Strike Me Down
+  description: >-
+    Taunts target enemy for 2 turns. If the user is killed meanwhile, their killer takes 10 Affliction damage per
+    Fervor stack the user had.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: strike_me_down
+        name: Strike Me Down
+        kind: Buff
+        element: Zealot
+        description: If the bearer is killed, the killer takes 10 Affliction per Fervor the bearer had.
+        onDeath:
+          - op: damage
+            to: eventSource
+            type: Affliction
+            direct: false
+            amount: { mul: [10, { stacks: { unit: bearer, effect: fervor } }] }
+
+titan.zealot:
+  archetype: Titan
+  element: Zealot
+  name: Living Saint
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune. When it ends, they're a Martyr without dying: their allies get
+    the Martyr payout for the user's Fervor, which is then spent.
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: living_saint
+        name: Living Saint
+        kind: Buff
+        element: Zealot
+        description: When this ends, the bearer's Fervor pays out to their allies as a Martyr's, and is spent.
+        onExpire:
+          - { op: macro, id: martyr_payout }
+          - { op: removeEffect, from: actor, effect: fervor }
+
+# Minion skills.
+
+flagellant_self_scourge:
+  archetype: Minion
+  element: Zealot
+  name: Self-Scourge
+  description: The Flagellant takes 10 Affliction damage and gains 1 Fervor.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: damage, to: actor, amount: 10, type: Affliction, direct: false }
+    - { op: apply, to: actor, effect: fervor }
+
+flagellant_blood_whip:
+  archetype: Minion
+  element: Zealot
+  name: Blood Whip
+  description: Deals 10 damage to target enemy, +5 per Fervor the Flagellant has.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+initiate_take_the_blow:
+  archetype: Minion
+  element: Zealot
+  name: Take the Blow
+  description: The next single-target Harmful skill aimed at target ally hits the Initiate instead.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: take_the_blow, bindTo: actor }

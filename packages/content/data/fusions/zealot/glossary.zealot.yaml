@@ -1,0 +1,11 @@
+# Zealot keywords (docs/glossary.md).
+
+fervor:
+  status: fervor
+  element: Zealot
+  forms: [Fervor]
+martyr:
+  name: Martyr
+  text: When a unit with Fervor dies, each of their allies heals 10 per stack and gains 1 Might per 2 stacks.
+  element: Zealot
+  forms: [Martyr, Martyrs]

@@ -704,6 +704,8 @@ export interface EffectDef {
   triggers?: TriggerSpec[];
   /** Runs when the effect's duration naturally reaches 0 (not when interrupted or consumed). */
   onExpire?: Op[];
+  /** Runs when the bearer dies, before its effects are removed (actor = the source, eventSource = the killer). */
+  onDeath?: Op[];
 }
 
 // ---------------------------------------------------------------- skills, minions, classes

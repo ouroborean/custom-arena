@@ -4,7 +4,7 @@
 //   Direct (what amplifies it): damage from a skill's use gets Might/Weakness/Vulnerable and fires
 //                               "on direct damage" effects; triggered and ticking damage does not.
 
-import { archetypeOf, effectDef, effectsOn, emit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
+import { archetypeOf, effectDef, effectsOn, emit, findUnit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
 import { broadcastSignal, enqueueFor, runOps } from './ops.js';
 import { applyEffect, interruptChannels, removeEffect } from './effects.js';
 import {
@@ -301,6 +301,23 @@ export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void
   emit(ctx, { t: 'died', unit: u.id });
   // "When an ally dies…": everyone hears it, with what the unit carried at the time.
   broadcastSignal(ctx, 'died', killer ?? u, { target: u, snapshot: effectsOn(ctx.s, u.id).slice(), eventSkill: skill });
+  // Zealot's Martyr (and similar): effects that act as their bearer falls.
+  for (const e of effectsOn(ctx.s, u.id)) {
+    const ops = effectDef(ctx.c, e).onDeath;
+    if (!ops?.length || !findUnit(ctx.s, e.source)) continue;
+    runOps(ctx, ops, {
+      actor: e.source,
+      bearer: u.id,
+      self: e,
+      targets: e.targets,
+      vars: {},
+      lastDamage: 0,
+      lastDamaged: [],
+      direct: false,
+      bypass: false,
+      ...(killer ? { eventSource: killer.id } : {}),
+    });
+  }
   interruptChannels(ctx, u, 'death');
   const onDeath = u.kind === 'minion' ? ctx.c.minions[u.defId]?.onDeath : undefined;
   if (onDeath?.length) {
