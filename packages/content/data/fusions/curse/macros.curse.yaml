@@ -1,0 +1,9 @@
+# Curse actions.
+
+# `it` gains a random Hex for 2 turns.
+random_hex:
+  - op: random
+    options:
+      - [{ op: apply, to: it, effect: hex_pain, duration: { enemyTurns: 2 } }]
+      - [{ op: apply, to: it, effect: hex_silence, duration: { enemyTurns: 2 } }]
+      - [{ op: apply, to: it, effect: hex_ruin, duration: { enemyTurns: 2 } }]

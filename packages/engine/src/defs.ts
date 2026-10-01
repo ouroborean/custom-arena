@@ -707,6 +707,8 @@ export interface EffectDef {
   triggers?: TriggerSpec[];
   /** Runs when the effect's duration naturally reaches 0 (not when interrupted or consumed). */
   onExpire?: Op[];
+  /** Curse's Lingering: cleansed, or on its bearer's death, it jumps to a random ally of theirs. */
+  lingers?: boolean;
   /** Runs when the bearer dies, before its effects are removed (actor = the source, eventSource = the killer). */
   onDeath?: Op[];
 }

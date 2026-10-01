@@ -585,6 +585,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
           value: e.value,
           duration: e.duration === null ? 'permanent' : { raw: e.duration },
         });
+        e.data.moved = true; // a move isn't a cleanse (Curse's Lingering)
         removeEffect(ctx, e, 'removed');
       }
       return;

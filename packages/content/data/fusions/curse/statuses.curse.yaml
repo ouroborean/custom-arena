@@ -1,0 +1,65 @@
+# Curse (Unholy + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+# Hexes Linger: cleansed, or when their bearer dies, they jump to a random ally of the bearer.
+
+hex_pain:
+  name: Hex of Pain
+  kind: Debuff
+  element: Curse
+  stacking: unique
+  lingers: true
+  description: Whenever the bearer deals direct damage, they take 10 Affliction. Lingers.
+  triggers:
+    - on: dealtDamage
+      when: { direct: true }
+      do:
+        - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+
+hex_silence:
+  name: Hex of Silence
+  kind: Debuff
+  element: Curse
+  stacking: unique
+  lingers: true
+  description: The bearer's Strategic skills cost 1 more random energy. Lingers.
+  modifiers:
+    - { mod: costGeneric, amount: 1, skillsWith: [Strategic] }
+
+hex_ruin:
+  name: Hex of Ruin
+  kind: Debuff
+  element: Curse
+  stacking: unique
+  lingers: true
+  description: Whenever the bearer gains a Buff, they take 10 Affliction. Lingers.
+  triggers:
+    - on: effectGained
+      when: { kind: Buff }
+      do:
+        - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+
+# On a Black Cat: whoever damages it gains a random Hex.
+cat_curse:
+  name: Bad Luck
+  kind: Neutral
+  element: Curse
+  stacking: unique
+  description: Whoever damages the Cat gains a random Hex for 2 turns.
+  triggers:
+    - on: damaged
+      do:
+        - { op: forEach, in: eventSource, do: [{ op: macro, id: random_hex }] }
+
+# Evil Eye: when its Stun ends, it passes to a random ally of the bearer who hasn't had it.
+evil_eye:
+  name: Evil Eye
+  kind: Debuff
+  element: Curse
+  stacking: unique
+  description: When this ends, the Stun passes to an ally of the bearer who hasn't been Stunned by it.
+  onExpire:
+    - op: forEach
+      in: { randomEnemy: 1, where: { and: [{ kind: { unit: it, is: character } }, { compare: { value: { counterOf: { unit: it, name: evil_eyed } }, atMost: 0 } }] } }
+      do:
+        - { op: setCounter, name: evil_eyed, on: it, value: 1 }
+        - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
+        - { op: apply, to: it, effect: evil_eye, duration: { enemyTurns: 1 } }

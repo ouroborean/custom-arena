@@ -1745,3 +1745,29 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Full Sentence / Sweep the Streets | Checked when the bearer uses a skill while Condemned. |
 | Reinforced Trenchcoat | `boostShields −10` per Debuff prevented. |
 | Nightwarden | `ownEffectEnded` on the user's own Stealth. |
+
+### 21.55 Curse (Unholy + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Hexes** | Debuffs `hex_pain` (10 Affliction to the bearer whenever they deal direct damage), `hex_silence` (Strategic skills cost 1 more generic energy), `hex_ruin` (10 Affliction whenever they gain a Buff). Named condition `hexed`. |
+| **Lingering** | New effect flag `lingers`: when the effect is removed (a cleanse; moves don't count) or its bearer dies, it's re-applied to a random living ally of the bearer with its remaining duration. Expiring or being consumed (`removeStacks`) doesn't Linger. |
+| Woeblade | Simplified: a random Hex (no "last skill" tracking). |
+| Crushing Malediction | Copies last 2 turns. |
+| Somnambulant Rush | Simplified: only its own hit doesn't wake; the next-skill rider is dropped. |
+| Hex Ward | Counters every Harmful skill on the user; one from an un-Hexed enemy ends it. |
+| Cursed Hunger | +5 direct damage per Hexed enemy (max 3), counted as each hit lands. |
+| Doom | Hexes are consumed (no Lingering), +15 each. |
+| Cleanser's Snare | Simplified: it springs when the Snare itself is cleansed (a hidden watcher on the user, `ownEffectEnded reason removed`). |
+| Familiar's Cover | Allied minions present when it's used heal the user for their direct damage while the user has Lifesteal. |
+| Malediction | 10 Affliction per Buff the target has, at once. |
+| Hex Shade | Simplified: Whisper gives a random Hex for 2 turns. |
+| Cursed Dagger | Simplified: against a Hexed target, a random extra Hex (double Lingering dropped). |
+| Tongue-Tied | Simplified: counters their next Harmful skill, Hexed or not. |
+| Evil Eye | Counter `evil_eyed` marks who has had it; the chain passes at each natural expiry. |
+| Envious Jig | Copies use `copyEventEffect noChain`; the enemy's Buff loses 2 ticks. |
+| Pass the Curse | Simplified: all their Debuffs move to one random enemy. |
+| Blind Man's Toll | Simplified: each skill they use while Blinded. |
+| Vespers of Slumber | `hpFloor 1` while it lasts; reaching 1 HP puts them to Sleep and ends it. |
+| Shrouded Ward | Skills Stealthy while the user has any Shield. |
+| Poppet | 10 HP minion; damage it takes is dealt to the target as Affliction. |

@@ -3,6 +3,7 @@
 import { effectDef, effectKey, effectsOn, emit, findUnit, nextId, skillDef, type Ctx } from './ctx.js';
 import type { EffectDef, ResolvedDuration, SkillDef, UntilSpec } from './defs.js';
 import { compileDuration } from './duration.js';
+import { sample } from './rng.js';
 import { broadcastSignal, enqueueFor } from './ops.js';
 import { cannotUseReason, modsOn } from './queries.js';
 import type { EffectInstance, RemoveReason, Unit, UnitId } from './types.js';
@@ -302,6 +303,23 @@ export function removeEffect(ctx: Ctx, e: EffectInstance, reason: RemoveReason):
   if (bonusHp !== 0 && bearer?.alive) {
     bearer.maxHp -= bonusHp;
     bearer.hp = Math.min(bearer.hp, bearer.maxHp);
+  }
+  // Curse's Lingering: a Hex that's cleansed, or whose bearer dies, jumps to a random ally of theirs.
+  const lingering = effectDef(ctx.c, e);
+  if (lingering.lingers && bearer && (reason === 'died' || (reason === 'removed' && !e.data.moved))) {
+    const to = sample(ctx.s.rng, ctx.s.units.filter((u) => u.alive && u.owner === bearer.owner && u.id !== bearer.id), 1)[0];
+    const src = findUnit(ctx.s, e.source);
+    if (to && src) {
+      applyEffect(ctx, {
+        def: lingering,
+        inline: !!e.inline,
+        bearer: to,
+        source: src,
+        stacks: e.stacks,
+        value: e.value,
+        duration: e.duration === null ? 'permanent' : { raw: e.duration },
+      });
+    }
   }
   // "When your Titan expires", "if your Trap fails to activate": the source's equipment hears it.
   if (e.sourceSkill) {

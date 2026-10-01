@@ -1,0 +1,19 @@
+# Curse keywords (docs/glossary.md).
+
+hex_pain:
+  status: hex_pain
+  element: Curse
+hex_silence:
+  status: hex_silence
+  element: Curse
+hex_ruin:
+  status: hex_ruin
+  element: Curse
+hexes:
+  name: Hexes
+  text: >-
+    Debuffs that each punish one kind of action: Pain (dealing damage), Silence (Strategic skills) and Ruin
+    (gaining Buffs). Lingering: when a Hexed unit dies or has a Hex cleansed, that Hex jumps to a random ally of
+    theirs with its remaining duration; Hexes that simply run out are gone.
+  element: Curse
+  forms: [Hex, Hexes, Hexed, Lingering, Lingers]
