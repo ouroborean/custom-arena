@@ -5,7 +5,7 @@ import { checkpoint, effectDef, findUnit, makeCtx, other, skillDef, type Ctx } f
 import type { ContentBundle } from './defs.js';
 import { autoAllocate, isPayable, isValidAllocation, sumCosts } from './energy.js';
 import { resolveTargets, unmetRequirement, useQueuedSkill } from './pipeline.js';
-import { cannotUseReason, modifiedCost } from './queries.js';
+import { bloodPriceHp, cannotUseReason, modifiedCost } from './queries.js';
 import { checkGameOver, endTurn, finish } from './turn.js';
 import { COLORS, type ApplyOptions, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
 
@@ -43,6 +43,7 @@ export function checkQueue(ctx: Ctx, player: PlayerId, cmd: Extract<Command, { t
   if (blocked) return new CommandError('cannot_act', `${actor.name} can't use ${def.name}: ${blocked}`);
   const tr = resolveTargets(ctx, actor, def, cmd.targets, true);
   if (!tr.ok) return new CommandError('bad_target', tr.reason);
+  if (bloodPriceHp(ctx, actor, def) >= actor.hp) return new CommandError('cannot_act', `${def.name}'s Blood Price would kill ${actor.name}`);
   const cost = modifiedCost(ctx, actor, def);
   const reserved = sumCosts([...s.players[player].queue.map((q) => q.cost), cost]);
   if (!isPayable(s.players[player].energy, reserved)) return new CommandError('no_energy', 'Not enough energy');

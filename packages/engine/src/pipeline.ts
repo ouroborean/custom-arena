@@ -2,6 +2,7 @@
 
 import { effectDef, effectsOn, emit, findUnit, isEnemy, livingUnits, skillDef, unit, type Ctx } from './ctx.js';
 import type { SkillDef, TriggerSpec } from './defs.js';
+import { dealDamage } from './damage.js';
 import { costTotal } from './energy.js';
 import { interruptChannels, removeEffect, revealEffect } from './effects.js';
 import { broadcastSignal, enqueueFor, enqueueTriggers, evalCond, flushTriggers, mutedTrap, runOps, runTrigger, type Scope } from './ops.js';
@@ -15,6 +16,7 @@ import {
   hasGrantBypass,
   ignoresCounters,
   isExcludedTarget,
+  bloodPriceHp,
   modifiedCost,
   modsFor,
   modsOn,
@@ -214,6 +216,13 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
   const targets = fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets));
+  // Blood's Blood Price: the random costs are paid in HP now (it fails if that would kill).
+  const blood = bloodPriceHp(ctx, actor, def);
+  actor.counters.blood_paid = blood;
+  if (blood > 0) {
+    if (blood >= actor.hp) return fail(ctx, actor, def, 'Blood Price would kill', false);
+    dealDamage(ctx, { source: actor, target: actor, amount: blood, type: 'Affliction', direct: false, bypass: true, raw: true });
+  }
   // Cloud's Drift: the use hangs in the air (cooldown starts now) and lands next turn (landDrifting).
   if (def.tags.includes('Drift') || modsOn(ctx.s, ctx.c, actor.id, 'driftSkills').length > 0) {
     if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);

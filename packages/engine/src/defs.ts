@@ -503,6 +503,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'suspendEffects' }
   /** Mist's Fog: enemy single-target skills aimed at the bearer land on a random unit of their side. */
   | { mod: 'fogged' }
+  /** Blood: the bearer's skills pay their random costs with 10 HP each. */
+  | { mod: 'bloodPrice' }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**
@@ -701,7 +703,9 @@ export type SkillTag =
   /** Divine: can target any unit; Harmful when aimed at an enemy, Helpful when aimed at an ally. */
   | 'Radiant'
   /** Dimension's Folded Moment: doesn't use up the character's action this turn. */
-  | 'FreeAction';
+  | 'FreeAction'
+  /** Blood: random costs are paid with 10 HP each. */
+  | 'BloodPrice';
 
 export interface SkillDef {
   id: string;

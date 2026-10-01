@@ -1,0 +1,10 @@
+# Blood keywords (docs/glossary.md).
+
+hemorrhage:
+  status: hemorrhage
+  element: Blood
+blood_price:
+  name: Blood Price
+  text: The skill's random costs are paid with 10 HP each instead of energy; colored costs are paid as normal. It can't be used if the HP would kill the user.
+  element: Blood
+  forms: [Blood Price]

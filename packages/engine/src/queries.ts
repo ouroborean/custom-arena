@@ -93,6 +93,21 @@ export function skillClass(def: SkillDef): SkillClass {
 // ---------------------------------------------------------------- costs & cooldowns
 
 export function modifiedCost(ctx: Ctx, u: Unit, def: SkillDef): Cost {
+  const cost = costBeforeBlood(ctx, u, def);
+  return paysInBlood(ctx, u, def) ? { ...cost, r: 0 } : cost;
+}
+
+/** Blood's Blood Price: the skill's random costs are paid with HP. */
+function paysInBlood(ctx: Ctx, u: Unit, def: SkillDef): boolean {
+  return def.tags.includes('BloodPrice') || modsFor(ctx, u.id, 'bloodPrice', def).length > 0;
+}
+
+/** HP a Blood Price skill costs: 10 per random pip (0 if it isn't one). */
+export function bloodPriceHp(ctx: Ctx, u: Unit, def: SkillDef): number {
+  return paysInBlood(ctx, u, def) ? 10 * costBeforeBlood(ctx, u, def).r : 0;
+}
+
+function costBeforeBlood(ctx: Ctx, u: Unit, def: SkillDef): Cost {
   const scope = { actor: u.id, targets: [], vars: {}, lastDamage: 0, lastDamaged: [], direct: true, bypass: false };
   const base = def.altCost && evalCond(ctx, def.altCost.when, scope) ? def.altCost.cost : def.cost;
   const chilled = modsOn(ctx.s, ctx.c, u.id, 'noCostReduction').length > 0;

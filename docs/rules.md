@@ -1308,3 +1308,19 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Holy Oil | Simplified: immune to Debuffs, and each Harmful skill used on them gives 1 Unction. |
 | Offertory | Each skill they use while Confused gives the user's player 1 energy per Confusion stack. |
 | Shield of the Font | All Unction is spent at once: that many Debuffs removed, 15 Shield per stack for 1 turn. |
+
+### 21.33 Blood (Water + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Blood Price** | New skill tag `BloodPrice` and modifier `bloodPrice`: the skill's random pips cost 0 energy, and 10 HP each is paid as it resolves (raw Affliction to the user, stored in their `blood_paid` counter). It can't be queued, and fails, if the HP would kill the user. |
+| **Hemorrhage** | Debuff, merging, max 5: at the end of its applier's turn, 5 Affliction per stack, then +1 stack. Any healing removes it (not during Hemophilia). |
+| Quickened Pulse | Any healing (not only Lifesteal) gives 1 Renew per 10 HP for its duration. |
+| Bloodbound Familiar | It has an HP floor of 1, passes the damage it takes to its summoner and heals back to full; healing it heals the summoner; it dies when they do. |
+| Blood Elemental | Its max HP becomes what the user paid. Simplified: it doesn't return its HP when it expires. |
+| Exsanguinate | Each turn heals the user 5 per Hemorrhage stack on the target. |
+| Restitution | The target's last attacker loses 20 HP (raw). |
+| Blood Doping | The crash is a Neutral inline stun, so Swiftness can't stop it. |
+| Blood Chant | Simplified: until the user's next turn, the other allies pay their own random costs in HP. |
+| Clotting Ward | Lasts until the start of the user's next turn, and their Renew heals once more at that moment. |
+| Leeching Sweep | While the user has Lifesteal, their indirect damage to enemies also heals them. |
