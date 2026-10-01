@@ -1,0 +1,23 @@
+# Myth actions, run on `it`.
+
+# +1 Legend (not while Mythic); at 3, Mythic for 3 turns.
+gain_legend:
+  - op: if
+    cond: { not: { has: { unit: it, effect: mythic } } }
+    then:
+      - { op: apply, to: it, effect: legend }
+      - op: if
+        cond: { compare: { value: { stacks: { unit: it, effect: legend } }, atLeast: 3 } }
+        then:
+          - { op: set, var: mythic_ticks, value: 6 }
+          - { op: macro, id: become_mythic }
+
+# `it` becomes Mythic for `mythic_ticks` ticks: +20 max HP and 20 healing; Legend resets.
+become_mythic:
+  - { op: removeEffect, from: it, effect: legend }
+  - op: if
+    cond: { not: { has: { unit: it, effect: mythic } } }
+    then:
+      - { op: addMaxHp, to: it, amount: 20 }
+      - { op: heal, to: it, amount: 20 }
+  - { op: apply, to: it, effect: mythic, duration: { raw: { var: mythic_ticks } } }

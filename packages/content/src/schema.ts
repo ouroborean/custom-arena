@@ -120,6 +120,7 @@ export const condSchema: z.ZodType<Cond> = z.lazy(() =>
         archetypes: z.array(z.string()).optional(),
         costAtLeast: z.number().optional(),
         tags: z.array(z.string()).optional(),
+        elements: z.array(z.string()).optional(),
       }),
     }),
     z.strictObject({ channeling: selectorSchema }),

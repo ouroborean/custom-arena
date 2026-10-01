@@ -22,7 +22,7 @@ glacier:      { name: Glacier,     elements: [Ice, Water] }
 aurora:       { name: Aurora,      elements: [Ice, Lightning] }
 winter:       { name: Winter,      elements: [Ice, Wind] }
 stasis:       { name: Stasis,      elements: [Ice, Poison] }
-myth:         { name: Myth,        elements: [Ice, Earth] }
+myth:         { name: Myth,        elements: [Ice, Earth], passives: [saga] }
 prism:        { name: Prism,       elements: [Ice, Holy] }
 lich:         { name: Lich,        elements: [Ice, Unholy] }
 night:        { name: Night,       elements: [Ice, Shadow] }

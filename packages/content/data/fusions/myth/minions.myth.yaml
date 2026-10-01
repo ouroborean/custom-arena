@@ -1,0 +1,33 @@
+# Myth minions.
+
+mammoth:
+  name: Mammoth
+  hp: 55
+  # While it stands, Frost debuffs on enemies can't be removed.
+  onSummon:
+    - op: apply
+      to: allEnemies
+      bindTo: actor
+      effect:
+        id: mammoth_chill
+        name: Mammoth's Chill
+        kind: Debuff
+        element: Myth
+        description: Frost debuffs on the bearer can't be removed while the Mammoth stands.
+        modifiers:
+          - { mod: protectEffects, effects: [frostbitten, chilled, numb, frostfire, snowbound] }
+  skills: [mammoth_trample]
+
+troll:
+  name: Troll
+  hp: 20
+  # When it dies or expires, it turns to stone: an allied Boulder with 20 HP.
+  onDeath:
+    - { op: summon, minion: boulder }
+    - { op: addMaxHp, to: lastSummoned, amount: -25 }
+  skills: [troll_club]
+
+rime_giant:
+  name: Rime Giant
+  hp: 45
+  skills: [rime_giant_frost_maul]

@@ -368,6 +368,7 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
     if (c.eventSkill.archetypes && !c.eventSkill.archetypes.includes(d.archetype)) return false;
     if (c.eventSkill.costAtLeast !== undefined && costTotal(d.cost) < c.eventSkill.costAtLeast) return false;
     if (c.eventSkill.tags && !c.eventSkill.tags.some((t) => d.tags.includes(t))) return false;
+    if (c.eventSkill.elements && !c.eventSkill.elements.includes(d.element)) return false;
     return true;
   }
   if ('channeling' in c) {

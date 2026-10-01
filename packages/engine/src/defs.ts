@@ -161,7 +161,7 @@ export type Cond =
   /** `effects`: instead, an effect the actor applied with one of these keys (or counting as one). */
   | { eventTargetHad: { archetypes?: string[]; effects?: string[] } }
   /** The skill behind the event (or in scope) matches. */
-  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[] } }
+  | { eventSkill: { archetypes?: string[]; costAtLeast?: number; tags?: SkillTag[]; elements?: string[] } }
   /** The unit is channeling (carries an interruptible effect). */
   | { channeling: Selector }
   /** The unit can't use at least some skills (Stun, Sleep, …). */

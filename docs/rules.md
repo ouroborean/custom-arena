@@ -1147,3 +1147,25 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Serpent's Measure | Each enemy with Toxin at the end of the user's turns is marked Prey until their next turn. |
 | Frozen Quarry | Added to Poison's `prey` condition: Frost debuffs count toward the stack total. |
 | Frozen Instant | Uses `deferHits`: each hit is held and lands 3 turns later, halved, as Affliction (not all at once when it ends). |
+
+### 21.24 Myth (Ice + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Legend / Mythic** | The Saga passive gives 1 Legend (Neutral, merging) when the character uses a Myth skill (new `eventSkill.elements`) or kills a unit. Macro `gain_legend`: not while Mythic; at 3, `become_mythic` (Legend removed, +20 max HP and 20 healing, Mythic for 3 turns: 2 Armor, immune to Stuns; the max HP goes when it ends). Myth riders check Mythic on the user. |
+| Mountain Stomp | Mythic: one Boulder for the target and one per ally of theirs. |
+| Runic Ward | Mythic picks a reflecting version at cast time. |
+| Giant's Spear | A growing channel: 20, +20 at the end of each of the user's turns; lands at 60 or when the user is damaged (it lasts at most 3 turns). |
+| Troll Bridge | Simplified: a skill "fingerprint" (cost and cooldown) is compared with the one they used on their previous turn. |
+| Mammoth | Its onSummon gives every enemy a Debuff bound to it that protects their Frost debuffs. |
+| Age of Ice | Characters take 25 normally; each enemy minion hit that dies (any minion while Mythic) is destroyed and the user creates a Boulder. |
+| Draught of Ages | 5 healing per round (2 turns). |
+| Trollkin | A Troll's onDeath creates a Boulder brought down to 20 max HP. |
+| Awakening the Ancients | On completion, allied Boulders transform into Rime Giants (full HP at 45). |
+| Rimecut | Simplified: +5 per Frost debuff (not per turn left), up to 25 total. |
+| Frozen Riddle | Simplified: for 3 turns, all their cooldowns freeze while they have a Frost debuff. |
+| Turned to Stone | A companion effect hears the Shield break (`depleted`) and ends the Stun; Mythic skips it. |
+| Kinslayer's Doom | Handled by the Saga passive's `died` listener. |
+| Jotun Sweep | Simplified: 10 and Frostbitten to a random other enemy (no "used a Harmful Strategic skill" tracking). |
+| Frozen Rampart | Simplified: no redirect from allied minions. |
+| Old Feud | Removes the user's earlier Old Feud mark; the Taunt itself is permanent. |
