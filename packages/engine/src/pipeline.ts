@@ -215,7 +215,7 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const tr = resolveTargets(ctx, actor, def, action.targets, false);
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
-  const targets = fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets));
+  const targets = wardTargets(ctx, actor, def, fogTargets(ctx, actor, def, blindTargets(ctx, actor, def, tr.targets)));
   // Blood's Blood Price: the random costs are paid in HP now (it fails if that would kill).
   const blood = bloodPriceHp(ctx, actor, def);
   actor.counters['c:blood_paid'] = blood;
@@ -272,6 +272,27 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
   const legal = ctx.s.units.filter((u) => u.alive && resolveTargets(ctx, actor, def, [u.id], true).ok);
   if (legal.length === 0) return targets;
   return [legal[nextInt(ctx.s.rng, legal.length)]!.id];
+}
+
+/**
+ * Angel's Ward: the first Harmful single-target skill each turn aimed at a Warded unit goes to the
+ * Ward's source instead, if they can be targeted. Sends `ward_redirect` from that source (target:
+ * the skill's user).
+ */
+function wardTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): UnitId[] {
+  if (def.target !== 'enemy' && def.target !== 'any') return targets;
+  if (!def.tags.includes('Harmful') && !def.tags.includes('Radiant')) return targets;
+  const first = targets[0] ? findUnit(ctx.s, targets[0]) : undefined;
+  if (!first || !isEnemy(actor, first)) return targets;
+  for (const { effect } of modsOn(ctx.s, ctx.c, first.id, 'warded')) {
+    if (effect.data.wardTurn === ctx.s.turn) continue;
+    const angel = findUnit(ctx.s, effect.source);
+    if (!angel?.alive || angel === first || !resolveTargets(ctx, actor, def, [angel.id], true).ok) continue;
+    effect.data.wardTurn = ctx.s.turn;
+    broadcastSignal(ctx, 'ward_redirect', angel, { target: actor });
+    return [angel.id];
+  }
+  return targets;
 }
 
 /**

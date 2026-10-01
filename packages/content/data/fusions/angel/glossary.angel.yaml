@@ -1,0 +1,10 @@
+# Angel keywords (docs/glossary.md).
+
+warded:
+  status: warded
+  element: Angel
+  forms: [Warded, Ward, Wards]
+halo:
+  status: halo
+  element: Angel
+  forms: [Halo, Halos]

@@ -1,0 +1,35 @@
+# Angel (Wind + Holy) statuses, from the "Fusion Spec Kits" design doc.
+# The doc's "Guardian / Guarded" keyword is Ward / Warded here (the word "Guardian" is retired).
+
+warded:
+  name: Warded
+  kind: Buff
+  element: Angel
+  stacking: independent
+  description: The first Harmful skill aimed at the bearer each turn is redirected to the Angel who Warded them.
+  modifiers:
+    - { mod: warded }
+
+halo:
+  name: Halo
+  kind: Buff
+  element: Angel
+  stacking: unique
+  description: The first time the bearer would die, they heal to 25 HP instead, and the Halo is spent.
+  modifiers:
+    - { mod: hpFloor, amount: 1 }
+  triggers:
+    - on: damaged
+      do:
+        - op: if
+          cond: { hpAtMost: { unit: bearer, value: 1 } }
+          then:
+            - { op: removeSelf }
+            - { op: forEach, in: bearer, do: [{ op: macro, id: halo_save }] }
+
+vigil_mark:
+  name: Vigil
+  kind: Debuff
+  element: Angel
+  stacking: unique
+  description: Struck a Warded ally under Vigil; takes 15 damage at the end of the Angel's turn.

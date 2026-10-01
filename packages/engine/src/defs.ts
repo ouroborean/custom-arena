@@ -517,6 +517,8 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'suppressBuffs' }
   /** Faerie's Charmed: single-target skills pick any other living unit (`own`: only the bearer's allies). */
   | { mod: 'charmed'; own?: boolean }
+  /** Angel's Ward: the first Harmful single-target skill each turn aimed at the bearer goes to this effect's source. */
+  | { mod: 'warded' }
   /** Glacier's Meltwater: the bearer's cooldowns tick down `amount` more at the end of their turns. */
   | { mod: 'cooldownTick'; amount: number }
   /**

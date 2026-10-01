@@ -1,0 +1,798 @@
+# The 30 Angel (Wind + Holy) variants, from the "Fusion Spec Kits" design doc.
+# Ward (the doc's Guardian): a Warded ally's first incoming Harmful skill each turn goes to the
+# Angel instead (the `warded` modifier, `ward_redirect` signal). Halo saves its bearer from death once.
+
+strike.angel:
+  archetype: Strike
+  element: Angel
+  name: Wingstrike
+  description: Deals 20 damage to target enemy. For 1 turn, the user Wards the ally with the least HP.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: { filter: weakestAlly, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+
+smash.angel:
+  archetype: Smash
+  element: Angel
+  name: Heaven's Descent
+  description: >-
+    Deals 20 damage to target enemy and 10 to their allies. For each enemy it kills, a random ally gains a
+    Halo.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: fallen, value: { deadCount: enemies } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - op: repeat
+      times: { sum: [{ deadCount: enemies }, { mul: [-1, { var: fallen }] }] }
+      do:
+        - { op: apply, to: { randomAlly: 1, where: { kind: { unit: it, is: character } } }, effect: halo }
+
+charge.angel:
+  archetype: Charge
+  element: Angel
+  name: Swoop
+  description: >-
+    The user begins Rushing and Wards target ally for 1 turn; the first hit redirected this way deals them half
+    damage.
+  cost: nc
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: actor, effect: rushing }
+    - { op: apply, to: primary, effect: warded, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: swoop
+        name: Swoop
+        kind: Buff
+        element: Angel
+        description: The first redirected hit deals the bearer half damage.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            consume: true
+
+riposte.angel:
+  archetype: Riposte
+  element: Angel
+  name: Intercession
+  description: >-
+    For 1 turn, the user Wards every ally and counters the first Harmful skill aimed at the user or redirected to
+    them. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - { op: apply, to: { filter: allAllies, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: intercession
+        name: Intercession
+        kind: Buff
+        element: Angel
+        visibility: hidden
+        description: Counters the first Harmful skill aimed at the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+
+rage.angel:
+  archetype: Rage
+  element: Angel
+  name: Unbroken Wings
+  description: >-
+    For 3 turns, the user gains 1 Might, Immune and a Halo. If the Halo saves them, they gain 2 Might and the
+    Rage lasts 2 turns longer.
+  cost: A
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: halo, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: unbroken_wings
+        name: Unbroken Wings
+        kind: Buff
+        element: Angel
+        description: If the Halo saves the bearer, the Rage swells.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond:
+                  and:
+                    - { not: { flag: swelled } }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: halo_turn } }] }] }, atMost: 0 } }
+                then:
+                  - { op: setFlag, flag: swelled }
+                  - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+                  - { op: extendEffects, on: bearer, effects: [unbroken_wings, might, immune], by: 4 }
+
+shot.angel:
+  archetype: Shot
+  element: Angel
+  name: Quill of Light
+  description: >-
+    Deals 15 damage to target enemy. Until the user's next turn, a Sanctify on them heals the damager's whole
+    team, not just the damager.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { raw: 2 }
+      effect:
+        id: quill_of_light
+        name: Quill of Light
+        kind: Debuff
+        element: Angel
+        description: While Sanctified, each direct hit on the bearer heals the attacker's allies 15 too.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then:
+                  - { op: heal, to: { filter: allUnits, where: { and: [{ not: { isEnemy: it } }, { not: { isEventTarget: it } }] } }, amount: 15 }
+
+snipe.angel:
+  archetype: Snipe
+  element: Angel
+  name: Descending Spear
+  description: >-
+    On the following turn, deals 40 damage to target enemy, +10 for each hit redirected to the user meanwhile;
+    until it lands, the user Wards every ally. The target of this skill is invisible. Channeled.
+  cost: Arr
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: setCounter, name: spear_redirects, value: 0 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: descending_spear
+        name: Descending Spear (aiming)
+        kind: Neutral
+        element: Angel
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target at the end of the following turn, harder for each hit the bearer took for an ally.
+        triggers:
+          - on: signal
+            signal: ward_redirect
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then: [{ op: setCounter, name: spear_redirects, value: { sum: [{ counter: spear_redirects }, 1] } }]
+        onExpire:
+          - { op: damage, to: effectTargets, amount: { sum: [40, { mul: [10, { counter: spear_redirects }] }] } }
+    - { op: apply, to: { filter: allAllies, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+
+trap.angel:
+  archetype: Trap
+  element: Angel
+  name: Watchful Eye
+  description: >-
+    For 2 turns, each ally of the user has a hidden Halo; if it saves them, the one who struck them is Condemned
+    for 2 turns. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: allAllies
+  ops:
+    - op: apply
+      to: { filter: targets, where: { kind: { unit: it, is: character } } }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: watchful_eye
+        name: Watchful Eye
+        kind: Buff
+        element: Angel
+        visibility: hidden
+        countsAs: [halo]
+        description: Saves the bearer once from death, and Condemns the attacker.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: halo_save }] }
+                  - { op: apply, to: eventSource, effect: condemned, duration: { enemyTurns: 2 } }
+
+maneuver.angel:
+  archetype: Maneuver
+  element: Angel
+  name: Take Flight
+  description: The user Leaps. If they're below 40 HP, they also gain a Halo for 2 turns.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: if
+      cond: { hpAtMost: { unit: actor, value: 39 } }
+      then: [{ op: apply, to: actor, effect: halo, duration: { enemyTurns: 2 } }]
+
+companion.angel:
+  archetype: Companion
+  element: Angel
+  name: Cherub
+  description: >-
+    Summons a Cherub (35 HP) permanently. Shelter (W): the Cherub Wards target ally for 1 turn. Holy Arrow (r):
+    15 damage and Sanctify.
+  cost: AI
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: cherub }
+
+bolt.angel:
+  archetype: Bolt
+  element: Angel
+  name: Beam from Above
+  description: >-
+    Deals 25 damage to target enemy, who is Marked for 1 turn. The last unit who damaged them heals 25.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: heal, to: primaryLastAttacker, amount: 25 }
+    - { op: damage, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+
+blast.angel:
+  archetype: Blast
+  element: Angel
+  name: Endless Verdict
+  description: Deals 20 Piercing damage to all enemies. For 2 turns, their Condemnations don't end when they trigger.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20, type: Piercing }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: endless_verdict
+        name: Endless Verdict
+        kind: Debuff
+        element: Angel
+        description: The bearer's Condemnation doesn't end when it triggers.
+        modifiers:
+          - { mod: protectEffects, effects: [condemned] }
+
+consume.angel:
+  archetype: Consume
+  element: Angel
+  name: Grace Received
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it; the user also takes their Swiftness, healing 10 per
+    stack.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: set, var: grace, value: { totalStacks: { in: primary, effect: swiftness } } }
+    - { op: moveEffects, from: primary, to: actor, effects: [swiftness] }
+    - { op: heal, to: actor, amount: { sum: [{ lastDamage: true }, { mul: [10, { var: grace }] }] } }
+
+summon.angel:
+  archetype: Summon
+  element: Angel
+  name: Heavenly Host
+  description: >-
+    Summons 2 Lesser Angels (10 HP) for 3 turns. Meanwhile, the first time an ally would die, a Lesser Angel dies
+    in their place and they heal to 25. Soothe (r): target ally heals 10.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: lesser_angel, count: 2, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: { filter: allAllies, where: { kind: { unit: it, is: character } } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: heavenly_host
+        name: Heavenly Host
+        kind: Buff
+        element: Angel
+        countsAs: [halo]
+        description: The first time the bearer would die, a Lesser Angel dies in their place.
+        modifiers:
+          - { mod: hpFloor, amount: 1, if: { any: { in: allAllies, cond: { minion: { unit: it, types: [lesser_angel] } } } } }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond:
+                  and:
+                    - { hpAtMost: { unit: bearer, value: 1 } }
+                    - { any: { in: allAllies, cond: { minion: { unit: it, types: [lesser_angel] } } } }
+                then:
+                  - { op: kill, to: { randomAlly: 1, where: { minion: { unit: it, types: [lesser_angel] } } } }
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: halo_save }] }
+                  - { op: removeEffect, from: allAllies, effect: heavenly_host }
+
+channel.angel:
+  archetype: Channel
+  element: Angel
+  name: Vigil
+  description: >-
+    For 3 turns, the user Wards the ally with the least HP, and at the end of each of their turns, every enemy
+    whose hit was redirected to them takes 15 damage. Channeled.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: vigil
+        name: Vigil
+        kind: Neutral
+        element: Angel
+        interruptible: true
+        description: Wards the weakest ally; enemies whose hits are redirected to the bearer take 15 each turn.
+        triggers:
+          - on: signal
+            signal: ward_redirect
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then: [{ op: apply, to: eventTarget, effect: vigil_mark, duration: { raw: 2 } }]
+          - on: turnEnd
+            do:
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: vigil_mark } } }, amount: 15, direct: false }
+              - { op: apply, to: { filter: weakestAlly, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+    - { op: apply, to: { filter: weakestAlly, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+
+stab.angel:
+  archetype: Stab
+  element: Angel
+  name: Piercing Feather
+  description: >-
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. An Anointed user trades it for a dive:
+    they spend Anointed to Leap before the hit, so its bonus applies and they stay Invulnerable for 1 turn.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: if
+      cond: { has: { unit: actor, effect: anointed } }
+      then:
+        - { op: removeEffect, from: actor, effect: anointed }
+        - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+
+ravage.angel:
+  archetype: Ravage
+  element: Angel
+  name: Plummet
+  description: >-
+    The user Leaps. At the start of their next turn, they dive onto target enemy for 30 Piercing damage, with the
+    Leap's bonus.
+  cost: A
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { raw: 2 }
+      effect:
+        id: plummet
+        name: Plummet
+        kind: Neutral
+        element: Angel
+        description: Dives onto the target when this ends.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 30, type: Piercing }
+
+mislead.angel:
+  archetype: Mislead
+  element: Angel
+  name: Martyr's Wings
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, the user gains a Halo first, and the enemy is Taunted by
+    the user for 1 turn. Invisible.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: martyrs_wings
+        name: Martyr's Wings
+        kind: Debuff
+        element: Angel
+        visibility: hidden
+        description: The bearer's next Harmful skill gives the applier a Halo and draws the bearer to them.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: actor, effect: halo, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: taunt, duration: { enemyTurns: 1 } }
+
+stun.angel:
+  archetype: Stun
+  element: Angel
+  name: Glorious Light
+  description: >-
+    Target enemy is Stunned for 1 turn. The first ally to damage them before it ends heals 15 and is Anointed
+    until the end of their next turn.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: glorious_light
+        name: Glorious Light
+        kind: Debuff
+        element: Angel
+        description: The first of the applier's allies to damage the bearer heals 15 and is Anointed.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: heal, to: eventSource, amount: 15 }
+              - { op: apply, to: eventSource, effect: anointed, duration: { raw: 3 } }
+
+dance.angel:
+  archetype: Dance
+  element: Angel
+  name: Wings of Respite
+  description: >-
+    For 4 turns, the user gains 1 Might and 2 Swiftness. Whenever an ally would be Stunned meanwhile, the user
+    spends 1 Swiftness to shrug it off for them.
+  cost: AW
+  cooldown: 5
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 4 } }
+    - op: apply
+      to: { filter: allAllies, where: { not: { isActor: it } } }
+      stacks: 99
+      duration: { enemyTurns: 4 }
+      effect:
+        id: wings_of_respite
+        name: Wings of Respite
+        kind: Buff
+        element: Angel
+        description: While the Angel has Swiftness, Stuns on the bearer are shrugged off at its expense.
+        modifiers:
+          - { mod: negateNext, effect: stun, if: { any: { in: allAllies, cond: { has: { unit: it, effect: swiftness } } } } }
+        triggers:
+          - on: incomingNegated
+            do:
+              - { op: removeStacks, from: actor, effect: swiftness, amount: 1 }
+
+heal.angel:
+  archetype: Heal
+  element: Angel
+  name: Lay on Hands
+  description: >-
+    Target ally heals 20 and gains a Halo for 2 turns; if it's unspent when it fades, they heal 20 more.
+  cost: Wr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: lay_on_hands
+        name: Halo
+        kind: Buff
+        element: Angel
+        countsAs: [halo]
+        description: Saves the bearer once from death; unspent, it heals 20 when it fades.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: forEach, in: bearer, do: [{ op: macro, id: halo_save }] }
+        onExpire:
+          - { op: heal, to: bearer, amount: 20 }
+
+bless.angel:
+  archetype: Bless
+  element: Angel
+  name: Under My Wing
+  description: The user Wards target ally for 2 turns; the ally gains 1 Swiftness.
+  cost: A
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: warded, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: swiftness, duration: { enemyTurns: 2 } }
+
+curse.angel:
+  archetype: Curse
+  element: Angel
+  name: Fallen Grace
+  description: >-
+    Target enemy loses their mobility buffs; for 2 turns, each mobility buff they would gain Condemns them
+    instead.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: removeEffect, from: primary, effect: swiftness }
+    - { op: removeEffect, from: primary, effect: rushing }
+    - { op: removeEffect, from: primary, effect: leaping }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: fallen_grace
+        name: Fallen Grace
+        kind: Debuff
+        element: Angel
+        description: Each mobility buff the bearer gains Condemns them instead.
+        triggers:
+          - on: effectGained
+            when: { effects: [swiftness, rushing, leaping] }
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: apply, to: bearer, effect: condemned }
+
+smite.angel:
+  archetype: Smite
+  element: Angel
+  name: Heavenly Mark
+  description: >-
+    Deals 20 damage to target enemy. For 1 turn, allies who damage them are Warded by the user for 1 turn.
+  cost: Wr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: heavenly_mark
+        name: Heavenly Mark
+        kind: Debuff
+        element: Angel
+        description: The applier's allies who damage the bearer are Warded by the applier.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { not: { isActor: eventSource } }
+                then: [{ op: apply, to: eventSource, effect: warded, duration: { enemyTurns: 1 } }]
+
+prayer.angel:
+  archetype: Prayer
+  element: Angel
+  name: Mercy Unbounded
+  description: Every living unit on the field, allies and enemies alike, gains 3 Renew, and 2 Armor for 3 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: apply, to: allUnits, effect: renew, stacks: 3 }
+    - { op: apply, to: allUnits, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+
+cleave.angel:
+  archetype: Cleave
+  element: Angel
+  name: Sweeping Wings
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. The downdraft lifts the ally with the least
+    HP: they Leap.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: forEach, in: weakestAlly, do: [{ op: macro, id: leap }] }
+
+shout.angel:
+  archetype: Shout
+  element: Angel
+  name: Last Trumpet
+  description: All enemies are Intimidated for 2 turns, and every ally below 30 HP gains a Halo for 1 turn.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: { filter: allAllies, where: { hpAtMost: { unit: it, value: 29 } } }, effect: halo, duration: { enemyTurns: 1 } }
+
+withstand.angel:
+  archetype: Withstand
+  element: Angel
+  name: Spread Wings
+  description: >-
+    The user gains 25 Shield and Wards every ally for 1 turn; any Shield left when it ends is split among the
+    allies.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: { filter: allAllies, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      value: 25
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spread_wings
+        name: Spread Wings
+        kind: Buff
+        element: Angel
+        shield: true
+        description: A Shield; what's left when it ends is split among the bearer's allies.
+        onExpire:
+          - op: apply
+            to: { filter: allAllies, where: { and: [{ kind: { unit: it, is: character } }, { not: { isActor: it } }] } }
+            effect: shield
+            value: { div: [{ effectValue: true }, { countOf: { filter: allAllies, where: { and: [{ kind: { unit: it, is: character } }, { not: { isActor: it } }] } } }] }
+            duration: { enemyTurns: 1 }
+
+taunt.angel:
+  archetype: Taunt
+  element: Angel
+  name: Radiant Challenge
+  description: Target enemy is Taunted by the user for 2 turns; the user has a Halo while the Taunt lasts.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: halo, duration: { enemyTurns: 2 } }
+
+titan.angel:
+  archetype: Titan
+  element: Angel
+  name: Seraphic Form
+  description: >-
+    For 3 turns, the user gains 2 Armor and Immune, and their single-target Helpful skills affect every ally at
+    once. Meanwhile, they can't use Harmful skills.
+  cost: WA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: seraphic_form
+        name: Seraphic Form
+        kind: Buff
+        element: Angel
+        description: Single-target Helpful skills reach every ally; no Harmful skills.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: true }
+        triggers:
+          - on: skillResolved
+            when: { harmful: false }
+            do:
+              - op: if
+                cond: { eventSkill: { single: true } }
+                then:
+                  - { op: castSkill, eventSkill: true, on: { filter: allAllies, where: { not: { isEventTarget: it } } } }
+
+# Minion skills.
+
+cherub_shelter:
+  archetype: Minion
+  element: Angel
+  name: Shelter
+  description: The Cherub Wards target ally for 1 turn.
+  cost: W
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: warded, duration: { enemyTurns: 1 } }
+
+cherub_holy_arrow:
+  archetype: Minion
+  element: Angel
+  name: Holy Arrow
+  description: Deals 15 damage to target enemy, who is Sanctified for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+
+lesser_angel_soothe:
+  archetype: Minion
+  element: Angel
+  name: Soothe
+  description: Target ally heals 10.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 10 }

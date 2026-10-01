@@ -1483,3 +1483,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Waterskin | Simplified: 35 if the ally used a skill in the last round. |
 | Waymarker | Ends early when the user's Trek resets. |
 | Colossus of the Dunes | Counts as Low Ceiling (Immobile) and immune to mobility buffs. |
+
+### 21.43 Angel (Wind + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Ward** | The doc's Guardian/Guarded, renamed because "Guardian" is a retired word the lint rejects. New `warded` modifier, handled in the pipeline after Blind and Fog: the first Harmful (or Radiant) single-target skill each turn that an enemy aims at a Warded unit goes to the Ward's source instead, if they can be targeted; a `ward_redirect` signal follows. |
+| **Halo** | Buff with an HP floor of 1: a hit that leaves the bearer at 1 spends it and heals them to 25 (macro `halo_save`, stamping `halo_turn`). Simplified: a hit leaving them at exactly 1 also counts. |
+| Wingstrike | Simplified: Wards the ally with the least HP. |
+| Swoop | The first direct enemy hit on the user meanwhile is halved. |
+| Watchful Eye | Simplified: every ally carries a hidden Halo for 2 turns; if it saves them, the attacker is Condemned. |
+| Beam from Above | Simplified: the last unit who damaged the target heals 25. |
+| Endless Verdict | Condemnations on them are protected from removal for 2 turns. |
+| Heavenly Host | A Halo-like effect on each ally while a Lesser Angel stands; it kills one Lesser Angel to save them. |
+| Martyr's Wings | Simplified: the user gains a Halo and Taunts that enemy (no redirect of the skill itself). |
+| Wings of Respite | While an ally of theirs has Swiftness, Stuns on the user's allies are negated, each costing the user 1 Swiftness. |
+| Fallen Grace | Mobility buffs they'd gain are removed (`eventEffect.remove`) and they're Condemned. |
+| Seraphic Form | Each single-target Helpful skill resolved is recast on every other ally (castSkill depth guard applies). |
