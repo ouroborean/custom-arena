@@ -1006,3 +1006,21 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Stench of Sulfur | Simplified: Sulfur the user gave that's cleansed away deals its bearer 10 Affliction. |
 | Lure of the Pit | The jumped Taunt lasts 1 turn. |
 | Pit Lord | Each enemy who uses a Harmful skill on the user gains 1 Sulfur (Immune already blocks the Debuffs). |
+
+### 21.16 Sun (Fire + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Corona** | `corona` (Buff, merging, 3 turns; gaining refreshes). Gained through macro `gain_corona`, which trims it to 3 (5 during Solar Maximum). It ticks at the end of its applier's turn: 5 Affliction per stack to every enemy, 5 healing per stack to every ally. |
+| **Solar Flare** | Macro `solar_flare`: spends all the user's Corona into `flared`. |
+| Scorched Earth | As Kiln Crash: while Scorched, the Shield is halved at the end of each of the user's turns. |
+| Rolling Sunstone | A Boulder-type minion whose `onDeath` Explodes (destroyed or launched). |
+| Horizon | Rises when its 2-tick timer ends (end of the enemy's turn). Enemies who used a Harmful skill meanwhile are Ignited. |
+| Sunflower / Sunseed | Start with 1 permanent Corona (gaining more makes it a normal 3-turn Corona). Scatter Seeds' Seedling is the Sunflower's own. A Sunseed's Corona passes to its creator through `onDeath`, including on expiry. |
+| Ripening Vine | Each Seedling casts Channel Earth (as itself), then loses 5 HP. |
+| Upwelling Magma | The Sun passive tracks the turn the user last dealt direct damage; turns since are counted as user turns (half the turn count). |
+| Long Summer | Each turn extends the user's Corona; the double damage applies to Ignited enemies while the Corona's applier channels it. |
+| Basking | Each Corona tick gives 1 Might for 1 turn. |
+| Heliotrope | One inline Buff (+5 direct damage, heals 5 each turn) that moves to the ally with the least HP at the start of the user's turns. |
+| Drought | While Scorched, whatever healing the bearer gets also goes to a random ally of the user (the denied half). |
+| High Noon | Other enemies get a Debuff the user is invulnerable to (`invulnerableTo`). |

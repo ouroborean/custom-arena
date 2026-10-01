@@ -1,0 +1,22 @@
+# Sun actions.
+
+# `it` gains 1 Corona (3 turns, refreshing), trimmed to 3 (5 during Solar Maximum).
+gain_corona:
+  - { op: apply, to: it, effect: corona, duration: { enemyTurns: 3 } }
+  - op: if
+    cond:
+      compare:
+        value:
+          sum:
+            - { stacks: { unit: it, effect: corona } }
+            - if: { has: { unit: it, effect: solar_maximum } }
+              then: -5
+              else: -3
+        atLeast: 1
+    then:
+      - { op: removeStacks, from: it, effect: corona, amount: 1 }
+
+# Solar Flare: spends all the actor's Corona; how much is in the variable `flared`.
+solar_flare:
+  - { op: set, var: flared, value: { stacks: { unit: actor, effect: corona } } }
+  - { op: removeEffect, from: actor, effect: corona }

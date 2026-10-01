@@ -1,0 +1,54 @@
+# Sun (Fire + Earth) statuses, from the "Fusion Spec Kits" design doc.
+
+# Max 3 (5 during Solar Maximum), kept by the `gain_corona` macro. Lasts 3 turns; gaining more
+# refreshes it.
+corona:
+  name: Corona
+  kind: Buff
+  element: Sun
+  stacking: merge
+  description: >-
+    Max 3. At the end of the applier's turn, every enemy takes 5 Affliction per stack and every ally
+    heals 5 per stack.
+  triggers:
+    - on: turnEnd
+      do:
+        # Long Summer: double against Ignited enemies.
+        - op: damage
+          to: allEnemies
+          type: Affliction
+          direct: false
+          amount:
+            mul:
+              - 5
+              - { effectStacks: true }
+              - if: { and: [{ has: { unit: it, effect: ignite } }, { has: { unit: actor, effect: long_summer } }] }
+                then: 2
+                else: 1
+        - { op: heal, to: allAllies, amount: { mul: [5, { effectStacks: true }] } }
+        # Basking: each tick gives 1 Might.
+        - op: if
+          cond: { has: { unit: bearer, effect: basking } }
+          then:
+            - { op: apply, to: bearer, effect: might, duration: { enemyTurns: 1 } }
+
+# Fusion passive (every Sun character): remembers when they last dealt direct damage (Upwelling Magma).
+sun_heart:
+  name: Sun's Heart
+  kind: Neutral
+  element: Sun
+  stacking: unique
+  description: Tracks the turns since this character last dealt direct damage.
+  triggers:
+    - on: dealtDamage
+      when: { direct: true }
+      do:
+        - { op: setCounter, name: last_direct, value: { turn: true } }
+
+# High Noon: units with this can't target or damage the Taunting user.
+high_noon_shut:
+  name: High Noon
+  kind: Debuff
+  element: Sun
+  stacking: unique
+  description: Can't target or damage the High Noon user.
