@@ -201,6 +201,14 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   // Anyone can listen for damage anywhere (Blood Chalice).
   broadcastSignal(ctx, 'unitDamaged', source, { target, eventSkill: a.skill });
   for (const { e, take } of hitShields) enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill, take);
+  // The bearer's other effects hear it too ("when their Shield breaks…": Wall of Bones, Bone Carapace).
+  if (hitShields.length > 0) {
+    const absorbedTotal = hitShields.reduce((n, h) => n + h.take, 0);
+    for (const e of effectsOn(ctx.s, target.id)) {
+      if (effectDef(ctx.c, e).shield) continue;
+      enqueueOn(ctx, e, 'shieldDamaged', source, target, a.direct, a.skill, absorbedTotal);
+    }
+  }
   if (source !== target) {
     for (const e of effectsOn(ctx.s, source.id)) enqueueOn(ctx, e, 'dealtDamage', source, target, a.direct, a.skill);
   }

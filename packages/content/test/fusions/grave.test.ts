@@ -605,8 +605,7 @@ describe('Grave skills', () => {
     expect(a.hp(A1)).toBe(80); // 5 left on turn 4; the 2nd strike is 25 (20 + 1 Might)
   });
 
-  // BUG: Wall of Bones says "When it breaks, a Skeleton rises"; the Shield is depleted but no Skeleton appears.
-  it.fails('Wall of Bones: when it breaks, a Skeleton rises, spending no Grave', () => {
+  it('Wall of Bones: when it breaks, a Skeleton rises, spending no Grave', () => {
     const a = grave({ p0: [['withstand.grave']], p1: [['smash'], ['shot']] });
     setGraves(a, 2).use(A1, 'withstand.grave').end().use(B1, 'smash', A1).use(B2, 'shot', A1).end();
     expect([minions(a, 0, 'skeleton').length, graves(a)]).toEqual([1, 2]);

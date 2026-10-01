@@ -649,8 +649,7 @@ describe('Spore skills', () => {
     expect(minions(a, 0, 'seedling')).toHaveLength(1); // the Intimidation is over
   });
 
-  // BUG: "each enemy hit it absorbs triggers Channel Growth" — two fully absorbed hits leave the Seedlings unchanged.
-  it.fails('Humus Wall: 25 Shield for 1 turn; each enemy hit it absorbs gives the Seedlings Channel Growth', () => {
+  it('Humus Wall: 25 Shield for 1 turn; each enemy hit it absorbs gives the Seedlings Channel Growth', () => {
     const a = arena({ p0: [['withstand.spore', 'summon.earth']], p1: [['stab'], ['stab']] });
     a.use(A1, 'summon.earth').end().pass(1).use(A1, 'withstand.spore').end();
     const seeds = minions(a, 0, 'seedling');

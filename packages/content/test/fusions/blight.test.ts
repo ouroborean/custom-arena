@@ -415,15 +415,13 @@ describe('Blight skills', () => {
     expect([a.hp(B2), a.hp(B1), a.hp(A1)]).toEqual([65, 100, 85]);
   });
 
-  // BUG: "whoever breaks it has a Soul Fragment drained" — a 20 hit that depletes the 20 Shield drains nothing.
-  it.fails('Bone Carapace: 20 Shield; whoever breaks it has a Soul Fragment drained', () => {
+  it('Bone Carapace: 20 Shield; whoever breaks it has a Soul Fragment drained', () => {
     const a = arena({ p0: [['withstand.blight']], p1: [['strike']] });
     a.use(A1, 'withstand.blight').end().use(B1, 'strike', A1).end();
     expect([a.hp(A1), a.stacks(A1, 'soul_fragment')]).toEqual([100, 1]);
   });
 
-  // BUG: same as above — a hit that breaks through the Shield drains nothing either.
-  it.fails('Bone Carapace: a hit that breaks through it also drains a Soul Fragment', () => {
+  it('Bone Carapace: a hit that breaks through it also drains a Soul Fragment', () => {
     const a = arena({ p0: [['withstand.blight']], p1: [['strike']] });
     a.give(B1, 'might', { stacks: 2 });
     a.use(A1, 'withstand.blight').end().use(B1, 'strike', A1).end();
