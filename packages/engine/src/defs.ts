@@ -406,6 +406,13 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'muteTraps' }
   /** Thunder's Stormspire: enemy skills aimed at all of the bearer's side hit only the bearer. */
   | { mod: 'absorbAoE' }
+  /** Cloud's Becalmed: the bearer's skills Drift. */
+  | { mod: 'driftSkills' }
+  /**
+   * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
+   * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.
+   */
+  | { mod: 'deferHits'; status: string; reduceBy: number; delay: number }
   /** The bearer's HP can't be reduced below `amount` (Unholy Immortal). */
   | { mod: 'hpFloor'; amount: number }
   /** The bearer heals for the HP it removes from other characters (Unholy Lifesteal). */
@@ -561,6 +568,8 @@ export interface EffectDef {
   interruptible?: boolean;
   /** Explicit exception to the Invulnerable rule for Affliction/indirect damage it deals (Fire Explode). */
   respectsInvulnerable?: boolean;
+  /** Status keys this one also counts as for `has` checks (Cloud's Aloft counts as Leaping). */
+  countsAs?: string[];
   modifiers?: ModifierSpec[];
   triggers?: TriggerSpec[];
   /** Runs when the effect's duration naturally reaches 0 (not when interrupted or consumed). */
@@ -583,7 +592,9 @@ export type SkillTag =
   | 'Bypass'
   | 'Unstunnable'
   | 'UsableWhileStunned'
-  | 'Stealthy';
+  | 'Stealthy'
+  /** Cloud: the skill hangs in the air and lands at the start of its user's next turn. */
+  | 'Drift';
 
 export interface SkillDef {
   id: string;

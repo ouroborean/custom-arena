@@ -5,6 +5,7 @@ import { checkpoint, effectDef, effectKey, emit, livingCharacters, other, type C
 import { removeEffect } from './effects.js';
 import { enqueueFor, enqueueTriggers, expireEffect, flushTriggers } from './ops.js';
 import { energyGainBonus } from './queries.js';
+import { landDrifting } from './pipeline.js';
 import { pick } from './rng.js';
 import { COLORS, type EffectInstance, type Energy } from './types.js';
 
@@ -47,6 +48,8 @@ export function startTurn(ctx: Ctx): void {
     removeEffect(ctx, e, 'consumed');
   }
 
+  // Cloud's Drift: last turn's drifting skills land now.
+  landDrifting(ctx);
   for (const u of ctx.s.units) if (u.alive && u.owner === p) enqueueTriggers(ctx, u.id, 'turnStart');
   flushTriggers(ctx);
   checkGameOver(ctx);

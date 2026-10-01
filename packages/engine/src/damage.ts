@@ -6,7 +6,7 @@
 
 import { archetypeOf, effectDef, effectsOn, emit, isEnemy, type Ctx, type PendingTrigger } from './ctx.js';
 import { broadcastSignal, enqueueFor } from './ops.js';
-import { interruptChannels, removeEffect } from './effects.js';
+import { applyEffect, interruptChannels, removeEffect } from './effects.js';
 import {
   blocksIndirectDamage,
   canTarget,
@@ -67,6 +67,21 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
   if (source !== target && modsOn(ctx.s, ctx.c, target.id, 'redirectDamage').length > 0) {
     const minions = ctx.s.units.filter((u) => u.alive && u.owner === target.owner && u.kind === 'minion');
     if (minions.length > 0) return dealDamage(ctx, { ...a, target: minions[nextInt(ctx.s.rng, minions.length)]! });
+  }
+
+  // Cloud's Rain Check: the hit is held and lands later, smaller (as the held status's own damage).
+  const defer = a.raw ? undefined : modsOn(ctx.s, ctx.c, target.id, 'deferHits')[0];
+  if (defer && source !== target && ctx.c.statuses[defer.spec.status]) {
+    applyEffect(ctx, {
+      def: ctx.c.statuses[defer.spec.status]!,
+      inline: false,
+      bearer: target,
+      source,
+      value: Math.max(0, a.amount - defer.spec.reduceBy),
+      duration: { raw: defer.spec.delay },
+    });
+    emit(ctx, { t: 'damageBlocked', source: source.id, target: target.id, reason: 'held' });
+    return 0;
   }
 
   // Retribution: direct damage from enemies heals instead (after all damage modifiers).

@@ -743,3 +743,29 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Rolling Hymn | Until the user's next turn, each skill an enemy uses heals all the user's allies 10. |
 | Thunder Cage | Each hit on the Shield echoes half of what it absorbed back at its attacker (the `shieldDamaged` trigger now carries the amount). |
 | Stormspire | New `absorbAoE` modifier: an enemy skill that targets all of the user's side is retargeted to the user alone. Splash from single-target skills isn't redirected. |
+
+### 21.5 Cloud (Wind + Wind)
+
+| Term | Ruling |
+|---|---|
+| **Drift** | A new skill tag. When a Drift skill is used, its cooldown starts and it joins the public `drifting` list (event `skillDrifting`) instead of resolving. At the start of its user's next turn it lands: it resolves through the normal skill pipeline, so counters and Traps react then. It uses the same targets if they're still valid, otherwise a random valid one. It lands even if the user is Stunned, but is lost if they died. A minion's Drift lands on its owner's next turn. |
+| **Aloft** | Statuses can now `countsAs` other statuses for `has` checks: Aloft counts as Leaping (Wind's payoffs and Immobile see it). It gives +5 direct damage, isn't ended by dealing damage, and gives no Invulnerability. |
+
+| Skill | Ruling |
+|---|---|
+| Anvil Cloud | A 2-turn delay on the user (not a Drift): lands just before the user's second turn from now, unless they die. |
+| Rise Above | **Simplified:** at the start of each of the user's turns while it lasts, all their Debuffs drift off (including ones from before). |
+| Hailfall | Hits every other unit, minions included, that isn't Leaping or Aloft. |
+| Squall Line | Enemies who use a Harmful skill before it breaks are marked and take 30 Piercing; the rest take 15. |
+| Overcast | Each skill the target uses adds a cloud. When it ends, the clouds drift in: 15 each, a turn later. |
+| Idle Updraft | Wind's Rushing skips its idle-turn removal while the user has Idle Updraft. |
+| Cirrus Bolt | Drifts with no chosen target; on landing it hits the enemy with the least HP. |
+| Cloudburst | If the user was Leaping, the Leap is renewed after the hit (no new Invulnerability); otherwise they Leap. Aloft stays as it is. |
+| Evaporate | The second drain is a delayed effect on the user, not a landing skill. |
+| Low Ceiling | Wind's Immobile condition now also counts a unit with Low Ceiling. |
+| Sleet Squall | **Simplified:** Aloft for 1 turn, matching the Stun's duration (it doesn't end early if the Stun is removed). |
+| Rain Check | New `deferHits` modifier: each hit on the ally (from someone else) becomes a held hit 10 lower, landing at the end of that turn as indirect damage. |
+| Lift | Removes any Taunt; a Taunt gained while Aloft is removed at once. |
+| Becalmed | New `driftSkills` modifier: the target's skills Drift while it lasts. |
+| Cloudbank | Leaps if the Shield is depleted while the user is Rushing. |
+| Looming Cloud, Cloud Titan | Their damage drifts in as a held "Drifting Damage" effect a turn later. Cloud Titan marks the last enemy to damage the user. |

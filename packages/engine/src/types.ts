@@ -129,6 +129,15 @@ export interface GameState {
   effects: EffectInstance[];
   settings: MatchSettings;
   seq: number;
+  /** Skills hanging in the air (Cloud's Drift), landing at the start of their user's next turn. Public. */
+  drifting?: DriftingSkill[];
+}
+
+export interface DriftingSkill {
+  actor: UnitId;
+  slot: number;
+  defId: string;
+  targets: UnitId[];
 }
 
 // ---------------------------------------------------------------- match setup
@@ -185,6 +194,7 @@ export type EventBody =
   | { t: 'energyGained'; player: PlayerId; gained: Energy }
   /** `stealthFrom`: that player only learns that a Stealthed unit acted (R6). */
   | { t: 'skillUsed'; actor: UnitId; skill: string; targets: UnitId[]; secretFrom?: PlayerId; stealthFrom?: PlayerId }
+  | { t: 'skillDrifting'; actor: UnitId; skill: string; targets: UnitId[] }
   | { t: 'skillFailed'; actor: UnitId; skill: string; reason: string; refunded: boolean }
   | { t: 'skillCountered'; actor: UnitId; skill: string; by: UnitId; effect: string; reflected: boolean }
   | {

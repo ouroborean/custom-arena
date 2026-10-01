@@ -241,8 +241,10 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   if ('has' in c) {
     const u = select(ctx, c.has.unit, sc)[0];
     if (!u) return false;
-    if (!c.has.mine) return hasEffect(ctx.s, u.id, c.has.effect);
-    return effectsOn(ctx.s, u.id).some((e) => effectKeyOf(e) === c.has.effect && e.source === sc.actor);
+    // A status can count as another for these checks (Cloud's Aloft counts as Leaping).
+    const matches = (e: EffectInstance) => effectKeyOf(e) === c.has.effect || (effectDef(ctx.c, e).countsAs?.includes(c.has.effect) ?? false);
+    if (!c.has.mine) return hasEffect(ctx.s, u.id, c.has.effect) || effectsOn(ctx.s, u.id).some(matches);
+    return effectsOn(ctx.s, u.id).some((e) => matches(e) && e.source === sc.actor);
   }
   if ('hasFromArchetype' in c) {
     const u = select(ctx, c.hasFromArchetype.unit, sc)[0];

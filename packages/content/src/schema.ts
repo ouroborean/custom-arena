@@ -250,6 +250,8 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('borrowShield') }),
   mod({ mod: z.literal('muteTraps') }),
   mod({ mod: z.literal('absorbAoE') }),
+  mod({ mod: z.literal('driftSkills') }),
+  mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 
 export const opSchema: z.ZodType<Op> = z.lazy(() =>
@@ -423,6 +425,7 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     shield: z.boolean().optional(),
     interruptible: z.boolean().optional(),
     respectsInvulnerable: z.boolean().optional(),
+    countsAs: z.array(z.string()).optional(),
     modifiers: z.array(modifierSchema).optional(),
     triggers: z.array(triggerSchema).optional(),
     onExpire: z.array(opSchema).optional(),
@@ -442,6 +445,7 @@ const skillTag = z.enum([
   'Unstunnable',
   'UsableWhileStunned',
   'Stealthy',
+  'Drift',
 ]);
 
 /** Skills are keyed by id in the file; the loader injects `id`. */

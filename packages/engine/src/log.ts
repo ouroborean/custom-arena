@@ -46,6 +46,10 @@ export function formatEvent(content: ContentBundle, units: readonly Unit[], e: G
   switch (e.t) {
     case 'turnStart':
       return `— Turn ${e.turn}: Player ${e.player + 1} —`;
+    case 'skillDrifting': {
+      const on = e.targets.length ? ` on ${e.targets.map(name).join(', ')}` : '';
+      return `${name(e.actor)}'s ${skill(e.skill)} drifts${on}; it lands next turn`;
+    }
     case 'energyGained':
       return `Player ${e.player + 1} gains ${energyText(e.gained)}`;
     case 'skillUsed': {

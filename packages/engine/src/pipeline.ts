@@ -206,7 +206,40 @@ export function useQueuedSkill(ctx: Ctx, action: QueuedAction): void {
   const tr = resolveTargets(ctx, actor, def, action.targets, false);
   if (!tr.ok) return fail(ctx, actor, def, tr.reason, false);
 
-  useSkill(ctx, actor, action.slot, def, blindTargets(ctx, actor, def, tr.targets));
+  const targets = blindTargets(ctx, actor, def, tr.targets);
+  // Cloud's Drift: the use hangs in the air (cooldown starts now) and lands next turn (landDrifting).
+  if (def.tags.includes('Drift') || modsOn(ctx.s, ctx.c, actor.id, 'driftSkills').length > 0) {
+    if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
+    actor.counters.actedTurn = ctx.s.turn;
+    (ctx.s.drifting ??= []).push({ actor: actor.id, slot: action.slot, defId: def.id, targets });
+    emit(ctx, { t: 'skillDrifting', actor: actor.id, skill: def.id, targets });
+    return;
+  }
+  useSkill(ctx, actor, action.slot, def, targets);
+}
+
+/**
+ * Lands the active player's drifting skills: each resolves now on the same targets if they're still
+ * valid (otherwise a random valid one), even if the user is Stunned; it's lost if they died.
+ */
+export function landDrifting(ctx: Ctx): void {
+  const p = ctx.s.activePlayer;
+  const mine = (ctx.s.drifting ?? []).filter((d) => unit(ctx, d.actor).owner === p);
+  if (mine.length === 0) return;
+  ctx.s.drifting = (ctx.s.drifting ?? []).filter((d) => !mine.includes(d));
+  for (const d of mine) {
+    const actor = unit(ctx, d.actor);
+    if (!actor.alive || ctx.s.phase === 'finished') continue;
+    const def = skillDef(ctx.c, d.defId);
+    let tr = resolveTargets(ctx, actor, def, d.targets, false);
+    if (!tr.ok && (def.target === 'enemy' || def.target === 'ally' || def.target === 'any')) {
+      const legal = ctx.s.units.filter((u) => u.alive && resolveTargets(ctx, actor, def, [u.id], true).ok);
+      if (legal.length > 0) tr = { ok: true, targets: [legal[nextInt(ctx.s.rng, legal.length)]!.id] };
+    }
+    if (!tr.ok) continue;
+    useSkill(ctx, actor, d.slot, def, tr.targets, { landing: true });
+    flushTriggers(ctx);
+  }
 }
 
 /** Blinded: a single-target skill's primary target is re-rolled among every legal target (GDD §3.6). */
@@ -218,7 +251,7 @@ function blindTargets(ctx: Ctx, actor: Unit, def: SkillDef, targets: UnitId[]): 
   return [legal[nextInt(ctx.s.rng, legal.length)]!.id];
 }
 
-export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[]): void {
+export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, targets: UnitId[], opts: { landing?: boolean } = {}): void {
   const harmful = def.tags.includes('Harmful');
   const tags = effectiveTags(ctx, actor, def);
   // "Allies that acted before you this turn" (equipment).
@@ -226,7 +259,8 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
 
   // 3. Cooldown starts, and using a skill ends the user's other channels (Q6), unless equipment says otherwise.
   const slot = actor.skills[slotIndex];
-  if (slot) slot.cooldown = cooldownOnUse(ctx, actor, def);
+  // A landing Drift already started its cooldown when it was used.
+  if (slot && !opts.landing) slot.cooldown = cooldownOnUse(ctx, actor, def);
   if (modsFor(ctx, actor.id, 'keepChannels', def).length === 0) interruptChannels(ctx, actor, 'skillUse');
 
   const secret = tags.includes('HiddenTarget');
