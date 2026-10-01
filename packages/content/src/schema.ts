@@ -323,6 +323,7 @@ export const opSchema: z.ZodType<Op> = z.lazy(() =>
     z.strictObject({ op: z.literal('swapCooldowns'), a: selectorSchema, b: selectorSchema }),
     z.strictObject({ op: z.literal('shiftEnergy'), of: selectorSchema, count: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('stealEnergy'), from: selectorSchema }),
+    z.strictObject({ op: z.literal('spendEnergy'), amount: z.number().int().min(1) }),
     z.strictObject({ op: z.literal('expire'), on: selectorSchema, effect: z.string(), times: z.number().int().min(1).optional() }),
     z.strictObject({ op: z.literal('interrupt'), to: selectorSchema }),
     z.strictObject({ op: z.literal('removeShields'), from: selectorSchema }),

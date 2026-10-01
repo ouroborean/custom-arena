@@ -711,6 +711,19 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       emit(ctx, { t: 'energyGained', player: actor.owner, gained: { S: 0, A: 0, I: 0, W: 0, [most]: 1 } }, actor.owner);
       return;
     }
+    case 'spendEnergy': {
+      const pool = ctx.s.players[actor.owner].energy;
+      const gained: Energy = { S: 0, A: 0, I: 0, W: 0 };
+      for (let i = 0; i < op.amount; i++) {
+        const held = COLORS.filter((c) => pool[c] > 0);
+        if (held.length === 0) break;
+        const c = pick(ctx.s.rng, held);
+        pool[c] -= 1;
+        gained[c] -= 1;
+      }
+      emit(ctx, { t: 'energyGained', player: actor.owner, gained }, actor.owner);
+      return;
+    }
     case 'swapCooldowns': {
       const longest = (u: Unit | undefined) =>
         u?.skills

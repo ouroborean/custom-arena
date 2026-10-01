@@ -1,0 +1,20 @@
+# Winter (Ice + Wind) statuses, from the "Fusion Spec Kits" design doc.
+
+snowbound:
+  name: Snowbound
+  kind: Debuff
+  element: Winter
+  stacking: unique
+  description: >-
+    Counts as a Frost debuff, and the bearer counts as Immobile. They lose their mobility buffs
+    (Swiftness, Rushing, Leaping), can't gain new ones, and their mobility skills cost 1 more.
+  modifiers:
+    - { mod: immuneToEffects, effects: [swiftness, rushing, leaping] }
+    - { mod: costGeneric, amount: 1, archetypes: [Charge, Maneuver, Mislead, Dance] }
+  triggers:
+    - on: effectGained
+      effect: snowbound
+      do:
+        - { op: removeEffect, from: bearer, effect: swiftness }
+        - { op: removeEffect, from: bearer, effect: rushing }
+        - { op: removeEffect, from: bearer, effect: leaping }

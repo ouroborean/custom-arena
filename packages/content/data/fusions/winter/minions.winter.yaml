@@ -1,0 +1,26 @@
+# Winter minions.
+
+great_yeti:
+  name: Great Yeti
+  hp: 80
+  passives:
+    - id: great_yeti_hunger
+      name: Hungry Yeti
+      kind: Neutral
+      element: Winter
+      description: At the start of its owner's turns, their player pays 1 random energy to feed it, or it leaves.
+      triggers:
+        - on: turnStart
+          do:
+            - op: if
+              cond: { compare: { value: { energy: true }, atLeast: 1 } }
+              then:
+                - { op: spendEnergy, amount: 1 }
+              else:
+                - { op: kill, to: actor }
+  skills: [great_yeti_maul]
+
+snow_sprite:
+  name: Snow Sprite
+  hp: 10
+  skills: [snow_sprite_flurry]

@@ -1114,3 +1114,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Color Drain | Each turn they start Dazzled, they're also Sapped. |
 | Arc of Lights | The arc goes to a random other enemy. |
 | Polar Beacon | While Taunted, each Sapped gained adds one more. |
+
+### 21.22 Winter (Ice + Wind)
+
+| Term | Ruling |
+|---|---|
+| **Snowbound** | Debuff: strips Swiftness, Rushing and Leaping when gained, blocks them (`immuneToEffects`), +1 cost on Charge, Maneuver, Mislead and Dance skills. Wind's `immobile` condition now includes it. Winter's Frost-debuff lists include it. |
+| Bitter Blow | Simplified: Snowbound if the target currently has a mobility buff. |
+| Snowball | Counts consecutive uses by turn number (each of the user's turns is 2 apart). |
+| Powder Leap | Simplified: only the last enemy who damaged the user is Snowbound. |
+| Great Yeti | New `spendEnergy` op: at the start of each of its owner's turns, 1 random energy, or it dies. |
+| Snow Sprites | A Flurry marks the target until the end of the turn; a second Flurry Snowbinds them. |
+| Long Winter | Each turn pushes the enemies' Frost debuffs 2 ticks further out. |
+| Updraft Feint | Simplified: the user Leaps normally (the "not spent by the next damaging skill" clause isn't modeled). |
+| Snow Dance | Uses the `incomingNegated` trigger (their Swiftness stopped a Stun). |
+| Rime Mantle | While Frostborn, Frost debuffs they apply get 1 more turn (`eventEffect`). |
+| Frostfeather | The second hit from an ally (any ally) Snowbinds them. |
+| Dead of Winter | Healing modifiers ×0 on every unit (raw heals, such as Repair, still work). |

@@ -6,6 +6,8 @@
 immobile:
   or:
     - { has: { unit: it, effect: low_ceiling } }
+    # Winter's Snowbound.
+    - { has: { unit: it, effect: snowbound } }
     - and:
         - { kind: { unit: it, is: character } }
         - { not: { hasSkill: { unit: it, archetypes: [Charge, Maneuver, Mislead, Dance] } } }

@@ -234,6 +234,8 @@ export type Op =
   | { op: 'shiftEnergy'; of: Selector; count?: number }
   /** Aurora's Drink the Light: the unit's player loses 1 energy of the color they hold most; the actor's gains it. */
   | { op: 'stealEnergy'; from: Selector }
+  /** The actor's player pays `amount` random energy (as much as they have). */
+  | { op: 'spendEnergy'; amount: number }
   /** Ends the units' effects with this key (or counting as it) as if their time ran out; `times` runs the onExpire that often (Devil's Collection Day). */
   | { op: 'expire'; on: Selector; effect: string; times?: number }
   /** Ends every channel the targets hold, as a Stun would (Dragon's Tail Sweep). */
