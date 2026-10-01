@@ -1,0 +1,713 @@
+# The 30 Sanctuary (Earth + Holy) variants, from the "Fusion Spec Kits" design doc.
+# Sanctum (status `sanctum`, macros `raise_sanctum` / `lower_sanctum`) and Wardstones (minion `wardstone`).
+
+strike.sanctuary:
+  archetype: Strike
+  element: Sanctuary
+  name: Toppled Idol
+  description: >-
+    Deals 20 damage to target enemy. If an allied Boulder stands, one topples onto them: it dies, and they take 15
+    more and are Condemned.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+      do:
+        - { op: kill, to: it }
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: primary, effect: condemned }
+
+smash.sanctuary:
+  archetype: Smash
+  element: Sanctuary
+  name: Cracking Foundation
+  description: >-
+    Deals 25 damage to target enemy and 15 to their allies. Each allied Boulder loses 15 HP and adds 5 to every
+    hit.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: stones, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } } }
+    - { op: damage, to: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } }, amount: 15, raw: true, direct: false }
+    - { op: damage, to: primary, amount: { sum: [25, { mul: [5, { var: stones }] }] } }
+    - { op: damage, to: primaryAllies, amount: { sum: [15, { mul: [5, { var: stones }] }] } }
+
+charge.sanctuary:
+  archetype: Charge
+  element: Sanctuary
+  name: Pilgrim's Stride
+  description: >-
+    Deals 15 damage to target enemy. If an ally of the user has Shield, the user is Anointed until the end of
+    their next turn.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { any: { in: allAllies, cond: { hasShield: it } } }
+      then: [{ op: apply, to: actor, effect: anointed, duration: { raw: 3 } }]
+
+riposte.sanctuary:
+  archetype: Riposte
+  element: Sanctuary
+  name: Sheltering Stone
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, or on each ally if your Sanctum is at 3; its
+    user takes 10 Piercing damage. Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to:
+        filter: allAllies
+        where:
+          or:
+            - { isActor: it }
+            - { compare: { value: { totalStacks: { in: allAllies, effect: sanctum } }, atLeast: 3 } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: sheltering_stone
+        name: Sheltering Stone
+        kind: Buff
+        element: Sanctuary
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer; its user takes 10 Piercing.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: damage, to: eventSource, amount: 10, type: Piercing }
+
+rage.sanctuary:
+  archetype: Rage
+  element: Sanctuary
+  name: Temple Within
+  description: >-
+    The user takes in your Sanctum: it ends, and for 3 turns they gain Immune and 1 Might and 1 Armor per level it
+    had (at least 1).
+  cost: AW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: level, value: { totalStacks: { in: allAllies, effect: sanctum } } }
+    - { op: removeEffect, from: allAllies, effect: sanctum }
+    - { op: set, var: level, value: { if: { compare: { value: { var: level }, atLeast: 1 } }, then: { var: level }, else: 1 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: might, stacks: { var: level }, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: { var: level }, duration: { enemyTurns: 3 } }
+
+shot.sanctuary:
+  archetype: Shot
+  element: Sanctuary
+  name: Sprouting Stone
+  description: Deals 15 damage to target enemy, and one allied Seedling grows into a Worldsprout.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: forEach
+      in: { randomAlly: 1, where: { minion: { unit: it, types: [seedling] } } }
+      do:
+        - { op: transformMinion, to: it, minion: worldsprout }
+
+snipe.sanctuary:
+  archetype: Snipe
+  element: Sanctuary
+  name: Obelisk
+  description: >-
+    The user creates a Wardstone now. In 2 turns, deals 50 damage to target enemy, +20 if an allied Wardstone
+    still stands. Channeled.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - { op: summon, minion: wardstone }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: obelisk
+        name: Obelisk
+        kind: Neutral
+        element: Sanctuary
+        interruptible: true
+        description: When this runs out, its target takes 50 damage, +20 with an allied Wardstone standing.
+        onExpire:
+          - op: damage
+            to: effectTargets
+            amount:
+              if: { any: { in: allAllies, cond: { minion: { unit: it, types: [wardstone] } } } }
+              then: 70
+              else: 50
+
+trap.sanctuary:
+  archetype: Trap
+  element: Sanctuary
+  name: Sacred Boundary
+  description: >-
+    For 3 turns, the first time target enemy damages one of the user's allies, they take 15 damage and your
+    Sanctum rises by 1. Invisible.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sacred_boundary
+        name: Sacred Boundary
+        kind: Debuff
+        element: Sanctuary
+        visibility: hidden
+        description: The first time the bearer damages one of the applier's allies, they take 15 and the Sanctum rises.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, toEnemy: true }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 15 }
+              - { op: macro, id: raise_sanctum }
+
+maneuver.sanctuary:
+  archetype: Maneuver
+  element: Sanctuary
+  name: Take Sanctuary
+  description: >-
+    The user becomes Invulnerable for 1 turn. If your Sanctum is at 3, it drops to 1 and every ally becomes
+    Invulnerable instead.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { compare: { value: { totalStacks: { in: allAllies, effect: sanctum } }, atLeast: 3 } }
+      then:
+        - { op: removeStacks, from: allAllies, effect: sanctum, amount: 2 }
+        - { op: apply, to: allAllies, effect: invulnerable, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+
+companion.sanctuary:
+  archetype: Companion
+  element: Sanctuary
+  name: Temple Warden
+  description: >-
+    Summons a Temple Warden (50 HP, counts as a Wardstone) permanently. Stone Fist (nc): 10 damage. Bless the
+    Ground (r): your Sanctum rises by 1.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: temple_warden }
+
+bolt.sanctuary:
+  archetype: Bolt
+  element: Sanctuary
+  name: Stone Rebuke
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. The first ally who damages them meanwhile also
+    raises your Sanctum by 1.
+  cost: I
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: stone_rebuke
+        name: Stone Rebuke
+        kind: Debuff
+        element: Sanctuary
+        description: The first direct hit from the applier's side raises their Sanctum by 1.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: macro, id: raise_sanctum }
+
+blast.sanctuary:
+  archetype: Blast
+  element: Sanctuary
+  name: Tremor of Faith
+  description: >-
+    Deals 20 Piercing damage to all enemies, +10 per level of your Sanctum; then your Sanctum drops by 1.
+  cost: IW
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: damage
+      to: targets
+      type: Piercing
+      amount: { sum: [20, { mul: [10, { totalStacks: { in: allAllies, effect: sanctum } }] }] }
+    - { op: macro, id: lower_sanctum }
+
+consume.sanctuary:
+  archetype: Consume
+  element: Sanctuary
+  name: Holy Harvest
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. If they're Sanctified, the user creates a Wardstone.
+  cost: W
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: 5 }
+    - op: if
+      cond: { has: { unit: primary, effect: sanctify } }
+      then: [{ op: summon, minion: wardstone }]
+
+summon.sanctuary:
+  archetype: Summon
+  element: Sanctuary
+  name: Stonemason
+  description: >-
+    Summons a Stonemason (20 HP) for 3 turns. Carve (r): creates a Boulder, or a Wardstone if your Sanctum is at 2
+    or more.
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: stonemason, duration: { enemyTurns: 3 } }
+
+channel.sanctuary:
+  archetype: Channel
+  element: Sanctuary
+  name: Build the Sanctuary
+  description: >-
+    For 3 turns, at the end of each of the user's turns, your Sanctum rises by 1; if it's already at 3, all enemies
+    take 10 damage instead. Channeled.
+  cost: Ir
+  cooldown: 3
+  tags: [Helpful, Strategic, Channeled]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: build_the_sanctuary
+        name: Build the Sanctuary
+        kind: Neutral
+        element: Sanctuary
+        interruptible: true
+        description: Each turn, the Sanctum rises by 1, or at 3, all enemies take 10 damage.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { totalStacks: { in: allAllies, effect: sanctum } }, atLeast: 3 } }
+                then:
+                  - { op: damage, to: allEnemies, amount: 10, direct: false }
+                  - { op: macro, id: raise_sanctum }
+                else:
+                  - { op: macro, id: raise_sanctum }
+
+stab.sanctuary:
+  archetype: Stab
+  element: Sanctuary
+  name: Penitent's Awl
+  description: >-
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. Their Condemned resolves now, as if they'd used a
+    skill.
+  cost: A
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { has: { unit: primary, effect: condemned } }
+      then:
+        - { op: removeEffect, from: primary, effect: condemned }
+        - op: random
+          options:
+            - [{ op: apply, to: primary, effect: weakness }]
+            - [{ op: apply, to: primary, effect: vulnerable }]
+            - [{ op: apply, to: primary, effect: confusion }]
+
+ravage.sanctuary:
+  archetype: Ravage
+  element: Sanctuary
+  name: Ramstone Drill
+  description: >-
+    Deals 25 Piercing damage to target enemy, +5 per Armor the user has. Then the user loses 1 Armor.
+  cost: Wr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, type: Piercing, amount: { sum: [25, { mul: [5, { totalStacks: { in: actor, effect: armor } }] }] } }
+    - { op: removeStacks, from: actor, effect: armor, amount: 1 }
+
+mislead.sanctuary:
+  archetype: Mislead
+  element: Sanctuary
+  name: Right of Asylum
+  description: >-
+    For 1 turn, the first Harmful skill an enemy uses on each of the user's other allies is countered. Invisible.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: { filter: allAllies, where: { not: { isActor: it } } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: right_of_asylum
+        name: Right of Asylum
+        kind: Buff
+        element: Sanctuary
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+
+stun.sanctuary:
+  archetype: Stun
+  element: Sanctuary
+  name: Penance in Stone
+  description: >-
+    Target enemy is Stunned for 1 turn, +1 turn for each allied Wardstone (up to 3 turns in all).
+  cost: Ar
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: set, var: wards, value: { sum: [1, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [wardstone] } } } }] } }
+    - op: apply
+      to: primary
+      effect: stun
+      duration: { enemyTurns: { if: { compare: { value: { var: wards }, atLeast: 3 } }, then: 3, else: { var: wards } } }
+
+dance.sanctuary:
+  archetype: Dance
+  element: Sanctuary
+  name: Stately Measure
+  description: >-
+    For 4 turns, at the start of each of the user's turns, they gain 1 Might, 1 Armor and 1 Focus (max 3 each). It
+    all ends if they use a mobility skill.
+  cost: AA
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 4 }
+      effect:
+        id: stately_measure
+        name: Stately Measure
+        kind: Buff
+        element: Sanctuary
+        description: Each turn, +1 Might, Armor and Focus (max 3 each); a mobility skill ends it all.
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { compare: { value: { stacks: { unit: bearer, effect: stately_might } }, atMost: 2 } }
+                then:
+                  - { op: apply, to: bearer, effect: stately_might, linkTo: stately_measure }
+                  - { op: apply, to: bearer, effect: armor, linkTo: stately_measure }
+                  - { op: apply, to: bearer, effect: focus, linkTo: stately_measure }
+          - on: skillUsed
+            when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
+            do:
+              - { op: removeSelf }
+
+heal.sanctuary:
+  archetype: Heal
+  element: Sanctuary
+  name: Day of Rest
+  description: >-
+    Target ally heals 20. If they use no Harmful skill on their next turn, they heal 30 more at its end.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 20 }
+    - op: apply
+      to: primary
+      duration: { ownTurns: 1 }
+      effect:
+        id: day_of_rest
+        name: Day of Rest
+        kind: Buff
+        element: Sanctuary
+        description: If the bearer uses no Harmful skill this turn, they heal 30 at its end.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: removeSelf }
+        onExpire:
+          - { op: heal, to: bearer, amount: 30 }
+
+bless.sanctuary:
+  archetype: Bless
+  element: Sanctuary
+  name: Stone Vow
+  description: >-
+    For 3 turns, target ally gains 1 Might, and while an allied Wardstone stands, it takes half the damage they
+    would.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: stone_vow
+        name: Stone Vow
+        kind: Buff
+        element: Sanctuary
+        description: While an allied Wardstone stands, it takes half the damage the bearer would; the bearer gets that back.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { any: { in: bearerAllies, cond: { minion: { unit: it, types: [wardstone] } } } }
+                then:
+                  - { op: set, var: half, value: { div: [{ eventAmount: true }, 2] } }
+                  - { op: heal, to: bearer, amount: { var: half }, quiet: true }
+                  - op: damage
+                    to: { randomAlly: 1, where: { minion: { unit: it, types: [wardstone] } } }
+                    amount: { var: half }
+                    raw: true
+                    direct: false
+
+curse.sanctuary:
+  archetype: Curse
+  element: Sanctuary
+  name: Excommunicate
+  description: >-
+    Your Sanctum drops by 1. Target enemy is Isolated for 3 turns and Condemned.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: macro, id: lower_sanctum }
+    - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: condemned }
+
+smite.sanctuary:
+  archetype: Smite
+  element: Sanctuary
+  name: Firstfruits Brand
+  description: >-
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Each time that Sanctify heals someone, Channel
+    Growth is triggered for the user's Seedlings.
+  cost: W
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: firstfruits_brand
+        name: Firstfruits Brand
+        kind: Debuff
+        element: Sanctuary
+        description: Each direct hit on the Sanctified bearer triggers Channel Growth for the applier's Seedlings.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then: [{ op: macro, id: channel_growth }]
+
+prayer.sanctuary:
+  archetype: Prayer
+  element: Sanctuary
+  name: Cornerstone Psalm
+  description: All allies gain 10 max HP for the rest of the match and heal 15.
+  cost: Wrr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: addMaxHp, to: targets, amount: 10 }
+    - { op: heal, to: targets, amount: 15 }
+
+cleave.sanctuary:
+  archetype: Cleave
+  element: Sanctuary
+  name: Shieldbearer's Sweep
+  description: >-
+    Deals 20 damage to target enemy and 10 to a random other enemy. For 2 turns, Sanctify on either one also gives
+    its damager 15 Shield.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: shieldbearer, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: apply, to: it, effect: shieldbearer, duration: { enemyTurns: 2 } }
+
+shout.sanctuary:
+  archetype: Shout
+  element: Sanctuary
+  name: Call to the Faithful
+  description: >-
+    Every allied Boulder is consecrated into a Wardstone, and all enemies are Intimidated for 2 turns.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [boulder] } }, { not: { minion: { unit: it, types: [wardstone] } } }] } }
+      do:
+        - { op: transformMinion, to: it, minion: wardstone }
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+
+withstand.sanctuary:
+  archetype: Withstand
+  element: Sanctuary
+  name: Rampart of Faith
+  description: >-
+    The user gains 20 Shield for 1 turn, +10 per allied Boulder and Wardstone; each of those loses 10 HP.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: stones, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder, wardstone] } } } } }
+    - { op: apply, to: actor, effect: shield, value: { sum: [20, { mul: [10, { var: stones }] }] }, duration: { enemyTurns: 1 } }
+    - { op: damage, to: { filter: allAllies, where: { minion: { unit: it, types: [boulder, wardstone] } } }, amount: 10, raw: true, direct: false }
+
+taunt.sanctuary:
+  archetype: Taunt
+  element: Sanctuary
+  name: Unceasing Challenge
+  description: >-
+    The user creates a Wardstone. Target enemy is Taunted by it for 2 turns and Condemned each time they hit it.
+  cost: W
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: wardstone }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: unceasing_challenge
+        name: Unceasing Challenge
+        kind: Debuff
+        element: Sanctuary
+        description: Each time the bearer hits a Wardstone, they're Condemned.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { minion: { unit: eventTarget, types: [wardstone] } }
+                then: [{ op: apply, to: bearer, effect: condemned }]
+
+titan.sanctuary:
+  archetype: Titan
+  element: Sanctuary
+  name: Living Temple
+  description: >-
+    Your Sanctum rises by 1. For 3 turns, the user counts as a Wardstone and gains 2 Armor and Immune.
+  cost: WW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: macro, id: raise_sanctum }
+    - { op: apply, to: actor, effect: living_temple, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+
+# Minion skills.
+
+warden_stone_fist:
+  archetype: Minion
+  element: Sanctuary
+  name: Stone Fist
+  description: Deals 10 damage to target enemy.
+  cost: nc
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+
+warden_bless_the_ground:
+  archetype: Minion
+  element: Sanctuary
+  name: Bless the Ground
+  description: Your Sanctum rises by 1.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: macro, id: raise_sanctum }
+
+stonemason_carve:
+  archetype: Minion
+  element: Sanctuary
+  name: Carve
+  description: Creates a Boulder, or a Wardstone if your Sanctum is at 2 or more.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: if
+      cond: { compare: { value: { totalStacks: { in: allAllies, effect: sanctum } }, atLeast: 2 } }
+      then: [{ op: summon, minion: wardstone }]
+      else: [{ op: summon, minion: boulder }]

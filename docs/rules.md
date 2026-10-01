@@ -1632,3 +1632,24 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Hidden Mail | An inline hidden Shield; each enemy hit raises that skill's cooldown (`adjustCooldowns onlyEvent`). |
 | Whisper from the Dark | A normal Taunt by the user, Stealthy. |
 | Guildmaster | Simplified: every enemy gains a Death Mark for 3 turns. |
+
+### 21.50 Sanctuary (Earth + Holy)
+
+| Term | Ruling |
+|---|---|
+| **Sanctum** | A merging Buff (stacks = level, max 3) on whichever ally raised it first (macros `raise_sanctum` / `lower_sanctum`); raising refreshes it to 3 turns. At the end of its side's turns: every ally gets 1 Armor per level until that side's next turn, heals 5 per level, and at level 3 gains Steadfast (immune to Stuns) for the turn. Level = total `sanctum` stacks on the side. |
+| **Wardstone** | Minion (45 HP) tagged boulder and wardstone. While one (or a Living Temple) stands, the Sanctum extends itself by a turn at each of its ticks. |
+| Temple Warden | The kit's "Temple Guardian", renamed: "Guardian" is a retired word the content lint rejects. |
+| Toppled Idol | Simplified: a random allied Boulder topples, not the weakest. |
+| Cracking Foundation | Boulders lose 15 raw HP; +5 per Boulder counted before. |
+| Pilgrim's Stride | Simplified: the condition is "an ally has Shield". |
+| Sheltering Stone | At level 3, every ally gets their own counter. |
+| Obelisk | Simplified: +20 if any allied Wardstone stands. |
+| Sacred Boundary | Its first direct hit on any of the user's side. |
+| Right of Asylum | Simplified: the user's other allies each get a hidden counter for 1 turn (the "no Harmful skill last turn" condition is dropped). |
+| Stately Measure | Its Might is a separate capped status `stately_might`; the Might, Armor and Focus are linked to the Dance. |
+| Day of Rest | Lasts through the ally's next turn; a Harmful skill removes it. |
+| Stone Vow | Simplified: after a hit, the ally heals back half and a random allied Wardstone takes it as raw damage. |
+| Excommunicate | Simplified: Isolated for 3 turns, plus Condemned. |
+| Shieldbearer's Sweep | Simplified: Sanctify still heals; the damager also gains 15 Shield for 1 turn. |
+| Cornerstone Psalm | +10 max HP first, then heal 15. |

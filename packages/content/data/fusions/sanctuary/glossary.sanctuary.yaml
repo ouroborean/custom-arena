@@ -1,0 +1,11 @@
+# Sanctuary keywords (docs/glossary.md).
+
+sanctum:
+  status: sanctum
+  element: Sanctuary
+  forms: [Sanctum]
+wardstone:
+  name: Wardstone
+  text: A consecrated Boulder (45 HP, counts as a Boulder). While any allied Wardstone stands, your Sanctum doesn't expire.
+  element: Sanctuary
+  forms: [Wardstone, Wardstones]

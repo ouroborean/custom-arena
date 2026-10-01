@@ -1,0 +1,14 @@
+# Sanctuary actions (actor = a Sanctuary unit).
+
+# Your Sanctum rises by 1 (on whoever carries it, or the actor), refreshing it to 3 turns.
+raise_sanctum:
+  - op: if
+    cond: { any: { in: allAllies, cond: { has: { unit: it, effect: sanctum } } } }
+    then:
+      - { op: apply, to: { filter: allAllies, where: { has: { unit: it, effect: sanctum } } }, effect: sanctum, duration: { enemyTurns: 3 } }
+    else:
+      - { op: apply, to: actor, effect: sanctum, duration: { enemyTurns: 3 } }
+
+# Your Sanctum drops by 1.
+lower_sanctum:
+  - { op: removeStacks, from: allAllies, effect: sanctum, amount: 1 }

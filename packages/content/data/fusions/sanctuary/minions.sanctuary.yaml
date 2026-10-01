@@ -1,0 +1,18 @@
+# Sanctuary minions.
+
+wardstone:
+  name: Wardstone
+  hp: 45
+  tags: [boulder, wardstone]
+  skills: []
+
+temple_warden:
+  name: Temple Warden
+  hp: 50
+  tags: [wardstone]
+  skills: [warden_stone_fist, warden_bless_the_ground]
+
+stonemason:
+  name: Stonemason
+  hp: 20
+  skills: [stonemason_carve]
