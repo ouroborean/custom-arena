@@ -79,6 +79,7 @@ const namedSelector = z.enum([
   'strongestEnemy',
   'lastAttacker',
   'primaryLastAttacker',
+  'summonerLastAttacker',
   'primaryPartners',
 ]);
 

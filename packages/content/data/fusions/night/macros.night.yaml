@@ -1,0 +1,27 @@
+# Night actions, run on `it`.
+
+# Midnight: Dusk ends, Frozen Sleep for 1 turn.
+midnight:
+  - { op: removeEffect, from: it, effect: dusk }
+  - { op: apply, to: it, effect: frozen_sleep, duration: { enemyTurns: 1 } }
+
+# Gives `it` Dusk `dusk` (a variable), or deepens an existing Dusk by 1.
+dusk:
+  - op: if
+    cond: { has: { unit: it, effect: dusk } }
+    then:
+      - { op: macro, id: deepen_dusk }
+    else:
+      - { op: apply, to: it, effect: dusk, stacks: { var: dusk } }
+
+# Deepens `it`'s Dusk by 1 (Midnight at 0).
+deepen_dusk:
+  - op: if
+    cond: { has: { unit: it, effect: dusk } }
+    then:
+      - op: if
+        cond: { compare: { value: { stacks: { unit: it, effect: dusk } }, atMost: 1 } }
+        then:
+          - { op: macro, id: midnight }
+        else:
+          - { op: removeStacks, from: it, effect: dusk, amount: 1 }

@@ -130,6 +130,11 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
       const u = actor.lastAttacker ? findUnit(ctx.s, actor.lastAttacker) : undefined;
       return u?.alive ? [u] : [];
     }
+    case 'summonerLastAttacker': {
+      const s = actor.summonedBy ? findUnit(ctx.s, actor.summonedBy) : undefined;
+      const u = s?.lastAttacker ? findUnit(ctx.s, s.lastAttacker) : undefined;
+      return u?.alive ? [u] : [];
+    }
     case 'primaryLastAttacker': {
       const p = sc.targets[0] ? findUnit(ctx.s, sc.targets[0]) : undefined;
       const u = p?.lastAttacker ? findUnit(ctx.s, p.lastAttacker) : undefined;

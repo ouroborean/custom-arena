@@ -1207,3 +1207,22 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Touch of the Grave | Immune to Buffs; each Helpful skill used on them gives the user a Soul Fragment (up to 3). |
 | Hoarded Life | The absorbed damage is counted; when the Shield ends for any reason, it feeds the Phylactery (at least 10). |
 | Guarded Urn | The Taunt comes from the Phylactery; the Taunted enemy's damage to Phylacteries is halved. |
+
+### 21.27 Night (Ice + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Dusk N** | Hidden Debuff whose stacks are N. It counts down at the start of each of the bearer's turns after the first, so N of their turns pass in full; at the last count, Midnight. Applying Dusk to a bearer who has it deepens it by 1 instead (macros `dusk` with the variable `dusk`, and `deepen_dusk`). |
+| **Midnight** | Frozen Sleep for 1 turn: counts as Sleep, Frostbitten, Chilled and Numb (can't act, no cost reductions, can't apply Buffs), and damage doesn't wake them. Then First Light for 2 turns (immune to Dusk). |
+| **Dormant** | Buff: can't act, untargetable by enemies, +10 Shield (1 turn) at the end of each of the applier's turns, wakes with 1 Focus. `dormant_enemy` is the enemy version (no Shield, no Focus). |
+| Polar Night | All their skills count as Stealthy while it lasts. |
+| Breaking Ice | A hidden Buff on the ally; it springs on the first enemy who targets them with a Harmful skill. |
+| Rime Lance | A companion effect hears the Mark be spent (consumed or removed). |
+| Stolen Hours | The user's side's Debuffs lose 2 ticks; the target's gain 2. |
+| Call the Revenant | New target `summonerLastAttacker`: the last enemy who damaged its summoner (else a random enemy). |
+| Winter Solstice | Dormant first, then the channel (so the Dormant doesn't break it). |
+| Blackfrost Fang | Simplified: an ended Blind becomes 2 turns of Frostbitten and Numb. |
+| Drowsing Waltz | An HP floor of 30 while it lasts; the first hit that reaches it puts the user to Dormant. |
+| Hidden Moon | Stealthed allies who hit the target get their next skill counted as Stealthy (Ritual's Veiled by Smoke). |
+| Crescent Cleave | Simplified: the splash prefers a random enemy with Dusk. |
+| Sleeping Giant | Its own Dormant variant: 20 Shield per turn, and every enemy gains Dusk 2 when it wakes. |

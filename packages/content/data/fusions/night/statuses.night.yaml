@@ -1,0 +1,81 @@
+# Night (Ice + Shadow) statuses, from the "Fusion Spec Kits" design doc.
+
+# Dusk N (hidden; stacks = N): counts down at the start of each of the bearer's turns; at 0, Midnight.
+dusk:
+  name: Dusk
+  kind: Debuff
+  element: Night
+  stacking: merge
+  visibility: hidden
+  description: Counts down after each of the bearer's turns; at 0, Midnight puts the bearer in Frozen Sleep.
+  # Counted at the start of the bearer's turns, skipping the first (so N full turns pass first).
+  triggers:
+    - on: turnStart
+      do:
+        - op: if
+          cond: { not: { flag: counting } }
+          then:
+            - { op: setFlag, flag: counting }
+          else:
+            - op: if
+              cond: { compare: { value: { effectStacks: true }, atMost: 1 } }
+              then:
+                - { op: forEach, in: bearer, do: [{ op: macro, id: midnight }] }
+              else:
+                - { op: addStacksSelf, amount: -1 }
+
+frozen_sleep:
+  name: Frozen Sleep
+  kind: Debuff
+  element: Night
+  stacking: unique
+  countsAs: [sleep, frostbitten, chilled, numb]
+  description: >-
+    Asleep, and damage doesn't wake them. Counts as Frostbitten, Chilled and Numb. Afterwards, First
+    Light for 2 turns.
+  modifiers:
+    - { mod: cannotUseSkills }
+    - { mod: noCostReduction }
+    - { mod: cannotApplyBuffs }
+  onExpire:
+    - { op: apply, to: bearer, effect: first_light, duration: { enemyTurns: 2 } }
+
+first_light:
+  name: First Light
+  kind: Neutral
+  element: Night
+  stacking: unique
+  description: Can't gain Dusk.
+  modifiers:
+    - { mod: immuneToEffects, effects: [dusk] }
+
+# Dormant: out of the fight, gathering Shield; wakes with 1 Focus.
+dormant:
+  name: Dormant
+  kind: Buff
+  element: Night
+  stacking: unique
+  description: >-
+    Can't use skills or be targeted by enemies (ticking and triggered damage still land). Gains 10
+    Shield at the end of each of their turns, and wakes with 1 Focus.
+  modifiers:
+    - { mod: cannotUseSkills }
+    - { mod: untargetable, by: enemies, bypassable: false }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: apply, to: bearer, effect: shield, value: 10, duration: { enemyTurns: 1 } }
+  onExpire:
+    - { op: apply, to: bearer, effect: focus, until: { skillUsed: {} } }
+
+# The same, forced on an enemy (a Debuff).
+dormant_enemy:
+  name: Dormant
+  kind: Debuff
+  element: Night
+  stacking: unique
+  countsAs: [dormant]
+  description: Can't use skills or be targeted by enemies (ticking and triggered damage still land).
+  modifiers:
+    - { mod: cannotUseSkills }
+    - { mod: untargetable, by: enemies, bypassable: false }

@@ -56,6 +56,7 @@ export type NamedSelector =
   | 'strongestEnemy' // the actor's targetable enemy character with the most HP
   | 'lastAttacker' // the last enemy who damaged the actor (if still alive)
   | 'primaryLastAttacker' // the last enemy who damaged the first target (Mechanic's Rivet Gun)
+  | 'summonerLastAttacker' // the last enemy who damaged the actor's summoner (Night's Rime Revenant)
   | 'primaryPartners'; // units Entangled with the first target (Dimension)
 
 export type Selector =

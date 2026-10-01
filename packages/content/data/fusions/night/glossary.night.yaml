@@ -1,0 +1,19 @@
+# Night keywords (docs/glossary.md).
+
+dusk:
+  status: dusk
+  element: Night
+midnight:
+  name: Midnight
+  text: When Dusk reaches 0, the bearer falls into Frozen Sleep for 1 turn.
+  element: Night
+  forms: [Midnight]
+frozen_sleep:
+  status: frozen_sleep
+  element: Night
+first_light:
+  status: first_light
+  element: Night
+dormant:
+  status: dormant
+  element: Night
