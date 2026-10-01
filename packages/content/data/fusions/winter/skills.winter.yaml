@@ -53,6 +53,8 @@ smash.winter:
             then:
               - { op: damage, to: primary, amount: 25 }
               - { op: damage, to: primaryAllies, amount: 15 }
+              # Landing spends the Leap.
+              - { op: removeEffect, from: bearer, effect: leaping }
 
 charge.winter:
   archetype: Charge

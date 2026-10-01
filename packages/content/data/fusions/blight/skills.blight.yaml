@@ -654,8 +654,8 @@ taunt.blight:
   element: Blight
   name: Carrion Stench
   description: >-
-    All enemies are Taunted by the user for 1 turn. Until the user's next turn, every hit on them deals 10 less,
-    but they can't be healed.
+    All enemies are Taunted by the user for 1 turn. Until the user's next turn, every hit on the user deals 10
+    less, but the user can't be healed.
   cost: S
   cooldown: 4
   tags: [Harmful, Strategic]

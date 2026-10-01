@@ -432,8 +432,6 @@ describe('Blight skills', () => {
     expect([a.hp(A1), a.has(A1, 'soul_fragment')]).toEqual([100, false]);
   });
 
-  // SPEC: "every hit on them deals 10 less, but they can't be healed" — "them" read as the user (the Taunting
-  // tank), which matches the ruling's single bearer; the enemies' own hits and heals are unaffected.
   it("Carrion Stench: all enemies Taunted by the user; until the user's next turn, hits on the user deal 10 less and they can't be healed", () => {
     const a = arena({ p0: [['taunt.blight', 'shot'], ['heal']], p1: [['heal'], ['shot']] });
     a.setHp(A1, 50).setHp(B1, 50);

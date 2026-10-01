@@ -188,9 +188,7 @@ describe('Sun skills', () => {
     expect(a.hp(A1)).toBe(85); // B2's shot lands
   });
 
-  // BUG: "the user's Corona is refreshed" — after the counter (enemy turn 4) the Corona only lasts through turn 8
-  // (2 more ticks), not a fresh 3 turns like gaining Corona gives.
-  it.fails('Sunspot: the user\'s Corona is refreshed (to a full 3 turns) when it counters', () => {
+  it('Sunspot: the user\'s Corona is refreshed (to a full 3 turns) when it counters', () => {
     const a = arena({ p0: [['riposte.sun', 'strike.sun']], p1: [['shot']] });
     a.use(A1, 'strike.sun', B1).end().pass(1).use(A1, 'riposte.sun').end();
     const before = coronaDuration(a, A1)!;

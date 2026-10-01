@@ -1256,7 +1256,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Heavy Air | Counts as Cloud's Low Ceiling, which Wind's `immobile` condition checks. |
 | Stolen Wind | Simplified: the user takes all mobility buffs from both enemies hit. |
 | Foghorn | Simplified: for 1 turn, Harmful skills aimed at the user are reflected. |
-| Voice in the Fog | A hidden `forceTarget` Debuff. |
+| Voice in the Fog | A hidden `lured` Debuff: the target's single-target Harmful skills land on the user at resolution (§21.56). |
 
 ### 21.30 Serum (Water + Poison)
 
@@ -1321,7 +1321,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Exsanguinate | Each turn heals the user 5 per Hemorrhage stack on the target. |
 | Restitution | The target's last attacker loses 20 HP (raw). |
 | Blood Doping | The crash is a Neutral inline stun, so Swiftness can't stop it. |
-| Blood Chant | Simplified: until the user's next turn, the other allies pay their own random costs in HP. |
+| Blood Chant | Until the end of the user's next turn, the other allies pay their own random costs in HP (§21.56). |
 | Clotting Ward | Lasts until the start of the user's next turn, and their Renew heals once more at that moment. |
 | Leeching Sweep | While the user has Lifesteal, their indirect damage to enemies heals them a second time (see §21.56). |
 
@@ -1355,7 +1355,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | **Tempest** | The pipeline now broadcasts `used:<element>` for every skill use. Each Storm character's Storm Heart passive hears `used:Storm` from their side (minions included) and gains 1 Tempest (Neutral, max 5); at the end of their turn with no Storm skill used, −1 (not during Song of the Storm). Simplified: Tempest is tracked on each Storm character, not once per team. |
 | **Eye of the Storm** | At 5, a Buff: the bearer's next Storm skill (not Storm Warning) also hits every enemy it didn't target for 15, and Tempest drops by 2. Simplified: a flat 15, not the skill's own damage and effects. |
 | Squall Strike | Simplified: +5 per Tempest (max +15). |
-| Downburst | Simplified: 1 Swiftness at the start of each of the user's turns for 2 turns. |
+| Downburst | 1 Swiftness at the start of each of the user's next 2 turns (§21.56). |
 | Storm Rider / Tailwind | While active, the bearer's non-Storm skills send `used:Storm` too. |
 | Summit Strike | Bypassing 25 Piercing on the enemy with the most HP (it can't reach Stealthed or Untargetable enemies). |
 | Mending Arc | 25 to the target, 15 to the other ally with the least HP, 5 to the rest. |
@@ -1457,12 +1457,12 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Toadstool Circle | The Charm lands after the Helpful skill (on their following skills). |
 | Petal Step | +5 per Toxin on the target, minus Leaping's own 5, until the Leap ends. |
 | Wisp Bolt | Simplified: each turn the user starts Rushing, a random ally gains 1 Swiftness and 1 Focus. |
-| Dust Storm | Charmed until each enemy's next skill. |
+| Dust Storm | Charmed until each enemy's next skill, for up to 2 turns (§21.56). |
 | Changeling's Bargain | Random Debuff and Buff (not the newest). |
 | Enchanted Slumber | Its own Sleep (counts as Sleep): each hit takes 2 ticks off it instead of waking them. |
-| Fey Mark | Simplified: every enemy who acted in the last round is Charmed. |
+| Fey Mark | For 1 turn, each ally of the target who uses a Helpful skill on them is Charmed for 1 turn (§21.56). |
 | Fae Laughter | All enemies are Charmed until the first of them resolves a skill. |
-| Gossamer Veil | Simplified: when the Shield is gone, everyone who struck it is Charmed (no fallback). |
+| Gossamer Veil | Each enemy who hits its Shield is Charmed for 1 turn (§21.56). |
 | Faerie Queen | Applies to single-target skills aimed at the user. |
 
 ### 21.42 Nomad (Wind + Earth)
@@ -1478,9 +1478,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Spotter's Bolt | Simplified: allied minions' hits on the target deal 10 more. |
 | Trail Rations | Simplified: every ally heals 20. |
 | Pack Mule | Simplified: it returns its stored energy whenever it leaves, killed or not. |
-| The Long Road | Ends at the end of a turn in which the user's Trek didn't rise (not the turn it started). |
+| The Long Road | Ends at the end of a turn in which the user's Trek didn't rise (not the turn it started); the user's other skills don't end it (§21.56). |
 | Mirage | Two alternating hidden statuses: one counters, the next lets a skill through. |
-| Waterskin | Simplified: 35 if the ally used a skill in the last round. |
+| Waterskin | Simplified: 35 if the ally used a skill in the last round (a skill actually used; §21.56). |
 | Waymarker | Ends early when the user's Trek resets. |
 | Colossus of the Dunes | Counts as Low Ceiling (Immobile) and immune to mobility buffs. |
 
@@ -1590,7 +1590,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 |---|---|
 | **Withered** | Debuff, merging per side, max 5, permanent. Modifier `maxHp -5 perStack`: each stack change moves max HP (a rise also restores HP; a fall caps HP). Cleansing restores the max HP but not the lost HP. |
 | **Festering** | Part of Withered: at the end of the applier's turn, a Withered unit that has Toxin gains 1 Toxin. |
-| Dread Lunge | Inline Debuff counting as Horrified (no Buff block), ending when the user next uses a skill. |
+| Dread Lunge | Inline Debuff counting as Horrified (no Buff block) until the end of the user's next turn (§21.56). |
 | Festering Spite | Simplified: the countered skill's user gains a flat 2 Withered. |
 | Dread Spittle | Conditional `immuneTo Buff` while they have 2+ Toxin; it doesn't count as Horrified. |
 | Rotten Remedy | The healing lands, then is undone as raw Affliction damage; Withered = healing ÷ 10, rounded down. |
@@ -1630,7 +1630,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Mark for Death | Threshold = 25 + 5 per Toxin when placed (max 40). |
 | Serpent's Communion | Gives Evolution's Hormesis for 2 turns. |
 | Hidden Mail | An inline hidden Shield; each enemy hit raises that skill's cooldown (`adjustCooldowns onlyEvent`). |
-| Whisper from the Dark | A normal Taunt by the user, Stealthy. |
+| Whisper from the Dark | A Taunt by the user, Stealthy; Taunts are absolute, so while the user is hidden the target has no legal single-target enemy target (§21.56). |
 | Guildmaster | Simplified: every enemy gains a Death Mark for 3 turns. |
 
 ### 21.50 Sanctuary (Earth + Holy)
@@ -1668,7 +1668,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Deathbolt | Fragments spent before the hit; "kills them" = the target is gone afterwards. |
 | Marrow Draught | Raw Affliction to every minion; the user heals the HP actually lost. Strategic, since it deals no direct damage. |
 | Premature Burial | Simplified: the countered skill's cooldown rises by 3, rather than "until a unit dies". |
-| Graveside Vigil | An inline Shield of 5 per Grave (max 25) for 1 turn; nothing if there are no Graves. |
+| Graveside Vigil | An inline Shield of 5 per Grave (max 25) until the end of the user's next turn; nothing if there are no Graves (§21.56). |
 | Epitaph | A watcher on the user: when the ally dies, `copyEffects fromSnapshot` gives the user's living allies their Buffs (cond `eventTargetIs`). |
 | Bitter Soil | Simplified: each Helpful skill they use while Horrified sprouts a Seedling. |
 | Requiem | Value `recentDeaths`: deaths on either side in the last 2 turns. |
@@ -1712,7 +1712,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Harrowing Nova | "Above half" = HP greater than missing HP, checked before and after each hit. |
 | Initiate | Take the Blow is a Ward (counts as Warded) from the Initiate, bound to it. |
 | Votive Dagger / Living Saint | Macro `martyr_payout`: the user's other allies get the payout. |
-| Unholy Unction | Simplified: Lifesteal for 3 turns, and each heal that leaves the ally at full HP grows a Shield by 10 (max 30). |
+| Unholy Unction | Lifesteal for 3 turns, and each heal that tops the ally up to full HP grows a Shield by 10 (max 30). |
 | Communal Grace | Simplified: only this target's Sanctify. |
 | Fervent Chant | Status `fervent_chant` until the user's next turn: an `onDeath` payout as for 3 Fervor. |
 | Heretics' Circle | Simplified: if the target has any Debuff, each other enemy with any Debuff takes 15. |
@@ -1731,7 +1731,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Pursuit / Tip Off | Next skill Stealthy via `skillTags`, until a skill is used. |
 | Caught Red-Handed | Each ally gets their own hidden counter. |
 | The Hunt Begins | Simplified: skills are Stealthy while any enemy is Exposed. |
-| Searchlight | Selector `randomAnyEnemy` (Stealthed included). Simplified: only Stealth (not Invisible effects) triggers the Exposure. |
+| Searchlight | Untargeted; selector `randomAnyEnemy` (Stealthed included). Simplified: only Stealth (not Invisible effects) triggers the Exposure. |
 | From the Rooftops | A hidden watcher counts Stealth gained and Invisible skills used during the channel. |
 | Sting Operation | New trigger filter `anyTags` for intercepting skillUsed. |
 | Safe Passage | `cannotUseSkills harmful` for 3 ticks (through the user's next turn). |
@@ -1755,7 +1755,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Woeblade | Simplified: a random Hex (no "last skill" tracking). |
 | Crushing Malediction | Copies last 2 turns. |
 | Somnambulant Rush | Simplified: only its own hit doesn't wake; the next-skill rider is dropped. |
-| Hex Ward | Counters every Harmful skill on the user; one from an un-Hexed enemy ends it. |
+| Hex Ward | Counters every Harmful skill from a Hexed enemy all turn, plus the first from anyone else (§21.56). |
 | Cursed Hunger | +5 direct damage per Hexed enemy (max 3), counted as each hit lands. |
 | Doom | Hexes are consumed (no Lingering), +15 each. |
 | Cleanser's Snare | Simplified: it springs when the Snare itself is cleansed (a hidden watcher on the user, `ownEffectEnded reason removed`). |
@@ -1771,3 +1771,115 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Vespers of Slumber | `hpFloor 1` while it lasts; reaching 1 HP puts them to Sleep and ends it. |
 | Shrouded Ward | Skills Stealthy while the user has any Shield. |
 | Poppet | 10 HP minion; damage it takes is dealt to the target as Affliction. |
+
+### 21.56 Rulings from the fusion test pass
+
+Engine and content rulings made while fixing what the spec-driven fusion tests found. Where an earlier §21
+row disagrees, this section wins.
+
+| Topic | Ruling |
+|---|---|
+| Counters | A counter's effect sees the countered skill (its cost, cooldown and archetype) and the units it targeted. `when.archetypes` limits which skills a counter catches. |
+| Stealthy | Stealth checks the skill's effective tags, so a Buff that makes skills Stealthy keeps Stealth. |
+| Mimic | "The skill that killed / broke / stunned it" is the skill the attacker is using at that moment. |
+| Condemned riders | Condemned records the turn it fires (named condition `condemn_fired`); "when their Condemned triggers" riders check it once the skill resolves. |
+| Purifying (tag) | A Condemned user isn't punished for using a Purifying skill: the Condemnation is spent with no Debuff (Anointed Ascent). |
+| Shield riders | A hit on a Shield is heard by the bearer's other effects too ("when their Shield breaks…"). |
+| Catalyst | A Catalyst applied by a skill waits for the next skill; re-applying a spent Catalyst re-arms it for the next one. |
+| Late durations | Turn-based durations granted while end-of-turn expiries resolve are one tick shorter (they missed that turn's countdown), so "for N turns" lasts N turns. |
+| "Until the end of their next turn" | Anointed, Chrism and Exalted grants use `ownTurns: 1`, so they end with the recipient's next turn whichever turn they're granted on. |
+| Pilgrim's Rush | Its Chrism lasts until the end of the user's next turn, so the Focus rider can happen. |
+| Taunt | Absolute: a Taunted unit's single-target Harmful skills must target its taunter. If the taunter can't be targeted (Stealth, Dormant, Untargetable), there's no legal target; area skills still work. Feigned Sleep and Whisper from the Dark rely on this. |
+| Hidden effects | A hidden effect's start- and end-of-turn checks don't reveal it; it's revealed when it reacts to something. |
+| Death Mark | The +10 is Piercing (a strike at a marked weak point), so Armor doesn't absorb it. |
+| Unseen Knife | Blinded or Sleeping is checked before the hit, which wakes a Sleeper. |
+| Long Diagnosis | Its Debuff counter outlasts the channel. |
+| Coldsnap Dash | The crack rider lasts through the user's next turn. |
+| White Flame Waltz | Only direct damage counts as "dealt damage" (its own Explosion doesn't). |
+| Jump Start | The −2 generation lasts until the end of the player's next turn, so it applies to that generation. |
+| Dread Lunge | The target counts as Horrified until the end of the user's next turn. |
+| Invisible skills | Everything an Invisible skill applies is hidden from the opponent (like a hidden effect) until it reacts or ends. A status marked `visibility: public` stays visible (Fog; Warning Colors III). Standing Decree's Condemnation is therefore hidden. |
+| Bloodbound Familiar | New modifier `hpLink`: damage and healing aimed at it go straight to its summoner (full amounts); it dies when they do. |
+| Blood Elemental | Its current HP rises with its max HP (HP equal to what was paid). |
+| Blood Price | Locked at queue time: a skill whose random cost was paid in energy isn't charged HP on top. |
+| Blood Chant | Lasts until the end of the user's next turn, so allies benefit on that turn. |
+| Arterial Strike | The healer takes the Hemorrhage as it stands (its current stacks), handed over by Hemorrhage's own "healing removes it". |
+| Clotting Ward | Ends right after its start-of-turn Renew heal (ruling §21.33). |
+| dealtDamage events | Carry the HP the hit removed, so "heals for the damage dealt" riders work (Brimfire Crest, Familiar's Cover, Karmic Debt…). |
+| Leeching Sweep | Base Lifesteal already covers ticking damage, so while the Sweep lasts it heals twice over for ticking and Affliction damage. |
+| Asphyxiate | `cannotUseSkills evenUnstunnable`: it stops Unstunnable skills too. |
+| Flawless Challenge | Counter `c:hit_capped` marks a hit that a per-hit cap reduced; each such hit from the Taunted enemy extends the Taunt and the Diamond by 1 turn. |
+| Live Wire | The bearer is hit once; every other Soaked enemy is hit once. |
+| Still Spring | Renew doesn't lose stacks while the bearer has Still Spring (checked in Renew itself). |
+| Hex Ward | Per the description: every Harmful skill from a Hexed enemy is countered all turn (`when.sourceIs: hexed`), plus the first from anyone else. |
+| Shrouded Ward | Stealthy itself. |
+| Hellraze | When the Contract ends, the bearer loses their Buffs, then pays 10 Affliction per Buff they had (borrowed power). |
+| Entangled | A death breaks only the fallen unit out of the link; the survivors stay Entangled while at least two remain. |
+| Void Brand | `exposed total`: the brander's side can target the bearer past Stealth, Untargetable and Invulnerable. |
+| Faceless Void | Entangles the user with their other ally with the least HP (selector `weakestOtherAlly`). |
+| Ascend | "They" is the target: a Sanctified target's Sanctify is spent and the user Exalted; otherwise the target is Sanctified (setting up the next Ascend). |
+| Anathema | The Condemnation also lasts 2 turns. |
+| isEventTarget | For single-target events (damage, healing, signals) it checks the event's one target. |
+| Take You With Me | The doom lasts until the end of the user's next turn. |
+| Gilded Bait | The Buff that springs it is removed outright. |
+| Skyfall Breath | Costs Sr, as in the kit. |
+| Borrowed Blood | The cast turn doesn't count: the ally's next 2 turns do. |
+| Lord of Souls | A Tithe gets nothing while the user can't spend Fragments. |
+| Brood Parasite | The Host mark comes from the Parasite, so it dies with its own host. |
+| Moving effects | Protected effects can't be moved (Festering Howl vs Slough Off II). |
+| Dust Storm | Each enemy is Charmed until their next skill, for up to 2 turns. |
+| Swiftness and countsAs | Negation also catches effects that count as the negated status (Enchanted Slumber counts as Sleep). |
+| Fey Mark | Forward-looking: for 1 turn, each ally of the target who uses a Helpful skill on them is Charmed for 1 turn. |
+| Gossamer Veil | Each enemy who hits its Shield is Charmed for 1 turn. |
+| Fickle Heart | Taunted by one of their own allies, the enemy's single-target Harmful skills may (and must) target that ally. |
+| skillTargeted events | Carry the skill and its target list (Faerie Queen's single-target check). |
+| Haunt drift | A Haunt only drifts to an un-Haunted ally of the bearer (named condition `ghost_haunted`), so split Haunts don't merge; with none, it stays. |
+| Restless Dead | Gives a Soul Fragment only when the Haunt actually drifts. |
+| Thin Ice | 1 turn of Icebound per turn of the countered skill's cooldown (max 3); a cooldown-0 skill gives none. |
+| Graveside Vigil | Its Shield lasts until the end of the user's next turn, so re-using it while it holds digs a Grave first. |
+| Seeker Spark | Ends the Stealth first, then strikes. |
+| Hoarded Life | Its payout watcher outlives the Shield, so the Phylactery is fed when the Shield ends. |
+| Strangling Roots | Re-casting refreshes it; only the bearer's own skills tighten it. |
+| Tangleweed | `targetExclude singleOnly`: they can't aim single-target skills at the minions, but area skills still hit them. |
+| Call of the Grove / Warden Oak | Every allied Seedling counts, whoever made it. |
+| Mass Driver | Launches for 20 + the Boulder's own remaining HP. |
+| Offload | Every ally, Isolated ones included (it doesn't target them). |
+| Jetpack | Not linked to the Leap: a direct hit while Leaping causes an Explosion as that skill resolves. |
+| Mirrored Mending | The watch lasts 2 turns. |
+| Voice in the Fog | New modifier `lured`: the bearer's single-target Harmful skills land on the user at resolution, whoever they aimed at (invisible until it happens). |
+| Wards | Several copies of one Ward (a Substitution from each Clone) redirect once per turn in all. |
+| Flurry | Hits every enemy the skill hit directly (splash included), once each, even if Armor stopped the hit (counter `hit_in_use`, value `useSeq`). |
+| Ninken Track | Untargeted (cooldown 2): every enemy loses Stealth and can't gain it for 1 turn. |
+| Hunter's Moon | Its strike Bypasses Invulnerable. |
+| Lunar Lullaby | The New Moon is announced before that turn's tick, so the last tick lands with the Sleep. |
+| Mammoth Charge / Dawn Chorus | Values about the loop's unit are captured before hitting another unit. |
+| Mammoth | Its protecting Chill is Neutral, so a cleanse can't strip it first. |
+| Giant-Slayer | A kill gives 1 more Legend on top of Saga's own. |
+| Awakened Giant | Earns no Legend itself (it spends them); it counts the Legends the user had. |
+| Midnight | From Dusk's countdown, Frozen Sleep costs the bearer the turn that's starting; struck any other way (False Dawn…), it costs their next turn. |
+| Counting effects | A listed effect counts once; one that only counts as listed keys counts once per key (Frozen Sleep counts as three Frost debuffs for Rimecut). |
+| Hidden Moon | A "keep your Stealth" effect gained during a skill counts for that skill too. |
+| Frostfall Cloak | The breaking hit itself grants the Stealth (1 turn per Frost debuff on the breaker, max 3). |
+| Waterskin | The 35 needs a skill actually used since the user's last turn (not the match start). |
+| Silent triggers | A hidden effect's `silent` reaction doesn't reveal it (Sinking Sands growing with Trek). |
+| The Long Road | `keepChannels`: the user's other skills (which raise Trek) don't end it. |
+| Firebrand Talon | Its Might has no stated duration, so it's permanent (Q16). |
+| Ritual Knife | 25 only when this use completes the Rite. |
+| Living Temple | Counts as a Wardstone everywhere (named condition `counts_as_wardstone`), Penance in Stone included. |
+| Drip | Ends when its target Overdoses (it listens for the Overdose). |
+| Split | The new Ooze takes half (rounded down); the old one keeps the rest. |
+| linkTo | Looks for the effect on the actor, then on the bearer of the effect running it (Fertile Silt's Might lasts as long as the Silt). |
+| Tainted Hands | Every ally of the bearer the Helpful skill affects gains a Spore. |
+| Martyr | Fervor is counted as the payout starts (the fatal hit's +1 doesn't count). |
+| Fanaticism | A prevented Debuff gives exactly 1 Fervor (Fervor's own +1 is skipped under Fanaticism). |
+| Unholy Unction | A heal that tops the ally up to full HP gives 10 Shield (max 30). |
+| Eye of the Storm | Empowers the next Storm skill, not the one that brought Tempest to 5 (counter `eye_use`). |
+| Downburst | 1 Swiftness at the start of each of the user's next 2 turns. |
+| Sunspot | The user's Corona lasts 2 turns longer. |
+| Sonic Boom | Watched from the user's side, so the Deafen lands before any counter is checked. |
+| Thunder Cage | The echo lands as the enemy's turn ends (the start of the user's next turn). |
+| Searchlight / Floodlight | Untargeted, so they can be used when every enemy is Stealthed. |
+| Night Patrol | Only enemies who actually used a Harmful skill are hit. |
+| Archetype counters | A counter that names archetypes (or tags) catches matching skills whether Harmful or not (Snare of Frost, Sabotage). |
+| Snowslide | Landing spends the Leap. |
+| Carrion Stench | "Them" is the user: hits on the user deal 10 less, and the user can't be healed. |

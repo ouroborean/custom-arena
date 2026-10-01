@@ -168,8 +168,9 @@ function interceptorFor(
   const harmful = harmfulUse(ctx, actor, def, targets);
   const strategic = def.tags.includes('Strategic');
   // Counters catch Harmful skills unless they say otherwise (Dunk: Helpful; Riverbend: Strategic).
+  // (A counter that names archetypes or tags catches matching skills, Harmful or not, unless it says.)
   const matches = (spec: TriggerSpec) =>
-    (spec.when?.harmful ?? true) === harmful &&
+    (spec.when?.harmful ?? (spec.when?.archetypes || spec.when?.anyTags ? harmful : true)) === harmful &&
     (spec.when?.strategic === undefined || spec.when.strategic === strategic) &&
     (spec.when?.costAtLeast === undefined || costTotal(def.cost) >= spec.when.costAtLeast) &&
     (spec.when?.archetypes === undefined || spec.when.archetypes.includes(def.archetype)) &&

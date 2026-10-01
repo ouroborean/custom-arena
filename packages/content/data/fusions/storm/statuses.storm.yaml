@@ -47,6 +47,7 @@ storm_heart:
           cond:
             and:
               - { has: { unit: bearer, effect: eye_of_the_storm } }
+              - { compare: { value: { sum: [{ useSeq: true }, { mul: [-1, { counterOf: { unit: bearer, name: eye_use } }] }] }, atLeast: 1 } }
               - { eventSkill: { elements: [Storm] } }
               - { not: { eventSkill: { archetypes: [Shout] } } }
           then:

@@ -240,8 +240,7 @@ describe('Vigilante skills', () => {
     expect(stealthedHit).toBeGreaterThan(0);
   });
 
-  // BUG: "Stealthed ones included" — with every enemy Stealthed, Searchlight (and Floodlight) can't be queued: no valid targets
-  it.fails('Searchlight: usable when the only enemy is Stealthed', () => {
+  it('Searchlight: usable when the only enemy is Stealthed', () => {
     const a = arena({ p0: [['shot.vigilante']], p1: [['shot']] });
     a.give(B1, 'stealth').use(A1, 'shot.vigilante').end();
     expect(a.has(B1, 'exposed')).toBe(true);
@@ -415,8 +414,7 @@ describe('Vigilante skills', () => {
     expect(a.has(A1, 'stealth')).toBe(true);
   });
 
-  // BUG: "every enemy who used a Harmful skill since" — the first tick (the turn it's cast) hits and Exposes enemies who used nothing
-  it.fails('Night Patrol: the first tick spares enemies who have used nothing', () => {
+  it('Night Patrol: the first tick spares enemies who have used nothing', () => {
     const a = arena({ p0: [['channel.vigilante'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'channel.vigilante').end();
     expect([a.hp(B1), a.hp(B2), a.has(B1, 'exposed')]).toEqual([100, 100, false]);

@@ -68,7 +68,7 @@ riposte.sun:
   name: Sunspot
   description: >-
     For 1 turn, counters the first Harmful skill used on the user; its user takes 15 Affliction damage
-    per Corona the user has, and the user's Corona is refreshed. Invisible.
+    per Corona the user has, and the user's Corona lasts 2 turns longer. Invisible.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
@@ -91,7 +91,7 @@ riposte.sun:
             consume: true
             do:
               - { op: damage, to: eventSource, amount: { mul: [15, { stacks: { unit: bearer, effect: corona } }] }, type: Affliction }
-              - { op: extendEffects, on: bearer, effects: [corona], by: 2 }
+              - { op: extendEffects, on: bearer, effects: [corona], by: 4 }
 
 rage.sun:
   archetype: Rage

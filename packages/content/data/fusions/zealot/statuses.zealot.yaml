@@ -23,7 +23,8 @@ fervor:
       when: { kind: Debuff }
       do:
         - op: if
-          cond: { and: [{ isEnemy: eventSource }, { compare: { value: { effectStacks: true }, atMost: 4 } }] }
+          # (Under Fanaticism the Debuff is prevented and Fanaticism gives the Fervor instead.)
+          cond: { and: [{ isEnemy: eventSource }, { compare: { value: { effectStacks: true }, atMost: 4 } }, { not: { has: { unit: bearer, effect: fanaticism } } }] }
           then: [{ op: addStacksSelf, amount: 1 }]
   onDeath:
     - { op: macro, id: martyr }

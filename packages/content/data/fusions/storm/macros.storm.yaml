@@ -7,3 +7,5 @@ gain_tempest:
     cond: { and: [{ compare: { value: { stacks: { unit: it, effect: tempest } }, atLeast: 5 } }, { not: { has: { unit: it, effect: eye_of_the_storm } } }] }
     then:
       - { op: apply, to: it, effect: eye_of_the_storm }
+      # Which skill use raised it: that skill isn't the one the Eye empowers.
+      - { op: setCounter, name: eye_use, on: it, value: { useSeq: true } }

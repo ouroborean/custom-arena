@@ -147,9 +147,7 @@ describe('Eye of the Storm', () => {
     expect([a.has(A1, 'eye_of_the_storm'), a.hp(B2)]).toEqual([false, 100]);
   });
 
-  // SPEC: "At 5, the Eye of the Storm: your NEXT Storm skill also hits…" — the Storm skill whose use brings
-  // Tempest to 5 is empowered by the Eye at once (B2/B3 take 15) rather than holding it for the next one.
-  it.fails('the Storm skill that brings Tempest to 5 is not itself empowered (the Eye is for the next one)', () => {
+  it('the Storm skill that brings Tempest to 5 is not itself empowered (the Eye is for the next one)', () => {
     const a = arena({ p0: [['stab.storm']], p1: [['shot'], ['shot'], ['shot']] });
     a.give(A1, 'tempest', { stacks: 4 });
     a.use(A1, 'stab.storm', B1).end();
@@ -209,10 +207,7 @@ describe('Storm skills', () => {
     expect(a.stacks(A1, 'swiftness')).toBe(1);
   });
 
-  // SPEC: "For 2 turns, the user gains 1 Swiftness at the start of each of their turns" — under the "for N
-  // turns" convention the window (through the end of turn 4) holds only one of the user's turn starts, so
-  // only 1 Swiftness is ever granted; the plural reads like 2 (the user's next 2 turns).
-  it.fails('Downburst: 1 Swiftness at the start of each of the user\'s next 2 turns, then no more', () => {
+  it('Downburst: 1 Swiftness at the start of each of the user\'s next 2 turns, then no more', () => {
     const a = arena({ p0: [['smash.storm']], p1: [['shot']] });
     const dropSwift = () => (a.state.effects = a.state.effects.filter((e) => !(e.bearer === A1 && e.defId === 'swiftness')));
     a.use(A1, 'smash.storm', B1).end();

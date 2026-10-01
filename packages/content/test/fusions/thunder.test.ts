@@ -88,9 +88,7 @@ describe('Thunder skills', () => {
     expect([a.hp(B1), a.has(B1, 'deafened'), a.has(A1, 'focus')]).toEqual([70, true, false]);
   });
 
-  // BUG: Sonic Boom says the target is Deafened before the next skill lands; the Deafen comes after the hit, so
-  // the target's Riposte still counters it.
-  it.fails("Sonic Boom: the Deafen lands first, so the target's counter can't fire", () => {
+  it("Sonic Boom: the Deafen lands first, so the target's counter can't fire", () => {
     const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['riposte']] });
     a.use(A1, 'charge.thunder', B1).end();
     a.use(B1, 'riposte').end();
@@ -404,8 +402,7 @@ describe('Thunder skills', () => {
     expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([100, 95, 100]);
   });
 
-  // BUG: Thunder Cage says the echo lands at the start of the user's next turn; it lands at the end of that turn.
-  it.fails("Thunder Cage: the echo lands at the start of the user's next turn", () => {
+  it("Thunder Cage: the echo lands at the start of the user's next turn", () => {
     const a = arena({ p0: [['withstand.thunder']], p1: [['stab'], ['shot']] });
     a.use(A1, 'withstand.thunder').end();
     a.use(B1, 'stab', A1).end();

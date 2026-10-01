@@ -489,8 +489,8 @@ bless.zealot:
   element: Zealot
   name: Unholy Unction
   description: >-
-    For 3 turns, target ally gains 1 Might and Lifesteal, and each heal that finds them at full HP becomes 10
-    Shield.
+    For 3 turns, target ally gains 1 Might and Lifesteal, and each heal that tops them up to full HP also gives
+    them 10 Shield (max 30).
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]

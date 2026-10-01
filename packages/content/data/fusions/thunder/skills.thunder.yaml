@@ -58,21 +58,24 @@ charge.thunder:
   ops:
     - { op: damage, to: primary, amount: 15 }
     - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    # Watched from the user's side: their next skill's use comes before any counter is checked.
     - op: apply
-      to: primary
+      to: actor
+      remember: primary
       duration: { enemyTurns: 2 }
       effect:
         id: sonic_boom
         name: Sonic Boom
-        kind: Debuff
+        kind: Buff
         element: Thunder
-        description: If the applier's next skill targets the bearer, they're Deafened for 2 turns before it lands.
+        description: If the bearer's next skill targets the boomed enemy, they're Deafened for 2 turns before it lands.
         triggers:
-          - on: skillTargeted
-            when: { side: enemy }
+          - on: skillUsed
             consume: true
             do:
-              - { op: apply, to: bearer, effect: deafened, duration: { enemyTurns: 2 } }
+              - op: if
+                cond: { any: { in: effectTargets, cond: { isEventTarget: it } } }
+                then: [{ op: apply, to: effectTargets, effect: deafened, duration: { enemyTurns: 2 } }]
 
 riposte.thunder:
   archetype: Riposte
@@ -706,7 +709,8 @@ withstand.thunder:
               - op: apply
                 to: eventSource
                 value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
-                duration: { raw: 2 }
+                # Hit on their turn: it echoes as that turn ends, i.e. at the start of the user's next turn.
+                duration: { raw: 1 }
                 effect: resound_echo
 
 taunt.thunder:

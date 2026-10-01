@@ -26,8 +26,8 @@ smash.storm:
   element: Storm
   name: Downburst
   description: >-
-    Deals 25 damage to target enemy and 10 to their allies. For 2 turns, the user gains 1 Swiftness at the
-    start of each of their turns.
+    Deals 25 damage to target enemy and 10 to their allies. The user gains 1 Swiftness at the start of each of
+    their next 2 turns.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -37,7 +37,7 @@ smash.storm:
     - { op: damage, to: primaryAllies, amount: 10 }
     - op: apply
       to: actor
-      duration: { enemyTurns: 2 }
+      duration: { ownTurns: 2 }
       effect:
         id: downburst
         name: Downburst

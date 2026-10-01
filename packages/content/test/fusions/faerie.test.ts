@@ -526,8 +526,6 @@ describe('Faerie skills', () => {
     expect([...seen].sort()).toEqual(['ally', 'foe']);
   });
 
-  // SPEC: the description says only allies who used a Helpful skill on the target since the user's last turn are
-  // Charmed; ruling 21.41 simplifies it to every enemy who acted in the last round. Tested per the ruling.
   it('Fey Mark: 20 damage; for 1 turn, an ally who uses a Helpful skill on the target is Charmed', () => {
     const a = arena({ p0: [['smite.faerie']], p1: [['shot'], ['heal'], ['shot']] });
     a.use(A1, 'smite.faerie', B1).end();

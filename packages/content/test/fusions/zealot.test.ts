@@ -156,8 +156,7 @@ describe('Zealot: Martyr', () => {
     expect(a.hp(B2)).toBe(40); // enemies get nothing
   });
 
-  // BUG: "1 Might per 2 stacks" — 3 Fervor gives 2 Might (rounds up), not 1
-  it.fails('odd stacks round the Might down (3 Fervor → 1 Might); the Might is permanent', () => {
+  it('odd stacks round the Might down (3 Fervor → 1 Might); the Might is permanent', () => {
     const a = arena({ p0: [['shot'], ['shot']], p1: [['shot']] });
     a.give(A1, 'fervor', { stacks: 3 }).setHp(A1, 5).setHp(A2, 50);
     a.pass(1).use(B1, 'shot', A1).end();
@@ -166,8 +165,7 @@ describe('Zealot: Martyr', () => {
     expect(a.stacks(A2, 'might')).toBe(1);
   });
 
-  // BUG: "1 Might per 2 stacks" — a 1-Fervor Martyr gives 1 Might instead of none
-  it.fails('1 Fervor: heals 10 but no Might', () => {
+  it('1 Fervor: heals 10 but no Might', () => {
     const a = arena({ p0: [['shot'], ['shot']], p1: [['shot']] });
     a.give(A1, 'fervor').setHp(A1, 5).setHp(A2, 50);
     a.pass(1).use(B1, 'shot', A1).end();
@@ -274,16 +272,14 @@ describe('Zealot skills', () => {
     expect(a.stacks(A1, 'might')).toBe(0);
   });
 
-  // BUG: "prevented and give 1 Fervor each instead" — the prevented Debuff also fires Fervor's own +1, so 2 Debuffs give 3
-  it.fails('Fanaticism: enemy Debuffs are prevented and give exactly 1 Fervor each instead', () => {
+  it('Fanaticism: enemy Debuffs are prevented and give exactly 1 Fervor each instead', () => {
     const a = arena({ p0: [['rage.zealot']], p1: [['curse'], ['curse']] });
     a.use(A1, 'rage.zealot').end();
     a.use(B1, 'curse', A1).use(B2, 'curse', A1).end();
     expect([a.stacks(A1, 'confusion'), a.stacks(A1, 'fervor')]).toEqual([0, 2]);
   });
 
-  // BUG: a prevented Debuff gives 2 Fervor (Fanaticism's 1 plus Fervor's own Debuff trigger) instead of 1
-  it.fails('Fanaticism: a user who already has Fervor gains only 1 per prevented Debuff', () => {
+  it('Fanaticism: a user who already has Fervor gains only 1 per prevented Debuff', () => {
     const a = arena({ p0: [['rage.zealot']], p1: [['curse']] });
     a.give(A1, 'fervor').use(A1, 'rage.zealot').end();
     a.use(B1, 'curse', A1).end();
@@ -623,21 +619,7 @@ describe('Zealot skills', () => {
     expect([a.has(A2, 'lifesteal'), a.stacks(A2, 'might')]).toEqual([false, 0]);
   });
 
-  // BUG: "each heal that finds them at full HP becomes 10 Shield" — a 0-point heal at full HP (Lifesteal or Heal) grows no Shield
-  it.fails('Unholy Unction: healing at full HP becomes 10 Shield per heal, up to 30', () => {
-    const a = arena({ p0: [['bless.zealot'], ['shot'], ['heal', 'heal.zealot']], p1: [['shot']] });
-    const shield = () => a.effects(A2).filter((e) => e.defId === 'unction_shield').reduce((n, e) => n + e.value, 0);
-    a.use(A1, 'bless.zealot', A2).use(A2, 'shot', B1).end(); // Lifesteal at full HP
-    expect([a.hp(A2), shield()]).toEqual([100, 10]);
-    a.pass(1).use(A3, 'heal', A2).use(A2, 'shot', B1).end();
-    expect(shield()).toBe(30);
-    a.pass(1).use(A3, 'heal.zealot', A2).end();
-    expect(shield()).toBe(30);
-  });
-
-  // SPEC: description says a heal that "finds them at full HP"; the ruling says one that "leaves" them at full.
-  // Tested per the ruling (and the kit's "healing past max HP"): a heal that overflows to full grows the Shield.
-  it('Unholy Unction: a heal that overflows to full HP grows the Shield (ruling)', () => {
+  it('Unholy Unction: a heal that tops them up to full HP gives 10 Shield', () => {
     const a = arena({ p0: [['bless.zealot'], ['shot'], ['heal']], p1: [['shot']] });
     a.setHp(A2, 90).use(A1, 'bless.zealot', A2).use(A3, 'heal', A2).end();
     expect(a.hp(A2)).toBe(100);

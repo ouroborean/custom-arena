@@ -107,8 +107,7 @@ describe('Winter skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([70, 80]);
   });
 
-  // SPEC: "if they're still Leaping, they land" reads as the landing ending the Leap, but Leaping (and its +5) stays for the next skill — should landing spend it?
-  it.fails('Snowslide: landing ends the user’s Leaping', () => {
+  it('Snowslide: landing ends the user’s Leaping', () => {
     const a = arena({ p0: [['smash.winter']], p1: [['shot'], ['shot']] });
     a.use(A1, 'smash.winter', B1).end().end();
     expect(a.has(A1, 'leaping')).toBe(false);
@@ -203,8 +202,7 @@ describe('Winter skills', () => {
     expect(hidden(a, B1, 1)).toBe(true);
   });
 
-  // BUG: text says a mobility skill (Charge/Maneuver/Mislead/Dance) is countered; Maneuver goes through untouched
-  it.fails('Snare of Frost: a mobility skill from the target is countered: 15 Piercing and Snowbound for 2 turns', () => {
+  it('Snare of Frost: a mobility skill from the target is countered: 15 Piercing and Snowbound for 2 turns', () => {
     const a = arena({ p0: [['trap.winter']], p1: [['maneuver']] });
     a.use(A1, 'trap.winter', B1).end().use(B1, 'maneuver').end();
     expect([a.has(B1, 'invulnerable'), a.hp(B1), a.has(B1, 'snowbound')]).toEqual([false, 85, true]);
@@ -454,18 +452,20 @@ describe('Winter skills', () => {
     expect([a.has(A2, 'frostborn'), appliedDur(a, A2, 'frostborn')]).toEqual([true, 4]);
   });
 
-  // BUG: text says Frost debuffs they apply while Frostborn last 1 turn longer; Icicle's 1-turn Chill and Snowbind's 2-turn Snowbound keep their normal durations
-  it.fails('Rime Mantle: meanwhile Frost debuffs they apply last 1 turn longer', () => {
-    const c = arena({ p0: [['bless.winter'], ['curse.winter']], p1: [['shot'], ['shot']] });
-    c.use(A1, 'bless.winter', A2).end().end().use(A2, 'curse.winter', B2).end();
-    expect(appliedDur(c, B2, 'snowbound')).toBe(6);
+  it('Rime Mantle: meanwhile Frost debuffs they apply last 1 turn longer', () => {
+    // Live durations (the "applied" log entry is written before the Mantle extends it).
+    const live = (x: ReturnType<typeof arena>, id: string, key: string) => x.effects(id).find((e) => e.defId === key)?.duration;
     const a = arena({ p0: [['bless.winter'], ['shot.ice']], p1: [['shot'], ['shot']] });
     a.use(A1, 'bless.winter', A2).end();
     a.end().use(A2, 'shot.ice', B1).end(); // Icicle: Chilled for 1 turn
-    expect(appliedDur(a, B1, 'chilled')).toBe(4);
-    const b = arena({ p0: [['shot'], ['shot.ice']], p1: [['shot']] }); // control
-    b.use(A2, 'shot.ice', B1).end();
-    expect(appliedDur(b, B1, 'chilled')).toBe(2);
+    const b = arena({ p0: [['shot'], ['shot.ice']], p1: [['shot']] }); // control, no Mantle
+    b.pass(2).use(A2, 'shot.ice', B1).end();
+    expect(live(a, B1, 'chilled')! - live(b, B1, 'chilled')!).toBe(2); // 2 ticks = 1 turn
+    const c = arena({ p0: [['bless.winter'], ['curse.winter']], p1: [['shot'], ['shot']] });
+    c.use(A1, 'bless.winter', A2).end().end().use(A2, 'curse.winter', B2).end();
+    const d = arena({ p0: [['shot'], ['curse.winter']], p1: [['shot'], ['shot']] });
+    d.pass(2).use(A2, 'curse.winter', B2).end();
+    expect(live(c, B2, 'snowbound')! - live(d, B2, 'snowbound')!).toBe(2);
   });
 
   it('Snowbind: Snowbound for 2 turns, and 1 Weakness per mobility buff stripped', () => {

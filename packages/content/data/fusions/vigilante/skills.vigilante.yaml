@@ -122,7 +122,8 @@ shot.vigilante:
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
-  target: allEnemies
+  # Untargeted: it finds Stealthed enemies itself, so it can be used when every enemy is hidden.
+  target: self
   ops:
     - op: forEach
       in: randomAnyEnemy
@@ -303,7 +304,8 @@ blast.vigilante:
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
-  target: allEnemies
+  # Untargeted: it finds Stealthed enemies itself, so it can be used when every enemy is hidden.
+  target: self
   ops:
     - op: forEach
       in: { filter: allUnits, where: { isEnemy: it } }
@@ -370,7 +372,12 @@ channel.vigilante:
           - on: turnEnd
             do:
               - op: forEach
-                in: { filter: allEnemies, where: { compare: { value: { sum: [{ counterOf: { unit: it, name: patrolled } }, { mul: [-1, { turn: true }] }] }, atLeast: -1 } } }
+                in:
+                  filter: allEnemies
+                  where:
+                    and:
+                      - { compare: { value: { counterOf: { unit: it, name: patrolled } }, atLeast: 1 } }
+                      - { compare: { value: { sum: [{ counterOf: { unit: it, name: patrolled } }, { mul: [-1, { turn: true }] }] }, atLeast: -1 } }
                 do:
                   - { op: apply, to: it, effect: exposed, duration: { enemyTurns: 1 } }
                   - { op: damage, to: it, amount: 10 }
