@@ -1377,3 +1377,19 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Shared Grid | Each ally character's HP becomes the team average (raw changes, capped at max HP). |
 | Acid Arc | Simplified: the other enemy gets 2 turns of Corroded (not the target's exact time left). |
 | Etching Glare | Its own Corroded variant passes the 10 Shield it strips to the user. |
+
+### 21.37 Magnet (Lightning + Earth)
+
+| Term | Ruling |
+|---|---|
+| **Attract / Repel** | Written with `moveEffects` (all of the named effects, keeping stacks and time left) and `stealRandom` (one random Debuff). Shield "by amount" is lowered on the enemy (`boostShields`) and given to the user as a new Shield. |
+| Lodestone Fist | Attracts half the Might difference (rounded down), each stack lasting 2 turns. |
+| Reel In | Armor, Shield, Might or Charge the target gains is moved to the user (all they have of those). |
+| Clinging Filings | Simplified: the swarm doesn't get the "only skills that hit that enemy" protection. |
+| Pole Reversal | Simplified: one-way: the user takes their Armor, Might, Charge and Shield. |
+| Clamp | Simplified: what's taken isn't given back. |
+| True North | Simplified: the target is Vulnerable until the user's next turn. |
+| Shared Field | Only the base `shield` status is pooled. |
+| Rebound Plate | Enemies who strike the Shield are marked; when it expires, one Debuff is Repelled onto each. |
+| Opposite Poles | A `targetExclude` keeps every other enemy out of the user's reach. |
+| Iron Colossus | Armor from the absorbed Boulders' total HP (1 per 15); the Boulder that falls away has 10 HP per stack. |

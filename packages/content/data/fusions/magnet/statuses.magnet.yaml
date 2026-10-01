@@ -1,0 +1,15 @@
+# Magnet (Lightning + Earth) statuses, from the "Fusion Spec Kits" design doc.
+
+rebound_mark:
+  name: Rebound
+  kind: Debuff
+  element: Magnet
+  stacking: unique
+  description: Struck the Rebound Plate; a Debuff will be Repelled onto them.
+
+opposite_pole:
+  name: Opposite Pole
+  kind: Debuff
+  element: Magnet
+  stacking: unique
+  description: The only enemy the Opposite Poles user can target.

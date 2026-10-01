@@ -1,0 +1,12 @@
+# Magnet keywords (docs/glossary.md).
+
+attract:
+  name: Attract
+  text: Moves effects from an enemy to the user (or the ally named), stack for stack; Shield moves by amount.
+  element: Magnet
+  forms: [Attract, Attracts, Attracting]
+repel:
+  name: Repel
+  text: Moves Debuffs from an ally onto an enemy, as they are, with their remaining duration.
+  element: Magnet
+  forms: [Repel, Repels]

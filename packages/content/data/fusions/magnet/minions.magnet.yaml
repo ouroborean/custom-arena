@@ -1,0 +1,11 @@
+# Magnet minions.
+
+lodestone_golem:
+  name: Lodestone Golem
+  hp: 50
+  skills: [lodestone_golem_magnetize, lodestone_golem_iron_fist]
+
+iron_filings:
+  name: Iron Filings
+  hp: 20
+  skills: [iron_filings_grind]
