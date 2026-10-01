@@ -207,8 +207,7 @@ describe('Assassin skills', () => {
     expect(a.hp(B1)).toBe(90);
   });
 
-  // BUG: "Stealthed allies stay Stealthed whatever skills they use" — an ally's Shot right after it still ends their Stealth.
-  it.fails('Covering Smoke: Invulnerable; meanwhile Stealthed allies stay Stealthed whatever they use', () => {
+  it('Covering Smoke: Invulnerable; meanwhile Stealthed allies stay Stealthed whatever they use', () => {
     const a = arena({ p0: [['maneuver.assassin'], ['shot']], p1: [['shot']] });
     a.give(A2, 'stealth', { duration: 4 });
     a.use(A1, 'maneuver.assassin').use(A2, 'shot', B1).end();

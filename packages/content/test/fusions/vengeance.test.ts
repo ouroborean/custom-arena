@@ -117,9 +117,7 @@ describe('Vengeance skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([75, 90, 90, 100]);
   });
 
-  // BUG: "when any enemy it hit has their Condemnation trigger, they gain a second random Debuff" — only the
-  // usual single Debuff lands.
-  it.fails('Heaven\'s Rebuke: a hit enemy whose Condemnation triggers gets a second random Debuff', () => {
+  it('Heaven\'s Rebuke: a hit enemy whose Condemnation triggers gets a second random Debuff', () => {
     const a = arena({ p0: [['smash.vengeance']], p1: [['shot'], ['shot']] });
     a.give(B1, 'condemned', { source: A1 }).give(B2, 'condemned', { source: A1 });
     a.use(A1, 'smash.vengeance', B1).end();

@@ -208,15 +208,15 @@ maneuver.phoenix:
     were Condemned, it's purged, and they heal 15.
   cost: r
   cooldown: 3
-  tags: [Helpful, Strategic]
+  tags: [Helpful, Strategic, Purifying]
   target: self
   ops:
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
     - { op: apply, to: actor, effect: anointed, duration: { raw: 3 } }
+    # Purifying: the user's Condemned is spent on this use without its Debuff (condemn_fired).
     - op: if
-      cond: { has: { unit: actor, effect: condemned } }
+      cond: { check: { cond: condemn_fired, unit: actor } }
       then:
-        - { op: removeEffect, from: actor, effect: condemned }
         - { op: heal, to: actor, amount: 15 }
 
 companion.phoenix:

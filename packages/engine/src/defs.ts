@@ -737,7 +737,9 @@ export type SkillTag =
   /** Dimension's Folded Moment: doesn't use up the character's action this turn. */
   | 'FreeAction'
   /** Blood: random costs are paid with 10 HP each. */
-  | 'BloodPrice';
+  | 'BloodPrice'
+  /** Holy: a Condemned user isn't punished for using it; it purges the Condemnation instead (Anointed Ascent). */
+  | 'Purifying';
 
 export interface SkillDef {
   id: string;

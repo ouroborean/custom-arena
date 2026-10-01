@@ -337,8 +337,7 @@ describe('Zealot skills', () => {
     expect(a.hp(B1)).toBe(85);
   });
 
-  // BUG: "each skill they use Condemns them again" — a Condemned target using a skill under Inquisition isn't re-Condemned
-  it.fails('Inquisition: each skill a Condemned target uses Condemns them again', () => {
+  it('Inquisition: each skill a Condemned target uses Condemns them again', () => {
     const a = arena({ p0: [['trap.zealot']], p1: [['shot', 'heal']] });
     a.give(B1, 'condemned', { source: A1 }).use(A1, 'trap.zealot', B1).end();
     a.use(B1, 'shot', A1).end();

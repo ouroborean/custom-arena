@@ -171,8 +171,7 @@ describe('Mirror skills', () => {
     expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([85, true]);
   });
 
-  // BUG: "Helpful skills the user uses don't break their Stealth" — the status is present (skillTags Stealthy on Helpful), but a Heal still ends the Stealth.
-  it.fails("Stillwater Step: the user's Helpful skills don't break Stealth for 2 turns, Harmful ones still do", () => {
+  it("Stillwater Step: the user's Helpful skills don't break Stealth for 2 turns, Harmful ones still do", () => {
     const a = arena({ p0: [['charge.mirror', 'heal', 'shot']], p1: [['shot']] });
     a.give(A1, 'stealth').use(A1, 'charge.mirror', B1).end().pass(1);
     a.use(A1, 'heal', A1).end();
@@ -455,8 +454,7 @@ describe('Mirror skills', () => {
     expect(a.hp(B1)).toBe(90);
   });
 
-  // BUG: "the skill that killed it is turned back on its user" — the killer's lastSlot isn't updated until their skill finishes, so nothing (or their previous skill) is recast.
-  it.fails('Mirror Shade: when killed, the killing skill is turned back on its user', () => {
+  it('Mirror Shade: when killed, the killing skill is turned back on its user', () => {
     const a = arena({ p0: [['summon.mirror']], p1: [['smash']] });
     a.use(A1, 'summon.mirror').end();
     const s = minionsOf(a, 'mirror_shade')[0]!.id;
@@ -600,8 +598,7 @@ describe('Mirror skills', () => {
     expect([a.hp(A1), a.has(A1, 'stun')]).toEqual([85, false]);
   });
 
-  // BUG: "the user Mimics the last skill of the one who tried it" (kit: "the skill that tried it") — the stunner's lastSlot isn't updated until their Stun finishes, so a first-time stunner is not Mimicked and a repeat one has their previous skill copied.
-  it.fails('Dance of Reflections: when Swiftness stops a Stun, the user Mimics the stunner\'s last skill', () => {
+  it('Dance of Reflections: when Swiftness stops a Stun, the user Mimics the stunner\'s last skill', () => {
     const a = arena({ p0: [['dance.mirror']], p1: [['stun']] });
     a.use(A1, 'dance.mirror').end().pass(2);
     a.use(B1, 'stun', A1).end();
@@ -657,8 +654,7 @@ describe('Mirror skills', () => {
     expect([a.hp(B1), a.hp(A2)]).toEqual([85, 100]);
   });
 
-  // BUG: "while they have Flow, their skills are Stealthy" — the Silvered Veil status is present with Flow, but a Shot still ends the Stealth.
-  it.fails("Silvered Veil: while Flow lasts, the ally's skills are Stealthy and keep the Stealth", () => {
+  it("Silvered Veil: while Flow lasts, the ally's skills are Stealthy and keep the Stealth", () => {
     const a = arena({ p0: [['bless.mirror'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bless.mirror', A2).end().pass(1);
     a.use(A2, 'shot', B1).end();
@@ -791,8 +787,7 @@ describe('Mirror skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: "If an enemy breaks it, the user Mimics the last skill of whoever hit them last" (kit: "the skill that did") — the breaker's lastSlot isn't updated until their skill finishes, so a first-time breaker isn't Mimicked and otherwise their previous skill is copied.
-  it.fails('Silvered Guard: an enemy who breaks it has their skill Mimicked back', () => {
+  it('Silvered Guard: an enemy who breaks it has their skill Mimicked back', () => {
     const a = arena({ p0: [['withstand.mirror']], p1: [['blast'], ['shot']] });
     a.use(A1, 'withstand.mirror').end();
     a.use(B1, 'blast').end();
@@ -800,8 +795,7 @@ describe('Mirror skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([65, 65]);
   });
 
-  // BUG: same — breaking it with a Blast after a Shot Mimics the Shot, not the Blast.
-  it.fails('Silvered Guard: the Mimic copies the breaking skill, not the breaker\'s earlier one', () => {
+  it('Silvered Guard: the Mimic copies the breaking skill, not the breaker\'s earlier one', () => {
     const a = arena({ p0: [['withstand.mirror']], p1: [['blast', 'shot'], ['shot']] });
     a.use(A1, 'withstand.mirror').end();
     a.use(B1, 'shot', A1).end().pass(1);

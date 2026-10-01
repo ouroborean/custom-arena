@@ -20,8 +20,13 @@ condemned:
     - on: skillUsed
       consume: true
       do:
-        - op: random
-          options:
-            - [{ op: apply, to: bearer, effect: weakness }]
-            - [{ op: apply, to: bearer, effect: vulnerable }]
-            - [{ op: apply, to: bearer, effect: confusion }]
+        # Riders that act "when Condemned triggers" check this after the skill (condition condemn_fired).
+        - { op: setCounter, name: condemn_fired, on: bearer, value: { turn: true } }
+        - op: if
+          cond: { not: { eventSkill: { tags: [Purifying] } } }
+          then:
+            - op: random
+              options:
+                - [{ op: apply, to: bearer, effect: weakness }]
+                - [{ op: apply, to: bearer, effect: vulnerable }]
+                - [{ op: apply, to: bearer, effect: confusion }]

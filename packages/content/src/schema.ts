@@ -505,6 +505,7 @@ const skillTag = z.enum([
   'Radiant',
   'FreeAction',
   'BloodPrice',
+  'Purifying',
 ]);
 
 /** Skills are keyed by id in the file; the loader injects `id`. */

@@ -332,7 +332,7 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   const secret = tags.includes('HiddenTarget');
   const privateTo = tags.includes('Invisible') ? actor.owner : undefined;
   // Stealth (Shadow): Stealthy skills keep it; anything else ends it once this use is over.
-  const stealthy = def.tags.includes('Stealthy') || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').length > 0;
+  const stealthy = tags.includes('Stealthy') || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').length > 0;
   const stealthed = effectsOn(ctx.s, actor.id).filter((e) => effectDef(ctx.c, e).stealth);
   emit(
     ctx,
@@ -361,10 +361,14 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   );
   const wasInSkill = ctx.inSkill;
   ctx.inSkill = true;
+  const wasUsing = actor.counters.usingSlot;
+  actor.counters.usingSlot = slotIndex;
   try {
     resolveUse(ctx, actor, slotIndex, def, targets, harmful);
   } finally {
     ctx.inSkill = wasInSkill;
+    if (wasUsing === undefined) delete actor.counters.usingSlot;
+    else actor.counters.usingSlot = wasUsing;
     // Alchemy's Catalyst: spent once the skill it doubled has resolved.
     for (const e of ctx.s.effects.filter((x) => x.data.catalyzed)) removeEffect(ctx, e, 'consumed');
     // Uses per skill (Ocean's Crest and Trough alternate on it).

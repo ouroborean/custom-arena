@@ -167,8 +167,7 @@ describe('Vigilante skills', () => {
     expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  // BUG: "the user's next skill is Stealthy too" — the Pursuit buff is consumed by the next skill but that skill still ends Stealth
-  it.fails("Pursuit: the user's next skill is Stealthy too, but only the next", () => {
+  it("Pursuit: the user's next skill is Stealthy too, but only the next", () => {
     const a = arena({ p0: [['dance.vigilante', 'charge.vigilante', 'shot']], p1: [['shot']] });
     a.use(A1, 'dance.vigilante').end().pass(1);
     a.use(A1, 'charge.vigilante', B1).end().pass(1);
@@ -210,8 +209,7 @@ describe('Vigilante skills', () => {
     expect(a.stacks(A1, 'might')).toBe(0);
   });
 
-  // BUG: "their skills are Stealthy while any enemy is Exposed" — with an Exposed enemy, a non-Stealthy skill still ends Stealth
-  it.fails('The Hunt Begins: skills are Stealthy while any enemy is Exposed (ruling)', () => {
+  it('The Hunt Begins: skills are Stealthy while any enemy is Exposed (ruling)', () => {
     const a = arena({ p0: [['rage.vigilante', 'dance.vigilante', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'rage.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
     a.give(B2, 'exposed', { source: A1 }).use(A1, 'shot', B1).end();
@@ -409,8 +407,7 @@ describe('Vigilante skills', () => {
     expect(a.unit(i.id).alive).toBe(false);
   });
 
-  // BUG: "Its creator's next skill is Stealthy" — after Tip Off, the creator's next skill still ends their Stealth
-  it.fails("Informant: Tip Off makes its creator's next skill Stealthy", () => {
+  it("Informant: Tip Off makes its creator's next skill Stealthy", () => {
     const a = arena({ p0: [['summon.vigilante', 'dance.vigilante', 'shot']], p1: [['shot']] });
     a.use(A1, 'summon.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
     const i = minion(a, 'informant');
@@ -599,8 +596,7 @@ describe('Vigilante skills', () => {
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  // BUG: "the next time their Condemned triggers … it gives all three of its Debuffs" — it still gives just one
-  it.fails('Full Sentence: the next Condemned trigger gives all three Debuffs; only the next', () => {
+  it('Full Sentence: the next Condemned trigger gives all three Debuffs; only the next', () => {
     const a = arena({ p0: [['smite.vigilante']], p1: [['shot']] });
     a.give(B1, 'condemned', { source: A1 }).use(A1, 'smite.vigilante', B1).end();
     a.use(B1, 'shot', A1).end();
@@ -633,8 +629,7 @@ describe('Vigilante skills', () => {
     expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85].sort());
   });
 
-  // BUG: "each time either one's Condemned triggers, they're also Blinded" — no Blind when their Condemned triggers
-  it.fails("Sweep the Streets: for 2 turns, either one's Condemned trigger also Blinds them for 1 turn", () => {
+  it("Sweep the Streets: for 2 turns, either one's Condemned trigger also Blinds them for 1 turn", () => {
     const a = arena({ p0: [['cleave.vigilante']], p1: [['shot'], ['shot']] });
     a.give(B1, 'condemned', { source: A1 }).give(B2, 'condemned', { source: A1 });
     a.use(A1, 'cleave.vigilante', B1).end();

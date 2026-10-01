@@ -391,8 +391,7 @@ describe('Ion skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBeTruthy();
   });
 
-  // BUG: "For 2 turns, Helpful skills they use don't break it" — the ally's Heal ends the Stealth.
-  it.fails('Cloaking Field: for 2 turns, the ally\'s Helpful skills don\'t break the Stealth', () => {
+  it('Cloaking Field: for 2 turns, the ally\'s Helpful skills don\'t break the Stealth', () => {
     const a = arena({ p0: [['bless.ion'], ['heal', 'shot']], p1: [['shot']] });
     a.use(A1, 'bless.ion', A2).end().pass(1).use(A2, 'heal', A2).end();
     expect(a.has(A2, 'stealth')).toBe(true);

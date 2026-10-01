@@ -846,7 +846,9 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
     case 'castSkill': {
       const own = op.archetype ? actor.skills.map((x) => ctx.c.skills[x.defId]).find((d) => d?.archetype === op.archetype) : undefined;
       const mimicked = op.lastUsedBy ? select(ctx, op.lastUsedBy, sc)[0] : undefined;
-      const mimicId = mimicked && mimicked.counters.lastSlot !== undefined ? mimicked.skills[mimicked.counters.lastSlot]?.defId : undefined;
+      // "The skill that killed it": mid-use, that's the skill being used now; otherwise their last one.
+      const mimicSlot = mimicked ? (mimicked.counters.usingSlot ?? mimicked.counters.lastSlot) : undefined;
+      const mimicId = mimicked && mimicSlot !== undefined ? mimicked.skills[mimicSlot]?.defId : undefined;
       const def = op.lastUsedBy
         ? mimicId ? ctx.c.skills[mimicId] : undefined
         : op.eventSkill ? scopeSkill(ctx, sc) : (own ?? (op.skill ? ctx.c.skills[op.skill] : undefined));

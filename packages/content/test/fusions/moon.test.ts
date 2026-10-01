@@ -90,9 +90,7 @@ describe('Moon skills', () => {
     expect(a.hp(B1)).toBe(80);
   });
 
-  // BUG: Moonstone Fist says "New Moon: Stealthy", but used at New Moon it ends the user's Stealth (Prowl, a
-  // Stealthy skill, keeps it in the same setup).
-  it.fails('Moonstone Fist: at New Moon it is Stealthy (Stealth stays)', () => {
+  it('Moonstone Fist: at New Moon it is Stealthy (Stealth stays)', () => {
     const a = moon({ p0: [['strike.moon']], p1: [['shot']] });
     a.give(A1, 'stealth', { duration: 4 }).use(A1, 'strike.moon', B1).end();
     expect(a.has(A1, 'stealth')).toBe(true);
@@ -427,12 +425,11 @@ describe('Moon skills', () => {
     const a = moon({ p0: [['ravage.moon']], p1: [['shot'], ['shot']] });
     a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.moon', B1).end();
     expect(a.hp(B1)).toBe(80);
-    a.pass(3).give(A1, 'stealth', { duration: 4 }).use(A1, 'ravage.moon', B2).end(); // Waning
+    a.pass(5).give(A1, 'stealth', { duration: 4 }).use(A1, 'ravage.moon', B2).end(); // Waning
     expect([a.hp(B2), a.has(A1, 'stealth')]).toEqual([60, false]);
   });
 
-  // BUG: Feral Maw says "Full: it doesn't end the user's Stealth", but used at the Full Moon it ends it.
-  it.fails("Feral Maw: at the Full Moon it doesn't end the user's Stealth", () => {
+  it("Feral Maw: at the Full Moon it doesn't end the user's Stealth", () => {
     const a = moon({ p0: [['ravage.moon']], p1: [['shot']] });
     a.pass(4); // game turn 5: Full Moon
     expect(phase(a)).toBe(FULL);

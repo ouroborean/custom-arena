@@ -320,9 +320,7 @@ describe('Phoenix skills', () => {
     expect(a.has(A1, 'anointed')).toBe(false);
   });
 
-  // BUG: "If they were Condemned, it's purged, and they heal 15" — the Condemn fires on the Ascent's own use
-  // (the user gets its random debuff) before the Ascent checks, so there's never a purge or a heal.
-  it.fails('Anointed Ascent: a Condemned user is purged (no Condemn debuff) and heals 15', () => {
+  it('Anointed Ascent: a Condemned user is purged (no Condemn debuff) and heals 15', () => {
     const a = arena({ p0: [['maneuver.phoenix']], p1: [['shot']] });
     a.setHp(A1, 50).give(A1, 'condemned', { source: B1 }).use(A1, 'maneuver.phoenix').end();
     expect([a.has(A1, 'condemned'), a.hp(A1)]).toEqual([false, 65]);

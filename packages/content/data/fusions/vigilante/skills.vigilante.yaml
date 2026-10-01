@@ -604,15 +604,21 @@ smite.vigilante:
         element: Vigilante
         description: The bearer's next Condemned gives Weakness, Vulnerable and Confusion together.
         triggers:
-          - on: skillUsed
+          - on: skillResolved
             do:
               - op: if
-                cond: { has: { unit: bearer, effect: condemned } }
+                cond: { check: { cond: condemn_fired, unit: bearer } }
                 then:
-                  - { op: removeEffect, from: bearer, effect: condemned }
-                  - { op: apply, to: bearer, effect: weakness }
-                  - { op: apply, to: bearer, effect: vulnerable }
-                  - { op: apply, to: bearer, effect: confusion }
+                  # Condemned already gave one of the three; the other two follow.
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: weakness } } }
+                    then: [{ op: apply, to: bearer, effect: weakness }]
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: vulnerable } } }
+                    then: [{ op: apply, to: bearer, effect: vulnerable }]
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: confusion } } }
+                    then: [{ op: apply, to: bearer, effect: confusion }]
                   - { op: removeSelf }
 
 prayer.vigilante:
