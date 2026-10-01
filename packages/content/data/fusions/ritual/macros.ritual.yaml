@@ -1,0 +1,32 @@
+# Ritual actions.
+
+# Every Rite id (one Rite at a time: starting one clears the others).
+clear_rite:
+  - { op: removeEffect, from: actor, effect: rite_sacrificial_blade }
+  - { op: removeEffect, from: actor, effect: rite_circle_of_ash }
+  - { op: removeEffect, from: actor, effect: rite_far_invocation }
+  - { op: removeEffect, from: actor, effect: rite_of_ruin }
+  - { op: removeEffect, from: actor, effect: rite_of_mending }
+  - { op: removeEffect, from: actor, effect: rite_of_blindness }
+  - { op: removeEffect, from: actor, effect: rite_vigil }
+  - { op: setCounter, name: rite_counted, value: 0 }
+
+# Inside a Rite's trigger: one step closer; at 0 it completes.
+rite_step:
+  - { op: setCounter, name: rite_counted, value: { sum: [{ counter: rite_counted }, 1] } }
+  - op: if
+    cond: { compare: { value: { effectStacks: true }, atMost: 1 } }
+    then:
+      - { op: macro, id: rite_finish }
+    else:
+      - { op: addStacksSelf, amount: -1 }
+
+# Inside a Rite's trigger: it completes now (twice during Avatar of the Rite).
+rite_finish:
+  - { op: setCounter, name: rite_done, value: { turn: true } }
+  - op: if
+    cond: { has: { unit: bearer, effect: avatar_of_the_rite } }
+    then:
+      - { op: expire, on: bearer, effect: rite, times: 2 }
+    else:
+      - { op: expire, on: bearer, effect: rite }

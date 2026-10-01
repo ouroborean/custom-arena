@@ -1,0 +1,851 @@
+# The 30 Ritual (Fire + Shadow) variants, from the "Fusion Spec Kits" design doc.
+# A Rite skill runs `clear_rite`, then puts an inline Rite on the user (stacks = skills to go,
+# remembering the target). The shared triggers (&rite_triggers) count the user's skills and the
+# `rite_advance` / `rite_complete` signals from the user or their minions, and break the Rite on
+# Stun, Sleep or Banished. Completing expires it: its onExpire is the Rite's effect.
+
+strike.ritual:
+  archetype: Strike
+  element: Ritual
+  name: Sacrificial Blade
+  description: >-
+    Deals 25 damage to target enemy. Rite (2): the target Explodes.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      remember: primary
+      stacks: 2
+      effect:
+        id: rite_sacrificial_blade
+        name: "Rite: Sacrificial Blade"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, the target Explodes.
+        triggers: &rite_triggers
+          - on: skillUsed
+            do:
+              - { op: macro, id: rite_step }
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: dance_of_candles } }, { compare: { value: { effectStacks: true }, atLeast: 1 } }] }
+                then: [{ op: macro, id: rite_step }]
+          - on: signal
+            signal: rite_advance
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { or: [{ isActor: eventSource }, { minion: { unit: eventSource, mine: true } }] }
+                then: [{ op: macro, id: rite_step }]
+          - on: signal
+            signal: rite_complete
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { or: [{ isActor: eventSource }, { minion: { unit: eventSource, mine: true } }] }
+                then: [{ op: macro, id: rite_finish }]
+          - on: effectGained
+            when: { effects: [stun, sleep, banished, banished_ally] }
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: warding_candle } } }
+                then: [{ op: removeSelf }]
+        onExpire:
+          - { op: macro, id: explode }
+
+smash.ritual:
+  archetype: Smash
+  element: Ritual
+  name: Circle of Ash
+  description: >-
+    Deals 20 damage to target enemy and 10 to the others. Rite (3): every enemy is Ignited and Blinded
+    for 2 turns.
+  cost: Sr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      remember: primary
+      stacks: 3
+      effect:
+        id: rite_circle_of_ash
+        name: "Rite: Circle of Ash"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, every enemy is Ignited and Blinded for 2 turns.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: apply, to: allEnemies, effect: ignite }
+          - { op: apply, to: allEnemies, effect: blinded, duration: { enemyTurns: 2 } }
+
+charge.ritual:
+  archetype: Charge
+  element: Ritual
+  name: Candlestep
+  description: >-
+    Deals 15 damage to target enemy, and the user gains 1 Focus. Any Ignite on them is carried off: it
+    ends, and the user's next damaging skill Ignites its targets.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: removeEffect, from: primary, effect: ignite }
+        - op: apply
+          to: actor
+          until: { skillUsed: { harmful: true } }
+          effect:
+            id: candlestep
+            name: Carried Flame
+            kind: Buff
+            element: Ritual
+            description: The bearer's next damaging skill Ignites its targets.
+            triggers:
+              - on: dealtDamage
+                when: { direct: true, byEnemy: true }
+                do:
+                  - { op: apply, to: eventTarget, effect: ignite }
+
+riposte.ritual:
+  archetype: Riposte
+  element: Ritual
+  name: Warding Candle
+  description: >-
+    For 1 turn, counters the first Harmful skill used on the user, and their Rite can't be broken until
+    the end of their next turn. Invisible.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: warding_candle_counter
+        name: Warding Candle
+        kind: Buff
+        element: Ritual
+        visibility: hidden
+        description: Counters the first Harmful skill used on the bearer.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+    - op: apply
+      to: actor
+      duration: { raw: 3 }
+      effect:
+        id: warding_candle
+        name: Warding Candle
+        kind: Buff
+        element: Ritual
+        description: The bearer's Rite can't be broken.
+
+rage.ritual:
+  archetype: Rage
+  element: Ritual
+  name: Bonfire Revel
+  description: For 3 turns, the user gains Immune, and every unit on both sides gains 2 Might.
+  cost: S
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: allUnits, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+
+shot.ritual:
+  archetype: Shot
+  element: Ritual
+  name: Severing Spark
+  description: Deals 10 Piercing damage to target enemy. If they have no Buffs (nobody tended them), they're Isolated for 1 turn.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - op: if
+      cond: { not: { hasKind: { unit: primary, kind: Buff } } }
+      then:
+        - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 1 } }
+
+snipe.ritual:
+  archetype: Snipe
+  element: Ritual
+  name: Far Invocation
+  description: >-
+    Rite (2): 50 damage to target enemy, Bypassing Invulnerable, and they're Ignited. The target of
+    this skill is invisible.
+  cost: Ar
+  cooldown: 2
+  tags: [Harmful, NonStrategic, HiddenTarget]
+  target: enemy
+  ops:
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      remember: primary
+      stacks: 2
+      effect:
+        id: rite_far_invocation
+        name: "Rite: Far Invocation"
+        kind: Neutral
+        element: Ritual
+        visibility: hiddenTarget
+        countsAs: [rite]
+        description: When it completes, 50 damage to the target, Bypassing, and they're Ignited.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 50, bypass: true }
+          - { op: apply, to: effectTargets, effect: ignite }
+
+trap.ritual:
+  archetype: Trap
+  element: Ritual
+  name: Chains of Smoke
+  description: >-
+    For 2 turns, each Harmful skill target enemy uses deals them 10 Affliction damage and advances the
+    user's Rite by 1. Invisible.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: chains_of_smoke
+        name: Chains of Smoke
+        kind: Debuff
+        element: Ritual
+        visibility: hidden
+        description: Each Harmful skill the bearer uses burns them and advances the applier's Rite.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction }
+              - { op: signal, name: rite_advance }
+
+maneuver.ritual:
+  archetype: Maneuver
+  element: Ritual
+  name: Hush of Smoke
+  description: >-
+    The user becomes Invulnerable for 1 turn, and no enemy's Sleep can end before the user's next turn.
+    Stealthy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Stealthy]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: allEnemies
+      duration: { raw: 2 }
+      effect:
+        id: hush_of_smoke
+        name: Hush of Smoke
+        kind: Debuff
+        element: Ritual
+        description: The bearer's Sleep can't end early.
+        modifiers:
+          - { mod: protectEffects, effects: [sleep] }
+
+companion.ritual:
+  archetype: Companion
+  element: Ritual
+  name: Shadow Acolyte
+  description: >-
+    Summons a Shadow Acolyte (30 HP) permanently; each skill it uses advances its summoner's Rite.
+    Chant (r): target ally heals 10. Flame Lash (r): 10 damage and Ignite.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: shadow_acolyte }
+
+bolt.ritual:
+  archetype: Bolt
+  element: Ritual
+  name: Shadowflame Bolt
+  description: >-
+    Deals 20 damage to target enemy, who is Blinded for 2 turns; each skill they use while Blinded
+    Ignites them.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: shadowflame
+        name: Shadowflame
+        kind: Debuff
+        element: Ritual
+        description: Each skill the bearer uses while Blinded Ignites them.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: blinded } }
+                then:
+                  - { op: apply, to: bearer, effect: ignite }
+
+blast.ritual:
+  archetype: Blast
+  element: Ritual
+  name: Rite of Ruin
+  description: >-
+    Deals 20 damage to all enemies. Rite (3): every enemy takes 10 Affliction damage for each skill
+    they used while it counted.
+  cost: Irr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: 20 }
+    - { op: setCounter, name: ruin, value: 0, on: targets }
+    - op: apply
+      to: targets
+      effect:
+        id: rite_of_ruin_count
+        name: Rite of Ruin
+        kind: Debuff
+        element: Ritual
+        description: Counts the bearer's skills for the Rite of Ruin.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: setCounter, name: ruin, on: bearer, value: { sum: [{ counterOf: { unit: bearer, name: ruin } }, 1] } }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      stacks: 3
+      effect:
+        id: rite_of_ruin
+        name: "Rite: Ruin"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, every enemy takes 10 Affliction per skill they used meanwhile.
+        triggers: *rite_triggers
+        onExpire:
+          - op: forEach
+            in: allEnemies
+            do:
+              - { op: damage, to: it, amount: { mul: [10, { counterOf: { unit: it, name: ruin } }] }, type: Affliction }
+              - { op: removeEffect, from: it, effect: rite_of_ruin_count }
+
+consume.ritual:
+  archetype: Consume
+  element: Ritual
+  name: Snuff the Candles
+  description: >-
+    Deals 5 damage to target enemy, healing the user for it. If the user has a Rite, it ends without
+    completing, and they heal 10 per skill it had counted.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: if
+      cond: { has: { unit: actor, effect: rite } }
+      then:
+        - { op: heal, to: actor, amount: { mul: [10, { counter: rite_counted }] } }
+        - { op: macro, id: clear_rite }
+
+summon.ritual:
+  archetype: Summon
+  element: Ritual
+  name: Tended Wick
+  description: >-
+    Summons a Wick (15 HP) for 3 turns. At the end of each of your turns, it deals 10 damage to a random
+    enemy, doubling each time; any damage to it resets it to 10.
+  cost: I
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: tended_wick, duration: { enemyTurns: 3 } }
+
+channel.ritual:
+  archetype: Channel
+  element: Ritual
+  name: Dark Liturgy
+  description: >-
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies and advances the
+    user's Rite by 1. While it lasts, the user can't be Stunned or put to Sleep. Channeled.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: allEnemies
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dark_liturgy
+        name: Dark Liturgy
+        kind: Neutral
+        element: Ritual
+        interruptible: true
+        description: Each turn, 10 damage to all enemies and the Rite advances; the bearer can't be Stunned or put to Sleep.
+        modifiers:
+          - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s, sleep] }
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: allEnemies, amount: 10 }
+              - { op: signal, name: rite_advance }
+
+stab.ritual:
+  archetype: Stab
+  element: Ritual
+  name: Ritual Knife
+  description: Deals 10 damage to target enemy, or 25 if it's the skill that completes the user's Rite.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: damage
+      to: primary
+      amount:
+        if:
+          or:
+            - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: rite_done }] }] }, atMost: 0 } }
+            - and:
+                - { has: { unit: actor, effect: rite } }
+                - not: { stackTotal: { unit: actor, effects: [rite_sacrificial_blade, rite_circle_of_ash, rite_far_invocation, rite_of_ruin, rite_of_mending, rite_of_blindness, rite_vigil], moreThan: 1 } }
+        then: 25
+        else: 10
+
+ravage.ritual:
+  archetype: Ravage
+  element: Ritual
+  name: Flashpoint
+  description: Deals 20 Piercing damage to target enemy. Then every Ignite on the enemy team burns once now.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20, type: Piercing }
+    - op: forEach
+      in: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
+      do:
+        - { op: macro, id: ignite_tick }
+
+mislead.ritual:
+  archetype: Mislead
+  element: Ritual
+  name: Circle of Warding
+  description: >-
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user's Rite completes at
+    once. Invisible.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: circle_of_warding
+        name: Circle of Warding
+        kind: Debuff
+        element: Ritual
+        visibility: hidden
+        description: The bearer's next Harmful skill is countered, and the applier's Rite completes.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: signal, name: rite_complete }
+
+stun.ritual:
+  archetype: Stun
+  element: Ritual
+  name: Waking Hex
+  description: >-
+    Deals 10 damage to target enemy. After this, the next time they take damage within 2 turns, they're
+    Stunned for 1 turn.
+  cost: A
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: waking_hex
+        name: Waking Hex
+        kind: Debuff
+        element: Ritual
+        description: The next time the bearer takes damage, they're Stunned for 1 turn.
+        triggers:
+          - on: damaged
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.ritual:
+  archetype: Dance
+  element: Ritual
+  name: Dance of Candles
+  description: >-
+    For 3 turns, the user gains 1 Swiftness and 1 Focus, and each skill they use advances their Rite by
+    1 more.
+  cost: A
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: dance_of_candles
+        name: Dance of Candles
+        kind: Buff
+        element: Ritual
+        description: Each skill the bearer uses advances their Rite by 1 more.
+
+heal.ritual:
+  archetype: Heal
+  element: Ritual
+  name: Rite of Mending
+  description: >-
+    Target ally heals 15. Rite (2): all allies heal 25.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 15 }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      stacks: 2
+      effect:
+        id: rite_of_mending
+        name: "Rite: Mending"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, all allies heal 25.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: heal, to: allAllies, amount: 25 }
+
+bless.ritual:
+  archetype: Bless
+  element: Ritual
+  name: Double Wick
+  description: For 2 turns, target ally gains 1 Might, and Ignites they apply can stack, up to 2.
+  cost: r
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: double_wick
+        name: Double Wick
+        kind: Buff
+        element: Ritual
+        description: Ignites the bearer applies can stack, up to 2.
+        modifiers:
+          - { mod: stackCap, effect: ignite, max: 2 }
+
+curse.ritual:
+  archetype: Curse
+  element: Ritual
+  name: Rite of Blindness
+  description: >-
+    Target enemy is Blinded for 2 turns. Rite (2): every enemy is Blinded for 2 turns and Scorched.
+  cost: A
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      stacks: 2
+      effect:
+        id: rite_of_blindness
+        name: "Rite: Blindness"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, every enemy is Blinded for 2 turns and Scorched.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: apply, to: allEnemies, effect: blinded, duration: { enemyTurns: 2 } }
+          - { op: apply, to: allEnemies, effect: scorched, duration: { enemyTurns: 2 } }
+
+smite.ritual:
+  archetype: Smite
+  element: Ritual
+  name: Veilbrand
+  description: >-
+    Deals 15 damage to target enemy and Sanctifies them for 2 turns. For as long, a Stealthed ally who
+    damages them while they're Ignited has their next skill count as Stealthy.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: veilbrand
+        name: Veilbrand
+        kind: Debuff
+        element: Ritual
+        description: While the bearer is Ignited, a Stealthed attacker's next skill counts as Stealthy.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { and: [{ has: { unit: bearer, effect: ignite } }, { has: { unit: eventSource, effect: stealth } }] }
+                then:
+                  - { op: apply, to: eventSource, effect: veiled_by_smoke, until: { skillUsed: {} } }
+
+prayer.ritual:
+  archetype: Prayer
+  element: Ritual
+  name: Vigil of Candles
+  description: >-
+    All allies heal 20. Rite (3): every ally who hasn't taken damage since it started heals 30 and gains
+    Stealth.
+  cost: Wrr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 20 }
+    - op: apply
+      to: targets
+      effect:
+        id: vigil_watch
+        name: Vigil
+        kind: Buff
+        element: Ritual
+        description: Untouched since the Vigil began.
+        triggers:
+          - on: damaged
+            do:
+              - { op: removeSelf }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      stacks: 3
+      effect:
+        id: rite_vigil
+        name: "Rite: Vigil of Candles"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, every untouched ally heals 30 and gains Stealth.
+        triggers: *rite_triggers
+        onExpire:
+          - op: forEach
+            in: { filter: allAllies, where: { has: { unit: it, effect: vigil_watch } } }
+            do:
+              - { op: heal, to: it, amount: 30 }
+              - { op: apply, to: it, effect: stealth, duration: { enemyTurns: 2 } }
+              - { op: removeEffect, from: it, effect: vigil_watch }
+
+cleave.ritual:
+  archetype: Cleave
+  element: Ritual
+  name: Cinder Tether
+  description: >-
+    Deals 20 damage to target enemy and 15 to a random other enemy. Until the user's next turn, healing
+    either of them receives is dealt to the other as damage instead.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: apply, to: primary, remember: it, duration: { raw: 2 }, effect: &cinder_tether
+            {
+              id: cinder_tether,
+              name: Cinder Tether,
+              kind: Debuff,
+              element: Ritual,
+              description: Healing the bearer receives is dealt to the tethered enemy as damage instead.,
+              triggers: [
+                {
+                  on: healed,
+                  do: [
+                    { op: damage, to: bearer, amount: { eventAmount: true }, raw: true, type: Affliction, direct: false, bypass: true },
+                    { op: damage, to: effectTargets, amount: { eventAmount: true }, type: Affliction, direct: false },
+                  ],
+                },
+              ],
+            } }
+        - { op: apply, to: it, remember: primary, duration: { raw: 2 }, effect: *cinder_tether }
+
+shout.ritual:
+  archetype: Shout
+  element: Ritual
+  name: Invocation
+  description: >-
+    All enemies are Intimidated for 2 turns. The user's Rite advances by 1 per enemy that's Blinded or
+    Ignited.
+  cost: Sr
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - op: repeat
+      times: { countOf: { filter: targets, where: { or: [{ has: { unit: it, effect: blinded } }, { has: { unit: it, effect: ignite } }] } } }
+      do:
+        - { op: signal, name: rite_advance }
+
+withstand.ritual:
+  archetype: Withstand
+  element: Ritual
+  name: Smokewall
+  description: The user gains 20 Shield, which lasts for as long as they stay Stealthed (at least 1 turn).
+  cost: A
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      value: 20
+      effect:
+        id: smokewall
+        name: Smokewall
+        kind: Buff
+        element: Ritual
+        shield: true
+        description: A Shield that lasts while the bearer stays Stealthed (checked at the start of their turns).
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { not: { has: { unit: bearer, effect: stealth } } }
+                then: [{ op: removeSelf }]
+
+taunt.ritual:
+  archetype: Taunt
+  element: Ritual
+  name: Effigy
+  description: >-
+    Creates an Effigy (10 HP); target enemy is Taunted by it for 1 turn. If the Effigy is destroyed, the
+    user's Rite completes at once.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: summon, minion: effigy }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+
+titan.ritual:
+  archetype: Titan
+  element: Ritual
+  name: Avatar of the Rite
+  description: >-
+    For 3 turns, the user gains 3 Armor and Immune, and any Rite of theirs that completes meanwhile
+    takes effect twice.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: avatar_of_the_rite
+        name: Avatar of the Rite
+        kind: Buff
+        element: Ritual
+        description: Rites that complete take effect twice.
+
+# Minion skills.
+
+acolyte_chant:
+  archetype: Minion
+  element: Ritual
+  name: Chant
+  description: Target ally heals 10. Advances its summoner's Rite.
+  cost: r
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 10 }
+    - { op: signal, name: rite_advance }
+
+acolyte_flame_lash:
+  archetype: Minion
+  element: Ritual
+  name: Flame Lash
+  description: Deals 10 damage to target enemy and Ignites them. Advances its summoner's Rite.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: ignite }
+    - { op: signal, name: rite_advance }

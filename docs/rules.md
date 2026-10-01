@@ -1063,3 +1063,20 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Double or Nothing | Simplified heads: each Debuff lasts 2 turns longer, and Weakness, Vulnerable, Toxin and Confusion gain 1 stack. |
 | Choir of the Pit | Each Helpful skill used on a Horrified enemy gives a random ally of the user 1 Might. |
 | Pyre Swing / Dare the Damned | A kill is detected by damage reaching the target's HP; Dare explodes on each hit that leaves the user at Immortal's floor. |
+
+### 21.19 Ritual (Fire + Shadow)
+
+| Term | Ruling |
+|---|---|
+| **Rite (N)** | An inline Neutral effect on the user that counts as `rite`, with N stacks, remembering the target. Shared triggers: each skill the user uses is one step (two during Dance of Candles); a `rite_advance` signal from the user or their minions is one step; `rite_complete` completes it; gaining Stun, Sleep or Banished breaks it (not while Warding Candle lasts). The last step expires it, and its onExpire is the effect (run twice during Avatar of the Rite). `clear_rite` keeps one Rite at a time. The skill that starts a Rite doesn't count for it. |
+| Acolytes / Effigy | Acolyte skills send `rite_advance`; the Effigy's `onDeath` sends `rite_complete`. Chains of Smoke, Dark Liturgy and Invocation advance it by signal too. |
+| Candlestep | The carried flame Ignites everything the user's next Harmful skill damages. |
+| Severing Spark | Simplified: Isolated if the target has no Buffs. |
+| Shadowflame Bolt | Simplified: each skill they use while Blinded Ignites them. |
+| Rite of Ruin | Enemies count their own skills (`ruin`) from the moment it starts. |
+| Snuff the Candles | Heals 10 per step counted (`rite_counted`). |
+| Ritual Knife | 25 if a Rite completed this turn or the user's Rite has 1 step left. |
+| Hush of Smoke | Enemies' Sleep is protected from removal until the user's next turn. |
+| Veilbrand | Simplified: a Stealthed attacker who damages the Ignited target gets their next skill counted as Stealthy. |
+| Cinder Tether | Healing either receives is undone and dealt to the other as Affliction. |
+| Smokewall | A Shield checked at the start of the user's turns: it ends once they're no longer Stealthed. |
