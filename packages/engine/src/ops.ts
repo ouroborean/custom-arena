@@ -658,7 +658,7 @@ function runOp(ctx: Ctx, op: Op, sc: Scope): void {
       if (op.by) {
         const ids = new Set(select(ctx, op.by, sc).map((u) => u.id));
         for (const e of ctx.s.effects.filter((x) => ids.has(x.source))) {
-          const hidden = effectDef(ctx.c, e).visibility === 'hidden';
+          const hidden = effectDef(ctx.c, e).visibility === 'hidden' || !!e.data.invisible;
           revealEffect(ctx, e);
           if (op.end && hidden) removeEffect(ctx, e, 'removed');
         }

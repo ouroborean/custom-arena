@@ -5,6 +5,7 @@ fog:
   kind: Buff
   element: Mist
   stacking: unique
+  visibility: public
   description: >-
     Enemy single-target skills aimed at the bearer hit a random unit on their side instead. When Fog
     ends, it condenses into 2 Renew.

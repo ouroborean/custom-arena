@@ -352,8 +352,7 @@ describe('Evil skills', () => {
   });
 
   // Maneuver
-  // BUG: Deathless Step says Invisible; its Immortal is visible to the opponent (Unholy's Grave Step hides it)
-  it.fails('Deathless Step: the effect is invisible to the opponent', () => {
+  it('Deathless Step: the effect is invisible to the opponent', () => {
     const a = arena({ p0: [['maneuver.evil']], p1: [['shot']] });
     a.use(A1, 'maneuver.evil').end();
     expect(p1Sees(a, A1)).toBe(false);

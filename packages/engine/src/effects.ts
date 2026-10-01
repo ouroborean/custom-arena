@@ -33,7 +33,7 @@ export interface ApplyArgs {
 }
 
 export function isHidden(ctx: Ctx, e: EffectInstance): boolean {
-  return effectDef(ctx.c, e).visibility === 'hidden' && !e.revealed;
+  return (effectDef(ctx.c, e).visibility === 'hidden' || !!e.data.invisible) && !e.revealed;
 }
 
 export function applyEffect(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
@@ -67,7 +67,10 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   if (!bearer.alive) return null;
   // "Any target that attempts to become Invulnerable" (Emblem of the Blackout): heard before any block.
   broadcastSignal(ctx, `applying:${def.id}`, source, { target: bearer });
-  const hidden = def.visibility === 'hidden';
+  // An Invisible skill's own effects are hidden from the opponent too, until they react or end.
+  // (A status marked `visibility: public` stays visible regardless.)
+  const bySecretSkill = !!a.sourceSkill?.tags.includes('Invisible') && !!ctx.inSkill && def.visibility === undefined;
+  const hidden = def.visibility === 'hidden' || bySecretSkill;
   const privateTo = hidden ? source.owner : undefined;
 
   // Numb: the source can't apply Buffs.
@@ -197,7 +200,7 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
     duration,
     targets: a.targets ?? [],
     revealed: false,
-    data: {},
+    data: bySecretSkill ? { invisible: true } : {},
     seq: ctx.s.seq,
   };
   if (a.inline) inst.inline = def;

@@ -174,8 +174,7 @@ describe('Prism skills', () => {
     expect(a.has(B1, 'condemned')).toBe(true);
   });
 
-  // SPEC: Standing Decree is tagged Invisible, but the Condemned it applies is an ordinary visible Debuff. Should the opponent see it?
-  it.fails('Standing Decree: Invisible, so the opponent does not see the Condemnation', () => {
+  it('Standing Decree: Invisible, so the opponent does not see the Condemnation', () => {
     const a = arena({ p0: [['trap.prism']], p1: [['shot']] });
     a.use(A1, 'trap.prism', B1).end();
     expect(seenByFoe(a, B1)).toEqual([]);

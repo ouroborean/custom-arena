@@ -543,6 +543,7 @@ mislead.evolution:
             name: Warning Colors
             kind: Debuff
             element: Evolution
+            visibility: public
             description: The first Harmful skill any of these enemies uses is countered, and its user gains 1 Toxin per energy it cost.
             triggers:
               - on: skillUsed

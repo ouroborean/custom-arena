@@ -352,8 +352,7 @@ describe('Zealot skills', () => {
     expect(a.has(B1, 'condemned')).toBe(false);
   });
 
-  // BUG: Hair Shirt is Invisible, but its Immortal is shown to the opponent (Grave Step's is hidden)
-  it.fails('Hair Shirt: Invisible, so the opponent never sees the Immortal', () => {
+  it('Hair Shirt: Invisible, so the opponent never sees the Immortal', () => {
     const a = arena({ p0: [['maneuver.zealot']], p1: [['shot']] });
     a.use(A1, 'maneuver.zealot').end();
     expect(hiddenFromOpponent(a, A1, 1)).toBe(true);

@@ -341,8 +341,7 @@ describe('Blood skills', () => {
     expect([a.hp(B1), a.has(B1, 'hemorrhage')]).toEqual([75, false]);
   });
 
-  // BUG: Pale Step is Invisible, but its Immortal is visible to the enemy (only the drain Buff is hidden).
-  it.fails('Pale Step: invisible to the enemy', () => {
+  it('Pale Step: invisible to the enemy', () => {
     const a = arena({ p0: [['maneuver.blood']], p1: [['shot']] });
     a.use(A1, 'maneuver.blood').end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1)).toBe(false);
