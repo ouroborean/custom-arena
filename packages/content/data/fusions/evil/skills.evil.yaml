@@ -1,0 +1,839 @@
+# The 30 Evil (Unholy + Unholy) variants, from the "Fusion Spec Kits" design doc. Ids are "<base>.evil".
+# Keywords: Unhallowed (healing hurts instead) and Tithe N (spend up to N Soul Fragments; macro
+# `tithe` with the `tithe` var set first, then `spent` says how many).
+
+strike.evil:
+  archetype: Strike
+  element: Evil
+  name: Cruel Blade
+  description: >-
+    Deals 25 damage to target enemy. If they were healed since the user's last turn, they take 10
+    more and are Unhallowed for 2 turns.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - op: set
+      var: healed
+      value:
+        if:
+          and:
+            - { compare: { value: { counterOf: { unit: primary, name: healed_turn } }, atLeast: 1 } }
+            - { compare: { value: { sum: [{ counterOf: { unit: primary, name: healed_turn } }, { mul: [-1, { turn: true }] }] }, atLeast: -1 } }
+        then: 1
+        else: 0
+    - { op: damage, to: primary, amount: { sum: [25, { mul: [10, { var: healed }] }] } }
+    - op: if
+      cond: { varTrue: healed }
+      then:
+        - { op: apply, to: primary, effect: unhallowed, duration: { enemyTurns: 2 } }
+
+smash.evil:
+  archetype: Smash
+  element: Evil
+  name: Soulgrinder
+  description: >-
+    Deals 40 damage to target enemy; their allies are Horrified for 2 turns. Tithe 2: per Fragment
+    spent, a random one of those allies takes 15 Affliction damage.
+  cost: SS
+  cooldown: 3
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 40 }
+    - { op: apply, to: primaryAllies, effect: horrified, duration: { enemyTurns: 2 } }
+    - { op: set, var: tithe, value: 2 }
+    - { op: macro, id: tithe }
+    - op: repeat
+      times: { var: spent }
+      do:
+        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15, type: Affliction }
+
+charge.evil:
+  archetype: Charge
+  element: Evil
+  name: Soul Hunt
+  description: >-
+    Deals 15 damage to target enemy, and the user's next Harmful skill drains a Soul Fragment from
+    its target. Tithe 1: that skill also costs 1 less.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      until: { skillUsed: { harmful: true } }
+      effect:
+        id: soul_hunt
+        name: Soul Hunt
+        kind: Buff
+        element: Evil
+        description: The bearer's next Harmful skill drains a Soul Fragment from its target.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - { op: forEach, in: eventPrimary, do: [{ op: macro, id: drain_it }] }
+    - { op: set, var: tithe, value: 1 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - { op: apply, to: actor, effect: focus, until: { skillUsed: { harmful: true } } }
+
+riposte.evil:
+  archetype: Riposte
+  element: Evil
+  name: Take You With Me
+  description: >-
+    For 1 turn, counters any Harmful skill used on the user. If the user dies before the end of
+    their next turn, the last enemy it countered dies with them. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: take_you_with_me
+        name: Take You With Me
+        kind: Buff
+        element: Evil
+        visibility: hidden
+        description: Counters Harmful skills used on the bearer and dooms their user to die with them.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true }
+            intercept: counter
+            do:
+              - { op: removeEffect, from: allEnemies, effect: doomed_together }
+              - op: apply
+                to: eventSource
+                duration: { raw: 3 }
+                effect:
+                  id: doomed_together
+                  name: Doomed Together
+                  kind: Debuff
+                  element: Evil
+                  description: If the one who doomed the bearer dies before this ends, the bearer dies too.
+                  triggers:
+                    - on: signal
+                      signal: died
+                      do:
+                        - op: if
+                          cond: { isEventTarget: actor }
+                          then:
+                            - { op: kill, to: bearer }
+
+rage.evil:
+  archetype: Rage
+  element: Evil
+  name: Atrocity
+  description: >-
+    Tithe all: the user is Immortal for 1 turn per Fragment spent (max 3). While Immortal, each enemy
+    who damages them loses a Soul Fragment to the user.
+  cost: Sr
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: set, var: tithe, value: 3 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: spent } } }
+        - op: apply
+          to: actor
+          duration: { enemyTurns: { var: spent } }
+          effect:
+            id: atrocity
+            name: Atrocity
+            kind: Buff
+            element: Evil
+            description: Each enemy who damages the bearer loses a Soul Fragment to them.
+            triggers:
+              - on: damaged
+                when: { byEnemy: true }
+                do:
+                  - { op: forEach, in: eventSource, do: [{ op: macro, id: drain_it }] }
+
+shot.evil:
+  archetype: Shot
+  element: Evil
+  name: Bone Needle
+  description: >-
+    Deals 10 damage to target enemy, plus 5 per Soul Fragment the user has. If the target is
+    Unhallowed, the user drains a Soul Fragment from them.
+  cost: r
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [5, { stacks: { unit: actor, effect: soul_fragment } }] }] } }
+    - op: if
+      cond: { has: { unit: primary, effect: unhallowed } }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: drain_it }] }
+
+snipe.evil:
+  archetype: Snipe
+  element: Evil
+  name: Doom Knell
+  description: >-
+    In 3 turns, deals 70 Affliction damage to target enemy. Each time they're healed meanwhile, it
+    lands a turn sooner. The target of this skill is invisible. Channeled.
+  cost: AS
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: doom_knell
+        name: Doom Knell (tolling)
+        kind: Neutral
+        element: Evil
+        visibility: hiddenTarget
+        interruptible: true
+        description: Strikes its target for 70 Affliction when it ends, sooner each time they're healed.
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 70, type: Affliction }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: doom_knell_mark
+        name: Doom Knell
+        kind: Debuff
+        element: Evil
+        visibility: hidden
+        description: Each time the bearer is healed, the knell tolls a turn sooner.
+        triggers:
+          - on: healed
+            do:
+              - { op: extendEffects, on: actor, effects: [doom_knell], by: -2 }
+
+trap.evil:
+  archetype: Trap
+  element: Evil
+  name: Damning Shackle
+  description: >-
+    For 2 turns, the first time target enemy would be healed, they take that much Affliction damage
+    instead and are Stunned for 1 turn. Invisible.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: damning_shackle
+        name: Damning Shackle
+        kind: Debuff
+        element: Evil
+        visibility: hidden
+        description: The first healing the bearer would receive hurts them instead, and Stuns them.
+        modifiers:
+          - { mod: invertHealing }
+        triggers:
+          - on: healed
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+
+maneuver.evil:
+  archetype: Maneuver
+  element: Evil
+  name: Deathless Step
+  description: >-
+    The user becomes Immortal for 1 turn. Tithe 1: they become Invulnerable for 1 turn instead. Invisible.
+  cost: I
+  cooldown: 2
+  tags: [Helpful, Strategic, Invisible]
+  target: self
+  ops:
+    - { op: set, var: tithe, value: 1 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 } }
+
+companion.evil:
+  archetype: Companion
+  element: Evil
+  name: Fiend
+  description: >-
+    Summons a Fiend (35 HP) permanently. Rend Soul (S): 15 Affliction damage and Unhallowed for 1
+    turn. Feast (r): drains a Soul Fragment from a Horrified enemy for its summoner.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: fiend }
+
+bolt.evil:
+  archetype: Bolt
+  element: Evil
+  name: Profane Bolt
+  description: >-
+    Deals 25 damage to target enemy. If they're Unhallowed, the user also heals them 15, which
+    Unhallowed turns into damage; otherwise they're Horrified for 2 turns.
+  cost: Ir
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { has: { unit: primary, effect: unhallowed } }
+      then:
+        - { op: heal, to: primary, amount: 15 }
+      else:
+        - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
+
+blast.evil:
+  archetype: Blast
+  element: Evil
+  name: Soulfire Nova
+  description: >-
+    Deals 25 damage to all enemies, plus 10 per Soul Fragment the user has. For 1 turn, any healing
+    they receive also heals the user.
+  cost: SIr
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - { op: damage, to: targets, amount: { sum: [25, { mul: [10, { stacks: { unit: actor, effect: soul_fragment } }] }] } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 1 }
+      effect:
+        id: soulfire_nova
+        name: Soulfire
+        kind: Debuff
+        element: Evil
+        description: Healing the bearer receives also heals the one who burned them.
+        triggers:
+          - on: healed
+            do:
+              - { op: heal, to: actor, amount: { eventAmount: true } }
+
+consume.evil:
+  archetype: Consume
+  element: Evil
+  name: Reap
+  description: Every Horrified enemy takes 5 damage and loses a Soul Fragment to the user; the user heals 10 per enemy reaped.
+  cost: S
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: allEnemies
+  ops:
+    - op: forEach
+      in: { filter: targets, where: { has: { unit: it, effect: horrified } } }
+      do:
+        - { op: damage, to: it, amount: 5 }
+        - { op: macro, id: drain_it }
+        - { op: heal, to: actor, amount: 10 }
+
+summon.evil:
+  archetype: Summon
+  element: Evil
+  name: Tormentor
+  description: >-
+    Summons a Tormentor (25 HP) for 3 turns. Barbed Whip (r): 10 Affliction damage. False Mercy (I):
+    target enemy is Unhallowed for 1 turn; if it takes hold, they then heal 15.
+  cost: S
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: summon, minion: tormentor, duration: { enemyTurns: 3 } }
+
+channel.evil:
+  archetype: Channel
+  element: Evil
+  name: Undying Thirst
+  description: >-
+    For 3 turns, deals 10 damage to target enemy each turn, with Lifesteal. While it channels, the
+    user is Immortal, but only this Lifesteal can heal them. Channeled.
+  cost: rr
+  cooldown: 3
+  tags: [Harmful, NonStrategic, Channeled]
+  target: enemy
+  ops:
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: undying_thirst
+        name: Undying Thirst
+        kind: Neutral
+        element: Evil
+        interruptible: true
+        description: Drains its target for 10 at the end of each of the user's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: effectTargets, amount: 10 }
+              - { op: heal, to: bearer, amount: { lastDamage: true }, raw: true }
+    - op: apply
+      to: actor
+      linkTo: undying_thirst
+      duration: { enemyTurns: 3 }
+      effect:
+        id: undying_thirst_hold
+        name: Undying Thirst
+        kind: Buff
+        element: Evil
+        description: Immortal, and only the Thirst's own Lifesteal can heal the bearer.
+        modifiers:
+          - { mod: hpFloor, amount: 5 }
+          - { mod: healingReceived, mul: 0 }
+
+stab.evil:
+  archetype: Stab
+  element: Evil
+  name: Heartpiercer
+  description: >-
+    Deals 15 damage to target enemy; at or above 70 HP, it drains a Soul Fragment. Tithe 1: if it
+    leaves them below 20 HP, they die.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: healthy, value: { if: { hpAbove: { unit: primary, value: 69 } }, then: 1, else: 0 } }
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { varTrue: healthy }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: drain_it }] }
+    - op: if
+      cond: { and: [{ hpAtMost: { unit: primary, value: 19 } }, { has: { unit: actor, effect: soul_fragment } }] }
+      then:
+        - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }
+        - { op: kill, to: primary }
+
+ravage.evil:
+  archetype: Ravage
+  element: Evil
+  name: Mutual Ruin
+  description: >-
+    Deals 35 Piercing damage to target enemy. The user pays in blood instead of energy: they lose 25
+    HP, which can't kill them.
+  cost: nc
+  cooldown: 2
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 35, type: Piercing }
+    - op: damage
+      to: actor
+      type: Affliction
+      direct: false
+      raw: true
+      amount: { if: { hpAbove: { unit: actor, value: 25 } }, then: 25, else: { sum: [{ hp: actor }, -1] } }
+
+mislead.evil:
+  archetype: Mislead
+  element: Evil
+  name: Waking Nightmare
+  description: >-
+    For 1 turn, if target enemy uses a Helpful skill, it's countered, and its targets take the
+    healing it would have given as Affliction damage. Invisible.
+  cost: r
+  cooldown: 3
+  tags: [Harmful, Strategic, Invisible]
+  target: enemy
+  ops:
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: waking_nightmare
+        name: Waking Nightmare
+        kind: Debuff
+        element: Evil
+        visibility: hidden
+        description: The bearer's first Helpful skill is countered, and its targets are hurt instead.
+        triggers:
+          - on: skillUsed
+            when: { harmful: false }
+            intercept: counter
+            consume: true
+            do:
+              # Simplified: the would-be healing is taken as 20.
+              - { op: damage, to: eventTargets, amount: 20, type: Affliction }
+
+stun.evil:
+  archetype: Stun
+  element: Evil
+  name: Mutilate
+  description: >-
+    Target enemy gains 1 permanent Vulnerable, plus 1 permanent Weakness if Horrified. Tithe 1:
+    they're also Stunned for 1 turn.
+  cost: AS
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: vulnerable }
+    - op: if
+      cond: { has: { unit: primary, effect: horrified } }
+      then:
+        - { op: apply, to: primary, effect: weakness }
+    - { op: set, var: tithe, value: 1 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+
+dance.evil:
+  archetype: Dance
+  element: Evil
+  name: Danse Macabre
+  description: >-
+    Deals 15 Piercing damage to target enemy, and the user gains 1 Confusion for 2 turns. For those 2
+    turns, the user's Confusion lowers their skill costs instead of raising them.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, type: Piercing }
+    - { op: apply, to: actor, effect: confusion, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: danse_macabre
+        name: Danse Macabre
+        kind: Buff
+        element: Evil
+        description: The bearer's Confusion lowers their skill costs instead of raising them.
+        modifiers:
+          # Simplified: undoes one Confusion's +1 and gives −1 instead (assumes 1 stack).
+          - { mod: costGeneric, amount: -2, if: { has: { unit: actor, effect: confusion } } }
+
+heal.evil:
+  archetype: Heal
+  element: Evil
+  name: Borrowed Blood
+  description: >-
+    Target ally heals 35. At the end of each of their next 2 turns, they lose 10 HP unless they
+    damaged an enemy that turn.
+  cost: r
+  cooldown: 1
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: heal, to: primary, amount: 35 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: borrowed_blood
+        name: Borrowed Blood
+        kind: Debuff
+        element: Evil
+        description: At the end of the bearer's turn, they lose 10 HP unless they damaged an enemy that turn.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true }
+            do:
+              - { op: setFlag, flag: paid }
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { not: { flag: paid } }
+                then:
+                  - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false, raw: true }
+              - { op: setFlag, flag: paid, value: false }
+
+bless.evil:
+  archetype: Bless
+  element: Evil
+  name: Dark Gift
+  description: >-
+    Target ally gains Lifesteal for 2 turns. Tithe 2: also 1 Might per Fragment spent, for 2 turns.
+  cost: W
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - { op: apply, to: primary, effect: lifesteal, duration: { enemyTurns: 2 } }
+    - { op: set, var: tithe, value: 2 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - { op: apply, to: primary, effect: might, stacks: { var: spent }, duration: { enemyTurns: 2 } }
+
+curse.evil:
+  archetype: Curse
+  element: Evil
+  name: Eternal Torment
+  description: >-
+    Target enemy gains 1 Confusion and is Immortal for 3 turns. Each hit that would have taken them
+    below 5 HP gives its dealer a Soul Fragment.
+  cost: r
+  cooldown: 2
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: immortal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: eternal_torment
+        name: Eternal Torment
+        kind: Debuff
+        element: Evil
+        description: Each hit that leaves the bearer at their Immortal floor gives its dealer a Soul Fragment.
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 5 } }
+                then:
+                  - { op: apply, to: eventSource, effect: soul_fragment }
+
+smite.evil:
+  archetype: Smite
+  element: Evil
+  name: Soul Rot
+  description: >-
+    Deals 20 damage to target enemy. Tithe 1: for 2 turns, each ally who damages them gains a Soul Fragment.
+  cost: Sr
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 20 }
+    - { op: set, var: tithe, value: 1 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { varTrue: spent }
+      then:
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: soul_rot
+            name: Soul Rot
+            kind: Debuff
+            element: Evil
+            description: Each enemy who damages the bearer gains a Soul Fragment.
+            triggers:
+              - on: damaged
+                when: { byEnemy: true, direct: true }
+                do:
+                  - { op: apply, to: eventSource, effect: soul_fragment }
+
+prayer.evil:
+  archetype: Prayer
+  element: Evil
+  name: Black Mass
+  description: All allies heal 25. Then each ally at full HP gives 10 of it back to gain 1 Soul Fragment.
+  cost: Srr
+  cooldown: 2
+  tags: [Helpful, Strategic]
+  target: allAllies
+  ops:
+    - { op: heal, to: targets, amount: 25 }
+    - op: forEach
+      in: { filter: targets, where: { compare: { value: { missingHp: it }, atMost: 0 } } }
+      do:
+        - { op: damage, to: it, amount: 10, type: Affliction, direct: false, raw: true }
+        - { op: apply, to: it, effect: soul_fragment }
+
+cleave.evil:
+  archetype: Cleave
+  element: Evil
+  name: Betrayal
+  description: >-
+    Deals 25 Piercing damage to target enemy, then 10 to them and to each of the user's allies.
+    Tithe 1: the allies are spared.
+  cost: S
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 25, type: Piercing }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: set, var: tithe, value: 1 }
+    - { op: macro, id: tithe }
+    - op: if
+      cond: { not: { varTrue: spent } }
+      then:
+        - { op: damage, to: { filter: allAllies, exclude: actor, where: { kind: { unit: it, is: character } } }, amount: 10, direct: false }
+
+shout.evil:
+  archetype: Shout
+  element: Evil
+  name: Wail of the Damned
+  description: >-
+    All enemies are Unhallowed until the end of their next turn; any of them healed during it are
+    also Horrified for 2 turns.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: allEnemies
+  ops:
+    - { op: apply, to: targets, effect: unhallowed, duration: { raw: 2 } }
+    - op: apply
+      to: targets
+      duration: { raw: 2 }
+      effect:
+        id: wail_of_the_damned
+        name: Wail of the Damned
+        kind: Debuff
+        element: Evil
+        description: If the bearer is healed, they're Horrified for 2 turns.
+        triggers:
+          - on: healed
+            do:
+              - { op: apply, to: bearer, effect: horrified, duration: { enemyTurns: 2 } }
+
+withstand.evil:
+  archetype: Withstand
+  element: Evil
+  name: Wretched Bulwark
+  description: >-
+    The user gains 20 Shield for 1 turn, plus 10 drained as Affliction damage from each Unhallowed or
+    Horrified enemy.
+  cost: r
+  cooldown: 3
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - op: set
+      var: wretched
+      value: { countOf: { filter: allEnemies, where: { or: [{ has: { unit: it, effect: unhallowed } }, { has: { unit: it, effect: horrified } }] } } }
+    - { op: damage, to: { filter: allEnemies, where: { or: [{ has: { unit: it, effect: unhallowed } }, { has: { unit: it, effect: horrified } }] } }, amount: 10, type: Affliction, direct: false }
+    - { op: apply, to: actor, effect: shield, value: { sum: [20, { mul: [10, { var: wretched }] }] }, duration: { enemyTurns: 1 } }
+
+taunt.evil:
+  archetype: Taunt
+  element: Evil
+  name: Tyrant's Gaze
+  description: Taunts target enemy for 2 turns. While they're Taunted, the user is Immortal.
+  cost: S
+  cooldown: 3
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 2 } }
+
+titan.evil:
+  archetype: Titan
+  element: Evil
+  name: Lord of Souls
+  description: >-
+    For 3 turns, the user gains Lifesteal and 1 Armor per Soul Fragment they have (max 4), but can't
+    spend Soul Fragments.
+  cost: SW
+  cooldown: 4
+  tags: [Helpful, Strategic]
+  target: self
+  ops:
+    - { op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: actor
+      effect: armor
+      stacks:
+        if: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 4 } }
+        then: 4
+        else: { stacks: { unit: actor, effect: soul_fragment } }
+      duration: { enemyTurns: 3 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: lord_of_souls
+        name: Lord of Souls
+        kind: Neutral
+        element: Evil
+        description: The bearer can't spend Soul Fragments.
+        modifiers:
+          - { mod: protectEffects, effects: [soul_fragment] }
+
+# Minion skills.
+
+fiend_rend_soul:
+  archetype: Minion
+  element: Evil
+  name: Rend Soul
+  description: Deals 15 Affliction damage to target enemy and makes them Unhallowed for 1 turn.
+  cost: S
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 15, type: Affliction }
+    - { op: apply, to: primary, effect: unhallowed, duration: { enemyTurns: 1 } }
+
+fiend_feast:
+  archetype: Minion
+  element: Evil
+  name: Feast
+  description: Drains a Soul Fragment from a Horrified enemy for the Fiend's summoner.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  targetFilter: { has: { unit: it, effect: horrified } }
+  ops:
+    - op: if
+      cond: { has: { unit: primary, effect: soul_fragment } }
+      then:
+        - { op: removeStacks, from: primary, effect: soul_fragment, amount: 1 }
+    - { op: apply, to: summoner, effect: soul_fragment }
+
+tormentor_barbed_whip:
+  archetype: Minion
+  element: Evil
+  name: Barbed Whip
+  description: Deals 10 Affliction damage to target enemy.
+  cost: r
+  cooldown: 0
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: damage, to: primary, amount: 10, type: Affliction }
+
+tormentor_false_mercy:
+  archetype: Minion
+  element: Evil
+  name: False Mercy
+  description: Target enemy is Unhallowed for 1 turn; if it takes hold, they then heal 15.
+  cost: I
+  cooldown: 0
+  tags: [Harmful, Strategic]
+  target: enemy
+  ops:
+    - { op: apply, to: primary, effect: unhallowed, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { has: { unit: primary, effect: unhallowed } }
+      then:
+        - { op: heal, to: primary, amount: 15 }

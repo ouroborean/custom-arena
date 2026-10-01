@@ -432,6 +432,8 @@ export type ModifierSpec = ModifierBase &
    * that also has this (the remainder stays on the one hit).
    */
   | { mod: 'shareDamage' }
+  /** Evil's Unhallowed: healing the bearer would receive deals that much Affliction damage instead. */
+  | { mod: 'invertHealing' }
   /**
    * Cloud's Rain Check: hits on the bearer are held instead of landing. Each becomes `status` (whose
    * onExpire should deal its value) with value = the hit minus `reduceBy`, lasting `delay` ticks.

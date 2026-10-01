@@ -868,3 +868,33 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Twin Radiance | The other side's unit is random (not the weakest). |
 | Truce of God | Every unit can't use Harmful skills for 1 turn. |
 | Aegis of Faith | The Anointed is linked to the Shield and ends with it. |
+
+### 21.9 Evil (Unholy + Unholy)
+
+| Term | Ruling |
+|---|---|
+| **Unhallowed** | New `invertHealing` modifier: healing the bearer would receive (any source, including Renew and Lifesteal) is dealt to them as indirect, Bypassing Affliction damage from the healer instead. Their `healed` triggers still hear it. |
+| **Tithe N** | A macro: spends up to N of the user's Soul Fragments; `spent` says how many. "Drains a Soul Fragment" (macro `drain_it`): the target loses one if they have any, and the user always gains one. |
+| **Engine** | Heals record each unit's last healed turn (counter `healed_turn`). |
+
+| Skill | Ruling |
+|---|---|
+| Cruel Blade | "Healed since the user's last turn": healed this turn or the previous one. |
+| Soulgrinder | Each Fragment spent sends 15 Affliction at a random ally of the target. |
+| Soul Hunt | The user's next Harmful skill drains a Fragment from its primary target; with a Fragment spent it also costs 1 less. |
+| Take You With Me | The last enemy countered carries a 3-tick doom: if the user dies while it lasts, they die too. |
+| Atrocity | Spends up to 3 Fragments: Immortal for that many turns; attackers lose a Fragment to the user. With none, nothing happens. |
+| Doom Knell | Each time the target is healed, the channel's remaining time drops by a turn. |
+| Damning Shackle | Inverts healing for 2 turns; the first heal also Stuns. |
+| Deathless Step | Spends a Fragment for Invulnerable; without one, Immortal. |
+| Heartpiercer | Spends a Fragment only when the hit leaves the target below 20 HP, to execute them. |
+| Mutual Ruin | The 25 HP is paid as raw Affliction, leaving at least 1 HP. Costs no energy. |
+| Waking Nightmare | **Simplified:** the countered Helpful skill's targets take 20 Affliction (its healing isn't computed). |
+| Danse Macabre | **Simplified:** while Confused, the user's skills cost 1 less instead of 1 more (assumes 1 Confusion stack). |
+| Borrowed Blood | At the end of each of the ally's next 2 turns, they lose 10 HP (raw) unless they damaged an enemy that turn. |
+| Eternal Torment | Each hit that leaves the target at 5 HP or less (their Immortal floor) gives the attacker a Fragment. |
+| Black Mass | Allies left at full HP lose 10 (raw) and gain a Fragment. |
+| Betrayal | The 10 to the user's allies (characters other than the user) is indirect; a spent Fragment spares them. |
+| Wail of the Damned | Unhallowed until the end of the enemies' next turn; anyone healed meanwhile (the heal hurts) is also Horrified. |
+| Wretched Bulwark | 10 Affliction from each Unhallowed or Horrified enemy, +10 Shield each. |
+| Lord of Souls | `protectEffects` keeps the user's Fragments from being spent or removed. |

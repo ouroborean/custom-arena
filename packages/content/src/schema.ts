@@ -256,6 +256,7 @@ export const modifierSchema: z.ZodType<ModifierSpec> = z.discriminatedUnion('mod
   mod({ mod: z.literal('protectEffects'), effects: z.array(z.string()).min(1) }),
   mod({ mod: z.literal('adaptiveHide') }),
   mod({ mod: z.literal('shareDamage') }),
+  mod({ mod: z.literal('invertHealing') }),
   mod({ mod: z.literal('deferHits'), status: z.string(), reduceBy: z.number().int().min(0), delay: z.number().int().min(1) }),
 ]) as z.ZodType<ModifierSpec>;
 

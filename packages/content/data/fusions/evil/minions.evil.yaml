@@ -1,0 +1,11 @@
+# Evil minions.
+
+fiend:
+  name: Fiend
+  hp: 35
+  skills: [fiend_rend_soul, fiend_feast]
+
+tormentor:
+  name: Tormentor
+  hp: 25
+  skills: [tormentor_barbed_whip, tormentor_false_mercy]

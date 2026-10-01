@@ -1,0 +1,11 @@
+# Evil keywords (docs/glossary.md).
+
+unhallowed:
+  status: unhallowed
+  forms: [Unhallowed]
+  element: Evil
+tithe:
+  name: Tithe
+  text: "The skill spends up to that many of the user's Soul Fragments for its listed bonus. It still works with none."
+  forms: [Tithe]
+  element: Evil

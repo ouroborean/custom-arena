@@ -1,0 +1,11 @@
+# Evil (Unholy + Unholy) statuses, from the "Fusion Spec Kits" design doc.
+# Tithe N isn't a status: a skill spends up to N of the user's Soul Fragments (macro-free, inline).
+
+unhallowed:
+  name: Unhallowed
+  kind: Debuff
+  element: Evil
+  stacking: unique
+  description: Any healing the bearer would receive, including Renew and Lifesteal, deals that much Affliction damage to them instead.
+  modifiers:
+    - { mod: invertHealing }

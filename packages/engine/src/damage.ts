@@ -268,7 +268,16 @@ function enqueueOn(
 /** `raw`: healing modifiers don't apply; `quiet`: no healing triggers (Revered Crown). */
 export function heal(ctx: Ctx, source: Unit, target: Unit, amount: number, opts: { raw?: boolean | undefined; quiet?: boolean | undefined } = {}): number {
   if (!target.alive || amount <= 0) return 0;
+  // Evil's Unhallowed: the healing hurts instead (its 'healed' triggers still hear it).
+  if (modsOn(ctx.s, ctx.c, target.id, 'invertHealing').length > 0) {
+    const hurt = opts.raw ? amount : modifiedHealing(ctx, target, amount);
+    if (!opts.quiet) enqueueFor(ctx, target.id, 'healed', { eventSource: source.id, eventTarget: target.id, eventAmount: hurt });
+    dealDamage(ctx, { source, target, amount: hurt, type: 'Affliction', direct: false, bypass: true, raw: true });
+    return 0;
+  }
   const healed = Math.min(opts.raw ? amount : modifiedHealing(ctx, target, amount), target.maxHp - target.hp);
+  // When each unit was last healed (Evil's Cruel Blade reads it).
+  if (healed > 0) target.counters['c:healed_turn'] = ctx.s.turn;
   target.hp += healed;
   emit(ctx, { t: 'heal', source: source.id, target: target.id, amount: healed, hp: target.hp });
   if (healed > 0 && !opts.quiet) {
