@@ -59,7 +59,7 @@ charge.dimension:
             do:
               - { op: removeSelf }
         onExpire:
-          - { op: macro, id: gain_stealth }
+          - { op: forEach, in: bearer, do: [{ op: macro, id: gain_stealth }] }
 
 riposte.dimension:
   archetype: Riposte
@@ -339,7 +339,7 @@ stab.dimension:
     - op: if
       cond: { has: { unit: primary, effect: isolated } }
       then:
-        - { op: macro, id: gain_stealth }
+        - { op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }
 
 ravage.dimension:
   archetype: Ravage
@@ -443,7 +443,7 @@ dance.dimension:
         modifiers:
           - { mod: banished }
         onExpire:
-          - { op: macro, id: gain_stealth }
+          - { op: forEach, in: bearer, do: [{ op: macro, id: gain_stealth }] }
           - { op: apply, to: bearer, effect: ghosted, duration: { enemyTurns: 2 } }
           - { op: apply, to: bearer, effect: focus, duration: { enemyTurns: 2 } }
 
@@ -535,9 +535,9 @@ smite.dimension:
         name: Void Brand
         kind: Debuff
         element: Dimension
-        description: Every enemy of the bearer can target them past Untargetable and Invulnerable.
+        description: Every enemy of the bearer can target them past Stealth, Untargetable and Invulnerable.
         modifiers:
-          - { mod: exposed, anyEnemy: true }
+          - { mod: exposed, anyEnemy: true, total: true }
 
 prayer.dimension:
   archetype: Prayer
@@ -648,7 +648,7 @@ titan.dimension:
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: entangle, to: actor, with: { filter: allAllies, exclude: actor, where: { kind: { unit: it, is: character } } }, effect: entangled, duration: { enemyTurns: 3 } }
+    - { op: entangle, to: actor, with: weakestOtherAlly, effect: entangled, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
 

@@ -935,8 +935,7 @@ describe('Evolution skills', () => {
     expect([a.has(B1, 'taunt'), isPrey(a, B1)]).toEqual([false, false]);
   });
 
-  // BUG: "If they don't damage the user during it, they fall Asleep": B1 shot the user during the Taunt and still fell Asleep.
-  it.fails('Hypnotic Hood: a target who damaged the user does not fall Asleep', () => {
+  it('Hypnotic Hood: a target who damaged the user does not fall Asleep', () => {
     const a = arena({ p0: [['taunt.evolution']], p1: [['shot']] });
     a.use(A1, 'taunt.evolution', B1).end();
     a.use(B1, 'shot', A1).end().pass(2);

@@ -114,7 +114,7 @@ riposte.evil:
               - { op: removeEffect, from: allEnemies, effect: doomed_together }
               - op: apply
                 to: eventSource
-                duration: { raw: 3 }
+                duration: { ownTurns: 1 }
                 effect:
                   id: doomed_together
                   name: Doomed Together

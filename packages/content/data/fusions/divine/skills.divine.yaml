@@ -316,8 +316,8 @@ consume.divine:
   element: Divine
   name: Ascend
   description: >-
-    Deals 5 damage to target enemy; the user heals 10. If they're Sanctified, it's spent and the
-    user is Exalted for 2 turns; otherwise they're Sanctified for 2 turns.
+    Deals 5 damage to target enemy; the user heals 10. If the target is Sanctified, it's spent and the
+    user is Exalted for 2 turns; otherwise the target is Sanctified for 2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -326,12 +326,12 @@ consume.divine:
     - { op: damage, to: primary, amount: 5 }
     - { op: heal, to: actor, amount: 10 }
     - op: if
-      cond: { has: { unit: actor, effect: sanctify } }
+      cond: { has: { unit: primary, effect: sanctify } }
       then:
-        - { op: removeEffect, from: actor, effect: sanctify }
+        - { op: removeEffect, from: primary, effect: sanctify }
         - { op: apply, to: actor, effect: exalted, duration: { enemyTurns: 2 } }
       else:
-        - { op: apply, to: actor, effect: sanctify, duration: { enemyTurns: 2 } }
+        - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
 
 summon.divine:
   archetype: Summon

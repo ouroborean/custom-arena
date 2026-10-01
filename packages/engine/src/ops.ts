@@ -115,6 +115,8 @@ function selectNamed(ctx: Ctx, sel: NamedSelector, sc: Scope): Unit[] {
     // only; ties go to the earliest in team order).
     case 'weakestAlly':
       return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && canTarget(ctx, actor, u, sc.bypass)), 'min');
+    case 'weakestOtherAlly':
+      return extremeHp(livingUnits(ctx.s, actor.owner).filter((u) => u.kind === 'character' && u.id !== actor.id && canTarget(ctx, actor, u, sc.bypass)), 'min');
     case 'weakestEnemy':
       return extremeHp(ctx.s.units.filter((u) => u.alive && u.kind === 'character' && isEnemy(actor, u) && canTarget(ctx, actor, u, sc.bypass)), 'min');
     case 'bearerAllies': {
@@ -381,7 +383,8 @@ export function evalCond(ctx: Ctx, c: Cond, sc: Scope): boolean {
   }
   if ('isEventTarget' in c) {
     const u = select(ctx, c.isEventTarget, sc)[0];
-    return !!u && (sc.eventTargets ?? []).includes(u.id);
+    // Events with a single target (damage, healing, signals) have no target list.
+    return !!u && (sc.eventTargets ? sc.eventTargets.includes(u.id) : sc.eventTarget === u.id);
   }
   if ('appliedFromArchetype' in c) {
     return ctx.s.effects.some((e) => e.source === sc.actor && archetypeOf(ctx.c, e.sourceSkill) === c.appliedFromArchetype);

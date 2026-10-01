@@ -152,8 +152,7 @@ describe('Entangled', () => {
     expect([B1, B2, B3].map((u) => a.stacks(u, 'confusion'))).toEqual([1, 1, 1]);
   });
 
-  // SPEC: ruling says a death "breaks the bearer out of the group" (survivors stay linked), the design doc says the link lasts "until one of them dies"; actual: the whole group's link ends.
-  it.fails('a death breaks the bearer out of the group; the survivors stay linked', () => {
+  it('a death breaks the bearer out of the group; the survivors stay linked', () => {
     const a = arena({ p0: [['shout.dimension'], ['curse'], ['strike']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'shout.dimension').end().pass(1);
     a.setHp(B3, 10).use(A3, 'strike', B3).use(A2, 'curse', B1).end();
@@ -201,8 +200,7 @@ describe('Dimension skills', () => {
     expect([banished(a, A1), banished(a, A2), banished(a, B1)]).toEqual([true, false, false]);
   });
 
-  // BUG: Phase Lunge says the user gains Stealth at the start of their next turn; the pending effect expires at the end of the enemy turn and no Stealth is granted.
-  it.fails('Phase Lunge: 15 Bypassing (through Invulnerable); Stealth arrives at the start of the user\'s next turn', () => {
+  it('Phase Lunge: 15 Bypassing (through Invulnerable); Stealth arrives at the start of the user\'s next turn', () => {
     const a = arena({ p0: [['charge.dimension']], p1: [['shot']] });
     a.give(B1, 'invulnerable', { duration: 5 });
     a.use(A1, 'charge.dimension', B1).end();
@@ -461,8 +459,7 @@ describe('Dimension skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([51, 40]);
   });
 
-  // BUG: Unwatched Knife says knifing an Isolated target gives the user Stealth; no Stealth is gained.
-  it.fails('Unwatched Knife: knifing an Isolated target gives Stealth; otherwise none', () => {
+  it('Unwatched Knife: knifing an Isolated target gives Stealth; otherwise none', () => {
     const a = arena({ p0: [['stab.dimension'], ['stab.dimension']], p1: [['shot'], ['shot']] });
     a.give(B1, 'isolated', { duration: 5 });
     a.use(A1, 'stab.dimension', B1).use(A2, 'stab.dimension', B2).end();
@@ -521,8 +518,7 @@ describe('Dimension skills', () => {
     expect([a.has(B1, 'sleep'), banished(a, B1)]).toEqual([false, false]);
   });
 
-  // BUG: Unfold says the user gains Stealth when they return; they get Ghosted and Focus but no Stealth.
-  it.fails('Unfold: the user is Banished; when they return they gain Stealth, Ghosted and 1 Focus for 2 turns', () => {
+  it('Unfold: the user is Banished; when they return they gain Stealth, Ghosted and 1 Focus for 2 turns', () => {
     const a = arena({ p0: [['dance.dimension']], p1: [['shot']] });
     a.use(A1, 'dance.dimension').end();
     expect([banished(a, A1), a.has(A1, 'stealth')]).toEqual([true, false]);
@@ -597,11 +593,9 @@ describe('Dimension skills', () => {
 
   it('Void Brand: 10 damage; the user\'s side can then target (and hit) them through Invulnerable', () => brandThrough('invulnerable'));
 
-  // BUG: Void Brand says the user's side can target the bearer even if Stealthed; queueing on them is rejected (bad_target).
-  it.fails('Void Brand: the user\'s side can target them through Stealth', () => brandThrough('stealth'));
+  it('Void Brand: the user\'s side can target them through Stealth', () => brandThrough('stealth'));
 
-  // BUG: Void Brand says the user's side can target the bearer even if Untargetable; queueing on them is rejected (bad_target).
-  it.fails('Void Brand: the user\'s side can target them through Untargetable', () => brandThrough('untargetable'));
+  it('Void Brand: the user\'s side can target them through Untargetable', () => brandThrough('untargetable'));
 
   it('Void Brand: without it, a Stealthed enemy can\'t be targeted; and it lasts 2 turns', () => {
     const a = arena({ p0: [['smite.dimension'], ['shot']], p1: [['shot']] });
@@ -701,8 +695,7 @@ describe('Dimension skills', () => {
     expect([a.has(A1, 'armor'), a.has(A2, 'armor'), entangled(a, A1)]).toEqual([false, false, false]);
   });
 
-  // BUG: Faceless Void says the user is Entangled with the one ally with the least HP; every ally is Entangled and gets the Armor and Immune.
-  it.fails('Faceless Void: the user is Entangled with the least-HP ally, and both gain 2 Armor and Immune for 3 turns', () => {
+  it('Faceless Void: the user is Entangled with the least-HP ally, and both gain 2 Armor and Immune for 3 turns', () => {
     const a = arena({ p0: [['titan.dimension'], ['shot'], ['shot']], p1: [['curse']] });
     a.setHp(A2, 80).setHp(A3, 40);
     a.use(A1, 'titan.dimension').end();

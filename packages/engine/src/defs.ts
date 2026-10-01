@@ -60,7 +60,8 @@ export type NamedSelector =
   | 'primaryPartners' // units Entangled with the first target (Dimension)
   | 'bearerAllies' // the bearer's living allies, not the bearer
   | 'randomBearerAlly' // one random living ally of the bearer, not the bearer (Spore spreading)
-  | 'randomAnyEnemy'; // one random living enemy, Stealthed or not (Vigilante's Searchlight)
+  | 'randomAnyEnemy'
+  | 'weakestOtherAlly'; // the actor's other allied character with the least HP (Faceless Void) // one random living enemy, Stealthed or not (Vigilante's Searchlight)
 
 export type Selector =
   | NamedSelector
@@ -567,7 +568,7 @@ export type ModifierSpec = ModifierBase &
   | { mod: 'hpLink' }
   /** Skills of this effect's source Bypass against the bearer. */
   /** `anyEnemy`: every enemy of the bearer may target them (Dimension's Void Brand), not only its source. */
-  | { mod: 'exposed'; anyEnemy?: boolean }
+  | { mod: 'exposed'; anyEnemy?: boolean; total?: boolean }
   /** Raises the bearer's max (and current) Health while the effect lasts. */
   | { mod: 'maxHp'; amount: number; perStack?: boolean }
   /** Multiplies the bearer's Armor. */

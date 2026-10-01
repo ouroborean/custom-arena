@@ -120,7 +120,7 @@ consecrate_enemy_it:
           do: [{ op: removeEffect, from: bearer, effect: exalted }]
 
 anathema_enemy_it:
-  - { op: apply, to: it, effect: condemned }
+  - { op: apply, to: it, effect: condemned, duration: { enemyTurns: 2 } }
   - { op: apply, to: it, effect: sanctify, duration: { enemyTurns: 2 } }
 
 anathema_ally_it:

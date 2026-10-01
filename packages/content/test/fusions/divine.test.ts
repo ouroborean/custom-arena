@@ -466,9 +466,7 @@ describe('Divine skills', () => {
     expect(a.has(A1, 'exalted')).toBe(false);
   });
 
-  // SPEC: "If they're Sanctified … otherwise they're Sanctified": read as the target (as in Holy's Ascension); the
-  // implementation checks and Sanctifies the user instead.
-  it.fails('Ascend: 5 damage, the user heals 10, and an un-Sanctified target is Sanctified for 2 turns', () => {
+  it('Ascend: 5 damage, the user heals 10, and an un-Sanctified target is Sanctified for 2 turns', () => {
     const a = arena({ p0: [['consume.divine']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.divine', B1).end();
     expect([a.hp(B1), a.hp(A1), sanctified(a, B1), a.has(A1, 'exalted')]).toEqual([95, 60, true, false]);
@@ -478,8 +476,7 @@ describe('Divine skills', () => {
     expect(sanctified(a, B1)).toBe(false);
   });
 
-  // SPEC: same question as above ("they" = the target): a Sanctified target's Sanctify isn't spent and no Exalted.
-  it.fails("Ascend: a Sanctified target's Sanctify is spent and the user is Exalted for 2 turns", () => {
+  it("Ascend: a Sanctified target's Sanctify is spent and the user is Exalted for 2 turns", () => {
     const a = arena({ p0: [['consume.divine']], p1: [['shot']] });
     a.setHp(A1, 50).give(B1, 'sanctify').use(A1, 'consume.divine', B1).end();
     expect(a.hp(B1)).toBe(95);
@@ -702,8 +699,7 @@ describe('Divine skills', () => {
     expect(sanctified(a, B1)).toBe(false);
   });
 
-  // SPEC: does "Condemned and Sanctified for 2 turns" give the Condemn the 2-turn duration too? It stays after 2 turns.
-  it.fails('Anathema (enemy): an unused Condemn also ends after 2 turns', () => {
+  it('Anathema (enemy): an unused Condemn also ends after 2 turns', () => {
     const a = arena({ p0: [['curse.divine']], p1: [['shot']] });
     a.use(A1, 'curse.divine', B1).end().pass(3);
     expect(a.has(B1, 'condemned')).toBe(false);
@@ -809,8 +805,7 @@ describe('Divine skills', () => {
     expect(a.hp(A2)).toBe(85);
   });
 
-  // BUG: Beacon's "each time they damage the user, the user is Exalted" never fires (no Exalted after the hit).
-  it.fails('Beacon: each time the Taunted enemy damages the user, the user is Exalted until the end of their next turn', () => {
+  it('Beacon: each time the Taunted enemy damages the user, the user is Exalted until the end of their next turn', () => {
     const a = arena({ p0: [['taunt.divine'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.divine', B1).end();
     a.use(B1, 'shot', A1).end();

@@ -183,6 +183,8 @@ export function canTarget(ctx: Ctx, source: Unit, target: Unit, bypassing: boole
   const bypass = bypassing || exposedTo(ctx, source, target);
   const enemy = isEnemy(source, target);
   if (enemy && !bypass && invulnerableToSource(ctx, source, target)) return false;
+  // Dimension's Void Brand: nothing hides the bearer from the brander's side, Stealth included.
+  if (enemy && modsOn(ctx.s, ctx.c, target.id, 'exposed').some(({ spec }) => spec.anyEnemy && spec.total)) return true;
   for (const { spec } of modsOn(ctx.s, ctx.c, target.id, 'untargetable')) {
     if (bypass && spec.bypassable) continue;
     if (spec.by === 'enemies' && enemy) return false;

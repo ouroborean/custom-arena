@@ -196,8 +196,7 @@ describe('Evil skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: Take You With Me says the last enemy countered dies with the user; the user dies to a tick on turn 2 and B2 (carrying doomed_together) survives
-  it.fails('Take You With Me: if the user dies before the end of their next turn, the last enemy countered dies too', () => {
+  it('Take You With Me: if the user dies before the end of their next turn, the last enemy countered dies too', () => {
     const a = arena({ p0: [['riposte.evil'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'riposte.evil').end();
     a.setHp(A1, 5).give(A1, 'ignite', { source: B3 }); // 5 Affliction at the end of player 2's turn

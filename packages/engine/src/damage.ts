@@ -349,7 +349,11 @@ export function killUnit(ctx: Ctx, u: Unit, killer?: Unit, skill?: string): void
   // Dimension's Entangled: a death breaks every link it was part of.
   const groups = new Set(modsOn(ctx.s, ctx.c, u.id, 'entangleLink').map(({ effect }) => effect.data.group));
   for (const e of effectsOn(ctx.s, u.id)) removeEffect(ctx, e, 'died');
-  for (const e of ctx.s.effects.filter((x) => x.data.group !== undefined && groups.has(x.data.group))) removeEffect(ctx, e, 'removed');
+  // The dead unit drops out of each link; a link left with a single member ends.
+  for (const g of groups) {
+    const rest = ctx.s.effects.filter((x) => x.data.group === g && x.bearer !== u.id);
+    if (new Set(rest.map((x) => x.bearer)).size < 2) for (const e of rest) removeEffect(ctx, e, 'removed');
+  }
   // Auras granted by this unit (e.g. a minion's gift to its owner) end with it.
   for (const e of ctx.s.effects.filter((x) => x.data.boundTo === u.id)) removeEffect(ctx, e, 'removed');
 }
