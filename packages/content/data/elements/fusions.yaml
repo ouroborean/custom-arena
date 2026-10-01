@@ -1,8 +1,8 @@
 # Fusion elements (GDD §7.3), from the Element Arena codex's "Fusion recipe matrix": the element a
 # skill takes with two infusions. The pair is unordered (Fire + Ice and Ice + Fire are both
 # Apocalypse), and one element twice has its own fusion (Fire + Fire is Dragon): 10 base elements
-# make 55 fusions. Listed by matrix row, each pair once. No skill has a fusion variant yet, so two
-# infusions on one skill are still reported as not in the game (they'd be ids like strike.dragon).
+# make 55 fusions. Listed by matrix row, each pair once. A skill with two infusions becomes its fusion
+# version (ids like strike.dragon, from data/fusions/<fusion>/skills.<fusion>.yaml).
 
 # Fire + …
 dragon:       { name: Dragon,      elements: [Fire, Fire], passives: [wyrm_heart] }

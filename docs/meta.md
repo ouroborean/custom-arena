@@ -87,8 +87,8 @@ armor, trinkets, crystals), element and "only what fits".
     one. Two make the pair's fusion element (content `fusions`, `data/elements/fusions.yaml`: 55, one
     per unordered pair, one element twice included; `fusionOf` looks one up in either order).
     `infusedElement` gives the element a skill ends up with, and `infusedSkillId` the skill it becomes.
-    No skill has a fusion variant yet (`strike.dragon`, …), so a second infusion is reported with the
-    fusion it would make ("Smash: Ice + Wind make Winter, and fusion elements aren't in the game yet").
+    Every skill has a version for every fusion (`strike.dragon`, …, from the fusion kits), so a
+    second infusion turns the skill into its fusion version: Ice + Wind make Smash into Winter's.
   - **Problems:** placing more of an element than the pool has, or on a skill the character doesn't
     have, is reported. `pruneInfusions` drops such placements when items change (`withItem`,
     `withoutItem`).
