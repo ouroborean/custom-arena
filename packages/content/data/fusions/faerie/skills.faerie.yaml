@@ -296,14 +296,14 @@ blast.faerie:
   archetype: Blast
   element: Faerie
   name: Dust Storm
-  description: Deals 15 damage to all enemies; each is Charmed for their next skill.
+  description: Deals 15 damage to all enemies; each is Charmed for their next skill (within 2 turns).
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
     - { op: damage, to: targets, amount: 15 }
-    - { op: apply, to: targets, effect: charmed, until: { skillUsed: {} }, duration: { enemyTurns: 1 } }
+    - { op: apply, to: targets, effect: charmed, until: { skillUsed: {} }, duration: { enemyTurns: 2 } }
 
 consume.faerie:
   archetype: Consume
@@ -559,8 +559,8 @@ smite.faerie:
   element: Faerie
   name: Fey Mark
   description: >-
-    Deals 20 damage to target enemy. Each ally of theirs who has used a Helpful skill on them since the user's
-    last turn is Charmed for 1 turn.
+    Deals 20 damage to target enemy. For 1 turn, each ally of theirs who uses a Helpful skill on them is
+    Charmed for 1 turn.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -568,9 +568,21 @@ smite.faerie:
   ops:
     - { op: damage, to: primary, amount: 20 }
     - op: apply
-      to: { filter: allEnemies, where: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: it, name: actedTurn } }] }] }, atMost: 1 } } }
-      effect: charmed
+      to: primary
       duration: { enemyTurns: 1 }
+      effect:
+        id: fey_mark
+        name: Fey Mark
+        kind: Debuff
+        element: Faerie
+        description: Each ally of the bearer who uses a Helpful skill on them is Charmed for 1 turn.
+        triggers:
+          - on: skillTargeted
+            when: { side: ally, harmful: false }
+            do:
+              - op: if
+                cond: { not: { eventTargetIs: eventSource } }
+                then: [{ op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }]
 
 prayer.faerie:
   archetype: Prayer
@@ -637,7 +649,7 @@ withstand.faerie:
   archetype: Withstand
   element: Faerie
   name: Gossamer Veil
-  description: The user gains 20 Shield for 1 turn. When it's gone, each enemy who hit it is Charmed for 1 turn.
+  description: The user gains 20 Shield for 1 turn. Each enemy who hits it is Charmed for 1 turn.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -653,26 +665,13 @@ withstand.faerie:
         kind: Buff
         element: Faerie
         shield: true
-        description: A Shield; enemies who strike it are Charmed when it's gone.
+        description: A Shield; each enemy who strikes it is Charmed for 1 turn.
         triggers:
           - on: shieldDamaged
             do:
-              - { op: apply, to: eventSource, effect: gossamer_mark, duration: { raw: 3 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: gossamer_watch
-        name: Gossamer Veil
-        kind: Neutral
-        element: Faerie
-        description: When the veil is gone, those who struck it are Charmed.
-        triggers:
-          - on: ownEffectEnded
-            when: { effects: [gossamer_veil] }
-            consume: true
-            do:
-              - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: gossamer_mark } } }, effect: charmed, duration: { enemyTurns: 1 } }
+              - op: if
+                cond: { isEnemy: eventSource }
+                then: [{ op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }]
 
 taunt.faerie:
   archetype: Taunt

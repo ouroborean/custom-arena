@@ -311,9 +311,7 @@ describe('Faerie skills', () => {
     expect(outcomes.size).toBe(2);
   });
 
-  // SPEC: "Charmed for their next skill" (ruling: "until each enemy's next skill") — should the Charm wait for an
-  // enemy who skips their turn? Actually it expires after 1 enemy turn even if they used no skill.
-  it.fails('Dust Storm: an enemy who uses no skill stays Charmed until they do', () => {
+  it('Dust Storm: an enemy who uses no skill stays Charmed until they do', () => {
     const a = arena({ p0: [['blast.faerie']], p1: [['shot'], ['shot']] });
     a.use(A1, 'blast.faerie').end().pass(2);
     expect(charmed(a, B2)).toBe(true);
@@ -455,9 +453,7 @@ describe('Faerie skills', () => {
     expect(b.hp(A1)).toBe(85);
   });
 
-  // BUG: ruling 21.41 says it counts as Sleep, and Swiftness negates Sleep (base Sleep from stun.shadow is
-  // negated), but Enchanted Slumber lands through Swiftness and the Swiftness stays.
-  it.fails('Enchanted Slumber: counts as Sleep, so Swiftness negates it', () => {
+  it('Enchanted Slumber: counts as Sleep, so Swiftness negates it', () => {
     const a = arena({ p0: [['stun.faerie']], p1: [['shot']] });
     a.give(B1, 'swiftness').use(A1, 'stun.faerie', B1).end();
     expect([is(a, B1, 'sleep'), a.has(B1, 'swiftness')]).toEqual([false, false]);
@@ -532,19 +528,22 @@ describe('Faerie skills', () => {
 
   // SPEC: the description says only allies who used a Helpful skill on the target since the user's last turn are
   // Charmed; ruling 21.41 simplifies it to every enemy who acted in the last round. Tested per the ruling.
-  it('Fey Mark: 20 damage; (simplified) every enemy who acted since the user\'s last turn is Charmed', () => {
+  it('Fey Mark: 20 damage; for 1 turn, an ally who uses a Helpful skill on the target is Charmed', () => {
     const a = arena({ p0: [['smite.faerie']], p1: [['shot'], ['heal'], ['shot']] });
-    a.pass(1);
-    a.setHp(B1, 50).use(B2, 'heal', B1).use(B3, 'shot', A1).end();
     a.use(A1, 'smite.faerie', B1).end();
-    expect(a.hp(B1)).toBe(55);
-    expect([charmed(a, B1), charmed(a, B2), charmed(a, B3)]).toEqual([false, true, true]);
+    expect(a.hp(B1)).toBe(80);
+    a.use(B2, 'heal', B1).use(B3, 'shot', A1).end();
+    expect([charmed(a, B1), charmed(a, B2), charmed(a, B3)]).toEqual([false, true, false]);
   });
 
-  it('Fey Mark: if no enemy acted, no one is Charmed', () => {
-    const a = arena({ p0: [['smite.faerie']], p1: [['shot'], ['heal']] });
-    a.pass(2).use(A1, 'smite.faerie', B1).end();
-    expect([a.hp(B1), charmed(a, B1), charmed(a, B2)]).toEqual([80, false, false]);
+  it('Fey Mark: Helpful skills on others, or after it ends, Charm no one', () => {
+    const a = arena({ p0: [['smite.faerie']], p1: [['shot'], ['heal'], ['shot']] });
+    a.use(A1, 'smite.faerie', B1).end();
+    a.use(B2, 'heal', B3).end();
+    expect(charmed(a, B2)).toBe(false);
+    const b = arena({ p0: [['smite.faerie']], p1: [['shot'], ['heal'], ['shot']] });
+    b.use(A1, 'smite.faerie', B1).end().pass(2).use(B2, 'heal', B1).end(); // turn 4: the mark ended with turn 2
+    expect(charmed(b, B2)).toBe(false);
   });
 
   it('Fairy Song: all allies heal 20 and lose their Toxin; each stack goes to a random enemy', () => {
@@ -606,9 +605,7 @@ describe('Faerie skills', () => {
     expect([charmed(a, B1), charmed(a, B3)]).toEqual([true, false]);
   });
 
-  // BUG: "When it's gone, each enemy who hit it is Charmed" — if the Shield simply expires (hit but not broken),
-  // no one is Charmed.
-  it.fails('Gossamer Veil: 20 Shield for 1 turn; when it expires, the enemy who hit it is Charmed, others aren\'t', () => {
+  it('Gossamer Veil: 20 Shield for 1 turn; when it expires, the enemy who hit it is Charmed, others aren\'t', () => {
     const a = arena({ p0: [['withstand.faerie']], p1: [['shot'], ['shot']] });
     a.use(A1, 'withstand.faerie').end();
     a.use(B1, 'shot', A1).end();
@@ -617,9 +614,7 @@ describe('Faerie skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // BUG: "each enemy who hit it is Charmed" — the enemy whose hit breaks the Shield is marked only after the Veil
-  // has ended, so they're never Charmed (only earlier hitters are).
-  it.fails('Gossamer Veil: the enemy whose hit breaks it is Charmed too', () => {
+  it('Gossamer Veil: the enemy whose hit breaks it is Charmed too', () => {
     const a = arena({ p0: [['withstand.faerie']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'withstand.faerie').end();
     a.use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // 15 absorbed, then 5 absorbed + 10 through
@@ -652,9 +647,7 @@ describe('Faerie skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  // SPEC: "that ally is all they can target" — should their Harmful single-target skills be aimable at (or
-  // redirected to) the taunting ally? Actually enemy-only skills can't target the ally, so they're locked out.
-  it.fails('Fickle Heart: the Taunted enemy\'s attack can be aimed at the taunting ally', () => {
+  it('Fickle Heart: the Taunted enemy\'s attack can be aimed at the taunting ally', () => {
     const a = arena({ p0: [['taunt.faerie']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.faerie', B1).end();
     a.use(B1, 'shot', B2).end();
@@ -671,9 +664,7 @@ describe('Faerie skills', () => {
     expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, false]);
   });
 
-  // BUG: "each enemy who uses a single-target skill on them is Charmed for 1 turn afterwards" — an enemy who Shots
-  // the user isn't Charmed at all.
-  it.fails('Faerie Queen: an enemy who aims a single-target skill at the user is Charmed afterwards; AoE users aren\'t', () => {
+  it('Faerie Queen: an enemy who aims a single-target skill at the user is Charmed afterwards; AoE users aren\'t', () => {
     const a = arena({ p0: [['titan.faerie']], p1: [['shot'], ['blast']] });
     a.use(A1, 'titan.faerie').end();
     a.use(B1, 'shot', A1).use(B2, 'blast').end();

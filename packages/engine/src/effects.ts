@@ -110,7 +110,10 @@ function applyEffectOnce(ctx: Ctx, a: ApplyArgs): EffectInstance | null {
   const duration = compiled !== null && ctx.pastTick && turnBased ? Math.max(1, compiled - 1) : compiled;
 
   // Swiftness-style negation: consume one stack of the negating effect instead.
-  const negator = modsOn(ctx.s, ctx.c, bearer.id, 'negateNext').find(({ spec }) => spec.effect === def.id);
+  // (An effect that counts as the negated one is negated too: Enchanted Slumber counts as Sleep.)
+  const negator = modsOn(ctx.s, ctx.c, bearer.id, 'negateNext').find(
+    ({ spec }) => spec.effect === def.id || (def.countsAs ?? []).includes(spec.effect),
+  );
   if (negator) {
     const n = negator.effect;
     n.stacks -= 1;

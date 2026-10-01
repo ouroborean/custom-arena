@@ -21,10 +21,3 @@ bewildered:
   description: The bearer's single-target skills land on a random ally of their own.
   modifiers:
     - { mod: charmed, own: true }
-
-gossamer_mark:
-  name: Gossamer
-  kind: Debuff
-  element: Faerie
-  stacking: unique
-  description: Struck the Gossamer Veil.

@@ -101,7 +101,8 @@ function resolveTargetsRaw(ctx: Ctx, actor: Unit, def: SkillDef, declared: UnitI
       }
       const t = id === undefined ? undefined : findUnit(ctx.s, id);
       if (!t || !t.alive) return { ok: false, reason: 'target is not alive' };
-      if (!isEnemy(actor, t)) return { ok: false, reason: 'target is not an enemy' };
+      // Faerie's Fickle Heart: Taunted by one of their own, they turn on that ally.
+      if (!isEnemy(actor, t) && !forced.includes(t.id)) return { ok: false, reason: 'target is not an enemy' };
       if (!canTarget(ctx, actor, t, bypass)) return { ok: false, reason: 'target cannot be targeted' };
       return { ok: true, targets: [t.id] };
     }
@@ -477,6 +478,8 @@ function resolveUse(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef, tar
         side: t.owner === actor.owner ? 'ally' : 'enemy',
         eventSource: actor.id,
         eventTarget: id,
+        eventTargets: targets,
+        eventSkill: def.id,
         maxSeq: startSeq,
       });
     }
