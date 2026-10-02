@@ -30,24 +30,28 @@ export interface SubmittedCommand {
 }
 
 export interface Verified {
+  /** From the human's side. */
   outcome: 'win' | 'loss' | 'draw';
   turns: number;
+  /** How it ended (elimination, surrender, …). */
+  endReason: string;
 }
 
 /**
- * Replays a single-player match: the human's commands (seat 0) in the order submitted, and the AI's
- * turns re-planned by `bot`. Throws 400 if a command is illegal, the match doesn't finish, or
- * commands are left over.
+ * Replays a single-player match: the human's commands (seat `seat`, 0 unless given) in the order
+ * submitted, and the AI's turns re-planned by `bot`. Throws 400 if a command is illegal, the match
+ * doesn't finish, or commands are left over.
  */
-export function verifyMatch(content: ContentBundle, config: MatchConfig, bot: Bot, submitted: SubmittedCommand[]): Verified {
+export function verifyMatch(content: ContentBundle, config: MatchConfig, bot: Bot, submitted: SubmittedCommand[], seat: 0 | 1 = 0): Verified {
   let { state } = createMatch(content, config);
-  const human = submitted.filter((c) => c.player === 0).map((c) => c.cmd);
+  const ai = seat === 0 ? 1 : 0;
+  const human = submitted.filter((c) => c.player === seat).map((c) => c.cmd);
   let next = 0;
   for (let guard = 0; state.phase !== 'finished'; guard++) {
     if (guard > 5000) throw new HttpError(400, 'The match runs too long');
-    if (state.activePlayer === 1) {
-      for (const cmd of bot.planTurn(content, viewFor(content, state, 1))) {
-        state = applyCommand(content, state, 1, cmd).state;
+    if (state.activePlayer === ai) {
+      for (const cmd of bot.planTurn(content, viewFor(content, state, ai))) {
+        state = applyCommand(content, state, ai, cmd).state;
         if (state.phase === 'finished') break;
       }
       continue;
@@ -55,7 +59,7 @@ export function verifyMatch(content: ContentBundle, config: MatchConfig, bot: Bo
     const cmd = human[next++];
     if (!cmd) throw new HttpError(400, "That match isn't finished");
     try {
-      state = applyCommand(content, state, 0, cmd).state;
+      state = applyCommand(content, state, seat, cmd).state;
     } catch (e) {
       if (e instanceof CommandError) throw new HttpError(400, `Replay rejected: ${e.message}`);
       throw e;
@@ -63,7 +67,7 @@ export function verifyMatch(content: ContentBundle, config: MatchConfig, bot: Bo
   }
   if (next < human.length) throw new HttpError(400, 'Commands after the end of the match');
   const w = state.result!.winner;
-  return { outcome: w === null ? 'draw' : w === 0 ? 'win' : 'loss', turns: state.turn };
+  return { outcome: w === null ? 'draw' : w === seat ? 'win' : 'loss', turns: state.turn, endReason: state.result!.reason };
 }
 
 /** The encounter's AI for an attempt, seeded as the client seeds it. */

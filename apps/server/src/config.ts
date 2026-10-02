@@ -14,13 +14,8 @@ export interface ServerConfig {
   /** Allow POST /api/dev/grant (never in production). */
   devGrants: boolean;
   /**
-   * Testing: every account owns all equipment (free copies of every item are topped up). On outside
-   * production unless ALL_ITEMS=0; never in production.
-   */
-  allItems: boolean;
-  /**
-   * Testing: every account's Gold is topped up to at least this much (0 = off). 10000 outside production
-   * unless TEST_GOLD says otherwise; never in production.
+   * Testing: every account's Gold is topped up to at least this much (0 = off). Off unless TEST_GOLD
+   * sets it; never in production.
    */
   testGold: number;
   /** Ranked season schedule (default: seasons.json next to the server's package.json). */
@@ -36,8 +31,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     sessionDays: Number(env.SESSION_DAYS ?? 30),
     secureCookies: env.NODE_ENV === 'production',
     devGrants: env.NODE_ENV !== 'production',
-    allItems: env.NODE_ENV !== 'production' && env.ALL_ITEMS !== '0',
-    testGold: env.NODE_ENV === 'production' ? 0 : Number(env.TEST_GOLD ?? 10000),
+    testGold: env.NODE_ENV === 'production' ? 0 : Number(env.TEST_GOLD ?? 0),
     ...(env.SEASONS_FILE ? { seasonsFile: env.SEASONS_FILE } : {}),
   };
 }

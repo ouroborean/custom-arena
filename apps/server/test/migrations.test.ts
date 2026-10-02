@@ -14,13 +14,13 @@ afterAll(async () => {
   await dbh.close();
 });
 
-/** The data statements of a migration (everything but ALTER TABLE). */
+/** The data statements of a migration (updates and deletes, not ALTER TABLE). */
 function dataStatements(file: string): string[] {
   const text = readFileSync(new URL(`../src/db/migrations/${file}`, import.meta.url), 'utf8');
   return text
     .split('--> statement-breakpoint')
     .map((s) => s.trim())
-    .filter((s) => s.includes('UPDATE'));
+    .filter((s) => s.includes('UPDATE') || s.includes('DELETE'));
 }
 
 describe('0006 equipment slots', () => {
@@ -145,5 +145,28 @@ describe('0009 modular items', () => {
     });
     const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, c!.id));
     expect(preset!.loadout).toEqual({ items: [{ itemId: 'mace+sigil_selflessness' }], infusions: [] });
+  });
+});
+
+describe('0011 drop test inventory', () => {
+  it('removes the free testing copies (source dev) unless a character wears them', async () => {
+    const [u] = await dbh.db.insert(users).values({ email: 'inv@example.com', displayName: 'I', passwordHash: 'x' }).returning();
+    const rows = await dbh.db
+      .insert(itemInstances)
+      .values([
+        { userId: u!.id, itemId: 'longsword', source: 'dev' },
+        { userId: u!.id, itemId: 'fire_shard', source: 'dev' },
+        { userId: u!.id, itemId: 'ice_shard', source: 'reward' },
+        { userId: u!.id, itemId: 'spear+fire_shard', source: 'forge' },
+      ])
+      .returning();
+    const worn = rows.find((r) => r.itemId === 'fire_shard')!;
+    const base = { userId: u!.id, name: 'Wearer', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    await dbh.db.insert(characters).values({ ...base, loadout: { items: [{ itemId: 'fire_shard', instanceId: worn.id }], infusions: [] } });
+
+    for (const statement of dataStatements('0011_drop_test_inventory.sql')) await dbh.db.execute(sql.raw(statement));
+
+    const left = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, u!.id));
+    expect(left.map((i) => i.itemId).sort()).toEqual(['fire_shard', 'ice_shard', 'spear+fire_shard']);
   });
 });

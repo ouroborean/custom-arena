@@ -1,8 +1,6 @@
 // Home: active team, practice vs bot, roster (roll, open, pick a team), wallet and inventory.
 
 import { useState } from 'react';
-import { randomConfig } from '@arena/ai';
-import type { MatchConfig } from '@arena/engine';
 import { canAfford, formatAmounts } from '@arena/meta';
 import { api, ApiError } from '../api.js';
 import { content } from '../content.js';
@@ -31,11 +29,9 @@ export function Home() {
   const practice = async () => {
     setProblem(null);
     try {
-      const { specs } = await api.teamSpecs();
-      const seed = Math.floor(Math.random() * 1_000_000);
-      const bots = randomConfig(content, seed).teams[1].map((c, i) => ({ ...c, name: `Bot ${content.classes[c.classId!]!.name} ${i + 1}` }));
-      const teams = (human === 0 ? [specs, bots] : [bots, specs]) as MatchConfig['teams'];
-      newMatch(content, { seed, teams }, { kind: 'vsBot', bot, human }, 'home');
+      // The server issues the match (seed and teams) and verifies the result, so practice can pay out.
+      const r = await api.startPractice(bot, human);
+      newMatch(content, r.config, { kind: 'vsBot', bot, human, practice: { attemptId: r.attemptId } }, 'home');
     } catch (e) {
       setProblem(e instanceof ApiError ? { message: e.message, problems: e.problems } : { message: String(e), problems: [] });
     }

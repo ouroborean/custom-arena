@@ -845,8 +845,8 @@ export type CurrencyAmounts = Record<string, number>;
 
 export interface RewardSpec {
   currency?: CurrencyAmounts;
-  /** Items rolled from a drop table. */
-  drops?: { table: string; count: number };
+  /** Items rolled from a drop table; each of the `count` drops happens with `chance` (default 1). */
+  drops?: { table: string; count: number; chance?: number };
 }
 
 export interface ModeRewards {

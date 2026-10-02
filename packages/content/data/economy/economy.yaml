@@ -8,8 +8,10 @@ currencies:
 roll:
   cost: { gold: 100 }
 
-# Per match kind. Private matches and local practice earn nothing. A loss only pays when it was
-# played out (not a surrender, forfeit or AFK), and nothing pays below `minTurns`.
+# Per match kind. Private matches earn nothing. A loss only pays when it was played out (not a
+# surrender, forfeit or AFK), and nothing pays below `minTurns`. `practice` is a verified match
+# against a bot (the server issues it and replays it before paying): a baseline of Gold, and half
+# the casual chance of a drop.
 rewards:
   casual:
     minTurns: 8
@@ -21,6 +23,11 @@ rewards:
     win: { currency: { gold: 60 }, drops: { table: standard, count: 1 } }
     loss: { currency: { gold: 20 } }
     draw: { currency: { gold: 30 } }
+  practice:
+    minTurns: 8
+    win: { currency: { gold: 25 }, drops: { table: standard, count: 1, chance: 0.5 } }
+    loss: { currency: { gold: 15 } }
+    draw: { currency: { gold: 20 } }
 
 # Item drops per account per UTC day; further wins still pay gold.
 dailyDropCap: 10
@@ -28,7 +35,7 @@ dailyDropCap: 10
 dropTables:
   # Components only: forged pieces are made by players.
   standard:
-    types: { Skill: 35, Shard: 40, Sigil: 25 }
+    types: { Skill: 35, Shard: 50, Sigil: 15 }
 
 # Forging two unequipped pieces into one (docs/equipment.md §6), by the result's component count.
 forge:

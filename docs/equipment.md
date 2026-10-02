@@ -307,24 +307,29 @@ the results.
   negative, and a roll with a full roster (409) or a short wallet (402) takes nothing.
 
 ### Match rewards
-Casual and ranked matches pay these amounts. Private matches and local practice pay nothing. GDD §2.2
-says practice pays "small or none"; practice runs in the browser, so its results can't be trusted.
+Casual, ranked and practice matches pay these amounts; private matches pay nothing. **Practice** (vs a
+bot, decided 2026-10-03) is issued and verified by the server like a story attempt: it picks the seed
+and both teams, and replays the submitted commands before paying (`routes/practice.ts`). Its win drops
+a component with half the casual chance (`drops.chance: 0.5`).
 
 | | Win | Loss (played out) | Draw |
 |---|---|---|---|
 | Casual | 40 Gold + 1 drop | 15 Gold | 20 Gold |
 | Ranked | 60 Gold + 1 drop | 20 Gold | 30 Gold |
+| Practice | 25 Gold + a drop half the time | 15 Gold | 20 Gold |
 
 Anti-farming rules:
 - **Minimum length:** matches shorter than 8 turns (both players' turns counted) pay no one.
 - **No pay for forfeits:** losses by surrender, disconnect or AFK pay nothing.
-- **Daily cap:** at most **10 item drops** per account per UTC day. Wins beyond that still pay gold.
-- **At most once:** rewards are stored in `match_rewards`, keyed by match and player.
+- **Daily cap:** at most **10 item drops** per account per UTC day, practice included. Wins beyond that
+  still pay gold.
+- **At most once:** rewards are stored in `match_rewards`, keyed by match and player (practice: on its
+  attempt, `sp_attempts.reward`, paid by the first submission only).
 - **Where rewards show:** they are granted when the room store finishes the match, sent in
   `match.end.reward`, and listed in match history.
 
 ### Drops, forging and salvage
-- **Drops:** the `standard` table picks a component type by weight (Skill 35, Shard 40, Sigil 25),
+- **Drops:** the `standard` table picks a component type by weight (Skill 35, Shard 50, Sigil 15),
   then one of that type's components uniformly. Only single components drop; forged pieces are made
   by players.
 - **Forging:** two unequipped pieces become one, for **50 Gold** (2 components) or **100 Gold**
@@ -351,7 +356,6 @@ Anti-farming rules:
 ### Not built yet
 - Story and chapter rewards (Phase 6).
 - Achievement predicates.
-- A server-hosted practice bot, whose results could be trusted enough to pay out.
 
 ## 5. Simulator
 
@@ -426,5 +430,6 @@ skill's prefix, with no name used twice.
   instances, loadouts, presets, and match and season reward history.
 - **Story, achievement and tutorial rewards** name the same pieces.
 - **The starter kit** is a Shard, a Skill, and another Skill forged with a Shard.
-- **Testing (`ALL_ITEMS`):** accounts are topped up to four free copies of every component; forge
-  the rest.
+- **No free inventory:** the testing mode that gave every account free copies of all equipment was
+  removed (2026-10-03); migration 0011 deletes those copies unless a character wears them. Accounts
+  build their equipment from the starter kit, drops and rewards, as players do.

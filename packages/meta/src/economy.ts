@@ -41,7 +41,10 @@ export function matchReward(content: ContentBundle, input: MatchRewardInput, rng
   if (input.outcome === 'loss' && FORFEITS.has(input.endReason)) return { currency: {}, items: [] };
   const spec = r[input.outcome];
   const cap = content.economy.dailyDropCap;
-  const wanted = spec.drops?.count ?? 0;
+  // Each drop happens with the spec's chance (rolled even past the daily cap, so the rng use is stable).
+  const chance = spec.drops?.chance ?? 1;
+  let wanted = 0;
+  for (let i = 0; i < (spec.drops?.count ?? 0); i++) if (chance >= 1 || nextInt(rng, 1000) < Math.round(chance * 1000)) wanted++;
   const count = cap > 0 ? Math.max(0, Math.min(wanted, cap - input.dropsToday)) : wanted;
   return {
     currency: { ...spec.currency },

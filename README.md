@@ -91,13 +91,9 @@ Run `npm run server` and `npm run dev` together for the full game; without the s
 offers the offline sandbox. Set `DATABASE_URL=postgres://…` to use a PostgreSQL server instead of
 the embedded PGlite database. A local test account is described in `apps/server/fixtures/dev-account.json`.
 
-**All equipment is unlocked while testing:** outside production, every account owns four free copies
-of every equipment component (forge the rest), refilled whenever the inventory loads. Set
-`ALL_ITEMS=0` to play with real drops instead; production (`NODE_ENV=production`) never does this.
-
-**Test Gold:** outside production, every account's Gold is topped up to at least 10,000 whenever the
-inventory or wallet loads, so spending never runs dry while testing. Set `TEST_GOLD` to change the amount
-(`TEST_GOLD=0` turns it off); production never does this.
+**Test Gold:** set `TEST_GOLD=10000` (any amount) to top every account's Gold up to at least that much
+whenever the inventory or wallet loads, so spending never runs dry while testing. It's off by default,
+and production never does this.
 
 ## Adding content
 

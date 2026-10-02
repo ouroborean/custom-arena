@@ -25,7 +25,6 @@ const app = await buildApp({
   sessionDays: config.sessionDays,
   secureCookies: config.secureCookies,
   devGrants: config.devGrants,
-  allItems: config.allItems,
   testGold: config.testGold,
   seasons,
   logger: true,

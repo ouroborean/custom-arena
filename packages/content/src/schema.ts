@@ -574,7 +574,7 @@ export const forgingSchema = z.strictObject({
 const amounts = z.record(z.string(), z.number().int().min(0));
 const rewardSpec = z.strictObject({
   currency: amounts.optional(),
-  drops: z.strictObject({ table: z.string(), count: z.number().int().min(1) }).optional(),
+  drops: z.strictObject({ table: z.string(), count: z.number().int().min(1), chance: z.number().gt(0).max(1).optional() }).optional(),
 });
 
 /** The economy file(s): top-level sections merged from every economy*.yaml. */

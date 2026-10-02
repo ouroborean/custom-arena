@@ -58,7 +58,7 @@ Meta (sessions):   play → earn crystals/equipment → customize characters →
 |---|---|---|---|
 | **Tutorial** | Scripted CPU | Starter characters and crystals | Teaches energy, queueing, cooldowns, one element at a time |
 | **Story / Single-player** | Scripted and AI CPU encounters | Equipment, crystals, shards | Chapters themed by element; unlocks C/E/F/J-type equipment requirements |
-| **Practice / Bot** | AI at selectable difficulty | Small or none | Also the balance simulator's harness |
+| **Practice / Bot** | AI at selectable difficulty | Small: verified by replay, a little Gold and an occasional component (`docs/equipment.md` §4) | Also the balance simulator's harness |
 | **Casual multiplayer** | Human, matchmade | Standard | Unranked MMR |
 | **Ranked multiplayer** | Human, matchmade | Seasonal | Glicko-2 rating, turn timer, disconnect penalties |
 | **Private match** | Friend via code | None | Optional custom rules (no timer, fixed seeds) |
