@@ -795,6 +795,10 @@ export interface ClassDef {
   name: string;
   signatures: string[];
   affinity: string[];
+  /** The skill every rolled character of the class starts with (a skill of its pool). */
+  starter?: string;
+  /** Not rolled yet: unlocked later. */
+  advanced?: boolean;
 }
 
 /** What an equipment component is (docs/equipment.md §6): a skill, an element shard or a passive sigil. */

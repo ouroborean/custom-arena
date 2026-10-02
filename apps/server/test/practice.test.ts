@@ -28,6 +28,8 @@ afterAll(async () => {
 async function account(email: string) {
   const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'password123', displayName: 'Trainee' } });
   const cookie = `arena_session=${res.cookies.find((c) => c.name === 'arena_session')!.value}`;
+  // Three recruits make the active team.
+  for (let i = 0; i < 3; i++) await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
   const call = (method: 'GET' | 'POST', url: string, payload?: unknown) =>
     app.inject({ method, url, headers: { cookie }, ...(payload !== undefined ? { payload: payload as object } : {}) });
   const gold = async () => (await call('GET', '/api/wallet')).json().wallet.gold as number;
@@ -61,12 +63,18 @@ describe('practice against a bot', () => {
     const played = play(start.config, 1, 'easy', 7);
     const res = await a.call('POST', `/api/practice/attempts/${start.attemptId}/finish`, { commands: played.record.commands });
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { outcome: 'win' | 'loss' | 'draw'; turns: number; reward: { currency: { gold?: number }; items: string[] } };
+    const body = res.json() as {
+      outcome: 'win' | 'loss' | 'draw';
+      turns: number;
+      reward: { currency: { gold?: number }; items: string[] };
+      achievements: { reward: { currency: { gold?: number } } }[];
+    };
     const w = played.state.result!.winner;
     expect(body.outcome).toBe(w === null ? 'draw' : w === 1 ? 'win' : 'loss');
     const expected = body.turns < practice.minTurns ? 0 : (practice[body.outcome].currency?.gold ?? 0);
     expect(body.reward.currency.gold ?? 0).toBe(expected);
-    expect(await a.gold()).toBe(before + expected);
+    const fromAchievements = body.achievements.reduce((n, x) => n + (x.reward.currency.gold ?? 0), 0); // a first win counts for First Victory
+    expect(await a.gold()).toBe(before + expected + fromAchievements);
     if (body.outcome !== 'win') expect(body.reward.items).toEqual([]);
     expect(body.reward.items.length).toBeLessThanOrEqual(1);
     const again = await a.call('POST', `/api/practice/attempts/${start.attemptId}/finish`, { commands: played.record.commands });

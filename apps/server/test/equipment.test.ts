@@ -33,6 +33,8 @@ async function account(email: string) {
     payload: { email, password: 'password123', displayName: 'Kit' },
   });
   const cookie = `arena_session=${res.cookies.find((c) => c.name === 'arena_session')!.value}`;
+  // Three recruits make the active team.
+  for (let i = 0; i < 3; i++) await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
   const call = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: unknown) =>
     app.inject({ method, url, headers: { cookie }, ...(payload !== undefined ? { payload: payload as object } : {}) });
   const grant = async (itemId: string) => (await call('POST', '/api/dev/grant', { itemId })).json().item.id as string;
@@ -106,12 +108,13 @@ describe('loadouts', () => {
     });
     expect(mismatch.json().problems.some((p: string) => p.includes('not ice_shard'))).toBe(true);
 
-    const skill = b.chars[0]!.skills[0]!.base;
-    const overdrawn = await b.call('PUT', `/api/characters/${b.chars[0]!.id}/loadout`, {
-      loadout: {
-        items: [{ itemId: 'fire_shard', instanceId: mine }],
-        infusions: [{ skill, element: 'Fire' }, { skill, element: 'Fire' }], // one shard, two infusions
-      },
+    // One shard of an element the character wasn't born with (so its pool has just the one), two infusions.
+    const c = b.chars[0] as Character & { element: string };
+    const [shardId, element] = c.element === 'Fire' ? ['ice_shard', 'Ice'] : ['fire_shard', 'Fire'];
+    const other = await b.grant(shardId);
+    const skill = c.skills[0]!.base;
+    const overdrawn = await b.call('PUT', `/api/characters/${c.id}/loadout`, {
+      loadout: { items: [{ itemId: shardId, instanceId: other }], infusions: [{ skill, element }, { skill, element }] },
     });
     expect(overdrawn.json().problems.some((p: string) => p.includes('than the equipment provides'))).toBe(true);
   });
@@ -168,6 +171,7 @@ describe('test Gold (testing)', () => {
 
   it('is off unless asked for', async () => {
     const { call } = await account('poor@example.com');
-    expect((await call('GET', '/api/wallet')).json().wallet.gold).toBe(content.economy.currencies.gold!.start);
+    // The starting Gold, less three recruits.
+    expect((await call('GET', '/api/wallet')).json().wallet.gold).toBe(content.economy.currencies.gold!.start - 3 * content.economy.roll.cost.gold!);
   });
 });

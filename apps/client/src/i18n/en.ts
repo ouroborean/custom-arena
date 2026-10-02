@@ -27,6 +27,7 @@ export const en = {
   'home.play': 'Play',
   'home.activeTeam': 'Active team',
   'home.emptySlot': 'Empty',
+  'home.recruitSlot': 'Recruit below',
   'home.changeTeam': 'Change team',
   'home.bot': 'Bot',
   'home.youPlay': 'You play',
@@ -37,7 +38,7 @@ export const en = {
   'home.roster': 'Roster',
   'home.pickTeam': 'Pick 3 characters, in battle order ({count}/3)',
   'home.saveTeam': 'Save team',
-  'home.roll': 'Roll a character ({cost})',
+  'home.roll': 'Recruit a character ({cost})',
 
   // settings
   'settings.title': 'Settings',

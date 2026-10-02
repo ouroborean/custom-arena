@@ -21,12 +21,14 @@ afterAll(async () => {
   await dbh.close();
 });
 
-/** Registers a user and returns their session cookie header. */
-async function register(email: string, password = 'hunter22!', displayName = 'Tester') {
+/** Registers a user, recruits `recruits` characters (the first three become the team), and returns their session cookie header. */
+async function register(email: string, password = 'hunter22!', displayName = 'Tester', recruits = 3) {
   const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password, displayName } });
   expect(res.statusCode).toBe(201);
   const c = res.cookies.find((x) => x.name === 'arena_session')!;
-  return { cookie: `arena_session=${c.value}`, res };
+  const cookie = `arena_session=${c.value}`;
+  for (let i = 0; i < recruits; i++) expect((await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } })).statusCode).toBe(201);
+  return { cookie, res };
 }
 
 describe('health and content', () => {
@@ -45,14 +47,27 @@ describe('health and content', () => {
 });
 
 describe('auth', () => {
-  it('registers, sets an httpOnly session, and gives a starter team of 3', async () => {
-    const { cookie, res } = await register('A@Example.com');
+  it('registers and sets an httpOnly session; a new player has no characters and 1000 Gold to recruit them', async () => {
+    const { cookie, res } = await register('A@Example.com', undefined, undefined, 0);
     const set = res.cookies.find((x) => x.name === 'arena_session')!;
     expect(set.httpOnly).toBe(true);
     const me = await app.inject({ url: '/api/me', headers: { cookie } });
     expect(me.json().user.email).toBe('a@example.com');
-    const team = await app.inject({ url: '/api/teams/active', headers: { cookie } });
-    expect(team.json().team.characterIds).toHaveLength(3);
+    expect((await app.inject({ url: '/api/characters', headers: { cookie } })).json().characters).toEqual([]);
+    expect((await app.inject({ url: '/api/wallet', headers: { cookie } })).json().wallet.gold).toBe(1000);
+    expect((await app.inject({ url: '/api/teams/active', headers: { cookie } })).json().team).toBeNull();
+  });
+
+  it('the first three recruits become the active team', async () => {
+    const { cookie } = await register('recruit@example.com', undefined, undefined, 2);
+    expect((await app.inject({ url: '/api/teams/active', headers: { cookie } })).json().team).toBeNull();
+    const third = (await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } })).json();
+    expect(third.wallet.gold).toBe(700);
+    const chars = (await app.inject({ url: '/api/characters', headers: { cookie } })).json().characters as { id: string }[];
+    const team = (await app.inject({ url: '/api/teams/active', headers: { cookie } })).json().team;
+    expect(team.characterIds).toEqual(chars.map((c) => c.id));
+    await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
+    expect((await app.inject({ url: '/api/teams/active', headers: { cookie } })).json().team.characterIds).toEqual(team.characterIds); // a fourth doesn't change it
   });
 
   it('rejects duplicate emails (case-insensitive), bad input and wrong passwords', async () => {
@@ -95,7 +110,8 @@ describe('roster and teams', () => {
     const roll = await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
     expect(roll.statusCode).toBe(201);
     const c = roll.json().character;
-    expect(c.skills.length).toBeGreaterThanOrEqual(3);
+    expect(c.skills).toHaveLength(2);
+    expect(c).not.toHaveProperty('rarity');
 
     const list = await app.inject({ url: '/api/characters', headers: { cookie } });
     expect(list.json().characters).toHaveLength(4);

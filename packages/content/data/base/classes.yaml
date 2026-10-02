@@ -1,52 +1,65 @@
 # Classes and their 6-skill pools (GDD §6.2). Every skill is a signature for exactly one class and
 # an affinity skill for exactly one other; validation enforces that invariant.
+# `starter`: the skill every character of the class is rolled with (its bread and butter); the other
+# native skill is drawn from the rest of the pool. `advanced` classes aren't rolled yet: they'll be
+# unlocked later (docs/meta.md §1).
 
 warrior:
   name: Warrior
+  starter: strike
   signatures: [strike, smash, titan]
   affinity: [charge, shout, rage]
 
 knight:
   name: Knight
+  advanced: true
   signatures: [charge, riposte, shout]
   affinity: [strike, cleave, stun]
 
 druid:
   name: Druid
+  advanced: true
   signatures: [rage, companion, ravage]
   affinity: [smash, trap, blast]
 
 ranger:
   name: Ranger
+  starter: shot
   signatures: [shot, snipe, trap]
   affinity: [companion, maneuver, stab]
 
 monk:
   name: Monk
+  advanced: true
   signatures: [maneuver, dance, smite]
   affinity: [riposte, bless, prayer]
 
 mage:
   name: Mage
+  starter: bolt
   signatures: [bolt, blast, channel]
   affinity: [summon, consume, mislead]
 
 warlock:
   name: Warlock
+  advanced: true
   signatures: [consume, summon, curse]
   affinity: [bolt, withstand, taunt]
 
 rogue:
   name: Rogue
+  starter: stab
   signatures: [stab, mislead, stun]
   affinity: [ravage, snipe, dance]
 
 priest:
   name: Priest
+  starter: heal
   signatures: [heal, bless, prayer]
   affinity: [channel, curse, shot]
 
 paladin:
   name: Paladin
+  starter: cleave
   signatures: [cleave, withstand, taunt]
   affinity: [titan, smite, heal]

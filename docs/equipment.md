@@ -360,7 +360,7 @@ Anti-farming rules:
 ## 5. Simulator
 
 `npm run sim -- --games 2000 --equip` sets up each match as follows:
-1. Characters are rolled like players' (rarity, class, element).
+1. Characters are recruited like players' (class, element, skills).
 2. Each gets a random loadout that the resolver accepts (`randomLoadout` in `@arena/meta`).
 3. The sim reports each component's team win rate (a team "has" a component when any of its pieces
    holds it).
@@ -395,8 +395,8 @@ each type's shape, one Skill per base skill and one Shard per element.
   loadouts, rewards and match specs all store this id; `@arena/engine` `pieces.ts` parses it
   (`describePiece`, `pieceProblems`, `pieceName`).
 - **What it grants:** everything its components grant. Its skills go into the character's skill pool,
-  to be prepared (`docs/meta.md` §2.2); the rarity budget counts prepared skills and the Sigil like any
-  others.
+  to be prepared (`docs/meta.md` §2.2); the 5-skill cap counts prepared skills, and its Sigil is the
+  character's one item passive.
 
 ### Names
 Names come from the components and their order, with the tables in

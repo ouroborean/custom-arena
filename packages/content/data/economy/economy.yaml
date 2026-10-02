@@ -2,9 +2,9 @@
 # forging and salvage. Everything here is data; the numbers are first guesses to tune.
 
 currencies:
-  gold: { name: Gold, start: 300 }
+  gold: { name: Gold, start: 1000 }
 
-# Rolling a character (new accounts get their first 3 free).
+# Recruiting a character. New accounts start with no characters and enough Gold for 10.
 roll:
   cost: { gold: 100 }
 

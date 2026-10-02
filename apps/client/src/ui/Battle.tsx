@@ -4,6 +4,7 @@ import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
+import { ActionPopup } from './ActionPopup.js';
 import { Announcer } from './Announcer.js';
 import { Coach } from './Coach.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
@@ -130,7 +131,7 @@ export function Battle() {
 
       <main className="arena">
         {roster(viewer)}
-        <Stage turn={view.turn} status={status} tone={tone} />
+        <Stage turn={view.turn} status={status} tone={tone} popup={<ActionPopup units={view.units} content={content} />} />
         {roster(other)}
       </main>
 

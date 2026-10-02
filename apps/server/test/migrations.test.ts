@@ -33,7 +33,7 @@ describe('0006 equipment slots', () => {
       accessories: [{ itemId: 'worn_blade', instanceId: 'i4' }, { itemId: 'trackers_shortbow', instanceId: 'i5' }],
       sockets: [{ itemId: 'ice_shard', instanceId: 'i6', targets: ['smash'] }],
     };
-    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'legendary' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
     // Written the way the old code stored them (the column's type is the new shape).
     const rows = await dbh.db
       .insert(characters)
@@ -69,7 +69,7 @@ describe('0006 equipment slots', () => {
 describe('0007 infusion pool', () => {
   it('drops per-item targets and starts every loadout with no infusions applied', async () => {
     const [u] = await dbh.db.insert(users).values({ email: 'p@example.com', displayName: 'P', passwordHash: 'x' }).returning();
-    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
     const old = { items: [{ itemId: 'magma_hammer', instanceId: 'i1' }, { itemId: 'ice_crystal', instanceId: 'i2', targets: ['titan', null], unused: [1] }] };
     const rows = await dbh.db
       .insert(characters)
@@ -101,7 +101,7 @@ describe('0008 item renames', () => {
       { userId: u!.id, itemId: 'blackjack', source: 'test' },
       { userId: u!.id, itemId: 'ice_shard', source: 'test' },
     ]);
-    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
     const old = { items: [{ itemId: 'worn_blade', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }, { itemId: 'book_of_hymns', instanceId: 'i3' }], infusions: [{ skill: 'strike', element: 'Ice' }] };
     const [c] = await dbh.db.insert(characters).values({ ...base, loadout: old }).returning();
     await dbh.db.insert(loadoutPresets).values({ characterId: c!.id, name: 'P', loadout: { items: [{ itemId: 'trackers_shortbow' }], infusions: [] } });
@@ -129,7 +129,7 @@ describe('0009 modular items', () => {
       { userId: u!.id, itemId: 'emblem_of_the_inferno', source: 'test' },
       { userId: u!.id, itemId: 'longsword', source: 'test' },
     ]);
-    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
     const old = { items: [{ itemId: 'soldier_spear', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }], infusions: [{ skill: 'charge', element: 'Ice' }] };
     const [c] = await dbh.db.insert(characters).values({ ...base, loadout: old }).returning();
     await dbh.db.insert(loadoutPresets).values({ characterId: c!.id, name: 'P', loadout: { items: [{ itemId: 'hand_of_healing' }], infusions: [] } });
@@ -161,12 +161,36 @@ describe('0011 drop test inventory', () => {
       ])
       .returning();
     const worn = rows.find((r) => r.itemId === 'fire_shard')!;
-    const base = { userId: u!.id, name: 'Wearer', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const base = { userId: u!.id, name: 'Wearer', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
     await dbh.db.insert(characters).values({ ...base, loadout: { items: [{ itemId: 'fire_shard', instanceId: worn.id }], infusions: [] } });
 
     for (const statement of dataStatements('0011_drop_test_inventory.sql')) await dbh.db.execute(sql.raw(statement));
 
     const left = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, u!.id));
     expect(left.map((i) => i.itemId).sort()).toEqual(['fire_shard', 'ice_shard', 'spear+fire_shard']);
+  });
+});
+
+describe('0012 no rarity', () => {
+  it("moves locked native infusions off their skills (the base element's infusion is in the pool now)", async () => {
+    const [u] = await dbh.db.insert(users).values({ email: 'rar@example.com', displayName: 'R', passwordHash: 'x' }).returning();
+    const skills = [
+      { base: 'strike', infusion: 'Fire', source: 'native' as const, locked: true },
+      { base: 'smash', infusion: null, source: 'native' as const, locked: false },
+      { base: 'shot', infusion: 'Ice', source: 'equipment' as const, locked: false },
+    ];
+    const [c] = await dbh.db
+      .insert(characters)
+      .values({ userId: u!.id, name: 'Vet', classId: 'warrior', element: 'Fire', portraitId: 'warrior.fire.01', skills, contentVersion: 'x' })
+      .returning();
+
+    for (const statement of dataStatements('0012_no_rarity.sql')) await dbh.db.execute(sql.raw(statement));
+
+    const [after] = await dbh.db.select().from(characters).where(eq(characters.id, c!.id));
+    expect(after!.skills).toEqual([
+      { base: 'strike', infusion: null, source: 'native', locked: false },
+      { base: 'smash', infusion: null, source: 'native', locked: false },
+      { base: 'shot', infusion: 'Ice', source: 'equipment', locked: false },
+    ]);
   });
 });

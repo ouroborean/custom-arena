@@ -260,14 +260,13 @@ export function QueueTray({ view, viewer, content }: { view: PlayerView; viewer:
 
 // ---------------------------------------------------------------- top bar
 
-function Plate({ side, name, sub, active }: { side: 'left' | 'right'; name: string; sub: string; active: boolean }) {
+function Plate({ side, name, active }: { side: 'left' | 'right'; name: string; active: boolean }) {
   return (
     <div className={`plate ${side}`}>
       <div className="plate-main">
         {side === 'right' && <span className={`turn-flag${active ? ' on' : ''}`} aria-hidden />}
         <div className="plate-body">
           <span className="plate-name">{name}</span>
-          <span className="plate-sub">{sub}</span>
         </div>
         {side === 'left' && <span className={`turn-flag${active ? ' on' : ''}`} aria-hidden />}
       </div>
@@ -341,12 +340,11 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
         return `Player ${p + 1}`;
     }
   };
-  const subOf = (p: PlayerId) => `${p === 0 ? 'Moves first' : 'Moves second'}${p === viewer ? '' : ' · energy hidden'}`;
   const activeSide = match.finished ? null : match.active;
 
   return (
     <header className="topbar">
-      <Plate side="left" name={nameOf(viewer)} sub={subOf(viewer)} active={activeSide === viewer} />
+      <Plate side="left" name={nameOf(viewer)} active={activeSide === viewer} />
 
       <div className="control-center">
         {!spectate && (
@@ -383,7 +381,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
       </div>
 
       <div className="plate right">
-        <Plate side="right" name={nameOf(other)} sub={subOf(other)} active={activeSide === other} />
+        <Plate side="right" name={nameOf(other)} active={activeSide === other} />
         <div className="utility">
           <div className="segmented" role="group" aria-label="Playback speed">
             {([1, 2, 0] as const).map((v) => (
@@ -413,7 +411,8 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
 
 // ---------------------------------------------------------------- stage (center)
 
-export function Stage({ turn, status, tone }: { turn: number; status: string; tone: 'mine' | 'busy' | 'idle' }) {
+/** The middle of the arena: the turn number, whose turn it is, the action popup (`popup`) and the recent log. */
+export function Stage({ turn, status, tone, popup }: { turn: number; status: string; tone: 'mine' | 'busy' | 'idle'; popup?: React.ReactNode }) {
   const lines = useStore((s) => s.logs[s.viewer]);
   const recent = lines.slice(-6);
   return (
@@ -423,6 +422,7 @@ export function Stage({ turn, status, tone }: { turn: number; status: string; to
         {String(turn).padStart(2, '0')}
       </div>
       <div className={`stage-status ${tone === 'idle' ? '' : tone}`}>{status}</div>
+      {popup}
       <div className="stage-feed">
         {recent.map((l) => (
           <div key={l.id} className={`k-${l.kind}`}>

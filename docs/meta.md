@@ -6,36 +6,30 @@ the server and the client); the server (`apps/server`) stores and validates; the
 
 ## 1. Characters
 
-A character record holds a name, class, base element, rarity, portrait id and an ordered skill list.
-Each skill has a base id, an optional infusion (element), a source (`native` or `equipment`) and a
-`locked` flag for default infusions (R8: they stay on the skill they were rolled on).
+A character record holds a name, class, base element, portrait id and an ordered skill list. Each
+skill has a base id, an optional infusion (element), a source (`native` or `equipment`) and a
+`locked` flag (only characters rolled before 2026-10-03 had locked infusions; none are locked now).
 
-### 1.1 Rolling (`rollCharacter`)
+### 1.1 Recruiting (`rollCharacter`, decided 2026-10-03)
+
+There's **no rarity**: every recruit has the same shape, and equipment fills in the rest. The numbers
+live in `packages/meta/src/rules.ts`.
 
 | Step | Rule |
 |---|---|
-| Rarity | Weighted: Common 50, Uncommon 28, Rare 14, Epic 6, Legendary 2. **Pity:** after 29 rolls in a row below Epic, the 30th is at least Epic. |
-| Class | Weighted towards classes the player owns fewer of: weight ∝ 1 / (1 + owned). |
-| Base element | Uniform over the 10 elements. Cosmetic plus default infusions (R8). |
-| Native skills | At least 2 of the class's 3 signatures; the rest from its 6-skill pool (R9). |
-| Default infusions | A uniform count in the rarity's range; those skills get the base element, locked. |
+| Class | One of the six starting classes, weighted towards those the player owns fewer of (weight ∝ 1 / (1 + owned)). Warlock, Knight, Druid and Monk are **advanced** classes (`advanced: true` in `classes.yaml`): not recruited yet, to be unlocked later. |
+| Base element | Uniform over the 10 elements. |
+| Native skills | **Two:** the class's **starter** skill (Warrior Strike, Rogue Stab, Mage Bolt, Priest Heal, Paladin Cleave, Ranger Shot), then one more drawn from the rest of its 6-skill pool. None are infused. |
+| Base element infusion | **One infusion of the base element in the character's pool** (`NATIVE_INFUSIONS`): the player places it on a skill, like an equipment infusion. |
 | Name / portrait | "<element epithet> <class title>" (e.g. *Brook Blademaster*); portrait id `<class>.<element>.01`. |
 
-### 1.2 Rarity table
+Every character has four equipment slots (§2.1) and the same limits: **5 skills** (native plus
+prepared equipment skills, so up to 3 from equipment) and **1 item passive** (`PASSIVE_BUDGET`).
+Infusions have no budget (GDD §7.3, decided 2026-09-27).
 
-| Rarity | Native skills | Default infusions | Budget: skills / passives |
-|---|---|---|---|
-| Common | 3 | 1 | 1 / 1 |
-| Uncommon | 3 | 1–2 | 2 / 1 |
-| Rare | 4 | 1–2 | 2 / 2 |
-| Epic | 4 | 2–3 | 3 / 2 |
-| Legendary | 5 | 2–3 | 3 / 2 |
-
-Every rarity has the same four equipment slots (§2.1).
-
-The budget caps how many **equipment-granted** skills (prepared ones, §2.2) and item passives a
-character can use at once, regardless of which pieces supply them (the sheet's "3 skills 2 passives" note, GDD §8.2). Infusions
-have no budget (GDD §7.3, decided 2026-09-27).
+Characters from before this change keep their skills; migration 0012 took their locked native
+infusions off (their pool gives the base element back to place) and dropped the rarity and pity
+columns.
 
 ## 2. Equipment
 
@@ -54,8 +48,8 @@ became the pieces of their parts.
 A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any piece fits any slot**
 (GDD §8.3, decided 2026-09-27). A loadout is up to four equipped pieces plus where their infusions
 go: `{ items: [{ itemId, instanceId }, …], infusions: [{ skill, element }, …] }` (§2.2). The
-`itemId` is a piece id (component ids joined with `+`). What limits a loadout is the rarity budget, the 5-skill
-cap, the infusion rules (§2.2) and each owned copy being on
+`itemId` is a piece id (component ids joined with `+`). What limits a loadout is the 5-skill cap, the
+one item passive, the infusion rules (§2.2) and each owned copy being on
 one character at a time.
 
 Loadouts saved with the earlier typed slots (main hand, off hand, two-handed, body, accessories,
@@ -85,7 +79,7 @@ skills, shards, sigils), element and "only what fits".
   character lacks natively go into a **pool** (`skillPool`); the loadout's `skills` list says which are
   **prepared**. Only prepared skills join the character's skills and go into battle, so a character at
   four skills can wear a piece with two skills and an infusion, preparing one of them.
-  - The **5-skill cap** and the rarity's **skill budget** count prepared skills only.
+  - The **5-skill cap** counts prepared skills only.
   - Unprepared skills (`unprepared`) do nothing: they can't take infusions, and unpreparing a skill
     takes its infusions off (`unprepareSkill`).
   - Preparing a skill no piece grants, or one the character already has, is reported.
@@ -108,20 +102,19 @@ skills, shards, sigils), element and "only what fits".
     `withoutItem`).
   - **Saved data:** migration 0007 removed the old per-item targets, so loadouts saved before the pool
     start with nothing placed.
-- **Budgets** per the rarity table (skills and passives; infusions have none); every problem is listed,
-  not just the first.
+- **One item passive** per character (§1.1); every problem is listed, not just the first.
 - A loadout is validated when saved and again when the team becomes engine input (a loadout that
   became invalid blocks the match with a 409 listing the problems).
 
 ### 2.3 Acquisition
 
 New accounts get:
-- **Three characters:** rolled for free, and made the active team.
+- **No characters,** and **1000 Gold**: enough to recruit 10 (a recruit costs 100). Their first three
+  recruits become the active team.
 - **A starter kit:** a Shard, a Skill, and another Skill forged with a Shard.
-- **300 Gold.**
 
 After that:
-- **Rolling costs Gold,** up to 60 characters.
+- **Recruiting costs Gold,** up to 60 characters.
 - **Components** come from casual and ranked match drops; story chapters, encounters and
   achievements also grant forged pieces.
 - **Forging** combines unequipped pieces into one, and **splitting** takes one apart
@@ -151,7 +144,7 @@ Passwords: Argon2id.
 | GET | `/api/health` | Engine and content versions |
 | GET | `/api/content`, `/api/content/:version` | Current content version; the bundle (immutable) |
 | POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | Accounts and sessions |
-| GET | `/api/me` | Current user and pity counter |
+| GET | `/api/me` | Current user |
 | GET, POST | `/api/characters`, `/api/characters/roll` | Roster; roll a character (costs Gold) |
 | GET, PATCH, DELETE | `/api/characters/:id` | Detail (with validation and resolved loadout), rename, retire |
 | GET, PUT | `/api/teams/active` | Active team (3 characters, in battle order) |

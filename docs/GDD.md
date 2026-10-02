@@ -456,6 +456,10 @@ Character
 
 ### 7.2 Generation algorithm
 
+> **Superseded (2026-10-03, Q22):** there's no rarity. A recruit has its class's starter skill plus
+> one more from the class pool, and one base-element infusion in its pool. See `docs/meta.md` §1.1;
+> the algorithm below is the original design.
+
 ```
 roll rarity (weighted table; pity timer [PROPOSED])
 roll class (uniform, or weighted to fill the player's roster gaps [PROPOSED, reduces duplicates])
@@ -1077,6 +1081,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q19 | Equipment infusions (2026-09-27) | Equipment infusions go into a **pool**, and the player applies each to a skill of their choice; nothing is automatic, not even onto a skill the same item grants. **Native infusions stay locked.** **No infusion budget.** A skill can hold **up to two** infusions; two make the pair's **fusion** element (55, from the codex's fusion matrix; no skill has a fusion variant yet). | §7.3, §8.1 |
 | Q20 | Modular equipment (2026-10-02) | Static items are retired. Equipment is **components** (30 Skills, 10 Shards, 120 Sigils, one per passive), and a **piece** is one component or up to **3 forged together**, with at most one Sigil and no skill twice. Names come from the components in forge order (`docs/forging-names.md`). Forging costs Gold; splitting a piece back costs a small fee. | §8.2, §8.4 |
 | Q21 | Equipment skill pool (2026-10-02) | Skills from equipment go into a **pool**, like infusions; the player **prepares** which go into battle. The 5-skill cap and the rarity's skill budget count prepared skills only, so a full character can still wear a piece for its other components. Native skills are always in. | §7.3, §8.3 |
+| Q22 | Recruiting and progression (2026-10-03) | **No rarity.** A recruit has its class's starter skill plus one more from the class pool, and one infusion of its base element in its pool (placed by the player). Only six classes are recruited (Warrior, Rogue, Mage, Priest, Paladin, Ranger); Warlock, Knight, Druid and Monk become advanced classes for later. Every character: 5 skills at most, 1 item passive. New accounts start with no characters and 1000 Gold (10 recruits). | §7.2, §8.2 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 

@@ -16,7 +16,7 @@ packages/
   engine/    Pure, deterministic rules engine (no runtime deps). State + command → state + events.
   content/   YAML game data (skills, statuses, minions, classes, items, economy, story, tutorial) + Zod schemas, loader, validation.
   ai/        Bots (Easy/Normal/Hard, scripted encounters) and a match runner that records replays.
-  meta/      Out-of-battle rules shared by server and client: rarity, character rolls, loadouts, economy, story, achievements, Glicko-2.
+  meta/      Out-of-battle rules shared by server and client: character recruiting, loadouts, economy, story, achievements, Glicko-2.
   protocol/  WebSocket messages and turn bundles shared by server and client.
 apps/
   client/    React client (Vite, installable PWA): account, roster, loadouts, online play, story, tutorial, and a sandbox.

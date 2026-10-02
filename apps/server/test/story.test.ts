@@ -8,6 +8,7 @@ import { singlePlayerBotSeed } from '@arena/meta';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { openDb, type OpenDb } from '../src/db/client.js';
+import { attemptBot, verifyMatch, type SubmittedCommand } from '../src/singleplayer.js';
 
 const content = loadContentOrThrow();
 let app: FastifyInstance;
@@ -26,6 +27,8 @@ afterAll(async () => {
 async function account(email: string) {
   const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'password123', displayName: 'Hero' } });
   const cookie = `arena_session=${res.cookies.find((c) => c.name === 'arena_session')!.value}`;
+  // Three recruits make the active team.
+  for (let i = 0; i < 3; i++) await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
   const call = (method: 'GET' | 'POST', url: string, payload?: unknown) =>
     app.inject({ method, url, headers: { cookie }, ...(payload !== undefined ? { payload: payload as object } : {}) });
   return { call };
@@ -65,7 +68,7 @@ describe('story', () => {
     expect(body.chapters[0].encounters[1].unlocked).toBe(true);
     expect(body.achievements.map((x: { id: string }) => x.id)).toContain('first_victory');
     const fromAchievements = body.achievements.reduce((n: number, x: { reward: { currency: { gold?: number } } }) => n + (x.reward.currency.gold ?? 0), 0);
-    expect(body.wallet.gold).toBe(300 + 50 + fromAchievements); // first-clear reward + First Victory (+ Quick Work)
+    expect(body.wallet.gold).toBe(700 + 50 + fromAchievements); // 1000 less three recruits, the first-clear reward, First Victory (+ Quick Work)
 
     const again = await winEncounter(a, 'embers_1');
     expect(again.body.reward).toEqual({ currency: { gold: 10 }, items: [] }); // repeat reward
@@ -83,10 +86,18 @@ describe('story', () => {
     const game = play('embers_1', fresh.config, 1);
     const cut = game.record.commands.slice(0, Math.floor(game.record.commands.length / 2));
     expect((await a.call('POST', `/api/story/attempts/${fresh.attemptId}/finish`, { commands: cut })).statusCode).toBe(400);
-    // Another attempt's winning commands don't fit this attempt's seed and teams.
+    // Another attempt's winning commands are judged by this attempt's own replay (its seed and teams):
+    // refused if they don't fit, otherwise whatever that replay makes of them.
     const other = (await a.call('POST', '/api/story/embers_1/start')).json();
     const forged = await a.call('POST', `/api/story/attempts/${other.attemptId}/finish`, { commands: played.record.commands });
-    expect(forged.statusCode === 400 || forged.json().outcome !== 'win').toBe(true);
+    let expected: string | null = null;
+    try {
+      expected = verifyMatch(content, other.config, attemptBot(content, 'embers_1', other.config), played.record.commands as SubmittedCommand[]).outcome;
+    } catch {
+      expected = null;
+    }
+    if (expected === null) expect(forged.statusCode).toBe(400);
+    else expect(forged.json().outcome).toBe(expected);
   }, 60_000);
 
   it('finishing the tutorial pays its lessons, then a free character and a crystal', async () => {

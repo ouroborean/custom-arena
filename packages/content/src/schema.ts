@@ -550,6 +550,8 @@ export const classFileEntry = z.strictObject({
   name: z.string().min(1),
   signatures: z.array(z.string()).length(3),
   affinity: z.array(z.string()).length(3),
+  starter: z.string().optional(),
+  advanced: z.boolean().optional(),
 });
 
 const itemType = z.enum(['Skill', 'Shard', 'Sigil']);

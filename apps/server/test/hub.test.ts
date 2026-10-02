@@ -77,7 +77,10 @@ async function register(name: string): Promise<string> {
     payload: { email: `${name}@arena.test`, password: 'password123', displayName: name },
   });
   expect(res.statusCode).toBe(201);
-  return `arena_session=${res.cookies.find((c) => c.name === 'arena_session')!.value}`;
+  const cookie = `arena_session=${res.cookies.find((c) => c.name === 'arena_session')!.value}`;
+  // Three recruits make the active team.
+  for (let i = 0; i < 3; i++) await app.inject({ method: 'POST', url: '/api/characters/roll', headers: { cookie } });
+  return cookie;
 }
 
 async function connect(cookie: string | null, hello = true): Promise<Peer> {

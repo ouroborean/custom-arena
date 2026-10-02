@@ -92,7 +92,7 @@ export function Home() {
                 </button>
               ) : (
                 <div key={i} className="team-slot empty">
-                  {t('home.emptySlot')}
+                  {characters.length < 3 ? t('home.recruitSlot') : t('home.emptySlot')}
                 </div>
               );
             })}

@@ -37,10 +37,10 @@ async function account(email: string) {
 }
 
 describe('wallet and rolling', () => {
-  it('new accounts start with 300 Gold; a roll costs 100; a short wallet rolls nothing', async () => {
+  it('new accounts start with 1000 Gold; a recruit costs 100; a short wallet recruits nothing', async () => {
     const a = await account('roll@example.com');
-    expect(await a.gold()).toBe(300);
-    for (let i = 0; i < 3; i++) expect((await a.call('POST', '/api/characters/roll')).statusCode).toBe(201);
+    expect(await a.gold()).toBe(1000);
+    for (let i = 0; i < 10; i++) expect((await a.call('POST', '/api/characters/roll')).statusCode).toBe(201);
     expect(await a.gold()).toBe(0);
     const before = (await a.call('GET', '/api/characters')).json().characters.length;
     const broke = await a.call('POST', '/api/characters/roll');
@@ -58,11 +58,11 @@ describe('forging, splitting and salvage', () => {
     const res = await a.call('POST', '/api/forge', { base: bow, addition: chalice });
     expect(res.statusCode).toBe(201);
     expect(res.json().item.itemId).toBe('shortbow+chalice'); // a Saint Bow
-    expect(res.json().wallet.gold).toBe(250);
+    expect(res.json().wallet.gold).toBe(950);
     const spear = await a.grant('spear');
     const third = await a.call('POST', '/api/forge', { base: res.json().item.id, addition: spear });
     expect(third.json().item.itemId).toBe('shortbow+chalice+spear'); // a Reckless Saint Bow
-    expect(third.json().wallet.gold).toBe(150); // three components cost more
+    expect(third.json().wallet.gold).toBe(850); // three components cost more
     const inv = (await a.call('GET', '/api/inventory')).json().items as { id: string; itemId: string }[];
     expect(inv.some((i) => [bow, chalice, spear].includes(i.id))).toBe(false);
     expect(inv.filter((i) => i.itemId === 'shortbow+chalice+spear')).toHaveLength(1);
@@ -78,9 +78,10 @@ describe('forging, splitting and salvage', () => {
     expect(bad.json().problems[0]).toContain('one Sigil');
     expect((await b.call('POST', '/api/forge', { base: one, addition: two })).statusCode).toBe(404);
     expect((await a.call('POST', '/api/forge', { base: one, addition: one })).statusCode).toBe(400); // the same piece twice
-    expect(await a.gold()).toBe(300);
+    expect(await a.gold()).toBe(1000);
     expect((await a.call('GET', '/api/inventory')).json().items.filter((i: { id: string }) => [one, two].includes(i.id))).toHaveLength(2);
 
+    await a.call('POST', '/api/characters/roll');
     const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; infusion: string | null }[] }[];
     const c = chars[0]!;
     const shard = await a.grant('ice_shard');
@@ -99,7 +100,7 @@ describe('forging, splitting and salvage', () => {
     const res = await a.call('POST', `/api/inventory/${katana}/split`);
     expect(res.statusCode).toBe(201);
     expect((res.json().items as { itemId: string }[]).map((i) => i.itemId)).toEqual(['longsword', 'wind_shard', 'sigil_momentum']);
-    expect(res.json().wallet.gold).toBe(275);
+    expect(res.json().wallet.gold).toBe(975);
     expect((await a.call('POST', `/api/inventory/${katana}/split`)).statusCode).toBe(404);
     const sword = (res.json().items as { id: string }[])[0]!.id;
     expect((await a.call('POST', `/api/inventory/${sword}/split`)).statusCode).toBe(400);
@@ -109,7 +110,7 @@ describe('forging, splitting and salvage', () => {
     const a = await account('salvage@example.com');
     const katana = await a.grant('longsword+wind_shard+sigil_momentum');
     const res = await a.call('POST', `/api/inventory/${katana}/salvage`);
-    expect(res.json()).toMatchObject({ paid: { gold: 45 }, wallet: { gold: 345 } });
+    expect(res.json()).toMatchObject({ paid: { gold: 45 }, wallet: { gold: 1045 } });
     expect((await a.call('POST', `/api/inventory/${katana}/salvage`)).statusCode).toBe(404);
   });
 });
@@ -134,13 +135,13 @@ describe('match rewards', () => {
     expect(out?.rewards[1]).toEqual({ currency: { gold: 15 }, items: [] });
     // The winner's first online win also completes two achievements (First Victory, Arena Debut).
     expect(out?.achievements?.[0]).toEqual(['first_victory', 'online_debut']);
-    expect([await a.gold(), await b.gold()]).toEqual([340 + 50 + 100, 315]);
+    expect([await a.gold(), await b.gold()]).toEqual([1040 + 50 + 100, 1015]);
     const drops = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, a.userId));
     expect(drops.filter((d) => d.source === 'reward').map((d) => d.itemId)).toEqual(out!.rewards[0]!.items);
 
     const again = await store.finish(id, { winner: 0, endReason: 'elimination', turns: 20 });
     expect(again?.rewards).toEqual([null, null]);
-    expect(await a.gold()).toBe(490);
+    expect(await a.gold()).toBe(1190);
 
     const history = (await a.call('GET', '/api/matches')).json().matches as { id: string; reward: unknown }[];
     expect(history.find((m) => m.id === id)?.reward).toEqual(out!.rewards[0]);

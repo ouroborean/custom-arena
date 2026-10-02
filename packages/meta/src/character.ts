@@ -1,7 +1,7 @@
 // The persistent character record (GDD §7.1) and its conversion to an engine CharacterSpec.
 
 import { variantId, type CharacterSpec, type ContentBundle } from '@arena/engine';
-import { MAX_SKILLS, RARITIES, type RarityId } from './rarity.js';
+import { MAX_SKILLS } from './rules.js';
 
 export interface CharacterSkill {
   /** Base skill id (the archetype's id, e.g. "strike"). */
@@ -10,16 +10,18 @@ export interface CharacterSkill {
   infusion: string | null;
   /** Native to the character, or granted by an equipped item. */
   source: 'native' | 'equipment';
-  /** Default (native) infusions are locked (R8): they stay on this skill and can't be removed. */
+  /**
+   * A locked infusion stays on this skill. Only characters rolled before 2026-10-03 had them (their
+   * native infusions were moved to the pool then, so none are locked any more).
+   */
   locked: boolean;
 }
 
 export interface CharacterRecord {
   name: string;
   classId: string;
-  /** Base element: cosmetic plus default infusions (R8). */
+  /** Base element: cosmetic, plus the infusion of it in the character's pool (rules.ts NATIVE_INFUSIONS). */
   element: string;
-  rarity: RarityId;
   portraitId: string;
   skills: CharacterSkill[];
 }
@@ -47,19 +49,16 @@ export function toCharacterSpec(
   };
 }
 
-/** Problems with a record, or an empty list. Validates against content and the rarity budget. */
+/** Problems with a record, or an empty list. Validates against content and the class pool. */
 export function validateCharacter(content: ContentBundle, r: CharacterRecord): string[] {
   const errs: string[] = [];
   const cls = content.classes[r.classId];
   if (!cls) return [`unknown class "${r.classId}"`];
-  const rarity = RARITIES[r.rarity];
-  if (!rarity) return [`unknown rarity "${r.rarity}"`];
   if (r.skills.length < 1 || r.skills.length > MAX_SKILLS) errs.push(`must have 1–${MAX_SKILLS} skills`);
   const bases = r.skills.map((s) => s.base);
   if (new Set(bases).size !== bases.length) errs.push('duplicate skills');
   const pool = new Set([...cls.signatures, ...cls.affinity]);
   const native = r.skills.filter((s) => s.source === 'native');
-  if (native.length > rarity.nativeSkills) errs.push(`too many native skills for ${rarity.name}`);
   for (const s of native) if (!pool.has(s.base)) errs.push(`"${s.base}" isn't in the ${cls.name} pool`);
   for (const s of r.skills) {
     const base = content.skills[s.base];
