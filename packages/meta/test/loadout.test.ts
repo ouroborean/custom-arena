@@ -61,13 +61,13 @@ describe('resolveLoadout', () => {
   });
 
   it('grants a missing skill when there is room, and pool infusions can go on it', () => {
-    const r = resolveLoadout(content, warrior('legendary', 3), of(['trackers_shortbow', 'ice_shard'], [{ skill: 'shot', element: 'Ice' }]));
+    const r = resolveLoadout(content, warrior('legendary', 3), of(['shortbow', 'ice_shard'], [{ skill: 'shot', element: 'Ice' }]));
     expect(r.problems).toEqual([]);
     expect(skillOf(r, 'shot')).toMatchObject({ source: 'equipment', infusion: 'Ice' });
   });
 
   it('respects the 5-skill cap', () => {
-    expect(has(resolveLoadout(content, warrior(), of(['trackers_shortbow'])), 'cap')).toBe(true);
+    expect(has(resolveLoadout(content, warrior(), of(['shortbow'])), 'cap')).toBe(true);
   });
 
   it('checks assignments against the pool and the skills', () => {
@@ -103,7 +103,7 @@ describe('resolveLoadout', () => {
     const r = resolveLoadout(
       content,
       warrior('common', 3),
-      of(['trackers_shortbow', 'ice_shard', 'fire_shard', 'wind_shard'], [
+      of(['shortbow', 'ice_shard', 'fire_shard', 'wind_shard'], [
         { skill: 'smash', element: 'Ice' },
         { skill: 'titan', element: 'Fire' },
         { skill: 'shot', element: 'Wind' },
@@ -115,7 +115,7 @@ describe('resolveLoadout', () => {
 
   it(`has ${EQUIPMENT_SLOTS} slots that take any item type, signature gear (type G) included, on any class`, () => {
     // Two weapons, a two-handed one and a shard: any mix of types fits.
-    const mixed = resolveLoadout(content, warrior('legendary', 3), of(['soldier_spear', 'soldier_greataxe', 'worn_blade', 'ice_shard']));
+    const mixed = resolveLoadout(content, warrior('legendary', 3), of(['soldier_spear', 'soldier_greataxe', 'longsword', 'ice_shard']));
     expect(mixed.problems.filter((p) => p.includes('slot') || p.includes("doesn't fit"))).toEqual([]);
     expect(resolveLoadout(content, warrior(), of(Array(5).fill('ice_shard'))).problems).toContain('A character can equip 4 items (this has 5)');
     // Hand of Healing is Paladin-themed signature gear: a Warrior can wear it.
@@ -124,7 +124,7 @@ describe('resolveLoadout', () => {
 
   it('enforces the rarity budget for skills and passives', () => {
     // A Common can use 1 equipment skill: two J items granting new skills exceed it.
-    expect(has(resolveLoadout(content, warrior('common', 3), of(['trackers_shortbow', 'marksmans_rifle'])), 'Equipment grants 2 skills')).toBe(true);
+    expect(has(resolveLoadout(content, warrior('common', 3), of(['shortbow', 'longrifle'])), 'Equipment grants 2 skills')).toBe(true);
   });
 
   it('the resolved loadout makes a playable engine character', () => {
@@ -175,7 +175,7 @@ describe('editing a loadout', () => {
     expect(two.infusions).toEqual([{ skill: 'smash', element: 'Ice' }]);
     const replaced = withItem(content, rec, two, { itemId: 'wind_shard' }, 0); // the Ice shard goes, and its infusion
     expect(replaced).toEqual({ items: [{ itemId: 'wind_shard' }, { itemId: 'fire_shard' }], infusions: [] });
-    const granted: Loadout = { items: [{ itemId: 'trackers_shortbow' }, { itemId: 'ice_shard' }], infusions: [{ skill: 'shot', element: 'Ice' }] };
+    const granted: Loadout = { items: [{ itemId: 'shortbow' }, { itemId: 'ice_shard' }], infusions: [{ skill: 'shot', element: 'Ice' }] };
     expect(withoutItem(content, warrior('legendary', 3), granted, 0).infusions).toEqual([]); // Shot left with its item
     expect(pruneInfusions(content, rec, of(['ice_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'titan', element: 'Ice' }])).infusions).toEqual([
       { skill: 'smash', element: 'Ice' },

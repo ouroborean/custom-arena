@@ -1506,88 +1506,88 @@ paladins_mace_and_shield:
   type: J
   skills: [withstand, bless]
 
-worn_blade:
-  name: "Worn Blade"
+longsword:
+  name: "Longsword"
   type: J
   skills: [strike]
 
-mighty_greathammer:
-  name: "Mighty Greathammer"
+greathammer:
+  name: "Greathammer"
   type: J
   skills: [smash]
 
-infantry_spear:
-  name: "Infantry Spear"
+spear:
+  name: "Spear"
   type: J
   skills: [charge]
 
-duelling_sidearm:
-  name: "Duelling Sidearm"
+rapier:
+  name: "Rapier"
   type: J
   skills: [riposte]
 
-berserker_helmet:
-  name: "Berserker Helmet"
+warhelm:
+  name: "Warhelm"
   type: J
   skills: [rage]
 
-trackers_shortbow:
-  name: "Tracker's Shortbow"
+shortbow:
+  name: "Shortbow"
   type: J
   skills: [shot]
 
-marksmans_rifle:
-  name: "Marksman's Rifle"
+longrifle:
+  name: "Longrifle"
   type: J
   skills: [snipe]
 
-trappers_blade:
-  name: "Trapper's Blade"
+snare:
+  name: "Snare"
   type: J
   skills: [trap]
 
-grappling_hook:
-  name: "Grappling Hook"
+grapnel:
+  name: "Grapnel"
   type: J
   skills: [maneuver]
 
-bear_idol:
-  name: "Bear Idol"
+totem:
+  name: "Totem"
   type: J
   skills: [companion]
 
-apprentice_wand:
-  name: "Apprentice Wand"
+wand:
+  name: "Wand"
   type: J
   skills: [bolt]
 
-magic_tome:
-  name: "Magic Tome"
+tome:
+  name: "Tome"
   type: J
   skills: [blast]
 
-arcane_orb:
-  name: "Arcane Orb"
+orb:
+  name: "Orb"
   type: J
   skills: [consume]
 
-glove_of_the_arcanist:
-  name: "Glove of the Arcanist"
+glove:
+  name: "Glove"
   type: J
   skills: [summon]
 
-crown_of_the_magi:
-  name: "Crown of the Magi"
+circlet:
+  name: "Circlet"
   type: J
   skills: [channel]
 
-assassins_knife:
-  name: "Assassin's Knife"
+dagger:
+  name: "Dagger"
   type: J
   skills: [stab]
 
-butchers_blades:
-  name: "Butcher's Blades"
+hatchets:
+  name: "Hatchets"
   type: J
   skills: [ravage]
 
@@ -1601,33 +1601,33 @@ blackjack:
   type: J
   skills: [stun]
 
-dervish_blades:
-  name: "Dervish Blades"
+scimitars:
+  name: "Scimitars"
   type: J
   skills: [dance]
 
-initiates_mace:
-  name: "Initiate's Mace"
+mace:
+  name: "Mace"
   type: J
   skills: [heal]
 
-holy_water:
-  name: "Holy Water"
+chalice:
+  name: "Chalice"
   type: J
   skills: [bless]
 
-cursed_vessel:
-  name: "Cursed Vessel"
+effigy:
+  name: "Effigy"
   type: J
   skills: [curse]
 
-holy_sceptre:
-  name: "Holy Sceptre"
+sceptre:
+  name: "Sceptre"
   type: J
   skills: [smite]
 
-book_of_hymns:
-  name: "Book of Hymns"
+hymnal:
+  name: "Hymnal"
   type: J
   skills: [prayer]
 
@@ -1636,23 +1636,23 @@ battleaxe:
   type: J
   skills: [cleave]
 
-war_horn:
-  name: "War Horn"
+warhorn:
+  name: "Warhorn"
   type: J
   skills: [shout]
 
-iron_shield:
-  name: "Iron Shield"
+shield:
+  name: "Shield"
   type: J
   skills: [withstand]
 
-flag_of_challenge:
-  name: "Flag of Challenge"
+banner:
+  name: "Banner"
   type: J
   skills: [taunt]
 
-mithril_plate:
-  name: "Mithril Plate"
+fullplate:
+  name: "Fullplate"
   type: J
   skills: [titan]
 
