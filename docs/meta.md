@@ -33,26 +33,28 @@ Each skill has a base id, an optional infusion (element), a source (`native` or 
 
 Every rarity has the same four equipment slots (§2.1).
 
-The budget caps how many **equipment-granted** skills and item passives a character can use at once,
-regardless of which items supply them (the sheet's "3 skills 2 passives" note, GDD §8.2). Infusions
+The budget caps how many **equipment-granted** skills (prepared ones, §2.2) and item passives a
+character can use at once, regardless of which pieces supply them (the sheet's "3 skills 2 passives" note, GDD §8.2). Infusions
 have no budget (GDD §7.3, decided 2026-09-27).
 
 ## 2. Equipment
 
-The catalogue is `packages/content/data/items/items.yaml`: **260 items** generated from the
-*Structured Equipment* sheet (A 30, B 20, C 20, D 30, E 30, F 30, G 20, H 20, I 10, J 40, K 10).
-Each item grants skills, infusions and/or a passive (GDD §8.1).
+Equipment is **modular** (`docs/equipment.md` §6). `packages/content/data/items/items.yaml` holds
+**160 components**: 30 Skills, 10 Shards and 120 Sigils. A **piece** is one component or up to three
+forged together, and it grants everything its components do: skills, infusions and a passive (GDD
+§8.1). The 260 static items from the *Structured Equipment* sheet were retired on 2026-10-02 and
+became the pieces of their parts.
 
-> **Passives are live.** An item's `passiveEffect` names the status that implements it, and the
-> engine applies it permanently at match start (`CharacterSpec.passives`). All 120 passives (types
-> A, B, D, G, H) are implemented; the rulings for ambiguous wording are in `docs/equipment.md`.
+> **Passives are live.** A Sigil's `passiveEffect` names the status that implements it, and the
+> engine applies it permanently at match start (`CharacterSpec.passives`). All 120 passives are
+> implemented; the rulings for ambiguous wording are in `docs/equipment.md`.
 
 ### 2.1 Slots
 
-A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any item type fits any slot**
-(GDD §8.3, decided 2026-09-27). A loadout is up to four equipped items plus where their infusions
-go: `{ items: [{ itemId, instanceId }, …], infusions: [{ skill, element }, …] }` (§2.2). The item
-types (A–L) are descriptive categories only. What limits a loadout is the rarity budget, the 5-skill
+A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any piece fits any slot**
+(GDD §8.3, decided 2026-09-27). A loadout is up to four equipped pieces plus where their infusions
+go: `{ items: [{ itemId, instanceId }, …], infusions: [{ skill, element }, …] }` (§2.2). The
+`itemId` is a piece id (component ids joined with `+`). What limits a loadout is the rarity budget, the 5-skill
 cap, the infusion rules (§2.2) and each owned copy being on
 one character at a time.
 
@@ -61,8 +63,8 @@ sockets) were converted by migration 0006: items keep that order, and any past t
 unequipped (they stay in the inventory).
 
 **Equipping in the client** (`LoadoutEditor`): the four slots sit above a grid of the items the
-player owns (one tile per item, with a count of free copies), filtered by search, category (weapons,
-armor, trinkets, crystals), element and "only what fits".
+player owns (one tile per piece, with a count of free copies), filtered by search, kind (forged,
+skills, shards, sigils), element and "only what fits".
 - **Hover card:** hovering or focusing a tile shows what the item grants (skill, infusions, passive and
   its in-play wording), how many copies are owned and where, and whether it fits, or which rules
   equipping it would break.
@@ -73,11 +75,23 @@ armor, trinkets, crystals), element and "only what fits".
   placed on it (× takes one off), buttons to place one of each pool element that has a version of the
   skill (hover to preview the resulting skill), and its second, Hybrid socket (closed for now).
   Removing an item takes off the infusions it supplied, and those on the skill it granted.
+- **Skills panel:** above the infusions, the skills the equipment grants. Prepared ones (✓) are in the
+  character's skill list; the rest wait in the pool (+ prepares one when the 5-skill cap and the skill
+  budget allow it). Equipping a piece prepares its new skills while they fit.
 
 ### 2.2 Grants and resolution (`resolveLoadout`)
 
-- **Skills:** an item's skills are added when the character lacks them; a skill it already has
-  counts as granted. The 5-skill cap always applies.
+- **Skills (the skill pool, decided 2026-10-02):** the skills the equipped pieces grant that the
+  character lacks natively go into a **pool** (`skillPool`); the loadout's `skills` list says which are
+  **prepared**. Only prepared skills join the character's skills and go into battle, so a character at
+  four skills can wear a piece with two skills and an infusion, preparing one of them.
+  - The **5-skill cap** and the rarity's **skill budget** count prepared skills only.
+  - Unprepared skills (`unprepared`) do nothing: they can't take infusions, and unpreparing a skill
+    takes its infusions off (`unprepareSkill`).
+  - Preparing a skill no piece grants, or one the character already has, is reported.
+  - `withItem` prepares a new piece's skills while they fit (`canPrepare`); `withoutItem` and
+    `pruneInfusions` drop prepared skills whose piece is gone.
+  - Loadouts saved before the pool have no `skills` list: every granted skill is prepared, as before.
 - **Infusions (GDD §7.3):**
   - **The pool:** each equipped item adds its elements to the character's infusion pool
     (`infusionPool`), and the loadout's `infusions` list says which skill each one goes on. Nothing is
@@ -103,14 +117,16 @@ armor, trinkets, crystals), element and "only what fits".
 
 New accounts get:
 - **Three characters:** rolled for free, and made the active team.
-- **A starter kit:** a K shard, a single-skill J item and an F armor piece.
+- **A starter kit:** a Shard, a Skill, and another Skill forged with a Shard.
 - **300 Gold.**
 
 After that:
 - **Rolling costs Gold,** up to 60 characters.
-- **Items** come from casual and ranked match drops, and from crafting (three Shards → a Perfect
-  Crystal).
-- **Salvage** turns unequipped items back into Gold.
+- **Components** come from casual and ranked match drops; story chapters, encounters and
+  achievements also grant forged pieces.
+- **Forging** combines unequipped pieces into one, and **splitting** takes one apart
+  (`docs/equipment.md` §6).
+- **Salvage** turns unequipped pieces back into Gold.
 
 The rules and numbers are in `docs/equipment.md` §4. Development servers also expose
 `POST /api/dev/grant`.
@@ -145,8 +161,9 @@ Passwords: Argon2id.
 | GET, POST | `/api/characters/:id/presets` | Loadout presets |
 | POST, DELETE | `/api/characters/:id/presets/:presetId(/apply)` | Apply or delete a preset |
 | GET | `/api/wallet` | Currency balances (docs/equipment.md §4) |
-| POST | `/api/craft` | Craft with a recipe from unequipped items |
-| POST | `/api/inventory/:id/salvage` | Salvage an unequipped item for Gold |
+| POST | `/api/forge` | Forge an unequipped addition onto an unequipped base |
+| POST | `/api/inventory/:id/split` | Split an unequipped forged piece into its components |
+| POST | `/api/inventory/:id/salvage` | Salvage an unequipped piece for Gold |
 | GET | `/api/story` | Story and tutorial chapters: unlocks and clears (docs/single-player.md) |
 | POST | `/api/story/:id/start` | A verified attempt: teams and seed |
 | POST | `/api/story/attempts/:id/finish` | Submit the commands; the server replays them and pays out |

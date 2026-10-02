@@ -1,4 +1,4 @@
-// Wallets, roll costs, crafting, salvage and match rewards against an in-memory PGlite database.
+// Wallets, roll costs, forging, splitting, salvage and match rewards against an in-memory PGlite database.
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
@@ -50,43 +50,66 @@ describe('wallet and rolling', () => {
   });
 });
 
-describe('crafting and salvage', () => {
-  it('refines three Shards of one element into its Perfect Crystal for 50 Gold', async () => {
-    const a = await account('craft@example.com');
-    const shards = [await a.grant('ice_shard'), await a.grant('ice_shard'), await a.grant('ice_shard')];
-    const res = await a.call('POST', '/api/craft', { recipe: 'perfect_crystal', instanceIds: shards });
+describe('forging, splitting and salvage', () => {
+  it('forges an addition onto a base for Gold: both are used up, and the base keeps its place', async () => {
+    const a = await account('forge@example.com');
+    const bow = await a.grant('shortbow');
+    const chalice = await a.grant('chalice');
+    const res = await a.call('POST', '/api/forge', { base: bow, addition: chalice });
     expect(res.statusCode).toBe(201);
-    expect(res.json().item.itemId).toBe('ice_crystal');
+    expect(res.json().item.itemId).toBe('shortbow+chalice'); // a Saint Bow
     expect(res.json().wallet.gold).toBe(250);
-    const inv = (await a.call('GET', '/api/inventory')).json().items as { id: string }[];
-    expect(inv.some((i) => shards.includes(i.id))).toBe(false);
+    const spear = await a.grant('spear');
+    const third = await a.call('POST', '/api/forge', { base: res.json().item.id, addition: spear });
+    expect(third.json().item.itemId).toBe('shortbow+chalice+spear'); // a Reckless Saint Bow
+    expect(third.json().wallet.gold).toBe(150); // three components cost more
+    const inv = (await a.call('GET', '/api/inventory')).json().items as { id: string; itemId: string }[];
+    expect(inv.some((i) => [bow, chalice, spear].includes(i.id))).toBe(false);
+    expect(inv.filter((i) => i.itemId === 'shortbow+chalice+spear')).toHaveLength(1);
   });
 
-  it('refuses mixed elements, unowned items and equipped ones, taking nothing', async () => {
-    const a = await account('nocraft@example.com');
+  it('refuses illegal pieces, unowned items and equipped ones, taking nothing', async () => {
+    const a = await account('noforge@example.com');
     const b = await account('thief@example.com');
-    const mixed = [await a.grant('ice_shard'), await a.grant('ice_shard'), await a.grant('fire_shard')];
-    expect((await a.call('POST', '/api/craft', { recipe: 'perfect_crystal', instanceIds: mixed })).statusCode).toBe(400);
-    expect((await b.call('POST', '/api/craft', { recipe: 'perfect_crystal', instanceIds: mixed })).statusCode).toBe(404);
+    const one = await a.grant('sigil_momentum');
+    const two = await a.grant('sigil_eruptions');
+    const bad = await a.call('POST', '/api/forge', { base: one, addition: two });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().problems[0]).toContain('one Sigil');
+    expect((await b.call('POST', '/api/forge', { base: one, addition: two })).statusCode).toBe(404);
+    expect((await a.call('POST', '/api/forge', { base: one, addition: one })).statusCode).toBe(400); // the same piece twice
     expect(await a.gold()).toBe(300);
-    expect((await a.call('GET', '/api/inventory')).json().items.filter((i: { id: string }) => mixed.includes(i.id))).toHaveLength(3);
+    expect((await a.call('GET', '/api/inventory')).json().items.filter((i: { id: string }) => [one, two].includes(i.id))).toHaveLength(2);
 
     const chars = (await a.call('GET', '/api/characters')).json().characters as { id: string; skills: { base: string; infusion: string | null }[] }[];
     const c = chars[0]!;
-    const shard = mixed[0]!;
+    const shard = await a.grant('ice_shard');
     const target = c.skills.find((s) => !s.infusion)!.base;
     const put = await a.call('PUT', `/api/characters/${c.id}/loadout`, {
       loadout: { items: [{ itemId: 'ice_shard', instanceId: shard }], infusions: [{ skill: target, element: 'Ice' }] },
     });
     expect(put.statusCode).toBe(200);
+    expect((await a.call('POST', '/api/forge', { base: shard, addition: one })).statusCode).toBe(409);
     expect((await a.call('POST', `/api/inventory/${shard}/salvage`)).statusCode).toBe(409);
   });
 
-  it('salvage pays by type and removes the item', async () => {
+  it('splits a forged piece back into its components for a fee; a single component does not split', async () => {
+    const a = await account('split@example.com');
+    const katana = await a.grant('longsword+wind_shard+sigil_momentum');
+    const res = await a.call('POST', `/api/inventory/${katana}/split`);
+    expect(res.statusCode).toBe(201);
+    expect((res.json().items as { itemId: string }[]).map((i) => i.itemId)).toEqual(['longsword', 'wind_shard', 'sigil_momentum']);
+    expect(res.json().wallet.gold).toBe(275);
+    expect((await a.call('POST', `/api/inventory/${katana}/split`)).statusCode).toBe(404);
+    const sword = (res.json().items as { id: string }[])[0]!.id;
+    expect((await a.call('POST', `/api/inventory/${sword}/split`)).statusCode).toBe(400);
+  });
+
+  it('salvage pays for each component and removes the piece', async () => {
     const a = await account('salvage@example.com');
-    const katana = await a.grant('wind_katana');
+    const katana = await a.grant('longsword+wind_shard+sigil_momentum');
     const res = await a.call('POST', `/api/inventory/${katana}/salvage`);
-    expect(res.json()).toMatchObject({ paid: { gold: 25 }, wallet: { gold: 325 } });
+    expect(res.json()).toMatchObject({ paid: { gold: 45 }, wallet: { gold: 345 } });
     expect((await a.call('POST', `/api/inventory/${katana}/salvage`)).statusCode).toBe(404);
   });
 });

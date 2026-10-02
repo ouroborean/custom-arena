@@ -797,29 +797,44 @@ export interface ClassDef {
   affinity: string[];
 }
 
-/** Equipment types (GDD §8.2): which slot an item fits and what it grants. */
-export type ItemType = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
+/** What an equipment component is (docs/equipment.md §6): a skill, an element shard or a passive sigil. */
+export type ItemType = 'Skill' | 'Shard' | 'Sigil';
 
 /** An elemental infusion an item adds to its wearer's pool; the player chooses the skill it goes on. */
 export interface ItemInfusion {
   element: string;
 }
 
-/** An equipment item (GDD §8.1 grant model). Items never enter the engine directly: the loadout
- * resolver (@arena/meta) turns them into skills, infusions and passives on a CharacterSpec. */
+/** An equipment component. A piece of equipment is one component or up to 3 forged together; its id
+ * is the components' ids joined with "+" (@arena/meta `piece`). Items never enter the engine directly:
+ * the loadout resolver turns them into skills, infusions and passives on a CharacterSpec. */
 export interface ItemDef {
   id: string;
   name: string;
   type: ItemType;
-  /** Base skills granted (added when the character lacks them and has room). */
+  /** Base skills granted (added when the character lacks them and has room). One for a Skill. */
   skills: string[];
+  /** One for a Shard. */
   infusions: ItemInfusion[];
-  /** Passive text from the sheet. */
+  /** A Sigil's passive text. */
   passive?: string;
   /** Status implementing the passive (applied to the wearer at match start). */
   passiveEffect?: string;
-  /** The sheet left it unnamed; the name is a placeholder. */
-  placeholder?: boolean;
+  /** A Sigil's name suffix on forged pieces ("of Momentum"). */
+  suffix?: string;
+}
+
+/** Names for forged pieces (data/items/forging.yaml). Keys are skill or element ids in alphabetical
+ * order, joined with "+". */
+export interface ForgingDef {
+  /** By skill: the prefix a third skill adds ("Reckless"). */
+  prefixes: Record<string, string>;
+  /** By two skills: the pair's name ("bless+shot": "Saint Bow"). */
+  pairs: Record<string, string>;
+  /** By fusion id: a two-shard piece's name when "<Fusion> Crystal" doesn't read well. */
+  crystals: Record<string, string>;
+  /** By three elements: a three-shard piece's title ("of the True Dragon"). */
+  geodes: Record<string, string>;
 }
 
 // ---------------------------------------------------------------- economy (GDD §8.4)
@@ -844,21 +859,10 @@ export interface ModeRewards {
 }
 
 export interface DropTable {
-  /** Relative weight of each item type; the items of a type are equally likely. */
+  /** Relative weight of each component type; the components of a type are equally likely. */
   types: Partial<Record<ItemType, number>>;
-  /** Items that never drop from this table. */
+  /** Components that never drop from this table. */
   exclude?: string[];
-}
-
-export interface RecipeDef {
-  id: string;
-  name: string;
-  description: string;
-  /** `count` unequipped items of this type (all of one element with `sameElement`). */
-  inputs: { type: ItemType; count: number; sameElement?: boolean };
-  /** The item of this type (of the inputs' element with `sameElement`). */
-  output: { type: ItemType };
-  cost?: CurrencyAmounts;
 }
 
 export interface EconomyDef {
@@ -869,8 +873,11 @@ export interface EconomyDef {
   /** Item drops per account per UTC day, all modes together (0 = no cap). */
   dailyDropCap: number;
   dropTables: Record<string, DropTable>;
-  recipes: Record<string, RecipeDef>;
-  /** What salvaging an item pays, by item type. */
+  /** Forging two pieces into one, by the result's component count ("2", "3"). */
+  forge: { cost: Record<string, CurrencyAmounts> };
+  /** Splitting a forged piece back into its components. */
+  split: { cost: CurrencyAmounts };
+  /** What salvaging a piece pays, per component, by component type. */
   salvage: Partial<Record<ItemType, CurrencyAmounts>>;
 }
 
@@ -1007,9 +1014,11 @@ export interface ContentBundle {
   macros: Record<string, Op[]>;
   /** Named conditions, referenced by `{ check: { cond } }` (evaluated with `it` = the unit). */
   conditions: Record<string, Cond>;
-  /** Equipment catalogue. */
+  /** Equipment components. */
   items: Record<string, ItemDef>;
-  /** Currencies, rewards, drops, crafting and salvage. */
+  /** Names for forged equipment. */
+  forging: ForgingDef;
+  /** Currencies, rewards, drops, forging and salvage. */
   economy: EconomyDef;
   encounters: Record<string, EncounterDef>;
   /** Story chapters, in play order (file order). */

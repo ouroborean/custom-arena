@@ -1,45 +1,58 @@
-// The loadout editor (GDD §7.3, §8.3): four slots that take any item, the infusions the items add
-// to the pool (the player puts each on a skill), and a grid of the items the player owns. Hovering
+// The loadout editor (GDD §7.3, §8.3): four slots that take any piece of equipment (a component, or
+// up to 3 forged together), the infusions the pieces add to the pool (the player puts each on a skill),
+// and a grid of the pieces the player owns. Hovering
 // or focusing an item shows what it grants and whether it fits. Clicking an item equips it in the
 // next free slot; selecting a slot first makes the next item replace it.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { fusionOf, type ItemDef, type ItemType } from '@arena/engine';
+import { describePiece, fusionOf, type PieceDef } from '@arena/engine';
 import {
   canInfuse,
+  canPrepare,
   EQUIPMENT_SLOTS,
   infusedSkillId,
-  ITEM_TYPE_NAMES,
-  itemElement,
   MAX_INFUSIONS_PER_SKILL,
   MAX_SKILLS,
+  PIECE_KIND_NAMES,
+  pieceKind,
+  prepareSkill,
+  RARITIES,
   resolveLoadout,
   skillDefId,
+  unprepareSkill,
   withItem,
   withoutItem,
   type CharacterRecord,
   type CharacterSkill,
   type Loadout,
+  type PieceKind,
   type ResolvedLoadout,
 } from '@arena/meta';
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
 import { CostPips, elementClass, ItemFace, SkillGlyph, Tooltip } from './common.js';
 
-const GROUPS: { id: string; label: string; types: readonly ItemType[] }[] = [
-  { id: 'all', label: 'All', types: [] },
-  { id: 'weapons', label: 'Weapons', types: ['A', 'B', 'C', 'D', 'E'] },
-  { id: 'armor', label: 'Armor', types: ['F', 'G'] },
-  { id: 'trinkets', label: 'Trinkets', types: ['H', 'J', 'L'] },
-  { id: 'crystals', label: 'Crystals', types: ['I', 'K'] },
+export const PIECE_GROUPS: { id: string; label: string; kinds: readonly PieceKind[] }[] = [
+  { id: 'all', label: 'All', kinds: [] },
+  { id: 'forged', label: 'Forged', kinds: ['Forged'] },
+  { id: 'skills', label: 'Skills', kinds: ['Skill'] },
+  { id: 'shards', label: 'Shards', kinds: ['Shard'] },
+  { id: 'sigils', label: 'Sigils', kinds: ['Sigil'] },
 ];
-const TYPE_ORDER = 'ABCDEFGHIJKL';
-const ELEMENTS = [...new Set(Object.values(content.items).flatMap((i) => i.infusions.map((inf) => inf.element)))].sort();
+export const KIND_ORDER: readonly PieceKind[] = ['Forged', 'Skill', 'Shard', 'Sigil'];
+export const ELEMENTS = [...new Set(Object.values(content.items).flatMap((i) => i.infusions.map((inf) => inf.element)))].sort();
 
-/** One owned item id: its free copies, and where the others are. */
+/** Words a piece can be found by: its name, kind, components, skills, elements and passive. */
+export function pieceSearchText(d: PieceDef): string {
+  return [d.name, d.passive ?? '', PIECE_KIND_NAMES[pieceKind(d)], ...d.components.map((c) => c.name), ...d.skills.map(skillName), ...d.infusions.map((i) => i.element)]
+    .join(' ')
+    .toLowerCase();
+}
+
+/** One owned piece id: its free copies, and where the others are. */
 interface PoolEntry {
-  def: ItemDef;
+  def: PieceDef;
   /** Copies that can go on this character now. */
   free: InventoryItem[];
   /** Copies in this character's draft. */
@@ -55,7 +68,9 @@ type Fit =
   /** No copy free: every one is equipped (here, or on other characters). */
   | { kind: 'none'; reason: string };
 
-const skillName = (base: string) => content.skills[base]?.name ?? base;
+function skillName(base: string): string {
+  return content.skills[base]?.name ?? base;
+}
 
 /** What equipping changes, as "+1 skill"-style notes: budget use, pool infusions, and applied ones it undoes. */
 function changeNotes(before: ResolvedLoadout, after: ResolvedLoadout, dropped: number): string[] {
@@ -110,7 +125,7 @@ export function LoadoutEditor({
     const names = new Map(characters.map((c) => [c.id, c.name]));
     const by = new Map<string, PoolEntry>();
     for (const inst of inventory) {
-      const def = content.items[inst.itemId];
+      const def = describePiece(content, inst.itemId);
       if (!def) continue;
       const e = by.get(def.id) ?? { def, free: [], here: 0, elsewhere: [] };
       if (inDraft.has(inst.id)) e.here++;
@@ -119,7 +134,7 @@ export function LoadoutEditor({
       by.set(def.id, e);
     }
     return [...by.values()].sort(
-      (a, b) => TYPE_ORDER.indexOf(a.def.type) - TYPE_ORDER.indexOf(b.def.type) || a.def.name.localeCompare(b.def.name),
+      (a, b) => KIND_ORDER.indexOf(pieceKind(a.def)) - KIND_ORDER.indexOf(pieceKind(b.def)) || a.def.name.localeCompare(b.def.name),
     );
   }, [inventory, items, characters, character.id]);
 
@@ -144,15 +159,13 @@ export function LoadoutEditor({
   }, [pool, selected, items.length, draft, record, resolved]);
 
   const q = query.trim().toLowerCase();
-  const types = GROUPS.find((g) => g.id === group)!.types;
+  const kinds = PIECE_GROUPS.find((g) => g.id === group)!.kinds;
   const shown = pool.filter((e) => {
     const d = e.def;
-    if (types.length && !types.includes(d.type)) return false;
+    if (kinds.length && !kinds.includes(pieceKind(d))) return false;
     if (element && !d.infusions.some((inf) => inf.element === element)) return false;
     if (fitsOnly && fits.get(d.id)?.kind !== 'ok') return false;
-    if (!q) return true;
-    const text = [d.name, d.passive ?? '', ITEM_TYPE_NAMES[d.type], ...d.skills.map(skillName), ...d.infusions.map((i) => i.element)].join(' ');
-    return text.toLowerCase().includes(q);
+    return !q || pieceSearchText(d).includes(q);
   });
 
   const equip = (e: PoolEntry) => {
@@ -179,7 +192,7 @@ export function LoadoutEditor({
       <div className="equip-slots" role="group" aria-label={`Equipment slots (${items.length} of ${EQUIPMENT_SLOTS} used)`}>
         {Array.from({ length: EQUIPMENT_SLOTS }, (_, i) => {
           const eq = items[i];
-          const def = eq ? content.items[eq.itemId] : undefined;
+          const def = eq ? describePiece(content, eq.itemId) : undefined;
           if (!eq || !def) {
             const next = i === items.length;
             return (
@@ -211,9 +224,7 @@ export function LoadoutEditor({
                   <ItemGlyph def={def} />
                   <span className="equip-slot-name">
                     <b>{def.name}</b>
-                    <span className="muted">
-                      {def.type} · {ITEM_TYPE_NAMES[def.type]}
-                    </span>
+                    <span className="muted">{pieceKindLabel(def)}</span>
                     {isSelected && <span className="replacing">Replacing: pick an item</span>}
                   </span>
                 </button>
@@ -233,13 +244,14 @@ export function LoadoutEditor({
         </p>
       )}
 
+      <SkillPoolPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
       <InfusionPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
 
       <div className="item-pool" aria-label="Your items">
         <div className="pool-filters">
           <input type="search" aria-label="Search items" placeholder="Search items, skills, passives…" value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="segmented" role="group" aria-label="Item category">
-            {GROUPS.map((g) => (
+            {PIECE_GROUPS.map((g) => (
               <button key={g.id} type="button" aria-pressed={group === g.id} onClick={() => setGroup(g.id)}>
                 {g.label}
               </button>
@@ -278,14 +290,14 @@ export function LoadoutEditor({
                   type="button"
                   className={`item-tile${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
                   aria-disabled={blocked}
-                  aria-label={`${e.def.name}, ${ITEM_TYPE_NAMES[e.def.type]}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}`}
+                  aria-label={`${e.def.name}, ${pieceKindLabel(e.def)}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}`}
                   onClick={() => equip(e)}
                   onMouseEnter={(ev) => show(key, ev.currentTarget, card)}
                   onMouseLeave={() => hide(key)}
                   onFocus={(ev) => show(key, ev.currentTarget, card)}
                   onBlur={() => hide(key)}
                 >
-                  <span className="item-type">{e.def.type}</span>
+                  <PieceBadge def={e.def} />
                   <ItemFace def={e.def} content={content} className="code" />
                   {e.free.length > 1 && <span className="item-count">×{e.free.length}</span>}
                   {e.here > 0 && (
@@ -311,13 +323,27 @@ export function LoadoutEditor({
   );
 }
 
-/** The item's face, as in the grid (for the slots). */
-function ItemGlyph({ def }: { def: ItemDef }) {
+/** "Skill", "Shard", "Sigil", or "Forged · 3 components". */
+export function pieceKindLabel(def: PieceDef): string {
+  return def.components.length > 1 ? `Forged · ${def.components.length} components` : PIECE_KIND_NAMES[pieceKind(def)];
+}
+
+/** A tile's corner badge: how many components a forged piece holds (single components have none). */
+export function PieceBadge({ def }: { def: PieceDef }) {
+  return def.components.length > 1 ? (
+    <span className="item-type" title={`Forged from ${def.components.length} components`}>
+      {def.components.length}
+    </span>
+  ) : null;
+}
+
+/** The piece's face, as in the grid (for the slots). */
+function ItemGlyph({ def }: { def: PieceDef }) {
   return <ItemFace def={def} content={content} className="item-glyph" />;
 }
 
-/** Under an equipped item: what it grants. */
-function SlotGrants({ def }: { def: ItemDef }) {
+/** Under an equipped piece: what it grants. */
+function SlotGrants({ def }: { def: PieceDef }) {
   return (
     <div className="slot-detail">
       {def.skills.length > 0 && <div className="muted">Skill: {def.skills.map(skillName).join(', ')}</div>}
@@ -332,6 +358,65 @@ function SlotGrants({ def }: { def: ItemDef }) {
         </div>
       )}
       {def.passive && <div className="muted">Passive{def.passiveEffect ? '' : ' (not active yet)'}: hover for details</div>}
+    </div>
+  );
+}
+
+/**
+ * The skills the equipment grants: a pool the player prepares from. Prepared skills join the
+ * character's (up to the 5-skill cap and the rarity's skill budget); the rest stay out of battle.
+ */
+function SkillPoolPanel({
+  record,
+  draft,
+  resolved,
+  onChange,
+}: {
+  record: CharacterRecord;
+  draft: Loadout;
+  resolved: ResolvedLoadout;
+  onChange: (next: Loadout) => void;
+}) {
+  const budget = RARITIES[record.rarity].budget.skills;
+  return (
+    <div className="infusion-panel skill-pool" role="group" aria-label="Equipment skills">
+      <div className="infusion-head">
+        <span className="slot-label">Skills</span>
+        {resolved.skillPool.length === 0 ? (
+          <span className="muted">Pieces with skills add them here; prepare the ones to take into battle.</span>
+        ) : (
+          <>
+            <span className="muted">
+              {resolved.skills.length}/{MAX_SKILLS} skills · prepare the ones to take into battle:
+            </span>
+            {resolved.skillPool.map((base) => {
+              const prepared = !resolved.unprepared.includes(base);
+              const can = prepared || canPrepare(content, record, draft, base);
+              const name = skillName(base);
+              return (
+                <button
+                  key={base}
+                  type="button"
+                  className={`skill-chip pool-skill${prepared ? ' prepared' : ''}`}
+                  aria-pressed={prepared}
+                  disabled={!can}
+                  title={
+                    prepared
+                      ? `Prepared: click to put ${name} back in the pool`
+                      : can
+                        ? `Click to prepare ${name}`
+                        : `No room: unprepare a skill first (${MAX_SKILLS}-skill cap, ${budget} from equipment)`
+                  }
+                  onClick={() => onChange(prepared ? unprepareSkill(content, record, draft, base) : prepareSkill(content, record, draft, base))}
+                >
+                  {prepared ? '✓ ' : '+ '}
+                  {name}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -355,8 +440,8 @@ function InfusionPanel({
   const pool = Object.entries(resolved.pool).sort(([a], [b]) => a.localeCompare(b));
   const total = pool.reduce((n, [, k]) => n + k, 0);
   const left = Object.values(resolved.unassigned).reduce((n, k) => n + k, 0);
-  const assign = (skill: string, element: string) => onChange({ items: draft.items, infusions: [...draft.infusions, { skill, element }] });
-  const unassign = (index: number) => onChange({ items: draft.items, infusions: draft.infusions.filter((_, i) => i !== index) });
+  const assign = (skill: string, element: string) => onChange({ ...draft, infusions: [...draft.infusions, { skill, element }] });
+  const unassign = (index: number) => onChange({ ...draft, infusions: draft.infusions.filter((_, i) => i !== index) });
   return (
     <div className="infusion-panel" role="group" aria-label="Infusions">
       <div className="infusion-head">
@@ -520,30 +605,28 @@ function SkillInfusions({
   );
 }
 
-/** Everything about an item, for its hover card; with pool info when it's in the grid. */
-function ItemDetails({
+/** Everything about a piece, for its hover card; with pool info when it's in the grid. */
+export function ItemDetails({
   def,
   inSlot,
   entry,
   fit,
   selected,
 }: {
-  def: ItemDef;
+  def: PieceDef;
   inSlot?: boolean;
   entry?: PoolEntry;
   fit?: Fit;
   selected?: number | null;
 }) {
-  const el = itemElement(def);
   const effect = def.passiveEffect ? content.statuses[def.passiveEffect] : undefined;
   return (
     <>
       <div className="item-card-head">
-        <span className="item-type-badge">{def.type}</span>
-        <span className="muted">{ITEM_TYPE_NAMES[def.type]}</span>
-        {el && <span className={`skill-chip ${elementClass(el)}`}>{el}</span>}
+        <span className="muted">{pieceKindLabel(def)}</span>
       </div>
       <h4>{def.name}</h4>
+      {def.components.length > 1 && <div className="item-card-line muted">Forged from {def.components.map((c) => c.name).join(' + ')}</div>}
       <ul className="item-grants">
         {def.skills.map((s) => {
           const d = content.skills[s];

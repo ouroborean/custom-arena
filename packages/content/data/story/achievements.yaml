@@ -50,7 +50,7 @@ story_complete:
   description: Defeat the Mountain Heart, the last story boss.
   when: { outcome: win, encounter: heartstone_3 }
   count: 1
-  reward: { currency: { gold: 500 }, items: [emblem_of_the_aurora] }
+  reward: { currency: { gold: 500 }, items: [lightning_shard+ice_shard+sigil_caprice] }
 
 # Class mastery: 10 wins with a class on the team pays one of its class armors.
 warrior_path:
@@ -58,67 +58,67 @@ warrior_path:
   description: Win 10 matches with a Warrior on your team.
   when: { outcome: win, withClass: warrior }
   count: 10
-  reward: { items: [helmet_of_the_ancestors] }
+  reward: { items: [fullplate+sigil_ancestors] }
 
 knight_path:
   name: Knight's Oath
   description: Win 10 matches with a Knight on your team.
   when: { outcome: win, withClass: knight }
   count: 10
-  reward: { items: [knights_buckler] }
+  reward: { items: [rapier+sigil_rebuttal] }
 
 druid_path:
   name: Druid's Circle
   description: Win 10 matches with a Druid on your team.
   when: { outcome: win, withClass: druid }
   count: 10
-  reward: { items: [cloak_of_ancient_leaves] }
+  reward: { items: [warhelm+sigil_hubris] }
 
 ranger_path:
   name: Ranger's Trail
   description: Win 10 matches with a Ranger on your team.
   when: { outcome: win, withClass: ranger }
   count: 10
-  reward: { items: [boomerang_blade] }
+  reward: { items: [snare+sigil_comeuppance] }
 
 monk_path:
   name: Monk's Discipline
   description: Win 10 matches with a Monk on your team.
   when: { outcome: win, withClass: monk }
   count: 10
-  reward: { items: [visor_of_the_restful_spirit] }
+  reward: { items: [grapnel+sigil_tranquility] }
 
 mage_path:
   name: Mage's Study
   description: Win 10 matches with a Mage on your team.
   when: { outcome: win, withClass: mage }
   count: 10
-  reward: { items: [high_wizards_hat] }
+  reward: { items: [circlet+sigil_serenity] }
 
 warlock_path:
   name: Warlock's Pact
   description: Win 10 matches with a Warlock on your team.
   when: { outcome: win, withClass: warlock }
   count: 10
-  reward: { items: [blood_chalice] }
+  reward: { items: [orb+sigil_culling] }
 
 rogue_path:
   name: Rogue's Guile
   description: Win 10 matches with a Rogue on your team.
   when: { outcome: win, withClass: rogue }
   count: 10
-  reward: { items: [mask_of_many_faces] }
+  reward: { items: [smoke_bomb+sigil_guises] }
 
 priest_path:
   name: Priest's Vigil
   description: Win 10 matches with a Priest on your team.
   when: { outcome: win, withClass: priest }
   count: 10
-  reward: { items: [robe_of_the_song] }
+  reward: { items: [hymnal+sigil_song] }
 
 paladin_path:
   name: Paladin's Vow
   description: Win 10 matches with a Paladin on your team.
   when: { outcome: win, withClass: paladin }
   count: 10
-  reward: { items: [golden_plate] }
+  reward: { items: [shield+sigil_scars] }

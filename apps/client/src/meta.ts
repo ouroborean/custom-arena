@@ -29,8 +29,10 @@ interface MetaState {
   setTeam(ids: string[]): Promise<void>;
   rename(id: string, name: string): Promise<void>;
   retire(id: string): Promise<void>;
-  /** Crafts with a content recipe from these (unequipped) instances. */
-  craft(recipe: string, instanceIds: string[]): Promise<InventoryItem | null>;
+  /** Forges the `addition` instance onto the `base` one (both unequipped); returns the new piece. */
+  forge(base: string, addition: string): Promise<InventoryItem | null>;
+  /** Splits a forged (unequipped) instance into its components. */
+  split(id: string): Promise<InventoryItem[] | null>;
   salvage(id: string): Promise<void>;
   clearError(): void;
 }
@@ -139,11 +141,18 @@ export const useMeta = create<MetaState>((set, get) => {
       if (ok) await get().refresh();
     },
 
-    async craft(recipe, instanceIds) {
-      const r = await act(() => api.craft(recipe, instanceIds));
+    async forge(base, addition) {
+      const r = await act(() => api.forge(base, addition));
       if (!r) return null;
-      set({ inventory: [...get().inventory.filter((i) => !instanceIds.includes(i.id)), r.item], wallet: r.wallet });
+      set({ inventory: [...get().inventory.filter((i) => i.id !== base && i.id !== addition), r.item], wallet: r.wallet });
       return r.item;
+    },
+
+    async split(id) {
+      const r = await act(() => api.split(id));
+      if (!r) return null;
+      set({ inventory: [...get().inventory.filter((i) => i.id !== id), ...r.items], wallet: r.wallet });
+      return r.items;
     },
 
     async salvage(id) {

@@ -44,16 +44,17 @@ async function account(email: string) {
 const freeSkill = (c: Character) => c.skills.find((s) => !s.infusion)!.base;
 
 describe('inventory', () => {
-  it('new accounts get a starter kit (a shard, a gear item, an armor piece)', async () => {
+  it('new accounts get a starter kit (a Shard, a Skill, and a Skill forged with a Shard)', async () => {
     const { call } = await account('kit@example.com');
     const items = (await call('GET', '/api/inventory')).json().items as { itemId: string; equippedOn: string | null }[];
-    expect(items.map((i) => content.items[i.itemId]!.type).sort()).toEqual(['F', 'J', 'K']);
+    const kinds = items.map((i) => i.itemId.split('+').map((c) => content.items[c]!.type).join('+')).sort();
+    expect(kinds).toEqual(['Shard', 'Skill', 'Skill+Shard']);
     expect(items.every((i) => i.equippedOn === null)).toBe(true);
   });
 });
 
 describe('all equipment unlocked (testing)', () => {
-  it('tops every account up to four free copies of each item, refilling what gets equipped', async () => {
+  it('tops every account up to four free copies of each component, refilling what gets equipped', async () => {
     const h = await openDb();
     const all = await buildApp({ db: h.db, content, rollSeed: () => seed++, allItems: true });
     try {
@@ -101,6 +102,24 @@ describe('loadouts', () => {
 
     const specs = (await call('GET', '/api/teams/active/specs')).json().specs as { skills: string[] }[];
     expect(specs[0]!.skills).toContain(`${target}.ice`);
+  });
+
+  it('saves which pool skills are prepared; only those reach the team specs', async () => {
+    const { call, grant, chars } = await account('pool@example.com');
+    const c = chars[0]!;
+    const skillComponents = Object.values(content.items).filter((i) => i.type === 'Skill' && !c.skills.some((s) => s.base === i.skills[0]));
+    const [a, b] = [skillComponents[0]!, skillComponents[1]!];
+    const itemId = `${a.id}+${b.id}`;
+    const piece = await grant(itemId);
+    const put = await call('PUT', `/api/characters/${c.id}/loadout`, {
+      loadout: { items: [{ itemId, instanceId: piece }], infusions: [], skills: [b.skills[0]] },
+    });
+    expect(put.statusCode).toBe(200);
+    expect(put.json().loadout.skills).toEqual([b.skills[0]]);
+    expect(put.json().resolved.unprepared).toEqual([a.skills[0]]);
+    const specs = (await call('GET', '/api/teams/active/specs')).json().specs as { skills: string[] }[];
+    expect(specs[0]!.skills).toContain(b.skills[0]);
+    expect(specs[0]!.skills).not.toContain(a.skills[0]);
   });
 
   it('rejects items the user does not own, mismatched ids and rule violations, with problems', async () => {

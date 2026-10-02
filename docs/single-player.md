@@ -104,7 +104,7 @@ There are ten element chapters in `story/story.chapters.yaml`. Each has three en
 | Skirmish, first clear | 50 Gold (10 on repeats) |
 | Battle, first clear | 80 Gold and the element's Shard (15 on repeats) |
 | Boss, first clear | 150 Gold and one of the element's accessories (25 on repeats) |
-| Finishing a chapter | 100 Gold and the element's double emblem (type D) |
+| Finishing a chapter | 100 Gold and the element's emblem: its Crystal forged with the emblem's Sigil (*Dragon Crystal of the Inferno*) |
 
 Encounters unlock in order, and a chapter opens when the one before it is complete.
 
@@ -176,7 +176,7 @@ The tutorial has three lessons in `tutorial/`:
 3. **Elements:** Fire's Ignite and explosions.
 
 The lessons are encounters in the `tutorial` chapter, so they share the story's unlocks, rewards and
-verification. Finishing all three pays a free character and a Fire Crystal.
+verification. Finishing all three pays a free character and a Dragon Crystal (two Fire Shards).
 
 ### How lessons are driven
 - **Forcing energy:** `settings.fixedEnergy` fixes the player's energy gain on their first turns

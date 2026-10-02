@@ -9,7 +9,7 @@ const c = (classId: string, element: string, skills: string[], items: string[] =
 describe('analytics', () => {
   it('counts picks once per side and wins per side (draws half)', () => {
     const a = analyzeMatches(content, [
-      { teams: [[c('warrior', 'Fire', ['strike']), c('warrior', 'Ice', ['strike.fire'], ['wind_katana'])], [c('mage', 'Fire', ['bolt'])]], winner: 0 },
+      { teams: [[c('warrior', 'Fire', ['strike']), c('warrior', 'Ice', ['strike.fire'], ['longsword+wind_shard+sigil_momentum'])], [c('mage', 'Fire', ['bolt'])]], winner: 0 },
       { teams: [[c('mage', 'Ice', ['bolt'])], [c('warrior', 'None', ['strike'])]], winner: null },
     ]);
     expect(a.matches).toBe(2);
@@ -19,7 +19,7 @@ describe('analytics', () => {
     expect([warrior.picks, warrior.wins, warrior.pickRate]).toEqual([2, 1.5, 0.5]); // a win and a draw
     expect(a.elements.find((r) => r.id === 'Fire')).toMatchObject({ picks: 2, wins: 1 });
     expect(a.elements.some((r) => r.id === 'None')).toBe(false);
-    expect(a.items).toEqual([expect.objectContaining({ id: 'wind_katana', name: 'Wind Katana', picks: 1, winRate: 1 })]);
+    expect(a.items).toEqual([expect.objectContaining({ id: 'longsword+wind_shard+sigil_momentum', name: 'Wind-Infused Longsword of Momentum', picks: 1, winRate: 1 })]);
     expect(formatRates('Classes', a.classes)).toContain('Warrior');
   });
 });

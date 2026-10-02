@@ -1,8 +1,10 @@
 # Equipment passives and the economy (Phase 7)
 
-This document covers two things:
-- **Item passives:** how they work (§1–2) and how each ambiguous passive was read (§3).
-- **The economy:** gold, rewards, drops, crafting and salvage (§4).
+This document covers three things:
+- **Item passives:** how they work (§1–2) and how each ambiguous passive was read (§3). The passives
+  now live on **Sigils** (§6); §3 still names them by the static items they came from.
+- **The economy:** gold, rewards, drops, forging and salvage (§4).
+- **Modular equipment:** components, forged pieces and their names (§6).
 
 The simulator's equipment mode is described in §5.
 
@@ -321,29 +323,29 @@ Anti-farming rules:
 - **Where rewards show:** they are granted when the room store finishes the match, sent in
   `match.end.reward`, and listed in match history.
 
-### Drops, crafting and salvage
-- **Drops:** the `standard` table picks a type by weight, then one of that type's items uniformly.
-  The weights are A 8, B 5, C 6, D 4, E 8, F 10, G 5, H 6, J 18 and K 30. Perfect Crystals (I)
-  don't drop.
-- **Crafting:** three **Shards (K)** of one element refine into that element's **Perfect Anima
-  Crystal (I)** for 50 Gold (GDD §8.4). Recipes are data; validation checks that each input group
-  has exactly one result.
-- **Salvage:** an unequipped item pays gold by type: I 60, D 40, B/G/H 35, A/C/E 25, F 15, J 10,
-  K 5.
-- **Equipped items:** crafting and salvage refuse them, returning 409.
+### Drops, forging and salvage
+- **Drops:** the `standard` table picks a component type by weight (Skill 35, Shard 40, Sigil 25),
+  then one of that type's components uniformly. Only single components drop; forged pieces are made
+  by players.
+- **Forging:** two unequipped pieces become one, for **50 Gold** (2 components) or **100 Gold**
+  (3). **Splitting** a forged piece back into its components costs **25 Gold**. See §6.
+- **Salvage:** an unequipped piece pays gold for each component: Skill 10, Shard 5, Sigil 30.
+- **Equipped pieces:** forging, splitting and salvage refuse them, returning 409.
 
 ### API
 | Method | Path | |
 |---|---|---|
-| GET | `/api/wallet` | Balances (also returned by `/api/inventory`, rolls, crafting and salvage) |
+| GET | `/api/wallet` | Balances (also returned by `/api/inventory`, rolls, forging, splitting and salvage) |
 | POST | `/api/characters/roll` | Costs the roll price |
-| POST | `/api/craft` | `{ recipe, instanceIds }` → the new item |
+| POST | `/api/forge` | `{ base, addition }` (instance ids) → `{ item, wallet }`, the new piece |
+| POST | `/api/inventory/:id/split` | → `{ items, wallet }`, one instance per component |
 | POST | `/api/inventory/:id/salvage` | → `{ paid, wallet }` |
 
 ### Client
 - The header shows the wallet.
 - The roll button shows its price.
-- The inventory panel offers refining whenever enough Shards match, and a two-click salvage.
+- The inventory panel is the forge: a base + addition bench with a live preview of the result's name
+  and cost, and per-piece actions (use as base or addition, split, two-click salvage).
 - Rewards appear on the game-over dialog and in match history.
 
 ### Not built yet
@@ -356,8 +358,73 @@ Anti-farming rules:
 `npm run sim -- --games 2000 --equip` sets up each match as follows:
 1. Characters are rolled like players' (rarity, class, element).
 2. Each gets a random loadout that the resolver accepts (`randomLoadout` in `@arena/meta`).
-3. The sim reports each item's team win rate.
+3. The sim reports each component's team win rate (a team "has" a component when any of its pieces
+   holds it).
 
 The first 2000-game run finished without errors. Per-item samples are still small (roughly 20–120
 games each), so single-item extremes are mostly noise; balance work needs larger runs. Plain runs
 (without `--equip`) are unaffected: about 40 ms per match both before and after Phase 7.
+
+## 6. Modular equipment (2026-10-02)
+
+The static items (the sheet's types A–L) were replaced by **components** that players forge into
+pieces. A character still has four slots (`docs/meta.md` §2.1), and each slot takes one **piece**.
+
+### Components
+`packages/content/data/items/items.yaml` holds 160 components:
+
+| Type | Count | Grants | Ids |
+|---|---|---|---|
+| **Skill** | 30, one per base skill | the skill (added if the character lacks it) | `longsword`, `greathammer`, … |
+| **Shard** | 10, one per element | one infusion for the pool | `fire_shard`, … |
+| **Sigil** | 120, one per item passive | the passive (its status, applied at match start) | `sigil_momentum`, … |
+
+Each Sigil comes from one of the old static items, and its status keeps that item's id
+(`sigil_momentum` → `eq_wind_katana`), so the rulings in §3 still apply. Content validation checks
+each type's shape, one Skill per base skill and one Shard per element.
+
+### Pieces
+- **What a piece is:** one component, or up to **3** forged together, with at most **one Sigil** and
+  **no skill twice**. Elements can repeat (Fire + Fire is a Dragon Crystal).
+- **Its id** is the component ids joined with `+`, in forge order:
+  `longsword+wind_shard+sigil_momentum`. A single component's id is just its own. The database,
+  loadouts, rewards and match specs all store this id; `@arena/engine` `pieces.ts` parses it
+  (`describePiece`, `pieceProblems`, `pieceName`).
+- **What it grants:** everything its components grant. Its skills go into the character's skill pool,
+  to be prepared (`docs/meta.md` §2.2); the rarity budget counts prepared skills and the Sigil like any
+  others.
+
+### Names
+Names come from the components and their order, with the tables in
+`packages/content/data/items/forging.yaml`; `docs/forging-names.md` explains the scheme. A piece is
+`[prefix] Base [suffix]`:
+- **Skills:** one is the Skill's own name, two take the pair's name, and a third adds its prefix to
+  the first two's pair (*Reckless Saint Bow*).
+- **Shards on a skill piece:** an `<Element>-Infused` or `<Fusion>-Infused` prefix.
+- **Shards alone:** *Fire Shard*, *Dragon Crystal* (*Pure Crystal* for Ice + Ice), *Geode of the True
+  Dragon*.
+- **A Sigil:** its suffix ends the name (*of Momentum*); alone it is *Sigil of Momentum*.
+
+Validation checks that the tables name every pair of skills, every set of three elements and every
+skill's prefix, with no name used twice.
+
+### Forging and splitting
+- **Forging** takes two unequipped pieces, a **base** and an **addition**, and makes one piece whose
+  components are the base's followed by the addition's. The base keeps its name and gains a prefix
+  or suffix, and swapping the two changes the result's name. A result that breaks the piece rules is
+  refused (400), and both inputs are kept.
+- **Costs:** 50 Gold for a 2-component result and 100 Gold for 3 (`economy.forge.cost`).
+- **Splitting** turns an unequipped forged piece back into its components for 25 Gold
+  (`economy.split.cost`). A single component can't be split.
+- **Rules:** `forge` and `splitPiece` in `@arena/meta` (`economy.ts`). The server routes are
+  `POST /api/forge` and `POST /api/inventory/:id/split` (§4 API).
+
+### Moving from static items
+- **Migration 0009** (`0009_modular_items.sql`) turns every retired item into the piece of its parts:
+  skills, then infusions, then its passive's Sigil. *Wind Katana* becomes
+  `longsword+wind_shard+sigil_momentum`, a Wind-Infused Longsword of Momentum. It rewrites owned
+  instances, loadouts, presets, and match and season reward history.
+- **Story, achievement and tutorial rewards** name the same pieces.
+- **The starter kit** is a Shard, a Skill, and another Skill forged with a Shard.
+- **Testing (`ALL_ITEMS`):** accounts are topped up to four free copies of every component; forge
+  the rest.

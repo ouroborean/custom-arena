@@ -2607,28 +2607,115 @@ input[type="password"] {
   border-style: dashed;
 }
 
-.inventory-list {
+
+/* The forge (Inventory): base + addition = result, then the inventory grid beside the selected piece. */
+.forge-bench {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--line);
+  background: var(--ink);
+  padding: 10px;
+  margin-bottom: 6px;
+}
+
+.forge-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 220px;
+  min-height: 64px;
+  border: 2px dashed var(--line-2);
+  padding: 4px 8px;
+}
+
+.forge-slot.filled {
+  border-style: solid;
+}
+
+.forge-slot .slot-label {
+  font-size: 11px;
+}
+
+.forge-slot-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.forge-op {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.forge-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 220px;
+  min-height: 64px;
+}
+
+.forge-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.forge-actions {
+  display: flex;
   gap: 6px;
 }
 
-.craft-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+.forge-hint {
+  font-size: 12px;
+  margin: 0 0 10px;
 }
 
-.inv-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 2px solid var(--line);
-  background: var(--ink);
-  padding: 3px 8px 3px 3px;
-  font-size: 12px;
+.item-tile.static {
+  width: 52px;
+  cursor: default;
+  flex: none;
 }
+
+.item-tile.static .code {
+  height: 46px;
+}
+
+.inventory-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.inventory-body > :only-child {
+  grid-column: 1 / -1;
+}
+
+.item-card.inventory-detail {
+  position: static;
+  width: auto;
+  max-height: none;
+  pointer-events: auto;
+}
+
+.inventory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .inventory-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .item-type {
   background: var(--line-2);
@@ -2637,9 +2724,6 @@ input[type="password"] {
   text-align: center;
 }
 
-.item-name {
-  font-weight: 700;
-}
 
 .char-header {
   display: grid;
@@ -3618,6 +3702,25 @@ input[type="password"] {
   padding: 10px;
   border: 2px solid var(--line);
   background: var(--void);
+}
+
+/* Equipment-granted skills: prepared ones are solid, the rest wait in the pool (dashed). */
+button.pool-skill {
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  background: var(--ink);
+  border-style: dashed;
+}
+
+button.pool-skill.prepared {
+  border-style: solid;
+  background: var(--ink-3);
+}
+
+button.pool-skill:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .infusion-head {

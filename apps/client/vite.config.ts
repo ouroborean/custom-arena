@@ -39,11 +39,14 @@ function serviceWorker(): Plugin {
   };
 }
 
+const API = process.env.API_PROXY ?? 'http://127.0.0.1:8787';
+
 export default defineConfig({
   plugins: [react(), serviceWorker()],
   // The bundle carries all game content (~1 MB, ~250 kB gzipped); that is expected, not a warning.
   build: { chunkSizeWarningLimit: 1500 },
-  // The API server (npm run server) is proxied so cookies stay same-origin in development.
-  server: { port: 5173, strictPort: true, proxy: { '/api': { target: 'http://127.0.0.1:8787', ws: true } } },
-  preview: { port: 4173, strictPort: true, proxy: { '/api': { target: 'http://127.0.0.1:8787', ws: true } } },
+  // The API server (npm run server) is proxied so cookies stay same-origin in development. API_PROXY
+  // points it at another server (a second one on another PORT, say).
+  server: { port: 5173, strictPort: true, proxy: { '/api': { target: API, ws: true } } },
+  preview: { port: 4173, strictPort: true, proxy: { '/api': { target: API, ws: true } } },
 });

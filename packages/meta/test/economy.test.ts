@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seedRng } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
-import { canAfford, craft, formatAmounts, matchReward, rollDrops, salvageValue, startingWallet, type MatchRewardInput } from '../src/index.js';
+import { canAfford, forge, formatAmounts, matchReward, rollDrops, salvageValue, splitPiece, startingWallet, type MatchRewardInput } from '../src/index.js';
 
 const content = loadContentOrThrow();
 const win: MatchRewardInput = { kind: 'casual', outcome: 'win', endReason: 'elimination', turns: 20, dropsToday: 0 };
@@ -32,28 +32,38 @@ describe('economy', () => {
     expect(r).toEqual({ currency: { gold: 40 }, items: [] });
   });
 
-  it('drops follow the table: reproducible, never excluded types', () => {
+  it('drops are single components, by the table: reproducible, of every type it weights', () => {
     const a = rollDrops(content, 'standard', 200, seedRng(7));
     expect(rollDrops(content, 'standard', 200, seedRng(7))).toEqual(a);
-    const types = new Set(a.map((id) => content.items[id]!.type));
-    expect(types.has('I')).toBe(false); // Perfect Crystals are crafted, not dropped
-    expect(types.has('K')).toBe(true);
+    expect(a.every((id) => !id.includes('+') && content.items[id])).toBe(true); // forged pieces are made, not dropped
+    expect(new Set(a.map((id) => content.items[id]!.type))).toEqual(new Set(['Skill', 'Shard', 'Sigil']));
   });
 
-  it('three Shards of one element refine into its Perfect Crystal', () => {
-    expect(craft(content, 'perfect_crystal', ['ice_shard', 'ice_shard', 'ice_shard'])).toEqual({
+  it('forging costs more for a three-component piece; the base keeps its place at the front', () => {
+    expect(forge(content, 'shortbow', 'chalice')).toEqual({ ok: true, piece: 'shortbow+chalice', cost: { gold: 50 } });
+    expect(forge(content, 'shortbow+chalice', 'spear')).toEqual({ ok: true, piece: 'shortbow+chalice+spear', cost: { gold: 100 } });
+    expect(forge(content, 'spear', 'shortbow+chalice')).toMatchObject({ ok: true, piece: 'spear+shortbow+chalice' });
+  });
+
+  it('forging refuses a fourth component, a second Sigil and a skill twice', () => {
+    expect(forge(content, 'shortbow+chalice', 'spear+ice_shard')).toMatchObject({ ok: false });
+    expect(forge(content, 'sigil_momentum', 'sigil_eruptions')).toMatchObject({ ok: false });
+    expect(forge(content, 'shortbow', 'shortbow')).toMatchObject({ ok: false });
+    expect(forge(content, 'fire_shard', 'fire_shard')).toMatchObject({ ok: true }); // elements can repeat
+  });
+
+  it('splitting a forged piece gives back its components, for a fee; a single component cannot split', () => {
+    expect(splitPiece(content, 'longsword+wind_shard+sigil_momentum')).toEqual({
       ok: true,
-      output: 'ice_crystal',
-      cost: { gold: 50 },
+      components: ['longsword', 'wind_shard', 'sigil_momentum'],
+      cost: { gold: 25 },
     });
-    const mixed = craft(content, 'perfect_crystal', ['ice_shard', 'fire_shard', 'ice_shard']);
-    expect(mixed.ok).toBe(false);
-    expect(craft(content, 'perfect_crystal', ['ice_shard', 'ice_shard']).ok).toBe(false);
-    expect(craft(content, 'perfect_crystal', ['ice_shard', 'ice_shard', 'wind_katana']).ok).toBe(false);
+    expect(splitPiece(content, 'longsword').ok).toBe(false);
   });
 
-  it('salvage pays by type', () => {
-    expect(salvageValue(content, 'wind_katana')).toEqual({ gold: 25 });
+  it('salvage pays for each component by its type', () => {
+    expect(salvageValue(content, 'longsword')).toEqual({ gold: 10 });
+    expect(salvageValue(content, 'longsword+wind_shard+sigil_momentum')).toEqual({ gold: 45 });
     expect(formatAmounts(content, { gold: 25 })).toBe('25 Gold');
   });
 });

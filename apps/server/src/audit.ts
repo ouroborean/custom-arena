@@ -12,6 +12,8 @@ export type AuditKind =
   | 'ws_abuse'
   | 'match_forfeit'
   | 'craft'
+  | 'forge'
+  | 'split'
   | 'salvage';
 
 export function audit(db: Db, kind: AuditKind, e: { userId?: string | null; detail?: Record<string, unknown>; ip?: string } = {}): void {

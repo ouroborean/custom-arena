@@ -1,12 +1,25 @@
-// Equipment loadouts (GDD §7.3, §8): four slots that take any item, the pool of elemental infusions
-// the items provide, the player's choice of which skills those infusions go on, budgets, and
-// resolution into the character's effective skill list. Validated on save and again at match start.
+// Equipment loadouts (GDD §7.3, §8): four slots that take any piece of equipment (one component or up
+// to 3 forged together, docs/equipment.md §6), the pool of elemental infusions the pieces provide, the
+// player's choice of which skills those infusions go on, budgets, and resolution into the character's
+// effective skill list. Validated on save and again at match start.
 
-import { fusionOf, nextInt, variantId, type ContentBundle, type ItemDef, type ItemType, type RngState } from '@arena/engine';
+import {
+  describePiece,
+  fusionOf,
+  nextInt,
+  pieceId,
+  pieceProblems,
+  PIECE_MAX_COMPONENTS,
+  variantId,
+  type ContentBundle,
+  type ItemType,
+  type PieceDef,
+  type RngState,
+} from '@arena/engine';
 import type { CharacterRecord, CharacterSkill } from './character.js';
 import { MAX_SKILLS, RARITIES } from './rarity.js';
 
-/** Items a character can have equipped at once, of any types (GDD §8.3, decided 2026-09-27). */
+/** Pieces a character can have equipped at once, of any kind (GDD §8.3, decided 2026-09-27). */
 export const EQUIPMENT_SLOTS = 4;
 
 /**
@@ -16,7 +29,7 @@ export const EQUIPMENT_SLOTS = 4;
 export const MAX_INFUSIONS_PER_SKILL = 2;
 
 export interface EquippedItem {
-  /** Content item id. */
+  /** Piece id: a component id, or forged components' ids joined with "+" (@arena/engine `pieceId`). */
   itemId: string;
   /** Inventory instance, when it comes from a player's inventory. */
   instanceId?: string;
@@ -37,34 +50,42 @@ export interface Loadout {
    * until the player assigns it, and an element can go on any skill that has a version in it.
    */
   infusions: InfusionAssignment[];
+  /**
+   * Which equipment-granted skills are prepared (base ids, in order). The pieces put their skills in a
+   * pool; only prepared ones join the character's skills, within the 5-skill cap and the rarity's
+   * skill budget. Absent on loadouts saved before the pool: every granted skill is prepared.
+   */
+  skills?: string[];
 }
 
-export const EMPTY_LOADOUT: Loadout = { items: [], infusions: [] };
+export const EMPTY_LOADOUT: Loadout = { items: [], infusions: [], skills: [] };
 
-/** What each item type is, for display (the sheet's categories; any type fits any slot). */
-export const ITEM_TYPE_NAMES: Record<ItemType, string> = {
-  A: 'Weapon',
-  B: 'Two-handed weapon',
-  C: 'Exotic weapon',
-  D: 'Elemental weapon',
-  E: 'Off-hand',
-  F: 'Elemental armor',
-  G: 'Signature gear',
-  H: 'Charm',
-  I: 'Perfect crystal',
-  J: 'Skill trinket',
-  K: 'Shard',
-  L: 'Trinket',
+/** What a piece is, for display and filters: its one component's type, or Forged. */
+export type PieceKind = ItemType | 'Forged';
+
+export const PIECE_KIND_NAMES: Record<PieceKind, string> = {
+  Forged: 'Forged',
+  Skill: 'Skill',
+  Shard: 'Shard',
+  Sigil: 'Sigil',
 };
 
+export function pieceKind(piece: PieceDef): PieceKind {
+  return piece.components.length === 1 ? piece.components[0]!.type : 'Forged';
+}
+
 export interface ResolvedLoadout {
-  /** Native skills plus equipment-granted ones, with every applied infusion. */
+  /** Native skills plus prepared equipment-granted ones, with every applied infusion. */
   skills: CharacterSkill[];
-  /** Items whose passives count against the budget. */
+  /** Skills the equipment grants that the character lacks natively (base ids, prepared or not). */
+  skillPool: string[];
+  /** Pool skills that aren't prepared (they stay out of battle). */
+  unprepared: string[];
+  /** Pieces whose passives count against the budget. */
   passiveItems: string[];
   /** Status ids of implemented passives, applied at match start. */
   passiveEffects: string[];
-  /** Every equipped item id (records and analytics). */
+  /** Every equipped piece id (records and analytics). */
   items: string[];
   /** Infusions the equipment provides, by element. */
   pool: Record<string, number>;
@@ -93,10 +114,10 @@ export function infusedSkillId(content: ContentBundle, base: string, elements: r
   return content.skills[id] ? id : undefined;
 }
 
-/** The elements every equipped item adds to the pool. */
+/** The elements every equipped piece adds to the pool. */
 export function infusionPool(content: ContentBundle, items: readonly EquippedItem[]): Record<string, number> {
   const pool: Record<string, number> = {};
-  for (const eq of items) for (const inf of content.items[eq.itemId]?.infusions ?? []) pool[inf.element] = (pool[inf.element] ?? 0) + 1;
+  for (const eq of items) for (const inf of describePiece(content, eq.itemId)?.infusions ?? []) pool[inf.element] = (pool[inf.element] ?? 0) + 1;
   return pool;
 }
 
@@ -111,10 +132,10 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
 
   if (equipped.length > EQUIPMENT_SLOTS) problems.push(`A character can equip ${EQUIPMENT_SLOTS} items (this has ${equipped.length})`);
 
-  const items: { eq: EquippedItem; def: ItemDef }[] = [];
+  const items: { eq: EquippedItem; def: PieceDef }[] = [];
   const instances = new Set<string>();
   for (const eq of equipped) {
-    const def = content.items[eq.itemId];
+    const def = describePiece(content, eq.itemId);
     if (!def) {
       problems.push(`Unknown item "${eq.itemId}"`);
       continue;
@@ -126,14 +147,26 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
     items.push({ eq, def });
   }
 
-  // Skill grants: added when missing (a skill the character already has counts as granted).
+  // Skill grants go into a pool (a skill the character already has adds nothing); the player prepares
+  // the ones that go into battle.
+  const skillPool: string[] = [];
   for (const { def } of items) {
-    for (const base of def.skills) {
-      if (skills.some((s) => s.base === base)) continue;
-      skills.push({ base, infusion: null, source: 'equipment', locked: false });
-      usage.skills++;
-    }
+    for (const base of def.skills) if (!skills.some((s) => s.base === base) && !skillPool.includes(base)) skillPool.push(base);
   }
+  for (const base of loadout.skills ?? skillPool) {
+    const name = content.skills[base]?.name ?? base;
+    if (skills.some((s) => s.base === base)) {
+      problems.push(skillPool.includes(base) ? `${name} is prepared twice` : `${name} is already one of the character's skills`);
+      continue;
+    }
+    if (!skillPool.includes(base)) {
+      problems.push(`${name} is prepared, but no equipped piece grants it`);
+      continue;
+    }
+    skills.push({ base, infusion: null, source: 'equipment', locked: false });
+    usage.skills++;
+  }
+  const unprepared = skillPool.filter((base) => !skills.some((s) => s.base === base));
   if (skills.length > MAX_SKILLS) problems.push(`Too many skills (${skills.length}; the cap is ${MAX_SKILLS})`);
 
   // Infusions: the items supply elements; the player puts each on a skill.
@@ -195,7 +228,7 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
   if (usage.skills > b.skills) problems.push(`Equipment grants ${usage.skills} skills; ${rarity.name} characters can use ${b.skills}`);
   if (usage.passives > b.passives) problems.push(`${usage.passives} item passives; ${rarity.name} characters can use ${b.passives}`);
 
-  return { skills, passiveItems, passiveEffects, items: items.map((i) => i.def.id), pool, unassigned, usage, problems };
+  return { skills, skillPool, unprepared, passiveItems, passiveEffects, items: items.map((i) => i.def.id), pool, unassigned, usage, problems };
 }
 
 /**
@@ -214,19 +247,60 @@ export function canInfuse(content: ContentBundle, record: CharacterRecord, loado
   return elements.length <= MAX_INFUSIONS_PER_SKILL && !!infusedSkillId(content, base, elements);
 }
 
-/** Drops assignments that no longer hold: their skill is gone, or the pool no longer has the element. */
+/** Base ids of the skills these pieces grant that the character lacks natively, in slot order. */
+export function skillPoolOf(content: ContentBundle, record: CharacterRecord, items: readonly EquippedItem[]): string[] {
+  const native = new Set(record.skills.filter((s) => s.source === 'native').map((s) => s.base));
+  const out: string[] = [];
+  for (const eq of items) for (const base of describePiece(content, eq.itemId)?.skills ?? []) if (!native.has(base) && !out.includes(base)) out.push(base);
+  return out;
+}
+
+/** The prepared skills, made explicit (a loadout from before the skill pool prepares all of them). */
+const preparedOf = (content: ContentBundle, record: CharacterRecord, loadout: Loadout) => loadout.skills ?? skillPoolOf(content, record, loadout.items ?? []);
+
+/**
+ * Drops what no longer holds: prepared skills no equipped piece grants, and infusion assignments whose
+ * skill is gone or whose element the pool no longer has.
+ */
 export function pruneInfusions(content: ContentBundle, record: CharacterRecord, loadout: Loadout): Loadout {
-  const bases = new Set(resolveLoadout(content, record, { items: loadout.items, infusions: [] }).skills.map((s) => s.base));
+  const grantable = skillPoolOf(content, record, loadout.items);
+  const skills = preparedOf(content, record, loadout).filter((b, i, all) => grantable.includes(b) && all.indexOf(b) === i);
+  const bases = new Set(resolveLoadout(content, record, { items: loadout.items, infusions: [], skills }).skills.map((s) => s.base));
   const left = infusionPool(content, loadout.items);
   const infusions = (loadout.infusions ?? []).filter((a) => {
     if (!bases.has(a.skill) || !left[a.element]) return false;
     left[a.element]!--;
     return true;
   });
-  return { items: loadout.items, infusions };
+  return { items: loadout.items, infusions, skills };
 }
 
-/** `loadout` with an item added (at `slot`, replacing what's there, or in the next free slot). */
+/**
+ * Whether one more pool skill can be prepared: it's granted and unprepared, and preparing it breaks no
+ * rule the loadout keeps now (the 5-skill cap, the rarity's skill budget).
+ */
+export function canPrepare(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string): boolean {
+  const before = resolveLoadout(content, record, loadout);
+  if (!before.unprepared.includes(base)) return false;
+  const after = resolveLoadout(content, record, prepareSkill(content, record, loadout, base));
+  return after.problems.every((p) => before.problems.includes(p));
+}
+
+/** `loadout` with a pool skill prepared. */
+export function prepareSkill(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string): Loadout {
+  const skills = preparedOf(content, record, loadout);
+  return skills.includes(base) ? { ...loadout, skills } : { ...loadout, skills: [...skills, base] };
+}
+
+/** `loadout` with a skill unprepared (back in the pool), and without the infusions it held. */
+export function unprepareSkill(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string): Loadout {
+  return pruneInfusions(content, record, { ...loadout, skills: preparedOf(content, record, loadout).filter((b) => b !== base) });
+}
+
+/**
+ * `loadout` with an item added (at `slot`, replacing what's there, or in the next free slot). Skills the
+ * new piece adds to the pool are prepared when they fit; the rest wait in the pool.
+ */
 export function withItem(
   content: ContentBundle,
   record: CharacterRecord,
@@ -236,34 +310,55 @@ export function withItem(
 ): Loadout {
   const items = [...(loadout.items ?? [])];
   const at = slot !== undefined && slot < items.length ? slot : items.length;
+  const poolBefore = skillPoolOf(content, record, items);
   items.splice(at, at < items.length ? 1 : 0, item);
-  return pruneInfusions(content, record, { items, infusions: loadout.infusions ?? [] });
+  let next = pruneInfusions(content, record, { items, infusions: loadout.infusions ?? [], skills: preparedOf(content, record, loadout) });
+  for (const base of skillPoolOf(content, record, items)) {
+    if (!poolBefore.includes(base) && canPrepare(content, record, next, base)) next = prepareSkill(content, record, next, base);
+  }
+  return next;
 }
 
-/** `loadout` without the item in `slot` (and without infusions that depended on it). */
+/** `loadout` without the item in `slot` (and without the skills and infusions that depended on it). */
 export function withoutItem(content: ContentBundle, record: CharacterRecord, loadout: Loadout, slot: number): Loadout {
-  return pruneInfusions(content, record, { items: loadout.items.filter((_, i) => i !== slot), infusions: loadout.infusions ?? [] });
+  return pruneInfusions(content, record, { ...loadout, items: loadout.items.filter((_, i) => i !== slot), skills: preparedOf(content, record, loadout) });
+}
+
+/** A random legal piece of 1 to 3 components (simulations and tests). */
+export function randomPiece(content: ContentBundle, rng: RngState, tries = 8): string | undefined {
+  const pool = Object.keys(content.items).sort();
+  for (let t = 0; t < tries && pool.length; t++) {
+    const n = 1 + nextInt(rng, PIECE_MAX_COMPONENTS);
+    const ids = Array.from({ length: n }, () => pool[nextInt(rng, pool.length)]!);
+    if (pieceProblems(content, ids).length === 0) return pieceId(ids);
+  }
+  return undefined;
 }
 
 /**
- * A random loadout the resolver accepts (balance simulations, bots): random items for this class
- * are tried one by one, each kept when the loadout stays valid, until the slots are full or the
- * tries run out; then each pool infusion goes on a random skill that can take it.
+ * A random loadout the resolver accepts (balance simulations, bots): random pieces are tried one by
+ * one, each kept when the loadout stays valid, until the slots are full or the tries run out; pool
+ * skills are prepared in a random order while they fit; then each pool infusion goes on a random skill
+ * that can take it.
  */
 export function randomLoadout(content: ContentBundle, record: CharacterRecord, rng: RngState, triesPerSlot = 8): Loadout {
-  const pool = Object.values(content.items).sort((a, b) => (a.id < b.id ? -1 : 1));
-  let loadout: Loadout = { items: [], infusions: [] };
+  let loadout: Loadout = { items: [], infusions: [], skills: [] };
   for (let t = 0; t < EQUIPMENT_SLOTS * triesPerSlot && loadout.items.length < EQUIPMENT_SLOTS; t++) {
-    const def = pool[nextInt(rng, pool.length)];
-    if (!def) break;
-    const next: Loadout = { items: [...loadout.items, { itemId: def.id }], infusions: [] };
+    const piece = randomPiece(content, rng);
+    if (!piece) continue;
+    const next: Loadout = { items: [...loadout.items, { itemId: piece }], infusions: [], skills: [] };
     if (resolveLoadout(content, record, next).problems.length === 0) loadout = next;
+  }
+  const pool = skillPoolOf(content, record, loadout.items);
+  while (pool.length) {
+    const base = pool.splice(nextInt(rng, pool.length), 1)[0]!;
+    if (canPrepare(content, record, loadout, base)) loadout = prepareSkill(content, record, loadout, base);
   }
   const elements = Object.entries(infusionPool(content, loadout.items)).flatMap(([el, n]) => Array<string>(n).fill(el));
   for (const element of elements) {
     const skills = resolveLoadout(content, record, loadout).skills.filter((s) => canInfuse(content, record, loadout, s.base, element));
     const pick = skills[nextInt(rng, Math.max(1, skills.length))];
-    if (pick) loadout = { items: loadout.items, infusions: [...loadout.infusions, { skill: pick.base, element }] };
+    if (pick) loadout = { ...loadout, infusions: [...loadout.infusions, { skill: pick.base, element }] };
   }
   return loadout;
 }

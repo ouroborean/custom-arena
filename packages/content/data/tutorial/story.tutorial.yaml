@@ -6,4 +6,4 @@ tutorial:
   description: "Three short lessons: energy and skills, statuses and counters, and elements."
   tutorial: true
   encounters: [tutorial_1, tutorial_2, tutorial_3]
-  reward: { rolls: 1, items: [fire_crystal] }
+  reward: { rolls: 1, items: [fire_shard+fire_shard] }

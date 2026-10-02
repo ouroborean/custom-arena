@@ -38,7 +38,7 @@ embers_3:
       - { when: { turn: 1 }, unit: 0, skill: strike }
       - { when: { every: 3 }, unit: 0, skill: smash }
   rewards:
-    first: { currency: { gold: 150 }, items: [crown_of_flames] }
+    first: { currency: { gold: 150 }, items: [fire_shard+sigil_cinders] }
     repeat: { currency: { gold: 25 } }
 
 mire_1:
@@ -77,7 +77,7 @@ mire_3:
       - { when: { turn: 1 }, unit: 0, skill: stab }
       - { when: { every: 3 }, unit: 0, skill: mislead }
   rewards:
-    first: { currency: { gold: 150 }, items: [lotus_essence] }
+    first: { currency: { gold: 150 }, items: [poison_shard+sigil_lotus] }
     repeat: { currency: { gold: 25 } }
 
 zealots_1:
@@ -116,7 +116,7 @@ zealots_3:
       - { when: { turn: 1 }, unit: 0, skill: heal }
       - { when: { every: 3 }, unit: 0, skill: bless }
   rewards:
-    first: { currency: { gold: 150 }, items: [revered_crown] }
+    first: { currency: { gold: 150 }, items: [holy_shard+sigil_reverence] }
     repeat: { currency: { gold: 25 } }
 
 frostreach_1:
@@ -155,7 +155,7 @@ frostreach_3:
       - { when: { turn: 1 }, unit: 0, skill: charge }
       - { when: { every: 3 }, unit: 0, skill: riposte }
   rewards:
-    first: { currency: { gold: 150 }, items: [glacial_pendant] }
+    first: { currency: { gold: 150 }, items: [ice_shard+sigil_hoarfrost] }
     repeat: { currency: { gold: 25 } }
 
 tides_1:
@@ -194,7 +194,7 @@ tides_3:
       - { when: { turn: 1 }, unit: 0, skill: heal }
       - { when: { every: 3 }, unit: 0, skill: bless }
   rewards:
-    first: { currency: { gold: 150 }, items: [trident_of_the_deep] }
+    first: { currency: { gold: 150 }, items: [water_shard+sigil_deep] }
     repeat: { currency: { gold: 25 } }
 
 barrow_1:
@@ -233,7 +233,7 @@ barrow_3:
       - { when: { turn: 1 }, unit: 0, skill: consume }
       - { when: { every: 3 }, unit: 0, skill: summon }
   rewards:
-    first: { currency: { gold: 150 }, items: [helm_of_the_damned] }
+    first: { currency: { gold: 150 }, items: [unholy_shard+sigil_damned] }
     repeat: { currency: { gold: 25 } }
 
 stormfront_1:
@@ -272,7 +272,7 @@ stormfront_3:
       - { when: { turn: 1 }, unit: 0, skill: bolt }
       - { when: { every: 3 }, unit: 0, skill: blast }
   rewards:
-    first: { currency: { gold: 150 }, items: [electroblade] }
+    first: { currency: { gold: 150 }, items: [lightning_shard+sigil_sparks] }
     repeat: { currency: { gold: 25 } }
 
 skyreach_1:
@@ -311,7 +311,7 @@ skyreach_3:
       - { when: { turn: 1 }, unit: 0, skill: maneuver }
       - { when: { every: 3 }, unit: 0, skill: dance }
   rewards:
-    first: { currency: { gold: 150 }, items: [winged_sandals] }
+    first: { currency: { gold: 150 }, items: [wind_shard+sigil_flight] }
     repeat: { currency: { gold: 25 } }
 
 nightfall_1:
@@ -350,7 +350,7 @@ nightfall_3:
       - { when: { turn: 1 }, unit: 0, skill: stab }
       - { when: { every: 3 }, unit: 0, skill: mislead }
   rewards:
-    first: { currency: { gold: 150 }, items: [cloak_of_night] }
+    first: { currency: { gold: 150 }, items: [shadow_shard+sigil_dusk] }
     repeat: { currency: { gold: 25 } }
 
 heartstone_1:
@@ -389,5 +389,5 @@ heartstone_3:
       - { when: { turn: 1 }, unit: 0, skill: rage }
       - { when: { every: 3 }, unit: 0, skill: companion }
   rewards:
-    first: { currency: { gold: 150 }, items: [earthcallers_hammer] }
+    first: { currency: { gold: 150 }, items: [earth_shard+sigil_humbling] }
     repeat: { currency: { gold: 25 } }

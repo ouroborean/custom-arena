@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { encounterUnitSpec, formatAmounts } from '@arena/meta';
-import type { GrantSpec } from '@arena/engine';
+import { pieceDisplayName, type GrantSpec } from '@arena/engine';
 import { api, ApiError, type AchievementStatus, type ChapterStatus } from '../api.js';
 import { content } from '../content.js';
 import { useT } from '../i18n/index.js';
@@ -14,7 +14,7 @@ import { Brand } from './Account.js';
 import { elementClass } from './common.js';
 
 function grantText(g: GrantSpec | undefined): string {
-  const parts = [formatAmounts(content, g?.currency ?? {}), ...(g?.items ?? []).map((i) => content.items[i]?.name ?? i)].filter(
+  const parts = [formatAmounts(content, g?.currency ?? {}), ...(g?.items ?? []).map((i) => pieceDisplayName(content, i))].filter(
     (p) => p !== 'nothing',
   );
   return parts.length ? parts.join(' · ') : '—';

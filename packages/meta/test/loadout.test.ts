@@ -3,10 +3,13 @@ import { createMatch } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
 import {
   canInfuse,
+  canPrepare,
   EQUIPMENT_SLOTS,
+  prepareSkill,
   pruneInfusions,
   resolveLoadout,
   toCharacterSpec,
+  unprepareSkill,
   withItem,
   withoutItem,
   type CharacterRecord,
@@ -45,7 +48,7 @@ describe('resolveLoadout', () => {
   });
 
   it("an item's infusions go into the pool; nothing is applied until the player puts them on skills", () => {
-    const r = resolveLoadout(content, warrior(), of(['magma_hammer'])); // Smash + a Fire infusion + a passive
+    const r = resolveLoadout(content, warrior(), of(['greathammer+fire_shard+sigil_eruptions'])); // Smash + a Fire infusion + a passive
     expect(r.problems).toEqual([]);
     expect(skillOf(r, 'smash')?.infusion).toBeNull(); // not aimed at the item's own skill
     expect(r.pool).toEqual({ Fire: 1 });
@@ -53,7 +56,7 @@ describe('resolveLoadout', () => {
     expect(r.usage).toEqual({ skills: 0, passives: 1, infusions: 0 });
     expect(r.passiveEffects).toEqual(['eq_magma_hammer']); // applied at match start
 
-    const applied = resolveLoadout(content, warrior(), of(['magma_hammer'], [{ skill: 'titan', element: 'Fire' }]));
+    const applied = resolveLoadout(content, warrior(), of(['greathammer+fire_shard+sigil_eruptions'], [{ skill: 'titan', element: 'Fire' }]));
     expect(applied.problems).toEqual([]);
     expect(skillOf(applied, 'titan')?.infusion).toBe('Fire');
     expect(applied.unassigned).toEqual({});
@@ -78,7 +81,7 @@ describe('resolveLoadout', () => {
     expect(has(twoFromOne, 'provides (1)')).toBe(true);
     expect(has(resolveLoadout(content, warrior('legendary', 3), of(['ice_shard'], [{ skill: 'shot', element: 'Ice' }])), "isn't one of the character's skills")).toBe(true);
     // A crystal's two infusions can go on two different skills.
-    const crystal = resolveLoadout(content, warrior(), of(['ice_crystal'], [{ skill: 'smash', element: 'Ice' }, { skill: 'titan', element: 'Ice' }]));
+    const crystal = resolveLoadout(content, warrior(), of(['ice_shard+ice_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'titan', element: 'Ice' }]));
     expect(crystal.problems).toEqual([]);
   });
 
@@ -93,7 +96,7 @@ describe('resolveLoadout', () => {
     const three = resolveLoadout(
       content,
       warrior(),
-      of(['ice_crystal', 'wind_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Wind' }]),
+      of(['ice_shard+ice_shard', 'wind_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Ice' }, { skill: 'smash', element: 'Wind' }]),
     );
     expect(has(three, 'can hold 2 infusions')).toBe(true);
   });
@@ -113,17 +116,33 @@ describe('resolveLoadout', () => {
     expect(r.usage.infusions).toBe(3);
   });
 
-  it(`has ${EQUIPMENT_SLOTS} slots that take any item type, signature gear (type G) included, on any class`, () => {
-    // Two weapons, a two-handed one and a shard: any mix of types fits.
-    const mixed = resolveLoadout(content, warrior('legendary', 3), of(['soldier_spear', 'soldier_greataxe', 'longsword', 'ice_shard']));
+  it(`has ${EQUIPMENT_SLOTS} slots that take any piece, forged or not, on any class`, () => {
+    // Forged three-component pieces, a single Skill and a Shard: any mix fits.
+    const mixed = resolveLoadout(content, warrior('legendary', 3), of(['spear+rapier+sigil_vanguard', 'spear+warhelm+sigil_wrath', 'longsword', 'ice_shard']));
     expect(mixed.problems.filter((p) => p.includes('slot') || p.includes("doesn't fit"))).toEqual([]);
     expect(resolveLoadout(content, warrior(), of(Array(5).fill('ice_shard'))).problems).toContain('A character can equip 4 items (this has 5)');
-    // Hand of Healing is Paladin-themed signature gear: a Warrior can wear it.
-    expect(resolveLoadout(content, warrior(), of(['hand_of_healing'])).problems.some((p) => /armor|Paladin/.test(p))).toBe(false);
+    // A Mace with Hand of Healing's Sigil (a Paladin theme): a Warrior can wear it.
+    expect(resolveLoadout(content, warrior(), of(['mace+sigil_selflessness'])).problems.some((p) => /armor|Paladin/.test(p))).toBe(false);
+  });
+
+  it("a forged piece grants all its components: each skill, each infusion and the Sigil's passive", () => {
+    const r = resolveLoadout(content, warrior('legendary', 3), of(['shortbow+fire_shard', 'greathammer+fire_shard+sigil_eruptions']));
+    expect(r.problems).toEqual([]);
+    expect(skillOf(r, 'shot')).toMatchObject({ source: 'equipment' });
+    expect(r.pool).toEqual({ Fire: 2 });
+    expect(r.passiveEffects).toEqual(['eq_magma_hammer']);
+    expect(r.usage).toMatchObject({ skills: 1, passives: 1 });
+  });
+
+  it('rejects pieces that break the forging rules', () => {
+    expect(has(resolveLoadout(content, warrior(), of(['ice_shard+ice_shard+ice_shard+ice_shard'])), 'Unknown item')).toBe(true);
+    expect(has(resolveLoadout(content, warrior(), of(['sigil_momentum+sigil_eruptions'])), 'Unknown item')).toBe(true);
+    expect(has(resolveLoadout(content, warrior(), of(['wind_katana'])), 'Unknown item')).toBe(true); // a retired static item
   });
 
   it('enforces the rarity budget for skills and passives', () => {
-    // A Common can use 1 equipment skill: two J items granting new skills exceed it.
+    // A Common can use 1 equipment skill: two Skills granting new skills exceed it, forged or not.
+    expect(has(resolveLoadout(content, warrior('common', 3), of(['shortbow+longrifle'])), 'Equipment grants 2 skills')).toBe(true);
     expect(has(resolveLoadout(content, warrior('common', 3), of(['shortbow', 'longrifle'])), 'Equipment grants 2 skills')).toBe(true);
   });
 
@@ -132,7 +151,7 @@ describe('resolveLoadout', () => {
     const r = resolveLoadout(
       content,
       rec,
-      of(['magma_hammer', 'storm_chaser'], [
+      of(['greathammer+fire_shard+sigil_eruptions', 'spear+lightning_shard+wind_shard'], [
         { skill: 'smash', element: 'Fire' },
         { skill: 'charge', element: 'Lightning' },
         { skill: 'titan', element: 'Wind' },
@@ -141,7 +160,7 @@ describe('resolveLoadout', () => {
     expect(r.problems).toEqual([]);
     const spec = toCharacterSpec(rec, r);
     expect(spec.skills).toEqual(['strike.fire', 'smash.fire', 'titan.wind', 'charge.lightning']);
-    expect(spec.items).toEqual(['magma_hammer', 'storm_chaser']); // recorded for analytics
+    expect(spec.items).toEqual(['greathammer+fire_shard+sigil_eruptions', 'spear+lightning_shard+wind_shard']); // recorded for analytics
     const { state } = createMatch(content, { seed: 1, teams: [[spec], [spec]] });
     expect(state.units[0]!.skills.map((s) => s.defId)).toEqual(spec.skills);
   });
@@ -170,11 +189,11 @@ describe('editing a loadout', () => {
   it('withItem fills the next free slot or replaces one; removing an item drops the infusions it supplied', () => {
     const rec = warrior('legendary', 4);
     const one = withItem(content, rec, of([]), { itemId: 'ice_shard', instanceId: 'a' });
-    expect(one).toEqual({ items: [{ itemId: 'ice_shard', instanceId: 'a' }], infusions: [] }); // nothing applied by itself
+    expect(one).toEqual({ items: [{ itemId: 'ice_shard', instanceId: 'a' }], infusions: [], skills: [] }); // nothing applied by itself
     const two = withItem(content, rec, { ...one, infusions: [{ skill: 'smash', element: 'Ice' }] }, { itemId: 'fire_shard' });
     expect(two.infusions).toEqual([{ skill: 'smash', element: 'Ice' }]);
     const replaced = withItem(content, rec, two, { itemId: 'wind_shard' }, 0); // the Ice shard goes, and its infusion
-    expect(replaced).toEqual({ items: [{ itemId: 'wind_shard' }, { itemId: 'fire_shard' }], infusions: [] });
+    expect(replaced).toEqual({ items: [{ itemId: 'wind_shard' }, { itemId: 'fire_shard' }], infusions: [], skills: [] });
     const granted: Loadout = { items: [{ itemId: 'shortbow' }, { itemId: 'ice_shard' }], infusions: [{ skill: 'shot', element: 'Ice' }] };
     expect(withoutItem(content, warrior('legendary', 3), granted, 0).infusions).toEqual([]); // Shot left with its item
     expect(pruneInfusions(content, rec, of(['ice_shard'], [{ skill: 'smash', element: 'Ice' }, { skill: 'titan', element: 'Ice' }])).infusions).toEqual([
@@ -222,5 +241,76 @@ describe('randomLoadout', () => {
     }
     expect(equipped).toBeGreaterThan(50);
     expect(infused).toBeGreaterThan(30);
+  });
+});
+
+describe('the skill pool', () => {
+  // Pieces put their skills in a pool; only prepared ones join the character, within the 5-skill cap and
+  // the rarity's skill budget. A full character can still wear a piece for its other components.
+  const prepared = (items: string[], skills: string[], infusions: InfusionAssignment[] = []): Loadout => ({ items: items.map((itemId) => ({ itemId })), infusions, skills });
+
+  it('granted skills wait in the pool until prepared; only prepared ones go into battle', () => {
+    const rec = warrior('legendary', 3);
+    const r = resolveLoadout(content, rec, prepared(['shortbow+chalice+ice_shard'], []));
+    expect(r.problems).toEqual([]);
+    expect(r.skillPool).toEqual(['shot', 'bless']);
+    expect(r.unprepared).toEqual(['shot', 'bless']);
+    expect(r.skills.map((s) => s.base)).toEqual(['strike', 'smash', 'titan']);
+    expect(r.usage.skills).toBe(0);
+    const one = resolveLoadout(content, rec, prepared(['shortbow+chalice+ice_shard'], ['bless']));
+    expect(one.skills.map((s) => s.base)).toEqual(['strike', 'smash', 'titan', 'bless']);
+    expect(one.unprepared).toEqual(['shot']);
+    expect(toCharacterSpec(rec, one).skills).toEqual(['strike.fire', 'smash', 'titan', 'bless']);
+  });
+
+  it('a character at four skills can wear a two-skill piece, preparing only one of its skills', () => {
+    const rec = warrior('legendary', 4);
+    const piece = 'shortbow+chalice+ice_shard';
+    expect(resolveLoadout(content, rec, prepared([piece], ['shot'], [{ skill: 'smash', element: 'Ice' }])).problems).toEqual([]);
+    expect(resolveLoadout(content, rec, prepared([piece], ['shot', 'bless'])).problems.some((p) => p.includes('Too many skills'))).toBe(true);
+    const l = prepared([piece], ['shot']);
+    expect(canPrepare(content, rec, l, 'bless')).toBe(false); // the cap
+    expect(canPrepare(content, rec, prepared([piece], []), 'bless')).toBe(true);
+  });
+
+  it("the rarity's skill budget counts prepared skills, not the pool", () => {
+    const common = warrior('common', 3); // can use 1 equipment skill
+    const l = prepared(['shortbow+chalice'], ['shot']);
+    expect(resolveLoadout(content, common, l).problems).toEqual([]);
+    expect(canPrepare(content, common, l, 'bless')).toBe(false);
+    expect(resolveLoadout(content, common, prepared(['shortbow+chalice'], ['shot', 'bless'])).problems.some((p) => p.includes('Equipment grants 2 skills'))).toBe(true);
+  });
+
+  it('a skill no equipped piece grants, or one the character already has, cannot be prepared', () => {
+    const rec = warrior('legendary', 3);
+    expect(resolveLoadout(content, rec, prepared([], ['shot'])).problems.some((p) => p.includes('no equipped piece grants it'))).toBe(true);
+    expect(resolveLoadout(content, rec, prepared(['greathammer'], ['smash'])).problems.some((p) => p.includes("already one of the character's skills"))).toBe(true);
+    expect(resolveLoadout(content, rec, prepared(['greathammer'], [])).skillPool).toEqual([]); // a native skill adds nothing to the pool
+  });
+
+  it('only prepared skills take infusions; unpreparing one gives its infusions back', () => {
+    const rec = warrior('legendary', 3);
+    expect(resolveLoadout(content, rec, prepared(['shortbow+ice_shard'], [], [{ skill: 'shot', element: 'Ice' }])).problems.some((p) => p.includes("isn't one of the character's skills"))).toBe(
+      true,
+    );
+    const on = prepared(['shortbow+ice_shard'], ['shot'], [{ skill: 'shot', element: 'Ice' }]);
+    expect(resolveLoadout(content, rec, on).problems).toEqual([]);
+    const off = unprepareSkill(content, rec, on, 'shot');
+    expect(off.skills).toEqual([]);
+    expect(off.infusions).toEqual([]);
+    expect(prepareSkill(content, rec, off, 'shot').skills).toEqual(['shot']);
+  });
+
+  it('equipping prepares the new skills that fit and leaves the rest in the pool; removing the piece takes them away', () => {
+    const rec = warrior('legendary', 4);
+    const next = withItem(content, rec, prepared([], []), { itemId: 'shortbow+chalice' });
+    expect(next.skills).toEqual(['shot']); // the fifth skill; Bless waits in the pool
+    expect(withoutItem(content, rec, next, 0).skills).toEqual([]);
+  });
+
+  it('a loadout saved before the pool prepares every granted skill', () => {
+    const r = resolveLoadout(content, warrior('legendary', 3), { items: [{ itemId: 'shortbow+chalice' }], infusions: [] });
+    expect(r.skills.map((s) => s.base)).toEqual(['strike', 'smash', 'titan', 'shot', 'bless']);
+    expect(r.unprepared).toEqual([]);
   });
 });

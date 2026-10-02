@@ -4,12 +4,12 @@
 //   npm run sim -- --seed 7 --save       ...and write replays/match-7.json
 //   npm run sim -- --games 2000          aggregate results + per-skill win rates
 //   npm run sim -- --bots normal,hard    choose bots (easy | normal | hard | greedy | random)
-//   npm run sim -- --games 2000 --equip  rolled characters in random legal loadouts, + item win rates
+//   npm run sim -- --games 2000 --equip  rolled characters in random legal loadouts, + equipment component win rates
 //   npm run sim -- --story --games 20    story difficulty curve: a Normal bot's win rate per encounter
 //   npm run sim -- --replay replays/match-7.json   re-run a saved match and verify it
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { formatEvent, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
+import { formatEvent, pieceComponentIds, pieceDisplayName, replay, seedRng, stateFingerprint, type MatchConfig, type MatchRecord } from '@arena/engine';
 import { loadContentOrThrow } from '@arena/content';
 import { botFor, encounterBot, greedyBot, normalBot, playMatch, randomBot, randomConfig, type Bot } from '@arena/ai';
 import { encounterConfig, randomLoadout, resolveLoadout, rollCharacter, toCharacterSpec } from '@arena/meta';
@@ -37,6 +37,7 @@ if (typeof args.replay === 'string') {
  * rolled like players' (rarity, class, element) in random loadouts the resolver accepts, so
  * item skills, infusions and passives all take part.
  */
+/** With --equip, `items` lists each side's equipped piece ids. */
 function matchSetup(seed: number): { config: MatchConfig; items: [string[], string[]] } {
   if (!args.equip) return { config: randomConfig(content, seed), items: [[], []] };
   const rng = seedRng(seed ^ 0x2545f491);
@@ -82,7 +83,7 @@ if (games === 1) {
   for (const [p, team] of config.teams.entries()) {
     console.log(`Player ${p + 1}:`);
     for (const c of team) console.log(`  ${c.name.padEnd(20)} ${c.skills.map((s) => content.skills[s]!.name).join(', ')}`);
-    if (items[p]!.length) console.log(`  items: ${items[p]!.map((id) => content.items[id]!.name).join(', ')}`);
+    if (items[p]!.length) console.log(`  items: ${items[p]!.map((id) => pieceDisplayName(content, id)).join(', ')}`);
   }
   console.log('');
   for (const e of played.events) {
@@ -132,7 +133,7 @@ for (let i = 0; i < games; i++) {
       if (w === p) st.wins++;
       skillStats.set(id, st);
     }
-    for (const id of new Set(items[p])) {
+    for (const id of new Set(items[p]!.flatMap(pieceComponentIds))) {
       const st = itemStats.get(id) ?? { games: 0, wins: 0 };
       st.games++;
       if (w === p) st.wins++;
@@ -157,12 +158,12 @@ for (const r of rows) {
 }
 
 if (itemStats.size) {
-  console.log('\nItem win rate (team had the item; * = has a passive):');
+  console.log('\nComponent win rate (team had it in a piece; * = a Sigil):');
   const items = [...itemStats.entries()].map(([id, st]) => ({ id, rate: st.wins / st.games, n: st.games }));
   items.sort((a, b) => b.rate - a.rate);
   for (const r of items) {
     const def = content.items[r.id]!;
     const flag = r.rate > 0.55 ? '  ▲' : r.rate < 0.45 ? '  ▼' : '';
-    console.log(`  ${def.type} ${`${def.name}${def.passiveEffect ? '*' : ''}`.padEnd(30)} ${(100 * r.rate).toFixed(1).padStart(5)}%  (n=${r.n})${flag}`);
+    console.log(`  ${def.type} ${`${def.name}${def.passiveEffect ? '*' : ''}`.padEnd(32)} ${(100 * r.rate).toFixed(1).padStart(5)}%  (n=${r.n})${flag}`);
   }
 }

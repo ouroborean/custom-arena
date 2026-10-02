@@ -1,13 +1,23 @@
-// The economy's rules (GDD §8.4): wallets, match rewards, drops, crafting and salvage, as pure
+// The economy's rules (GDD §8.4): wallets, match rewards, drops, forging and salvage, as pure
 // functions over the content's economy data. The server stores the results.
 
-import { nextInt, type ContentBundle, type CurrencyAmounts, type ItemDef, type RngState } from '@arena/engine';
+import {
+  describePiece,
+  forgedId,
+  forgeProblems,
+  nextInt,
+  pieceComponentIds,
+  type ContentBundle,
+  type CurrencyAmounts,
+  type ItemDef,
+  type RngState,
+} from '@arena/engine';
 
 export type Outcome = 'win' | 'loss' | 'draw';
 
 export interface Reward {
   currency: CurrencyAmounts;
-  /** Item ids granted. */
+  /** Piece ids granted. */
   items: string[];
 }
 
@@ -39,7 +49,7 @@ export function matchReward(content: ContentBundle, input: MatchRewardInput, rng
   };
 }
 
-/** Rolls `count` items: a type by the table's weights, then one of its items uniformly. */
+/** Rolls `count` components: a type by the table's weights, then one of its components uniformly. */
 export function rollDrops(content: ContentBundle, tableId: string, count: number, rng: RngState): string[] {
   const table = content.economy.dropTables[tableId];
   if (!table) throw new Error(`Unknown drop table "${tableId}"`);
@@ -66,34 +76,36 @@ function itemsOfType(content: ContentBundle, type: string): ItemDef[] {
     .sort((a, b) => (a.id < b.id ? -1 : 1));
 }
 
-/** An item's element, for Shards and Crystals (their first infusion). */
-export function itemElement(item: ItemDef): string | undefined {
-  return item.infusions[0]?.element;
-}
+export type ForgeResult = { ok: true; piece: string; cost: CurrencyAmounts } | { ok: false; problems: string[] };
 
-export type CraftResult = { ok: true; output: string; cost: CurrencyAmounts } | { ok: false; problems: string[] };
-
-/** Checks a recipe against the chosen input items (by item id) and names what it makes. */
-export function craft(content: ContentBundle, recipeId: string, inputs: readonly string[]): CraftResult {
-  const r = content.economy.recipes[recipeId];
-  if (!r) return { ok: false, problems: [`No recipe "${recipeId}"`] };
-  const problems: string[] = [];
-  if (inputs.length !== r.inputs.count) problems.push(`${r.name} takes ${r.inputs.count} items`);
-  const defs = inputs.map((id) => content.items[id]);
-  if (defs.some((d) => !d || d.type !== r.inputs.type)) problems.push(`${r.name} only takes type ${r.inputs.type} items`);
-  const elements = new Set(defs.map((d) => (d ? itemElement(d) : undefined)));
-  if (r.inputs.sameElement && elements.size > 1) problems.push('The items must all be of one element');
+/**
+ * Forging `addition` onto `base` (docs/equipment.md §6): the result keeps the base's components first,
+ * so the base keeps its name and gains a prefix or suffix. Costs by the result's component count.
+ */
+export function forge(content: ContentBundle, base: string, addition: string): ForgeResult {
+  const problems = forgeProblems(content, base, addition);
   if (problems.length) return { ok: false, problems };
-  const element = [...elements][0];
-  const outputs = itemsOfType(content, r.output.type).filter((o) => !r.inputs.sameElement || itemElement(o) === element);
-  if (outputs.length !== 1) return { ok: false, problems: [`${r.name} has no single result for these items`] };
-  return { ok: true, output: outputs[0]!.id, cost: { ...r.cost } };
+  const piece = forgedId(base, addition);
+  return { ok: true, piece, cost: { ...content.economy.forge.cost[String(pieceComponentIds(piece).length)] } };
 }
 
-/** What salvaging an item pays. */
-export function salvageValue(content: ContentBundle, itemId: string): CurrencyAmounts {
-  const item = content.items[itemId];
-  return item ? { ...content.economy.salvage[item.type] } : {};
+export type SplitResult = { ok: true; components: string[]; cost: CurrencyAmounts } | { ok: false; problems: string[] };
+
+/** Splitting a forged piece back into its components. */
+export function splitPiece(content: ContentBundle, piece: string): SplitResult {
+  const def = describePiece(content, piece);
+  if (!def) return { ok: false, problems: [`Unknown item "${piece}"`] };
+  if (def.components.length < 2) return { ok: false, problems: [`${def.name} is a single component`] };
+  return { ok: true, components: def.components.map((c) => c.id), cost: { ...content.economy.split.cost } };
+}
+
+/** What salvaging a piece pays: each component's value by its type. */
+export function salvageValue(content: ContentBundle, piece: string): CurrencyAmounts {
+  const total: CurrencyAmounts = {};
+  for (const c of describePiece(content, piece)?.components ?? []) {
+    for (const [k, n] of Object.entries(content.economy.salvage[c.type] ?? {})) total[k] = (total[k] ?? 0) + n;
+  }
+  return total;
 }
 
 // ---------------------------------------------------------------- wallets
