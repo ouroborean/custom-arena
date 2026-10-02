@@ -43,6 +43,23 @@ describe('turn bundles', () => {
     }
   });
 
+  it("carries the turn's energy exchange, applied before the queue", () => {
+    let direct = createMatch(content, randomConfig(content, 8)).state;
+    direct.players[0].energy = { S: 2, A: 0, I: 0, W: 0 };
+    const bundled = structuredClone(direct);
+    direct = applyCommand(content, direct, 0, { t: 'exchange', give: 'S', get: 'W' }).state;
+    direct = applyCommand(content, direct, 0, { t: 'endTurn' }).state;
+
+    let plan = planningState(viewFor(content, bundled, 0));
+    plan = applyCommand(content, plan, 0, { t: 'exchange', give: 'S', get: 'W' }).state;
+    const bundle = bundleFromState(plan, 0);
+    expect(bundle.exchange).toEqual({ give: 'S', get: 'W' });
+    expect(parseClientMessage(JSON.stringify({ t: 'turn.submit', matchId: '00000000-0000-4000-8000-000000000000', turn: bundle }))).not.toBeNull();
+    const after = applyTurnBundle(content, bundled, 0, bundle);
+    expect(after.commands[0]).toEqual({ t: 'exchange', give: 'S', get: 'W' });
+    expect(stateFingerprint(after.state)).toBe(stateFingerprint(direct));
+  });
+
   it('rejects stale turns and the wrong player, and never mutates the input', () => {
     const state = createMatch(content, randomConfig(content, 5)).state;
     const before = stateFingerprint(state);

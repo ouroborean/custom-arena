@@ -25,7 +25,9 @@ const energy = z.strictObject({
   W: z.number().int().min(0),
 });
 
-/** One turn's decisions: the queue in resolution order, tick order and random-cost allocation. */
+const color = z.enum(['S', 'A', 'I', 'W']);
+
+/** One turn's decisions: the energy exchange, the queue in resolution order, tick order and random-cost allocation. */
 export const TurnBundleSchema = z.strictObject({
   /** The turn number this bundle is for; stale bundles are rejected. */
   turn: z.number().int().min(1),
@@ -40,6 +42,8 @@ export const TurnBundleSchema = z.strictObject({
     .max(12),
   tickOrder: z.array(z.string().max(32)).max(64).optional(),
   allocation: energy.optional(),
+  /** The once-per-turn energy exchange (applied before the queue). */
+  exchange: z.strictObject({ give: color, get: color }).optional(),
 });
 export type TurnBundle = z.infer<typeof TurnBundleSchema>;
 

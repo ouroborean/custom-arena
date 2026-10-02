@@ -12,6 +12,7 @@ import {
 import { serverNow } from '../match/online.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useStore } from '../store.js';
+import { ExchangePanel } from './ExchangePanel.js';
 import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, ENERGY_NAMES, EnergyPip, skillCategory } from './common.js';
 
 const TARGET_TEXT: Record<string, string> = {
@@ -314,6 +315,7 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
   const surrender = useStore((s) => s.surrender);
   const toSetup = useStore((s) => s.toSetup);
   const toggleLog = useStore((s) => s.toggleLog);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
   const other: PlayerId = viewer === 0 ? 1 : 0;
   const me = view.players[viewer];
   const energy = me.energy ?? { S: 0, A: 0, I: 0, W: 0 };
@@ -375,8 +377,19 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
         {!spectate && (
           <div className="energy-meta">
             <b>{free}</b> free of {total} · {reserved.r} random promised
+            <button
+              type="button"
+              className="exchange-btn"
+              aria-expanded={exchangeOpen}
+              disabled={!myTurn || playing || !!me.exchanged}
+              title={me.exchanged ? 'Already exchanged this turn' : 'Exchange 2 of one color for 1 of another (once per turn)'}
+              onClick={() => setExchangeOpen(!exchangeOpen)}
+            >
+              ⇄ Exchange
+            </button>
           </div>
         )}
+        {!spectate && exchangeOpen && myTurn && !playing && <ExchangePanel view={view} viewer={viewer} onClose={() => setExchangeOpen(false)} />}
         {mode.kind === 'online' && !match.finished && <OnlineStatus info={match as MatchSession & OnlineInfo} mine={myTurn} />}
       </div>
 

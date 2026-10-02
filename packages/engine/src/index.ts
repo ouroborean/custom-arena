@@ -13,7 +13,7 @@ export {
   emptyEnergy,
   ZERO_COST,
 } from './energy.js';
-export { checkQueue } from './commands.js';
+export { checkExchange, checkQueue, EXCHANGE, type ExchangeState } from './commands.js';
 export { createMatch, ENGINE_VERSION, DEFAULT_SETTINGS, DEFAULT_HP, MAX_SKILLS } from './match.js';
 export { applyCommand, CommandError } from './commands.js';
 export { legalQueueCommands, skillAvailability, type QueueCommand, type SkillAvailability } from './legal.js';

@@ -399,6 +399,7 @@ h3,
 }
 
 .control-center {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -463,6 +464,111 @@ h3,
 
 .energy-meta b {
   color: var(--yellow);
+}
+
+.exchange-btn {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--line-2);
+  background: var(--ink);
+  color: var(--text);
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.exchange-btn[aria-expanded='true'] {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.exchange-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The exchange popup floats over the arena below the energy bar: opening it moves nothing. */
+.exchange-panel {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--void);
+  border: 2px solid var(--text);
+  border-top: 5px solid var(--yellow);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.exchange-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.exchange-head b {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.exchange-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exchange-label {
+  width: 52px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.exchange-color {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  border: 2px solid var(--line-2);
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.exchange-color[aria-pressed='true'] {
+  border-color: var(--yellow);
+  background: var(--ink-3);
+}
+
+.exchange-color:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.exchange-why {
+  margin: 0;
+  font-size: 12px;
+}
+
+.exchange-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .utility {

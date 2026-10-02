@@ -22,6 +22,11 @@ Terms in **bold** are defined in [glossary.md](glossary.md).
    - otherwise, 1 per living **character** (minions don't count), plus any `energyGain` modifiers.
 3. Energy persists between turns with **no cap** (Q2).
 4. A player's energy pool is **hidden from the opponent**, both its colors and its count (Q12).
+5. **Exchange** (decided 2026-10-03): once per turn, during their own turn, a player may turn **2
+   energy of one color into 1 of another** (the `exchange` command, `checkExchange`). It can't spend
+   energy their queued skills need (specific or random), and the opponent doesn't see it (the
+   `energyExchanged` event is only visible to its player). Online, the exchange travels with the
+   turn bundle and is applied before the queue.
 
 ## 3. Turn structure — `commands.ts`, `turn.ts`
 
