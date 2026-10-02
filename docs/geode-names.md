@@ -1,0 +1,238 @@
+# Geode names checklist
+
+One Geode for each set of 3 element infusions: 220 in all (unordered, repeats allowed). Each line lists
+the fusions the set contains as a naming hint. Tick the box and write the name after "Name:" as you go.
+
+Geodes take their name as a title: *Geode of the True Dragon*. A Geode is already full (three components),
+so it never carries a passive suffix and the "of" is free. Names draw on the fusions the set contains, blended
+(*of the Zeppelin*: Mechanic + Cloud) or one fusion plus the extra element (*of the Frost Drake*), and every
+name is unique and differs from the passive suffixes in [forging-names.md](forging-names.md).
+
+## All three the same (10)
+
+- [ ] **Fire + Fire + Fire** · contains Dragon · Name: of the True Dragon
+- [ ] **Ice + Ice + Ice** · contains Crystal · Name: of Eternal Crystal
+- [ ] **Water + Water + Water** · contains Ocean · Name: of the Deepest Depths
+- [ ] **Lightning + Lightning + Lightning** · contains Thunder · Name: of the Thunderclap
+- [ ] **Wind + Wind + Wind** · contains Cloud · Name: of the Wandering White
+- [ ] **Poison + Poison + Poison** · contains Evolution · Name: of the Endless Pursuit
+- [ ] **Earth + Earth + Earth** · contains Life · Name: of Overflowing Life
+- [ ] **Holy + Holy + Holy** · contains Divine · Name: of the Final Word
+- [ ] **Unholy + Unholy + Unholy** · contains Evil · Name: of the Most Profane
+- [ ] **Shadow + Shadow + Shadow** · contains Dimension · Name: of the Dark Beyond
+
+## A pair plus one other (90)
+
+- [ ] **Fire + Fire + Ice** · contains Dragon, Apocalypse · Name: of the Frost Drake
+- [ ] **Fire + Fire + Water** · contains Dragon, Alchemy · Name: of the Ocean Drake
+- [ ] **Fire + Fire + Lightning** · contains Dragon, Plasma · Name: of the Storm Drake
+- [ ] **Fire + Fire + Wind** · contains Dragon, Mechanic · Name: of the Cloud Drake
+- [ ] **Fire + Fire + Poison** · contains Dragon, Brimstone · Name: of the Swamp Drake
+- [ ] **Fire + Fire + Earth** · contains Dragon, Sun · Name: of the Stone Drake
+- [ ] **Fire + Fire + Holy** · contains Dragon, Phoenix · Name: of the Gold Drake
+- [ ] **Fire + Fire + Unholy** · contains Dragon, Devil · Name: of the Dracolich
+- [ ] **Fire + Fire + Shadow** · contains Dragon, Ritual · Name: of the Black Drake
+- [ ] **Fire + Ice + Ice** · contains Apocalypse, Crystal · Name: of Final Facets
+- [ ] **Fire + Water + Water** · contains Alchemy, Ocean · Name: of Submerged Leylines
+- [ ] **Fire + Lightning + Lightning** · contains Plasma, Thunder · Name: of Azure Bolts
+- [ ] **Fire + Wind + Wind** · contains Mechanic, Cloud · Name: of the Zeppelin
+- [ ] **Fire + Poison + Poison** · contains Brimstone, Evolution · Name: of the Sulfur Strain
+- [ ] **Fire + Earth + Earth** · contains Sun, Life · Name: of the Harvest Sun
+- [ ] **Fire + Holy + Holy** · contains Phoenix, Divine · Name: of the Sacred Pyre
+- [ ] **Fire + Unholy + Unholy** · contains Devil, Evil · Name: of the Archfiend
+- [ ] **Fire + Shadow + Shadow** · contains Ritual, Dimension · Name: of the Summoning Rift
+- [ ] **Ice + Ice + Water** · contains Crystal, Glacier · Name: of the Glacial Heart
+- [ ] **Ice + Ice + Lightning** · contains Crystal, Aurora · Name: of Shimmering Facets
+- [ ] **Ice + Ice + Wind** · contains Crystal, Winter · Name: of the Snowflake
+- [ ] **Ice + Ice + Poison** · contains Crystal, Stasis · Name: of the Frozen Moment
+- [ ] **Ice + Ice + Earth** · contains Crystal, Myth · Name: of the Frost Giant
+- [ ] **Ice + Ice + Holy** · contains Crystal, Prism · Name: of Perfect Light
+- [ ] **Ice + Ice + Unholy** · contains Crystal, Lich · Name: of the Phylactery
+- [ ] **Ice + Ice + Shadow** · contains Crystal, Night · Name: of the Midnight Frost
+- [ ] **Ice + Water + Water** · contains Glacier, Ocean · Name: of the Iceberg
+- [ ] **Ice + Lightning + Lightning** · contains Aurora, Thunder · Name: of the Arctic Thunder
+- [ ] **Ice + Wind + Wind** · contains Winter, Cloud · Name: of the Blizzard
+- [ ] **Ice + Poison + Poison** · contains Stasis, Evolution · Name: of Arrested Growth
+- [ ] **Ice + Earth + Earth** · contains Myth, Life · Name: of the World Tree
+- [ ] **Ice + Holy + Holy** · contains Prism, Divine · Name: of the Rainbow Bridge
+- [ ] **Ice + Unholy + Unholy** · contains Lich, Evil · Name: of the Lich King
+- [ ] **Ice + Shadow + Shadow** · contains Night, Dimension · Name: of the Endless Night
+- [ ] **Water + Water + Lightning** · contains Ocean, Current · Name: of the Riptide
+- [ ] **Water + Water + Wind** · contains Ocean, Mist · Name: of the Fogbound Sea
+- [ ] **Water + Water + Poison** · contains Ocean, Serum · Name: of the Jellyfish
+- [ ] **Water + Water + Earth** · contains Ocean, Slime · Name: of the Primordial Ooze
+- [ ] **Water + Water + Holy** · contains Ocean, Anointment · Name: of the Baptism
+- [ ] **Water + Water + Unholy** · contains Ocean, Blood · Name: of the Crimson Sea
+- [ ] **Water + Water + Shadow** · contains Ocean, Mirror · Name: of the Mirrored Depths
+- [ ] **Water + Lightning + Lightning** · contains Current, Thunder · Name: of the Squall
+- [ ] **Water + Wind + Wind** · contains Mist, Cloud · Name: of the Rainmaker
+- [ ] **Water + Poison + Poison** · contains Serum, Evolution · Name: of the Mutagen
+- [ ] **Water + Earth + Earth** · contains Slime, Life · Name: of the Teeming Marsh
+- [ ] **Water + Holy + Holy** · contains Anointment, Divine · Name: of the Sacred Spring
+- [ ] **Water + Unholy + Unholy** · contains Blood, Evil · Name: of the Vampire Lord
+- [ ] **Water + Shadow + Shadow** · contains Mirror, Dimension · Name: of the Looking Glass
+- [ ] **Lightning + Lightning + Wind** · contains Thunder, Storm · Name: of the Thunderhead
+- [ ] **Lightning + Lightning + Poison** · contains Thunder, Battery · Name: of the Leyden Jar
+- [ ] **Lightning + Lightning + Earth** · contains Thunder, Magnet · Name: of the Lodestone
+- [ ] **Lightning + Lightning + Holy** · contains Thunder, Vengeance · Name: of the Smiting Heavens
+- [ ] **Lightning + Lightning + Unholy** · contains Thunder, Reanimation · Name: of the Stitched Giant
+- [ ] **Lightning + Lightning + Shadow** · contains Thunder, Ion · Name: of the Black Lightning
+- [ ] **Lightning + Wind + Wind** · contains Storm, Cloud · Name: of the Hurricane
+- [ ] **Lightning + Poison + Poison** · contains Battery, Evolution · Name: of the Living Spark
+- [ ] **Lightning + Earth + Earth** · contains Magnet, Life · Name: of the Heartbeat
+- [ ] **Lightning + Holy + Holy** · contains Vengeance, Divine · Name: of Judgment Day
+- [ ] **Lightning + Unholy + Unholy** · contains Reanimation, Evil · Name: of the Necromancer
+- [ ] **Lightning + Shadow + Shadow** · contains Ion, Dimension · Name: of the Event Horizon
+- [ ] **Wind + Wind + Poison** · contains Cloud, Faerie · Name: of Pixie Dust
+- [ ] **Wind + Wind + Earth** · contains Cloud, Nomad · Name: of the Endless Steppe
+- [ ] **Wind + Wind + Holy** · contains Cloud, Angel · Name: of the Silver Lining
+- [ ] **Wind + Wind + Unholy** · contains Cloud, Ghost · Name: of the Howling Spirits
+- [ ] **Wind + Wind + Shadow** · contains Cloud, Ninja · Name: of the Cloudwalker
+- [ ] **Wind + Poison + Poison** · contains Faerie, Evolution · Name: of the Chrysalis
+- [ ] **Wind + Earth + Earth** · contains Nomad, Life · Name: of the Tumbleweed
+- [ ] **Wind + Holy + Holy** · contains Angel, Divine · Name: of the Archangel
+- [ ] **Wind + Unholy + Unholy** · contains Ghost, Evil · Name: of the Banshee
+- [ ] **Wind + Shadow + Shadow** · contains Ninja, Dimension · Name: of the Hidden Path
+- [ ] **Poison + Poison + Earth** · contains Evolution, Spore · Name: of the Mycelium
+- [ ] **Poison + Poison + Holy** · contains Evolution, Antidote · Name: of the Panacea
+- [ ] **Poison + Poison + Unholy** · contains Evolution, Blight · Name: of the Plaguebearer
+- [ ] **Poison + Poison + Shadow** · contains Evolution, Assassin · Name: of the Hydra
+- [ ] **Poison + Earth + Earth** · contains Spore, Life · Name: of the Fairy Ring
+- [ ] **Poison + Holy + Holy** · contains Antidote, Divine · Name: of the Miracle Cure
+- [ ] **Poison + Unholy + Unholy** · contains Blight, Evil · Name: of the Rotting King
+- [ ] **Poison + Shadow + Shadow** · contains Assassin, Dimension · Name: of the Unseen Hand
+- [ ] **Earth + Earth + Holy** · contains Life, Sanctuary · Name: of the Sacred Grove
+- [ ] **Earth + Earth + Unholy** · contains Life, Grave · Name: of the Barrow
+- [ ] **Earth + Earth + Shadow** · contains Life, Moon · Name: of the Moonlit Garden
+- [ ] **Earth + Holy + Holy** · contains Sanctuary, Divine · Name: of the High Temple
+- [ ] **Earth + Unholy + Unholy** · contains Grave, Evil · Name: of the Catacombs
+- [ ] **Earth + Shadow + Shadow** · contains Moon, Dimension · Name: of the New Moon
+- [ ] **Holy + Holy + Unholy** · contains Divine, Zealot · Name: of the Inquisition
+- [ ] **Holy + Holy + Shadow** · contains Divine, Vigilante · Name: of the Masked Saint
+- [ ] **Holy + Unholy + Unholy** · contains Zealot, Evil · Name: of the Heretic
+- [ ] **Holy + Shadow + Shadow** · contains Vigilante, Dimension · Name: of the Night Watch
+- [ ] **Unholy + Unholy + Shadow** · contains Evil, Curse · Name: of the Unbroken Curse
+- [ ] **Unholy + Shadow + Shadow** · contains Curse, Dimension · Name: of the Hollow Realm
+
+## Three different elements (120)
+
+- [ ] **Fire + Ice + Water** · contains Apocalypse, Alchemy, Glacier · Name: of the Boiling Glacier
+- [ ] **Fire + Ice + Lightning** · contains Apocalypse, Plasma, Aurora · Name: of the Burning Sky
+- [ ] **Fire + Ice + Wind** · contains Apocalypse, Mechanic, Winter · Name: of the Doomsday Engine
+- [ ] **Fire + Ice + Poison** · contains Apocalypse, Brimstone, Stasis · Name: of the Ninth Circle
+- [ ] **Fire + Ice + Earth** · contains Apocalypse, Sun, Myth · Name: of Ragnarok
+- [ ] **Fire + Ice + Holy** · contains Apocalypse, Phoenix, Prism · Name: of Ashes Reborn
+- [ ] **Fire + Ice + Unholy** · contains Apocalypse, Devil, Lich · Name: of the End Times
+- [ ] **Fire + Ice + Shadow** · contains Apocalypse, Ritual, Night · Name: of the Doomsday Rite
+- [ ] **Fire + Water + Lightning** · contains Alchemy, Plasma, Current · Name: of the Storm Forge
+- [ ] **Fire + Water + Wind** · contains Alchemy, Mechanic, Mist · Name: of the Steam Engine
+- [ ] **Fire + Water + Poison** · contains Alchemy, Brimstone, Serum · Name: of the Bubbling Cauldron
+- [ ] **Fire + Water + Earth** · contains Alchemy, Sun, Slime · Name: of Transmutation
+- [ ] **Fire + Water + Holy** · contains Alchemy, Phoenix, Anointment · Name: of Phoenix Tears
+- [ ] **Fire + Water + Unholy** · contains Alchemy, Devil, Blood · Name: of the Blood Pact
+- [ ] **Fire + Water + Shadow** · contains Alchemy, Ritual, Mirror · Name: of the Scrying Pool
+- [ ] **Fire + Lightning + Wind** · contains Plasma, Mechanic, Storm · Name: of the Firestorm
+- [ ] **Fire + Lightning + Poison** · contains Plasma, Brimstone, Battery · Name: of the Volatile Core
+- [ ] **Fire + Lightning + Earth** · contains Plasma, Sun, Magnet · Name: of the Solar Flare
+- [ ] **Fire + Lightning + Holy** · contains Plasma, Phoenix, Vengeance · Name: of the Avenging Flame
+- [ ] **Fire + Lightning + Unholy** · contains Plasma, Devil, Reanimation · Name: of the Infernal Engine
+- [ ] **Fire + Lightning + Shadow** · contains Plasma, Ritual, Ion · Name: of the Black Flame
+- [ ] **Fire + Wind + Poison** · contains Mechanic, Brimstone, Faerie · Name: of the Smokestack
+- [ ] **Fire + Wind + Earth** · contains Mechanic, Sun, Nomad · Name: of the Desert Caravan
+- [ ] **Fire + Wind + Holy** · contains Mechanic, Phoenix, Angel · Name: of the Gilded Wings
+- [ ] **Fire + Wind + Unholy** · contains Mechanic, Devil, Ghost · Name: of the Haunted Forge
+- [ ] **Fire + Wind + Shadow** · contains Mechanic, Ritual, Ninja · Name: of the Hidden Flame
+- [ ] **Fire + Poison + Earth** · contains Brimstone, Sun, Spore · Name: of the Scorched Earth
+- [ ] **Fire + Poison + Holy** · contains Brimstone, Phoenix, Antidote · Name: of the Purifying Flame
+- [ ] **Fire + Poison + Unholy** · contains Brimstone, Devil, Blight · Name: of the Hellmouth
+- [ ] **Fire + Poison + Shadow** · contains Brimstone, Ritual, Assassin · Name: of the Cinder Cult
+- [ ] **Fire + Earth + Holy** · contains Sun, Phoenix, Sanctuary · Name: of the Sun Temple
+- [ ] **Fire + Earth + Unholy** · contains Sun, Devil, Grave · Name: of the Cremation
+- [ ] **Fire + Earth + Shadow** · contains Sun, Ritual, Moon · Name: of the Solstice
+- [ ] **Fire + Holy + Unholy** · contains Phoenix, Devil, Zealot · Name: of the Witch Pyre
+- [ ] **Fire + Holy + Shadow** · contains Phoenix, Ritual, Vigilante · Name: of the Torchbearer
+- [ ] **Fire + Unholy + Shadow** · contains Devil, Ritual, Curse · Name: of the Black Mass
+- [ ] **Ice + Water + Lightning** · contains Glacier, Aurora, Current · Name: of the Polar Lights
+- [ ] **Ice + Water + Wind** · contains Glacier, Winter, Mist · Name: of the Freezing Fog
+- [ ] **Ice + Water + Poison** · contains Glacier, Stasis, Serum · Name: of the Ice Coffin
+- [ ] **Ice + Water + Earth** · contains Glacier, Myth, Slime · Name: of the Frozen Fossil
+- [ ] **Ice + Water + Holy** · contains Glacier, Prism, Anointment · Name: of the Glimmering Lake
+- [ ] **Ice + Water + Unholy** · contains Glacier, Lich, Blood · Name: of Frozen Blood
+- [ ] **Ice + Water + Shadow** · contains Glacier, Night, Mirror · Name: of the Black Ice
+- [ ] **Ice + Lightning + Wind** · contains Aurora, Winter, Storm · Name: of the Thundersnow
+- [ ] **Ice + Lightning + Poison** · contains Aurora, Stasis, Battery · Name: of Suspended Animation
+- [ ] **Ice + Lightning + Earth** · contains Aurora, Myth, Magnet · Name: of the Lodestar
+- [ ] **Ice + Lightning + Holy** · contains Aurora, Prism, Vengeance · Name: of the Heavenly Lights
+- [ ] **Ice + Lightning + Unholy** · contains Aurora, Lich, Reanimation · Name: of the Draugr
+- [ ] **Ice + Lightning + Shadow** · contains Aurora, Night, Ion · Name: of the Polar Night
+- [ ] **Ice + Wind + Poison** · contains Winter, Stasis, Faerie · Name: of the Winter Court
+- [ ] **Ice + Wind + Earth** · contains Winter, Myth, Nomad · Name: of the Yeti
+- [ ] **Ice + Wind + Holy** · contains Winter, Prism, Angel · Name: of the Snow Angel
+- [ ] **Ice + Wind + Unholy** · contains Winter, Lich, Ghost · Name: of the Wendigo
+- [ ] **Ice + Wind + Shadow** · contains Winter, Night, Ninja · Name: of the Silent Snow
+- [ ] **Ice + Poison + Earth** · contains Stasis, Myth, Spore · Name: of the Dormant Seed
+- [ ] **Ice + Poison + Holy** · contains Stasis, Prism, Antidote · Name: of the Cleansing Frost
+- [ ] **Ice + Poison + Unholy** · contains Stasis, Lich, Blight · Name: of the Rimeblight
+- [ ] **Ice + Poison + Shadow** · contains Stasis, Night, Assassin · Name: of the Silent Freeze
+- [ ] **Ice + Earth + Holy** · contains Myth, Prism, Sanctuary · Name: of the Ice Palace
+- [ ] **Ice + Earth + Unholy** · contains Myth, Lich, Grave · Name: of the Frozen Throne
+- [ ] **Ice + Earth + Shadow** · contains Myth, Night, Moon · Name: of the Werewolf
+- [ ] **Ice + Holy + Unholy** · contains Prism, Lich, Zealot · Name: of the Shattered Faith
+- [ ] **Ice + Holy + Shadow** · contains Prism, Night, Vigilante · Name: of the Starlight
+- [ ] **Ice + Unholy + Shadow** · contains Lich, Night, Curse · Name: of the Deathly Chill
+- [ ] **Water + Lightning + Wind** · contains Current, Mist, Storm · Name: of the Typhoon
+- [ ] **Water + Lightning + Poison** · contains Current, Serum, Battery · Name: of the Electric Eel
+- [ ] **Water + Lightning + Earth** · contains Current, Slime, Magnet · Name: of the Quicksilver
+- [ ] **Water + Lightning + Holy** · contains Current, Anointment, Vengeance · Name: of the Great Flood
+- [ ] **Water + Lightning + Unholy** · contains Current, Blood, Reanimation · Name: of the Galvanized Blood
+- [ ] **Water + Lightning + Shadow** · contains Current, Mirror, Ion · Name: of the Static Reflection
+- [ ] **Water + Wind + Poison** · contains Mist, Serum, Faerie · Name: of the Morning Dew
+- [ ] **Water + Wind + Earth** · contains Mist, Slime, Nomad · Name: of the Misty Fen
+- [ ] **Water + Wind + Holy** · contains Mist, Anointment, Angel · Name: of the Heavenly Rain
+- [ ] **Water + Wind + Unholy** · contains Mist, Blood, Ghost · Name: of the Crimson Fog
+- [ ] **Water + Wind + Shadow** · contains Mist, Mirror, Ninja · Name: of the Vanishing Mist
+- [ ] **Water + Poison + Earth** · contains Serum, Slime, Spore · Name: of the Toad King
+- [ ] **Water + Poison + Holy** · contains Serum, Anointment, Antidote · Name: of the Holy Tincture
+- [ ] **Water + Poison + Unholy** · contains Serum, Blood, Blight · Name: of the Tainted Blood
+- [ ] **Water + Poison + Shadow** · contains Serum, Mirror, Assassin · Name: of the Poisoned Well
+- [ ] **Water + Earth + Holy** · contains Slime, Anointment, Sanctuary · Name: of the Mud Shrine
+- [ ] **Water + Earth + Unholy** · contains Slime, Blood, Grave · Name: of the Corpse Mire
+- [ ] **Water + Earth + Shadow** · contains Slime, Mirror, Moon · Name: of the Reflecting Pool
+- [ ] **Water + Holy + Unholy** · contains Anointment, Blood, Zealot · Name: of the Blood Oath
+- [ ] **Water + Holy + Shadow** · contains Anointment, Mirror, Vigilante · Name: of the Silver Mask
+- [ ] **Water + Unholy + Shadow** · contains Blood, Mirror, Curse · Name: of the Cursed Reflection
+- [ ] **Lightning + Wind + Poison** · contains Storm, Battery, Faerie · Name: of the Firefly Swarm
+- [ ] **Lightning + Wind + Earth** · contains Storm, Magnet, Nomad · Name: of the Sandstorm
+- [ ] **Lightning + Wind + Holy** · contains Storm, Vengeance, Angel · Name: of the Wrathful Host
+- [ ] **Lightning + Wind + Unholy** · contains Storm, Reanimation, Ghost · Name: of the Wild Hunt
+- [ ] **Lightning + Wind + Shadow** · contains Storm, Ion, Ninja · Name: of the Flash Step
+- [ ] **Lightning + Poison + Earth** · contains Battery, Magnet, Spore · Name: of the Glowcap
+- [ ] **Lightning + Poison + Holy** · contains Battery, Vengeance, Antidote · Name: of the Galvanic Cure
+- [ ] **Lightning + Poison + Unholy** · contains Battery, Reanimation, Blight · Name: of the Rot Engine
+- [ ] **Lightning + Poison + Shadow** · contains Battery, Ion, Assassin · Name: of the Static Needle
+- [ ] **Lightning + Earth + Holy** · contains Magnet, Vengeance, Sanctuary · Name: of the Thundering Altar
+- [ ] **Lightning + Earth + Unholy** · contains Magnet, Reanimation, Grave · Name: of the Restless Grave
+- [ ] **Lightning + Earth + Shadow** · contains Magnet, Ion, Moon · Name: of the Gravity Well
+- [ ] **Lightning + Holy + Unholy** · contains Vengeance, Reanimation, Zealot · Name: of the Risen Martyr
+- [ ] **Lightning + Holy + Shadow** · contains Vengeance, Ion, Vigilante · Name: of the Dark Avenger
+- [ ] **Lightning + Unholy + Shadow** · contains Reanimation, Ion, Curse · Name: of the Puppet Master
+- [ ] **Wind + Poison + Earth** · contains Faerie, Nomad, Spore · Name: of the Thistledown
+- [ ] **Wind + Poison + Holy** · contains Faerie, Angel, Antidote · Name: of the Sylph
+- [ ] **Wind + Poison + Unholy** · contains Faerie, Ghost, Blight · Name: of the Unseelie
+- [ ] **Wind + Poison + Shadow** · contains Faerie, Ninja, Assassin · Name: of the Nightshade
+- [ ] **Wind + Earth + Holy** · contains Nomad, Angel, Sanctuary · Name: of the Pilgrimage
+- [ ] **Wind + Earth + Unholy** · contains Nomad, Ghost, Grave · Name: of the Ghost Caravan
+- [ ] **Wind + Earth + Shadow** · contains Nomad, Ninja, Moon · Name: of the Night Rider
+- [ ] **Wind + Holy + Unholy** · contains Angel, Ghost, Zealot · Name: of Purgatory
+- [ ] **Wind + Holy + Shadow** · contains Angel, Ninja, Vigilante · Name: of the Unseen Guardian
+- [ ] **Wind + Unholy + Shadow** · contains Ghost, Ninja, Curse · Name: of the Haunting
+- [ ] **Poison + Earth + Holy** · contains Spore, Antidote, Sanctuary · Name: of the Monastery Garden
+- [ ] **Poison + Earth + Unholy** · contains Spore, Blight, Grave · Name: of the Corpse Flower
+- [ ] **Poison + Earth + Shadow** · contains Spore, Assassin, Moon · Name: of the Death Cap
+- [ ] **Poison + Holy + Unholy** · contains Antidote, Blight, Zealot · Name: of the Plague Doctor
+- [ ] **Poison + Holy + Shadow** · contains Antidote, Assassin, Vigilante · Name: of the Mercy Killer
+- [ ] **Poison + Unholy + Shadow** · contains Blight, Assassin, Curse · Name: of the Black Widow
+- [ ] **Earth + Holy + Unholy** · contains Sanctuary, Grave, Zealot · Name: of the Ossuary
+- [ ] **Earth + Holy + Shadow** · contains Sanctuary, Moon, Vigilante · Name: of the Moon Temple
+- [ ] **Earth + Unholy + Shadow** · contains Grave, Moon, Curse · Name: of the Haunted Moor
+- [ ] **Holy + Unholy + Shadow** · contains Zealot, Vigilante, Curse · Name: of the Witch Hunter
