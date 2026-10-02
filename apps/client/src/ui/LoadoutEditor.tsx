@@ -25,7 +25,7 @@ import {
 } from '@arena/meta';
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
-import { CostPips, elementClass, itemCode, SkillGlyph, Tooltip } from './common.js';
+import { CostPips, elementClass, ItemFace, SkillGlyph, Tooltip } from './common.js';
 
 const GROUPS: { id: string; label: string; types: readonly ItemType[] }[] = [
   { id: 'all', label: 'All', types: [] },
@@ -279,7 +279,7 @@ export function LoadoutEditor({
                 <button
                   key={e.def.id}
                   type="button"
-                  className={`item-tile ${elementClass(itemElement(e.def))}${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
+                  className={`item-tile${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
                   aria-disabled={blocked}
                   aria-label={`${e.def.name}, ${ITEM_TYPE_NAMES[e.def.type]}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}`}
                   onClick={() => equip(e)}
@@ -289,7 +289,7 @@ export function LoadoutEditor({
                   onBlur={() => hide(key)}
                 >
                   <span className="item-type">{e.def.type}</span>
-                  <span className="code">{itemCode(e.def.name)}</span>
+                  <ItemFace def={e.def} content={content} className="code" />
                   {e.free.length > 1 && <span className="item-count">×{e.free.length}</span>}
                   {e.here > 0 && (
                     <span className="item-here" aria-hidden>
@@ -314,13 +314,9 @@ export function LoadoutEditor({
   );
 }
 
-/** The item's code on its element color, as in the grid (for the slots). */
+/** The item's face, as in the grid (for the slots). */
 function ItemGlyph({ def }: { def: ItemDef }) {
-  return (
-    <span className={`item-glyph ${elementClass(itemElement(def))}`} aria-hidden>
-      {itemCode(def.name)}
-    </span>
-  );
+  return <ItemFace def={def} content={content} className="item-glyph" />;
 }
 
 /** Under an equipped item: what it grants. */
