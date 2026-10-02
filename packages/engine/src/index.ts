@@ -22,6 +22,7 @@ export { replay, stateFingerprint } from './replay.js';
 export { formatEvent, effectName, effectDefById } from './log.js';
 export { scripts, type ScriptFn, type Scope } from './ops.js';
 export { evaluateNamedCondition } from './conditions.js';
+export * from './pieces.js';
 
 import { applyCommand } from './commands.js';
 import type { ContentBundle } from './defs.js';

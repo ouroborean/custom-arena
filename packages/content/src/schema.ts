@@ -552,17 +552,25 @@ export const classFileEntry = z.strictObject({
   affinity: z.array(z.string()).length(3),
 });
 
+const itemType = z.enum(['Skill', 'Shard', 'Sigil']);
+
 export const itemFileEntry = z.strictObject({
   name: z.string().min(1),
-  type: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']),
-  skills: z.array(z.string()).max(2).default([]),
-  infusions: z.array(z.strictObject({ element: z.string() })).max(2).default([]),
+  type: itemType,
+  skills: z.array(z.string()).max(1).default([]),
+  infusions: z.array(z.strictObject({ element: z.string() })).max(1).default([]),
   passive: z.string().optional(),
   passiveEffect: z.string().optional(),
-  placeholder: z.boolean().optional(),
+  suffix: z.string().regex(/^of /, 'starts with "of "').optional(),
 });
 
-const itemType = z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
+/** The forging file (data/items/forging.yaml): names for forged pieces. */
+export const forgingSchema = z.strictObject({
+  prefixes: z.record(z.string(), z.string().min(1)),
+  pairs: z.record(z.string(), z.string().min(1)),
+  crystals: z.record(z.string(), z.string().min(1)).default({}),
+  geodes: z.record(z.string(), z.string().regex(/^of /, 'starts with "of "')),
+});
 const amounts = z.record(z.string(), z.number().int().min(0));
 const rewardSpec = z.strictObject({
   currency: amounts.optional(),
@@ -582,16 +590,8 @@ export const economySchema = z.strictObject({
     z.string(),
     z.strictObject({ types: z.partialRecord(itemType, z.number().int().min(0)), exclude: z.array(z.string()).optional() }),
   ),
-  recipes: z.record(
-    z.string(),
-    z.strictObject({
-      name: z.string().min(1),
-      description: z.string().min(1),
-      inputs: z.strictObject({ type: itemType, count: z.number().int().min(1), sameElement: z.boolean().optional() }),
-      output: z.strictObject({ type: itemType }),
-      cost: amounts.optional(),
-    }),
-  ),
+  forge: z.strictObject({ cost: z.record(z.enum(['2', '3']), amounts) }),
+  split: z.strictObject({ cost: amounts }),
   salvage: z.partialRecord(itemType, amounts),
 });
 

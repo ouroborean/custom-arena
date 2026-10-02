@@ -9,7 +9,7 @@ describe('content diff', () => {
     after.skills.strike = { ...after.skills.strike!, cooldown: 1, cost: { ...after.skills.strike!.cost, r: 1 } };
     after.skills.shot = { ...after.skills.shot!, ops: [] };
     delete (after.skills as Record<string, unknown>).stab;
-    after.items.brand_new = { ...after.items.wind_katana!, id: 'brand_new', name: 'Brand New Blade' };
+    after.items.brand_new = { ...after.items.longsword!, id: 'brand_new', name: 'Brand New Blade' };
     after.economy.roll = { cost: { gold: 120 } };
 
     const d = diffBundles(content, after);

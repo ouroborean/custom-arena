@@ -97,7 +97,7 @@ describe('story', () => {
     const last = await winEncounter(a, 'tutorial_3');
     expect(last.body.chapterComplete).toBe('tutorial');
     expect(last.body.characters).toHaveLength(1);
-    expect(last.body.reward.items).toEqual(['fire_shard', 'fire_crystal']);
+    expect(last.body.reward.items).toEqual(['fire_shard', 'fire_shard+fire_shard']);
     expect((await a.call('GET', '/api/characters')).json().characters.length).toBe(before + 1);
     // Tutorial wins count as 'tutorial' matches for achievements (First Victory counts any mode).
     const ach = (await a.call('GET', '/api/achievements')).json().achievements as { id: string; done: boolean }[];

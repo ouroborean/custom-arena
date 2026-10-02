@@ -1,4 +1,8 @@
-# Forging names (draft)
+# Forging names
+
+Implemented: the tables live in `packages/content/data/items/forging.yaml` (the source of truth), and
+`describePiece` in `@arena/engine` builds names from them. Forging itself is described in
+`docs/equipment.md` §6.
 
 Names for forged equipment. A forged piece holds up to 3 components (skills, element shards, at most
 1 passive) and is named `[prefix] Base [of Suffix]` from them:

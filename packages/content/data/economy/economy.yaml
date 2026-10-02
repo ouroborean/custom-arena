@@ -1,5 +1,5 @@
 # The economy (GDD §8.4, docs/equipment.md §3): currencies, rolling, match rewards, drop tables,
-# crafting and salvage. Everything here is data; the numbers are first guesses to tune.
+# forging and salvage. Everything here is data; the numbers are first guesses to tune.
 
 currencies:
   gold: { name: Gold, start: 300 }
@@ -26,28 +26,22 @@ rewards:
 dailyDropCap: 10
 
 dropTables:
-  # Perfect Crystals (I) don't drop: they're crafted from Shards.
+  # Components only: forged pieces are made by players.
   standard:
-    types: { A: 8, B: 5, C: 6, D: 4, E: 8, F: 10, G: 5, H: 6, J: 18, K: 30 }
+    types: { Skill: 35, Shard: 40, Sigil: 25 }
 
-recipes:
-  perfect_crystal:
-    name: Refine a Perfect Crystal
-    description: Three Shards of one element become that element's Perfect Anima Crystal.
-    inputs: { type: K, count: 3, sameElement: true }
-    output: { type: I }
-    cost: { gold: 50 }
+# Forging two unequipped pieces into one (docs/equipment.md §6), by the result's component count.
+forge:
+  cost:
+    "2": { gold: 50 }
+    "3": { gold: 100 }
 
-# Salvaging an unequipped item pays gold, by type.
+# Splitting a forged piece back into its components.
+split:
+  cost: { gold: 25 }
+
+# Salvaging an unequipped piece pays gold for each of its components, by component type.
 salvage:
-  A: { gold: 25 }
-  B: { gold: 35 }
-  C: { gold: 25 }
-  D: { gold: 40 }
-  E: { gold: 25 }
-  F: { gold: 15 }
-  G: { gold: 35 }
-  H: { gold: 35 }
-  I: { gold: 60 }
-  J: { gold: 10 }
-  K: { gold: 5 }
+  Skill: { gold: 10 }
+  Shard: { gold: 5 }
+  Sigil: { gold: 30 }

@@ -24,7 +24,7 @@ const schedule: SeasonSchedule = {
   minGames: 2,
   tiers: [
     { id: 'bronze', name: 'Bronze', min: 0, reward: { currency: { gold: 100 } } },
-    { id: 'gold', name: 'Gold', min: 1400, reward: { currency: { gold: 400 }, items: ['wind_katana'] } },
+    { id: 'gold', name: 'Gold', min: 1400, reward: { currency: { gold: 400 }, items: ['longsword+wind_shard+sigil_momentum'] } },
   ],
 };
 const at = (iso: string) => Date.parse(iso);
@@ -143,7 +143,7 @@ describe('seasons', () => {
     expect(first.unplaced).toBeGreaterThanOrEqual(1);
     expect([await top.gold(), await mid.gold(), await few.gold()]).toEqual([gold0[0]! + 400, gold0[1]! + 100, gold0[2]]);
     const items = (await top.get('/api/inventory')).items as { itemId: string; source: string }[];
-    expect(items.filter((i) => i.source === 'season:ranked-s1').map((i) => i.itemId)).toEqual(['wind_katana']);
+    expect(items.filter((i) => i.source === 'season:ranked-s1').map((i) => i.itemId)).toEqual(['longsword+wind_shard+sigil_momentum']);
 
     const again = await closeSeason(dbh.db, content, schedule, 'ranked-s1', now);
     expect(again.paid).toEqual([]);
@@ -151,6 +151,6 @@ describe('seasons', () => {
     expect(await top.gold()).toBe(gold0[0]! + 400);
 
     const r = await top.get('/api/ratings');
-    expect(r.lastReward).toMatchObject({ season: 'ranked-s1', seasonName: 'Season 1', tier: 'Gold', rating: 1630, currency: { gold: 400 }, items: ['wind_katana'] });
+    expect(r.lastReward).toMatchObject({ season: 'ranked-s1', seasonName: 'Season 1', tier: 'Gold', rating: 1630, currency: { gold: 400 }, items: ['longsword+wind_shard+sigil_momentum'] });
   });
 });

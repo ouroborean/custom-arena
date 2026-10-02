@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatAmounts } from '@arena/meta';
-import type { GrantSpec } from '@arena/engine';
+import { pieceDisplayName, type GrantSpec } from '@arena/engine';
 import { api, ApiError, type ChapterStatus } from '../api.js';
 import { content } from '../content.js';
 import { useT } from '../i18n/index.js';
@@ -21,7 +21,7 @@ export function Tutorial() {
   const grantText = (g: GrantSpec | undefined): string => {
     const parts = [
       formatAmounts(content, g?.currency ?? {}),
-      ...(g?.items ?? []).map((i) => content.items[i]?.name ?? i),
+      ...(g?.items ?? []).map((i) => pieceDisplayName(content, i)),
       ...(g?.rolls ? [t('grant.freeCharacters', { count: g.rolls })] : []),
     ].filter((p) => p !== 'nothing');
     return parts.length ? parts.join(' · ') : t('common.none');

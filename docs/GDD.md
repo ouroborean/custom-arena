@@ -422,7 +422,7 @@ The affinity sets are built so that **every one of the 30 skills is a signature 
 
 **Native-skill roll [PROPOSED]:** every character gets **at least 2 of its 3 signatures**. The remaining native slots are drawn from the rest of the 6-skill pool without repeats. A 3-skill Common therefore always feels like its class, while higher rarities vary more.
 
-Equipment (types A/B/C/E/F/J) can still add skills from **outside** the pool, up to the cap of 5.
+Equipment can still add skills from **outside** the pool: its skills go into a skill pool, and the player prepares which of them go into battle, up to the cap of 5 (Q21).
 
 This table is a first pass. Adjust any row. The only structural invariant worth keeping is "each skill borrowed once", because it guarantees every archetype appears on exactly two classes.
 
@@ -520,6 +520,10 @@ All equipment reduces to a bundle of **grants**, which is how the engine should 
 
 ### 8.2 Equipment types (from *Structured Equipment*)
 
+> **Superseded (2026-10-02, Q20):** these static items became **modular equipment**: Skill, Shard
+> and Sigil components that players forge into pieces of up to three (`docs/equipment.md` §6). The
+> table below records the sheet the components came from.
+
 | Type | Grants | Count | Category |
 |---|---|---|---|
 | A | 1 Skill + 1 Passive + 1 Element | 30 (one per skill) | Main Hand |
@@ -557,7 +561,7 @@ All unlock conditions on the sheet are **ignored**. **[DECIDED]** Acquisition wi
 
 - **Drop tables** per mode and difficulty (weighted item pools, with rarity weights).
 - **Story and chapter rewards** (fixed grants).
-- **Crafting** **[PROPOSED]**: Shards (K) → Crystals (I).
+- **Forging** **[DECIDED 2026-10-02]**: players forge components into pieces of up to three, and split them back (`docs/equipment.md` §6). This replaces crafting Shards into Crystals.
 - **Achievement predicates** (optional, later): a small predicate language over match results ("win N with class X", "win N in a row"), in case unlock-style rewards return.
 
 ---
@@ -1071,6 +1075,8 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q17 | Wind Vortex redesign | Confirmed. See the new text in §14.2. | §14.2 |
 | Q18 | Equipment slots (2026-09-27) | **4 slots per character, any item type** in any slot; no typed slots, and rarity doesn't change the count. Budgets, the skill cap and class armor still apply. | §8.3 |
 | Q19 | Equipment infusions (2026-09-27) | Equipment infusions go into a **pool**, and the player applies each to a skill of their choice; nothing is automatic, not even onto a skill the same item grants. **Native infusions stay locked.** **No infusion budget.** A skill can hold **up to two** infusions; two make the pair's **fusion** element (55, from the codex's fusion matrix; no skill has a fusion variant yet). | §7.3, §8.1 |
+| Q20 | Modular equipment (2026-10-02) | Static items are retired. Equipment is **components** (30 Skills, 10 Shards, 120 Sigils, one per passive), and a **piece** is one component or up to **3 forged together**, with at most one Sigil and no skill twice. Names come from the components in forge order (`docs/forging-names.md`). Forging costs Gold; splitting a piece back costs a small fee. | §8.2, §8.4 |
+| Q21 | Equipment skill pool (2026-10-02) | Skills from equipment go into a **pool**, like infusions; the player **prepares** which go into battle. The 5-skill cap and the rarity's skill budget count prepared skills only, so a full character can still wear a piece for its other components. Native skills are always in. | §7.3, §8.3 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 

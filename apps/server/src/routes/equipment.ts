@@ -1,10 +1,11 @@
-// Inventory, loadouts, presets, crafting and salvage (GDD §7.3, §8). Items are content ids; the
-// database holds owned instances. A loadout is validated on save (ownership, one character per
-// instance, and the @arena/meta rules) and again when the team is turned into engine specs.
-// Crafting and salvage only take unequipped items.
+// Inventory, loadouts, presets, forging and salvage (GDD §7.3, §8). Items are pieces: a component id,
+// or forged components' ids joined with "+" (docs/equipment.md §6); the database holds owned
+// instances. A loadout is validated on save (ownership, one character per instance, and the
+// @arena/meta rules) and again when the team is turned into engine specs. Forging, splitting and
+// salvage only take unequipped pieces.
 
-import { pick, seedRng } from '@arena/engine';
-import { craft, EQUIPMENT_SLOTS, resolveLoadout, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
+import { pick, pieceComponentIds, pieceDisplayName, pieceProblems, seedRng } from '@arena/engine';
+import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -17,10 +18,12 @@ import { credit, inTransaction, spend, topUpGold, walletOf } from '../economy.js
 type CharacterRow = typeof characters.$inferSelect;
 
 const Equipped = z.strictObject({ itemId: z.string(), instanceId: z.uuid() });
-/** Four slots, any item type (GDD §8.3), and which skills the items' infusions go on (§7.3). */
+/** Four slots, any piece (GDD §8.3), which skills the pieces' infusions go on (§7.3), and which of the
+ * skills they grant are prepared (the rest stay in the pool). */
 export const LoadoutSchema = z.strictObject({
   items: z.array(Equipped).max(EQUIPMENT_SLOTS),
-  infusions: z.array(z.strictObject({ skill: z.string(), element: z.string() })).max(EQUIPMENT_SLOTS * 2),
+  infusions: z.array(z.strictObject({ skill: z.string(), element: z.string() })).max(EQUIPMENT_SLOTS * 3),
+  skills: z.array(z.string()).max(EQUIPMENT_SLOTS * 3).optional(),
 });
 
 export const recordOf = (c: CharacterRow): CharacterRecord => ({
@@ -50,7 +53,7 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
   const problems: string[] = [];
   for (const e of eqs) {
     const inst = owned.find((o) => o.id === e.instanceId);
-    if (!inst) problems.push(`You don't own that ${ctx.content.items[e.itemId]?.name ?? e.itemId}`);
+    if (!inst) problems.push(`You don't own that ${pieceDisplayName(ctx.content, e.itemId)}`);
     else if (inst.itemId !== e.itemId) problems.push(`Instance ${e.instanceId} is a ${inst.itemId}, not ${e.itemId}`);
   }
   // An instance can only be equipped on one character.
@@ -60,7 +63,7 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
     .where(and(eq(characters.userId, userId), ne(characters.id, c.id)));
   for (const o of others) {
     for (const e of o.loadout.items ?? []) {
-      if (e.instanceId && ids.includes(e.instanceId)) problems.push(`${ctx.content.items[e.itemId]?.name ?? e.itemId} is equipped on ${o.name}`);
+      if (e.instanceId && ids.includes(e.instanceId)) problems.push(`${pieceDisplayName(ctx.content, e.itemId)} is equipped on ${o.name}`);
     }
   }
   const resolved = resolveLoadout(ctx.content, recordOf(c), loadout);
@@ -77,7 +80,7 @@ async function equippedOn(db: Db, userId: string): Promise<Map<string, string>> 
   return out;
 }
 
-/** Owned, unequipped instances by id (for crafting and salvage); throws if any aren't. */
+/** Owned, unequipped instances by id (for forging, splitting and salvage); throws if any aren't. */
 async function spareInstances(db: Db, userId: string, ids: string[]) {
   if (new Set(ids).size !== ids.length) throw new HttpError(400, 'Each item can only be used once');
   const rows = ids.length
@@ -93,8 +96,9 @@ async function spareInstances(db: Db, userId: string, ids: string[]) {
 }
 
 /**
- * Testing (ctx.allItems): tops the user up to EQUIPMENT_SLOTS unequipped copies of every item, so all
- * equipment is unlocked and any item can fill every slot of a loadout. Runs on each inventory fetch.
+ * Testing (ctx.allItems): tops the user up to EQUIPMENT_SLOTS unequipped copies of every component, so
+ * all equipment is unlocked (forge the rest) and any component can fill every slot of a loadout. Runs
+ * on each inventory fetch.
  */
 async function grantAllItems(ctx: AppContext, userId: string): Promise<void> {
   const [owned, equipped] = await Promise.all([
@@ -110,15 +114,16 @@ async function grantAllItems(ctx: AppContext, userId: string): Promise<void> {
   if (add.length) await ctx.db.insert(itemInstances).values(add);
 }
 
-/** Gives a new account a few items to try equipment with (drops, crafting and gold come after). */
+/** Gives a new account a few pieces to try equipment with: a Shard, a Skill, and the two forged
+ * from another Skill and Shard (drops, forging and gold come after). */
 export async function grantStarterKit(ctx: AppContext, userId: string): Promise<void> {
   const rng = seedRng(ctx.rollSeed());
-  const ofType = (t: string, filter: (skills: string[]) => boolean = () => true) =>
+  const ofType = (t: string) =>
     Object.values(ctx.content.items)
-      .filter((i) => i.type === t && filter(i.skills))
+      .filter((i) => i.type === t)
       .map((i) => i.id)
       .sort();
-  const picks = [pick(rng, ofType('K')), pick(rng, ofType('J', (s) => s.length === 1)), pick(rng, ofType('F'))];
+  const picks = [pick(rng, ofType('Shard')), pick(rng, ofType('Skill')), `${pick(rng, ofType('Skill'))}+${pick(rng, ofType('Shard'))}`];
   await ctx.db.insert(itemInstances).values(picks.map((itemId) => ({ userId, itemId, source: 'starter' })));
 }
 
@@ -159,27 +164,54 @@ export function equipmentRoutes(ctx: AppContext) {
       return { wallet: await walletOf(ctx.db, ctx.content, req.user!.id) };
     });
 
-    /** Crafts with a recipe from the content economy; the inputs are used up. */
-    app.post('/api/craft', async (req, reply) => {
+    /**
+     * Forges `addition` onto `base` (both unequipped; both are used up). The new piece keeps the base's
+     * components first, so it keeps the base's name and gains a prefix or suffix.
+     */
+    app.post('/api/forge', async (req, reply) => {
       const userId = req.user!.id;
-      const body = parse(z.object({ recipe: z.string(), instanceIds: z.array(z.uuid()).min(1).max(10) }), req.body);
+      const body = parse(z.object({ base: z.uuid(), addition: z.uuid() }), req.body);
       const row = await inTransaction(ctx.db, async (db) => {
-        const inputs = await spareInstances(db, userId, body.instanceIds);
-        const r = craft(ctx.content, body.recipe, inputs.map((i) => i.itemId));
+        const rows = await spareInstances(db, userId, [body.base, body.addition]);
+        const base = rows.find((r) => r.id === body.base)!;
+        const addition = rows.find((r) => r.id === body.addition)!;
+        const r = forge(ctx.content, base.itemId, addition.itemId);
         if (!r.ok) throw new HttpError(400, r.problems[0]!, { problems: r.problems });
         await spend(db, ctx.content, userId, r.cost);
-        await db.delete(itemInstances).where(inArray(itemInstances.id, body.instanceIds));
-        const [made] = await db.insert(itemInstances).values({ userId, itemId: r.output, source: 'craft' }).returning();
+        await db.delete(itemInstances).where(inArray(itemInstances.id, [body.base, body.addition]));
+        const [made] = await db.insert(itemInstances).values({ userId, itemId: r.piece, source: 'forge' }).returning();
         return made!;
       });
-      audit(ctx.db, 'craft', { userId, detail: { recipe: body.recipe, used: body.instanceIds, made: row.itemId } });
+      audit(ctx.db, 'forge', { userId, detail: { used: [body.base, body.addition], made: row.itemId } });
       return reply.status(201).send({
         item: { id: row.id, itemId: row.itemId, source: row.source, acquiredAt: row.acquiredAt, equippedOn: null },
         wallet: await walletOf(ctx.db, ctx.content, userId),
       });
     });
 
-    /** Salvages an unequipped item for currency. */
+    /** Splits an unequipped forged piece back into its components. */
+    app.post('/api/inventory/:id/split', async (req, reply) => {
+      const userId = req.user!.id;
+      const { id } = parse(IdParam, req.params);
+      const rows = await inTransaction(ctx.db, async (db) => {
+        const [inst] = await spareInstances(db, userId, [id]);
+        const r = splitPiece(ctx.content, inst!.itemId);
+        if (!r.ok) throw new HttpError(400, r.problems[0]!, { problems: r.problems });
+        await spend(db, ctx.content, userId, r.cost);
+        await db.delete(itemInstances).where(eq(itemInstances.id, id));
+        return db
+          .insert(itemInstances)
+          .values(r.components.map((itemId) => ({ userId, itemId, source: 'split' })))
+          .returning();
+      });
+      audit(ctx.db, 'split', { userId, detail: { instance: id, made: rows.map((r) => r.itemId) } });
+      return reply.status(201).send({
+        items: rows.map((r) => ({ id: r.id, itemId: r.itemId, source: r.source, acquiredAt: r.acquiredAt, equippedOn: null })),
+        wallet: await walletOf(ctx.db, ctx.content, userId),
+      });
+    });
+
+    /** Salvages an unequipped piece for currency (each component's value). */
     app.post('/api/inventory/:id/salvage', async (req) => {
       const userId = req.user!.id;
       const { id } = parse(IdParam, req.params);
@@ -197,7 +229,7 @@ export function equipmentRoutes(ctx: AppContext) {
     if (ctx.devGrants) {
       app.post('/api/dev/grant', async (req, reply) => {
         const { itemId } = parse(z.object({ itemId: z.string() }), req.body);
-        if (!ctx.content.items[itemId]) throw new HttpError(404, `No item "${itemId}"`);
+        if (pieceProblems(ctx.content, pieceComponentIds(itemId)).length) throw new HttpError(404, `No item "${itemId}"`);
         const [row] = await ctx.db.insert(itemInstances).values({ userId: req.user!.id, itemId, source: 'dev' }).returning();
         return reply.status(201).send({ item: { id: row!.id, itemId: row!.itemId } });
       });

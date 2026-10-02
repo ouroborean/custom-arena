@@ -159,7 +159,8 @@ export const api = {
   teamSpecs: () => call<{ specs: CharacterSpec[] }>('GET', '/teams/active/specs'),
 
   inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
-  craft: (recipe: string, instanceIds: string[]) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/craft', { recipe, instanceIds }),
+  forge: (base: string, addition: string) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/forge', { base, addition }),
+  split: (id: string) => call<{ items: InventoryItem[]; wallet: Wallet }>('POST', `/inventory/${id}/split`),
   salvage: (id: string) => call<{ paid: Record<string, number>; wallet: Wallet }>('POST', `/inventory/${id}/salvage`),
   saveLoadout: (id: string, loadout: Loadout) =>
     call<{ loadout: Loadout; resolved: ResolvedLoadout }>('PUT', `/characters/${id}/loadout`, { loadout }),

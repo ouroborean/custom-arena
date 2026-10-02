@@ -2,7 +2,7 @@
 // schedule the server loads from apps/server/seasons.json: which season is running, the soft reset
 // that seeds a player's rating from their last season, and the reward tier a final rating earns.
 
-import type { ContentBundle, GrantSpec } from '@arena/engine';
+import { pieceComponentIds, pieceProblems, type ContentBundle, type GrantSpec } from '@arena/engine';
 import { DEFAULT_RATING, displayRating, type Rating } from './glicko2.js';
 
 export interface Season {
@@ -107,7 +107,7 @@ export function checkSchedule(s: SeasonSchedule, content?: ContentBundle): strin
     for (const c of Object.keys(t.reward?.currency ?? {})) {
       if (!content.economy.currencies[c]) out.push(`tiers[${i}] (${t.id}): unknown currency ${c}`);
     }
-    for (const it of t.reward?.items ?? []) if (!content.items[it]) out.push(`tiers[${i}] (${t.id}): unknown item ${it}`);
+    for (const it of t.reward?.items ?? []) if (pieceProblems(content, pieceComponentIds(it)).length) out.push(`tiers[${i}] (${t.id}): unknown item ${it}`);
   });
   return out;
 }

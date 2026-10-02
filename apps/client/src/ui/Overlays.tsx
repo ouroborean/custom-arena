@@ -1,3 +1,4 @@
+import { pieceDisplayName } from '@arena/engine';
 import { formatAmounts } from '@arena/meta';
 import { content } from '../content.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
@@ -121,7 +122,7 @@ function Earned({ currency, items }: { currency: Record<string, number>; items: 
       {items.map((id, i) => (
         <span key={`${id}${i}`}>
           {' · '}
-          <b>{content.items[id]?.name ?? id}</b>
+          <b>{pieceDisplayName(content, id)}</b>
         </span>
       ))}
     </p>

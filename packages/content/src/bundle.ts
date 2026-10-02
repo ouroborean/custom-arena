@@ -3,6 +3,9 @@
 
 import {
   fusionKey,
+  fusionOf,
+  pieceComponentIds,
+  pieceProblems,
   scripts,
   variantId,
   type ClassDef,
@@ -13,6 +16,7 @@ import {
   type FusionDef,
   type GlossaryDef,
   type EconomyDef,
+  type ForgingDef,
   type EncounterDef,
   type TutorialDef,
   type EffectDef,
@@ -28,6 +32,7 @@ import {
   achievementFileEntry,
   chapterFileEntry,
   economySchema,
+  forgingSchema,
   effectDefSchema,
   encounterFileEntry,
   fusionFileEntry,
@@ -47,6 +52,8 @@ export interface RawContent {
   macros: Record<string, unknown>;
   conditions: Record<string, unknown>;
   items: Record<string, unknown>;
+  /** Top-level sections of the forging file(s): prefixes, pairs, crystals, geodes. */
+  forging: Record<string, unknown>;
   /** Top-level sections of the economy file(s): currencies, roll, rewards, … */
   economy: Record<string, unknown>;
   encounters: Record<string, unknown>;
@@ -147,7 +154,13 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   if (!eco.success) {
     for (const iss of eco.error.issues) issues.push({ level: 'error', where: `economy${iss.path.length ? '.' + iss.path.join('.') : ''}`, message: iss.message });
   }
-  const economy: EconomyDef = eco.success ? withRecipeIds(eco.data) : EMPTY_ECONOMY;
+  const economy: EconomyDef = eco.success ? eco.data : EMPTY_ECONOMY;
+
+  const forge = forgingSchema.safeParse(raw.forging ?? {});
+  if (!forge.success) {
+    for (const iss of forge.error.issues) issues.push({ level: 'error', where: `forging${iss.path.length ? '.' + iss.path.join('.') : ''}`, message: iss.message });
+  }
+  const forging: ForgingDef = forge.success ? forge.data : { prefixes: {}, pairs: {}, crystals: {}, geodes: {} };
 
   const encounters = parseEntries('encounters', raw.encounters ?? {}, encounterFileEntry, issues) as Record<string, EncounterDef>;
   const chapters = parseEntries('story', raw.story ?? {}, chapterFileEntry, issues) as Record<string, ChapterDef>;
@@ -157,7 +170,7 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
   const glossary = resolveGlossary(parseEntries('glossary', raw.glossary ?? {}, glossaryFileEntry, issues), statuses, issues);
 
   const version = contentHash(
-    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, economy, encounters, chapters, achievements, tutorial, fusions, glossary }),
+    canonicalJson({ skills, statuses, minions, classes, macros, conditions, items, forging, economy, encounters, chapters, achievements, tutorial, fusions, glossary }),
   );
   const bundle: ContentBundle = {
     version,
@@ -168,6 +181,7 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     macros,
     conditions,
     items,
+    forging,
     economy,
     encounters,
     chapters,
@@ -183,16 +197,13 @@ export function buildBundle(raw: RawContent): { bundle: ContentBundle; issues: C
     ...checkFusions(bundle),
     ...checkGlossary(bundle),
     ...checkEconomy(bundle),
+    ...checkForging(bundle),
     ...checkSinglePlayer(bundle),
   );
   return { bundle, issues };
 }
 
-const EMPTY_ECONOMY: EconomyDef = { currencies: {}, roll: { cost: {} }, rewards: {}, dailyDropCap: 0, dropTables: {}, recipes: {}, salvage: {} };
-
-function withRecipeIds(e: Omit<EconomyDef, 'recipes'> & { recipes: Record<string, Omit<EconomyDef['recipes'][string], 'id'>> }): EconomyDef {
-  return { ...e, recipes: Object.fromEntries(Object.entries(e.recipes).map(([id, r]) => [id, { ...r, id }])) };
-}
+const EMPTY_ECONOMY: EconomyDef = { currencies: {}, roll: { cost: {} }, rewards: {}, dailyDropCap: 0, dropTables: {}, forge: { cost: {} }, split: { cost: {} }, salvage: {} };
 
 /** Encounters, chapters and achievements must point at classes, skills, statuses and items that exist. */
 export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
@@ -200,7 +211,7 @@ export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
   const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
   const grant = (where: string, g: { currency?: Record<string, number>; items?: string[] } | undefined) => {
     for (const k of Object.keys(g?.currency ?? {})) if (!b.economy.currencies[k]) err(where, `unknown currency "${k}"`);
-    for (const i of g?.items ?? []) if (!b.items[i]) err(where, `unknown item "${i}"`);
+    for (const i of g?.items ?? []) for (const p of pieceProblems(b, pieceComponentIds(i))) err(where, `item "${i}": ${p}`);
   };
   const unit = (where: string, u: EncounterDef['enemies'][number]) => {
     if (!b.classes[u.classId]) err(where, `unknown class "${u.classId}"`);
@@ -245,7 +256,7 @@ export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
   return issues;
 }
 
-/** Currencies, drop tables and recipes must point at things that exist. */
+/** Currencies and drop tables must point at things that exist. */
 export function checkEconomy(b: ContentBundle): ContentIssue[] {
   const issues: ContentIssue[] = [];
   const e = b.economy;
@@ -266,16 +277,59 @@ export function checkEconomy(b: ContentBundle): ContentIssue[] {
     for (const [type, w] of Object.entries(t.types)) if (w && itemsOfType(type).length === 0) err(`dropTables.${id}`, `no items of type ${type}`);
     for (const x of t.exclude ?? []) if (!b.items[x]) err(`dropTables.${id}`, `unknown item "${x}"`);
   }
-  for (const r of Object.values(e.recipes)) {
-    currencies(`recipes.${r.id}`, r.cost);
-    if (itemsOfType(r.inputs.type).length === 0) err(`recipes.${r.id}`, `no items of type ${r.inputs.type}`);
-    for (const input of itemsOfType(r.inputs.type)) {
-      const el = input.infusions[0]?.element;
-      const out = itemsOfType(r.output.type).filter((o) => !r.inputs.sameElement || o.infusions[0]?.element === el);
-      if (out.length !== 1) err(`recipes.${r.id}`, `${input.id} would make ${out.length} possible items (needs exactly 1)`);
+  for (const [n, amounts] of Object.entries(e.forge.cost)) currencies(`forge.cost.${n}`, amounts);
+  currencies('split.cost', e.split.cost);
+  for (const [type, amounts] of Object.entries(e.salvage)) currencies(`salvage.${type}`, amounts);
+  return issues;
+}
+
+/** Components have their type's shape, there's one Skill per base skill and one Shard per element, and
+ * the forging tables name every combination (and nothing else). */
+export function checkForging(b: ContentBundle): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
+  const skillOf = new Map<string, string>();
+  const shardOf = new Map<string, string>();
+  for (const it of Object.values(b.items)) {
+    const where = `items.${it.id}`;
+    if (it.id.includes('+')) err(where, `ids can't contain "+" (it joins forged components)`);
+    const shape = { Skill: [1, 0, false], Shard: [0, 1, false], Sigil: [0, 0, true] } as const;
+    const [skills, infusions, passive] = shape[it.type];
+    if (it.skills.length !== skills || it.infusions.length !== infusions) err(where, `a ${it.type} grants ${skills} skill(s) and ${infusions} infusion(s)`);
+    if (passive !== !!it.passiveEffect || passive !== !!it.passive || passive !== !!it.suffix) {
+      err(where, passive ? 'a Sigil needs a passive, passiveEffect and suffix' : `a ${it.type} has no passive or suffix`);
+    }
+    for (const s of it.skills) {
+      if (skillOf.has(s)) err(where, `"${s}" already has a Skill component (${skillOf.get(s)})`);
+      skillOf.set(s, it.id);
+    }
+    for (const i of it.infusions) {
+      if (shardOf.has(i.element)) err(where, `${i.element} already has a Shard (${shardOf.get(i.element)})`);
+      shardOf.set(i.element, it.id);
     }
   }
-  for (const [type, amounts] of Object.entries(e.salvage)) currencies(`salvage.${type}`, amounts);
+  const f = b.forging;
+  const exact = (table: string, have: Record<string, string>, want: readonly string[]) => {
+    const wanted = new Set(want);
+    for (const k of want) if (!(k in have)) err(`forging.${table}`, `missing "${k}"`);
+    for (const k of Object.keys(have)) if (!wanted.has(k)) err(`forging.${table}`, `"${k}" isn't a combination (keys are ids in alphabetical order, joined with "+")`);
+  };
+  const skills = [...skillOf.keys()].sort();
+  const elements = [...shardOf.keys()].sort();
+  exact('prefixes', f.prefixes, skills);
+  exact('pairs', f.pairs, skills.flatMap((a, i) => skills.slice(i + 1).map((c) => `${a}+${c}`)));
+  const triples: string[] = [];
+  elements.forEach((a, i) => elements.slice(i).forEach((c, j) => elements.slice(i + j).forEach((d) => triples.push([a, c, d].join('+')))));
+  exact('geodes', f.geodes, triples);
+  for (const id of Object.keys(f.crystals)) if (!b.fusions[id]) err('forging.crystals', `unknown fusion "${id}"`);
+  for (const [a, i] of elements.map((e, i) => [e, i] as const)) {
+    for (const c of elements.slice(i)) if (!fusionOf(b, a, c)) err('forging', `${a} + ${c} make no fusion, so their Crystal has no name`);
+  }
+  const names = new Map<string, string>();
+  for (const [k, v] of [...Object.entries(f.pairs), ...Object.entries(f.geodes)]) {
+    if (names.has(v)) err('forging', `"${v}" names both ${names.get(v)} and ${k}`);
+    names.set(v, k);
+  }
   return issues;
 }
 

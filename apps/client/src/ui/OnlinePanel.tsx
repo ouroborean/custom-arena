@@ -1,6 +1,7 @@
 // Online play from Home: casual/ranked queues, private matches by code, and resuming a match.
 
 import { useEffect, useState } from 'react';
+import { pieceDisplayName } from '@arena/engine';
 import { formatAmounts } from '@arena/meta';
 import { api, type Ratings } from '../api.js';
 import { content } from '../content.js';
@@ -23,7 +24,7 @@ function SeasonLine({ ratings }: { ratings: Ratings }) {
       season: lastReward.seasonName,
       tier: lastReward.tier,
       rating: lastReward.rating,
-      reward: [formatAmounts(content, lastReward.currency), ...lastReward.items.map((i) => content.items[i]?.name ?? i)].join(' · '),
+      reward: [formatAmounts(content, lastReward.currency), ...lastReward.items.map((i) => pieceDisplayName(content, i))].join(' · '),
     });
   return (
     <div className="season-line">

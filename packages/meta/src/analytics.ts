@@ -5,7 +5,7 @@
 // characters has it, at most once per side per match. Win rate = wins / picks, a draw counting
 // half. Pick rate = picks / sides played (two per match).
 
-import type { CharacterSpec, ContentBundle, PlayerId } from '@arena/engine';
+import { pieceDisplayName, type CharacterSpec, type ContentBundle, type PlayerId } from '@arena/engine';
 
 export interface MatchSample {
   teams: [CharacterSpec[], CharacterSpec[]];
@@ -78,7 +78,7 @@ export function analyzeMatches(content: ContentBundle, samples: readonly MatchSa
     classes: rows(classes, sides, (id) => content.classes[id]?.name ?? id),
     elements: rows(elements, sides, (id) => id),
     skills: rows(skills, sides, (id) => content.skills[id]?.name ?? id),
-    items: rows(items, sides, (id) => content.items[id]?.name ?? id),
+    items: rows(items, sides, (id) => pieceDisplayName(content, id)),
   };
 }
 

@@ -119,3 +119,31 @@ describe('0008 item renames', () => {
     expect(preset!.loadout).toEqual({ items: [{ itemId: 'shortbow' }], infusions: [] });
   });
 });
+
+describe('0009 modular items', () => {
+  it('turns retired static items into the forged pieces of their parts, leaving components alone', async () => {
+    const [u] = await dbh.db.insert(users).values({ email: 'mod@example.com', displayName: 'M', passwordHash: 'x' }).returning();
+    await dbh.db.insert(itemInstances).values([
+      { userId: u!.id, itemId: 'wind_katana', source: 'test' },
+      { userId: u!.id, itemId: 'ice_crystal', source: 'test' },
+      { userId: u!.id, itemId: 'emblem_of_the_inferno', source: 'test' },
+      { userId: u!.id, itemId: 'longsword', source: 'test' },
+    ]);
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const old = { items: [{ itemId: 'soldier_spear', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }], infusions: [{ skill: 'charge', element: 'Ice' }] };
+    const [c] = await dbh.db.insert(characters).values({ ...base, loadout: old }).returning();
+    await dbh.db.insert(loadoutPresets).values({ characterId: c!.id, name: 'P', loadout: { items: [{ itemId: 'hand_of_healing' }], infusions: [] } });
+
+    for (const statement of dataStatements('0009_modular_items.sql')) await dbh.db.execute(sql.raw(statement));
+
+    const owned = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, u!.id));
+    expect(owned.map((i) => i.itemId).sort()).toEqual(['fire_shard+fire_shard+sigil_inferno', 'ice_shard+ice_shard', 'longsword', 'longsword+wind_shard+sigil_momentum']);
+    const [after] = await dbh.db.select().from(characters).where(eq(characters.id, c!.id));
+    expect(after!.loadout).toEqual({
+      items: [{ itemId: 'spear+rapier+sigil_vanguard', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }],
+      infusions: [{ skill: 'charge', element: 'Ice' }],
+    });
+    const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, c!.id));
+    expect(preset!.loadout).toEqual({ items: [{ itemId: 'mace+sigil_selflessness' }], infusions: [] });
+  });
+});

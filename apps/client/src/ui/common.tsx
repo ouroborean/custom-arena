@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
-import { COLORS, type ContentBundle, type Cost, type ItemDef, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
+import { COLORS, type ContentBundle, type Cost, type PieceDef, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
 import { portraitUrl, skillIconUrl, useAssets } from '../assets.js';
 import { useStore, type InspectTarget } from '../store.js';
 
@@ -357,15 +357,18 @@ export function SkillGlyph({ def, content }: { def: SkillDef; content: ContentBu
 }
 
 /**
- * An item at a glance: a colored corner for each infusion it adds (top-right, then bottom-right), and
- * in the middle an icon for each skill it grants plus "!" if it has a passive. With more to show, the
- * tokens shrink. Decorative: the tile around it carries the accessible name and the hover card.
+ * A piece of equipment at a glance: a colored corner for each infusion it adds (top-right, then
+ * bottom-right), and in the middle an icon for each skill it grants plus "!" if it has a passive. With
+ * more to show, the tokens shrink. Decorative: the tile around it carries the accessible name and the
+ * hover card.
  */
-export function ItemFace({ def, content, className = '' }: { def: ItemDef; content: ContentBundle; className?: string }) {
+export function ItemFace({ def, content, className = '' }: { def: Pick<PieceDef, 'skills' | 'infusions' | 'passive'>; content: ContentBundle; className?: string }) {
   const icons = useAssets((s) => s.icons);
   const tokens = def.skills.length + (def.passive ? 1 : 0);
+  // Infusions only: a diamond each (three for a Geode, sized like three tokens).
+  const size = tokens || (def.infusions.length > 2 ? 3 : 0);
   return (
-    <span className={`item-face ${className}`} data-tokens={tokens} aria-hidden>
+    <span className={`item-face ${className}`} data-tokens={size} aria-hidden>
       {def.infusions.slice(0, 2).map((inf, i) => (
         <span key={i} className={`item-corner item-corner-${i} ${elementClass(inf.element)}`} />
       ))}
@@ -380,7 +383,7 @@ export function ItemFace({ def, content, className = '' }: { def: ItemDef; conte
           );
         })}
         {def.passive && <span className="item-token item-passive">!</span>}
-        {/* Infusions only (crystals, shards): a diamond per infusion, so the middle isn't blank. */}
+        {/* Infusions only (Shards, Crystals, Geodes): a diamond per infusion, so the middle isn't blank. */}
         {tokens === 0 &&
           def.infusions.map((inf, i) => (
             <span key={i} className={`item-token item-infusion ${elementClass(inf.element)}`}>

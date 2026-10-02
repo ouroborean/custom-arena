@@ -176,10 +176,10 @@ describe('MatchRoom', () => {
 
   it("tells each player their own reward when the match ends", async () => {
     const { room, c, store } = setup();
-    store.outcome = { ratings: null, rewards: [{ currency: { gold: 40 }, items: ['wind_katana'] }, null] };
+    store.outcome = { ratings: null, rewards: [{ currency: { gold: 40 }, items: ['longsword+wind_shard+sigil_momentum'] }, null] };
     room.surrender(1);
     await room.finished;
-    expect(c[0].last('match.end')?.reward).toEqual({ currency: { gold: 40 }, items: ['wind_katana'] });
+    expect(c[0].last('match.end')?.reward).toEqual({ currency: { gold: 40 }, items: ['longsword+wind_shard+sigil_momentum'] });
     expect(c[1].last('match.end')?.reward).toBeUndefined();
   });
 });
