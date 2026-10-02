@@ -30,7 +30,6 @@ export const recordOf = (c: CharacterRow): CharacterRecord => ({
   name: c.name,
   classId: c.classId,
   element: c.element,
-  rarity: c.rarity,
   portraitId: c.portraitId,
   skills: c.skills,
 });

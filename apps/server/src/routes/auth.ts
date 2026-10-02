@@ -7,9 +7,8 @@ import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { audit } from '../audit.js';
 import { SESSION_COOKIE, createSession, deleteSession, hashPassword, verifyPassword } from '../auth.js';
-import { teams, users } from '../db/schema.js';
+import { users } from '../db/schema.js';
 import { grantStarterKit } from './equipment.js';
-import { rollForUser } from './roster.js';
 import { walletOf } from '../economy.js';
 
 const Credentials = z.object({
@@ -53,9 +52,8 @@ export function authRoutes(ctx: AppContext) {
         .returning({ id: users.id, email: users.email, displayName: users.displayName });
       if (!user) throw new HttpError(500, 'Could not create the account');
 
-      const starters = [];
-      for (let i = 0; i < 3; i++) starters.push(await rollForUser(ctx, user.id));
-      await ctx.db.insert(teams).values({ userId: user.id, name: 'Team 1', characterIds: starters.map((c) => c.id), isActive: true });
+      // No characters yet: new players recruit them with their starting Gold (the first three
+      // become the active team).
       await grantStarterKit(ctx, user.id);
       await walletOf(ctx.db, ctx.content, user.id);
 
@@ -89,8 +87,7 @@ export function authRoutes(ctx: AppContext) {
     });
 
     app.get('/api/me', { preHandler: requireUser }, async (req) => {
-      const [row] = await ctx.db.select({ rollsSincePity: users.rollsSincePity }).from(users).where(eq(users.id, req.user!.id));
-      return { user: req.user, rollsSincePity: row?.rollsSincePity ?? 0 };
+      return { user: req.user };
     });
   };
 }

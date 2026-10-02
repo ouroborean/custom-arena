@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
-import { characters, teams, users } from '../db/schema.js';
+import { characters, teams } from '../db/schema.js';
 import { inTransaction, spend, walletOf } from '../economy.js';
 import { recordOf, resolveStored } from './equipment.js';
 
@@ -39,7 +39,6 @@ export function characterJson(c: CharacterRow) {
     name: c.name,
     classId: c.classId,
     element: c.element,
-    rarity: c.rarity,
     portraitId: c.portraitId,
     skills: c.skills,
     loadout: c.loadout,
@@ -48,24 +47,32 @@ export function characterJson(c: CharacterRow) {
   };
 }
 
-/** Rolls a character for a user (class weighting and pity from their roster) and stores it. */
+/**
+ * Rolls a character for a user (class weighting from their roster) and stores it. A user without an
+ * active team gets one as soon as they have 3 characters: their first three recruits.
+ */
 export async function rollForUser(ctx: AppContext, userId: string): Promise<CharacterRow> {
   const owned = await ctx.db.select({ classId: characters.classId }).from(characters).where(eq(characters.userId, userId));
   if (owned.length >= MAX_ROSTER) throw new HttpError(409, `Your roster is full (${MAX_ROSTER})`);
   const ownedClassCounts: Record<string, number> = {};
   for (const o of owned) ownedClassCounts[o.classId] = (ownedClassCounts[o.classId] ?? 0) + 1;
-  const [u] = await ctx.db.select({ rollsSincePity: users.rollsSincePity }).from(users).where(eq(users.id, userId));
-
-  const { character, rollsSincePity } = rollCharacter(ctx.content, seedRng(ctx.rollSeed()), {
-    ownedClassCounts,
-    rollsSincePity: u?.rollsSincePity ?? 0,
-  });
+  const { character } = rollCharacter(ctx.content, seedRng(ctx.rollSeed()), { ownedClassCounts });
   const [row] = await ctx.db
     .insert(characters)
     .values({ userId, ...character, contentVersion: ctx.content.version })
     .returning();
-  await ctx.db.update(users).set({ rollsSincePity }).where(eq(users.id, userId));
   if (!row) throw new HttpError(500, 'Could not store the character');
+  if (owned.length + 1 >= 3) {
+    const [active] = await ctx.db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(and(eq(teams.userId, userId), eq(teams.isActive, true)))
+      .limit(1);
+    if (!active) {
+      const roster = await ctx.db.select({ id: characters.id }).from(characters).where(eq(characters.userId, userId)).orderBy(characters.createdAt).limit(3);
+      await ctx.db.insert(teams).values({ userId, name: 'Team 1', characterIds: roster.map((c) => c.id), isActive: true });
+    }
+  }
   return row;
 }
 

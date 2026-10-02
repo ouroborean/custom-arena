@@ -57,6 +57,14 @@ export interface CommitPlan {
 export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
 export type Screen = ReturnScreen | 'character' | 'battle' | 'settings';
 
+/** A skill use, as the action popup shows it. */
+export interface ShownAction {
+  id: number;
+  actor: string;
+  skill: string;
+  targets: string[];
+}
+
 interface StoreState {
   screen: Screen;
   /** The character open on the character screen. */
@@ -74,6 +82,8 @@ interface StoreState {
   displayView: PlayerView | null;
   displayHp: Record<string, number>;
   floats: FloatText[];
+  /** The skill use playback is showing now (the action popup); not set by instant playback. */
+  action: ShownAction | null;
   logs: [LogLine[], LogLine[]];
   speed: Speed;
   commitOpen: boolean;
@@ -243,6 +253,7 @@ export const useStore = create<StoreState>((set, get) => {
     displayView: null,
     displayHp: {},
     floats: [],
+    action: null,
     logs: [[], []],
     speed: 1,
     commitOpen: false,
@@ -280,6 +291,7 @@ export const useStore = create<StoreState>((set, get) => {
         displayView: null,
         displayHp: {},
         floats: [],
+        action: null,
         logs: [[], []],
         commitOpen: false,
         handoff: null,
@@ -443,6 +455,7 @@ export const useStore = create<StoreState>((set, get) => {
       if (e.t === 'damage' || e.t === 'heal') hp[e.target] = e.hp;
       if (e.t === 'died') hp[e.unit] = 0;
       const float = toFloat(e, id++);
+      const action = e.t === 'skillUsed' && e.actor && !fastForwarding ? { id: id++, actor: e.actor, skill: e.skill, targets: e.targets } : null;
       // Sound: each event as it plays; a fast-forward (instant playback) only keeps the ending.
       const cue = cueFor(match.content, e, viewer);
       if (cue && (!fastForwarding || e.t === 'gameOver')) playCue(cue);
@@ -457,6 +470,7 @@ export const useStore = create<StoreState>((set, get) => {
         ...(view ? { displayView: view } : {}),
         displayHp: trail.view ? hpOf(trail.view) : hp,
         floats: float ? [...floats, float] : floats,
+        ...(action ? { action } : {}),
         logs: nextLogs,
         nextId: id,
       });

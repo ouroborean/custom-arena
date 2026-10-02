@@ -76,18 +76,29 @@ export function CommitDialog({ view, viewer, content }: { view: PlayerView; view
 
         {reserved.r > 0 && (
           <section>
-            <h3>
-              Pay random costs ({assigned}/{reserved.r})
-            </h3>
+            <h3>Pay random costs</h3>
+            <div className={`alloc-due${assigned >= reserved.r ? ' paid' : ''}`} aria-live="polite">
+              <span className="alloc-due-num">
+                {assigned}
+                <span className="alloc-due-of">/{reserved.r}</span>
+              </span>
+              <span className="alloc-due-label">
+                {assigned >= reserved.r ? 'Random costs paid' : `${reserved.r - assigned} random energy left to pay`}
+              </span>
+            </div>
             <p className="muted alloc-hint">Choose which spare energy pays for the random part of your skills' costs.</p>
             <div className="alloc" ref={allocRef}>
               {COLORS.map((c) => {
                 const spare = pool[c] - reserved[c];
                 return (
-                  <div className="alloc-cell" key={c}>
-                    <EnergyPip color={c} size={16} title={COLOR_NAMES[c]} />
-                    <span className="muted alloc-label" title={COLOR_NAMES[c]}>
-                      {COLOR_ABBR[c]} · {spare} spare
+                  <div className={`alloc-cell${spare === 0 ? ' empty' : ''}`} key={c}>
+                    <span className="alloc-color" title={COLOR_NAMES[c]}>
+                      <EnergyPip color={c} size={18} title={COLOR_NAMES[c]} />
+                      {COLOR_ABBR[c]}
+                    </span>
+                    <span className="alloc-spare" aria-label={`${spare - alloc[c]} ${COLOR_NAMES[c]} spare of ${pool[c]} in your pool`}>
+                      <b>{spare - alloc[c]}</b>
+                      <span className="muted">spare · {pool[c]} in pool</span>
                     </span>
                     <div className="stepper">
                       <button type="button" className="icon-btn" aria-label={`Less ${COLOR_NAMES[c]}`} disabled={alloc[c] <= 0} onClick={() => bump(c, -1)}>

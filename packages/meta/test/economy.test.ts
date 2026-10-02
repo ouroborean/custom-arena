@@ -7,8 +7,9 @@ const content = loadContentOrThrow();
 const win: MatchRewardInput = { kind: 'casual', outcome: 'win', endReason: 'elimination', turns: 20, dropsToday: 0 };
 
 describe('economy', () => {
-  it('new accounts start with the configured balances', () => {
-    expect(startingWallet(content)).toEqual({ gold: 300 });
+  it('new accounts start with enough Gold to recruit 10 characters', () => {
+    expect(startingWallet(content)).toEqual({ gold: 1000 });
+    expect(1000 / content.economy.roll.cost.gold!).toBe(10);
     expect(canAfford({ gold: 300 }, content.economy.roll.cost)).toBe(true);
     expect(canAfford({ gold: 99 }, content.economy.roll.cost)).toBe(false);
   });

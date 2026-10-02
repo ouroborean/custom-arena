@@ -380,13 +380,6 @@ h3,
   text-overflow: ellipsis;
 }
 
-.plate-sub {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 600;
-}
 
 .turn-flag {
   width: 14px;
@@ -574,6 +567,128 @@ h3,
 .stage-status.busy {
   background: var(--red);
   color: #fff;
+}
+
+/* The action popup (ActionPopup): who used what on whom, while a turn plays back. Its slot keeps its
+   height so the stage doesn't jump as popups come and go. */
+.action-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 96px;
+}
+
+.action-popup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, 100%);
+  padding: 8px 12px 8px 8px;
+  background: var(--void);
+  border: 2px solid var(--line-2);
+  border-left: 5px solid var(--yellow);
+  box-shadow: var(--shadow);
+  text-align: left;
+  animation: action-in 0.18s ease-out;
+}
+
+.action-popup.foe {
+  border-left-color: var(--red);
+}
+
+@keyframes action-in {
+  from {
+    transform: translateY(6px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+.action-face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border: 2px solid var(--line-2);
+}
+
+.action-face.small {
+  width: 22px;
+  height: 22px;
+  border-width: 1px;
+}
+
+.action-face .portrait-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.action-face .mono {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.action-face.small .mono {
+  font-size: 11px;
+  text-shadow: none;
+}
+
+.action-face:has(.portrait-art) .mono {
+  visibility: hidden;
+}
+
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.action-actor {
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.action-used {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.action-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 17px;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.action-targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.action-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .stage-feed {
@@ -1817,9 +1932,78 @@ button.portrait.targetable {
   font-size: 12px;
 }
 
-.alloc-label {
-  font-size: 12px;
+/* What's still owed: a big "paid/due" count, yellow until it's all paid. */
+.alloc-due {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 2px solid var(--yellow);
+  background: var(--ink-2);
+}
+
+.alloc-due.paid {
+  border-color: var(--hp);
+}
+
+.alloc-due-num {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--yellow);
+  font-variant-numeric: tabular-nums;
+}
+
+.alloc-due.paid .alloc-due-num {
+  color: var(--hp);
+}
+
+.alloc-due-of {
+  font-size: 26px;
+  color: var(--muted);
+}
+
+.alloc-due-label {
+  font-weight: 800;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.alloc-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+/* Spare energy of one color: what's left to pay with, large, and the pool total beside it. */
+.alloc-spare {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.alloc-spare b {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.alloc-spare .muted {
+  margin-top: 3px;
+  font-size: 11px;
   white-space: nowrap;
+}
+
+.alloc-cell.empty .alloc-spare b {
+  color: var(--faint);
 }
 
 .alloc-cell {
@@ -2116,9 +2300,6 @@ select:focus {
   .roster.enemy .portrait .mono {
     font-size: 28px;
     margin-top: -14px;
-  }
-  .plate-sub {
-    display: none;
   }
   .plate.right {
     display: contents;
@@ -2564,36 +2745,11 @@ input[type="password"] {
   font-weight: 500;
 }
 
-.rarity {
-  padding: 1px 6px;
-  font-size: 10.5px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--void);
-}
 
-.rarity-common {
-  background: #b9b9c4;
-}
 
-.rarity-uncommon {
-  background: var(--hp);
-}
 
-.rarity-rare {
-  background: #1e7bff;
-  color: #fff;
-}
 
-.rarity-epic {
-  background: #a53cff;
-  color: #fff;
-}
 
-.rarity-legendary {
-  background: #ff8a00;
-}
 
 /* A skill's icon at the front of its chip (roster, character, loadout and sandbox screens). */
 .skill-chip .chip-glyph {

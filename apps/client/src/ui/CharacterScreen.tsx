@@ -2,13 +2,13 @@
 // The loadout is validated live with the same @arena/meta rules the server enforces on save.
 
 import { useEffect, useMemo, useState } from 'react';
-import { EQUIPMENT_SLOTS, RARITIES, resolveLoadout, type Loadout } from '@arena/meta';
+import { EQUIPMENT_SLOTS, MAX_SKILLS, PASSIVE_BUDGET, resolveLoadout, type Loadout } from '@arena/meta';
 import { api, ApiError, type Character, type Preset } from '../api.js';
 import { content } from '../content.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { LoadoutEditor } from './LoadoutEditor.js';
-import { Portrait, RarityBadge, recordOf, SkillChips } from './Roster.js';
+import { Portrait, recordOf, SkillChips } from './Roster.js';
 
 /** JSON with sorted keys: the server's jsonb storage doesn't keep key order. */
 function canonical(v: unknown): string {
@@ -75,7 +75,6 @@ function CharacterPage({
   const [saved, setSaved] = useState<string | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
-  const rarity = RARITIES[c.rarity];
   const record = useMemo(() => recordOf(c), [c]);
   const resolved = useMemo(() => resolveLoadout(content, record, draft), [record, draft]);
   const dirty = canonical(draft) !== canonical(c.loadout);
@@ -119,7 +118,6 @@ function CharacterPage({
   };
 
   const problems = [...resolved.problems, ...serverProblems];
-  const b = rarity.budget;
 
   return (
     <div className="meta-page wide">
@@ -139,12 +137,11 @@ function CharacterPage({
             </button>
           </div>
           <div className="char-meta">
-            <RarityBadge rarity={c.rarity} />
             <span>
               {c.element} {content.classes[c.classId]?.name}
             </span>
             <span className="muted">
-              {EQUIPMENT_SLOTS} item slots · budget {b.skills} skills / {b.passives} passives
+              {EQUIPMENT_SLOTS} item slots · up to {MAX_SKILLS} skills · {PASSIVE_BUDGET} item passive
             </span>
           </div>
           <SkillChips skills={resolved.problems.length ? c.skills : resolved.skills} />
@@ -166,7 +163,7 @@ function CharacterPage({
         <div className="section-head">
           <span className="panel-title">Loadout</span>
           <span className="muted">
-            {draft.items.length}/{EQUIPMENT_SLOTS} items · using {resolved.usage.skills}/{b.skills} skills · {resolved.usage.passives}/{b.passives} passives ·{' '}
+            {draft.items.length}/{EQUIPMENT_SLOTS} items · {resolved.skills.length}/{MAX_SKILLS} skills · {resolved.usage.passives}/{PASSIVE_BUDGET} passive ·{' '}
             {resolved.usage.infusions} infusions placed
           </span>
           <span style={{ flex: 1 }} />

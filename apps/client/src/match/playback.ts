@@ -48,31 +48,34 @@ export function logKind(e: GameEvent): LogKind {
   }
 }
 
-/** Milliseconds to linger on an event at 1× speed. */
+/**
+ * Milliseconds to linger on an event at 1× speed (2× halves them). A skill use lingers longest, so its
+ * action popup can be read before the results land.
+ */
 export function delayFor(e: GameEvent): number {
   switch (e.t) {
     case 'turnStart':
-      return 500;
+      return 800;
     case 'skillUsed':
     case 'skillCountered':
-      return 600;
+      return 1100;
     case 'damage':
-      return 420;
+      return 650;
     case 'heal':
-      return 380;
+      return 600;
     case 'died':
-      return 700;
+      return 1000;
     case 'effectRevealed':
-      return 500;
+      return 750;
     case 'gameOver':
-      return 300;
+      return 450;
     case 'energyGained':
     case 'turnEnd':
-      return 120;
+      return 180;
     case 'checkpoint':
       return 0;
     default:
-      return 200;
+      return 320;
   }
 }
 

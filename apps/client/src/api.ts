@@ -2,7 +2,7 @@
 // development) so the httpOnly session cookie rides along automatically.
 
 import type { CharacterSpec, MatchConfig, MatchRecord, PlayerId } from '@arena/engine';
-import type { CharacterSkill, Loadout, RarityId, ResolvedLoadout } from '@arena/meta';
+import type { CharacterSkill, Loadout, ResolvedLoadout } from '@arena/meta';
 
 export interface User {
   id: string;
@@ -15,7 +15,6 @@ export interface Character {
   name: string;
   classId: string;
   element: string;
-  rarity: RarityId;
   portraitId: string;
   skills: CharacterSkill[];
   loadout: Loadout;
@@ -143,7 +142,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 
 export const api = {
   health: () => call<{ ok: boolean; engine: string; content: string }>('GET', '/health'),
-  me: () => call<{ user: User; rollsSincePity: number }>('GET', '/me'),
+  me: () => call<{ user: User }>('GET', '/me'),
   register: (email: string, password: string, displayName: string) =>
     call<{ user: User }>('POST', '/auth/register', { email, password, displayName }),
   login: (email: string, password: string) => call<{ user: User }>('POST', '/auth/login', { email, password }),

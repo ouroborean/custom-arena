@@ -1,6 +1,6 @@
-// Shared roster pieces: rarity badge, character card, and effective (equipment-resolved) skills.
+// Shared roster pieces: character card and effective (equipment-resolved) skills.
 
-import { resolveLoadout, RARITIES, skillDefId, type CharacterRecord, type CharacterSkill } from '@arena/meta';
+import { resolveLoadout, skillDefId, type CharacterRecord, type CharacterSkill } from '@arena/meta';
 import type { Character } from '../api.js';
 import { content } from '../content.js';
 import { portraitKey } from '../assets.js';
@@ -10,7 +10,6 @@ export const recordOf = (c: Character): CharacterRecord => ({
   name: c.name,
   classId: c.classId,
   element: c.element,
-  rarity: c.rarity,
   portraitId: c.portraitId,
   skills: c.skills,
 });
@@ -19,10 +18,6 @@ export const recordOf = (c: Character): CharacterRecord => ({
 export function effectiveSkills(c: Character): CharacterSkill[] {
   const r = resolveLoadout(content, recordOf(c), c.loadout);
   return r.problems.length ? c.skills : r.skills;
-}
-
-export function RarityBadge({ rarity }: { rarity: Character['rarity'] }) {
-  return <span className={`rarity rarity-${rarity}`}>{RARITIES[rarity].name}</span>;
 }
 
 export function SkillChips({ skills }: { skills: CharacterSkill[] }) {
@@ -84,7 +79,7 @@ export function CharacterCard({
       className={`char-card ${selected ? 'selected' : ''}`}
       onClick={onOpen}
       aria-pressed={selected}
-      aria-label={`${c.name}, ${RARITIES[c.rarity].name} ${c.element} ${cls?.name ?? c.classId}`}
+      aria-label={`${c.name}, ${c.element} ${cls?.name ?? c.classId}`}
     >
       <Portrait c={c} />
       <div className="char-card-body">
@@ -93,7 +88,6 @@ export function CharacterCard({
           {order !== undefined && <span className="team-order">{order}</span>}
         </div>
         <div className="char-meta">
-          <RarityBadge rarity={c.rarity} />
           <span>
             {c.element} {cls?.name}
           </span>

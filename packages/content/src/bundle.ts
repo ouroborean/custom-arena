@@ -408,9 +408,12 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
   for (const c of Object.values(b.classes)) {
     for (const sk of [...c.signatures, ...c.affinity]) if (!b.skills[sk]) err(`classes.${c.id}`, `unknown skill "${sk}"`);
     for (const sk of c.affinity) if (c.signatures.includes(sk)) err(`classes.${c.id}`, `"${sk}" is both signature and affinity`);
+    if (c.starter && ![...c.signatures, ...c.affinity].includes(c.starter)) err(`classes.${c.id}`, `starter "${c.starter}" isn't in the class's pool`);
+    if (!c.advanced && !c.starter) err(`classes.${c.id}`, 'a rollable class needs a starter skill');
     for (const sk of c.signatures) sigCount.set(sk, (sigCount.get(sk) ?? 0) + 1);
     for (const sk of c.affinity) affCount.set(sk, (affCount.get(sk) ?? 0) + 1);
   }
+  if (Object.keys(b.classes).length > 0 && Object.values(b.classes).every((c) => c.advanced)) err('classes', 'no class can be rolled (all are advanced)');
   if (Object.keys(b.classes).length > 0) {
     const baseSkills = Object.values(b.skills).filter((s) => s.element === 'None');
     for (const s of baseSkills) {

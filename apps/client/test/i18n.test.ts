@@ -4,7 +4,7 @@ import { en } from '../src/i18n/en.js';
 
 describe('i18n', () => {
   it('interpolates params and formats numbers', () => {
-    expect(format('en', 'home.roll', { cost: '100 Gold' })).toBe('Roll a character (100 Gold)');
+    expect(format('en', 'home.roll', { cost: '100 Gold' })).toBe('Recruit a character (100 Gold)');
     expect(format('en', 'coach.tip', { n: 2, total: 7 })).toBe('Tip 2/7');
   });
 

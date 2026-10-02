@@ -1,7 +1,7 @@
 // PostgreSQL schema (GDD §10.5), managed with Drizzle. Migrations: `npm run db:generate -w @arena/server`.
 // Item definitions live in content, never in the database (referenced by string id).
 
-import type { CharacterSkill, Loadout, RarityId } from '@arena/meta';
+import type { CharacterSkill, Loadout } from '@arena/meta';
 import { sql } from 'drizzle-orm';
 import { boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import type { Command, MatchConfig } from '@arena/engine';
@@ -13,8 +13,6 @@ export const users = pgTable(
     email: text('email').notNull(),
     displayName: text('display_name').notNull(),
     passwordHash: text('password_hash').notNull(),
-    /** Character rolls since the last pity-eligible rarity (GDD §7.2). */
-    rollsSincePity: integer('rolls_since_pity').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('users_email_idx').on(sql`lower(${t.email})`)],
@@ -44,7 +42,6 @@ export const characters = pgTable(
     name: text('name').notNull(),
     classId: text('class_id').notNull(),
     element: text('element').notNull(),
-    rarity: text('rarity').$type<RarityId>().notNull(),
     portraitId: text('portrait_id').notNull(),
     /** Ordered skill list; validated by @arena/meta (GDD §7.1 character_skills, kept as one document). */
     skills: jsonb('skills').$type<CharacterSkill[]>().notNull(),

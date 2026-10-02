@@ -17,7 +17,7 @@ import {
   type RngState,
 } from '@arena/engine';
 import type { CharacterRecord, CharacterSkill } from './character.js';
-import { MAX_SKILLS, RARITIES } from './rarity.js';
+import { MAX_SKILLS, NATIVE_INFUSIONS, PASSIVE_BUDGET } from './rules.js';
 
 /** Pieces a character can have equipped at once, of any kind (GDD §8.3, decided 2026-09-27). */
 export const EQUIPMENT_SLOTS = 4;
@@ -52,8 +52,7 @@ export interface Loadout {
   infusions: InfusionAssignment[];
   /**
    * Which equipment-granted skills are prepared (base ids, in order). The pieces put their skills in a
-   * pool; only prepared ones join the character's skills, within the 5-skill cap and the rarity's
-   * skill budget. Absent on loadouts saved before the pool: every granted skill is prepared.
+   * pool; only prepared ones join the character's skills, within the 5-skill cap. Absent on loadouts saved before the pool: every granted skill is prepared.
    */
   skills?: string[];
 }
@@ -87,7 +86,7 @@ export interface ResolvedLoadout {
   passiveEffects: string[];
   /** Every equipped piece id (records and analytics). */
   items: string[];
-  /** Infusions the equipment provides, by element. */
+  /** Infusions in the pool, by element: the base element's native one plus the equipment's. */
   pool: Record<string, number>;
   /** Pool infusions not applied to any skill, by element (only elements with some left). */
   unassigned: Record<string, number>;
@@ -114,16 +113,16 @@ export function infusedSkillId(content: ContentBundle, base: string, elements: r
   return content.skills[id] ? id : undefined;
 }
 
-/** The elements every equipped piece adds to the pool. */
-export function infusionPool(content: ContentBundle, items: readonly EquippedItem[]): Record<string, number> {
+/** The character's infusion pool: its base element's native infusion, plus the elements every equipped piece adds. */
+export function infusionPool(content: ContentBundle, record: CharacterRecord, items: readonly EquippedItem[]): Record<string, number> {
   const pool: Record<string, number> = {};
+  if (record.element && record.element !== 'None') pool[record.element] = NATIVE_INFUSIONS;
   for (const eq of items) for (const inf of describePiece(content, eq.itemId)?.infusions ?? []) pool[inf.element] = (pool[inf.element] ?? 0) + 1;
   return pool;
 }
 
 export function resolveLoadout(content: ContentBundle, record: CharacterRecord, loadout: Loadout): ResolvedLoadout {
   const problems: string[] = [];
-  const rarity = RARITIES[record.rarity];
   const skills: CharacterSkill[] = record.skills.filter((s) => s.source === 'native').map((s) => ({ ...s }));
   const usage = { skills: 0, passives: 0, infusions: 0 };
   const passiveItems: string[] = [];
@@ -169,8 +168,8 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
   const unprepared = skillPool.filter((base) => !skills.some((s) => s.base === base));
   if (skills.length > MAX_SKILLS) problems.push(`Too many skills (${skills.length}; the cap is ${MAX_SKILLS})`);
 
-  // Infusions: the items supply elements; the player puts each on a skill.
-  const pool = infusionPool(content, items.map((i) => i.eq));
+  // Infusions: the base element and the pieces supply elements; the player puts each on a skill.
+  const pool = infusionPool(content, record, items.map((i) => i.eq));
   const used: Record<string, number> = {};
   const added = new Map<string, string[]>();
   const over = new Set<string>();
@@ -224,9 +223,7 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
     if (def.passiveEffect) passiveEffects.push(def.passiveEffect);
   }
 
-  const b = rarity.budget;
-  if (usage.skills > b.skills) problems.push(`Equipment grants ${usage.skills} skills; ${rarity.name} characters can use ${b.skills}`);
-  if (usage.passives > b.passives) problems.push(`${usage.passives} item passives; ${rarity.name} characters can use ${b.passives}`);
+  if (usage.passives > PASSIVE_BUDGET) problems.push(`${usage.passives} item passives; a character can use ${PASSIVE_BUDGET}`);
 
   return { skills, skillPool, unprepared, passiveItems, passiveEffects, items: items.map((i) => i.def.id), pool, unassigned, usage, problems };
 }
@@ -266,7 +263,7 @@ export function pruneInfusions(content: ContentBundle, record: CharacterRecord, 
   const grantable = skillPoolOf(content, record, loadout.items);
   const skills = preparedOf(content, record, loadout).filter((b, i, all) => grantable.includes(b) && all.indexOf(b) === i);
   const bases = new Set(resolveLoadout(content, record, { items: loadout.items, infusions: [], skills }).skills.map((s) => s.base));
-  const left = infusionPool(content, loadout.items);
+  const left = infusionPool(content, record, loadout.items);
   const infusions = (loadout.infusions ?? []).filter((a) => {
     if (!bases.has(a.skill) || !left[a.element]) return false;
     left[a.element]!--;
@@ -277,7 +274,7 @@ export function pruneInfusions(content: ContentBundle, record: CharacterRecord, 
 
 /**
  * Whether one more pool skill can be prepared: it's granted and unprepared, and preparing it breaks no
- * rule the loadout keeps now (the 5-skill cap, the rarity's skill budget).
+ * rule the loadout keeps now (the 5-skill cap).
  */
 export function canPrepare(content: ContentBundle, record: CharacterRecord, loadout: Loadout, base: string): boolean {
   const before = resolveLoadout(content, record, loadout);
@@ -354,7 +351,7 @@ export function randomLoadout(content: ContentBundle, record: CharacterRecord, r
     const base = pool.splice(nextInt(rng, pool.length), 1)[0]!;
     if (canPrepare(content, record, loadout, base)) loadout = prepareSkill(content, record, loadout, base);
   }
-  const elements = Object.entries(infusionPool(content, loadout.items)).flatMap(([el, n]) => Array<string>(n).fill(el));
+  const elements = Object.entries(infusionPool(content, record, loadout.items)).flatMap(([el, n]) => Array<string>(n).fill(el));
   for (const element of elements) {
     const skills = resolveLoadout(content, record, loadout).skills.filter((s) => canInfuse(content, record, loadout, s.base, element));
     const pick = skills[nextInt(rng, Math.max(1, skills.length))];

@@ -17,7 +17,6 @@ import {
   PIECE_KIND_NAMES,
   pieceKind,
   prepareSkill,
-  RARITIES,
   resolveLoadout,
   skillDefId,
   unprepareSkill,
@@ -364,7 +363,7 @@ function SlotGrants({ def }: { def: PieceDef }) {
 
 /**
  * The skills the equipment grants: a pool the player prepares from. Prepared skills join the
- * character's (up to the 5-skill cap and the rarity's skill budget); the rest stay out of battle.
+ * character's (up to the 5-skill cap); the rest stay out of battle.
  */
 function SkillPoolPanel({
   record,
@@ -377,7 +376,6 @@ function SkillPoolPanel({
   resolved: ResolvedLoadout;
   onChange: (next: Loadout) => void;
 }) {
-  const budget = RARITIES[record.rarity].budget.skills;
   return (
     <div className="infusion-panel skill-pool" role="group" aria-label="Equipment skills">
       <div className="infusion-head">
@@ -405,7 +403,7 @@ function SkillPoolPanel({
                       ? `Prepared: click to put ${name} back in the pool`
                       : can
                         ? `Click to prepare ${name}`
-                        : `No room: unprepare a skill first (${MAX_SKILLS}-skill cap, ${budget} from equipment)`
+                        : `No room: unprepare a skill first (${MAX_SKILLS}-skill cap)`
                   }
                   onClick={() => onChange(prepared ? unprepareSkill(content, record, draft, base) : prepareSkill(content, record, draft, base))}
                 >
@@ -639,8 +637,7 @@ export function ItemDetails({
         })}
         {def.infusions.map((inf, i) => (
           <li key={`inf-${i}`}>
-            <b>Infusion</b> <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span> for your pool: you choose the
-            skill it goes on
+            <b>Infusion</b> <span className={`skill-chip ${elementClass(inf.element)}`}>{inf.element}</span>
           </li>
         ))}
         {def.passive && (

@@ -120,6 +120,11 @@ export const useMeta = create<MetaState>((set, get) => {
       const r = await act(() => api.roll());
       if (!r) return null;
       set({ characters: [...get().characters, r.character], wallet: r.wallet });
+      // The first three recruits become the active team on the server.
+      if (get().team.length < 3) {
+        const team = await act(() => api.activeTeam());
+        if (team) set({ team: team.team?.characterIds ?? [] });
+      }
       return r.character;
     },
 
