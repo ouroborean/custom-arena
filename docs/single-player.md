@@ -204,7 +204,5 @@ verification. Finishing all three pays a free character and a Dragon Crystal (tw
 - **Story tuning:** story balance, especially the two outlier bosses.
 - **More lessons:** one tutorial lesson per element (the GDD's "one element at a time"); there is
   one Fire lesson now.
-- **Practice rewards:** local practice still pays nothing. Story-style verification could pay small
-  practice rewards if wanted.
 - **Unlock predicates:** the GDD's story-driven unlocks of C/E/F/J equipment are superseded by the
   item rewards above (GDD §8.4 ignores the sheet's unlock conditions).

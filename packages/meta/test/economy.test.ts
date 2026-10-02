@@ -27,6 +27,21 @@ describe('economy', () => {
     expect(matchReward(content, { ...win, outcome: 'loss' }, seedRng(1))).toEqual({ currency: { gold: 15 }, items: [] });
   });
 
+  it('a played-out practice match against a bot pays a baseline of Gold, and a win drops half as often as in casual', () => {
+    const practice: MatchRewardInput = { ...win, kind: 'practice' };
+    expect(matchReward(content, { ...practice, outcome: 'loss' }, seedRng(1))).toEqual({ currency: { gold: 15 }, items: [] });
+    expect(matchReward(content, { ...practice, outcome: 'draw' }, seedRng(1))).toEqual({ currency: { gold: 20 }, items: [] });
+    expect(matchReward(content, { ...practice, outcome: 'loss', endReason: 'surrender' }, seedRng(1))).toEqual({ currency: {}, items: [] });
+    let drops = 0;
+    for (let s = 1; s <= 400; s++) {
+      const r = matchReward(content, practice, seedRng(s));
+      expect(r.currency).toEqual({ gold: 25 });
+      drops += r.items.length;
+    }
+    expect(drops).toBeGreaterThan(160); // about half of 400
+    expect(drops).toBeLessThan(240);
+  });
+
   it('the daily drop cap stops drops but not gold', () => {
     const r = matchReward(content, { ...win, dropsToday: content.economy.dailyDropCap }, seedRng(1));
     expect(r).toEqual({ currency: { gold: 40 }, items: [] });
@@ -37,6 +52,14 @@ describe('economy', () => {
     expect(rollDrops(content, 'standard', 200, seedRng(7))).toEqual(a);
     expect(a.every((id) => !id.includes('+') && content.items[id])).toBe(true); // forged pieces are made, not dropped
     expect(new Set(a.map((id) => content.items[id]!.type))).toEqual(new Set(['Skill', 'Shard', 'Sigil']));
+  });
+
+  it('a drop is a Shard half the time, a Skill about a third, and a Sigil the rest', () => {
+    const drops = rollDrops(content, 'standard', 4000, seedRng(3));
+    const share = (t: string) => drops.filter((id) => content.items[id]!.type === t).length / drops.length;
+    expect(share('Shard')).toBeCloseTo(0.5, 1);
+    expect(share('Skill')).toBeCloseTo(0.35, 1);
+    expect(share('Sigil')).toBeCloseTo(0.15, 1);
   });
 
   it('forging costs more for a three-component piece; the base keeps its place at the front', () => {

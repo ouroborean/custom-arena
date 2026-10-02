@@ -53,38 +53,6 @@ describe('inventory', () => {
   });
 });
 
-describe('all equipment unlocked (testing)', () => {
-  it('tops every account up to four free copies of each component, refilling what gets equipped', async () => {
-    const h = await openDb();
-    const all = await buildApp({ db: h.db, content, rollSeed: () => seed++, allItems: true });
-    try {
-      const reg = await all.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'all@example.com', password: 'password123', displayName: 'All' } });
-      const cookie = `arena_session=${reg.cookies.find((c) => c.name === 'arena_session')!.value}`;
-      const call = (method: 'GET' | 'PUT', url: string, payload?: object) => all.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
-      type Inv = { id: string; itemId: string; equippedOn: string | null }[];
-      const free = (inv: Inv, itemId: string) => inv.filter((i) => i.itemId === itemId && !i.equippedOn).length;
-
-      const inv = (await call('GET', '/api/inventory')).json().items as Inv;
-      for (const itemId of Object.keys(content.items)) expect(free(inv, itemId)).toBeGreaterThanOrEqual(4);
-
-      const c = ((await call('GET', '/api/characters')).json().characters as Character[])[0]!;
-      const shard = inv.find((i) => i.itemId === 'ice_shard')!.id;
-      expect((await call('PUT', `/api/characters/${c.id}/loadout`, { loadout: { items: [{ itemId: 'ice_shard', instanceId: shard }], infusions: [] } })).statusCode).toBe(200);
-      const after = (await call('GET', '/api/inventory')).json().items as Inv;
-      expect(after.find((i) => i.id === shard)!.equippedOn).toBe(c.id);
-      expect(free(after, 'ice_shard')).toBe(4);
-    } finally {
-      await all.close();
-      await h.close();
-    }
-  });
-
-  it('is off unless asked for', async () => {
-    const { call } = await account('notall@example.com');
-    expect(((await call('GET', '/api/inventory')).json().items as unknown[]).length).toBe(3); // just the starter kit
-  });
-});
-
 describe('loadouts', () => {
   it('equips a shard and puts its infusion on a chosen skill; the team specs carry it', async () => {
     const { call, grant, chars } = await account('equip@example.com');
@@ -138,11 +106,11 @@ describe('loadouts', () => {
     });
     expect(mismatch.json().problems.some((p: string) => p.includes('not ice_shard'))).toBe(true);
 
-    const skills = b.chars[0]!.skills.filter((s) => !s.infusion).map((s) => s.base);
+    const skill = b.chars[0]!.skills[0]!.base;
     const overdrawn = await b.call('PUT', `/api/characters/${b.chars[0]!.id}/loadout`, {
       loadout: {
         items: [{ itemId: 'fire_shard', instanceId: mine }],
-        infusions: skills.slice(0, 2).map((skill) => ({ skill, element: 'Fire' })), // one shard, two infusions
+        infusions: [{ skill, element: 'Fire' }, { skill, element: 'Fire' }], // one shard, two infusions
       },
     });
     expect(overdrawn.json().problems.some((p: string) => p.includes('than the equipment provides'))).toBe(true);

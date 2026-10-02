@@ -6,7 +6,7 @@ import { formatAmounts, matchReward, startingWallet, type Outcome, type Reward, 
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { HttpError } from './app.js';
 import type { Db } from './db/client.js';
-import { currencies, itemInstances, matchRewards } from './db/schema.js';
+import { currencies, itemInstances, matchRewards, spAttempts } from './db/schema.js';
 
 /** Runs `fn` in a transaction. The handle has the same query API as Db. */
 export function inTransaction<T>(db: Db, fn: (tx: Db) => Promise<T>): Promise<T> {
@@ -81,13 +81,17 @@ export function sumRewards(rs: Reward[]): Reward {
 }
 
 /** Item drops the user has had from matches since the start of the current UTC day. */
-async function dropsToday(db: Db, userId: string, now: Date): Promise<number> {
+export async function dropsToday(db: Db, userId: string, now: Date): Promise<number> {
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const [row] = await db
+  const [online] = await db
     .select({ n: sql<number>`coalesce(sum(jsonb_array_length(${matchRewards.items})), 0)::int` })
     .from(matchRewards)
     .where(and(eq(matchRewards.userId, userId), gte(matchRewards.createdAt, since)));
-  return row?.n ?? 0;
+  const [practice] = await db
+    .select({ n: sql<number>`coalesce(sum(jsonb_array_length(${spAttempts.reward}->'items')), 0)::int` })
+    .from(spAttempts)
+    .where(and(eq(spAttempts.userId, userId), eq(spAttempts.mode, 'practice'), gte(spAttempts.finishedAt, since)));
+  return (online?.n ?? 0) + (practice?.n ?? 0);
 }
 
 export interface FinishedMatch {

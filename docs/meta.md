@@ -180,5 +180,6 @@ Schema: `apps/server/src/db/schema.ts`; migrations in `src/db/migrations`
 
 Sign in or register → **Home** (active team, practice vs bot, roster, inventory) → **character page**
 (rename, retire, loadout editor with live validation, presets). Practice uses the server-validated
-team against a generated bot team. The **Sandbox** is the original setup screen (any generated
+team against a generated bot team; the server issues the match and verifies it before paying the
+practice rewards (`docs/equipment.md` §4). The **Sandbox** is the original setup screen (any generated
 teams, hotseat, watch bots) and works without the server.

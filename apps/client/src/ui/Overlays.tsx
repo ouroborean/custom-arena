@@ -63,6 +63,7 @@ export function GameOverOverlay() {
   const rating = online?.rating;
   const reward = online?.reward;
   const story = kind === 'vsBot' ? match.mode.story : undefined;
+  const practice = kind === 'vsBot' ? match.mode.practice : undefined;
 
   const download = () => {
     if (!record) return;
@@ -92,7 +93,7 @@ export function GameOverOverlay() {
           </p>
         )}
         {reward && <Earned currency={reward.currency} items={reward.items} />}
-        {story && <StoryVerdict />}
+        {(story || practice) && <StoryVerdict />}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
           {record && kind !== 'replay' && (
             <button type="button" className="btn" onClick={download}>

@@ -71,6 +71,20 @@
       "when": 1790957159514,
       "tag": "0009_modular_items",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790959319873,
+      "tag": "0010_practice_rewards",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790959321479,
+      "tag": "0011_drop_test_inventory",
+      "breakpoints": true
     }
   ]
 }

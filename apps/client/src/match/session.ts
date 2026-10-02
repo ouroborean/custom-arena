@@ -26,9 +26,14 @@ export interface StoryTag {
   attemptId: string;
 }
 
+/** A practice match the server issued: its result is verified (replayed) before it pays. */
+export interface PracticeTag {
+  attemptId: string;
+}
+
 export type MatchMode =
   /** With `story`, the encounter's own AI plays instead of `bot`. */
-  | { kind: 'vsBot'; bot: BotKind; human: PlayerId; story?: StoryTag }
+  | { kind: 'vsBot'; bot: BotKind; human: PlayerId; story?: StoryTag; practice?: PracticeTag }
   | { kind: 'hotseat' }
   | { kind: 'watch'; bots: [BotKind, BotKind] }
   | { kind: 'online'; you: PlayerId; opponent: string; matchKind: MatchKind; timer: number | null }

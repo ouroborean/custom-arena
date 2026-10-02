@@ -60,7 +60,7 @@ export interface AchievementStatus {
   completedAt: string | null;
 }
 
-/** The server's verdict on a finished story attempt. */
+/** The server's verdict on a finished story attempt or practice match. */
 export interface StoryResult {
   outcome: 'win' | 'loss' | 'draw';
   turns: number;
@@ -179,5 +179,8 @@ export const api = {
   startStory: (encounter: string) => call<{ attemptId: string; encounter: string; config: MatchConfig }>('POST', `/story/${encounter}/start`),
   finishStory: (attemptId: string, commands: MatchRecord['commands']) =>
     call<StoryResult>('POST', `/story/attempts/${attemptId}/finish`, { commands }),
+  startPractice: (bot: string, seat: PlayerId) => call<{ attemptId: string; config: MatchConfig }>('POST', '/practice/start', { bot, seat }),
+  finishPractice: (attemptId: string, commands: MatchRecord['commands']) =>
+    call<StoryResult>('POST', `/practice/attempts/${attemptId}/finish`, { commands }),
   achievements: () => call<{ achievements: AchievementStatus[] }>('GET', '/achievements'),
 };

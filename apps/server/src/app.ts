@@ -17,6 +17,7 @@ import { authRoutes } from './routes/auth.js';
 import { equipmentRoutes } from './routes/equipment.js';
 import { matchRoutes } from './routes/matches.js';
 import { rosterRoutes } from './routes/roster.js';
+import { practiceRoutes } from './routes/practice.js';
 import { storyRoutes } from './routes/story.js';
 
 declare module 'fastify' {
@@ -37,8 +38,6 @@ export interface AppOptions {
   rollSeed?: () => number;
   /** Enable POST /api/dev/grant (development only). */
   devGrants?: boolean;
-  /** Testing: every account owns all equipment (see ServerConfig.allItems). */
-  allItems?: boolean;
   /** Testing: every account's Gold is topped up to at least this much (see ServerConfig.testGold). */
   testGold?: number;
   /** Time source for match timers, matchmaking and seasons (tests pass a FakeClock). */
@@ -57,7 +56,6 @@ export interface AppContext {
   secureCookies: boolean;
   rollSeed: () => number;
   devGrants: boolean;
-  allItems: boolean;
   testGold: number;
   authRateLimit: number;
   clock: Clock;
@@ -94,7 +92,6 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     secureCookies: opts.secureCookies ?? false,
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
     devGrants: opts.devGrants ?? false,
-    allItems: opts.allItems ?? false,
     testGold: opts.testGold ?? 0,
     authRateLimit: opts.authRateLimit ?? 20,
     clock: opts.clock ?? realClock,
@@ -135,6 +132,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(equipmentRoutes(ctx));
   await app.register(matchRoutes(ctx));
   await app.register(storyRoutes(ctx));
+  await app.register(practiceRoutes(ctx));
 
   // The match service (GDD §10.4): one WebSocket per signed-in user.
   const hub = new MatchHub(ctx, ctx.clock, (msg, err) => app.log.error({ err }, msg));

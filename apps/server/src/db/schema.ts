@@ -236,9 +236,10 @@ export const spAttempts = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** story | tutorial */
+    /** story | tutorial | practice */
     mode: text('mode').notNull(),
-    /** Encounter id (story) or lesson id (tutorial). */
+    /** Encounter id (story), lesson id (tutorial), or "<bot>:<seat>" (practice: the bot's difficulty
+     * and the player's seat). */
     ref: text('ref').notNull(),
     contentVersion: text('content_version').notNull(),
     engineVersion: text('engine_version').notNull(),
@@ -247,6 +248,8 @@ export const spAttempts = pgTable(
     outcome: text('outcome'),
     turns: integer('turns'),
     commands: jsonb('commands').$type<{ player: number; cmd: Command }[]>(),
+    /** Practice only: what the finished attempt paid (its drops count toward the daily cap). */
+    reward: jsonb('reward').$type<{ currency: Record<string, number>; items: string[] }>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
   },

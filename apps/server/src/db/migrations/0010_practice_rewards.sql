@@ -1,0 +1,1 @@
+ALTER TABLE "sp_attempts" ADD COLUMN "reward" jsonb;
