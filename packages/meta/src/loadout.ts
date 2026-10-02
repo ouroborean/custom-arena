@@ -49,7 +49,7 @@ export const ITEM_TYPE_NAMES: Record<ItemType, string> = {
   D: 'Elemental weapon',
   E: 'Off-hand',
   F: 'Elemental armor',
-  G: 'Class armor',
+  G: 'Signature gear',
   H: 'Charm',
   I: 'Perfect crystal',
   J: 'Skill trinket',
@@ -119,7 +119,6 @@ export function resolveLoadout(content: ContentBundle, record: CharacterRecord, 
       problems.push(`Unknown item "${eq.itemId}"`);
       continue;
     }
-    if (def.classId && def.classId !== record.classId) problems.push(`${def.name} is ${content.classes[def.classId]?.name ?? def.classId} armor`);
     if (eq.instanceId) {
       if (instances.has(eq.instanceId)) problems.push(`${def.name} is equipped twice`);
       instances.add(eq.instanceId);
@@ -252,9 +251,7 @@ export function withoutItem(content: ContentBundle, record: CharacterRecord, loa
  * tries run out; then each pool infusion goes on a random skill that can take it.
  */
 export function randomLoadout(content: ContentBundle, record: CharacterRecord, rng: RngState, triesPerSlot = 8): Loadout {
-  const pool = Object.values(content.items)
-    .filter((i) => !i.classId || i.classId === record.classId)
-    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  const pool = Object.values(content.items).sort((a, b) => (a.id < b.id ? -1 : 1));
   let loadout: Loadout = { items: [], infusions: [] };
   for (let t = 0; t < EQUIPMENT_SLOTS * triesPerSlot && loadout.items.length < EQUIPMENT_SLOTS; t++) {
     const def = pool[nextInt(rng, pool.length)];

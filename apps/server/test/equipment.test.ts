@@ -161,3 +161,26 @@ describe('loadouts', () => {
     await plain.close();
   });
 });
+
+describe('test Gold (testing)', () => {
+  it('tops Gold up to the configured amount on wallet and inventory loads, refilling after spending', async () => {
+    const h = await openDb();
+    const rich = await buildApp({ db: h.db, content, rollSeed: () => seed++, testGold: 10000 });
+    try {
+      const reg = await rich.inject({ method: 'POST', url: '/api/auth/register', payload: { email: 'rich@example.com', password: 'password123', displayName: 'Rich' } });
+      const cookie = `arena_session=${reg.cookies.find((c) => c.name === 'arena_session')!.value}`;
+      const call = (method: 'GET' | 'POST', url: string) => rich.inject({ method, url, headers: { cookie } });
+      expect((await call('GET', '/api/wallet')).json().wallet.gold).toBe(10000);
+      expect((await call('POST', '/api/characters/roll')).statusCode).toBe(201); // spends 100
+      expect((await call('GET', '/api/inventory')).json().wallet.gold).toBe(10000);
+    } finally {
+      await rich.close();
+      await h.close();
+    }
+  });
+
+  it('is off unless asked for', async () => {
+    const { call } = await account('poor@example.com');
+    expect((await call('GET', '/api/wallet')).json().wallet.gold).toBe(content.economy.currencies.gold!.start);
+  });
+});

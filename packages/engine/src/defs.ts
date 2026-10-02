@@ -818,8 +818,6 @@ export interface ItemDef {
   passive?: string;
   /** Status implementing the passive (applied to the wearer at match start). */
   passiveEffect?: string;
-  /** Only this class can equip it (type G class armor). */
-  classId?: string;
   /** The sheet left it unnamed; the name is a placeholder. */
   placeholder?: boolean;
 }

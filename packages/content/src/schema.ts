@@ -559,7 +559,6 @@ export const itemFileEntry = z.strictObject({
   infusions: z.array(z.strictObject({ element: z.string() })).max(2).default([]),
   passive: z.string().optional(),
   passiveEffect: z.string().optional(),
-  classId: z.string().optional(),
   placeholder: z.boolean().optional(),
 });
 

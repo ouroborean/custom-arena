@@ -345,7 +345,6 @@ export function checkReferences(b: ContentBundle): ContentIssue[] {
     for (const inf of it.infusions) {
       if (!elements.has(inf.element) || inf.element === 'None') err(where, `unknown element "${inf.element}"`);
     }
-    if (it.classId && !b.classes[it.classId]) err(where, `unknown class "${it.classId}"`);
     if (it.passiveEffect && !b.statuses[it.passiveEffect]) err(where, `unknown passive effect "${it.passiveEffect}"`);
   }
 

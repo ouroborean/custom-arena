@@ -12,7 +12,7 @@ import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { audit } from '../audit.js';
 import type { Db } from '../db/client.js';
 import { characters, itemInstances, loadoutPresets } from '../db/schema.js';
-import { credit, inTransaction, spend, walletOf } from '../economy.js';
+import { credit, inTransaction, spend, topUpGold, walletOf } from '../economy.js';
 
 type CharacterRow = typeof characters.$inferSelect;
 
@@ -142,6 +142,7 @@ export function equipmentRoutes(ctx: AppContext) {
     app.get('/api/inventory', async (req) => {
       const userId = req.user!.id;
       if (ctx.allItems) await grantAllItems(ctx, userId);
+      if (ctx.testGold > 0) await topUpGold(ctx.db, ctx.content, userId, ctx.testGold);
       const [items, equipped, wallet] = await Promise.all([
         ctx.db.select().from(itemInstances).where(eq(itemInstances.userId, userId)).orderBy(itemInstances.acquiredAt),
         equippedOn(ctx.db, userId),
@@ -153,7 +154,10 @@ export function equipmentRoutes(ctx: AppContext) {
       };
     });
 
-    app.get('/api/wallet', async (req) => ({ wallet: await walletOf(ctx.db, ctx.content, req.user!.id) }));
+    app.get('/api/wallet', async (req) => {
+      if (ctx.testGold > 0) await topUpGold(ctx.db, ctx.content, req.user!.id, ctx.testGold);
+      return { wallet: await walletOf(ctx.db, ctx.content, req.user!.id) };
+    });
 
     /** Crafts with a recipe from the content economy; the inputs are used up. */
     app.post('/api/craft', async (req, reply) => {

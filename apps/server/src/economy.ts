@@ -28,6 +28,12 @@ export async function walletOf(db: Db, content: ContentBundle, userId: string): 
   return wallet;
 }
 
+/** Testing: raises the user's Gold to at least `amount` (never lowers it). */
+export async function topUpGold(db: Db, content: ContentBundle, userId: string, amount: number): Promise<void> {
+  const have = (await walletOf(db, content, userId)).gold ?? 0;
+  if (have < amount) await credit(db, content, userId, { gold: amount - have });
+}
+
 export async function credit(db: Db, content: ContentBundle, userId: string, amounts: CurrencyAmounts): Promise<void> {
   await walletOf(db, content, userId);
   for (const [kind, n] of Object.entries(amounts)) {

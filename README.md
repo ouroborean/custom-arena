@@ -94,6 +94,10 @@ the embedded PGlite database. A local test account is described in `apps/server/
 of every item, refilled whenever the inventory loads. Set `ALL_ITEMS=0` to play with real drops
 instead; production (`NODE_ENV=production`) never does this.
 
+**Test Gold:** outside production, every account's Gold is topped up to at least 10,000 whenever the
+inventory or wallet loads, so spending never runs dry while testing. Set `TEST_GOLD` to change the amount
+(`TEST_GOLD=0` turns it off); production never does this.
+
 ## Adding content
 
 Skills are data. See `packages/content/data/base/skills.yaml` for the 30 base skills and the op

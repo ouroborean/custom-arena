@@ -53,7 +53,7 @@ A character has **four equipment slots** (`EQUIPMENT_SLOTS`), and **any item typ
 (GDD §8.3, decided 2026-09-27). A loadout is up to four equipped items plus where their infusions
 go: `{ items: [{ itemId, instanceId }, …], infusions: [{ skill, element }, …] }` (§2.2). The item
 types (A–L) are descriptive categories only. What limits a loadout is the rarity budget, the 5-skill
-cap, the infusion rules (§2.2), class armor (type G fits only its class), and each owned copy being on
+cap, the infusion rules (§2.2) and each owned copy being on
 one character at a time.
 
 Loadouts saved with the earlier typed slots (main hand, off hand, two-handed, body, accessories,

@@ -113,12 +113,13 @@ describe('resolveLoadout', () => {
     expect(r.usage.infusions).toBe(3);
   });
 
-  it(`has ${EQUIPMENT_SLOTS} slots that take any item type; class armor stays with its class`, () => {
+  it(`has ${EQUIPMENT_SLOTS} slots that take any item type, signature gear (type G) included, on any class`, () => {
     // Two weapons, a two-handed one and a shard: any mix of types fits.
     const mixed = resolveLoadout(content, warrior('legendary', 3), of(['soldier_spear', 'soldier_greataxe', 'worn_blade', 'ice_shard']));
     expect(mixed.problems.filter((p) => p.includes('slot') || p.includes("doesn't fit"))).toEqual([]);
     expect(resolveLoadout(content, warrior(), of(Array(5).fill('ice_shard'))).problems).toContain('A character can equip 4 items (this has 5)');
-    expect(has(resolveLoadout(content, warrior(), of(['hand_of_healing'])), 'Paladin armor')).toBe(true);
+    // Hand of Healing is Paladin-themed signature gear: a Warrior can wear it.
+    expect(resolveLoadout(content, warrior(), of(['hand_of_healing'])).problems.some((p) => /armor|Paladin/.test(p))).toBe(false);
   });
 
   it('enforces the rarity budget for skills and passives', () => {

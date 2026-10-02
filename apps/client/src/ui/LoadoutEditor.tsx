@@ -52,7 +52,6 @@ type Fit =
   | { kind: 'ok'; adds: string[] }
   | { kind: 'problems'; problems: string[] }
   | { kind: 'full' }
-  | { kind: 'class'; className: string }
   /** No copy free: every one is equipped (here, or on other characters). */
   | { kind: 'none'; reason: string };
 
@@ -128,9 +127,7 @@ export function LoadoutEditor({
     const out = new Map<string, Fit>();
     for (const e of pool) {
       const def = e.def;
-      if (def.classId && def.classId !== record.classId) {
-        out.set(def.id, { kind: 'class', className: content.classes[def.classId]?.name ?? def.classId });
-      } else if (e.free.length === 0) {
+      if (e.free.length === 0) {
         const where = [e.here ? 'on this character' : null, e.elsewhere.length ? `on ${[...new Set(e.elsewhere)].join(', ')}` : null].filter(Boolean).join(' and ');
         out.set(def.id, { kind: 'none', reason: `Every copy you own is equipped ${where}.` });
       } else if (selected === null && items.length >= EQUIPMENT_SLOTS) {
@@ -160,7 +157,7 @@ export function LoadoutEditor({
 
   const equip = (e: PoolEntry) => {
     const fit = fits.get(e.def.id)!;
-    if (fit.kind === 'none' || fit.kind === 'class') return;
+    if (fit.kind === 'none') return;
     if (fit.kind === 'full') return setNotice(`All ${EQUIPMENT_SLOTS} slots are full: select a slot to replace, or remove an item.`);
     onChange(withItem(content, record, draft, { itemId: e.def.id, instanceId: e.free[0]!.id }, selected ?? undefined));
     setSelected(null);
@@ -274,7 +271,7 @@ export function LoadoutEditor({
               const fit = fits.get(e.def.id)!;
               const key = `pool-${e.def.id}`;
               const card = <ItemDetails def={e.def} entry={e} fit={fit} selected={selected} />;
-              const blocked = (fit.kind === 'none' && !e.here) || fit.kind === 'class';
+              const blocked = fit.kind === 'none' && !e.here;
               return (
                 <button
                   key={e.def.id}
@@ -547,7 +544,6 @@ function ItemDetails({
         {el && <span className={`skill-chip ${elementClass(el)}`}>{el}</span>}
       </div>
       <h4>{def.name}</h4>
-      {def.classId && <div className="item-card-line">{content.classes[def.classId]?.name ?? def.classId} only</div>}
       <ul className="item-grants">
         {def.skills.map((s) => {
           const d = content.skills[s];
@@ -610,8 +606,6 @@ function FitLine({ fit, selected }: { fit: Fit; selected: number | null }) {
       );
     case 'full':
       return <div className="item-card-line fit-bad">All {EQUIPMENT_SLOTS} slots are full: select a slot to replace, or remove an item.</div>;
-    case 'class':
-      return <div className="item-card-line fit-bad">Only a {fit.className} can wear it.</div>;
     case 'none':
       return <div className="item-card-line fit-bad">{fit.reason}</div>;
   }
