@@ -29,6 +29,8 @@ export function finish(ctx: Ctx, result: { winner: 0 | 1 | null; reason: 'elimin
 export function startTurn(ctx: Ctx): void {
   const p = ctx.s.activePlayer;
   emit(ctx, { t: 'turnStart', turn: ctx.s.turn, player: p });
+  // A new turn, a new exchange (the flag is only present once used, so older states stay identical).
+  delete ctx.s.players[p].exchanged;
 
   // Energy: 1 on the very first turn of the match, otherwise 1 per living character (not minions).
   const chars = livingCharacters(ctx.s, p);

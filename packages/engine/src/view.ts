@@ -14,6 +14,7 @@ export interface OpponentState {
   queue: [];
   tickOrder: null;
   turnsTaken: number;
+  exchanged?: undefined;
 }
 
 /** The definition behind an effect instance (inline or named status), or undefined if unknown. */

@@ -1,13 +1,13 @@
 // Commands: the only way state changes after match creation (GDD §11.7).
 // `applyCommand` never mutates its input; it works on a clone and returns the new state + events.
 
-import { checkpoint, effectDef, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
+import { checkpoint, effectDef, emit, findUnit, makeCtx, other, skillDef, type Ctx } from './ctx.js';
 import type { ContentBundle } from './defs.js';
 import { autoAllocate, isPayable, isValidAllocation, sumCosts } from './energy.js';
 import { resolveTargets, unmetRequirement, useQueuedSkill } from './pipeline.js';
 import { bloodPriceHp, cannotUseReason, modifiedCost } from './queries.js';
 import { checkGameOver, endTurn, finish } from './turn.js';
-import { COLORS, type ApplyOptions, type ApplyResult, type Command, type Energy, type GameState, type PlayerId } from './types.js';
+import { COLORS, type ApplyOptions, type ApplyResult, type Color, type Command, type Cost, type Energy, type GameState, type PlayerId } from './types.js';
 
 export class CommandError extends Error {
   constructor(
@@ -21,6 +21,35 @@ export class CommandError extends Error {
 
 function reject(code: string, message: string): never {
   throw new CommandError(code, message);
+}
+
+/** Energy given up and gained by one exchange (GDD §3.2, decided 2026-10-03). */
+export const EXCHANGE = { give: 2, get: 1 } as const;
+
+/** What an exchange check reads: a game state, or the player's own view of it. */
+export interface ExchangeState {
+  phase: GameState['phase'];
+  activePlayer: PlayerId;
+  players: readonly { energy: Energy | null; queue: readonly { cost: Cost }[]; exchanged?: unknown }[];
+}
+
+/**
+ * Read-only check for an exchange: it's the player's turn, they haven't exchanged this turn, the two
+ * colors differ, they have 2 of `give`, and what's left still pays for their queued skills.
+ */
+export function checkExchange(state: ExchangeState, player: PlayerId, give: Color, get: Color): CommandError | null {
+  if (state.phase === 'finished') return new CommandError('finished', 'The match is over');
+  if (player !== state.activePlayer) return new CommandError('not_your_turn', 'It is not your turn');
+  const ps = state.players[player]!;
+  if (!ps.energy) return new CommandError('not_your_turn', 'That energy is hidden');
+  if (ps.exchanged) return new CommandError('already_exchanged', 'You can exchange energy once per turn');
+  if (!COLORS.includes(give) || !COLORS.includes(get) || give === get) return new CommandError('bad_exchange', 'Exchange one color for a different one');
+  if (ps.energy[give] < EXCHANGE.give) return new CommandError('no_energy', `Exchanging needs ${EXCHANGE.give} of a color`);
+  const after: Energy = { ...ps.energy, [give]: ps.energy[give] - EXCHANGE.give, [get]: ps.energy[get] + EXCHANGE.get };
+  if (!isPayable(after, sumCosts(ps.queue.map((q) => q.cost)))) {
+    return new CommandError('energy_reserved', 'That energy is needed for your queued skills');
+  }
+  return null;
 }
 
 /** Read-only check for a queue command. Returns an error, or null if it's legal right now. */
@@ -103,6 +132,15 @@ export function applyCommand(content: ContentBundle, state: GameState, player: P
         if (!e || e.sourceOwner !== player || !ticks) reject('bad_tick', `Effect ${id} is not one of your ticking effects`);
       }
       ps.tickOrder = [...cmd.order];
+      break;
+    }
+    case 'exchange': {
+      const err = checkExchange(s, player, cmd.give, cmd.get);
+      if (err) throw err;
+      ps.energy[cmd.give] -= EXCHANGE.give;
+      ps.energy[cmd.get] += EXCHANGE.get;
+      ps.exchanged = { give: cmd.give, get: cmd.get };
+      emit(ctx, { t: 'energyExchanged', player, give: cmd.give, get: cmd.get }, player);
       break;
     }
     case 'endTurn':

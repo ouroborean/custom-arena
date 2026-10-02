@@ -5,6 +5,7 @@ import {
   CommandError,
   redactEvents,
   type Energy,
+  type Color,
   type GameEvent,
   type MatchConfig,
   type PlayerId,
@@ -110,6 +111,8 @@ interface StoreState {
   chooseTarget(unitId: string): void;
   cancelTargeting(): void;
   unqueue(index: number): void;
+  /** The once-per-turn energy exchange: 2 of `give` for 1 of `take`. */
+  exchange(give: Color, take: Color): void;
   reorderQueue(order: number[]): void;
   openCommit(): void;
   closeCommit(): void;
@@ -378,6 +381,12 @@ export const useStore = create<StoreState>((set, get) => {
       const blocked = coachBlocks({ other: true });
       if (blocked) return set({ toast: blocked });
       run((m) => m.command(get().viewer, { t: 'unqueue', index }));
+    },
+
+    exchange(give, take) {
+      const blocked = coachBlocks({ other: true });
+      if (blocked) return set({ toast: blocked });
+      run((m) => m.command(get().viewer, { t: 'exchange', give, get: take }));
     },
 
     reorderQueue(order) {

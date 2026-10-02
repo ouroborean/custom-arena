@@ -98,6 +98,8 @@ export interface PlayerState {
   /** Optional player-chosen order for their own ticking effects this turn. */
   tickOrder: EffectId[] | null;
   turnsTaken: number;
+  /** The energy exchange made this turn, if any (absent otherwise; see the `exchange` command). */
+  exchanged?: { give: Color; get: Color };
 }
 
 export type ResultReason = 'elimination' | 'draw' | 'surrender' | 'turnLimit';
@@ -173,6 +175,8 @@ export type Command =
   | { t: 'reorder'; order: number[] }
   | { t: 'setTickOrder'; order: EffectId[] }
   | { t: 'endTurn'; allocation?: Energy }
+  /** Once per turn: 2 energy of `give` become 1 of `get`. */
+  | { t: 'exchange'; give: Color; get: Color }
   | { t: 'surrender' };
 
 export interface CommandRecord {
@@ -194,6 +198,7 @@ export type RemoveReason = 'expired' | 'consumed' | 'died' | 'interrupted' | 'de
 export type EventBody =
   | { t: 'turnStart'; turn: number; player: PlayerId }
   | { t: 'energyGained'; player: PlayerId; gained: Energy }
+  | { t: 'energyExchanged'; player: PlayerId; give: Color; get: Color }
   /** `stealthFrom`: that player only learns that a Stealthed unit acted (R6). */
   | { t: 'skillUsed'; actor: UnitId; skill: string; targets: UnitId[]; secretFrom?: PlayerId; stealthFrom?: PlayerId }
   | { t: 'skillDrifting'; actor: UnitId; skill: string; targets: UnitId[] }
