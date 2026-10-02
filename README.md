@@ -3,6 +3,7 @@
 A 3v3 turn-based arena strategy game. See [docs/GDD.md](docs/GDD.md) for the design,
 [docs/rules.md](docs/rules.md) for the formal ruleset, [docs/meta.md](docs/meta.md) for characters,
 equipment and the API, [docs/equipment.md](docs/equipment.md) for item passives and the economy,
+[docs/forging-names.md](docs/forging-names.md) for how forged equipment is named,
 [docs/multiplayer.md](docs/multiplayer.md) for online play, [docs/single-player.md](docs/single-player.md)
 for bots, the story, achievements and the tutorial, [docs/live-ops.md](docs/live-ops.md) for analytics,
 patches, seasons, localization, assets and the installable app, and [docs/glossary.md](docs/glossary.md)

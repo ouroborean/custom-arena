@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { openDb, type OpenDb } from '../src/db/client.js';
-import { characters, loadoutPresets, users } from '../src/db/schema.js';
+import { characters, itemInstances, loadoutPresets, users } from '../src/db/schema.js';
 
 let dbh: OpenDb;
 beforeAll(async () => {
@@ -90,5 +90,32 @@ describe('0007 infusion pool', () => {
     expect(after.find((c) => c.name === 'Current')!.loadout).toEqual({ items: [{ itemId: 'ice_shard', instanceId: 'k1' }], infusions: [{ skill: 'smash', element: 'Ice' }] });
     const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, rows[0]!.id));
     expect(preset!.loadout).toEqual({ items: [{ itemId: 'fire_shard' }], infusions: [] });
+  });
+});
+
+describe('0008 item renames', () => {
+  it('moves owned instances, loadouts and presets to the renamed single-skill item ids, leaving others alone', async () => {
+    const [u] = await dbh.db.insert(users).values({ email: 'r@example.com', displayName: 'R', passwordHash: 'x' }).returning();
+    await dbh.db.insert(itemInstances).values([
+      { userId: u!.id, itemId: 'mighty_greathammer', source: 'test' },
+      { userId: u!.id, itemId: 'blackjack', source: 'test' },
+      { userId: u!.id, itemId: 'ice_shard', source: 'test' },
+    ]);
+    const base = { userId: u!.id, name: 'Old', classId: 'warrior', element: 'Fire', rarity: 'rare' as const, portraitId: 'warrior.fire.01', skills: [], contentVersion: 'x' };
+    const old = { items: [{ itemId: 'worn_blade', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }, { itemId: 'book_of_hymns', instanceId: 'i3' }], infusions: [{ skill: 'strike', element: 'Ice' }] };
+    const [c] = await dbh.db.insert(characters).values({ ...base, loadout: old }).returning();
+    await dbh.db.insert(loadoutPresets).values({ characterId: c!.id, name: 'P', loadout: { items: [{ itemId: 'trackers_shortbow' }], infusions: [] } });
+
+    for (const statement of dataStatements('0008_item_renames.sql')) await dbh.db.execute(sql.raw(statement));
+
+    const owned = await dbh.db.select().from(itemInstances).where(eq(itemInstances.userId, u!.id));
+    expect(owned.map((i) => i.itemId).sort()).toEqual(['blackjack', 'greathammer', 'ice_shard']);
+    const [after] = await dbh.db.select().from(characters).where(eq(characters.id, c!.id));
+    expect(after!.loadout).toEqual({
+      items: [{ itemId: 'longsword', instanceId: 'i1' }, { itemId: 'ice_shard', instanceId: 'i2' }, { itemId: 'hymnal', instanceId: 'i3' }],
+      infusions: [{ skill: 'strike', element: 'Ice' }],
+    });
+    const [preset] = await dbh.db.select().from(loadoutPresets).where(eq(loadoutPresets.characterId, c!.id));
+    expect(preset!.loadout).toEqual({ items: [{ itemId: 'shortbow' }], infusions: [] });
   });
 });
