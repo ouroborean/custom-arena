@@ -25,7 +25,7 @@ import {
 } from '@arena/meta';
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
-import { CostPips, elementClass, itemCode, SkillGlyph, Tooltip } from './common.js';
+import { CostPips, elementClass, ItemFace, SkillGlyph, Tooltip } from './common.js';
 
 const GROUPS: { id: string; label: string; types: readonly ItemType[] }[] = [
   { id: 'all', label: 'All', types: [] },
@@ -52,7 +52,6 @@ type Fit =
   | { kind: 'ok'; adds: string[] }
   | { kind: 'problems'; problems: string[] }
   | { kind: 'full' }
-  | { kind: 'class'; className: string }
   /** No copy free: every one is equipped (here, or on other characters). */
   | { kind: 'none'; reason: string };
 
@@ -128,9 +127,7 @@ export function LoadoutEditor({
     const out = new Map<string, Fit>();
     for (const e of pool) {
       const def = e.def;
-      if (def.classId && def.classId !== record.classId) {
-        out.set(def.id, { kind: 'class', className: content.classes[def.classId]?.name ?? def.classId });
-      } else if (e.free.length === 0) {
+      if (e.free.length === 0) {
         const where = [e.here ? 'on this character' : null, e.elsewhere.length ? `on ${[...new Set(e.elsewhere)].join(', ')}` : null].filter(Boolean).join(' and ');
         out.set(def.id, { kind: 'none', reason: `Every copy you own is equipped ${where}.` });
       } else if (selected === null && items.length >= EQUIPMENT_SLOTS) {
@@ -160,7 +157,7 @@ export function LoadoutEditor({
 
   const equip = (e: PoolEntry) => {
     const fit = fits.get(e.def.id)!;
-    if (fit.kind === 'none' || fit.kind === 'class') return;
+    if (fit.kind === 'none') return;
     if (fit.kind === 'full') return setNotice(`All ${EQUIPMENT_SLOTS} slots are full: select a slot to replace, or remove an item.`);
     onChange(withItem(content, record, draft, { itemId: e.def.id, instanceId: e.free[0]!.id }, selected ?? undefined));
     setSelected(null);
@@ -274,12 +271,12 @@ export function LoadoutEditor({
               const fit = fits.get(e.def.id)!;
               const key = `pool-${e.def.id}`;
               const card = <ItemDetails def={e.def} entry={e} fit={fit} selected={selected} />;
-              const blocked = (fit.kind === 'none' && !e.here) || fit.kind === 'class';
+              const blocked = fit.kind === 'none' && !e.here;
               return (
                 <button
                   key={e.def.id}
                   type="button"
-                  className={`item-tile ${elementClass(itemElement(e.def))}${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
+                  className={`item-tile${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
                   aria-disabled={blocked}
                   aria-label={`${e.def.name}, ${ITEM_TYPE_NAMES[e.def.type]}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}`}
                   onClick={() => equip(e)}
@@ -289,7 +286,7 @@ export function LoadoutEditor({
                   onBlur={() => hide(key)}
                 >
                   <span className="item-type">{e.def.type}</span>
-                  <span className="code">{itemCode(e.def.name)}</span>
+                  <ItemFace def={e.def} content={content} className="code" />
                   {e.free.length > 1 && <span className="item-count">×{e.free.length}</span>}
                   {e.here > 0 && (
                     <span className="item-here" aria-hidden>
@@ -314,13 +311,9 @@ export function LoadoutEditor({
   );
 }
 
-/** The item's code on its element color, as in the grid (for the slots). */
+/** The item's face, as in the grid (for the slots). */
 function ItemGlyph({ def }: { def: ItemDef }) {
-  return (
-    <span className={`item-glyph ${elementClass(itemElement(def))}`} aria-hidden>
-      {itemCode(def.name)}
-    </span>
-  );
+  return <ItemFace def={def} content={content} className="item-glyph" />;
 }
 
 /** Under an equipped item: what it grants. */
@@ -551,7 +544,6 @@ function ItemDetails({
         {el && <span className={`skill-chip ${elementClass(el)}`}>{el}</span>}
       </div>
       <h4>{def.name}</h4>
-      {def.classId && <div className="item-card-line">{content.classes[def.classId]?.name ?? def.classId} only</div>}
       <ul className="item-grants">
         {def.skills.map((s) => {
           const d = content.skills[s];
@@ -614,8 +606,6 @@ function FitLine({ fit, selected }: { fit: Fit; selected: number | null }) {
       );
     case 'full':
       return <div className="item-card-line fit-bad">All {EQUIPMENT_SLOTS} slots are full: select a slot to replace, or remove an item.</div>;
-    case 'class':
-      return <div className="item-card-line fit-bad">Only a {fit.className} can wear it.</div>;
     case 'none':
       return <div className="item-card-line fit-bad">{fit.reason}</div>;
   }

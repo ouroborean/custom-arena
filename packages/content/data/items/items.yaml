@@ -5,7 +5,7 @@
 # match start; see docs/equipment.md for rulings.
 # Unlock conditions on the sheet are ignored (GDD §8.4).
 # Types (categories only: any item fits any of a character's 4 slots): A weapon · B two-handed ·
-# C exotic · D elemental weapon · E off hand · F elemental armor · G class armor · H accessory ·
+# C exotic · D elemental weapon · E off hand · F elemental armor · G signature gear (class-themed, any character) · H accessory ·
 # I perfect crystal · J gear · K shard · L misc (none yet).
 # Counts: {'A': 30, 'B': 20, 'C': 20, 'D': 30, 'E': 30, 'F': 30, 'G': 20, 'H': 20, 'I': 10, 'J': 40, 'K': 10}
 
@@ -1129,7 +1129,6 @@ rocfeather_charm:
 barbarian_greatclub:
   name: "Barbarian Greatclub"
   type: G
-  classId: warrior
   skills: [smash]
   passive: "Whenever you damage all living enemies, deal 5 additional Piercing damage to all enemies."
   passiveEffect: eq_barbarian_greatclub
@@ -1137,7 +1136,6 @@ barbarian_greatclub:
 helmet_of_the_ancestors:
   name: "Helmet of the Ancestors"
   type: G
-  classId: warrior
   skills: [titan]
   passive: "Once per turn if you would take 30 or more damage from a single ability, first lower that damage by 10"
   passiveEffect: eq_helmet_of_the_ancestors
@@ -1145,7 +1143,6 @@ helmet_of_the_ancestors:
 shadowrune_bolas:
   name: "Shadowrune Bolas"
   type: G
-  classId: rogue
   skills: [stun]
   passive: "Stunning a target affected by Swiftness applies Confusion for the same duration."
   passiveEffect: eq_shadowrune_bolas
@@ -1153,7 +1150,6 @@ shadowrune_bolas:
 mask_of_many_faces:
   name: "Mask of Many Faces"
   type: G
-  classId: rogue
   skills: [mislead]
   passive: "You gain 5 Shield whenever a skill is Countered or Reflected, increased to 10 for enemy skills."
   passiveEffect: eq_mask_of_many_faces
@@ -1161,7 +1157,6 @@ mask_of_many_faces:
 boomerang_blade:
   name: "Boomerang Blade"
   type: G
-  classId: ranger
   skills: [trap]
   passive: "For 1 turn after a Trap is triggered, your skills Bypass against the triggerer."
   passiveEffect: eq_boomerang_blade
@@ -1169,7 +1164,6 @@ boomerang_blade:
 ricochet_rifle:
   name: "Ricochet Rifle"
   type: G
-  classId: ranger
   skills: [snipe]
   passive: "Deal 10 damage to a random enemy whenever one of your Harmful skills is Countered."
   passiveEffect: eq_ricochet_rifle
@@ -1177,7 +1171,6 @@ ricochet_rifle:
 explosive_relic:
   name: "Explosive Relic"
   type: G
-  classId: mage
   skills: [blast]
   passive: "Using a skill that costs 2 or more total energy grants the user Focus until the end of their next turn."
   passiveEffect: eq_explosive_relic
@@ -1185,7 +1178,6 @@ explosive_relic:
 high_wizards_hat:
   name: "High Wizard's Hat"
   type: G
-  classId: mage
   skills: [channel]
   passive: "If you are Stunned while Channeling a skill, you gain Immune until the end of your next turn."
   passiveEffect: eq_high_wizards_hat
@@ -1193,7 +1185,6 @@ high_wizards_hat:
 hand_of_blessing:
   name: "Hand of Blessing"
   type: G
-  classId: priest
   skills: [bless]
   passive: "The first Buff you apply to an ally each turn is also applied to you."
   passiveEffect: eq_hand_of_blessing
@@ -1201,7 +1192,6 @@ hand_of_blessing:
 robe_of_the_song:
   name: "Robe of the Song"
   type: G
-  classId: priest
   skills: [prayer]
   passive: "While your health is 60 or below, your Helpful skills cannot be Stunned."
   passiveEffect: eq_robe_of_the_song
@@ -1209,7 +1199,6 @@ robe_of_the_song:
 totem_of_the_fallen:
   name: "Totem of the Fallen"
   type: G
-  classId: druid
   skills: [companion]
   passive: "Gain 1 Might for 1 turn whenever an allied Minion is killed by an enemy."
   passiveEffect: eq_totem_of_the_fallen
@@ -1217,7 +1206,6 @@ totem_of_the_fallen:
 cloak_of_ancient_leaves:
   name: "Cloak of Ancient Leaves"
   type: G
-  classId: druid
   skills: [rage]
   passive: "Gain 1 Might and 1 Vulnerable while at or above 80 Health."
   passiveEffect: eq_cloak_of_ancient_leaves
@@ -1225,7 +1213,6 @@ cloak_of_ancient_leaves:
 banner_of_glory:
   name: "Banner of Glory"
   type: G
-  classId: knight
   skills: [shout]
   passive: "Remove a random Debuff from all allies when you Shout"
   passiveEffect: eq_banner_of_glory
@@ -1233,7 +1220,6 @@ banner_of_glory:
 knights_buckler:
   name: "Knight's Buckler"
   type: G
-  classId: knight
   skills: [riposte]
   passive: "Countering or Reflecting a skill applies 1 Weakness and 1 Vulnerable to the target for 2 turns"
   passiveEffect: eq_knights_buckler
@@ -1241,7 +1227,6 @@ knights_buckler:
 rod_of_domination:
   name: "Rod of Domination"
   type: G
-  classId: warlock
   skills: [summon]
   passive: "Damage that would be dealt to you is instead dealt to one of your Minions at random. You take double damage while you have no Minions."
   passiveEffect: eq_rod_of_domination
@@ -1249,7 +1234,6 @@ rod_of_domination:
 blood_chalice:
   name: "Blood Chalice"
   type: G
-  classId: warlock
   skills: [consume]
   passive: "Automatically kill Minions that fall to 10 or lower health, gaining a random Buff."
   passiveEffect: eq_blood_chalice
@@ -1257,7 +1241,6 @@ blood_chalice:
 visor_of_the_restful_spirit:
   name: "Visor of the Restful Spirit"
   type: G
-  classId: monk
   skills: [maneuver]
   passive: "At the start of your turn, gain 2 Might if you weren't damaged last turn."
   passiveEffect: eq_visor_of_the_restful_spirit
@@ -1265,7 +1248,6 @@ visor_of_the_restful_spirit:
 footwraps_of_the_long_path:
   name: "Footwraps of the Long Path"
   type: G
-  classId: monk
   skills: [dance]
   passive: "Using a Harmful skill makes your Helpful skills Unstunnable for 1 turn."
   passiveEffect: eq_footwraps_of_the_long_path
@@ -1273,7 +1255,6 @@ footwraps_of_the_long_path:
 hand_of_healing:
   name: "Hand of Healing"
   type: G
-  classId: paladin
   skills: [heal]
   passive: "Using Heal on an ally also heals you for 10 Health, but you may no longer Heal yourself."
   passiveEffect: eq_hand_of_healing
@@ -1281,7 +1262,6 @@ hand_of_healing:
 golden_plate:
   name: "Golden Plate"
   type: G
-  classId: paladin
   skills: [withstand]
   passive: "Gain 1 Armor per 35 missing Health."
   passiveEffect: eq_golden_plate

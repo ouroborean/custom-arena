@@ -1,4 +1,4 @@
-// Type B (two-handed) and G (class armor) equipment passives (docs/equipment.md). Passives are
+// Type B (two-handed) and G (signature gear) equipment passives (docs/equipment.md). Passives are
 // given directly with the harness, or through `passives` when they act at the start of battle.
 
 import { describe, expect, it } from 'vitest';

@@ -1,4 +1,4 @@
-# Type G (Class Armor) passives — one per base skill (GDD §8, docs/equipment.md). Same conventions
+# Type G (Signature Gear: class-themed, any character) passives — one per base skill (GDD §8, docs/equipment.md). Same conventions
 # as type A: a permanent Neutral status `eq_<item id>` on the wearer.
 
 eq_barbarian_greatclub:

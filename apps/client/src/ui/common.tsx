@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
-import { COLORS, type ContentBundle, type Cost, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
+import { COLORS, type ContentBundle, type Cost, type ItemDef, type PlayerView, type QueuedAction, type SkillDef, type Unit } from '@arena/engine';
 import { portraitUrl, skillIconUrl, useAssets } from '../assets.js';
 import { useStore, type InspectTarget } from '../store.js';
 
@@ -314,19 +314,6 @@ export function skillCode(def: SkillDef): string {
   return SKILL_CODES[def.archetype] ?? consonantCode(def.name);
 }
 
-const MINOR_WORDS = new Set(['of', 'the', 'and', 'a', 'an']);
-
-/** A three-letter code that tells items apart: "Emblem of the Abyss" is EAB, "Holy Censer" HCN. */
-export function itemCode(name: string): string {
-  const words = name
-    .split(/[\s-]+/)
-    .map((w) => w.replace(/[^A-Za-z]/g, ''))
-    .filter((w) => w && !MINOR_WORDS.has(w.toLowerCase()));
-  if (words.length >= 3) return words.slice(0, 3).map((w) => w[0]!.toUpperCase()).join('');
-  if (words.length === 2) return words[0]![0]!.toUpperCase() + consonantCode(words[1]!).slice(0, 2);
-  return consonantCode(name);
-}
-
 export function statusCode(key: string, name: string): string {
   return STATUS_CODES[key] ?? consonantCode(name);
 }
@@ -367,6 +354,42 @@ export function SkillGlyph({ def, content }: { def: SkillDef; content: ContentBu
       <Glyph url={url} paint={glyphPaint(def.element, content)} />
     </span>
   ) : null;
+}
+
+/**
+ * An item at a glance: a colored corner for each infusion it adds (top-right, then bottom-right), and
+ * in the middle an icon for each skill it grants plus "!" if it has a passive. With more to show, the
+ * tokens shrink. Decorative: the tile around it carries the accessible name and the hover card.
+ */
+export function ItemFace({ def, content, className = '' }: { def: ItemDef; content: ContentBundle; className?: string }) {
+  const icons = useAssets((s) => s.icons);
+  const tokens = def.skills.length + (def.passive ? 1 : 0);
+  return (
+    <span className={`item-face ${className}`} data-tokens={tokens} aria-hidden>
+      {def.infusions.slice(0, 2).map((inf, i) => (
+        <span key={i} className={`item-corner item-corner-${i} ${elementClass(inf.element)}`} />
+      ))}
+      <span className="item-tokens">
+        {def.skills.map((id) => {
+          const skill = content.skills[id];
+          const url = skill ? skillIconUrl(icons, skill) : null;
+          return (
+            <span key={id} className="item-token">
+              {url ? <Glyph url={url} paint={glyphPaint(skill?.element, content)} /> : <span className="item-token-code">{skill ? skillCode(skill) : '?'}</span>}
+            </span>
+          );
+        })}
+        {def.passive && <span className="item-token item-passive">!</span>}
+        {/* Infusions only (crystals, shards): a diamond per infusion, so the middle isn't blank. */}
+        {tokens === 0 &&
+          def.infusions.map((inf, i) => (
+            <span key={i} className={`item-token item-infusion ${elementClass(inf.element)}`}>
+              <span />
+            </span>
+          ))}
+      </span>
+    </span>
+  );
 }
 
 export type SkillCategory = 'attack' | 'control' | 'support';

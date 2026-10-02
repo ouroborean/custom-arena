@@ -546,7 +546,6 @@ descriptive only. What still limits a loadout:
 
 - the rarity's **budget** of equipment-granted skills and item passives (§8.2 note);
 - the **5-skill cap**, **up to two infusions per skill** (two make a fusion element, planned) and **locked native infusions** (§7.3);
-- **class armor** (type G) only fits its class;
 - each owned copy of an item can be on one character at a time.
 
 This supersedes the earlier proposal (Main Hand + Off Hand or Two-Handed, Body, and rarity-scaled

@@ -191,7 +191,10 @@ is how it was read.
   - Any Buff you apply counts.
   - Might once per ally, ever; Armor up to 2 in total.
 
-### Type G (Class Armor)
+### Type G (Signature Gear)
+
+Class-themed, but any character can equip it.
+
 - **Barbarian Greatclub:** one skill use whose direct damage hit every living, targetable enemy,
   minions included.
 - **Helmet of the Ancestors:**

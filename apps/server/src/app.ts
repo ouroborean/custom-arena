@@ -39,6 +39,8 @@ export interface AppOptions {
   devGrants?: boolean;
   /** Testing: every account owns all equipment (see ServerConfig.allItems). */
   allItems?: boolean;
+  /** Testing: every account's Gold is topped up to at least this much (see ServerConfig.testGold). */
+  testGold?: number;
   /** Time source for match timers, matchmaking and seasons (tests pass a FakeClock). */
   clock?: Clock;
   /** Ranked seasons (default: one open-ended season, as before seasons were scheduled). */
@@ -56,6 +58,7 @@ export interface AppContext {
   rollSeed: () => number;
   devGrants: boolean;
   allItems: boolean;
+  testGold: number;
   authRateLimit: number;
   clock: Clock;
   seasons: SeasonSchedule;
@@ -92,6 +95,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     rollSeed: opts.rollSeed ?? (() => randomInt(2 ** 31)),
     devGrants: opts.devGrants ?? false,
     allItems: opts.allItems ?? false,
+    testGold: opts.testGold ?? 0,
     authRateLimit: opts.authRateLimit ?? 20,
     clock: opts.clock ?? realClock,
     seasons: opts.seasons ?? OPEN_SCHEDULE,

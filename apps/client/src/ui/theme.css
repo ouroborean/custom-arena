@@ -3341,15 +3341,94 @@ input[type="password"] {
   transition: transform 0.08s, border-color 0.1s;
 }
 
-/* The element as a hard corner notch, like portraits. */
-.item-tile.has-el .code::before,
-.item-glyph.has-el::before {
-  content: '';
+/* An item's face (ItemFace): a hard corner notch per infusion it adds (top-right, then bottom-right), and
+   tokens for what else it grants: an icon per skill and "!" for a passive. More tokens, smaller tokens. */
+.item-face {
+  --tok: 34px;
+  --notch: 16px;
+}
+.item-face[data-tokens='2'] {
+  --tok: 26px;
+}
+.item-face[data-tokens='3'] {
+  --tok: 20px;
+}
+
+.item-corner {
   position: absolute;
-  top: 0;
   right: 0;
-  border-top: 16px solid var(--el);
-  border-left: 16px solid transparent;
+  width: 0;
+  height: 0;
+  border-left: var(--notch) solid transparent;
+}
+.item-corner-0 {
+  top: 0;
+  border-top: var(--notch) solid var(--el);
+}
+.item-corner-1 {
+  bottom: 0;
+  border-bottom: var(--notch) solid var(--el);
+}
+
+.item-tokens {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.item-token {
+  flex: none;
+  width: var(--tok);
+  height: var(--tok);
+  display: grid;
+  place-items: center;
+}
+
+.item-token-code {
+  font-size: calc(var(--tok) * 0.42);
+}
+
+/* The passive: an outlined "!", unlike the red filled "!" of a tile that doesn't fit. */
+.item-passive {
+  box-sizing: border-box;
+  width: calc(var(--tok) * 0.78);
+  height: calc(var(--tok) * 0.78);
+  border: 2px solid var(--text);
+  color: var(--text);
+  font-size: calc(var(--tok) * 0.6);
+  line-height: 1;
+}
+
+/* Infusion-only items: a diamond in each infusion's color. */
+.item-face[data-tokens='0'] {
+  --tok: 22px;
+}
+.item-infusion > span {
+  width: 62%;
+  height: 62%;
+  background: var(--el);
+  transform: rotate(45deg);
+}
+
+.item-glyph.item-face {
+  --tok: 26px;
+  --notch: 11px;
+}
+.item-glyph.item-face[data-tokens='0'] {
+  --tok: 15px;
+}
+.item-glyph.item-face[data-tokens='2'] {
+  --tok: 18px;
+}
+.item-glyph.item-face[data-tokens='3'] {
+  --tok: 13px;
+}
+.item-glyph .item-tokens {
+  gap: 2px;
+}
+.item-glyph .item-passive {
+  border-width: 1.5px;
 }
 
 .item-tile:hover .code,
@@ -3392,7 +3471,7 @@ input[type="password"] {
 
 .item-count {
   top: 46px;
-  right: 4px;
+  right: 18px; /* clear of a second infusion's corner */
   background: var(--void);
   color: var(--text);
 }
