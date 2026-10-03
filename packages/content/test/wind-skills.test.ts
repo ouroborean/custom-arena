@@ -59,11 +59,24 @@ describe('Wind skills', () => {
     expect([a.hp(B2), a.has(B2, 'stun_ns')]).toEqual([70, true]);
   });
 
+  it("Leaping lasts until the end of the Leaper's next turn: one chance to act with it", () => {
+    const a = arena({ p0: [['smash.wind'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.wind', B1).end(); // Spiral Crash Leaps
+    expect(a.has(A1, 'leaping')).toBe(true);
+    a.pass(1); // the enemy's turn
+    expect(a.has(A1, 'leaping')).toBe(true); // still there for the Leaper's next turn
+    a.end(); // which passes without a damaging skill
+    expect(a.has(A1, 'leaping')).toBe(false);
+  });
+
   it('Spiral Crash: Leaps if not Leaping; if Leaping, also 10 to all enemies', () => {
     const a = arena({ p0: [['smash.wind']], p1: [['shot'], ['shot']] });
     a.use(A1, 'smash.wind', B1).end();
     expect([a.hp(B1), a.hp(B2), a.has(A1, 'leaping')]).toEqual([80, 100, true]);
-    a.pass(5).use(A1, 'smash.wind', B1).end();
+    // Its cooldown outlasts its own Leap, so the second use needs Leaping from elsewhere.
+    a.pass(5);
+    expect(a.has(A1, 'leaping')).toBe(false);
+    a.give(A1, 'leaping').use(A1, 'smash.wind', B1).end();
     expect([a.hp(B1), a.hp(B2), a.has(A1, 'leaping')]).toEqual([40, 85, false]); // B1: 25 + 15 (the AoE hits it too); B2: 15 — all +5 from Leaping
   });
 

@@ -284,7 +284,7 @@ blast.cloud:
           cond: { not: { has: { unit: actor, effect: aloft } } }
           then:
             - { op: removeEffect, from: actor, effect: leaping }
-            - { op: apply, to: actor, effect: leaping }
+            - { op: apply, to: actor, effect: leaping, duration: { ownTurns: 1 } }
       else:
         - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
 

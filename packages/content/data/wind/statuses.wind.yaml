@@ -33,8 +33,9 @@ leaping:
   element: Wind
   stacking: unique
   description: >-
-    +5 direct damage. Ends once a skill of the bearer's has dealt direct damage and resolved.
-    (Leaping also grants Invulnerable for 1 turn, applied separately.)
+    +5 direct damage. Ends once a skill of the bearer's has dealt direct damage and resolved, or at
+    the end of the bearer's next turn: one chance to act with it. (Leaping also grants Invulnerable
+    for 1 turn, applied separately.)
   modifiers:
     - { mod: damageDealt, amount: 5, when: { direct: true } }
   triggers:

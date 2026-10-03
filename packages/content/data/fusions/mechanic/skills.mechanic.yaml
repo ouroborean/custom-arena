@@ -540,7 +540,7 @@ bless.mechanic:
               - op: if
                 cond: { and: [{ flag: leaping }, { not: { has: { unit: bearer, effect: leaping } } }] }
                 then:
-                  - { op: apply, to: bearer, effect: leaping }
+                  - { op: apply, to: bearer, effect: leaping, duration: { ownTurns: 1 } }
           - on: damaged
             do:
               - { op: removeEffect, from: bearer, effect: leaping }
