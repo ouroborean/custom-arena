@@ -484,8 +484,8 @@ describe('Mist skills', () => {
 
   it('Cloak of Mist: Leaping also brings Fog', () => {
     const o = { p0: [['bless.mist'], ['ravage.mist'], ['shot']], p1: three() };
-    // Undertow Thrust Leaps (Invulnerable for 1 turn; Leaping until a damaging skill), so B1 waits a turn.
-    const n = redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).use(A2, 'ravage.mist', B2).end().pass(2));
+    // Leaping without a Leap's Invulnerable (which would stop the Shot by itself): Fog redirects it.
+    const n = redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).give(A2, 'leaping').end());
     expect(n).toBeGreaterThan(0);
   });
 

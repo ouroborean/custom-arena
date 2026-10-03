@@ -8,12 +8,13 @@ rush_upkeep:
     cond: { not: { has: { unit: bearer, effect: focus } } }
     then: [{ op: apply, to: bearer, effect: focus, until: { skillUsed: {} } }]
 
-# "`it` Leaps": Invulnerable for 1 turn, and a fresh Leaping (+5 on its next damaging skill). Any
-# old Leaping is replaced so a skill can consume one Leap and grant the next ("Leap again").
+# "`it` Leaps": Invulnerable for 1 turn, and a fresh Leaping (+5 on its next damaging skill) that lasts
+# until the end of its next turn: one chance to act with it (3 ticks when granted on its own turn).
+# Any old Leaping is replaced so a skill can consume one Leap and grant the next ("Leap again").
 # Use inside forEach (e.g. `forEach: { in: actor, do: [{ op: macro, id: leap }] }`).
 leap:
   - { op: removeEffect, from: it, effect: leaping }
-  - { op: apply, to: it, effect: leaping }
+  - { op: apply, to: it, effect: leaping, duration: { ownTurns: 1 } }
   - { op: apply, to: it, effect: invulnerable, duration: { enemyTurns: 1 } }
 
 # "Removes all Mobility buffs": Swiftness, Rushing and Leaping.
