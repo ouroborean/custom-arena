@@ -21,7 +21,6 @@ export function Home() {
   const newMatch = useStore((s) => s.newMatch);
   const [picking, setPicking] = useState<string[] | null>(null);
   const [bot, setBot] = useState<BotKind>('normal');
-  const [human, setHuman] = useState<0 | 1>(0);
   const [problem, setProblem] = useState<{ message: string; problems: string[] } | null>(null);
   const [arcade, setArcade] = useState<ArcadeStatus | null>(null);
 
@@ -42,8 +41,9 @@ export function Home() {
     setProblem(null);
     try {
       // The server issues the match (seed and teams) and verifies the result, so practice can pay out.
-      const r = await api.startPractice(bot, human);
-      newMatch(content, r.config, { kind: 'vsBot', bot, human, practice: { attemptId: r.attemptId } }, 'home');
+      // Who moves first is the server's coin flip.
+      const r = await api.startPractice(bot);
+      newMatch(content, r.config, { kind: 'vsBot', bot, human: 0, practice: { attemptId: r.attemptId } }, 'home');
     } catch (e) {
       setProblem(e instanceof ApiError ? { message: e.message, problems: e.problems } : { message: String(e), problems: [] });
     }
@@ -132,17 +132,6 @@ export function Home() {
               <option value="normal">{t('bot.normal')}</option>
               <option value="hard">{t('bot.hard')}</option>
             </select>
-          </div>
-          <div className="control">
-            <span className="label">{t('home.youPlay')}</span>
-            <div className="segmented" role="group" aria-label={t('home.turnOrder')}>
-              <button type="button" aria-pressed={human === 0} onClick={() => setHuman(0)}>
-                {t('home.first')}
-              </button>
-              <button type="button" aria-pressed={human === 1} onClick={() => setHuman(1)}>
-                {t('home.second')}
-              </button>
-            </div>
           </div>
           <button type="button" className="btn" onClick={() => go('tutorial')} disabled={busy}>
             {t('nav.tutorial')}

@@ -1,7 +1,7 @@
 // Single-player (GDD §2.2): encounters become match configs; story progress decides what's
 // unlocked; achievements count finished matches. Pure functions over content data.
 
-import { variantId, type AchievementDef, type CharacterSpec, type ContentBundle, type EncounterDef, type EncounterUnitDef, type MatchConfig } from '@arena/engine';
+import { nextInt, seedRng, variantId, type AchievementDef, type PlayerId, type CharacterSpec, type ContentBundle, type EncounterDef, type EncounterUnitDef, type MatchConfig } from '@arena/engine';
 
 /** The human always sits in seat 0 in single-player; the encounter's AI plays seat 1. */
 export const HUMAN_SEAT = 0;
@@ -12,6 +12,14 @@ export const HUMAN_SEAT = 0;
  */
 export function singlePlayerBotSeed(matchSeed: number): number {
   return (matchSeed + 101) >>> 0;
+}
+
+/**
+ * Who moves first in a practice match or arcade stage: a coin flip, fixed by the match seed so the
+ * server's replay agrees with the browser.
+ */
+export function singlePlayerFirst(matchSeed: number): PlayerId {
+  return nextInt(seedRng((matchSeed ^ 0x68e31da4) >>> 0), 2) as PlayerId;
 }
 
 /**

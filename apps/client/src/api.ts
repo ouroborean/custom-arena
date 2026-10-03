@@ -201,7 +201,7 @@ export const api = {
   startStory: (encounter: string) => call<{ attemptId: string; encounter: string; config: MatchConfig }>('POST', `/story/${encounter}/start`),
   finishStory: (attemptId: string, commands: MatchRecord['commands']) =>
     call<StoryResult>('POST', `/story/attempts/${attemptId}/finish`, { commands }),
-  startPractice: (bot: string, seat: PlayerId) => call<{ attemptId: string; config: MatchConfig }>('POST', '/practice/start', { bot, seat }),
+  startPractice: (bot: string) => call<{ attemptId: string; config: MatchConfig }>('POST', '/practice/start', { bot }),
   finishPractice: (attemptId: string, commands: MatchRecord['commands']) =>
     call<StoryResult>('POST', `/practice/attempts/${attemptId}/finish`, { commands }),
   arcade: () => call<ArcadeStatus>('GET', '/arcade'),

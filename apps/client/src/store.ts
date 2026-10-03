@@ -326,10 +326,10 @@ export const useStore = create<StoreState>((set, get) => {
       const m = get().match;
       // A practice match gets a fresh one from the server, against a new bot team.
       if (m?.mode.kind === 'vsBot' && m.mode.practice) {
-        const { bot, human } = m.mode;
+        const { bot } = m.mode;
         const returnTo = get().returnTo;
-        api.startPractice(bot, human).then(
-          (r) => get().match === m && get().newMatch(m.content, r.config, { kind: 'vsBot', bot, human, practice: { attemptId: r.attemptId } }, returnTo),
+        api.startPractice(bot).then(
+          (r) => get().match === m && get().newMatch(m.content, r.config, { kind: 'vsBot', bot, human: 0, practice: { attemptId: r.attemptId } }, returnTo),
           (e: unknown) => get().match === m && set({ toast: e instanceof Error ? e.message : String(e) }),
         );
         return;
