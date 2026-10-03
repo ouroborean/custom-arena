@@ -13,7 +13,7 @@ import {
   type TutorialStep,
 } from '@arena/engine';
 import { create } from 'zustand';
-import { api, type StoryResult } from './api.js';
+import { api, type ArcadeStart, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
 import { useMeta } from './meta.js';
 import { useSettings } from './settings.js';
@@ -138,6 +138,11 @@ function initialViewer(mode: MatchMode): PlayerId {
   return 0;
 }
 
+/** The match mode for an arcade stage the server issued: the player moves first, against the stage's bot. */
+export function arcadeMode(r: ArcadeStart): MatchMode {
+  return { kind: 'vsBot', bot: r.bot, human: 0, arcade: { attemptId: r.attemptId, stage: r.stage } };
+}
+
 export const useStore = create<StoreState>((set, get) => {
   /** Adds events to both players' logs (redacted per player) and queues playback for the viewer. */
   function publish(events: GameEvent[], before: PlayerView | null): void {
@@ -226,13 +231,18 @@ export const useStore = create<StoreState>((set, get) => {
     return match ? (match.view(viewer).players[viewer].queue?.length ?? 0) : 0;
   }
 
-  /** A story or practice match that just ended goes to the server, which replays it before paying out. */
+  /** A story, practice or arcade match that just ended goes to the server, which replays it before paying out. */
   function submitStory(match: MatchSession): void {
     const mode = match.mode;
-    if (mode.kind !== 'vsBot' || !(mode.story || mode.practice) || !match.record || get().storyResult !== null) return;
+    if (mode.kind !== 'vsBot' || !(mode.story || mode.practice || mode.arcade) || !match.record || get().storyResult !== null) return;
     set({ storyResult: { status: 'submitting' } });
     const commands = match.record.commands;
-    (mode.story ? api.finishStory(mode.story.attemptId, commands) : api.finishPractice(mode.practice!.attemptId, commands)).then(
+    (mode.story
+      ? api.finishStory(mode.story.attemptId, commands)
+      : mode.arcade
+        ? api.finishArcade(mode.arcade.attemptId, commands)
+        : api.finishPractice(mode.practice!.attemptId, commands)
+    ).then(
       (result) => {
         if (get().match !== match) return;
         set({ storyResult: { status: 'done', result } });
@@ -320,6 +330,15 @@ export const useStore = create<StoreState>((set, get) => {
         const returnTo = get().returnTo;
         api.startPractice(bot, human).then(
           (r) => get().match === m && get().newMatch(m.content, r.config, { kind: 'vsBot', bot, human, practice: { attemptId: r.attemptId } }, returnTo),
+          (e: unknown) => get().match === m && set({ toast: e instanceof Error ? e.message : String(e) }),
+        );
+        return;
+      }
+      // An arcade run goes on with the server's next stage (or a new run, after a loss).
+      if (m?.mode.kind === 'vsBot' && m.mode.arcade) {
+        const returnTo = get().returnTo;
+        api.startArcade().then(
+          (r) => get().match === m && get().newMatch(m.content, r.config, arcadeMode(r), returnTo),
           (e: unknown) => get().match === m && set({ toast: e instanceof Error ? e.message : String(e) }),
         );
         return;

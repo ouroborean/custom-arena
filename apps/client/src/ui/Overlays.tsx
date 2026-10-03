@@ -64,6 +64,7 @@ export function GameOverOverlay() {
   const reward = online?.reward;
   const story = kind === 'vsBot' ? match.mode.story : undefined;
   const practice = kind === 'vsBot' ? match.mode.practice : undefined;
+  const arcade = kind === 'vsBot' ? match.mode.arcade : undefined;
 
   const download = () => {
     if (!record) return;
@@ -93,7 +94,7 @@ export function GameOverOverlay() {
           </p>
         )}
         {reward && <Earned currency={reward.currency} items={reward.items} />}
-        {(story || practice) && <StoryVerdict />}
+        {(story || practice || arcade) && <StoryVerdict />}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
           {record && kind !== 'replay' && (
             <button type="button" className="btn" onClick={download}>
@@ -103,11 +104,12 @@ export function GameOverOverlay() {
           <button type="button" className={`btn${local ? '' : ' primary'}`} autoFocus={!local} onClick={toSetup}>
             {t(`over.back.${returnTo}`)}
           </button>
-          {local && (
+          {local && !arcade && (
             <button type="button" className="btn primary" autoFocus onClick={rematch}>
               {t('over.rematch')}
             </button>
           )}
+          {arcade && <ArcadeNext onClick={rematch} />}
         </div>
       </div>
     </div>
@@ -131,6 +133,20 @@ function Earned({ currency, items }: { currency: Record<string, number>; items: 
 }
 
 /** What the server made of a finished story attempt (it replays the match before paying out). */
+/** After an arcade stage: on to the next stage, or a new run (once the server has recorded the result). */
+function ArcadeNext({ onClick }: { onClick: () => void }) {
+  const t = useT();
+  const result = useStore((s) => s.storyResult);
+  if (!result || result.status === 'submitting') return null;
+  const next = result.status === 'done' ? result.result.arcade?.next : undefined;
+  const label = !next ? t('over.arcadeRetry') : next.stage === 1 ? t('over.arcadeNewRun') : t('over.arcadeNext', { stage: next.stage });
+  return (
+    <button type="button" className="btn primary" autoFocus onClick={onClick}>
+      {label}
+    </button>
+  );
+}
+
 function StoryVerdict() {
   const t = useT();
   const result = useStore((s) => s.storyResult);
@@ -148,6 +164,15 @@ function StoryVerdict() {
     <div className="story-verdict">
       {earned && <Earned currency={r.reward.currency} items={r.reward.items} />}
       {!earned && <p className="muted">{t('over.recorded', { outcome: r.outcome })}</p>}
+      {r.arcade && (
+        <p className="reward">
+          {r.arcade.ladderComplete
+            ? t('over.arcadeComplete', { stages: r.arcade.next.stages })
+            : r.outcome === 'win'
+              ? t('over.arcadeCleared', { stage: r.arcade.stage, stages: r.arcade.next.stages })
+              : t('over.arcadeOver', { stage: r.arcade.stage })}
+        </p>
+      )}
       {r.chapterComplete && (
         <p className="reward">{t('over.chapterComplete', { chapter: content.chapters[r.chapterComplete]?.name ?? r.chapterComplete })}</p>
       )}

@@ -31,9 +31,15 @@ export interface PracticeTag {
   attemptId: string;
 }
 
+/** An arcade stage the server issued: verified like practice, and it moves the run on. */
+export interface ArcadeTag {
+  attemptId: string;
+  stage: number;
+}
+
 export type MatchMode =
   /** With `story`, the encounter's own AI plays instead of `bot`. */
-  | { kind: 'vsBot'; bot: BotKind; human: PlayerId; story?: StoryTag; practice?: PracticeTag }
+  | { kind: 'vsBot'; bot: BotKind; human: PlayerId; story?: StoryTag; practice?: PracticeTag; arcade?: ArcadeTag }
   | { kind: 'hotseat' }
   | { kind: 'watch'; bots: [BotKind, BotKind] }
   | { kind: 'online'; you: PlayerId; opponent: string; matchKind: MatchKind; timer: number | null }
