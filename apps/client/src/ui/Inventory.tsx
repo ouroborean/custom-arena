@@ -2,11 +2,12 @@
 // pieces into one, splitting a forged piece back into its components, and salvage. Only unequipped
 // pieces can be forged, split or salvaged.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { describePiece, type PieceDef } from '@arena/engine';
 import { canAfford, forge as forgeRule, formatAmounts, pieceKind, salvageValue, splitPiece } from '@arena/meta';
 import type { InventoryItem } from '../api.js';
 import { content } from '../content.js';
+import { useGuide } from '../guides.js';
 import { useMeta } from '../meta.js';
 import { ItemFace } from './common.js';
 import { ELEMENTS, ItemDetails, KIND_ORDER, PIECE_GROUPS, PieceBadge, pieceKindLabel, pieceSearchText } from './LoadoutEditor.js';
@@ -53,6 +54,10 @@ export function InventoryPanel() {
   const onBench = new Set([baseInst?.id, addInst?.id].filter(Boolean));
   const free = (e: Entry) => e.spare.filter((i) => !onBench.has(i.id));
   const result = baseInst && addInst ? forgeRule(content, baseInst.itemId, addInst.itemId) : null;
+  // The Forging guide follows the bench.
+  const setGuideSignals = useGuide((s) => s.setSignals);
+  const countForGuide = useGuide((s) => s.count);
+  useEffect(() => setGuideSignals({ benchBase: !!baseInst, benchAddition: !!addInst }), [baseInst, addInst, setGuideSignals]);
   const made = result?.ok ? describePiece(content, result.piece) : undefined;
 
   const q = query.trim().toLowerCase();
@@ -68,6 +73,7 @@ export function InventoryPanel() {
     if (!baseInst || !addInst || !made) return;
     const item = await forge(baseInst.id, addInst.id);
     if (!item) return;
+    countForGuide('forges');
     setBase(null);
     setAddition(null);
     setSelected(item.itemId);
@@ -82,7 +88,7 @@ export function InventoryPanel() {
   };
 
   return (
-    <section aria-label="Inventory">
+    <section aria-label="Inventory" data-guide="inventory">
       <div className="section-head">
         <h2>
           Inventory <span className="muted">{inventory.length}</span>
@@ -90,7 +96,7 @@ export function InventoryPanel() {
         <span className="muted">Equip pieces from a character's page. Wins in casual and ranked matches drop more components.</span>
       </div>
 
-      <div className="forge-bench" role="group" aria-label="Forge">
+      <div className="forge-bench" role="group" aria-label="Forge" data-guide="forge">
         <BenchSlot label="Base" inst={baseInst} onClear={() => setBase(null)} />
         <span className="forge-op" aria-hidden>
           +
@@ -166,7 +172,7 @@ export function InventoryPanel() {
         </span>
       </div>
 
-      <div className="inventory-body">
+      <div className="inventory-body" data-guide="pieces">
         {entries.length === 0 ? (
           <p className="muted">No equipment yet. Casual and ranked wins, the story and achievements all give components.</p>
         ) : (

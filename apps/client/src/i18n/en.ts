@@ -69,6 +69,8 @@ export const en = {
   'settings.installHint': "To install, use your browser's Install app or Add to Home Screen (on iPhone and iPad: Share → Add to Home Screen).",
 
   // tutorial
+  'tutorial.guides': 'Guides',
+  'tutorial.guidesIntro': 'Short walkthroughs of the menus, on your own account: a coach points out each part and moves on as you do it.',
   'tutorial.title': 'Tutorial',
   'tutorial.lesson': 'Lesson {n}: {name}',
   'tutorial.done': 'Done',

@@ -244,6 +244,17 @@ penalties: every cleared stage pays its `win` reward in full.
 - A played-out loss or a draw pays 15 Gold. A surrender pays nothing.
 - Arcade drops have their **own daily cap** (15), separate from the match cap of 10.
 
+### Menu guides
+
+Below the battle lessons, the Tutorial screen lists four **guides** (`apps/client/src/guides.ts`):
+Recruiting, Equipment, Infusions and Forging. They're coached walkthroughs of the real menus on the
+player's own account, not battles. A card at the bottom of the screen explains one part at a time and
+outlines it on screen (`data-guide` hooks). Steps that ask for an action move on by themselves once
+the player has done it: a recruit, an edit to the loadout, a saved loadout, a piece on the bench, a
+forge. Each step is judged from where the player stood when they reached that screen, so an existing
+loadout doesn't count as an edit. Guides pay no rewards. A finished guide is checked off in this
+browser (local storage).
+
 ## 6. Tools
 
 - `npm run sim -- --bots normal,hard --games 200`: tier duels.

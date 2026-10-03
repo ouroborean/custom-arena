@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EQUIPMENT_SLOTS, MAX_SKILLS, PASSIVE_BUDGET, resolveLoadout, type Loadout } from '@arena/meta';
 import { api, ApiError, type Character, type Preset } from '../api.js';
 import { content } from '../content.js';
+import { useGuide } from '../guides.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { LoadoutEditor } from './LoadoutEditor.js';
@@ -79,6 +80,14 @@ function CharacterPage({
   const resolved = useMemo(() => resolveLoadout(content, record, draft), [record, draft]);
   const dirty = canonical(draft) !== canonical(c.loadout);
 
+  // The Equipment and Infusions guides follow the unsaved loadout.
+  const setGuideSignals = useGuide((s) => s.setSignals);
+  const countForGuide = useGuide((s) => s.count);
+  const itemsKey = draft.items.map((i) => `${i.itemId}:${i.instanceId ?? ''}`).join(',');
+  const infusionsKey = draft.infusions.map((i) => `${i.skill}:${i.element}`).join(',');
+  useEffect(() => setGuideSignals({ draftItems: itemsKey, draftInfusions: infusionsKey }), [itemsKey, infusionsKey, setGuideSignals]);
+  useEffect(() => () => setGuideSignals({ draftItems: '', draftInfusions: '' }), [setGuideSignals]);
+
   useEffect(() => {
     api.presets(c.id).then((r) => setPresets(r.presets), () => setPresets([]));
   }, [c.id]);
@@ -89,6 +98,7 @@ function CharacterPage({
     try {
       await api.saveLoadout(c.id, draft);
       await onSaved();
+      countForGuide('saves');
       setSaved('Loadout saved');
     } catch (e) {
       setServerProblems(e instanceof ApiError && e.problems.length ? e.problems : [String((e as Error).message)]);
@@ -170,7 +180,13 @@ function CharacterPage({
           <button type="button" className="btn" disabled={!dirty} onClick={() => setDraft(c.loadout)}>
             Reset
           </button>
-          <button type="button" className="btn primary" disabled={!dirty || resolved.problems.length > 0 || busy} onClick={() => void save()}>
+          <button
+            type="button"
+            className="btn primary"
+            data-guide="save"
+            disabled={!dirty || resolved.problems.length > 0 || busy}
+            onClick={() => void save()}
+          >
             Save loadout
           </button>
         </div>

@@ -3368,6 +3368,12 @@ input[type="password"] {
   margin: 0;
 }
 
+.guide-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .coach-step {
   font-size: 11px;
   font-weight: 900;
