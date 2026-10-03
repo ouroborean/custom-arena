@@ -7,7 +7,7 @@
 
 import { botFor } from '@arena/ai';
 import { seedRng, type Command, type MatchConfig } from '@arena/engine';
-import { arcadeDef, arcadeNextStage, arcadeReward, arcadeStage, arcadeTeam, singlePlayerBotSeed, storyStatus, type ArcadeLast, type Outcome } from '@arena/meta';
+import { arcadeDef, arcadeNextStage, arcadeReward, arcadeStage, arcadeTeam, singlePlayerBotSeed, singlePlayerFirst, storyStatus, type ArcadeLast, type Outcome } from '@arena/meta';
 import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -22,7 +22,7 @@ const Submitted = z.object({
   commands: z.array(z.object({ player: z.number().int().min(0).max(1), cmd: z.record(z.string(), z.unknown()) })).max(4000),
 });
 
-/** The player always moves first in the arcade. */
+/** The player's seat (who moves first is a coin flip: `singlePlayerFirst`). */
 const SEAT = 0 as const;
 
 /** The player's last finished stage (voided attempts don't count). */
@@ -96,7 +96,7 @@ export function arcadeRoutes(ctx: AppContext) {
       const stage = arcadeNextStage(ctx.content, await lastStage(ctx.db, userId));
       const seed = ctx.rollSeed();
       const bots = arcadeTeam(ctx.content, stage, seedRng(seed ^ 0x2545f491));
-      const config: MatchConfig = { seed, teams: [team, bots] };
+      const config: MatchConfig = { seed, teams: [team, bots], firstPlayer: singlePlayerFirst(seed) };
       const [row] = await ctx.db
         .insert(spAttempts)
         .values({ userId, mode: 'arcade', ref: String(stage), contentVersion: ctx.content.version, engineVersion, config })

@@ -106,7 +106,10 @@ There are ten element chapters in `story/story.chapters.yaml`. Each has three en
 | Boss, first clear | 150 Gold and one of the element's accessories (25 on repeats) |
 | Finishing a chapter | 100 Gold and the element's emblem: its Crystal forged with the emblem's Sigil (*Dragon Crystal of the Inferno*) |
 
-Encounters unlock in order, and a chapter opens when the one before it is complete.
+All ten chapters are open from the start (decided 2026-10-03), so a player can go after any
+element's rewards first (an Earth Crystal early on, say). Inside a chapter, the encounters unlock in
+order. The chapters are listed roughly from gentlest to hardest; the boss AI tiers below show how
+much each one asks.
 
 ### Difficulty curve
 `npm run sim -- --story` measures a Normal bot with random, unequipped teams playing each
@@ -223,7 +226,8 @@ Enemies are always three different classes. Stage 1 is three 2-skill enemies wit
 - A win moves the run to the next stage.
 - A loss or a draw ends the run, and the next one starts at stage 1.
 - Clearing stage 12 completes the ladder and pays the `complete` bonus; the next run starts over.
-- You always move first.
+- Who moves first is a coin flip, as in practice (`singlePlayerFirst`, fixed by the match seed so the
+  server's replay agrees).
 
 The server issues and verifies stages the same way as story attempts (`POST /api/arcade/start`,
 `POST /api/arcade/attempts/:id/finish`; `GET /api/arcade` reports the run). If a stage is left

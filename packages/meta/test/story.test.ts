@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
-import { advanceAchievement, encounterConfig, encounterUnitSpec, storyStatus, type MatchFact } from '../src/index.js';
+import { advanceAchievement, encounterConfig, encounterUnitSpec, singlePlayerFirst, storyStatus, type MatchFact } from '../src/index.js';
 
 const content = loadContentOrThrow();
 
@@ -25,16 +25,20 @@ describe('encounters', () => {
 });
 
 describe('story progress', () => {
-  it('opens encounters in order and chapters one after another', () => {
-    const fresh = storyStatus(content, new Set());
-    expect(fresh[0]).toMatchObject({ id: 'embers', unlocked: true, complete: false });
-    expect(fresh[0]!.encounters.map((e) => e.unlocked)).toEqual([true, false, false]);
-    expect(fresh[1]!.unlocked).toBe(false);
+  it("opens all ten story chapters from the start, each one's encounters in order", () => {
+    const fresh = storyStatus(content, new Set()).filter((c) => !content.chapters[c.id]!.tutorial);
+    expect(fresh).toHaveLength(10);
+    for (const c of fresh) {
+      expect(c).toMatchObject({ unlocked: true, complete: false });
+      expect(c.encounters.map((e) => e.unlocked)).toEqual([true, false, false]);
+    }
+    // Starting with a later chapter is fine: Heartstone's first clear opens its next encounter.
+    const later = storyStatus(content, new Set(['heartstone_1'])).find((c) => c.id === 'heartstone')!;
+    expect(later.encounters.map((e) => e.unlocked)).toEqual([true, true, false]);
 
     const done = storyStatus(content, new Set(['embers_1', 'embers_2', 'embers_3']));
     expect(done[0]!.complete).toBe(true);
-    expect(done[1]!.unlocked).toBe(true);
-    expect(done[1]!.encounters[0]!.unlocked).toBe(true);
+    expect(done[1]!.complete).toBe(false);
   });
 });
 
@@ -66,5 +70,16 @@ describe('achievements', () => {
     expect(advanceAchievement(content.achievements.quick_work!, undefined, win).done).toBe(false);
     const boss = { ...win, mode: 'story', encounter: 'embers_3', chapter: 'embers' };
     expect(advanceAchievement(content.achievements.first_chapter!, undefined, boss).done).toBe(true);
+  });
+});
+
+describe('who moves first in practice and the arcade', () => {
+  it('is a coin flip, fixed by the match seed', () => {
+    const seeds = Array.from({ length: 400 }, (_, i) => 7919 * i + 13);
+    const first = seeds.map(singlePlayerFirst);
+    expect(seeds.map(singlePlayerFirst)).toEqual(first);
+    const ones = first.filter((p) => p === 1).length;
+    expect(ones).toBeGreaterThan(160);
+    expect(ones).toBeLessThan(240);
   });
 });

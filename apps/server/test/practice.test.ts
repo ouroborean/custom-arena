@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
 import { botFor, normalBot, playMatch } from '@arena/ai';
 import type { MatchConfig } from '@arena/engine';
-import { singlePlayerBotSeed } from '@arena/meta';
+import { singlePlayerBotSeed, singlePlayerFirst } from '@arena/meta';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { openDb, type OpenDb } from '../src/db/client.js';
@@ -44,23 +44,27 @@ function play(config: MatchConfig, seat: 0 | 1, bot: 'easy' | 'normal' | 'hard',
 }
 
 describe('practice against a bot', () => {
-  it('issues your active team against a bot team, in the seat you chose', async () => {
+  it('issues your active team against a bot team, and either side may move first', async () => {
     const a = await account('seat@example.com');
     const team = (await a.call('GET', '/api/teams/active/specs')).json().specs as { name: string }[];
-    for (const seat of [0, 1] as const) {
-      const res = await a.call('POST', '/api/practice/start', { bot: 'easy', seat });
+    const first = new Set<number>();
+    for (let i = 0; i < 16; i++) {
+      const res = await a.call('POST', '/api/practice/start', { bot: 'easy' });
       expect(res.statusCode).toBe(201);
       const config = res.json().config as MatchConfig;
-      expect(config.teams[seat].map((c) => c.name)).toEqual(team.map((c) => c.name));
-      expect(config.teams[seat === 0 ? 1 : 0].every((c) => c.name.startsWith('Bot '))).toBe(true);
+      expect(config.teams[0].map((c) => c.name)).toEqual(team.map((c) => c.name));
+      expect(config.teams[1].every((c) => c.name.startsWith('Bot '))).toBe(true);
+      expect(config.firstPlayer).toBe(singlePlayerFirst(config.seed));
+      first.add(config.firstPlayer!);
     }
+    expect([...first].sort()).toEqual([0, 1]);
   });
 
   it("pays the practice rewards for the server's own replay of the result, once", async () => {
     const a = await account('practice@example.com');
     const before = await a.gold();
-    const start = (await a.call('POST', '/api/practice/start', { bot: 'easy', seat: 1 })).json() as { attemptId: string; config: MatchConfig };
-    const played = play(start.config, 1, 'easy', 7);
+    const start = (await a.call('POST', '/api/practice/start', { bot: 'easy' })).json() as { attemptId: string; config: MatchConfig };
+    const played = play(start.config, 0, 'easy', 7);
     const res = await a.call('POST', `/api/practice/attempts/${start.attemptId}/finish`, { commands: played.record.commands });
     expect(res.statusCode).toBe(200);
     const body = res.json() as {
@@ -70,7 +74,7 @@ describe('practice against a bot', () => {
       achievements: { reward: { currency: { gold?: number } } }[];
     };
     const w = played.state.result!.winner;
-    expect(body.outcome).toBe(w === null ? 'draw' : w === 1 ? 'win' : 'loss');
+    expect(body.outcome).toBe(w === null ? 'draw' : w === 0 ? 'win' : 'loss');
     const expected = body.turns < practice.minTurns ? 0 : (practice[body.outcome].currency?.gold ?? 0);
     expect(body.reward.currency.gold ?? 0).toBe(expected);
     const fromAchievements = body.achievements.reduce((n, x) => n + (x.reward.currency.gold ?? 0), 0); // a first win counts for First Victory
@@ -84,14 +88,14 @@ describe('practice against a bot', () => {
   it('a surrender pays nothing, and tampered or unfinished replays are refused', async () => {
     const a = await account('quitter@example.com');
     const before = await a.gold();
-    const start = (await a.call('POST', '/api/practice/start', { bot: 'easy', seat: 0 })).json() as { attemptId: string; config: MatchConfig };
+    const start = (await a.call('POST', '/api/practice/start', { bot: 'easy' })).json() as { attemptId: string; config: MatchConfig };
     const quit = await a.call('POST', `/api/practice/attempts/${start.attemptId}/finish`, { commands: [{ player: 0, cmd: { t: 'surrender' } }] });
     expect(quit.statusCode).toBe(200);
     expect(quit.json().outcome).toBe('loss');
     expect(quit.json().reward).toEqual({ currency: {}, items: [] });
     expect(await a.gold()).toBe(before);
 
-    const fresh = (await a.call('POST', '/api/practice/start', { bot: 'easy', seat: 0 })).json() as { attemptId: string; config: MatchConfig };
+    const fresh = (await a.call('POST', '/api/practice/start', { bot: 'easy' })).json() as { attemptId: string; config: MatchConfig };
     expect((await a.call('POST', `/api/practice/attempts/${fresh.attemptId}/finish`, { commands: [] })).statusCode).toBe(400);
   });
 });

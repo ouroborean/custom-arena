@@ -1,81 +1,73 @@
-# Story chapters, in play order (GDD §2.2): one per element. Each chapter's encounters unlock in
-# order; a chapter opens when the previous one is complete.
+# Story chapters (GDD §2.2): one per element, all open from the start, so a player can go after
+# any element's rewards first (decided 2026-10-03). Inside a chapter, the encounters unlock in order.
+# Listed roughly from gentlest to hardest.
 
 embers:
-  name: "Chapter 1: Embers"
+  name: "Embers"
   element: Fire
   description: "Raiders from the ash wastes are burning the border towns."
   encounters: [embers_1, embers_2, embers_3]
   reward: { currency: { gold: 100 }, items: [fire_shard+fire_shard+sigil_inferno] }
 
 mire:
-  name: "Chapter 2: The Mire"
+  name: "The Mire"
   element: Poison
   description: "Something in the swamp is poisoning the wells."
   encounters: [mire_1, mire_2, mire_3]
-  requires: embers
   reward: { currency: { gold: 100 }, items: [poison_shard+poison_shard+sigil_serpent] }
 
 zealots:
-  name: "Chapter 3: The Zealots"
+  name: "The Zealots"
   element: Holy
   description: "An inquisition marches on anyone it calls unclean."
   encounters: [zealots_1, zealots_2, zealots_3]
-  requires: mire
   reward: { currency: { gold: 100 }, items: [holy_shard+holy_shard+sigil_dawn] }
 
 frostreach:
-  name: "Chapter 4: Frostreach"
+  name: "Frostreach"
   element: Ice
   description: "The northern pass has frozen shut, and its wardens let no one through."
   encounters: [frostreach_1, frostreach_2, frostreach_3]
-  requires: zealots
   reward: { currency: { gold: 100 }, items: [ice_shard+ice_shard+sigil_floe] }
 
 tides:
-  name: "Chapter 5: Turning Tides"
+  name: "Turning Tides"
   element: Water
   description: "Pirates rule the archipelago and the sea seems to heal them."
   encounters: [tides_1, tides_2, tides_3]
-  requires: frostreach
   reward: { currency: { gold: 100 }, items: [water_shard+water_shard+sigil_tide] }
 
 barrow:
-  name: "Chapter 6: The Barrow"
+  name: "The Barrow"
   element: Unholy
   description: "The dead walk out of the old barrows at night."
   encounters: [barrow_1, barrow_2, barrow_3]
-  requires: tides
   reward: { currency: { gold: 100 }, items: [unholy_shard+unholy_shard+sigil_tomb] }
 
 stormfront:
-  name: "Chapter 7: Stormfront"
+  name: "Stormfront"
   element: Lightning
   description: "A storm cult is drawing lightning down on the plains."
   encounters: [stormfront_1, stormfront_2, stormfront_3]
-  requires: barrow
   reward: { currency: { gold: 100 }, items: [lightning_shard+lightning_shard+sigil_tempest] }
 
 skyreach:
-  name: "Chapter 8: Skyreach"
+  name: "Skyreach"
   element: Wind
   description: "The monks of the high peaks are testing everyone who climbs."
   encounters: [skyreach_1, skyreach_2, skyreach_3]
-  requires: stormfront
   reward: { currency: { gold: 100 }, items: [wind_shard+wind_shard+sigil_gale] }
 
 nightfall:
-  name: "Chapter 9: Nightfall"
+  name: "Nightfall"
   element: Shadow
   description: "Assassins are thinning the council one shadow at a time."
   encounters: [nightfall_1, nightfall_2, nightfall_3]
-  requires: skyreach
   reward: { currency: { gold: 100 }, items: [shadow_shard+shadow_shard+sigil_void] }
 
 heartstone:
-  name: "Chapter 10: Heartstone"
+  name: "Heartstone"
   element: Earth
   description: "The mountain itself has woken, and its guardians with it."
   encounters: [heartstone_1, heartstone_2, heartstone_3]
-  requires: nightfall
   reward: { currency: { gold: 100 }, items: [earth_shard+earth_shard+sigil_mountain] }

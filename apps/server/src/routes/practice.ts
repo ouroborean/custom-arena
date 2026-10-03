@@ -1,10 +1,10 @@
-// Practice against a bot (docs/single-player.md): like story attempts, the server issues the seed and
-// both teams, the match is played in the browser, and on finish the server replays it before paying
+// Practice against a bot (docs/single-player.md): like story attempts, the server issues the seed,
+// both teams and who moves first (a coin flip), the match is played in the browser, and on finish the server replays it before paying
 // the `practice` rewards (a baseline of Gold, sometimes a drop).
 
 import { botFor, randomConfig } from '@arena/ai';
 import { seedRng, type Command, type MatchConfig } from '@arena/engine';
-import { matchReward, singlePlayerBotSeed, storyStatus } from '@arena/meta';
+import { matchReward, singlePlayerBotSeed, singlePlayerFirst, storyStatus } from '@arena/meta';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -30,14 +30,18 @@ export function practiceRoutes(ctx: AppContext) {
   return async (app: FastifyInstance) => {
     app.addHook('preHandler', requireUser);
 
-    /** Issues a practice match: your active team against a random bot team, with a fresh seed. */
+    /**
+     * Issues a practice match: your active team (seat 0) against a random bot team, with a fresh seed;
+     * either side may move first.
+     */
     app.post('/api/practice/start', async (req, reply) => {
       const userId = req.user!.id;
-      const { bot, seat } = parse(z.object({ bot: Bots, seat: z.union([z.literal(0), z.literal(1)]) }), req.body);
+      const { bot } = parse(z.object({ bot: Bots }), req.body);
+      const seat = 0;
       const team = await activeTeamSpecs(ctx, userId);
       const seed = ctx.rollSeed();
       const bots = randomConfig(ctx.content, seed).teams[1].map((c, i) => ({ ...c, name: `Bot ${ctx.content.classes[c.classId!]!.name} ${i + 1}` }));
-      const config: MatchConfig = { seed, teams: seat === 0 ? [team, bots] : [bots, team] };
+      const config: MatchConfig = { seed, teams: [team, bots], firstPlayer: singlePlayerFirst(seed) };
       const [row] = await ctx.db
         .insert(spAttempts)
         .values({ userId, mode: 'practice', ref: refOf(bot, seat), contentVersion: ctx.content.version, engineVersion, config })

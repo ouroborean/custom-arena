@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
 import { botFor, normalBot, playMatch } from '@arena/ai';
 import type { MatchConfig } from '@arena/engine';
-import { arcadeDef, singlePlayerBotSeed } from '@arena/meta';
+import { arcadeDef, singlePlayerBotSeed, singlePlayerFirst } from '@arena/meta';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
@@ -63,6 +63,7 @@ describe('arcade mode', () => {
       expect(c.skills).toHaveLength(2);
       expect(c.skills.every((id) => content.skills[id]!.element === 'None')).toBe(true);
     }
+    expect(s.config.firstPlayer).toBe(singlePlayerFirst(s.config.seed));
     // Leaving and coming back gets the same stage, not a new roll of the enemies.
     const again = await a.start();
     expect(again).toMatchObject({ attemptId: s.attemptId, resumed: true, config: s.config });
