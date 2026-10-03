@@ -131,12 +131,28 @@ describe('Brimstone skills', () => {
     expect([a.hp(B1), sulfur(a, B1)]).toEqual([95, 1]);
   });
 
-  it('Sulfur Sting: against Prey, their Sulfur Erupts', () => {
+  it('Sulfur Sting: against Prey, it all Erupts', () => {
     const a = arena({ p0: [['shot.brimstone']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'prey', { source: A1 }).give(B1, 'sulfur', { stacks: 1, source: A1 });
+    a.give(B1, 'prey', { source: A1 });
+    a.use(A1, 'shot.brimstone', B1).end();
+    expect([sulfur(a, B1), toxin(a, B1), a.hp(B2)]).toEqual([0, 1, 95]);
+    expect(a.hp(B1)).toBeLessThanOrEqual(100 - 5 - 10);
+  });
+
+  it('Sulfur Sting: if they already had Sulfur, it all Erupts', () => {
+    const a = arena({ p0: [['shot.brimstone']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'sulfur', { stacks: 1, source: A1 });
     a.use(A1, 'shot.brimstone', B1).end();
     expect([sulfur(a, B1), toxin(a, B1), a.hp(B2)]).toEqual([0, 2, 90]);
     expect(a.hp(B1)).toBeLessThanOrEqual(100 - 5 - 20);
+  });
+
+  it('Sulfur Sting: a second Sting sets off the Sulfur the first one left', () => {
+    const a = arena({ p0: [['shot.brimstone']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.brimstone', B1).end();
+    expect([sulfur(a, B1), a.hp(B2)]).toEqual([1, 100]);
+    a.pass(3).use(A1, 'shot.brimstone', B1).end();
+    expect([sulfur(a, B1), toxin(a, B1), a.hp(B2)]).toEqual([0, 2, 90]);
   });
 
   it('Pitch Javelin: next turn, 25 Affliction and 2 Sulfur; hidden target', () => {
@@ -222,20 +238,29 @@ describe('Brimstone skills', () => {
     expect([sulfur(a, B1), a.hp(B2)]).toEqual([0, 100 - 15 - 5]);
   });
 
-  it('Consumed by Fire: their Sulfur Erupts; below 15 HP afterwards they are executed', () => {
+  it('Consumed by Fire: the target gains 2 Sulfur, then their Sulfur Erupts', () => {
     const a = arena({ p0: [['consume.brimstone']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 40).give(B1, 'sulfur', { stacks: 3, source: A1 }).use(A1, 'consume.brimstone', B1).end();
-    expect([a.unit(B1).alive, a.hp(B2)]).toEqual([false, 85]);
+    a.use(A1, 'consume.brimstone', B1).end();
+    expect([a.hp(B1), a.hp(B2), sulfur(a, B1), toxin(a, B1)]).toEqual([100 - 20 - 10, 90, 0, 2]); // + the new Toxin's tick
     const b = arena({ p0: [['consume.brimstone']], p1: [['shot'], ['shot']] });
-    b.setHp(B1, 60).give(B1, 'sulfur', { stacks: 3, source: A1 }).use(A1, 'consume.brimstone', B1).end();
-    expect([b.unit(B1).alive, b.hp(B1) <= 30, b.hp(B1) >= 15]).toEqual([true, true, true]);
+    b.give(B1, 'sulfur', { stacks: 1, source: A1 }).use(A1, 'consume.brimstone', B1).end();
+    expect([b.hp(B1), b.hp(B2), toxin(b, B1)]).toEqual([100 - 30 - 15, 85, 3]);
+  });
+
+  it('Consumed by Fire: below 15 HP afterwards they are executed', () => {
+    const a = arena({ p0: [['consume.brimstone']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 34).use(A1, 'consume.brimstone', B1).end();
+    expect([a.unit(B1).alive, a.hp(B2)]).toEqual([false, 90]);
+    const b = arena({ p0: [['consume.brimstone']], p1: [['shot'], ['shot']] });
+    b.setHp(B1, 35).use(A1, 'consume.brimstone', B1).end();
+    expect([b.unit(B1).alive, b.hp(B1)]).toEqual([true, 15 - 10]); // 15 when checked; then the Toxin ticks
   });
 
   it('Consumed by Fire: minions are executed below 30 HP', () => {
     const a = arena({ p0: [['consume.brimstone']], p1: [['companion'], ['shot']] });
     a.pass(1).use(B1, 'companion').end();
     const wolf = a.state.units.find((u) => u.owner === 1 && u.defId === 'wolf')!;
-    a.setHp(wolf.id, 29).use(A1, 'consume.brimstone', wolf.id).end();
+    a.setHp(wolf.id, 49).use(A1, 'consume.brimstone', wolf.id).end(); // 29 after the Eruption
     expect(a.unit(wolf.id).alive).toBe(false);
   });
 
@@ -248,6 +273,16 @@ describe('Brimstone skills', () => {
     expect(a.has(B1, 'ignite')).toBe(true);
     a.pass(4);
     expect(a.state.units.filter((u) => u.owner === 0 && u.defId === 'stoker' && u.alive)).toHaveLength(0);
+  });
+
+  it('Stokers: with no Sulfur on any enemy, a Stoker gives one 1 Sulfur instead (and the other Ignites them)', () => {
+    const a = arena({ p0: [['summon.brimstone']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'summon.brimstone').end();
+    const lit = [B1, B2].filter((u) => sulfur(a, u) === 1);
+    expect(lit).toHaveLength(1);
+    expect(a.has(lit[0]!, 'ignite')).toBe(true);
+    a.pass(2); // the Ignite burns at the end of the next turn, setting the Sulfur off
+    expect([sulfur(a, lit[0]!), toxin(a, lit[0]!)]).toEqual([0, 1]);
   });
 
   it('Hellmouth: 5 Affliction to all enemies and 1 Sulfur to a random one each turn', () => {
@@ -278,18 +313,19 @@ describe('Brimstone skills', () => {
     expect(toxin(a, B1)).toBeGreaterThan(0);
   });
 
-  it('Strike the Match: 5 Piercing and Ignite', () => {
-    const a = arena({ p0: [['stab.brimstone']], p1: [['shot']] });
+  it('Strike the Match: 5 Piercing and Ignite; with no Sulfur, they gain 1 for the Ignite to set off', () => {
+    const a = arena({ p0: [['stab.brimstone']], p1: [['shot'], ['shot']] });
     const e0 = energy(a, 0);
-    a.use(A1, 'stab.brimstone', B1).end();
-    expect([a.has(B1, 'ignite'), a.hp(B1), energy(a, 0)]).toEqual([true, 90, e0 - 1]);
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'stab.brimstone', B1).end(); // the Ignite burns and the Sulfur Erupts
+    expect([a.has(B1, 'ignite'), a.hp(B2), sulfur(a, B1), toxin(a, B1), energy(a, 0)]).toEqual([true, 95, 0, 1, e0 - 1]);
+    expect(a.hp(B1)).toBeLessThanOrEqual(100 - 5 - 5 - 10);
   });
 
-  it('Strike the Match: with Sulfur for the Ignite to set off, the user gains 1 random energy', () => {
+  it('Strike the Match: with Sulfur for the Ignite to set off, the user gains 1 random energy (and adds none)', () => {
     const a = arena({ p0: [['stab.brimstone']], p1: [['shot']] });
     const e0 = energy(a, 0);
     a.give(B1, 'sulfur', { stacks: 1, source: A1 }).use(A1, 'stab.brimstone', B1).end();
-    expect(energy(a, 0)).toBe(e0);
+    expect([energy(a, 0), toxin(a, B1)]).toEqual([e0, 1]); // only the 1 Sulfur it had Erupted
   });
 
   it('Caustic Flame: 20 Affliction +10 per Toxin, then the Toxin is burned away', () => {
@@ -330,12 +366,20 @@ describe('Brimstone skills', () => {
     expect(a.reject(() => a.use(B1, 'maneuver.brimstone'))).toBe('cannot_act');
   });
 
-  it('Sulfur Dance: Immune for 1 turn and Explodes; every enemy with Sulfur Erupts', () => {
-    const a = arena({ p0: [['dance.brimstone']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'sulfur', { stacks: 2, source: A1 }).use(A1, 'dance.brimstone').end();
-    expect([a.has(A1, 'immune'), sulfur(a, B1), toxin(a, B1), a.hp(B2)]).toEqual([true, 0, 2, 100 - 10 - 10]);
+  it('Sulfur Dance: Immune for 1 turn; a random enemy gains 1 Sulfur, and the Explosion makes it Erupt', () => {
+    const a = arena({ p0: [['dance.brimstone']], p1: [['shot']] });
+    a.use(A1, 'dance.brimstone').end();
+    expect([a.has(A1, 'immune'), a.hp(B1), sulfur(a, B1), toxin(a, B1)]).toEqual([true, 100 - 10 - 10 - 5, 0, 1]); // + the new Toxin's tick
     a.pass(2);
     expect(a.has(A1, 'immune')).toBe(false);
+  });
+
+  it('Sulfur Dance: every enemy with Sulfur Erupts', () => {
+    const a = arena({ p0: [['dance.brimstone']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'sulfur', { stacks: 2, source: A1 }).give(B2, 'sulfur', { stacks: 1, source: A1 });
+    a.use(A1, 'dance.brimstone').end();
+    expect([sulfur(a, B1), sulfur(a, B2)]).toEqual([0, 0]);
+    expect(toxin(a, B1) + toxin(a, B2)).toBe(4); // 3 given + the Dance's 1
   });
 
   it('Sulfur Tonic: heals 20; the Toxin is drawn off and an enemy gains that much Sulfur', () => {

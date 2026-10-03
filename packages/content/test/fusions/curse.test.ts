@@ -193,10 +193,26 @@ describe('Curse skills', () => {
     expect(hexes(a, B2)).toEqual([]);
   });
 
-  it("Somnambulant Rush: 15 without waking a Sleeping target", () => {
-    const a = arena({ p0: [['charge.curse']], p1: [['shot']] });
-    a.give(B1, 'sleep', { source: A1, duration: 4 }).use(A1, 'charge.curse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([85, true]);
+  it('Crossed Path: 15, and the next Harmful skill gives each enemy it targets a random Hex for 2 turns', () => {
+    const a = arena({ p0: [['charge.curse', 'blast']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'charge.curse', B1).end();
+    expect([a.hp(B1), hexes(a, B1)]).toEqual([85, []]); // its own hit gives no Hex
+    a.pass(1).use(A1, 'blast').end();
+    expect([B1, B2, B3].map((b) => hexes(a, b).length)).toEqual([1, 1, 1]);
+    a.pass(2);
+    expect([B1, B2, B3].map((b) => hexes(a, b).length)).toEqual([1, 1, 1]);
+    a.pass(1);
+    expect([B1, B2, B3].map((b) => hexes(a, b).length)).toEqual([0, 0, 0]);
+  });
+
+  it('Crossed Path: only the next Harmful skill; Helpful skills don\u2019t spend it', () => {
+    const a = arena({ p0: [['charge.curse', 'heal', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.curse', B1).end().pass(1).use(A1, 'heal', A1).end().pass(1);
+    expect(hexes(a, B2)).toEqual([]);
+    a.use(A1, 'shot', B2).end();
+    expect(hexes(a, B2)).toHaveLength(1);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(hexes(a, B1)).toEqual([]); // spent
   });
 
   it('Hex Ward: Invisible; counters every Harmful skill from Hexed enemies', () => {
@@ -270,6 +286,16 @@ describe('Curse skills', () => {
     expect(a.hp(B1)).toBe(95);
     expect(hexes(a, B1)).toEqual(['hex_pain', 'hex_ruin']);
     expect(hexes(a, B2)).toEqual([]); // other enemies' Hexes are untouched
+  });
+
+  it('Needle of Woe: a target with no Hex gains a random Hex for 2 turns', () => {
+    const a = arena({ p0: [['shot.curse']], p1: [['shot']] });
+    a.use(A1, 'shot.curse', B1).end();
+    expect([a.hp(B1), hexes(a, B1).length]).toEqual([95, 1]);
+    a.pass(2);
+    expect(hexes(a, B1).length).toBe(1);
+    a.pass(1);
+    expect(hexes(a, B1).length).toBe(0);
   });
 
   it('Doom: 40 on the following turn, target hidden', () => {
@@ -380,22 +406,28 @@ describe('Curse skills', () => {
     expect(a.hp(B1)).toBe(75);
   });
 
-  it('Soul Eclipse: 25 to all enemies; with no fragments, no Blind', () => {
+  it('Soul Eclipse: 25 to all enemies; each un-Hexed one gains a random Hex for 2 turns', () => {
     const a = arena({ p0: [['blast.curse']], p1: [['shot'], ['shot']] });
     a.use(A1, 'blast.curse').end();
     expect([a.hp(B1), a.hp(B2), a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([75, 75, false, false]);
+    expect([hexes(a, B1).length, hexes(a, B2).length]).toEqual([1, 1]);
+    a.pass(2);
+    expect([hexes(a, B1).length, hexes(a, B2).length]).toEqual([1, 1]);
+    a.pass(1);
+    expect([hexes(a, B1).length, hexes(a, B2).length]).toEqual([0, 0]);
   });
 
-  it('Soul Eclipse: spends up to 3 fragments, each Blinding a random enemy for 2 turns', () => {
-    const a = arena({ p0: [['blast.curse']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 5 }).use(A1, 'blast.curse').end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
-    const blinded = () => [B1, B2, B3].filter((b) => a.has(b, 'blinded')).length;
-    expect(blinded()).toBeGreaterThanOrEqual(1);
-    a.pass(2);
-    expect(blinded()).toBeGreaterThanOrEqual(1);
-    a.pass(1);
-    expect(blinded()).toBe(0);
+  it('Soul Eclipse: each Hexed one is Blinded for 1 turn instead, and gains no new Hex', () => {
+    const a = arena({ p0: [['blast.curse']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'hex_pain', { source: A1, duration: 10 }).use(A1, 'blast.curse').end();
+    expect([a.has(B1, 'blinded'), hexes(a, B1), a.has(B2, 'blinded'), hexes(a, B2).length]).toEqual([
+      true,
+      ['hex_pain'],
+      false,
+      1,
+    ]);
+    a.end();
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
 
   it('Feed on Misery: 5, healing the user; each Hex is shortened and heals 10 more', () => {
@@ -458,19 +490,22 @@ describe('Curse skills', () => {
     expect(hexes(a, B1).length).toBeGreaterThanOrEqual(1); // the original Pain alone would be gone by now
   });
 
-  it('Rend the Wards: spends up to 3 fragments, a random Buff lost for each, then 30 Piercing', () => {
+  it('Rend the Wards: the target loses a random Buff, then takes 30 Piercing; no Fragments needed', () => {
     const a = arena({ p0: [['ravage.curse']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).give(B1, 'might').give(B1, 'swiftness').give(B1, 'focus');
+    a.give(B1, 'might').give(B1, 'swiftness').give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'ravage.curse', B1).end();
-    expect(['might', 'swiftness', 'focus'].filter((k) => a.has(B1, k))).toHaveLength(1);
-    expect([a.stacks(A1, 'soul_fragment'), a.hp(B1)]).toEqual([0, 70]);
+    expect(['might', 'swiftness', 'armor'].filter((k) => a.has(B1, k))).toHaveLength(2);
+    expect([a.hp(B1), a.has(B1, 'hex_ruin')]).toEqual([70, false]);
   });
 
-  it('Rend the Wards: at most 3 fragments are spent', () => {
+  it('Rend the Wards: a target with no Buff gains Hex of Ruin for 2 turns instead', () => {
     const a = arena({ p0: [['ravage.curse']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 5 }).give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.curse', B1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
-    expect(a.hp(B1)).toBe(60); // 30 Piercing + 2 remaining fragments
+    a.use(A1, 'ravage.curse', B1).end();
+    expect([a.hp(B1), hexes(a, B1)]).toEqual([70, ['hex_ruin']]);
+    a.pass(2);
+    expect(a.has(B1, 'hex_ruin')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'hex_ruin')).toBe(false);
   });
 
   it("Tongue-Tied: Invisible; the target's Harmful skill is countered and their Hexes last longer", () => {
@@ -566,19 +601,34 @@ describe('Curse skills', () => {
     expect(hexes(a, B1)).toEqual([]);
   });
 
-  it("Blind Man's Toll: 20; each skill the target uses while Blinded drains a fragment for the user", () => {
+  it("Blind Man's Toll: 20, and the target is Blinded for 1 turn", () => {
     const a = arena({ p0: [['smite.curse']], p1: [['shot']] });
-    a.give(B1, 'blinded', { source: A1, duration: 10 }).use(A1, 'smite.curse', B1).end();
-    expect(a.hp(B1)).toBe(80);
-    a.use(B1, 'shot', A1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
+    a.use(A1, 'smite.curse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'blinded')]).toEqual([80, true]);
+    a.end();
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
 
-  it("Blind Man's Toll: not Blinded, no fragment; other Blinded enemies don't pay", () => {
+  it("Blind Man's Toll: each skill the target uses while Blinded drains a fragment from them for the user", () => {
+    const a = arena({ p0: [['smite.curse']], p1: [['shot']] });
+    a.give(B1, 'soul_fragment', { stacks: 2 }).use(A1, 'smite.curse', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect([a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([1, 1]);
+  });
+
+  it("Blind Man's Toll: lasts 2 turns; not Blinded, no fragment; other Blinded enemies don't pay", () => {
     const a = arena({ p0: [['smite.curse']], p1: [['shot'], ['shot']] });
     a.give(B2, 'blinded', { source: A1, duration: 10 }).use(A1, 'smite.curse', B1).end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    a.use(B2, 'shot', A1).end();
     expect(a.stacks(A1, 'soul_fragment')).toBe(0);
+    a.pass(1).use(B1, 'shot', A1).end(); // their Blind has run out
+    expect(a.stacks(A1, 'soul_fragment')).toBe(0);
+    const b = arena({ p0: [['smite.curse']], p1: [['shot']] });
+    b.give(B1, 'blinded', { source: A1, duration: 10 }).use(A1, 'smite.curse', B1).end().pass(2);
+    b.use(B1, 'shot', A1).end(); // still Blinded on the second turn
+    expect(b.stacks(A1, 'soul_fragment')).toBe(1);
+    b.pass(1).use(B1, 'shot', A1).end(); // the Toll is over
+    expect(b.stacks(A1, 'soul_fragment')).toBe(1);
   });
 
   it('Vespers of Slumber: all allies heal 20', () => {
@@ -615,21 +665,14 @@ describe('Curse skills', () => {
     expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85].sort());
   });
 
-  it('Spreading Dread: Horrified on either one spreads to the other, for 2 turns', () => {
-    const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'horrified', { source: A1 }).use(A1, 'cleave.curse', B1).end();
-    expect(a.has(B2, 'horrified')).toBe(true);
-    a.pass(3);
-    expect(a.has(B2, 'horrified')).toBe(false);
-    const b = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
-    b.give(B2, 'horrified', { source: A1 }).use(A1, 'cleave.curse', B1).end();
-    expect(b.has(B1, 'horrified')).toBe(true);
-  });
-
-  it('Spreading Dread: no Horrified, nothing spreads', () => {
+  it('Spreading Dread: the target is Horrified for 2 turns, the other one for 1', () => {
     const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
     a.use(A1, 'cleave.curse', B1).end();
-    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([false, false]);
+    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([true, true]);
+    a.pass(1);
+    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'horrified')).toBe(false);
   });
 
   it('Ill Wind: all enemies Intimidated for 2 turns', () => {
@@ -658,13 +701,30 @@ describe('Curse skills', () => {
     expect(shieldOn(a, A1)).toBe(0);
   });
 
-  it("Shrouded Ward: while the Shield holds, the user's skills don't end their Stealth", () => {
+  it('Shrouded Ward: each enemy who damages it is Blinded for 1 turn', () => {
+    const a = arena({ p0: [['withstand.curse']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'withstand.curse').end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded'), a.has(B3, 'blinded')]).toEqual([true, true, false]);
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(true); // through their next turn
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(false);
+  });
+
+  it('Shrouded Ward: once the Shield is gone, hits Blind no one', () => {
+    const a = arena({ p0: [['withstand.curse']], p1: [['strike'], ['shot']] });
+    a.use(A1, 'withstand.curse').end();
+    a.use(B1, 'strike', A1).end(); // 20 breaks the 20 Shield
+    expect([shieldOn(a, A1), a.has(B1, 'blinded')]).toEqual([0, true]);
+    a.pass(1).use(B2, 'shot', A1).end();
+    expect(a.has(B2, 'blinded')).toBe(false);
+  });
+
+  it('Shrouded Ward: Stealthy (keeps Stealth)', () => {
     const a = arena({ p0: [['bless.shadow', 'withstand.curse']], p1: [['shot']] });
     a.use(A1, 'bless.shadow', A1).end().pass(1).use(A1, 'withstand.curse').end();
     expect(a.has(A1, 'stealth')).toBe(true);
-    const b = arena({ p0: [['bless.shadow', 'withstand']], p1: [['shot']] });
-    b.use(A1, 'bless.shadow', A1).end().pass(1).use(A1, 'withstand').end();
-    expect(b.has(A1, 'stealth')).toBe(false); // control: a plain Withstand ends it
   });
 
   it('Poppet: a 10 HP Poppet Taunts the target for 1 turn; damage it takes hits them as Affliction', () => {

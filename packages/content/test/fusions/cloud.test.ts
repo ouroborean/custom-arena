@@ -260,12 +260,14 @@ describe('Cloud skills', () => {
     expect([a.hp(B1), a.has(A2, 'aloft')]).toEqual([70, false]);
   });
 
-  it('Sleet Needle: 10, plus 10 per Swiftness spent', () => {
+  it("Sleet Needle: 5 now, and 10 more Drifts onto the target at the start of the user's next turn", () => {
     const a = arena({ p0: [['stab.cloud']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'swiftness', { stacks: 2 }).use(A1, 'stab.cloud', B1).end();
-    expect([a.hp(B1), a.has(A1, 'swiftness')]).toEqual([70, false]);
-    a.pass(1).use(A1, 'stab.cloud', B2).end();
-    expect(a.hp(B2)).toBe(90);
+    a.use(A1, 'stab.cloud', B1).end();
+    expect(a.hp(B1)).toBe(95);
+    a.end(); // the enemy's turn ends; the user's next turn starts
+    expect(a.hp(B1)).toBe(85);
+    a.end().end();
+    expect(a.hp(B1)).toBe(85); // once only
   });
 
   it('Downdraft: 25 Piercing; if Aloft, the user ends it for 20 more', () => {

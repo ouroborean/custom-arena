@@ -138,11 +138,14 @@ describe('Ice skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([60, 70]);
   });
 
-  it('Siphon Frost: 10; Frostborn for 2 turns if the target has 2+ Frost debuffs', () => {
-    const a = arena({ p0: [['consume.ice'], ['consume.ice']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'chilled', { source: A1 }).give(B1, 'numb', { source: A1 }).give(B2, 'chilled', { source: A1 });
-    a.use(A1, 'consume.ice', B1).use(A2, 'consume.ice', B2).end();
-    expect([a.has(A1, 'frostborn'), a.has(A2, 'frostborn')]).toEqual([true, false]);
+  it('Siphon Frost: 10 and Chilled for 2 turns; the user is Frostborn for 2 turns', () => {
+    const a = arena({ p0: [['consume.ice']], p1: [['shot', 'stun']] });
+    a.use(A1, 'consume.ice', B1).end();
+    expect([a.hp(B1), a.has(B1, 'chilled'), a.has(A1, 'frostborn')]).toEqual([90, true, true]);
+    a.use(B1, 'stun', A1).end(); // the Chilled target's Debuffs can't land on the Frostborn user
+    expect(a.has(A1, 'stun')).toBe(false);
+    a.pass(3);
+    expect([a.has(B1, 'chilled'), a.has(A1, 'frostborn')]).toEqual([false, false]);
   });
 
   it('Icy Familiar: Chilling Touch (15, Chilled) and Frosty Breath (Chilled)', () => {
@@ -173,18 +176,28 @@ describe('Ice skills', () => {
     expect(a.has(B1, 'frostbitten')).toBe(false);
   });
 
-  it('Shardstorm: 25 Piercing to each Frostbitten enemy; 35 while Frostborn', () => {
+  it('Shardstorm: 10 Piercing to all; Frostbitten enemies take 15 more, the others become Frostbitten', () => {
     const a = arena({ p0: [['ravage.ice']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'frostbitten', { source: A1 }).use(A1, 'ravage.ice').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 100]);
-    a.pass(5).give(A1, 'frostborn').use(A1, 'ravage.ice').end(); // CD 2
-    expect(a.hp(B1)).toBe(40);
+    a.give(B1, 'frostbitten', { source: A1 }).give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.ice').end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 90]); // Piercing ignores Armor
+    expect(a.has(B2, 'frostbitten')).toBe(true);
+    expect(a.effects(B2).find((e) => e.defId === 'frostbitten')?.duration).toBe(1); // 1 turn
   });
 
-  it('Iceform: Frostborn for 1 turn', () => {
-    const a = arena({ p0: [['mislead.ice']], p1: [['shot']] });
+  it('Iceform: Frostborn for 1 turn; enemies using Harmful skills on the user are Numbed first', () => {
+    const a = arena({ p0: [['mislead.ice'], ['shot']], p1: [['stun', 'shot'], ['shot']] });
     a.use(A1, 'mislead.ice').end();
     expect(a.has(A1, 'frostborn')).toBe(true);
+    a.use(B1, 'stun', A1).use(B2, 'shot', A2).end(); // B1 is Numbed before it lands, so Frostborn blocks the Stun; B2 hit someone else
+    expect([a.has(B1, 'numb'), a.has(A1, 'stun'), a.has(B2, 'numb')]).toEqual([true, false, false]);
+    a.pass(1);
+    expect([a.has(A1, 'frostborn'), a.has(B1, 'iceform')]).toEqual([false, false]);
+    const before = a.hp(A1);
+    a.use(B1, 'shot', A1).end(); // Iceform has ended: plain hit
+    expect(a.hp(A1)).toBe(before - 15);
+    expect(a.has(B1, 'numb')).toBe(true); // 2 turns: covers B1's next two turns
+    a.pass(2);
+    expect(a.has(B1, 'numb')).toBe(false);
   });
 
   it('Flash Freeze: Frostbitten for 2 turns', () => {
@@ -193,11 +206,14 @@ describe('Ice skills', () => {
     expect(a.has(B1, 'frostbitten')).toBe(true);
   });
 
-  it('Boreal Dance: 10 per Frost debuff on each enemy', () => {
+  it('Boreal Dance: 10 to all, +10 per Frost debuff; enemies with none are Chilled and Numbed', () => {
     const a = arena({ p0: [['dance.ice']], p1: [['shot'], ['shot']] });
     a.give(B1, 'chilled', { source: A1 }).give(B1, 'numb', { source: A1 });
     a.use(A1, 'dance.ice').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 100]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 90]);
+    expect([a.has(B2, 'chilled'), a.has(B2, 'numb'), a.has(B1, 'frostbitten')]).toEqual([true, true, false]);
+    a.pass(2);
+    expect([a.has(B2, 'chilled'), a.has(B2, 'numb')]).toEqual([false, false]); // 1 turn
   });
 
   it('Freeze Wound: heal 10 and 2 Armor for 1 turn', () => {
@@ -206,10 +222,16 @@ describe('Ice skills', () => {
     expect([a.hp(A2), a.stacks(A2, 'armor')]).toEqual([60, 2]);
   });
 
-  it('Boreal Aegis: an ally is Frostborn until the end of their next turn', () => {
-    const a = arena({ p0: [['bless.ice'], ['shot']], p1: [['shot']] });
+  it('Boreal Aegis: an ally is Frostborn until the end of their next turn; all enemies Chilled for 1 turn', () => {
+    const a = arena({ p0: [['bless.ice'], ['shot']], p1: [['stun'], ['shot']] });
     a.use(A1, 'bless.ice', A2).end();
-    expect(a.has(A2, 'frostborn')).toBe(true);
+    expect([a.has(A2, 'frostborn'), a.has(B1, 'chilled'), a.has(B2, 'chilled')]).toEqual([true, true, true]);
+    a.use(B1, 'stun', A2).end(); // Chilled enemies' Debuffs don't land on the Frostborn ally
+    expect(a.has(A2, 'stun')).toBe(false);
+    expect([a.has(B1, 'chilled'), a.has(A2, 'frostborn')]).toEqual([false, true]);
+    a.end();
+    expect(a.has(A2, 'frostborn')).toBe(false);
+    expect(a.cooldown(A1, 'bless.ice')).toBeGreaterThan(0); // cooldown 3
   });
 
   it('Hypothermia: Frostbitten, Chilled and Numb for 2 turns', () => {
@@ -258,11 +280,13 @@ describe('Ice skills', () => {
     expect(a.has(B1, 'frostbitten')).toBe(true);
   });
 
-  it('Frost Giant: 1 turn of Frostborn per 15 missing health (none if under 15 missing)', () => {
-    const a = arena({ p0: [['titan.ice'], ['titan.ice']], p1: [['shot']] });
+  it('Frost Giant: all enemies Chilled for 2 turns; 1 turn of Frostborn per 15 missing health, at least 1', () => {
+    const a = arena({ p0: [['titan.ice'], ['titan.ice']], p1: [['shot'], ['shot']] });
     a.setHp(A1, 55).setHp(A2, 90);
     a.use(A1, 'titan.ice').use(A2, 'titan.ice').end();
     expect(a.effects(A1).find((e) => e.defId === 'frostborn')?.duration).toBe(5); // 3 enemy turns = 6, minus this turn's countdown
-    expect(a.has(A2, 'frostborn')).toBe(false);
+    expect(a.effects(A2).find((e) => e.defId === 'frostborn')?.duration).toBe(1); // under 15 missing: still 1 turn
+    expect([a.has(B1, 'chilled'), a.has(B2, 'chilled')]).toEqual([true, true]);
+    expect(a.effects(B1).find((e) => e.defId === 'chilled')?.duration).toBe(3); // 2 enemy turns
   });
 });

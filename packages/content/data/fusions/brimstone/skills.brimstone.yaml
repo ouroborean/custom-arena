@@ -138,16 +138,22 @@ shot.brimstone:
   archetype: Shot
   element: Brimstone
   name: Sulfur Sting
-  description: Deals 5 Piercing damage to target enemy, who gains 1 Sulfur. If they're Prey, their Sulfur Erupts.
+  description: >-
+    Deals 5 Piercing damage to target enemy, who gains 1 Sulfur. If they're Prey or already had Sulfur,
+    it all Erupts.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: had, value: { stacks: { unit: primary, effect: sulfur } } }
     - { op: damage, to: primary, amount: 5, type: Piercing }
     - { op: apply, to: primary, effect: sulfur }
     - op: if
-      cond: { check: { cond: prey, unit: primary } }
+      cond:
+        or:
+          - { check: { cond: prey, unit: primary } }
+          - { compare: { value: { var: had }, atLeast: 1 } }
       then:
         - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
 
@@ -296,13 +302,14 @@ consume.brimstone:
   element: Brimstone
   name: Consumed by Fire
   description: >-
-    Target enemy's Sulfur Erupts. Then, if they're below 15 HP (30 for minions), they're
-    executed.
+    Target enemy gains 2 Sulfur, then their Sulfur Erupts. Then, if they're below 15 HP (30 for
+    minions), they're executed.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    - { op: apply, to: primary, effect: sulfur, stacks: 2 }
     - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
     - op: if
       cond:
@@ -318,7 +325,7 @@ summon.brimstone:
   name: Stokers
   description: >-
     Summons 2 Stokers (10 HP) for 2 turns. At the end of each of your turns, each Ignites an enemy with
-    Sulfur.
+    Sulfur; if no enemy has any, it gives a random one 1 Sulfur instead.
   cost: S
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -378,7 +385,7 @@ stab.brimstone:
   name: Strike the Match
   description: >-
     Deals 5 Piercing damage to target enemy and Ignites them. If they have Sulfur for this Ignite to
-    set off, the user gains 1 random energy.
+    set off, the user gains 1 random energy; if not, they gain 1 Sulfur for it.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -390,6 +397,8 @@ stab.brimstone:
       cond: { has: { unit: primary, effect: sulfur } }
       then:
         - { op: gainEnergy, amount: 1 }
+      else:
+        - { op: apply, to: primary, effect: sulfur }
 
 ravage.brimstone:
   archetype: Ravage
@@ -463,13 +472,16 @@ dance.brimstone:
   archetype: Dance
   element: Brimstone
   name: Sulfur Dance
-  description: The user gains Immune for 1 turn and Explodes; every enemy with Sulfur Erupts.
+  description: >-
+    The user gains Immune for 1 turn, a random enemy gains 1 Sulfur, and the user Explodes; every
+    enemy with Sulfur Erupts.
   cost: S
   cooldown: 1
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 1 } }
+    - { op: apply, to: { randomEnemy: 1 }, effect: sulfur }
     - { op: macro, id: explode }
 
 heal.brimstone:

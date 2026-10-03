@@ -297,13 +297,16 @@ consume.crystal:
   archetype: Consume
   element: Crystal
   name: Harvest Shards
-  description: Deals 10 damage to target enemy. Removes all their Brittle; the user gains 10 Shield per stack removed.
+  description: >-
+    Deals 10 damage and 1 Brittle to target enemy. Then all their Brittle is harvested: it's removed,
+    and the user gains 10 Shield per stack.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: brittle }
     - { op: set, var: shards, value: { stacks: { unit: primary, effect: brittle } } }
     - { op: removeEffect, from: primary, effect: brittle }
     - op: if

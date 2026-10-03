@@ -178,17 +178,24 @@ describe('Apocalypse skills', () => {
     expect([B1, B2, B3].map((u) => a.has(u, 'shattered'))).toEqual([true, true, false]);
   });
 
-  it('Coldsnap Dash: 15 and 1 Focus for the next skill', () => {
+  it('Coldsnap Dash: 15, Frostfire, and 1 Focus for the next skill', () => {
     const a = ap([['charge.apocalypse', 'shot']], [['shot']]);
     a.use(A1, 'charge.apocalypse', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'focus')]).toEqual([85, 1]);
+    expect([a.hp(B1), a.has(B1, 'frostfire'), a.stacks(A1, 'focus')]).toEqual([100 - 15 - 5, true, 1]); // + the Frostfire tick
     a.pass(1).use(A1, 'shot', B1);
     expect(a.state.players[0].queue[0]?.cost.r).toBe(0);
     a.end();
     expect(a.has(A1, 'focus')).toBe(false);
   });
 
-  it('Coldsnap Dash: the next skill hitting a Chilled, Ignited enemy cracks the Ignite (10 extra Affliction)', () => {
+  it('Coldsnap Dash: the next skill hitting the Frostfired target cracks it (10 extra Affliction)', () => {
+    const a = ap([['charge.apocalypse', 'shot']], [['shot']]);
+    a.use(A1, 'charge.apocalypse', B1).end().pass(1);
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 15 - 5 - 15 - 10 - 5); // dash, tick, shot, crack, tick
+  });
+
+  it('Coldsnap Dash: the next skill hitting any Chilled, Ignited enemy cracks the Ignite (10 extra Affliction)', () => {
     const a = ap([['charge.apocalypse', 'shot']], [['shot'], ['shot']]);
     a.give(B1, 'chilled', { source: B1 }).give(B1, 'ignite', { source: B1 }); // ticks on B's turns
     a.use(A1, 'charge.apocalypse', B2).end().pass(1);
@@ -352,7 +359,21 @@ describe('Apocalypse skills', () => {
     expect([a.hp(B1), a.has(B1, 'frostfire'), a.has(B1, 'shattered')]).toEqual([75, true, false]);
   });
 
-  it('Paradox Bolt: a target already Shocked this turn is Shocked again', () => {
+  it('Paradox Bolt: a target that already had Frostfire is Thermal Shocked', () => {
+    const a = ap([['bolt.apocalypse']], [['shot']]);
+    a.give(B1, 'frostfire', { source: B1 }).use(A1, 'bolt.apocalypse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([100 - 20 - 15 - 5, true]); // + the refreshed Frostfire's tick
+  });
+
+  it('Paradox Bolt: a second Bolt Shocks through the Frostfire the first one left', () => {
+    const a = ap([['bolt.apocalypse']], [['shot']]);
+    a.use(A1, 'bolt.apocalypse', B1).end().pass(3);
+    const before = a.hp(B1);
+    a.use(A1, 'bolt.apocalypse', B1).end();
+    expect([before - a.hp(B1), a.has(B1, 'shattered')]).toEqual([20 + 15 + 5, true]);
+  });
+
+  it('Paradox Bolt: it Shocks even a target already Shocked this turn', () => {
     const a = ap([['shot.apocalypse'], ['bolt.apocalypse']], [['shot']]);
     a.use(A1, 'shot.apocalypse', B1).use(A2, 'bolt.apocalypse', B1).end();
     expect(a.hp(B1)).toBe(100 - 15 - 15 - 20 - 15 - 5);
@@ -362,15 +383,44 @@ describe('Apocalypse skills', () => {
     const a = ap([['blast.apocalypse']], [['shot'], ['shot']]);
     a.give(B1, 'ignite', { source: B1 }).use(A1, 'blast.apocalypse').end();
     expect([a.has(B1, 'ignite'), a.has(B1, 'frostfire'), a.has(B1, 'shattered')]).toEqual([false, true, true]);
-    expect([a.has(B2, 'frostfire'), a.has(B2, 'shattered')]).toEqual([false, false]);
-    expect(a.hp(B2)).toBe(80);
     expect(a.hp(B1)).toBeLessThanOrEqual(100 - 20 - 15);
   });
 
-  it('Equilibrium: 10 and heals the user as much', () => {
+  it('Fimbulfire: an enemy with no Fire debuff is Ignited instead', () => {
+    const a = ap([['blast.apocalypse']], [['shot'], ['shot'], ['shot']]);
+    a.give(B2, 'scorched', { source: B2, duration: 6 }).give(B3, 'frostfire', { source: B3 });
+    a.use(A1, 'blast.apocalypse').end();
+    expect([a.has(B1, 'ignite'), a.has(B1, 'frostfire'), a.has(B1, 'shattered')]).toEqual([true, false, false]);
+    expect(a.hp(B1)).toBe(100 - 20 - 5); // + its first tick
+    expect([a.has(B2, 'ignite'), a.has(B3, 'ignite')]).toEqual([false, false]); // Scorched / Frostfire are Fire debuffs
+  });
+
+  it("Fimbulfire: the next one turns the first one's Ignites into Frostfire", () => {
+    const a = ap([['blast.apocalypse']], [['shot'], ['shot']]);
+    a.use(A1, 'blast.apocalypse').end().pass(5).use(A1, 'blast.apocalypse').end();
+    expect([B1, B2].map((u) => [a.has(u, 'ignite'), a.has(u, 'frostfire'), a.has(u, 'shattered')])).toEqual([
+      [false, true, true],
+      [false, true, true],
+    ]);
+  });
+
+  it('Equilibrium: 10 and heals the user as much; without both kinds, the target gains Frostfire', () => {
+    const a = ap([['consume.apocalypse']], [['shot']]);
+    a.setHp(A1, 50).use(A1, 'consume.apocalypse', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'frostfire'), a.has(B1, 'shattered')]).toEqual([100 - 10 - 5, 60, true, false]);
+  });
+
+  it('Equilibrium: with only a Fire debuff, the Frostfire it gains Shocks them (no extra heal)', () => {
     const a = ap([['consume.apocalypse']], [['shot']]);
     a.setHp(A1, 50).give(B1, 'ignite', { source: B1 }).use(A1, 'consume.apocalypse', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'shattered')]).toEqual([90, 60, false]);
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'shattered')]).toEqual([100 - 10 - 15 - 5, 60, true]);
+  });
+
+  it('Equilibrium: the next Equilibrium strikes the balance its Frostfire set up', () => {
+    const a = ap([['consume.apocalypse']], [['shot']]);
+    a.use(A1, 'consume.apocalypse', B1).end().pass(5).setHp(A1, 50);
+    a.use(A1, 'consume.apocalypse', B1).end();
+    expect([a.hp(A1), a.has(B1, 'shattered')]).toEqual([80, true]);
   });
 
   it('Equilibrium: with both a Fire and a Frost debuff (Frostfire counts), Shocks them and heals 20 more', () => {
@@ -596,11 +646,17 @@ describe('Apocalypse skills', () => {
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Rimebrand: for 2 turns, each Explosion that hits the target Frostbites it for 1 turn', () => {
-    const a = ap([['smite.apocalypse'], ['dance.fire']], [['shot'], ['shot']]);
-    a.use(A1, 'smite.apocalypse', B1).use(A2, 'dance.fire').end();
+  it('Rimebrand: for 2 turns, each Harmful skill the target uses Frostbites them for 1 turn', () => {
+    const a = ap([['smite.apocalypse']], [['shot', 'heal'], ['shot']]);
+    a.use(A1, 'smite.apocalypse', B1).end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
     expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([true, false]);
-    expect(a.hp(B2)).toBe(90);
+    a.end();
+    expect(a.has(B1, 'frostbitten')).toBe(true); // through their next turn
+    a.use(B1, 'heal', B1).end().end();
+    expect(a.has(B1, 'frostbitten')).toBe(false); // a Helpful skill doesn't
+    a.use(B1, 'shot', A1).end();
+    expect(a.has(B1, 'frostbitten')).toBe(false); // over after 2 turns
   });
 
   it('Fimbul Vigil: allies heal 20 and gain 10 Shield', () => {

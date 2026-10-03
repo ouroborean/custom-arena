@@ -61,14 +61,16 @@ charge.plasma:
   element: Plasma
   name: Spark Rush
   description: >-
-    Deals 15 damage to target enemy. Vent: the user's next skill costs 1 less per 2 Heat removed.
+    Deals 15 damage to target enemy. +2 Heat, then Vent: the user's next skill costs 1 less per 2
+    Heat removed.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: damage, to: primary, amount: { sum: [15, *hb] } }
+    - { op: apply, to: actor, effect: heat, stacks: 2 }
     - { op: macro, id: vent }
-    - { op: damage, to: primary, amount: { sum: [15, { mul: [5, { var: vented }] }] } }
     - { op: apply, to: actor, effect: focus, stacks: { div: [{ var: vented }, 2] }, until: { skillUsed: {} } }
 
 riposte.plasma:
@@ -340,7 +342,8 @@ consume.plasma:
   element: Plasma
   name: Coolant Draw
   description: >-
-    Deals 10 damage to target enemy and Saps them. Vent: the user heals 10 per Heat removed.
+    Deals 10 damage to target enemy and Saps them. Vent: the user heals 10 per Heat removed; if they
+    had none, they gain 2 Heat instead.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -349,7 +352,12 @@ consume.plasma:
     - { op: macro, id: vent }
     - { op: damage, to: primary, amount: { sum: [10, { mul: [5, { var: vented }] }] } }
     - { op: apply, to: primary, effect: sapped }
-    - { op: heal, to: actor, amount: { mul: [10, { var: vented }] } }
+    - op: if
+      cond: { compare: { value: { var: vented }, atLeast: 1 } }
+      then:
+        - { op: heal, to: actor, amount: { mul: [10, { var: vented }] } }
+      else:
+        - { op: apply, to: actor, effect: heat, stacks: 2 }
 
 summon.plasma:
   archetype: Summon
@@ -370,8 +378,9 @@ channel.plasma:
   element: Plasma
   name: Arc Furnace
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and the
-    user spends 1 Charge, if they have any, to make every enemy's Ignite tick at once. Channeled.
+    For up to 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies and
+    Ignites a random one; then every enemy's Ignite ticks at once, and the user gains 1 Charge.
+    Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -386,16 +395,14 @@ channel.plasma:
         kind: Neutral
         element: Plasma
         interruptible: true
-        description: Each turn, 10 damage to all enemies; 1 Charge makes every enemy's Ignite tick.
+        description: Each turn, 10 damage to all enemies, an Ignite on one, every Ignite ticks, and 1 Charge.
         triggers:
           - on: turnEnd
             do:
               - { op: damage, to: allEnemies, amount: { sum: [10, { mul: [5, { stacks: { unit: bearer, effect: heat } }] }] } }
-              - op: if
-                cond: { has: { unit: bearer, effect: charged } }
-                then:
-                  - { op: removeStacks, from: bearer, effect: charged, amount: 1 }
-                  - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }, amount: 5, type: Affliction, direct: false }
+              - { op: apply, to: { randomEnemy: 1 }, effect: ignite }
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }, amount: 5, type: Affliction, direct: false }
+              - { op: apply, to: bearer, effect: charged }
 
 stab.plasma:
   archetype: Stab
@@ -739,12 +746,21 @@ titan.plasma:
   archetype: Titan
   element: Plasma
   name: Reactor Core
-  description: For 3 turns, the user gains Immune and 1 Armor per Heat they have, checked as each hit lands.
+  description: >-
+    The user's Heat rises by 2, to at most 4. For 3 turns, they gain Immune and 1 Armor per Heat they
+    have, checked as each hit lands.
   cost: Wr
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: heat } }, atMost: 3 } }
+      then:
+        - op: apply
+          to: actor
+          effect: heat
+          stacks: { if: { compare: { value: { stacks: { unit: actor, effect: heat } }, atLeast: 3 } }, then: 1, else: 2 }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor

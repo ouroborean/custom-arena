@@ -167,7 +167,9 @@ Content: `packages/content/data/fire/`. Statuses: **Ignite**, **Scorched**, **Fl
 
 | Skill | Ruling |
 |---|---|
-| Hot Foot | The +2 Might applies to the user's next damaging (non-Strategic) skill, then ends. Strategic skills don't use it up. |
+| Hot Foot | Checks Ignite **before** the hit. Against an Ignited target, the +2 Might applies to the user's next damaging (non-Strategic) skill, then ends; Strategic skills don't use it up. Otherwise the target is Ignited (no Might). |
+| Feed the Fire, Searing Needle | Check **before** the hit. Feed the Fire on an Ignited target removes the Ignite and heals the user 20; otherwise it Ignites. Searing Needle's 10 Affliction needs Ignite or Scorched; otherwise it Ignites. |
+| Flamethirst | The ally's next Harmful skill Ignites its targets after it resolves, as the **ally's** own Ignites, so their Flameborn heals from them. Only that one skill. |
 | Blisterblade | Counters every Harmful skill for the turn. An attacker who is already Ignited is Scorched instead. |
 | Flickerflare | If the target was already Ignited, one random *other* enemy is also Ignited. |
 | Heat Seeker | Deals 40 direct damage at the end of the following turn, then Scorches the target permanently. |
@@ -176,7 +178,8 @@ Content: `packages/content/data/fire/`. Statuses: **Ignite**, **Scorched**, **Fl
 | Cinderlings | HP 10 each (placeholder). Both count toward the 4-minion cap. |
 | Flashbang | Applies **Stunned (non-Strategic)**, a base status that Swiftness also negates. |
 | Ivory Step | Tagged Helpful/Strategic (self-targeted), so it can't be countered. |
-| Ashen Barrier, Wraith in White | Count every active Ignite / Scorched on the board. Ashen Barrier's Shield has no stated duration, so it lasts until depleted. |
+| Ashen Barrier | A 20 Shield with no stated duration, so it lasts until depleted. Every enemy (character or minion) whose damage it absorbs is Ignited. |
+| Wraith in White | Ignites all enemies first, so its Flameborn heals from those Ignites. |
 | Ring of Fire | A Harmful skill during the Taunt Ignites the bearer. If they use none, they're Scorched for 2 of their turns when the Taunt ends. |
 
 ### 11.3 Balance notes (greedy-bot simulation, 3,000 matches)
@@ -213,7 +216,7 @@ Content: `packages/content/data/poison/`. Statuses: **Toxin**, **Prey (marked)**
 | Emerald Asp | Its skills are Serpent Fang (r, no cooldown) and Constrict (rr, no cooldown). The sheet gives no cooldowns. |
 | Spriggan Harasser | Its Sting costs W, with a cooldown of 1 (Sting's own). |
 | Nine Plagues | Channels for 9 of the user's turns. Using another skill with that character ends it. |
-| Pounce | The random energy is added immediately, so it's usable next turn. |
+| Pounce | The random energy is added immediately, so it's usable next turn. Prey is checked after the hit; only a target that isn't Prey gets the 1 Toxin (redesigned 2026-10-03 so it builds toward Prey on its own). |
 | Envenom | Bypasses Invulnerable. The Prey / Invulnerable check happens before the hit. |
 | Preymark | Triggers on direct damage from the applier's side, including the user. |
 | Tail Lash | Its cooldown resets if any enemy it hit is Prey after the hit. |
@@ -253,13 +256,15 @@ Content: `packages/content/data/holy/`. Statuses: **Anointed**, **Condemned** (p
 | Decree | Condemned for 2 turns. It's visible (the sheet doesn't mark it Invisible). |
 | Consecration | No duration is given, so it channels until interrupted. Each end of the user's turn it hits a random **un-Sanctified** enemy for 10 (indirect) and Sanctifies them permanently. With no un-Sanctified enemies left, it does nothing. |
 | Piercing Light | Deals 20 instead of 10 if the target is Condemned or Sanctified, or if the user is Anointed. The sheet's "both effects always trigger" is read as "the bonus always applies". |
+| Ascension | Checks Sanctify **before** the hit. With it, the user's Anoint becomes permanent (a timed Anoint they already had is upgraded). Without it, the target is Sanctified for 1 turn (after the hit) and the user Anointed through their next turn; a permanent Anoint they already have stays permanent. **Redesigned 2026-10-03:** it used to do nothing beyond 5 damage without a Sanctified target. |
 | Crusade | Condemns if the target is above 75 HP **before** the hit. |
 | Martyrdom | Not a counter. When the target next uses a Harmful skill, that skill's targets are permanently Anointed. Fires once. |
-| Repentance | Can only target a Condemned enemy (a target requirement). |
+| Repentance | Any enemy can be targeted. If they're Condemned when it resolves, they're Stunned for 1 turn and keep their Condemn; otherwise they're Condemned for 1 turn. **Redesigned 2026-10-03:** it used to require a Condemned target. |
 | Sacred Lion | Roar (W) and Claws (r) have no cooldown; the sheet gives none. Roar's Sanctify is permanent. |
 | Divine Blessing | Blessing from Above (W) Anoints permanently, then the minion dies. |
 | Gleam | The Taunt ends when the target uses a Harmful skill. The Condemn resolves on their next skill of any kind. |
-| Grand Crusader | +1 Might and +1 Armor (3 turns) per Sanctified or Condemned enemy actually hit. |
+| Excoriate | Checks each enemy separately: Sanctified ones are Condemned for 1 turn, the rest Sanctified for 1 turn. Bypass lets it reach Invulnerable enemies. **Redesigned 2026-10-03:** it used to do nothing to un-Sanctified enemies. |
+| Grand Crusader | The Sanctify lands after the hits, so the user's own hits don't heal them. The 2 Might and 2 Armor (3 turns) don't depend on the enemies. **Redesigned 2026-10-03:** it used to give 1 Might and 1 Armor per Sanctified or Condemned enemy hit. |
 
 ### 13.3 Balance notes (greedy-bot simulation, 3,000 matches, elements None/Fire/Poison/Holy)
 
@@ -293,10 +298,12 @@ Content: `packages/content/data/ice/`. Statuses: **Frostbitten**, **Chilled**, *
 | Frost Snare | Fires once. The 2-turn Stun covers the target's next 2 turns. |
 | Glissade | Applies the Stun first, then Invulnerable and Immune, so Immune doesn't block the user's own Stun. All last through the user's next turn, so the user can't act next turn. |
 | Blizzard | No duration is given, so it channels until interrupted. It hits the remembered target, or all enemies while the user is Frostborn. Tick damage is indirect. |
-| Shardstorm | Only hits enemies that are Frostbitten; it's usable even if none are. |
-| Boreal Dance | 10 damage per Frost debuff on each enemy. Enemies with none aren't hit. |
+| Iceform | Puts a watcher on each enemy for 1 turn: an enemy whose Harmful skill targets the user (single or AoE) is Numbed when they use it, **before** it resolves, so Frostborn blocks that skill's Debuffs. Its damage still lands. |
+| Shardstorm | 25 Piercing to each enemy that's Frostbitten before the hit; 10 Piercing plus 1 turn of Frostbitten to the rest. |
+| Boreal Dance | 10 damage to each enemy plus 10 per Frost debuff they had. Enemies that had none are then Chilled and Numbed for 1 turn. |
 | Glacial Sweep | If the primary target had a Frost debuff **before** the hit, a random other enemy also takes 25. |
-| Frost Giant | Frostborn for (missing HP ÷ 15, rounded down) turns. Under 15 missing HP, nothing happens. |
+| Boreal Aegis | Frostborn plus a 1-turn Chill on every enemy makes the ally immune to all enemy Debuffs for that turn, so its cooldown went from 1 to 3 in the 2026-10-03 redesign. |
+| Frost Giant | Chills all enemies for 2 turns, then gives Frostborn for (missing HP ÷ 15, rounded down) turns, minimum 1. |
 | Ice Bear, Icy Familiar skills | No cooldowns are given, so none. Frosty Breath's Chill covers the enemy's next turn. |
 
 ### 14.3 Balance notes (greedy-bot simulation, 3,000 matches, five element pools)
@@ -319,7 +326,7 @@ Content: `packages/content/data/water/`. Themes are Healing (Renew), Disruption 
 |---|---|
 | **Flow** | The bearer's skills ignore counters and reflects, the same as if every skill were Uncounterable. It's unique (it doesn't stack), and permanent unless the skill gives a duration. Implemented as the `ignoreCounters` modifier. |
 | **Renew** | A base status: at the end of the applier's turn it heals 5 per stack, then loses 1 stack. Several Water skills read or strip Renew stacks. |
-| **"Requires Flow"** | The skill can't be queued unless the user has Flow, and it fails (no cooldown, no refund) if the user lost Flow before it resolves. This uses the new generic `requires` condition on skills. |
+| **`requires`** | A generic skill condition: the skill can't be queued unless it holds, and it fails (no cooldown, no refund) if it stops holding before the skill resolves. Water's Tidal Arrow and Deluge used to require Flow; since the 2026-10-03 redesign no Water skill does. |
 | **Extending Stuns** | "Extends Stuns by 1 turn" adds 2 internal ticks (one full round) to every Stun effect on the target, including non-Strategic stuns. This uses the new `extendEffects` op. |
 
 ### 15.2 Skill rulings
@@ -329,11 +336,13 @@ Content: `packages/content/data/water/`. Themes are Healing (Renew), Disruption 
 | Waterfall | Reduces every **other** skill of the user by 1 remaining cooldown; Waterfall's own new cooldown is untouched. |
 | Surge | The user gets a one-shot Buff: the **next** Renew they apply (to anyone) gets +2 stacks. The Buff is then used up. Surge's own 2 Renew is applied before the Buff exists. |
 | Riverbend | Counters Harmful **Strategic** skills used on the user for 1 turn. Every counter grants Flow. Non-Strategic attacks go through. |
-| Coordinated Shot | Checks Mark **before** the hit. |
-| Tidal Arrow | Works like Snipe (delayed, interruptible, hidden target), but only with Flow. |
+| Coordinated Shot | Checks Mark **before** the hit (which consumes it for 10 extra damage), then Marks the target. Flow only if they were already Marked. |
+| Tidal Arrow | Works like Snipe (delayed, interruptible, hidden target). The user gains Flow only if the shot lands. |
+| Deluge | Checks Flow before the hit. With Flow it consumes the Flow to stun non-Strategic skills; without it the user gains Flow. So on its own it alternates between the two. |
 | Whirlpool Trap | For 2 turns, every Strategic skill the target uses (Harmful or Helpful) gives them 1 Confusion. It's visible. |
 | Rainbow Scale Fish | Shimmer has no cooldown. It checks the ally's Renew after adding its own 2, so an ally with 1 or more Renew gets Flow. |
-| Drink Deeply | Removes Renew from **every** allied unit, including minions and the target, then heals the target 5 per stack removed. |
+| Drink Deeply | Removes Renew from **every** allied unit, including minions and the target, then heals the target 10 per stack removed. With no allied Renew, the target gains 3 Renew instead. |
+| Shell Knife | Checks the user's Renew before the hit: 25 at 3 or more stacks; otherwise 10 and the user gains 2 Renew. |
 | Water Elemental | Lasts 3 turns. Lashing Water is free and Uncounterable. |
 | Call Rain | The channel ticks at the end of the user's turns. Ticks are indirect. |
 | Drown / Undertow | Undertow checks for a Stun before the hit: if there is one, it extends it; otherwise it applies a 1-turn Stun. Drown always extends any Stun present. |
@@ -378,7 +387,7 @@ Content: `packages/content/data/unholy/`. Themes are Kiss/Kill, Health manipulat
 |---|---|
 | Wraithwalk | Leaves a one-shot Buff: the user's next Harmful skill (not Wraithwalk itself) drains a fragment after it resolves. A countered skill doesn't use it up. |
 | Spiteful Retort | Counters Harmful skills used on the user for 1 turn, Horrifying each countered attacker for 2 turns. |
-| Undying Fury | Consumes all fragments, then deals 10 to a random enemy once per fragment (re-rolled each time), then Immortal for that many turns. With 0 fragments it does nothing. |
+| Undying Fury | Hits = 1 + (missing HP ÷ 25, rounded down), counted before the first hit; each 10 picks a random enemy again. Then Immortal for 2 turns. It doesn't touch Soul Fragments. **Redesigned 2026-10-03:** it used to consume fragments and do nothing without them. |
 | Soul Lance | Like Snipe. After the 40 lands, it drains a fragment if the target has 49 or less HP, including when the hit killed it. |
 | Soul Shackle | Sheet typo fixed (GDD §14): 1 turn, Invisible, fires once. It fires on use, so its Weakness already weakens the skill that triggered it. |
 | Hellhound | Jaws of Hell is a channel: 10 Affliction to the chosen enemy at the end of each Hellhound turn until it's interrupted, including by the Hellhound using Jaws again. |
@@ -395,7 +404,7 @@ Content: `packages/content/data/unholy/`. Themes are Kiss/Kill, Health manipulat
 | Oathbreaker Strike | Read literally: 25 Piercing to the target, then another 10 to the target and 10 to each of the user's allies (not the user). |
 | Soulshriek | Consumes 1 fragment if the user has any. With one, it deals 30 and Horrifies for 2 turns. |
 | Misery | Drains 10 from each **other** ally. The Shield is 20 plus the Health actually drained, and permanent until depleted (no duration given). |
-| Soul Colossus | Consumes all fragments and heals 5 per fragment, then gives 2 Armor and Immortal for that many turns. With 0 fragments it does nothing. |
+| Soul Colossus | 2 Armor and Immortal for 2 turns, plus a watcher for as long: the first time each turn that an enemy damages the user (direct or not), the user gains a Soul Fragment. A Horrified user gains none. **Redesigned 2026-10-03:** it used to consume fragments and do nothing without them. |
 
 ### 16.3 Balance notes (greedy-bot simulation, 3,000 matches, seven element pools)
 
@@ -436,13 +445,13 @@ Content: `packages/content/data/lightning/`. Themes are Resource management, Tar
 | Zap | Base cost I, or r while the user has Charge. It uses the new `altCost` on skills, applied at queue time (GDD §3.4) and shown on the tile. |
 | Particle Beam | Like Snipe, but not hidden-target (the sheet doesn't say so). When it fires, it hits the target plus every enemy Sapped **at that moment**, each once. It uses the new `{ filter, where, exclude }` selector. |
 | Tesla Coil | Invisible trap, 1 turn, fires once: 15 indirect damage and +1 Sapped. |
-| Blink | Can only target a Sapped enemy, so it's unusable without one. |
+| Blink | Targets any enemy: 5 damage and +1 Sapped, then the user is Invulnerable for 1 turn (redesigned 2026-10-03; it used to need a Sapped target). |
 | Static Elemental | If the summoner has Charge, 1 Charge becomes the Elemental's permanent Might (`onSummon` + the Unholy `removeStacks` op). |
 | Lightningrod | Channels until interrupted. It grants a Stormborn linked to the channel (Unholy's `linkTo`). If the user already has Stormborn (e.g. Overcharge), that one is kept with its own duration. |
 | Stun Baton | Checks for 80+ HP **before** the hit and 40 or less HP **after** it. |
-| Hologram | Harmful, Strategic, and targets all enemies. Only enemies **already Sapped** when it resolves get the (visible) Hologram mark. For 1 turn their Harmful skills are countered, and each counter makes the caster Untargetable for 1 turn. |
+| Hologram | Harmful, Strategic, and targets all enemies. Enemies **already Sapped** when it resolves get the (visible) Hologram mark: for 1 turn their Harmful skills are countered. The others share a Hologram Decoy: the first Harmful skill any of them uses is countered, its user gets +1 Sapped, and every Decoy ends. Each counter makes the caster Untargetable for 1 turn (redesigned 2026-10-03). |
 | System Shock | Stuns non-Strategic skills for 1 turn, or 2 if the target was Sapped before the hit. |
-| Signal Boost | 25 to the target, then 10 per Charge to every Charged ally, which can include the target. Charge isn't consumed. |
+| Signal Boost | 25 to the target and +1 Charge to them, then 10 per Charge to every Charged ally, which includes the target. Charge isn't consumed (redesigned 2026-10-03). |
 | Arc | 10 to the target, then 10 to every **other** Marked enemy (Mark's +10 applies), then Marks the target for 1 turn. |
 | Lightning Cage | A Shield of 20 + 10 per current Charge for 1 turn. Every hit it absorbs gives +1 Charge, including the hit that breaks it. It uses the new `shieldDamaged` trigger. |
 | Aggro Signal | Uses Reflect: the target's next Harmful skill within 1 turn is countered and turned back on its user, who is also Intimidated for 1 turn. Fires once. |
@@ -482,7 +491,8 @@ Content: `packages/content/data/wind/`. Themes are Reactivity, Immunity and Spee
 
 | Skill | Ruling |
 |---|---|
-| Leaping Strike, Spiral Crash, Air Bullet | Check Leaping **before** the hit. Spiral Crash's +10 AoE also hits the primary target. Air Bullet's Leaping bonus is 5 more on top of Leaping's own +5. |
+| Leaping Strike, Spiral Crash, Air Bullet, Spiral Burst | Check Leaping **before** the hit. Spiral Crash's +10 AoE also hits the primary target. Air Bullet (cooldown 0, was 1) is 5, or 15 (+5 from Leaping) while Leaping, which spends the Leap; otherwise the user Leaps after the hit, so its next use gets the bonus. Spiral Burst is 20 to all, 30 (+5 from Leaping) while Leaping; otherwise the user begins Rushing after the hit (both redesigned 2026-10-03). |
+| Airknife | Checks Rushing before the hit: 20 while Rushing (its Stab bonus), otherwise 10 and the user begins Rushing afterwards (redesigned 2026-10-03). |
 | Launch | Free (no cost). The user begins Rushing. |
 | Zephyr Blade | If countered (or reflected), the counterer takes 25 Piercing. This uses the new skill-level `onCountered` ops, which run even if the counter killed the user. |
 | Chainbreaker | Usable while Stunned. Removes every Debuff (new `removeKind` op), then Immune for 2 turns. |
@@ -536,15 +546,16 @@ Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception 
 | Skill | Ruling |
 |---|---|
 | Black Axe | The user gains Stealth if the target is dead after the hit. |
-| Shadow Crash | Counts every Stealthed ally (including the user), removes all their Stealth, then adds +10 per Stealth to **both** the 10 hit and each 5 splash. |
+| Shadow Crash | 15 to the target and 10 to each other enemy, then a fresh Stealth for the user (replacing any older one), so its own non-Stealthy use doesn't end it. **Redesigned 2026-10-03:** it used to spend allied Stealth for its damage. |
 | Long Shadow | Stealthy. It gives a one-shot buff that makes the user's next skill count as Stealthy. |
 | Mirage Blade | Invisible. Counters the first Harmful skill used on the user within 1 turn. The Focus has no duration, so it's permanent (Q16). |
-| Shadow Spine | Counts Blinded, Isolated and Sleep **before** the first hit, then deals that many extra 5-Piercing hits. The first hit wakes the target, but the counted hits still land. |
+| Shadow Spine | 15 Piercing, then Isolated for 1 turn (through the enemy's turn). Cooldown 1 (was 0), so the Isolation can't be kept up on one enemy every turn. **Redesigned 2026-10-03:** it used to deal 5 Piercing per Blinded, Isolated and Sleep. |
 | Dream Seeker | Not Channeled, since the sheet doesn't say so, and so not interruptible. 35 damage a turn later with Bypass, and it doesn't wake a Sleeping target. |
 | Dream Chains | Visible. If the target uses no skill during their next turn, they take 15 indirect Affliction and fall Asleep for 2 turns. |
 | Spirit Raven | Fel Swoop heals the Raven itself. Blackwing's Taunt points at the Raven. |
 | Wave of Darkness | **Changed at the user's request (2026-09-26):** the Confusion lasts 1 turn. The sheet gives no duration, which made it permanent under Q16 and an 84% outlier. |
-| Drink Darkness | 5 Affliction to all enemies. Each Blinded enemy then loses Blind and takes 10 more Affliction. |
+| Drink Darkness | 5 Affliction to all enemies. Each Blinded enemy then loses Blind and takes 10 more Affliction. If no enemy was Blinded, a random enemy is Blinded for 2 turns instead. |
+| Backstab | "The last enemy to damage the user" is whoever last damaged them, by any damage, direct or not, at any time. It's checked before the hit; if nobody has damaged the user yet, the 20 applies. **Redesigned 2026-10-03:** it used to need the user Stealthed or the target Blinded. |
 | Nightsong | Channel for 3 turns. If it runs to completion (not interrupted), every living enemy falls Asleep for 2 turns, after the final tick. |
 | Hall of Phantoms | Always grants a fresh Stealth. If the user was already Stealthed, they also get Ghosted, Immune and 1 Focus for 2 turns. |
 | Touch of Slumber | Puts the healed **ally** to Sleep, as written. |
@@ -591,7 +602,7 @@ Content: `packages/content/data/earth/`. Themes are Armor, Healing and Minions. 
 | Tunnelmaker | Lands in 2 turns (like a Snipe with `enemyTurns 2`). If the user has a Boulder, a random one is destroyed and it lands a turn sooner. Interruptible. |
 | Boulder Trap | For 2 turns, **every** minion the target summons is destroyed on arrival, and the trapper summons a Boulder each time. It uses the new `summoned` trigger on the summoner's effects. It's visible. |
 | Vine Lash | Creates a Seedling only if the user has none (Forest Stalkers count). |
-| Worldmarch | Kills all allied Seedlings and summons that many Worldsprouts (up to the cap). |
+| Worldmarch | Kills all allied Seedlings and summons that many Worldsprouts (up to the cap). With no Seedlings, it creates 2 Seedlings instead (redesigned 2026-10-03). |
 | Worldcaller | Channel for 4 turns: one Worldsprout at the end of each of the user's turns. Vitality Transfer kills the Worldsprout and heals **another** ally for its HP at that moment. |
 | Stonepierce | 20 against a target with Armor or any Shield with value left (new `hasShield` condition). |
 | Stone Drill | +20 if the user's Armor stacks plus Might stacks total at least 3. |
@@ -599,13 +610,13 @@ Content: `packages/content/data/earth/`. Themes are Armor, Healing and Minions. 
 | Earthwrap | The enemy's 25 Shield is permanent until depleted (Q16). It's a 2-turn Stun. |
 | Landslide | Each use adds a 10-point "Landslide" Shield. If one was already up, the user also creates a Boulder. |
 | Infuse Earth | Free, no cooldown. Randomly 1 Might or 1 Armor, both permanent. |
-| Worldmute | Targets an **ally** (intentional, GDD §14.2). For each Might stack on that ally, a random enemy (re-rolled each time) gains 1 permanent Weakness. |
+| Worldmute | Targets an **ally** (intentional, GDD §14.2). The ally first gains 1 Might for 4 turns; then for each Might stack on them, a random enemy (re-rolled each time) gains 1 permanent Weakness (redesigned 2026-10-03). |
 | Earth Pillar | For 1 turn, damage from a Boulder (a launched one) Stuns the target for 1 turn. |
-| Vine Whirl | 5 to all enemies, then launches a random allied Boulder if there is one. |
-| Awakener's Roar | Every allied Boulder gains 1 permanent Armor and heals to full. |
+| Vine Whirl | 5 to all enemies, then launches a random allied Boulder if there is one; if there was none, it creates a Boulder (redesigned 2026-10-03). |
+| Awakener's Roar | Creates a Boulder first (if under the minion cap), then every allied Boulder gains 1 permanent Armor and heals to full (redesigned 2026-10-03). |
 | Rampart | With any Shield up, every Shield effect on the user is doubled (new `scaleShields` op). Otherwise it's a new 30 Shield, permanent until depleted. |
 | Ancient Grudge | A permanent Taunt (inline, forcing targeting onto the user). Using it again moves the grudge: it's removed from all enemies first. |
-| Treant Form | Counted when used: Might equal to the Seedling count and a Shield of 5 per Boulder, both for 4 turns. There's no Shield with 0 Boulders. |
+| Treant Form | Creates a Seedling and a Boulder first (each only if under the minion cap), then counts: Might equal to the Seedling count and a Shield of 5 per Boulder, both for 4 turns (redesigned 2026-10-03). |
 
 ### 20.3 Balance notes (greedy-bot simulation, 4,000 matches, eleven element pools)
 
@@ -639,14 +650,14 @@ Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusio
 
 | Term | Ruling |
 |---|---|
-| **Dragonfire** | Rides on an Ignite: a unit with Dragonfire always has an Ignite too, so every "if Ignited" check anywhere still sees it. While both are on a unit, the Ignite is silent and Dragonfire burns for 10 Affliction at the end of its applier's turn. If the Ignite is removed, the Dragonfire goes out at its next tick. Removing Dragonfire alone (Fang) leaves the Ignite. |
+| **Dragonfire** | Rides on an Ignite: a unit with Dragonfire always has an Ignite too, so every "if Ignited" check anywhere still sees it. While both are on a unit, the Ignite is silent and Dragonfire burns for 10 Affliction at the end of its applier's turn. If the Ignite is removed, the Dragonfire goes out at its next tick. Removing Dragonfire alone leaves the Ignite. |
 | **Hoard** | The passive Wyrm's Heart (every Dragon character): each time an Ignite or Dragonfire the character applied deals damage, they gain 1 Hoard (max 6, merging). This lives in Fire's `burn_aftermath` macro, which Ignite and Dragonfire run after each burn. Hoard's Armor is computed from its stacks (1 per 2; 1 per Hoard during Elder Wyrm) and only reduces Normal damage, like Armor. |
 | **Breath** | A macro: the bonus is 5 × the user's Hoard, then all Hoard is removed, before the damage lands. |
 
 | Skill | Ruling |
 |---|---|
 | Tail Sweep | Interrupts and gives Dragonfire to every enemy channeling at the time, not only those it hit. |
-| Dragon's Descent | Until the user's next skill resolves, each Ignite they apply also gets Dragonfire. |
+| Dragon's Descent | The Ignite lands after the 15. Until the user's next skill resolves, each enemy its direct damage hits that is Ignited at that moment gains Dragonfire (the user is the applier). An Ignite that skill applies after its damage isn't upgraded. **Redesigned 2026-10-03:** it used to upgrade only Ignites the next skill applied. |
 | Dragon's Toll | Gains Hoard equal to the countered skill's listed cost total. |
 | Skyfall Breath | The circling user is Untargetable by enemies (Bypass gets through) until it lands or is interrupted. |
 | Gilded Bait | The first Buff gained is ended at once. **Simplified:** the Dragonfire it gives can still be removed. |
@@ -656,13 +667,17 @@ Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusio
 | Molten Maw | **Simplified:** any indirect damage the target takes while Ignited counts as their Ignite burning. |
 | Covetous Eye | Placed on every enemy. **Simplified:** each enemy's first qualifying skill is countered, not only the first one overall. The thief gains 1 energy at their next generation, and the robbed player generates 1 less at theirs. |
 | Warming Wings | Each burn heals the user's ally with the least HP (the user included) for the damage dealt. |
+| Devour Embers | Devours first (every Ignite and Dragonfire on the enemy side), then hits and Ignites the target, so the new Ignite survives until a later use. **Redesigned 2026-10-03:** it used to do only 5 damage with no Ignites around. |
+| Wyrmfire Torrent | Each tick: 10 to every enemy, 15 to those with Dragonfire, then one random enemy without Dragonfire gains it (Ignited first). A newly given Dragonfire first burns at the user's next turn end. **Redesigned 2026-10-03:** it used to deal 20 only once every enemy had Dragonfire. |
+| Fang | Checks 60 HP **before** the hit, like Stab. Then Ignites the target, or gives Dragonfire if they were already Ignited. **Redesigned 2026-10-03:** it used to need Dragonfire on the target. |
+| Dragonfear | A 1-turn marker goes on with the Stun; when it runs out (the end of the target's next turn), the target Explodes, even if the Stun was negated or removed. A dead target doesn't. **Redesigned 2026-10-03:** it used to Stun again on the user's side's next Explosion. |
 | Hearthfire | Spends up to 3 Hoard, one at a time, for 10 healing each. |
 | Dragonblood | The ally's direct damage to enemies Ignites the target (the ally is the applier), or adds Dragonfire if they're already Ignited. |
 | Slag | Removes the base Armor and Shield statuses. Shields from other skills stay. |
 | Pyre Brand | The Scorch and a 1-turn marker are applied together. When the marker ends, the target Explodes if still Ignited. |
 | Dragon's Slumber | The user Sleeps for up to 3 turns. At the end of each of their turns while asleep, all allies heal 20. Waking ends it. |
 | Wyrm's Domain | Placed on each ally. Every Harmful skill aimed at one of them by an enemy the user hasn't Taunted deals that enemy 10 damage, once per ally targeted. |
-| Elder Wyrm | Hoard gives 1 Armor per stack while it lasts. |
+| Elder Wyrm | Gives 3 Hoard first (up to the max of 6). Hoard gives 1 Armor per stack while it lasts. **Redesigned 2026-10-03:** it used to give Flameborn instead of Hoard. |
 
 ### 21.2 Crystal (Ice + Ice)
 
@@ -683,6 +698,7 @@ Two infusions on a skill make the pair's fusion element (GDD §7.3), and a fusio
 | Quartz Spike | When the user's Mark is spent (consumed) within the turn, its target gains 2 Brittle. |
 | Hard Freeze | Chilled → Frostbitten first; a unit that wasn't Chilled has Numb → Chilled. |
 | Ice Pick | Removes Frostbitten, else Chilled, else Numb, for 10 more. |
+| Harvest Shards | Redesign (2026-10-03): the hit lands first, then 1 Brittle, then all their Brittle (that one included) is removed for 10 Shield per stack. |
 | Price of Frost | After it counters, every enemy carries a 2-turn toll: +1 cost while Chilled. |
 | Perfect Form | One effect gives +10 direct damage (2 Might) and −1 cost (1 Focus); Swiftness is separate. A hit of 25+ (HP plus Shield) removes the effect and the user's Swiftness, and Stuns them for 1 turn. |
 | Faceted Ward | New `maxHpLossPerTurn` modifier: at most 25 HP lost per turn, ticks included. |
@@ -711,7 +727,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Spindrift | Already Brimming: spends up to 20 of the Brimming Shield as extra damage, instead of gaining Renew and Brimming. |
 | Undercurrent | Trough: each time the target heals someone, the user's ally with the least HP heals as much. |
 | Brine Bolt | The first direct hit from the user's side that finds the Mark gone (spent) gives its dealer 2 Renew and Brimming. |
-| Ebbing Toll | **Simplified:** each skill the target uses while Confused heals the user 10 per Confusion stack, as if they paid it. |
+| Ebbing Toll | Each skill the target uses while Confused heals the user 5 per Confusion stack (the description says so directly). The skill gives the 1 Confusion itself. |
 | Jellyfish Bloom | For 3 turns, any enemy who kills one of the user's Jellyfish (the `died` signal) is Stunned for 1 turn. |
 | Slack Water | Allies carry a linked status while it channels; base Renew skips its stack loss on them. |
 | Breaker Swell | The user's Stun lasts through their next turn. |
@@ -786,7 +802,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 |---|---|
 | Mutant Fang | 1 Toxin at every stage; II and III make the target's Toxin tick (indirect Affliction) once or twice now. |
 | Primal Stomp | III adds 5 per Toxin on the target's allies after this spreads. |
-| Scent Trail | The user's next Toxin applied to an enemy also goes to every other Prey enemy. |
+| Scent Trail | Evolves. I: the Focus lasts until the user's next skill. III: the other enemy is picked at random among the living others, and gets 1 Toxin at every stage from III on. |
 | Molt | I–II react to the first direct hit within the turn; III counters the first Harmful skill instead. |
 | Apex Predator | Might becomes the same stacks of Weakness for 3 turns (on everyone at I, everyone but the user from II). |
 | Telltale Venom | Poison's Prey condition now also counts any enemy with Toxin while they carry Telltale Venom (until the end of the user's next turn). |
@@ -830,9 +846,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Take Root | The Boulder becomes a Worldsprout in place if it's alive at the start of the user's next turn. |
 | Patient Acorn | +10 max HP and 10 healing at each of its owner's turn ends, no cap. Crush deals half its HP. |
 | Bedrock Thorn | For 3 turns, each damage event on an allied Boulder triggers Channel Growth. |
-| Harvest | Requires an allied Seedling or Treant; a random one is sacrificed. |
+| Harvest | A random one of the user's own Seedlings or Treants is sacrificed; its HP is added to the 10. With none, the heal is 10 and a Seedling is created after it. |
 | Twin Saplings | When one of the user's Seedlings dies within its window, a random unbloomed one Blooms at once. |
-| Splinter Spike | **Simplified:** sacrifices a random allied Seedling, not the one with the least HP. |
+| Splinter Spike | **Simplified:** sacrifices a random allied Seedling, not the one with the least HP. With none, 10 damage and a new Seedling, which the next use can sacrifice. |
 | Taproot | Against a Stunned target, moves 10 max HP to the user (while their Flourish total is at most 20). |
 | Living Screen | With an allied minion: the target's next Harmful skill lands on the user's minions (`redirectDamage` on every allied character that turn; a random minion takes each hit, not the one with most HP). With none: it's countered and the user creates a Boulder. |
 | Overgrow | The Shield lasts as long as the Stun. When it runs out, what's left heals the user, with Flourish. |
@@ -841,7 +857,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Tangleweed | **Simplified:** the target can't target minions (`targetExclude`); area skills still hit them. |
 | Common Root | Every unit on the user's side shares damage evenly while it lasts. |
 | Whirling Vines | One Seedling per enemy minion that died to it. |
-| Call of the Grove | Blooms every allied unbloomed Seedling and heals every allied minion to full. |
+| Call of the Grove | With no allied unbloomed Seedling (Treants don't count), the user creates one first. Then Blooms every allied unbloomed Seedling and heals every allied minion to full. |
 | Warden Oak | **Renamed** from the doc's "Guardian Oak": content lint forbids "Guardian" (the retired class). A random allied minion (or the user) Taunts; allied Seedlings that survive it Bloom. |
 | Ancient Treant | Armor equal to the user's minion count, and allied minions are Untargetable. |
 
@@ -888,7 +904,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Soulgrinder | Each Fragment spent sends 15 Affliction at a random ally of the target. |
 | Soul Hunt | The user's next Harmful skill drains a Fragment from its primary target; with a Fragment spent it also costs 1 less. |
 | Take You With Me | The last enemy countered carries a 3-tick doom: if the user dies while it lasts, they die too. |
-| Atrocity | Spends up to 3 Fragments: Immortal for that many turns; attackers lose a Fragment to the user. With none, nothing happens. |
+| Atrocity | (Redesigned 2026-10-03.) Immortal for 2 turns with no Fragments needed; meanwhile each enemy who damages the user loses a Fragment to them (`drain_it`). |
 | Doom Knell | Each time the target is healed, the channel's remaining time drops by a turn. |
 | Damning Shackle | Inverts healing for 2 turns; the first heal also Stuns. |
 | Deathless Step | Spends a Fragment for Invulnerable; without one, Immortal. |
@@ -929,7 +945,10 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | **Thermal Shock** | Lives in the fusion passive: when an Apocalypse character gives an enemy a Fire debuff while it has a Frost debuff (or the reverse), it Shocks: 15 Piercing (indirect) and Shattered for 1 turn, once per unit per turn (a `thermal_shocked` marker until the end of the turn). Other units' applications don't Shock unless a skill says so (the Salamander checks its own). |
 | **Frostfire** | Counts as Ignite and Chilled (`countsAs`), so Ignite and Chilled checks see it; its own 5 Affliction tick runs Fire's burn aftermath. New `exact` on `has` skips statuses that only count as the key. Frostfire on its own doesn't Shock; any other Fire or Frost debuff added later does. |
 | Worldbreaker | "If that Shocks them" is checked before the Frostfire lands (they have another Fire/Frost debuff and weren't Shocked this turn). |
-| Coldsnap Dash | The cracked Ignite deals one extra 10 Affliction to each Chilled, Ignited enemy the next skill targets. |
+| Coldsnap Dash | The cracked Ignite deals one extra 10 Affliction to each Chilled, Ignited enemy the next skill targets (the dash's own Frostfire makes its target one). |
+| Paradox Bolt | "Already had it" is checked before the new Frostfire lands. The paradox Shock ignores the once-per-turn limit, so a target whose refreshed Frostfire also meets another Fire or Frost debuff is Shocked twice. |
+| Fimbulfire | "No Fire debuff": no Ignite, Scorched or Frostfire. |
+| Rimebrand | The Frostbite lands as the Harmful skill is used and lasts through the bearer's next turn. |
 | Ragnarok | The cast turn is the first (3 Might now); each turn's buff lasts until the start of the user's next turn. |
 | Comet of Ruin | A hidden mark on the target, linked to the channel: gaining a Fire/Frost debuff ends the channel and lands the 45 at once. |
 | Rimeflame Salamander | New minion `onDeath` ops (the dead minion is the actor). |
@@ -972,7 +991,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Star Core / Supercharge | Built on `negateNext` with 99 stacks (with an `if` for Star Core's 3 Heat). |
 | Brownout | Simplified: while Confused, the bearer generates 1 less energy each turn. |
 | Flare Beacon | +1 Taunt turn if any Heat was vented, and 1 Sapped per 2. |
-| Reactor Core | Armor computed live from Heat (−5 Normal damage per Heat). |
+| Reactor Core | Armor computed live from Heat (−5 Normal damage per Heat). Its +2 Heat stops at 4, so it never sets up a Melt Down on its own. |
 | Jumper Sparks | The Charge goes to a random ally character. |
 
 ### 21.14 Mechanic (Fire + Wind)
@@ -1003,9 +1022,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Brimquake | The extra 10 is Affliction, per Explosion from the bearer's enemies. |
 | Burning Downpour / extra ticks | Macro `ignite_tick`: 5 Affliction, and an Eruption if the target has Sulfur. |
 | Belching Toad | Moves a random Debuff (not the newest) from a random ally to a random enemy. |
-| Stokers | Ignite a random enemy with Sulfur (no "most Sulfur" target yet). |
+| Stokers | Each Ignites a random enemy with Sulfur (no "most Sulfur" target yet); if none has any, it gives a random enemy 1 Sulfur instead, so the second Stoker Ignites what the first seeded. An Ignite applied at the end of a turn first burns at the end of the next. |
 | Hellmouth | A companion effect hears the channel end (`ownEffectEnded`), whether it expires or is broken. |
-| Strike the Match | The energy comes at once if the target already has Sulfur for the Ignite to set off. |
+| Strike the Match | The energy comes at once if the target already has Sulfur for the Ignite to set off; otherwise they gain 1 Sulfur, which the Ignite sets off when it burns at the end of the turn. |
 | Asphyxiate | A Neutral, inline stun: Swiftness (keyed to Stun) and Immune (Debuffs) don't touch it. |
 | Brimfire Crest | Heals for all indirect damage the bearer deals to enemies; Flameborn's own Ignite healing is skipped meanwhile so it isn't counted twice. |
 | Stench of Sulfur | Simplified: Sulfur the user gave that's cleansed away deals its bearer 10 Affliction. |
@@ -1018,11 +1037,13 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 |---|---|
 | **Corona** | `corona` (Buff, merging, 3 turns; gaining refreshes). Gained through macro `gain_corona`, which trims it to 3 (5 during Solar Maximum). It ticks at the end of its applier's turn: 5 Affliction per stack to every enemy, 5 healing per stack to every ally. |
 | **Solar Flare** | Macro `solar_flare`: spends all the user's Corona into `flared`. |
-| Scorched Earth | As Kiln Crash: while Scorched, the Shield is halved at the end of each of the user's turns. |
+| Scorched Earth | Before the hits, every enemy with a Shield has it halved (`scaleShields`); the ones without are Scorched for 1 turn instead. |
 | Rolling Sunstone | A Boulder-type minion whose `onDeath` Explodes (destroyed or launched). |
 | Horizon | Rises when its 2-tick timer ends (end of the enemy's turn). Enemies who used a Harmful skill meanwhile are Ignited. |
 | Sunflower / Sunseed | Start with 1 permanent Corona (gaining more makes it a normal 3-turn Corona). Scatter Seeds' Seedling is the Sunflower's own. A Sunseed's Corona passes to its creator through `onDeath`, including on expiry. |
-| Ripening Vine | Each Seedling casts Channel Earth (as itself), then loses 5 HP. |
+| Ripening Vine | Each Seedling casts Channel Earth (as itself), then loses 5 HP. With no allied Seedling (the Sunflower counts), the user creates one instead. |
+| Tinder Spike / Stubble Burn | Both check for an Ignite before they light one: Tinder Spike makes an existing Ignite burn once (`ignite_tick`); Stubble Burn spreads to the second enemy only if the target was already Ignited. |
+| Kiln Wall | Each `shieldDamaged` event (each hit it absorbs) gives the user 1 Corona. |
 | Upwelling Magma | The Sun passive tracks the turn the user last dealt direct damage; turns since are counted as user turns (half the turn count). |
 | Long Summer | Each turn extends the user's Corona; the double damage applies to Ignited enemies while the Corona's applier channels it. |
 | Basking | Each Corona tick gives 1 Might for 1 turn. |
@@ -1054,7 +1075,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Term | Ruling |
 |---|---|
 | **Hellfire** | Debuff counting as Ignite and Horrified: 5 Affliction at the end of its applier's turn (with Fire's burn aftermath), and immune to Buffs. |
-| **Contract** | An inline effect that counts as `contract` (the benefit is applied beside it; its onExpire is the price). Contracts on the user's side are Buffs; ones forced on enemies (Fine Print, Hellraze) are Neutral, so Horrified doesn't stop them. New `expire` op collects early (Collect; Collection Day collects twice). |
+| **Contract** | An inline effect that counts as `contract` (the benefit is applied beside it; its onExpire is the price). Contracts on the user's side are Buffs; ones forced on enemies (Fine Print, Hellraze, Collect's Debt) are Neutral, so Horrified doesn't stop them. New `expire` op collects early (Collect; Collection Day collects twice). |
 | **Devil's Ledger** | Fusion passive: when a unit dies holding a Contract this character gave, they gain 2 Soul Fragments; when one dies with their Price on Their Head, the killer's cooldowns drop by 10 and the user gains 1 energy. `eventTargetHad` now takes `effects`. Contracts from the Imp Notary's Offer belong to the Imp, not the Ledger. |
 | Hellbolt | Each Helpful skill used on the Hellfired target (whose Buffs fail) gives the user 1 Soul Fragment. |
 | Imp Captain | Simplified: only the Captain's own hits gain 5 per Soul Fragment of its summoner. |
@@ -1065,8 +1086,8 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Dance with the Devil | Their Ignites also tick at the start of each of their turns. |
 | Fair Trade | Only when the enemy has more HP; the transfer ignores modifiers. |
 | Pact of Flame | The price is 20 minus all healing received meanwhile (Lifesteal included). |
-| Double or Nothing | Simplified heads: each Debuff lasts 2 turns longer, and Weakness, Vulnerable, Toxin and Confusion gain 1 stack. |
-| Choir of the Pit | Each Helpful skill used on a Horrified enemy gives a random ally of the user 1 Might. |
+| Double or Nothing | Its own 1-turn Hellfire lands before the flip. Simplified heads: each Debuff lasts 2 turns longer, and Weakness, Vulnerable, Toxin and Confusion gain 1 stack. Tails: 1 Soul Fragment. |
+| Choir of the Pit | Every enemy is Horrified for 1 turn; for as long, each Helpful skill used on a Horrified enemy (any Horrify, Hellfire included) gives a random ally of the user 1 Might. |
 | Pyre Swing / Dare the Damned | A kill is detected by damage reaching the target's HP; Dare explodes on each hit that leaves the user at Immortal's floor. |
 
 ### 21.19 Ritual (Fire + Shadow)
@@ -1079,12 +1100,12 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Severing Spark | Simplified: Isolated if the target has no Buffs. |
 | Shadowflame Bolt | Simplified: each skill they use while Blinded Ignites them. |
 | Rite of Ruin | Enemies count their own skills (`ruin`) from the moment it starts. |
-| Snuff the Candles | Heals 10 per step counted (`rite_counted`). |
+| Candle Offering | Its advance is a `rite_advance` signal. The Offering is already a step of the Rite as a skill, so if that step completes it, there's no Rite left and the user heals the 15 instead. |
 | Ritual Knife | 25 if a Rite completed this turn or the user's Rite has 1 step left. |
-| Hush of Smoke | Enemies' Sleep is protected from removal until the user's next turn. |
-| Veilbrand | Simplified: a Stealthed attacker who damages the Ignited target gets their next skill counted as Stealthy. |
+| Hush of Smoke | A hidden 1-turn watch on every enemy: the first Harmful skill each uses Blinds them for 1 turn. |
+| Veilbrand | Checked after the hit: an Ignited target is Blinded for 1 turn, any other is Ignited. |
 | Cinder Tether | Healing either receives is undone and dealt to the other as Affliction. |
-| Smokewall | A Shield checked at the start of the user's turns: it ends once they're no longer Stealthed. |
+| Smokewall | Each `shieldDamaged` event from an enemy Ignites that enemy. |
 
 ### 21.20 Glacier (Ice + Water)
 
@@ -1095,7 +1116,8 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | New values / ops | `skillCooldown` (the base cooldown of the skill in scope, for Pressure Ridge and Thin Ice), `skillsOnCooldown` (Under the Ice, Glacier Form) and `swapCooldowns` (Borrowed Hour; the skill being used is skipped). |
 | Crevasse | Simplified: the triggering Harmful skill Icebinds them for 2 turns and raises all their cooldowns by 1 (not that skill's cooldown doubled). |
 | Glacial Erratic | A companion effect hears the Mark expire unspent (`ownEffectEnded`, reason expired) and deals 30. |
-| Stolen Thaw | Simplified: 2 turns of Meltwater, not the Icebound's remaining time. |
+| Stolen Thaw | Simplified: 2 turns of Meltwater, not the Icebound's remaining time. A target that isn't Icebound is Icebound for 1 turn instead (redesign 2026-10-03). |
+| Meltwater Rush | Redesign (2026-10-03): Meltwater for 1 turn, or 2 if the target has any skill on cooldown (`skillsOnCooldown`); it no longer reads or melts their Chill. |
 | Hoarfrost Pick | Frost debuffs on the target can't be removed (they don't pass through Immune). |
 | Frozen in Time | Simplified: Icebound for 2 turns keeps their cooldowns where they are, and they rise by 1. |
 | Calving | Simplified: the two share all their Debuffs once (`shareEffects`). |
@@ -1111,7 +1133,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Hoarfrost Crash | Frost debuffs on everyone hit last 3 ticks longer (once) and can't be removed meanwhile. |
 | Streak of Light | The target is marked Streaked; the user's next skill deals 10 more to Streaked enemies. |
 | Polar Lance | The target is Chilled for the wait, and each of their skills meanwhile Saps them once per energy it cost. |
-| Rime Snare | Simplified: the first time the target has a Frost debuff at the end of the user's turn, those debuffs last 2 turns longer and they take 15 Piercing. |
+| Rime Snare | Redesign (2026-10-03): fires on the target's first skill (`skillUsed`, consumed): 15 Piercing, then Chilled for 2 turns. It no longer waits for a Frost debuff. |
 | Stray Aurora | Simplified: it's the user's minion (enemies target it normally). It hits a random enemy if the enemies' side has more total HP, else a random ally. |
 | Shock Icicle | Simplified: 25 if the target's player has 1 or no energy. |
 | Lightshow | Simplified: their non-Strategic skills are stunned for 2 turns. |
@@ -1133,7 +1155,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Long Winter | Each turn pushes the enemies' Frost debuffs 2 ticks further out. |
 | Updraft Feint | Simplified: the user Leaps normally (the "not spent by the next damaging skill" clause isn't modeled). |
 | Snow Dance | Uses the `incomingNegated` trigger (their Swiftness stopped a Stun). |
-| Rime Mantle | While Frostborn, Frost debuffs they apply get 1 more turn (`eventEffect`). |
+| Rime Mantle | Redesign (2026-10-03): for 2 turns, any damage from an enemy (direct or not) Chills that enemy for 1 turn, so the ally's Frostborn shuts out their Debuffs afterward. |
 | Frostfeather | The second hit from an ally (any ally) Snowbinds them. |
 | Dead of Winter | Healing modifiers ×0 on every unit (raw heals, such as Repair, still work). |
 
@@ -1150,7 +1172,11 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Chilling Acid | At the end of each of the user's turns, a Toxined target is Chilled (or its Chill extended). |
 | Cold Shelter | Simplified: Frostborn for 2 turns. |
 | Serpent's Measure | Each enemy with Toxin at the end of the user's turns is marked Prey until their next turn. |
-| Frozen Quarry | Added to Poison's `prey` condition: Frost debuffs count toward the stack total. |
+| Frozen Quarry | Redesign (2026-10-03): the target is Chilled and marked Prey (Poison's `prey` mark) for 2 turns. The old `frozen_quarry` line in Poison's `prey` condition no longer has a source. |
+| Final Thaw | Redesign (2026-10-03): the 1 Toxin lands before the Thaw, so it's counted (10 more), and the stack stays to tick. |
+| Icebite | Redesign (2026-10-03): against a target that isn't Prey, 1 Toxin and the `prey` mark through the user's next turn, so the next Icebite pays off. The payoff removes any `prey` mark on them, since the Suspension would otherwise freeze the mark and the payoff would repeat every turn. |
+| Crack the Ice | Redesign (2026-10-03): the 1 Toxin goes on first, so a Suspended enemy's early Thaw counts it; enemies not Suspended get a 1-turn Suspension (and Thaw when it ends). |
+| Rime Needle / Glacial Glare | Redesign (2026-10-03): they bring their own Frost debuff (Chilled for 1 turn, extended with the rest; Frostbitten for the Glare's full 2 turns). |
 | Frozen Instant | Uses `deferHits`: each hit is held and lands 3 turns later, halved, as Affliction (not all at once when it ends). |
 
 ### 21.24 Myth (Ice + Earth)
@@ -1189,6 +1215,8 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Hovering Prism | While it stands, the user's direct hits on enemies refract 5 per 10 dealt to a random other enemy (any skill, not only single-target). |
 | Colorless Nova | Simplified: a random Buff, not the longest. |
 | Dispersion | Each turn refracts to one more random enemy (5 damage and Sanctify each). |
+| Harvest of Grace | Redesign (2026-10-03): counts Sanctified enemies after the hit; with none, the target is Sanctified for 2 turns instead. |
+| Shattering Awe | Redesign (2026-10-03): a target with no Frost debuff (Snowbound and Frostfire count) is Frostbitten for 1 turn instead of nothing. |
 | Diffused Light | Refracts 20 to the ally with the least HP, if that isn't the target. |
 | Beacon of Mercy | Compares the weakest targetable enemy with the weakest ally. |
 | Frozen Gleam | Simplified: a 2-turn Taunt. |
@@ -1226,9 +1254,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Stolen Hours | The user's side's Debuffs lose 2 ticks; the target's gain 2. |
 | Call the Revenant | New target `summonerLastAttacker`: the last enemy who damaged its summoner (else a random enemy). |
 | Winter Solstice | Dormant first, then the channel (so the Dormant doesn't break it). |
-| Blackfrost Fang | Simplified: an ended Blind becomes 2 turns of Frostbitten and Numb. |
+| Blackfrost Fang | With Dusk on the target it deepens (macro `deepen_dusk`, so it can strike Midnight); otherwise 2 turns of Frostbitten and Numb. |
 | Drowsing Waltz | An HP floor of 30 while it lasts; the first hit that reaches it puts the user to Dormant. |
-| Hidden Moon | Stealthed allies who hit the target get their next skill counted as Stealthy (Ritual's Veiled by Smoke). |
+| Hidden Moon | The Stealth it gives is new, so its own use doesn't end it; being Stealthy, it also keeps an older Stealth. |
 | Crescent Cleave | Simplified: the splash prefers a random enemy with Dusk. |
 | Sleeping Giant | Its own Dormant variant: 20 Shield per turn, and every enemy gains Dusk 2 when it wakes. |
 
@@ -1242,7 +1270,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Conductor's Lance | Simplified: it conducts as usual, and the user gains 1 Charge per other Soaked enemy; their Soak doesn't end. |
 | Electric Rain / Still Water | Their channel and counter hits conduct explicitly. |
 | Still Spring | Each turn, a stack of Renew is added back after it ticks. |
-| Overflow | +5 to Soaked enemies and conducting single-target hits for 3 turns. |
+| Overflow | For 3 turns: the ally's single-target skills Soak their enemy targets as they're used (before they hit), +5 to Soaked enemies, and conducting single-target hits. |
 | Waterlogged | Each indirect hit on them adds 1 Confusion (max 3). |
 | Backwash Lure | Any healing the user receives (not only Renew) strikes the enemy they Taunted. |
 
@@ -1288,7 +1316,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Slime Roll | Simplified: Rod-of-Domination-style redirect of damage to a random allied minion for 1 turn. |
 | Gel Parry | The Ooze has 10 HP per energy the countered skill cost (10 to 40). |
 | Gel Snare | The heal is taken back, and an Ooze with that much HP (10 to 40) Engulfs them. |
-| Digest | Simplified: a flat 20 Affliction when Engulfed. |
+| Digest | Simplified: a flat 20 Affliction when Engulfed. Otherwise its own 10 HP Ooze Engulfs the target for 1 turn (bound to that Ooze); at the 4-Ooze cap no Ooze is made. |
 | Primordial Pool | Counts `ooze_died` signals and re-forms that many Oozes (10 HP) each turn. |
 | Slick Shimmy | Simplified: the user's Debuffs are removed at the end of each of their turns. |
 | Irrigate / Fertile Silt | Any healing on the ally (not only Renew) counts. |
@@ -1558,15 +1586,16 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Tainted Hands | Fires when the Helpful skill resolves. |
 | Spore Molt | Simplified: one Spore per Debuff effect shed, not per stack. |
 | Sporeling | Grows whenever a Mushroom sprouts for its side, from anyone. |
-| Binding Hypha | Simplified: `protectEffects: [toxin]` for 1 turn, the Mark's duration, even if the Mark is spent sooner. |
-| Rooted Rhythm | Simplified: only minions on the field when it's used are covered. |
-| Compost Bed | Value `minionsLost`: allied minions that died in the last 2 turns (engine counter `c:died_turn`). |
-| Mycorrhizal Bond | Copies use `copyEventEffect` with `noChain`, so they don't echo back. |
+| Binding Hypha | The bound ally is a random other enemy; a lone target gets only its own Spore. |
+| Rooted Rhythm | Simplified: only the user and the minions on the field when it's used are covered. |
+| Compost Bed | One random Debuff effect rots (a merging Debuff loses its whole stack); with no Debuff, no Spore. |
+| Mycorrhizal Bond | Only damage from enemies warns; each warning is a separate 1-turn Armor stack. |
+| Fester Pod / Thorn of Rot | "Already had Spores" is checked before the hit (any side's Spores count). |
+| Decompose / Rot Drill | With no Spores on the target, it plants 2 (which may pass 1 on at the end of the turn). |
+| Mycelial Network | "If none has any" is checked at each of the user's turn ends, so a cleansed team is reseeded. |
 | Cordyceps Brand | Healing received ×0.5; the same amount heals a random ally of the applier. |
 | Fruiting Psalm | Spores the user gives their own allies sprout for the user (the applier rule). |
 | Spore Whirl | Simplified: the second target is a random other enemy with Spores, not the one with the most. |
-| Carrion Bloom | Simplified: checked at the end of the user's turns, not the moment they become Prey. |
-| Fester Pod | Prey also counts any 3+ Debuff effects while Fester Pod lasts. |
 
 ### 21.47 Antidote (Poison + Holy)
 
@@ -1579,7 +1608,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Acquired Tolerance | Simplified: the counter Inoculates the user (rather than immunity to each Debuff the skill carried). |
 | Immune Response | Modifier `suppressDebuffs`: the bearer's Debuffs neither modify nor tick (their other triggers, like Mark, still fire). |
 | Remedy Dart | Simplified: Inoculates the user's most wounded ally. |
-| Long Diagnosis | A hidden Neutral counter on the target counts Debuffs gained during the channel. |
+| Long Diagnosis | A hidden Neutral counter on the target counts the skills they use during the channel; it reacts silently, so it doesn't give the target away. |
 | Countervenom | Simplified: the Debuff is removed and the bearer takes a flat 10 Affliction. |
 | Quarantine | Simplified: only enemies who target the user become Prey. |
 | Long Treatment | Simplified: a random ally with Debuffs loses one and becomes Inoculated. |
@@ -1617,13 +1646,14 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Term | Ruling |
 |---|---|
 | **Death Mark** | Hidden Debuff whose value is its execute threshold (25; raised to at most 40). A direct hit from an Assassin-element skill (or a Subcontracted ally's skill) from the marker's side deals 10 more, and if the bearer is then at or below the threshold they're executed (signal `mark_executed`). Simplified: one Death Mark per side; placing one (macro `place_mark`) removes any other. |
-| Throatcut / Fulfill the Contract | "Executes your Death Mark" = the target had it and is dead after the hit. |
+| Throatcut | "Executes your Death Mark" = the target had it and is dead after the hit. |
+| Fulfill the Contract | "If they die" = the target is dead after the hit, whether its own 15 HP execute or your Death Mark killed them. |
 | Coordinated Strike | Stealthy; Toxin stacks = Stealthed allies counted before the hits. |
 | Stalk | Simplified: the Mark lasts 2 turns, Stealth or not. |
 | Garrote Wire | Value `skillCooldown` of the countered skill. |
 | Open Contract | Simplified: each execution gives 1 Might and 1 Swiftness for 2 turns instead of extending the Rage. |
 | The Long Shot | Executes at 40 HP after the hit if the target carried the Mark. |
-| Covering Smoke | Stealthed allies' skills gain the Stealthy tag for 1 turn. |
+| Covering Smoke | The Stealth goes to `weakestOtherAlly`; then Stealthed allies' skills gain the Stealthy tag for 1 turn (so a covered ally who acts extends their Stealth, as usual). |
 | Whispered Names | Status `whispered_names` (4 stacks = the original plus 3 passes) goes with the Mark; the first direct hit passes Mark + whisper to a random other enemy. |
 | Poison Smoke | A moved Mark resets to threshold 25. |
 | Hired Blade | Its killer is the last enemy who damaged it. |
@@ -1645,9 +1675,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | **Sanctum** | A merging Buff (stacks = level, max 3) on whichever ally raised it first (macros `raise_sanctum` / `lower_sanctum`); raising refreshes it to 3 turns. At the end of its side's turns: every ally gets 1 Armor per level until that side's next turn, heals 5 per level, and at level 3 gains Steadfast (immune to Stuns) for the turn. Level = total `sanctum` stacks on the side. |
 | **Wardstone** | Minion (45 HP) tagged boulder and wardstone. While one (or a Living Temple) stands, the Sanctum extends itself by a turn at each of its ticks. |
 | Temple Warden | The kit's "Temple Guardian", renamed: "Guardian" is a retired word the content lint rejects. |
-| Toppled Idol | Simplified: a random allied Boulder topples, not the weakest. |
+| Toppled Idol | HP is compared before the hit; equal HP doesn't count. The 30 lands as one hit. |
 | Cracking Foundation | Boulders lose 15 raw HP; +5 per Boulder counted before. |
-| Pilgrim's Stride | Simplified: the condition is "an ally has Shield". |
+| Pilgrim's Stride | The Shield goes to `weakestAlly` (the user included). |
 | Sheltering Stone | At level 3, every ally gets their own counter. |
 | Obelisk | Simplified: +20 if any allied Wardstone stands. |
 | Sacred Boundary | Its first direct hit on any of the user's side. |
@@ -1656,7 +1686,11 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Day of Rest | Lasts through the ally's next turn; a Harmful skill removes it. |
 | Stone Vow | Simplified: after a hit, the ally heals back half and a random allied Wardstone takes it as raw damage. |
 | Excommunicate | Simplified: Isolated for 3 turns, plus Condemned. |
-| Shieldbearer's Sweep | Simplified: Sanctify still heals; the damager also gains 15 Shield for 1 turn. |
+| Holy Harvest | The user heals the HP the target actually lost. The Sanctify is applied after its own hit, so the user's 5 doesn't count; the first direct hit on the Sanctified target makes the Wardstone. |
+| Penitent's Awl | A target that isn't Condemned becomes Condemned; one that is resolves it now. |
+| Firstfruits Brand | Each direct hit on the Sanctified target gives its damager +5 max HP for the match (not filled). |
+| Shieldbearer's Sweep | Each mark is spent by the first direct hit on its bearer: that damager gains 15 Shield for 1 turn (at most two Shields per Sweep). |
+| Call to the Faithful | Consecrates Boulders that aren't Wardstones; only if there are none does it create a Wardstone. |
 | Cornerstone Psalm | +10 max HP first, then heal 15. |
 
 ### 21.51 Grave (Earth + Unholy)
@@ -1671,7 +1705,8 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Bury Yourself | Spending happens when the Invulnerable turn ends. |
 | Ghoul Gravedigger | Works with its creator's Graves. |
 | Deathbolt | Fragments spent before the hit; "kills them" = the target is gone afterwards. |
-| Marrow Draught | Raw Affliction to every minion; the user heals the HP actually lost. Strategic, since it deals no direct damage. |
+| Marrow Draught | With no allied minion, a Skeleton is summoned first (no Grave). Raw Affliction 10 to every minion; the user heals the HP actually lost. Strategic, since it deals no direct damage. |
+| Barrow Stone | Uses `spend_1`; with no Grave, just the 15. |
 | Premature Burial | Simplified: the countered skill's cooldown rises by 3, rather than "until a unit dies". |
 | Graveside Vigil | An inline Shield of 5 per Grave (max 25) until the end of the user's next turn; nothing if there are no Graves (§21.56). |
 | Epitaph | A watcher on the user: when the ally dies, `copyEffects fromSnapshot` gives the user's living allies their Buffs (cond `eventTargetIs`). |
@@ -1759,7 +1794,7 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | **Lingering** | New effect flag `lingers`: when the effect is removed (a cleanse; moves don't count) or its bearer dies, it's re-applied to a random living ally of the bearer with its remaining duration. Expiring or being consumed (`removeStacks`) doesn't Linger. |
 | Woeblade | Simplified: a random Hex (no "last skill" tracking). |
 | Crushing Malediction | Copies last 2 turns. |
-| Somnambulant Rush | Simplified: only its own hit doesn't wake; the next-skill rider is dropped. |
+| Crossed Path | (Was Somnambulant Rush; redesigned 2026-10-03.) The rider waits for the user's next Harmful skill and gives a random Hex to each enemy among its targets; the Charge's own hit doesn't count. |
 | Hex Ward | Counters every Harmful skill from a Hexed enemy all turn, plus the first from anyone else (§21.56). |
 | Cursed Hunger | +5 direct damage per Hexed enemy (max 3), counted as each hit lands. |
 | Doom | Hexes are consumed (no Lingering), +15 each. |
@@ -1772,9 +1807,9 @@ Engine additions: `maxHpLossPerHit`, `maxHpLossPerTurn`, `borrowShield` modifier
 | Evil Eye | Counter `evil_eyed` marks who has had it; the chain passes at each natural expiry. |
 | Envious Jig | Copies use `copyEventEffect noChain`; the enemy's Buff loses 2 ticks. |
 | Pass the Curse | Simplified: all their Debuffs move to one random enemy. |
-| Blind Man's Toll | Simplified: each skill they use while Blinded. |
+| Blind Man's Toll | Simplified: each skill they use while Blinded. It Blinds the target itself for 1 turn (redesigned 2026-10-03), so the Toll pays at least once on its own. |
 | Vespers of Slumber | `hpFloor 1` while it lasts; reaching 1 HP puts them to Sleep and ends it. |
-| Shrouded Ward | Skills Stealthy while the user has any Shield. |
+| Shrouded Ward | (Redesigned 2026-10-03.) A watcher beside its own Shield Blinds each enemy whose direct hit lands while the Shield holds, including the hit that breaks it, then ends with the Shield. |
 | Poppet | 10 HP minion; damage it takes is dealt to the target as Affliction. |
 
 ### 21.56 Rulings from the fusion test pass
@@ -1798,7 +1833,7 @@ row disagrees, this section wins.
 | Hidden effects | A hidden effect's start- and end-of-turn checks don't reveal it; it's revealed when it reacts to something. |
 | Death Mark | The +10 is Piercing (a strike at a marked weak point), so Armor doesn't absorb it. |
 | Unseen Knife | Blinded or Sleeping is checked before the hit, which wakes a Sleeper. |
-| Long Diagnosis | Its Debuff counter outlasts the channel. |
+| Long Diagnosis | Its skill counter outlasts the channel. |
 | Coldsnap Dash | The crack rider lasts through the user's next turn. |
 | White Flame Waltz | Only direct damage counts as "dealt damage" (its own Explosion doesn't). |
 | Jump Start | The −2 generation lasts until the end of the player's next turn, so it applies to that generation. |
@@ -1863,7 +1898,7 @@ row disagrees, this section wins.
 | Awakened Giant | Earns no Legend itself (it spends them); it counts the Legends the user had. |
 | Midnight | From Dusk's countdown, Frozen Sleep costs the bearer the turn that's starting; struck any other way (False Dawn…), it costs their next turn. |
 | Counting effects | A listed effect counts once; one that only counts as listed keys counts once per key (Frozen Sleep counts as three Frost debuffs for Rimecut). |
-| Hidden Moon | A "keep your Stealth" effect gained during a skill counts for that skill too. |
+| Keeping Stealth | A "keep your Stealth" effect gained during a skill counts for that skill too. (Hidden Moon used to rely on it; since 2026-10-03 it gives the user a fresh Stealth instead.) |
 | Frostfall Cloak | The breaking hit itself grants the Stealth (1 turn per Frost debuff on the breaker, max 3). |
 | Waterskin | The 35 needs a skill actually used since the user's last turn (not the match start). |
 | Silent triggers | A hidden effect's `silent` reaction doesn't reveal it (Sinking Sands growing with Trek). |

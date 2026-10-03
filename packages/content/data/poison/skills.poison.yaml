@@ -270,7 +270,9 @@ stab.poison:
   archetype: Stab
   element: Poison
   name: Pounce
-  description: Deals 5 Piercing damage to target enemy. If that enemy is Prey, the user generates a random energy.
+  description: >-
+    Deals 5 Piercing damage to target enemy. If that enemy is Prey, the user generates a random
+    energy; otherwise, it gives them 1 Toxin.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -280,6 +282,7 @@ stab.poison:
     - op: if
       cond: { check: { cond: prey, unit: primary } }
       then: [{ op: gainEnergy, amount: 1 }, { op: signal, name: stab_bonus }]
+      else: [{ op: apply, to: primary, effect: toxin }]
 
 ravage.poison:
   archetype: Ravage

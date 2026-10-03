@@ -105,15 +105,26 @@ describe('Dragon skills', () => {
     expect([channeling(a, B2), a.has(B2, 'dragonfire'), a.has(B1, 'dragonfire')]).toEqual([false, true, false]);
   });
 
-  it('Dragon\'s Descent: 15 and 1 Focus; the next skill\'s Ignites land as Dragonfire, only that one', () => {
-    const a = arena({ p0: [['charge.dragon', 'strike.fire']], p1: [['shot'], ['shot']] });
+  it('Dragon\'s Descent: 15, Ignites the target, and 1 Focus for the next skill', () => {
+    const a = arena({ p0: [['charge.dragon', 'strike']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.dragon', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'focus')]).toEqual([85, 1]);
-    a.pass(1).use(A1, 'strike.fire', B2).end();
-    expect([a.has(B2, 'dragonfire'), a.has(A1, 'focus')]).toEqual([true, false]);
-    a.pass(1).use(A1, 'strike.fire', B1).end();
-    expect(a.has(B1, 'dragonfire')).toBe(false);
-    expect(a.has(B1, 'ignite')).toBe(true);
+    expect([a.hp(B1), a.has(B1, 'ignite'), a.has(B1, 'dragonfire'), a.stacks(A1, 'focus')]).toEqual([80, true, false, 1]);
+  });
+
+  it('Dragon\'s Descent: the next skill gives Dragonfire to each Ignited enemy it damages, only that one', () => {
+    const a = arena({ p0: [['charge.dragon', 'smash']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'charge.dragon', B1).end().pass(1);
+    a.use(A1, 'smash', B2).end(); // hits B2 (not Ignited) and its allies B1 (Ignited) and B3
+    expect([a.has(B1, 'dragonfire'), a.has(B2, 'dragonfire'), a.has(B3, 'dragonfire')]).toEqual([true, false, false]);
+    expect([a.has(A1, 'focus'), a.has(A1, 'dragons_descent')]).toEqual([false, false]);
+  });
+
+  it('Dragon\'s Descent: a skill that doesn\'t damage the Ignited enemy gives no Dragonfire', () => {
+    const a = arena({ p0: [['charge.dragon', 'shot']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'ignite', { source: B2 });
+    a.use(A1, 'charge.dragon', B1).end().pass(1);
+    a.use(A1, 'shot', B2).end(); // B2 was Ignited by someone else: still upgraded
+    expect([a.has(B1, 'dragonfire'), a.has(B2, 'dragonfire')]).toEqual([false, true]);
   });
 
   it('Dragon\'s Toll: counters every Harmful skill used on the user for 1 turn', () => {
@@ -250,12 +261,26 @@ describe('Dragon skills', () => {
     expect([a.hp(B1), a.hp(B2), a.stacks(A1, 'hoard')]).toEqual([60, 70, 0]);
   });
 
-  it('Devour Embers: 5; every enemy Ignite ends, the user heals 10 and gains 1 Hoard for each', () => {
+  it('Devour Embers: every enemy Ignite ends, the user heals 10 and gains 1 Hoard for each; then 5 and Ignite on the target', () => {
     const a = arena({ p0: [['consume.dragon']], p1: [['shot'], ['shot'], ['shot']] });
     a.setHp(A1, 50).give(B1, 'ignite', { source: B1 }).give(B2, 'ignite', { source: B2 });
     a.use(A1, 'consume.dragon', B3).end();
-    expect([a.hp(B3), a.hp(A1), a.stacks(A1, 'hoard')]).toEqual([95, 70, 2]);
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, false]);
+    expect(a.hp(A1)).toBe(70);
+    expect(a.stacks(A1, 'hoard')).toBe(2 + 1); // 1 more from the new Ignite's first burn (Wyrm's Heart)
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite'), a.has(B3, 'ignite')]).toEqual([false, false, true]);
+    expect(a.hp(B3)).toBe(100 - 5 - 5); // the 5 hit, then its new Ignite burns at the end of the user's turn
+  });
+
+  it('Devour Embers: with no Ignites, it Ignites the target; the next use devours that Ignite', () => {
+    const a = arena({ p0: [['consume.dragon']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.dragon', B1).end();
+    expect([a.hp(A1), a.hp(B1), a.has(B1, 'ignite')]).toEqual([50, 90, true]); // 5, then the burn
+    a.pass(5); // the Ignite burns on turns 3 and 5 too: 3 Hoard by now (Wyrm's Heart)
+    expect(a.stacks(A1, 'hoard')).toBe(3);
+    a.use(A1, 'consume.dragon', B2).end();
+    expect(a.hp(A1)).toBe(60);
+    expect(a.stacks(A1, 'hoard')).toBe(3 + 1 + 1); // devoured 1, then B2's new Ignite burned
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, true]);
   });
 
   it('Devour Embers: a Dragonfire goes out with its Ignite', () => {
@@ -296,17 +321,20 @@ describe('Dragon skills', () => {
     expect(a.hp(B1)).toBe(100 - 15 - 5);
   });
 
-  it('Wyrmfire Torrent: 10 to all each turn and a random enemy without Dragonfire gains it', () => {
+  it('Wyrmfire Torrent: 10 to all each turn, 15 to those with Dragonfire; then a random enemy without it gains it', () => {
     const a = arena({ p0: [['channel.dragon']], p1: [['shot'], ['shot']], hp: 200 });
     a.use(A1, 'channel.dragon').end();
-    expect([B1, B2].filter((b) => a.has(b, 'dragonfire'))).toHaveLength(1);
-    expect(Math.max(a.hp(B1), a.hp(B2))).toBe(190);
-    a.pass(2);
-    expect([B1, B2].filter((b) => a.has(b, 'dragonfire'))).toHaveLength(2);
-    // Every enemy has it: the third tick deals 20, plus each Dragonfire burn of 10.
-    const before = [a.hp(B1), a.hp(B2)];
-    a.pass(2);
-    expect([before[0]! - a.hp(B1), before[1]! - a.hp(B2)]).toEqual([30, 30]);
+    // First tick: nobody had Dragonfire, so 10 each; then one gains it.
+    const fired = [B1, B2].filter((b) => a.has(b, 'dragonfire'));
+    expect(fired).toHaveLength(1);
+    const other = fired[0] === B1 ? B2 : B1;
+    expect(a.hp(other)).toBe(190);
+    a.pass(1);
+    const before = [a.hp(fired[0]!), a.hp(other)];
+    a.end(); // second tick: 15 to the one with Dragonfire, 10 to the other; then the other gains it
+    expect(before[1]! - a.hp(other)).toBe(10); // its new Dragonfire first burns next turn
+    expect(before[0]! - a.hp(fired[0]!)).toBe(15 + 10); // the tick and its Dragonfire burn
+    expect(a.has(other, 'dragonfire')).toBe(true);
   });
 
   it('Wyrmfire Torrent: lasts 3 turns', () => {
@@ -315,14 +343,18 @@ describe('Dragon skills', () => {
     expect(channeling(a, A1)).toBe(false);
   });
 
-  it('Fang: 25 against Dragonfire, which cools back into an Ignite; 10 otherwise', () => {
-    const a = arena({ p0: [['shot.dragon'], ['stab.dragon']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'shot.dragon', B1).end().pass(1); // B1: 10 + the burn = 80
-    a.use(A2, 'stab.dragon', B1).end();
-    expect([a.has(B1, 'dragonfire'), a.has(B1, 'ignite')]).toEqual([false, true]);
-    expect(a.hp(B1)).toBe(80 - 25 - 5); // the Ignite burns for 5 now
-    a.give(B2, 'ignite', { source: B2 }).pass(1).use(A2, 'stab.dragon', B2).end();
-    expect(a.hp(B2)).toBe(100 - 5 - 10);
+  it('Fang: 10, increased to 25 against a target at or below 60 health', () => {
+    const a = arena({ p0: [['stab.dragon'], ['stab.dragon']], p1: [['shot'], ['shot']] });
+    a.setHp(B2, 60).use(A1, 'stab.dragon', B1).use(A2, 'stab.dragon', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100 - 10 - 5, 60 - 25 - 5]); // each new Ignite burns for 5
+  });
+
+  it('Fang: Ignites the target, or gives Dragonfire if they already were', () => {
+    const a = arena({ p0: [['stab.dragon']], p1: [['shot']] });
+    a.use(A1, 'stab.dragon', B1).end();
+    expect([a.has(B1, 'ignite'), a.has(B1, 'dragonfire')]).toEqual([true, false]);
+    a.pass(1).use(A1, 'stab.dragon', B1).end();
+    expect([a.has(B1, 'ignite'), a.has(B1, 'dragonfire')]).toEqual([true, true]);
   });
 
   it('Molten Maw: 25 Piercing, 15 more if Scorched', () => {
@@ -358,21 +390,24 @@ describe('Dragon skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Dragonfear: 15 and Stun; the first Explosion the user\'s side causes within 2 turns Stuns again', () => {
-    const a = arena({ p0: [['stun.dragon'], ['dance.fire']], p1: [['shot']] });
+  it('Dragonfear: 15 and Stun for 1 turn', () => {
+    const a = arena({ p0: [['stun.dragon']], p1: [['shot']] });
     a.use(A1, 'stun.dragon', B1).end();
     expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([85, true]);
-    a.end(); // the first Stun runs out at the end of B's turn
-    expect(a.has(B1, 'stun')).toBe(false);
-    a.use(A2, 'dance.fire').end(); // Explosion
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
   });
 
-  it('Dragonfear: without an Explosion, no second Stun', () => {
-    const a = arena({ p0: [['stun.dragon'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'stun.dragon', B1).end().pass(1).use(A2, 'shot', B1).end();
-    expect(a.has(B1, 'stun')).toBe(false);
+  it('Dragonfear: at the end of the target\'s next turn, they Explode (10 Affliction to their team)', () => {
+    const a = arena({ p0: [['stun.dragon'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 50).give(A2, 'flameborn').use(A1, 'stun.dragon', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 100]);
+    a.end(); // the target's turn ends: the Stun ends and they Explode
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'stun')]).toEqual([75, 90, false]);
+    expect(a.hp(A2)).toBe(60); // Flameborn allies heal 10 on the user's side's Explosion
+    a.pass(2);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 90]); // only once
   });
+
 
   it('Warming Wings: Swiftness and Focus; the user\'s Ignite burns heal the ally with the least HP as much', () => {
     const a = arena({ p0: [['dance.dragon'], ['shot']], p1: [['shot'], ['shot']] });
@@ -495,14 +530,17 @@ describe('Dragon skills', () => {
     expect([a.hp(B2), a.hp(B1)]).toEqual([90, 100]); // the Taunted enemy isn't punished
   });
 
-  it('Elder Wyrm: Immune and Flameborn; every Hoard gives 1 Armor', () => {
+  it('Elder Wyrm: 3 Hoard; for 3 turns, Immune and every Hoard gives 1 Armor', () => {
     const a = arena({ p0: [['titan.dragon']], p1: [['shot', 'curse']] });
-    a.give(A1, 'hoard', { stacks: 2 }).use(A1, 'titan.dragon').end();
-    expect([a.has(A1, 'immune'), a.has(A1, 'flameborn')]).toEqual([true, true]);
+    a.use(A1, 'titan.dragon').end();
+    expect([a.stacks(A1, 'hoard'), a.has(A1, 'immune')]).toEqual([3, true]);
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(95); // 2 Armor
+    expect(a.hp(A1)).toBe(100); // 3 Armor
     a.pass(1).use(B1, 'curse', A1).end();
     expect(a.has(A1, 'confusion')).toBe(false);
+    a.pass(3); // over: back to 1 Armor per 2 Hoard
+    a.use(B1, 'shot', A1).end();
+    expect([a.has(A1, 'immune'), a.hp(A1)]).toEqual([false, 90]);
   });
 });
 

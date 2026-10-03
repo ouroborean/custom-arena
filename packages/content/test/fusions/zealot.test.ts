@@ -491,29 +491,36 @@ describe('Zealot skills', () => {
     expect([a.unit(i.id).alive, a.hp(A2), a.hp(A1)]).toEqual([false, 100, 60]);
   });
 
-  it('Mortification: channel, 3 ticks; the user takes 10 Affliction, a random enemy 10 per Fervor', () => {
+  it('Mortification: channel, 3 ticks; each tick the user takes 10 Affliction and gains 1 Fervor, then a random enemy takes 5 per Fervor', () => {
     const a = arena({ p0: [['channel.zealot']], p1: [['shot']] });
-    a.give(A1, 'fervor', { stacks: 2 }).give(A1, 'shield', { value: 50 }).use(A1, 'channel.zealot').end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([90, 80]);
+    a.give(A1, 'fervor').give(A1, 'shield', { value: 50 }).use(A1, 'channel.zealot').end();
+    expect([a.hp(A1), a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([90, 90, 2]);
     a.pass(2);
-    expect([a.hp(A1), a.hp(B1)]).toEqual([80, 60]);
+    expect([a.hp(A1), a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([80, 75, 3]);
     a.pass(2);
-    expect([a.hp(A1), a.hp(B1)]).toEqual([70, 40]);
+    expect([a.hp(A1), a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([70, 55, 4]);
     a.pass(2);
-    expect([a.hp(A1), a.hp(B1)]).toEqual([70, 40]);
-    expect(a.stacks(A1, 'fervor')).toBe(2); // its own Affliction isn't enemy damage
+    expect([a.hp(A1), a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([70, 55, 4]); // over after 3 ticks
   });
 
-  it('Mortification: with no Fervor the enemy takes nothing, but the user still suffers', () => {
-    const a = arena({ p0: [['channel.zealot']], p1: [['shot'], ['shot']] });
+  it('Mortification: with no Fervor to start, the first tick still hits for 5 and builds from there', () => {
+    const a = arena({ p0: [['channel.zealot']], p1: [['shot']] });
     a.use(A1, 'channel.zealot').end();
-    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([90, 100, 100]);
+    expect([a.hp(A1), a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([90, 95, 1]);
+    a.pass(2);
+    expect([a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([85, 2]);
   });
 
   it('Mortification: hits exactly one enemy per tick', () => {
     const a = arena({ p0: [['channel.zealot']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(A1, 'fervor').use(A1, 'channel.zealot').end();
-    expect(300 - a.hp(B1) - a.hp(B2) - a.hp(B3)).toBe(10);
+    a.use(A1, 'channel.zealot').end();
+    expect(300 - a.hp(B1) - a.hp(B2) - a.hp(B3)).toBe(5);
+  });
+
+  it('Mortification: Channeled; using another skill ends it', () => {
+    const a = arena({ p0: [['channel.zealot', 'shot']], p1: [['shot']] });
+    a.use(A1, 'channel.zealot').end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([90, 1]);
   });
 
   it('Votive Dagger: 10, or 20 at or below 60 HP', () => {
@@ -651,16 +658,18 @@ describe('Zealot skills', () => {
     expect([a.hp(A1), a.hp(A3)]).toEqual([50, 50]);
   });
 
-  it('Holy Hunger: 20 and Sanctify 2 turns; an Anointed ally who triggers it gains Lifesteal for 1 turn', () => {
+  it('Holy Hunger: 20 and Sanctify 2 turns; each ally who triggers it gains 1 Fervor', () => {
     const a = arena({ p0: [['smite.zealot'], ['shot'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'anointed').use(A1, 'smite.zealot', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    a.use(A1, 'smite.zealot', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
     expect(a.hp(B1)).toBe(50);
-    expect([a.has(A2, 'lifesteal'), a.has(A3, 'lifesteal')]).toEqual([true, false]);
-    a.pass(1);
-    expect(a.has(A2, 'lifesteal')).toBe(false);
+    expect([a.stacks(A1, 'fervor'), a.stacks(A2, 'fervor'), a.stacks(A3, 'fervor')]).toEqual([0, 1, 1]);
+    a.pass(1).use(A2, 'shot', B1).end();
+    expect(a.stacks(A2, 'fervor')).toBe(2);
     expect(a.has(B1, 'sanctify')).toBe(true);
-    a.pass(2);
+    a.pass(1);
     expect(a.has(B1, 'sanctify')).toBe(false);
+    a.use(A3, 'shot', B1).end();
+    expect(a.stacks(A3, 'fervor')).toBe(1); // over with the Sanctify
   });
 
   it('Fervent Chant: all allies heal 25', () => {

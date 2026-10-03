@@ -307,23 +307,32 @@ describe('Battery skills', () => {
     expect([a.hp(B1), a.has(A1, 'sapped')]).toEqual([85, false]);
   });
 
-  it('Flatline: 5 damage; at or below 5 HP per Cell, the target is executed and the Cells are spent', () => {
+  it('Flatline: 5 damage; at or below 15 HP, the target is executed even with no Cells', () => {
     const a = arena({ p0: [['consume.battery']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 25).use(A1, 'consume.battery', B1).end();
+    a.setHp(B1, 20).use(A1, 'consume.battery', B1).end();
+    expect([a.unit(B1).alive, a.stacks(A1, 'cell')]).toEqual([false, 0]);
+  });
+
+  it('Flatline: each Cell adds 5 HP to the threshold, and the Discharge spends them', () => {
+    const a = arena({ p0: [['consume.battery']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 40).use(A1, 'consume.battery', B1).end(); // 35 ≤ 15 + 20
     expect([a.unit(B1).alive, a.stacks(A1, 'cell')]).toEqual([false, 0]);
   });
 
   it('Flatline: above the threshold, the user stores 1 Cell instead', () => {
     const a = arena({ p0: [['consume.battery']], p1: [['shot']] });
-    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 26).use(A1, 'consume.battery', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'cell')]).toEqual([21, 5]);
+    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 41).use(A1, 'consume.battery', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'cell')]).toEqual([36, 5]);
+    const b = arena({ p0: [['consume.battery']], p1: [['shot']] });
+    b.setHp(B1, 21).use(A1, 'consume.battery', B1).end();
+    expect([b.hp(B1), b.stacks(A1, 'cell')]).toEqual([16, 1]);
   });
 
   it('Flatline: minions use 10 HP per Cell', () => {
     const a = arena({ p0: [['consume.battery']], p1: [['companion.battery'], ['shot']] });
     a.end().use(B1, 'companion.battery').end();
     const beetle = minions(a, 'bombardier_beetle')[0]!;
-    a.give(A1, 'cell', { stacks: 3 }).use(A1, 'consume.battery', beetle.id).end(); // 30 − 5 = 25 ≤ 30
+    a.give(A1, 'cell', { stacks: 1 }).use(A1, 'consume.battery', beetle.id).end(); // 30 − 5 = 25 ≤ 15 + 10
     expect(a.unit(beetle.id).alive).toBe(false);
   });
 

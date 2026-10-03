@@ -216,8 +216,8 @@ trap.aurora:
   element: Aurora
   name: Rime Snare
   description: >-
-    For 3 turns, the first time target enemy has a Frost debuff at the end of the user's turn, it lasts 2
-    more turns and they take 15 Piercing damage. Invisible.
+    For 3 turns, the first time target enemy uses a skill, they take 15 Piercing damage and are Chilled
+    for 2 turns. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -232,20 +232,13 @@ trap.aurora:
         kind: Debuff
         element: Aurora
         visibility: hidden
-        description: The first Frost debuff on the bearer is held 2 turns longer, and they take 15 Piercing.
+        description: The first time the bearer uses a skill, they take 15 Piercing damage and are Chilled for 2 turns.
         triggers:
-          - on: turnEnd
+          - on: skillUsed
+            consume: true
             do:
-              - op: if
-                cond:
-                  or:
-                    - { has: { unit: bearer, effect: frostbitten } }
-                    - { has: { unit: bearer, effect: chilled } }
-                    - { has: { unit: bearer, effect: numb } }
-                then:
-                  - { op: removeSelf }
-                  - { op: extendEffects, on: bearer, effects: [frostbitten, chilled, numb, frostfire], by: 4 }
-                  - { op: damage, to: bearer, amount: 15, type: Piercing }
+              - { op: damage, to: bearer, amount: 15, type: Piercing }
+              - { op: apply, to: bearer, effect: chilled, duration: { enemyTurns: 2 } }
 
 maneuver.aurora:
   archetype: Maneuver

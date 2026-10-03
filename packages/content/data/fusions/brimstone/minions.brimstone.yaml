@@ -23,7 +23,7 @@ stoker:
       name: Stoker
       kind: Neutral
       element: Brimstone
-      description: At the end of its owner's turn, Ignites an enemy with Sulfur (or any enemy if none has it).
+      description: At the end of its owner's turn, Ignites an enemy with Sulfur; if none has any, gives a random enemy 1 Sulfur instead.
       triggers:
         - on: turnEnd
           do:
@@ -32,5 +32,5 @@ stoker:
               then:
                 - { op: apply, to: { randomEnemy: 1, where: { has: { unit: it, effect: sulfur } } }, effect: ignite }
               else:
-                - { op: apply, to: { randomEnemy: 1 }, effect: ignite }
+                - { op: apply, to: { randomEnemy: 1 }, effect: sulfur }
   skills: []

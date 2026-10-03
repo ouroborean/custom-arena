@@ -135,33 +135,17 @@ shot.grave:
   archetype: Shot
   element: Grave
   name: Barrow Stone
-  description: >-
-    Deals 15 damage to target enemy. Until the user's next turn, the next allied minion to die leaves a Boulder
-    where it fell.
+  description: Deals 15 damage to target enemy. The user spends 1 Grave, if they have one, for a Boulder.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: barrow_stone
-        name: Barrow Stone
-        kind: Buff
-        element: Grave
-        description: The next allied minion to die leaves a Boulder.
-        triggers:
-          - on: signal
-            signal: died
-            do:
-              - op: if
-                cond: { and: [{ kind: { unit: eventTarget, is: minion } }, { not: { isEnemy: eventTarget } }] }
-                then:
-                  - { op: summon, minion: boulder }
-                  - { op: removeSelf }
+    - { op: macro, id: spend_1 }
+    - op: if
+      cond: { varTrue: spent }
+      then: [{ op: summon, minion: boulder }]
 
 snipe.grave:
   archetype: Snipe
@@ -316,12 +300,16 @@ consume.grave:
   element: Grave
   name: Marrow Draught
   description: >-
-    Drains 10 HP from every minion on both sides; the user heals the total. Minions that die leave Graves as usual.
+    If there's no allied minion, a Skeleton claws up for the user first, spending no Grave. Then drains 10 HP from
+    every minion on both sides; the user heals the total. Minions that die leave Graves as usual.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
   target: self
   ops:
+    - op: if
+      cond: { not: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } } }
+      then: [{ op: summon, minion: skeleton }]
     - { op: set, var: drained, value: 0 }
     - op: forEach
       in: { filter: allUnits, where: { kind: { unit: it, is: minion } } }

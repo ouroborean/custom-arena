@@ -452,20 +452,28 @@ describe('Winter skills', () => {
     expect([a.has(A2, 'frostborn'), appliedDur(a, A2, 'frostborn')]).toEqual([true, 4]);
   });
 
-  it('Rime Mantle: meanwhile Frost debuffs they apply last 1 turn longer', () => {
-    // Live durations (the "applied" log entry is written before the Mantle extends it).
-    const live = (x: ReturnType<typeof arena>, id: string, key: string) => x.effects(id).find((e) => e.defId === key)?.duration;
-    const a = arena({ p0: [['bless.winter'], ['shot.ice']], p1: [['shot'], ['shot']] });
+  it('Rime Mantle: meanwhile each enemy who damages them is Chilled for 1 turn', () => {
+    const a = arena({ p0: [['bless.winter'], ['shot']], p1: [['shot'], ['heal']] });
     a.use(A1, 'bless.winter', A2).end();
-    a.end().use(A2, 'shot.ice', B1).end(); // Icicle: Chilled for 1 turn
-    const b = arena({ p0: [['shot'], ['shot.ice']], p1: [['shot']] }); // control, no Mantle
-    b.pass(2).use(A2, 'shot.ice', B1).end();
-    expect(live(a, B1, 'chilled')! - live(b, B1, 'chilled')!).toBe(2); // 2 ticks = 1 turn
-    const c = arena({ p0: [['bless.winter'], ['curse.winter']], p1: [['shot'], ['shot']] });
-    c.use(A1, 'bless.winter', A2).end().end().use(A2, 'curse.winter', B2).end();
-    const d = arena({ p0: [['shot'], ['curse.winter']], p1: [['shot'], ['shot']] });
-    d.pass(2).use(A2, 'curse.winter', B2).end();
-    expect(live(c, B2, 'snowbound')! - live(d, B2, 'snowbound')!).toBe(2);
+    a.use(B1, 'shot', A2).use(B2, 'heal', B2).end();
+    expect([a.hp(A2), a.has(B1, 'chilled'), a.has(B2, 'chilled')]).toEqual([85, true, false]);
+    expect(appliedDur(a, B1, 'chilled')).toBe(3); // applied on the enemy's turn
+  });
+
+  it('Rime Mantle: a Chilled attacker’s Debuffs then can’t reach the Frostborn ally', () => {
+    const a = arena({ p0: [['bless.winter'], ['shot']], p1: [['shot', 'curse']] });
+    a.use(A1, 'bless.winter', A2).end();
+    a.use(B1, 'shot', A2).end().end();
+    expect(a.has(B1, 'chilled')).toBe(true);
+    a.use(B1, 'curse', A2).end();
+    expect(a.has(A2, 'confusion')).toBe(false);
+  });
+
+  it('Rime Mantle: wears off after 2 turns', () => {
+    const a = arena({ p0: [['bless.winter'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.winter', A2).end().pass(4);
+    a.use(B1, 'shot', A2).end();
+    expect(a.has(B1, 'chilled')).toBe(false);
   });
 
   it('Snowbind: Snowbound for 2 turns, and 1 Weakness per mobility buff stripped', () => {

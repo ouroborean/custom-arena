@@ -334,8 +334,8 @@ ravage.night:
   element: Night
   name: Blackfrost Fang
   description: >-
-    Deals 25 Piercing damage to target enemy. Their Blindness freezes over: it ends, and they're
-    Frostbitten and Numb for 2 turns.
+    Deals 25 Piercing damage to target enemy. If they have Dusk, it deepens by 1; if not, black frost
+    sets in: they're Frostbitten and Numb for 2 turns.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -343,9 +343,10 @@ ravage.night:
   ops:
     - { op: damage, to: primary, amount: 25, type: Piercing }
     - op: if
-      cond: { has: { unit: primary, effect: blinded } }
+      cond: { has: { unit: primary, effect: dusk } }
       then:
-        - { op: removeEffect, from: primary, effect: blinded }
+        - { op: forEach, in: primary, do: [{ op: macro, id: deepen_dusk }] }
+      else:
         - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
         - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 2 } }
 
@@ -503,32 +504,16 @@ smite.night:
   element: Night
   name: Hidden Moon
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn. For 1 turn, allies who damage them keep
-    their Stealth (their next skill counts as Stealthy). Stealthy.
+    Deals 20 damage to target enemy, who is Sanctified for 1 turn. The moon hides the user: they gain
+    Stealth for 1 turn. Stealthy.
   cost: Wr
-  cooldown: 1
+  cooldown: 2
   tags: [Harmful, NonStrategic, Stealthy]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
     - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: hidden_moon
-        name: Hidden Moon
-        kind: Debuff
-        element: Night
-        description: The applier's allies who damage the bearer keep their Stealth.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            do:
-              - op: if
-                cond: { has: { unit: eventSource, effect: stealth } }
-                then:
-                  - { op: apply, to: eventSource, effect: veiled_by_smoke, until: { skillUsed: {} } }
+    - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 1 } }
 
 prayer.night:
   archetype: Prayer

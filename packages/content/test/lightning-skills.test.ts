@@ -126,11 +126,12 @@ describe('Lightning skills', () => {
     expect([a.hp(B1), a.stacks(B1, 'sapped'), a.has(B1, 'tesla_coil')]).toEqual([85, 1, false]);
   });
 
-  it('Blink: only targets Sapped enemies; 5 damage and Invulnerable', () => {
-    const a = arena({ p0: [['maneuver.lightning']], p1: [['shot'], ['shot']] });
-    expect(a.reject(() => a.use(A1, 'maneuver.lightning', B1))).toBe('bad_target');
-    a.give(B2, 'sapped', { source: A1 }).use(A1, 'maneuver.lightning', B2).end();
-    expect([a.hp(B2), a.has(A1, 'invulnerable')]).toEqual([95, true]);
+  it('Blink: 5 damage to any enemy and Saps them; the user becomes Invulnerable for 1 turn', () => {
+    const a = arena({ p0: [['maneuver.lightning']], p1: [['shot']] });
+    a.use(A1, 'maneuver.lightning', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'sapped'), a.has(A1, 'invulnerable')]).toEqual([95, 1, true]);
+    a.pass(1);
+    expect(a.has(A1, 'invulnerable')).toBe(false); // gone after that enemy turn
   });
 
   it('Storm Hawk: 25 HP; Stormfeather Saps, Glowing Down grants Charge', () => {
@@ -196,12 +197,22 @@ describe('Lightning skills', () => {
     expect(a.hp(B1)).toBe(60);
   });
 
-  it('Hologram: Sapped enemies\' Harmful skills are countered; the user becomes Untargetable', () => {
-    const a = arena({ p0: [['mislead.lightning']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'sapped', { source: A1 }).use(A1, 'mislead.lightning').end();
-    expect([a.has(B1, 'hologram'), a.has(B2, 'hologram')]).toEqual([true, false]);
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(A1, 'untargetable')]).toEqual([100, true]);
+  it('Hologram: every Sapped enemy\'s Harmful skill is countered; the user becomes Untargetable', () => {
+    const a = arena({ p0: [['mislead.lightning'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'sapped', { source: A1 }).give(B2, 'sapped', { source: A1 }).use(A1, 'mislead.lightning').end();
+    expect([a.has(B1, 'hologram'), a.has(B2, 'hologram'), a.has('p1c2', 'hologram')]).toEqual([true, true, false]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A2).end();
+    expect([a.hp(A2), a.has(A1, 'untargetable')]).toEqual([100, true]); // both countered
+  });
+
+  it('Hologram: only the first Harmful skill of the other enemies is countered, and its user is Sapped', () => {
+    const a = arena({ p0: [['mislead.lightning'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'mislead.lightning').end(); // nobody is Sapped yet
+    expect([B1, B2, 'p1c2'].map((u) => a.has(u, 'hologram_decoy'))).toEqual([true, true, true]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A2).use('p1c2', 'shot', A2).end();
+    expect(a.hp(A2)).toBe(70); // B1's was countered; B2's and p1c2's hit
+    expect([a.stacks(B1, 'sapped'), a.has(B2, 'sapped'), a.has(A1, 'untargetable')]).toEqual([1, false, true]);
+    expect([B1, B2, 'p1c2'].some((u) => a.has(u, 'hologram_decoy'))).toBe(false);
   });
 
   it('System Shock: 15 and a non-Strategic stun, longer against Sapped targets', () => {
@@ -225,10 +236,14 @@ describe('Lightning skills', () => {
     expect(a.hp(A2)).toBe(80);
   });
 
-  it('Overclock: ally gains Conduit', () => {
+  it('Overclock: the ally gains 2 Charge, and Conduit for 2 turns', () => {
     const a = arena({ p0: [['bless.lightning'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bless.lightning', A2).end();
+    expect([a.stacks(A2, 'charged'), a.has(A2, 'conduit')]).toEqual([2, true]);
+    a.pass(2);
     expect(a.has(A2, 'conduit')).toBe(true);
+    a.pass(2);
+    expect([a.stacks(A2, 'charged'), a.has(A2, 'conduit')]).toEqual([2, false]); // the Charge stays
   });
 
   it('Power Drain: Sapped', () => {
@@ -243,11 +258,11 @@ describe('Lightning skills', () => {
     expect([a.hp(B1), a.stacks(A1, 'charged'), a.stacks(A2, 'charged')]).toEqual([75, 0, 1]);
   });
 
-  it('Signal Boost: 25 to the target, then 10 per Charge to Charged allies', () => {
+  it('Signal Boost: 25 and Charge to the target, then 10 per Charge to Charged allies', () => {
     const a = arena({ p0: [['prayer.lightning'], ['shot'], ['shot']], p1: [['shot']] });
     a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).give(A3, 'charged', { stacks: 2 });
     a.use(A1, 'prayer.lightning', A2).end();
-    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([50, 75, 70]);
+    expect([a.hp(A1), a.hp(A2), a.hp(A3), a.stacks(A2, 'charged')]).toEqual([50, 85, 70, 1]);
   });
 
   it('Arc: 10 to the target and every Marked enemy, then Marks the target', () => {

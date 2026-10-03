@@ -41,14 +41,15 @@ charge.dragon:
   element: Dragon
   name: Dragon's Descent
   description: >-
-    Deals 15 damage to target enemy. The user gains 1 Focus for their next skill, and that skill's
-    Ignites land as Dragonfire.
+    Deals 15 damage to target enemy and Ignites them. The user gains 1 Focus for their next skill,
+    and that skill gives Dragonfire to each Ignited enemy it damages.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: ignite }
     - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
     - op: apply
       to: actor
@@ -58,12 +59,15 @@ charge.dragon:
         name: Dragon's Descent
         kind: Buff
         element: Dragon
-        description: The bearer's next skill's Ignites land as Dragonfire.
+        description: The bearer's next skill gives Dragonfire to each Ignited enemy it damages.
         triggers:
-          - on: effectApplied
-            when: { effects: [ignite] }
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
             do:
-              - { op: apply, to: eventTarget, effect: dragonfire }
+              - op: if
+                cond: { has: { unit: eventTarget, effect: ignite } }
+                then:
+                  - { op: apply, to: eventTarget, effect: dragonfire, from: bearer }
 
 riposte.dragon:
   archetype: Riposte
@@ -274,14 +278,13 @@ consume.dragon:
   element: Dragon
   name: Devour Embers
   description: >-
-    Deals 5 damage to target enemy. Then every Ignite on the enemy side ends, and the user heals 10
-    and gains 1 Hoard for each.
+    Every Ignite on the enemy side ends, and the user heals 10 and gains 1 Hoard for each. Then
+    target enemy takes 5 damage and is Ignited.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5 }
     - op: forEach
       in: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
       do:
@@ -289,6 +292,8 @@ consume.dragon:
         - { op: removeEffect, from: it, effect: dragonfire }
         - { op: heal, to: actor, amount: 10 }
         - { op: apply, to: actor, effect: hoard }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: ignite }
 
 summon.dragon:
   archetype: Summon
@@ -309,8 +314,8 @@ channel.dragon:
   element: Dragon
   name: Wyrmfire Torrent
   description: >-
-    For 3 turns, deals 10 damage to all enemies each turn, and a random enemy without Dragonfire
-    gains it. Once every enemy has it, each tick deals 10 more instead. Channeled.
+    For 3 turns, deals 10 damage to all enemies each turn, or 15 to those with Dragonfire; then a
+    random enemy without Dragonfire gains it. Channeled.
   cost: SI
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -325,36 +330,37 @@ channel.dragon:
         kind: Neutral
         element: Dragon
         interruptible: true
-        description: Deals 10 damage to all enemies at the end of each of the user's turns and spreads Dragonfire.
+        description: >-
+          At the end of each of the user's turns, deals 10 damage to all enemies (15 to those with
+          Dragonfire), then spreads Dragonfire to one more.
         triggers:
           - on: turnEnd
             do:
-              - op: if
-                cond: { all: { in: allEnemies, cond: { has: { unit: it, effect: dragonfire } } } }
-                then:
-                  - { op: damage, to: allEnemies, amount: 20 }
-                else:
-                  - { op: damage, to: allEnemies, amount: 10 }
-                  - op: forEach
-                    in: { randomEnemy: 1, where: { not: { has: { unit: it, effect: dragonfire } } } }
-                    do: [{ op: macro, id: dragonfire_it }]
+              - op: damage
+                to: allEnemies
+                amount: { if: { has: { unit: it, effect: dragonfire } }, then: 15, else: 10 }
+              - op: forEach
+                in: { randomEnemy: 1, where: { not: { has: { unit: it, effect: dragonfire } } } }
+                do: [{ op: macro, id: dragonfire_it }]
 
 stab.dragon:
   archetype: Stab
   element: Dragon
   name: Fang
   description: >-
-    Deals 10 damage to target enemy, or 25 if they have Dragonfire; the bigger bite tears it out,
-    and their Dragonfire cools back into an Ignite.
+    Deals 10 damage to target enemy, increased to 25 against targets at or below 60 health. They're
+    Ignited, or gain Dragonfire if they already were.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    # Equipment (Scything Claw) listens for Stab bonuses.
+    - { op: if, cond: { hpAtMost: { unit: primary, value: 60 } }, then: [{ op: signal, name: stab_bonus }] }
     - op: damage
       to: primary
-      amount: { if: { has: { unit: it, effect: dragonfire } }, then: 25, else: 10 }
-    - { op: removeEffect, from: primary, effect: dragonfire }
+      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 25, else: 10 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
 
 ravage.dragon:
   archetype: Ravage
@@ -447,8 +453,8 @@ stun.dragon:
   element: Dragon
   name: Dragonfear
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 1 turn. For 2 turns, the first Explosion the
-    user's side causes Stuns them again for 1 turn.
+    Deals 15 damage to target enemy and Stuns them for 1 turn. At the end of their next turn, they
+    Explode.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -458,20 +464,15 @@ stun.dragon:
     - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: dragonfear
         name: Dragonfear
         kind: Debuff
         element: Dragon
-        description: The first Explosion the applier's side causes Stuns the bearer for 1 turn.
-        triggers:
-          - on: signal
-            signal: explosion
-            when: { side: enemy }
-            consume: true
-            do:
-              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
+        description: When this ends, the bearer Explodes.
+        onExpire:
+          - { op: macro, id: explode }
 
 dance.dragon:
   archetype: Dance
@@ -725,14 +726,14 @@ titan.dragon:
   archetype: Titan
   element: Dragon
   name: Elder Wyrm
-  description: For 3 turns, the user gains Immune and Flameborn, and every Hoard gives 1 Armor instead of every 2.
+  description: The user gains 3 Hoard. For 3 turns, they gain Immune, and every Hoard gives 1 Armor instead of every 2.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - { op: apply, to: actor, effect: hoard, stacks: 3 }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: elder_wyrm, duration: { enemyTurns: 3 } }
 
 # Minion skills.

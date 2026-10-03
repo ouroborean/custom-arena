@@ -65,10 +65,20 @@ describe('Fire skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([100 - 20 - 30 - 5, 100 - 10 - 30 - 5, 100 - 10 - 30 - 5]);
   });
 
+  it('Hot Foot: 10 and Ignites an un-Ignited target, with no Might', () => {
+    const a = arena({ p0: [['charge.fire']], p1: [['shot']] });
+    a.use(A1, 'charge.fire', B1).end();
+    expect(a.hp(B1)).toBe(100 - 10 - 5); // the fresh Ignite ticks at the end of the turn
+    expect([a.has(B1, 'ignite'), a.has(A1, 'might')]).toEqual([true, false]);
+    a.pass(5).use(A1, 'charge.fire', B1).end(); // its own Ignite pays off the next use
+    expect(a.stacks(A1, 'might')).toBe(2);
+  });
+
   it('Hot Foot: +2 Might against an Ignited target, until a new damaging skill', () => {
     const a = arena({ p0: [['strike.fire'], ['charge.fire', 'curse', 'shot']], p1: [['shot']] });
     a.use(A1, 'strike.fire', B1).use(A2, 'charge.fire', B1).end();
     expect(a.stacks(A2, 'might')).toBe(2);
+    expect(a.effects(B1).find((e) => e.defId === 'ignite')?.source).toBe(A1); // not re-Ignited
     a.pass().use(A2, 'curse', B1).end(); // Strategic: Might stays
     expect(a.stacks(A2, 'might')).toBe(2);
     const before = a.hp(B1);
@@ -156,12 +166,20 @@ describe('Fire skills', () => {
     expect([B1, B2, B3].every((b) => a.has(b, 'ignite'))).toBe(true);
   });
 
-  it('Feed the Fire: 10; consumes an Ignite for 3 turns of Flameborn', () => {
+  it('Feed the Fire: 10; consumes an Ignite to heal the user 20', () => {
     const a = arena({ p0: [['consume.fire'], ['strike.fire']], p1: [['shot']] });
-    a.use(A2, 'strike.fire', B1).use(A1, 'consume.fire', B1).end();
+    a.setHp(A1, 50).use(A2, 'strike.fire', B1).use(A1, 'consume.fire', B1).end();
     expect(a.has(B1, 'ignite')).toBe(false);
-    expect(a.has(A1, 'flameborn')).toBe(true);
+    expect(a.hp(A1)).toBe(70);
     expect(a.hp(B1)).toBe(100 - 25 - 10); // no tick: the Ignite was consumed
+  });
+
+  it('Feed the Fire: an un-Ignited target is Ignited instead (no heal), fuelling the next use', () => {
+    const a = arena({ p0: [['consume.fire']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.fire', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite'), a.hp(A1)]).toEqual([100 - 10 - 5, true, 50]);
+    a.pass(5).use(A1, 'consume.fire', B1).end();
+    expect([a.has(B1, 'ignite'), a.hp(A1)]).toEqual([false, 70]);
   });
 
   it('Cinderlings: two minions for 2 turns, 5 Affliction to each enemy each turn', () => {
@@ -183,12 +201,15 @@ describe('Fire skills', () => {
     expect(b.hp(B1)).toBe(100 - 5 - 10 - 10); // Ignite tick, channel tick, Explosion
   });
 
-  it('Searing Needle: 10, plus 10 Affliction against Ignited or Scorched targets', () => {
+  it('Searing Needle: 10 and Ignites a clean target; 10 Affliction more against Ignited or Scorched ones', () => {
     const a = arena({ p0: [['stab.fire']], p1: [['shot']] });
-    a.use(A1, 'stab.fire', B1).end().pass();
-    expect(a.hp(B1)).toBe(90);
-    a.give(B1, 'scorched').use(A1, 'stab.fire', B1).end();
-    expect(a.hp(B1)).toBe(70);
+    a.use(A1, 'stab.fire', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([100 - 10 - 5, true]);
+    a.pass().use(A1, 'stab.fire', B1).end(); // now Ignited: 10 + 10 Affliction + tick
+    expect(a.hp(B1)).toBe(85 - 10 - 10 - 5);
+    const b = arena({ p0: [['stab.fire']], p1: [['shot']] });
+    b.give(B1, 'scorched').use(A1, 'stab.fire', B1).end();
+    expect([b.hp(B1), b.has(B1, 'ignite')]).toEqual([80, false]); // Scorched counts, so no new Ignite
   });
 
   it('Pyrokinesis: 20 Affliction, doubled against Ignited or Scorched targets', () => {
@@ -226,6 +247,17 @@ describe('Fire skills', () => {
     expect(a.has(A2, 'flameborn')).toBe(true);
     a.pass(3);
     expect(a.has(A2, 'flameborn')).toBe(false);
+  });
+
+  it("Flamethirst: the ally's next Harmful skill Ignites its targets, and those Ignites heal them", () => {
+    const a = arena({ p0: [['heal.fire'], ['shot', 'blast']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 50).use(A1, 'heal.fire', A2).end();
+    a.pass().use(A2, 'shot', B1).end(); // the Harmful skill: Ignites, ticks, and Flameborn heals A2
+    expect([a.has(B1, 'ignite'), a.has(A2, 'flamethirst')]).toEqual([true, false]);
+    expect(a.effects(B1).find((e) => e.defId === 'ignite')?.source).toBe(A2);
+    expect(a.hp(A2)).toBe(55);
+    a.pass().use(A2, 'blast').end(); // only the next Harmful skill
+    expect(a.has(B2, 'ignite')).toBe(false);
   });
 
   it('Burning Blood: +2 Might for the rest of the turn only', () => {
@@ -275,11 +307,13 @@ describe('Fire skills', () => {
     expect(a.has(A1, 'flameborn')).toBe(true);
   });
 
-  it('Ashen Barrier: 10 Shield per active Ignite or Scorch, +10 if Flameborn', () => {
-    const a = arena({ p0: [['withstand.fire']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'ignite').give(B2, 'ignite').give(B2, 'scorched').give(A1, 'flameborn');
+  it('Ashen Barrier: 20 Shield; each enemy that damages it is Ignited', () => {
+    const a = arena({ p0: [['withstand.fire']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'withstand.fire').end();
-    expect(a.effects(A1).find((e) => e.defId === 'shield')?.value).toBe(40);
+    expect(a.effects(A1).find((e) => e.inline?.id === 'ashen_barrier')?.value).toBe(20);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // 15 absorbed, then 5 absorbed + 10 through
+    expect([a.hp(A1), a.has(B1, 'ignite'), a.has(B2, 'ignite'), a.has(B3, 'ignite')]).toEqual([90, true, true, false]);
+    expect(a.has(A1, 'ashen_barrier')).toBe(false);
   });
 
   it('Ring of Fire: Taunt; a Harmful skill Ignites the target, otherwise Scorch for 2 turns', () => {
@@ -296,10 +330,13 @@ describe('Fire skills', () => {
     expect(b.has(B1, 'scorched')).toBe(false);
   });
 
-  it('Wraith in White: +1 Might per Ignite, +1 Armor per Scorch, Immune if Flameborn', () => {
-    const a = arena({ p0: [['titan.fire']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'ignite').give(B2, 'ignite').give(B1, 'scorched').give(A1, 'flameborn');
-    a.use(A1, 'titan.fire').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([2, 1, true]);
+  it('Wraith in White: Ignites all enemies, then Immune and Flameborn for 3 turns', () => {
+    const a = arena({ p0: [['titan.fire']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'titan.fire').end();
+    expect([B1, B2, B3].every((b) => a.has(b, 'ignite'))).toBe(true);
+    expect([a.has(A1, 'immune'), a.has(A1, 'flameborn')]).toEqual([true, true]);
+    expect(a.hp(A1)).toBe(65); // Flameborn: healed by its own three Ignites
+    a.pass(6);
+    expect([a.has(A1, 'immune'), a.has(A1, 'flameborn')]).toEqual([false, false]);
   });
 });

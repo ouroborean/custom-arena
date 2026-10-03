@@ -50,17 +50,16 @@ stately_might:
   modifiers:
     - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true } }
 
-# Shieldbearer's Sweep: Sanctify on the bearer also gives its damager 15 Shield.
+# Shieldbearer's Sweep: the first direct hit on the bearer gives its damager 15 Shield for 1 turn.
 shieldbearer:
   name: Shieldbearer's Mark
   kind: Debuff
   element: Sanctuary
   stacking: unique
-  description: While Sanctified, each direct hit on the bearer gives the damager 15 Shield.
+  description: The first direct hit on the bearer gives the damager 15 Shield for 1 turn.
   triggers:
     - on: damaged
       when: { direct: true }
+      consume: true
       do:
-        - op: if
-          cond: { has: { unit: bearer, effect: sanctify } }
-          then: [{ op: apply, to: eventSource, effect: shield, value: 15, duration: { enemyTurns: 1 } }]
+        - { op: apply, to: eventSource, effect: shield, value: 15, duration: { enemyTurns: 1 } }

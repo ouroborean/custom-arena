@@ -223,35 +223,25 @@ describe('Evil skills', () => {
   });
 
   // Rage
-  it('Atrocity: with no Fragments, nothing happens', () => {
+  it('Atrocity: Immortal for 2 turns, with no Fragments needed or spent', () => {
     const a = arena({ p0: [['rage.evil']], p1: [['shot']] });
-    a.setHp(A1, 10).use(A1, 'rage.evil').end();
+    a.give(A1, 'soul_fragment').use(A1, 'rage.evil').end();
+    expect([a.has(A1, 'immortal'), a.stacks(A1, 'soul_fragment')]).toEqual([true, 1]);
+    a.setHp(A1, 10).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.unit(A1).alive]).toEqual([5, true]);
+    a.pass(1);
+    expect(a.has(A1, 'immortal')).toBe(true); // through the second enemy turn
+    a.pass(1);
     expect(a.has(A1, 'immortal')).toBe(false);
-    a.use(B1, 'shot', A1).end();
-    expect(a.unit(A1).alive).toBe(false);
   });
 
-  it('Atrocity: Tithe all, max 3; Immortal for 1 turn per Fragment spent', () => {
-    const a = arena({ p0: [['rage.evil']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 5 }).use(A1, 'rage.evil').end();
-    expect([a.stacks(A1, 'soul_fragment'), a.has(A1, 'immortal')]).toEqual([2, true]);
-    a.pass(5); // through turn 6: 3 turns
-    expect(a.has(A1, 'immortal')).toBe(false);
-    const b = arena({ p0: [['rage.evil']], p1: [['shot']] });
-    b.give(A1, 'soul_fragment').use(A1, 'rage.evil').end();
-    expect(b.stacks(A1, 'soul_fragment')).toBe(0);
-    b.setHp(A1, 10).use(B1, 'shot', A1).end(); // turn 2: still Immortal
-    expect([b.hp(A1), b.unit(A1).alive]).toEqual([5, true]);
-    expect(b.has(A1, 'immortal')).toBe(false); // 1 turn only
-  });
-
-  it('Atrocity: while Immortal, an enemy who damages the user loses a Fragment to them', () => {
-    const a = arena({ p0: [['rage.evil']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment').give(B1, 'soul_fragment').give(B2, 'soul_fragment');
+  it('Atrocity: meanwhile, each enemy who damages the user loses a Soul Fragment to them', () => {
+    const a = arena({ p0: [['rage.evil']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'soul_fragment').give(B2, 'soul_fragment');
     a.use(A1, 'rage.evil').end();
-    a.use(B1, 'shot', A1).end();
+    a.use(B1, 'shot', A1).use(B3, 'shot', A1).end();
     expect([a.stacks(B1, 'soul_fragment'), a.stacks(B2, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([
-      0, 1, 1,
+      0, 1, 2,
     ]);
   });
 
@@ -440,25 +430,29 @@ describe('Evil skills', () => {
   });
 
   // Consume
-  it('Reap: a Horrified enemy takes 5 and loses a Fragment to the user, who heals 10; others are untouched', () => {
-    const a = arena({ p0: [['consume.evil']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'horrified', { source: A1 }).give(B1, 'soul_fragment').give(B2, 'soul_fragment');
-    a.setHp(A1, 50).use(A1, 'consume.evil').end();
-    expect([a.hp(B1), a.hp(B2), a.stacks(B1, 'soul_fragment'), a.stacks(B2, 'soul_fragment')]).toEqual([95, 100, 0, 1]);
-    expect([a.stacks(A1, 'soul_fragment'), a.hp(A1)]).toEqual([1, 60]);
-  });
-
-  it('Reap: heals 10 per enemy reaped', () => {
+  it('Reap: every enemy takes 5 and is Horrified for 1 turn', () => {
     const a = arena({ p0: [['consume.evil']], p1: [['shot'], ['shot'], ['shot']] });
-    for (const b of [B1, B2]) a.give(b, 'horrified', { source: A1 }).give(b, 'soul_fragment');
-    a.setHp(A1, 50).use(A1, 'consume.evil').end();
-    expect([a.stacks(A1, 'soul_fragment'), a.hp(A1), a.hp(B3)]).toEqual([2, 70, 100]);
+    a.use(A1, 'consume.evil').end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([95, 95, 95]);
+    expect([B1, B2, B3].map((b) => a.has(b, 'horrified'))).toEqual([true, true, true]);
+    a.end();
+    expect([B1, B2, B3].map((b) => a.has(b, 'horrified'))).toEqual([false, false, false]);
   });
 
-  it('Reap: with no Horrified enemy, nothing happens', () => {
+  it('Reap: drains a Soul Fragment from the enemy with the least HP, and the user heals 10', () => {
+    const a = arena({ p0: [['consume.evil']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'soul_fragment').give(B3, 'soul_fragment').setHp(B2, 60).setHp(A1, 50);
+    a.use(A1, 'consume.evil').end();
+    expect([a.stacks(B2, 'soul_fragment'), a.stacks(B3, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([
+      0, 1, 1,
+    ]);
+    expect(a.hp(A1)).toBe(60);
+  });
+
+  it('Reap: a target with no Fragment still gives the user one', () => {
     const a = arena({ p0: [['consume.evil']], p1: [['shot']] });
-    a.give(B1, 'soul_fragment').setHp(A1, 50).use(A1, 'consume.evil').end();
-    expect([a.hp(B1), a.hp(A1), a.stacks(A1, 'soul_fragment')]).toEqual([100, 50, 0]);
+    a.setHp(A1, 50).use(A1, 'consume.evil').end();
+    expect([a.stacks(A1, 'soul_fragment'), a.hp(A1)]).toEqual([1, 60]);
   });
 
   // Summon
@@ -595,21 +589,31 @@ describe('Evil skills', () => {
   });
 
   // Stun
-  it('Mutilate: permanent Vulnerable; Weakness too only if Horrified; no Stun without a Fragment', () => {
-    const a = arena({ p0: [['stun.evil']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'horrified', { source: A1 }).use(A1, 'stun.evil', B1).end().pass(7);
-    a.use(A1, 'stun.evil', B2).end().pass(10);
-    expect([a.stacks(B1, 'vulnerable'), a.has(B1, 'weakness'), a.has(B1, 'stun')]).toEqual([1, false, false]);
-    expect([a.stacks(B2, 'vulnerable'), a.stacks(B2, 'weakness')]).toEqual([1, 1]);
-  });
-
-  it('Mutilate: Tithe 1 spends a Fragment to Stun for 1 turn', () => {
+  it('Mutilate: Stunned for 1 turn and 1 permanent Vulnerable, with no Fragment needed', () => {
     const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'stun.evil', B1).end();
-    expect([a.has(B1, 'stun'), a.stacks(A1, 'soul_fragment')]).toEqual([true, 1]);
+    a.give(A1, 'soul_fragment').use(A1, 'stun.evil', B1).end();
+    expect([a.has(B1, 'stun'), a.stacks(B1, 'vulnerable'), a.stacks(A1, 'soul_fragment')]).toEqual([true, 1, 1]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
     a.end();
     expect(a.has(B1, 'stun')).toBe(false);
+    a.pass(10);
+    expect(a.stacks(B1, 'vulnerable')).toBe(1); // permanent
+  });
+
+  it('Mutilate: a Horrified target also gains 1 permanent Weakness', () => {
+    const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
+    a.give(B1, 'horrified', { source: A1 }).use(A1, 'stun.evil', B1).end().pass(10);
+    expect([a.stacks(B1, 'vulnerable'), a.stacks(B1, 'weakness')]).toEqual([1, 1]);
+  });
+
+  it('Mutilate: otherwise they are Horrified for 2 turns, and no Weakness', () => {
+    const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
+    a.use(A1, 'stun.evil', B1).end();
+    expect([a.has(B1, 'horrified'), a.has(B1, 'weakness')]).toEqual([true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'horrified')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'horrified')).toBe(false);
   });
 
   // Dance

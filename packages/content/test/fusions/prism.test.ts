@@ -245,6 +245,17 @@ describe('Prism skills', () => {
     a.give(B1, 'sanctify', { source: A1 }).give(B2, 'sanctify', { source: A1 }).give(A2, 'sanctify', { source: B1 });
     a.setHp(A1, 50).use(A1, 'consume.prism', B3).end();
     expect([a.hp(B3), a.hp(A1), a.has(B1, 'sanctify'), a.has(B2, 'sanctify'), a.has(A2, 'sanctify')]).toEqual([95, 80, false, false, true]);
+    expect(a.has(B3, 'sanctify')).toBe(false);
+  });
+
+  it('Harvest of Grace: with no enemy Sanctified, the target is Sanctified for 2 turns instead', () => {
+    const a = arena({ p0: [['consume.prism'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).setHp(A2, 50).use(A1, 'consume.prism', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'sanctify')]).toEqual([95, 50, true]);
+    a.end().use(A2, 'shot', B1).end(); // the Sanctify heals whoever hits them
+    expect(a.hp(A2)).toBe(65);
+    a.end().end();
+    expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
   it('Hovering Prism: 10 HP, gone after 3 turns', () => {
@@ -352,10 +363,13 @@ describe('Prism skills', () => {
     expect(a.has(B1, 'condemned')).toBe(false);
   });
 
-  it('Shattering Awe: no Frost debuffs, no Stun', () => {
-    const a = arena({ p0: [['stun.prism']], p1: [['shot']] });
+  it('Shattering Awe: no Frost debuffs, no Stun; they’re Frostbitten for 1 turn instead', () => {
+    const a = arena({ p0: [['stun.prism']], p1: [['shot', 'curse']] });
     a.use(A1, 'stun.prism', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun'), a.has(B1, 'condemned')]).toEqual([90, false, false]);
+    expect([a.hp(B1), a.has(B1, 'stun'), a.has(B1, 'condemned'), a.has(B1, 'frostbitten')]).toEqual([90, false, false, true]);
+    expect(a.reject(() => a.use(B1, 'curse', A1))).toBe('cannot_act'); // Harmful Strategic
+    a.use(B1, 'shot', A1).end();
+    expect(a.has(B1, 'frostbitten')).toBe(false);
   });
 
   it('Halo of Ice: Immune for 3 turns; Lens at the start of each turn, and Invulnerable while it holds Lens', () => {

@@ -144,13 +144,16 @@ shot.stasis:
   archetype: Shot
   element: Stasis
   name: Rime Needle
-  description: Deals 10 Piercing damage to target enemy, and each Frost debuff on them lasts 1 turn longer.
+  description: >-
+    Deals 10 Piercing damage to target enemy, who is Chilled for 1 turn. Then each Frost debuff on them
+    lasts 1 turn longer.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10, type: Piercing }
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 1 } }
     - { op: extendEffects, on: primary, effects: [frostbitten, chilled, numb, frostfire, snowbound], by: 2 }
 
 snipe.stasis:
@@ -286,12 +289,15 @@ consume.stasis:
   archetype: Consume
   element: Stasis
   name: Final Thaw
-  description: Target enemy's Toxin deals its damage at once, doubled, and the user heals as much as it deals.
+  description: >-
+    Target enemy gains 1 Toxin. Then their Toxin deals its damage at once, doubled, and the user heals as
+    much as it deals.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    - { op: apply, to: primary, effect: toxin }
     - { op: forEach, in: primary, do: [{ op: macro, id: thaw }] }
     - { op: heal, to: actor, amount: { lastDamage: true } }
 
@@ -369,7 +375,8 @@ stab.stasis:
   name: Icebite
   description: >-
     Deals 5 Piercing damage to target enemy. If they're Prey, the user's player gains 1 random energy,
-    and they're Suspended for 1 turn.
+    they're Suspended for 1 turn, and any Prey mark on them ends; otherwise they gain 1 Toxin and are
+    Prey through the user's next turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -381,6 +388,10 @@ stab.stasis:
       then:
         - { op: gainEnergy, amount: 1 }
         - { op: apply, to: primary, effect: suspended, duration: { enemyTurns: 1 } }
+        - { op: removeEffect, from: primary, effect: prey }
+      else:
+        - { op: apply, to: primary, effect: toxin }
+        - { op: apply, to: primary, effect: prey, duration: { raw: 3 } }
 
 ravage.stasis:
   archetype: Ravage
@@ -506,13 +517,13 @@ bless.stasis:
   element: Stasis
   name: Preserved Vigor
   description: >-
-    Target ally gains 1 Might for each Buff they have, then is Suspended for 2 turns so their Buffs hold.
+    Target ally gains 2 Might for 2 turns, then is Suspended for 2 turns so their Buffs hold.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: might, stacks: { kindCount: { unit: primary, kind: Buff } }, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: might, stacks: 2, duration: { enemyTurns: 2 } }
     - { op: apply, to: primary, effect: suspended_ally, duration: { enemyTurns: 2 } }
 
 curse.stasis:
@@ -547,22 +558,15 @@ smite.stasis:
   archetype: Smite
   element: Stasis
   name: Frozen Quarry
-  description: Deals 20 damage to target enemy. For 2 turns, each Frost debuff on them counts as 1 stack toward Prey.
+  description: Deals 20 damage to target enemy, who is Chilled and Prey for 2 turns.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: frozen_quarry
-        name: Frozen Quarry
-        kind: Debuff
-        element: Stasis
-        description: Each Frost debuff on the bearer counts as 1 stack toward Prey.
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: prey, duration: { enemyTurns: 2 } }
 
 prayer.stasis:
   archetype: Prayer
@@ -615,18 +619,24 @@ shout.stasis:
   archetype: Shout
   element: Stasis
   name: Crack the Ice
-  description: Every Suspended enemy Thaws now. If none were Suspended, all enemies gain 1 Toxin instead.
+  description: >-
+    All enemies gain 1 Toxin. Then every Suspended enemy Thaws now, and the rest are Suspended for 1
+    turn.
   cost: r
   cooldown: 1
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - op: if
-      cond: { compare: { value: { countOf: { filter: targets, where: { has: { unit: it, effect: suspended } } } }, atLeast: 1 } }
-      then:
-        - { op: expire, on: targets, effect: suspended }
-      else:
-        - { op: apply, to: targets, effect: toxin }
+    - { op: apply, to: targets, effect: toxin }
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { has: { unit: it, effect: suspended } }
+          then:
+            - { op: expire, on: it, effect: suspended }
+          else:
+            - { op: apply, to: it, effect: suspended, duration: { enemyTurns: 1 } }
 
 withstand.stasis:
   archetype: Withstand
@@ -667,14 +677,15 @@ taunt.stasis:
   element: Stasis
   name: Glacial Glare
   description: >-
-    Target enemy is Taunted by the user for 2 turns. Meanwhile, their Frostbitten stops all their
-    Strategic skills, not just Harmful ones.
+    Target enemy is Taunted and Frostbitten by the user for 2 turns. Meanwhile, their Frostbitten stops
+    all their Strategic skills, not just Harmful ones.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
     - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }

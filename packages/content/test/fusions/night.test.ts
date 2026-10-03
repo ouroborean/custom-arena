@@ -328,14 +328,21 @@ describe('Night skills', () => {
     expect([a.has(B2, 'sleep'), asleep(a, B3)]).toEqual([true, true]);
   });
 
-  it('Blackfrost Fang: 25 Piercing; a Blindness ends and becomes Frostbitten and Numb for 2 turns', () => {
-    const a = arena({ p0: [['ravage.night'], ['ravage.night']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'blinded', { duration: 4, source: A1 }).give(B1, 'armor', { stacks: 2 });
-    a.use(A1, 'ravage.night', B1).use(A2, 'ravage.night', B2).end();
-    expect([a.hp(B1), a.has(B1, 'blinded'), a.has(B1, 'frostbitten'), a.has(B1, 'numb')]).toEqual([75, false, true, true]);
-    expect([a.has(B2, 'frostbitten'), a.has(B2, 'numb')]).toEqual([false, false]);
-    a.pass(3);
-    expect(a.has(B1, 'numb')).toBe(false);
+  it('Blackfrost Fang: 25 Piercing; without Dusk, Frostbitten and Numb for 2 turns', () => {
+    const a = arena({ p0: [['ravage.night']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.night', B1).end();
+    expect([a.hp(B1), a.has(B1, 'frostbitten'), a.has(B1, 'numb'), a.has(B1, 'dusk')]).toEqual([75, true, true, false]);
+    a.pass(1);
+    expect(a.has(B1, 'numb')).toBe(true);
+    a.pass(2);
+    expect([a.has(B1, 'frostbitten'), a.has(B1, 'numb')]).toEqual([false, false]);
+  });
+
+  it('Blackfrost Fang: with Dusk, it deepens by 1 instead', () => {
+    const a = arena({ p0: [['ravage.night', 'shot.night']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'shot.night', B1).end().pass(3).use(A1, 'ravage.night', B1).end();
+    expect([a.hp(B1), a.has(B1, 'frostbitten'), a.has(B1, 'numb')]).toEqual([165, false, false]);
+    expect(midnightTurn(a)).toBe(8); // Dusk 4 from turn 1 would strike on 10
   });
 
   it('False Dawn: Invisible; counters a Harmful skill, and if they have Dusk, Midnight strikes now', () => {
@@ -425,19 +432,22 @@ describe('Night skills', () => {
     expect(midnightTurn(a)).toBe(8);
   });
 
-  it('Hidden Moon: 20 and Sanctified for 1 turn; Stealthy', () => {
+  it('Hidden Moon: 20 and Sanctified for 1 turn; the user gains Stealth for 1 turn', () => {
     const a = arena({ p0: [['smite.night']], p1: [['shot']] });
-    a.give(A1, 'stealth', { duration: 3 }).use(A1, 'smite.night', B1).end();
+    a.use(A1, 'smite.night', B1).end();
     expect([a.hp(B1), a.has(B1, 'sanctify'), a.has(A1, 'stealth')]).toEqual([80, true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.end().end();
+    expect(a.has(A1, 'stealth')).toBe(false);
   });
 
-  it('Hidden Moon: allies who damage them keep their Stealth', () => {
-    const a = arena({ p0: [['smite.night'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'stealth', { duration: 6 }).use(A1, 'smite.night', B1).use(A2, 'shot', B1).end();
-    expect(a.has(A2, 'stealth')).toBe(true);
-    const b = arena({ p0: [['smite'], ['shot']], p1: [['shot']] });
-    b.give(A2, 'stealth', { duration: 6 }).use(A1, 'smite', B1).use(A2, 'shot', B1).end();
-    expect(b.has(A2, 'stealth')).toBe(false);
+  it('Hidden Moon: Stealthy, so using it from Stealth keeps the Stealth', () => {
+    const a = arena({ p0: [['smite.night', 'shot']], p1: [['shot']] });
+    a.give(A1, 'stealth', { duration: 6 }).use(A1, 'smite.night', B1).end();
+    expect(a.has(A1, 'stealth')).toBe(true);
+    const b = arena({ p0: [['smite']], p1: [['shot']] });
+    b.give(A1, 'stealth', { duration: 6 }).use(A1, 'smite', B1).end();
+    expect(b.has(A1, 'stealth')).toBe(false);
   });
 
   it('Hibernal Vigil: all allies heal 15 and become Dormant for 1 turn', () => {
@@ -520,7 +530,7 @@ describe('Night costs and cooldowns match the kit table', () => {
     shot: ['r', 0], snipe: ['Arr', 2], trap: ['AI', 3], maneuver: ['r', 4], companion: ['I', 1],
     bolt: ['Ir', 1], blast: ['AIr', 3], consume: ['r', 2], summon: ['I', 1], channel: ['Ir', 3],
     stab: ['r', 1], ravage: ['Ar', 1], mislead: ['I', 2], stun: ['A', 2], dance: ['AA', 4],
-    heal: ['W', 2], bless: ['r', 2], curse: ['Ar', 2], smite: ['Wr', 1], prayer: ['Irr', 4],
+    heal: ['W', 2], bless: ['r', 2], curse: ['Ar', 2], smite: ['Wr', 2], prayer: ['Irr', 4],
     cleave: ['Sr', 1], shout: ['A', 3], withstand: ['r', 3], taunt: ['r', 3], titan: ['IW', 4],
   };
   for (const [arch, [c, cd]] of Object.entries(table)) {

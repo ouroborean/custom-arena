@@ -387,19 +387,27 @@ describe('Dimension skills', () => {
     expect(a.hp(B1)).toBe(60);
   });
 
-  it('Sever: 5 Affliction to all; Blinded ones take 10 more and the Blind moves to an un-Blinded enemy', () => {
+  it('Sever: 10 Affliction to all enemies (through Shield and Armor)', () => {
     const a = arena({ p0: [['consume.dimension']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B1, 'blinded', { source: A1, duration: 5 }).give(B2, 'shield', { value: 20 }).give(B2, 'armor', { stacks: 2 });
+    a.give(B2, 'shield', { value: 20 }).give(B2, 'armor', { stacks: 2 });
     a.use(A1, 'consume.dimension').end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([85, 95, 95]);
-    expect(a.has(B1, 'blinded')).toBe(false);
-    expect([B2, B3].filter((u) => a.has(u, 'blinded'))).toHaveLength(1);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([90, 90, 90]);
   });
 
-  it('Sever: with no Blinded enemies, just 5 Affliction each and no Blind appears', () => {
+  it("Sever: a random enemy who isn't Blinded is Blinded for 1 turn", () => {
+    const a = arena({ p0: [['consume.dimension']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'blinded', { source: A1, duration: 10 });
+    a.use(A1, 'consume.dimension').end();
+    expect(a.has(B1, 'blinded')).toBe(true); // already Blinded: untouched
+    expect([B2, B3].filter((u) => a.has(u, 'blinded'))).toHaveLength(1);
+    a.end();
+    expect([B2, B3].filter((u) => a.has(u, 'blinded'))).toHaveLength(0);
+  });
+
+  it('Sever: with no Blinded enemies, exactly one becomes Blinded', () => {
     const a = arena({ p0: [['consume.dimension']], p1: [['shot'], ['shot']] });
     a.use(A1, 'consume.dimension').end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([95, 95, false, false]);
+    expect([B1, B2].filter((u) => a.has(u, 'blinded'))).toHaveLength(1);
   });
 
   it('Rift: a 20 HP minion for 3 turns', () => {

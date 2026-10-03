@@ -130,6 +130,12 @@ describe('Earth skills', () => {
     expect([minions(a, 0, 'seedling').length, minions(a, 0, 'worldsprout').length]).toEqual([0, 2]);
   });
 
+  it('Worldmarch: with no Seedlings, the user creates 2 Seedlings instead', () => {
+    const a = arena({ p0: [['consume.earth']], p1: [['shot']] });
+    a.use(A1, 'consume.earth').end();
+    expect([minions(a, 0, 'seedling').length, minions(a, 0, 'worldsprout').length]).toEqual([2, 0]);
+  });
+
   it('Worldcaller: a Worldsprout each turn; Vitality Transfer trades it for healing', () => {
     const a = arena({ p0: [['channel.earth'], ['shot']], p1: [['shot']] });
     a.use(A1, 'channel.earth').end();
@@ -185,10 +191,18 @@ describe('Earth skills', () => {
     expect(a.stacks(A2, 'might') + a.stacks(A2, 'armor')).toBe(1);
   });
 
-  it('Worldmute: a random enemy Weakness per Might on the ally', () => {
+  it('Worldmute: the ally gains 1 Might for 4 turns, then a random enemy Weakness per Might they have', () => {
     const a = arena({ p0: [['curse.earth'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(A2, 'might', { stacks: 3 }).use(A1, 'curse.earth', A2).end();
-    expect(a.stacks(B1, 'weakness') + a.stacks(B2, 'weakness')).toBe(3);
+    a.give(A2, 'might', { stacks: 2 }).use(A1, 'curse.earth', A2).end();
+    expect([a.stacks(A2, 'might'), a.stacks(B1, 'weakness') + a.stacks(B2, 'weakness')]).toEqual([3, 3]);
+    const b = arena({ p0: [['curse.earth'], ['shot']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'curse.earth', A2).end();
+    expect([b.stacks(A2, 'might'), b.stacks(B1, 'weakness') + b.stacks(B2, 'weakness')]).toEqual([1, 1]);
+    b.pass(6);
+    expect(b.has(A2, 'might')).toBe(true);
+    b.pass(2);
+    expect(b.has(A2, 'might')).toBe(false); // the Might wears off; the Weakness stays
+    expect(b.stacks(B1, 'weakness') + b.stacks(B2, 'weakness')).toBe(1);
   });
 
   it('Earth Pillar: 20; a Boulder hit within 1 turn Stuns', () => {
@@ -214,13 +228,23 @@ describe('Earth skills', () => {
     expect([a.hp(B1), minions(a, 0, 'boulder').length]).toEqual([40, 0]); // 10 + 5 + 45
   });
 
-  it('Awakener\'s Roar: Boulders gain Armor and heal to full', () => {
+  it('Vine Whirl: with no allied Boulder, the user creates one', () => {
+    const a = arena({ p0: [['cleave.earth']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.earth').end();
+    expect([a.hp(B1), a.hp(B2), minions(a, 0, 'boulder').length]).toEqual([95, 95, 1]);
+    a.pass(3).use(A1, 'cleave.earth').end(); // the next one launches it
+    expect([a.hp(B1) + a.hp(B2), minions(a, 0, 'boulder').length]).toEqual([90 + 90 - 45, 0]);
+  });
+
+  it('Awakener\'s Roar: creates a Boulder; Boulders gain Armor and heal to full', () => {
     const a = arena({ p0: [['shout.earth', 'charge.earth']], p1: [['shot']] });
     a.use(A1, 'charge.earth', B1).end().pass(1);
     const b = minions(a, 0, 'boulder')[0]!;
     a.unit(b.id).hp = 10;
     a.use(A1, 'shout.earth').end();
     expect([a.hp(b.id), a.stacks(b.id, 'armor')]).toEqual([45, 1]);
+    const made = minions(a, 0, 'boulder').filter((m) => m.id !== b.id);
+    expect(made.map((m) => [m.hp, a.stacks(m.id, 'armor')])).toEqual([[45, 1]]);
   });
 
   it('Rampart: 30 Shield, or doubles existing Shield', () => {
@@ -241,9 +265,23 @@ describe('Earth skills', () => {
     expect([a.has(B1, 'ancient_grudge'), a.has(B2, 'ancient_grudge')]).toEqual([false, true]);
   });
 
-  it('Treant Form: Might per Seedling and 5 Shield per Boulder', () => {
-    const a = arena({ p0: [['titan.earth', 'summon.earth'], ['charge.earth']], p1: [['shot']] });
-    a.use(A1, 'summon.earth').use(A2, 'charge.earth', B1).end().pass(1).use(A1, 'titan.earth').end();
-    expect([a.stacks(A1, 'might'), a.effects(A1).find((e) => e.defId === 'shield')?.value]).toEqual([2, 5]);
+  it('Treant Form: creates a Seedling and a Boulder, then Might per Seedling and 5 Shield per Boulder', () => {
+    const a = arena({ p0: [['titan.earth', 'summon.earth']], p1: [['shot']] });
+    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'titan.earth').end();
+    expect([minions(a, 0, 'seedling').length, minions(a, 0, 'boulder').length]).toEqual([3, 1]);
+    expect([a.stacks(A1, 'might'), a.effects(A1).find((e) => e.defId === 'shield')?.value]).toEqual([3, 5]);
+    const b = arena({ p0: [['titan.earth'], ['charge.earth']], p1: [['shot']] });
+    b.use(A2, 'charge.earth', B1).end().pass(1).use(A1, 'titan.earth').end();
+    expect([b.stacks(A1, 'might'), b.effects(A1).find((e) => e.defId === 'shield')?.value]).toEqual([1, 10]);
+  });
+
+  it('Treant Form: alone, 1 Might and 5 Shield for 4 turns', () => {
+    const a = arena({ p0: [['titan.earth']], p1: [['shot']] });
+    a.use(A1, 'titan.earth').end();
+    expect([a.stacks(A1, 'might'), a.effects(A1).find((e) => e.defId === 'shield')?.value]).toEqual([1, 5]);
+    a.pass(6);
+    expect(a.has(A1, 'might')).toBe(true);
+    a.pass(2);
+    expect([a.has(A1, 'might'), a.has(A1, 'shield')]).toEqual([false, false]);
   });
 });

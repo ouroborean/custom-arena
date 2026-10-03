@@ -177,7 +177,7 @@ trap.moon:
   element: Moon
   name: Dreaming Stones
   description: >-
-    For 2 turns, if target enemy uses a Harmful skill on a minion, they fall Asleep and are Isolated for 1 turn.
+    For 2 turns, the first time target enemy uses a Harmful skill, they fall Asleep and are Isolated for 1 turn.
     Invisible.
   cost: r
   cooldown: 2
@@ -193,17 +193,14 @@ trap.moon:
         kind: Debuff
         element: Moon
         visibility: hidden
-        description: A Harmful skill on a minion puts the bearer to Sleep and Isolates them.
+        description: The bearer's first Harmful skill puts them to Sleep and Isolates them.
         triggers:
           - on: skillUsed
             when: { harmful: true }
+            consume: true
             do:
-              - op: if
-                cond: { any: { in: eventTargets, cond: { kind: { unit: it, is: minion } } } }
-                then:
-                  - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 1 } }
-                  - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
-                  - { op: removeSelf }
+              - { op: apply, to: bearer, effect: sleep, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: isolated, duration: { enemyTurns: 1 } }
 
 maneuver.moon:
   archetype: Maneuver

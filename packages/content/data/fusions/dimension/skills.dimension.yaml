@@ -262,22 +262,15 @@ consume.dimension:
   element: Dimension
   name: Sever
   description: >-
-    Deals 5 Affliction damage to all enemies. Blinded ones take 10 more, and each Blind moves to a
-    random enemy who isn't Blinded.
+    Deals 10 Affliction damage to all enemies, and a random one of them who isn't Blinded is Blinded
+    for 1 turn.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
-    - op: damage
-      to: targets
-      type: Affliction
-      amount: { if: { has: { unit: it, effect: blinded } }, then: 15, else: 5 }
-    - op: forEach
-      in: { filter: targets, where: { has: { unit: it, effect: blinded } } }
-      do:
-        - { op: removeEffect, from: it, effect: blinded }
-        - { op: apply, to: { randomEnemy: 1, exclude: it, where: { not: { has: { unit: it, effect: blinded } } } }, effect: blinded, duration: { enemyTurns: 1 } }
+    - { op: damage, to: targets, type: Affliction, amount: 10 }
+    - { op: apply, to: { randomEnemy: 1, where: { not: { has: { unit: it, effect: blinded } } } }, effect: blinded, duration: { enemyTurns: 1 } }
 
 summon.dimension:
   archetype: Summon

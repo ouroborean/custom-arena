@@ -89,20 +89,19 @@ rage.unholy:
   element: Unholy
   name: Undying Fury
   description: >-
-    Consumes all the user's Soul Fragments, dealing 10 damage to a random enemy for each one. Then
-    the user becomes Immortal for as many turns as fragments consumed.
+    Deals 10 damage to a random enemy, and again for every 25 health the user is missing. Then the
+    user becomes Immortal for 2 turns.
   cost: Sr
   cooldown: 4
   tags: [Harmful, NonStrategic]
   target: self
   ops:
-    - { op: set, var: frags, value: { stacks: { unit: actor, effect: soul_fragment } } }
-    - { op: removeEffect, from: actor, effect: soul_fragment }
+    - { op: set, var: hits, value: { sum: [1, { div: [{ missingHp: actor }, 25] }] } }
     - op: repeat
-      times: { var: frags }
+      times: { var: hits }
       do:
         - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
-    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: frags } } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 2 } }
 
 shot.unholy:
   archetype: Shot
@@ -562,18 +561,33 @@ titan.unholy:
   element: Unholy
   name: Soul Colossus
   description: >-
-    Consumes all Soul Fragments to heal the user for 5 health each; then the user gains 2 Armor and
-    Immortal for as many turns as fragments consumed.
+    For 2 turns, the user gains 2 Armor and Immortal, and the first time an enemy damages them each
+    turn, they gain a Soul Fragment.
   cost: SS
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: set, var: frags, value: { stacks: { unit: actor, effect: soul_fragment } } }
-    - { op: removeEffect, from: actor, effect: soul_fragment }
-    - { op: heal, to: actor, amount: { mul: [5, { var: frags }] } }
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: { var: frags } } }
-    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: frags } } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: soul_colossus
+        name: Soul Colossus
+        kind: Buff
+        element: Unholy
+        description: The first time an enemy damages the bearer each turn, they gain a Soul Fragment.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: soul_colossus_turn } }] }] }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, name: soul_colossus_turn, on: bearer, value: { turn: true } }
+                  - { op: apply, to: bearer, effect: soul_fragment }
 
 # ---------------------------------------------------------------- minion skills
 

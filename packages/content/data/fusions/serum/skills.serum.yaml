@@ -284,13 +284,18 @@ consume.serum:
   name: Extraction
   description: >-
     Removes all Dose from target unit: an enemy takes 10 Affliction damage per stack; an ally heals 10 per
-    stack.
+    stack. Either way, it counts at least 2 stacks.
   cost: r
   cooldown: 2
   tags: [Radiant, Strategic]
   target: any
   ops:
-    - { op: set, var: extracted, value: { totalStacks: { in: primary, effect: dose } } }
+    - op: set
+      var: extracted
+      value:
+        if: { compare: { value: { totalStacks: { in: primary, effect: dose } }, atLeast: 2 } }
+        then: { totalStacks: { in: primary, effect: dose } }
+        else: 2
     - { op: removeEffect, from: primary, effect: dose }
     - op: if
       cond: { isEnemy: primary }

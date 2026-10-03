@@ -351,7 +351,9 @@ consume.prism:
   archetype: Consume
   element: Prism
   name: Harvest of Grace
-  description: Deals 5 damage to target enemy. Every Sanctify on the enemy side ends, and the user heals 15 for each.
+  description: >-
+    Deals 5 damage to target enemy. Every Sanctify on the enemy side ends, and the user heals 15 for each;
+    if there were none, the target is Sanctified for 2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -359,8 +361,13 @@ consume.prism:
   ops:
     - { op: damage, to: primary, amount: 5 }
     - { op: set, var: graces, value: { count: { effects: [sanctify], in: allEnemies } } }
-    - { op: removeEffect, from: allEnemies, effect: sanctify }
-    - { op: heal, to: actor, amount: { mul: [15, { var: graces }] } }
+    - op: if
+      cond: { compare: { value: { var: graces }, atLeast: 1 } }
+      then:
+        - { op: removeEffect, from: allEnemies, effect: sanctify }
+        - { op: heal, to: actor, amount: { mul: [15, { var: graces }] } }
+      else:
+        - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
 
 summon.prism:
   archetype: Summon
@@ -489,7 +496,7 @@ stun.prism:
   name: Shattering Awe
   description: >-
     Deals 10 damage to target enemy. If they have Frost debuffs, those all end, and they're Stunned for 1
-    turn and Condemned for 1 turn per Frost debuff ended.
+    turn and Condemned for 1 turn per Frost debuff ended; otherwise they're Frostbitten for 1 turn.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -507,6 +514,8 @@ stun.prism:
         - { op: removeEffect, from: primary, effect: snowbound }
         - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
         - { op: apply, to: primary, effect: condemned, duration: { enemyTurns: { var: awe } } }
+      else:
+        - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 1 } }
 
 dance.prism:
   archetype: Dance

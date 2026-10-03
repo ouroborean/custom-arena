@@ -296,19 +296,35 @@ consume.devil:
   element: Devil
   name: Collect
   description: >-
-    Deals 5 damage to target enemy. If they have a Contract, it ends now and its price is collected,
-    and the user gains 2 Soul Fragments.
+    Deals 5 damage to target enemy, and the user gains 1 Soul Fragment. If they hold a Contract, it
+    ends now and its price is collected, and the user gains 1 more; if not, they're put in debt: a
+    Contract (2 turns) whose price is 15 Affliction damage.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: actor, effect: soul_fragment }
     - op: if
       cond: { has: { unit: primary, effect: contract } }
       then:
         - { op: expire, on: primary, effect: contract }
-        - { op: apply, to: actor, effect: soul_fragment, stacks: 2 }
+        - { op: apply, to: actor, effect: soul_fragment }
+      else:
+        # Forced on an enemy, so Neutral (Horrified doesn't stop it), like Fine Print.
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: collect_debt
+            name: Debt
+            kind: Neutral
+            element: Devil
+            countsAs: [contract]
+            description: "Price when it expires: 15 Affliction damage."
+            onExpire:
+              - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
 
 summon.devil:
   archetype: Summon
@@ -556,13 +572,14 @@ curse.devil:
   element: Devil
   name: Double or Nothing
   description: >-
-    A coin is flipped for target enemy: heads, each of their Debuffs gains 1 more stack and lasts 2
-    turns longer; tails, all their Debuffs are removed.
+    Target enemy gains Hellfire for 1 turn. Then a coin is flipped: heads, each of their Debuffs gains
+    1 more stack and lasts 2 turns longer; tails, the user gains 1 Soul Fragment.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    - { op: apply, to: primary, effect: hellfire, duration: { enemyTurns: 1 } }
     - op: random
       options:
         - - { op: extendEffects, on: primary, kind: Debuff, by: 4 }
@@ -581,7 +598,7 @@ curse.devil:
               - op: if
                 cond: { has: { unit: it, effect: confusion } }
                 then: [{ op: apply, to: it, effect: confusion, duration: { enemyTurns: 2 } }]
-        - - { op: removeKind, from: primary, kind: Debuff }
+        - - { op: apply, to: actor, effect: soul_fragment }
 
 smite.devil:
   archetype: Smite
@@ -611,17 +628,18 @@ prayer.devil:
   element: Devil
   name: Choir of the Pit
   description: >-
-    All allies heal 20. For 2 turns, each Helpful skill used on a Horrified enemy (whose Buffs fail)
-    gives a random ally of the user 1 Might instead.
+    All allies heal 20, and all enemies are Horrified for 1 turn. For as long, each Helpful skill used
+    on a Horrified enemy (whose Buffs fail) gives a random ally of the user 1 Might instead.
   cost: Srr
   cooldown: 2
   tags: [Helpful, Strategic]
   target: allAllies
   ops:
     - { op: heal, to: targets, amount: 20 }
+    - { op: apply, to: allEnemies, effect: horrified, duration: { enemyTurns: 1 } }
     - op: apply
       to: allEnemies
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: choir_of_the_pit
         name: Choir of the Pit

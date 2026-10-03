@@ -166,14 +166,14 @@ maneuver.lightning:
   archetype: Maneuver
   element: Lightning
   name: Blink
-  description: Deals 5 damage to a Sapped enemy and makes the user Invulnerable for 1 turn.
+  description: Deals 5 damage to target enemy and Saps them. The user becomes Invulnerable for 1 turn.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
-  targetFilter: { has: { unit: it, effect: sapped } }
   ops:
     - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: sapped }
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
 
 companion.lightning:
@@ -315,13 +315,14 @@ mislead.lightning:
   element: Lightning
   name: Hologram
   description: >-
-    For 1 turn, any Sapped enemy that uses a Harmful skill is countered, and the user becomes
-    Untargetable for 1 turn.
+    For 1 turn, Harmful skills used by Sapped enemies are countered, as is the first one used by any
+    other enemy, who becomes Sapped. Each counter makes the user Untargetable for 1 turn.
   cost: Sr
   cooldown: 2
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
+    # Sapped is checked as it resolves: Sapped enemies get Hologram, the rest share one Decoy.
     - op: apply
       to: { filter: targets, where: { has: { unit: it, effect: sapped } } }
       duration: { enemyTurns: 1 }
@@ -337,6 +338,26 @@ mislead.lightning:
             intercept: counter
             do:
               - { op: apply, to: actor, effect: untargetable, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: { filter: targets, where: { not: { has: { unit: it, effect: sapped } } } }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: hologram_decoy
+        name: Hologram Decoy
+        kind: Debuff
+        element: Lightning
+        description: >-
+          The first Harmful skill used by any bearer is countered and Saps its user, and the caster
+          becomes Untargetable for 1 turn. Then every Decoy ends.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            intercept: counter
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: sapped }
+              - { op: apply, to: actor, effect: untargetable, duration: { enemyTurns: 1 } }
+              - { op: removeEffect, from: bearerAllies, effect: hologram_decoy }
 
 stun.lightning:
   archetype: Stun
@@ -385,12 +406,13 @@ bless.lightning:
   archetype: Bless
   element: Lightning
   name: Overclock
-  description: Target ally gains Conduit for 2 turns.
+  description: Target ally gains 2 Charge, and Conduit for 2 turns.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
+    - { op: apply, to: primary, effect: charged, stacks: 2 }
     - { op: apply, to: primary, effect: conduit, duration: { enemyTurns: 2 } }
 
 curse.lightning:
@@ -435,13 +457,14 @@ prayer.lightning:
   archetype: Prayer
   element: Lightning
   name: Signal Boost
-  description: Heals target ally for 25 Health, then heals every Charged ally 10 Health per Charge.
+  description: Heals target ally for 25 Health and grants them Charge, then heals every Charged ally 10 Health per Charge.
   cost: WI
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
     - { op: heal, to: primary, amount: 25 }
+    - { op: apply, to: primary, effect: charged }
     - op: heal
       to: { filter: allAllies, where: { has: { unit: it, effect: charged } } }
       amount: { mul: [10, { stacks: { unit: it, effect: charged } }] }

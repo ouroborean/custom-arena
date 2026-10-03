@@ -72,14 +72,16 @@ charge.apocalypse:
   element: Apocalypse
   name: Coldsnap Dash
   description: >-
-    Deals 15 damage to target enemy, and the user gets 1 Focus for their next skill. If that skill
-    hits a Chilled enemy, the cold cracks their Ignite: it ticks twice at once.
+    Deals 15 damage to target enemy, who gains Frostfire, and the user gets 1 Focus for their next
+    skill. If that skill hits an enemy who's Chilled and Ignited (Frostfire is both), the cold cracks
+    the Ignite: it ticks twice at once.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: frostfire }
     - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
     - op: apply
       to: actor
@@ -333,24 +335,23 @@ bolt.apocalypse:
   element: Apocalypse
   name: Paradox Bolt
   description: >-
-    Deals 20 damage to target enemy, who gains Frostfire. If they were already Thermal Shocked this
-    turn, the Frostfire Shocks them again.
+    Deals 20 damage to target enemy, who gains Frostfire. If they already had it, the paradox Thermal
+    Shocks them, even if they were already Shocked this turn.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: had, value: { if: { has: { unit: primary, effect: frostfire, exact: true } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: frostfire }
     - op: if
-      cond: { has: { unit: primary, effect: thermal_shocked } }
+      cond: { compare: { value: { var: had }, atLeast: 1 } }
       then:
-        - { op: apply, to: primary, effect: frostfire }
         - op: forEach
           in: primary
           do:
             - { op: macro, id: thermal_shock }
-      else:
-        - { op: apply, to: primary, effect: frostfire }
 
 blast.apocalypse:
   archetype: Blast
@@ -358,7 +359,7 @@ blast.apocalypse:
   name: Fimbulfire
   description: >-
     Deals 20 damage to all enemies. Each Ignite on them turns into Frostfire, Thermal Shocking its
-    bearer.
+    bearer; each enemy with no Fire debuff is Ignited instead.
   cost: SI
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -366,11 +367,23 @@ blast.apocalypse:
   ops:
     - { op: damage, to: targets, amount: 20 }
     - op: forEach
-      in: { filter: targets, where: { has: { unit: it, effect: ignite, exact: true } } }
+      in: targets
       do:
-        - { op: removeEffect, from: it, effect: ignite }
-        - { op: apply, to: it, effect: frostfire }
-        - { op: macro, id: thermal_check }
+        - op: if
+          cond: { has: { unit: it, effect: ignite, exact: true } }
+          then:
+            - { op: removeEffect, from: it, effect: ignite }
+            - { op: apply, to: it, effect: frostfire }
+            - { op: macro, id: thermal_check }
+          else:
+            - op: if
+              cond:
+                not:
+                  or:
+                    - { has: { unit: it, effect: frostfire } }
+                    - { has: { unit: it, effect: scorched } }
+              then:
+                - { op: apply, to: it, effect: ignite }
 
 consume.apocalypse:
   archetype: Consume
@@ -378,7 +391,8 @@ consume.apocalypse:
   name: Equilibrium
   description: >-
     Deals 10 damage to target enemy, healing the user as much. If they have both a Fire and a Frost
-    debuff (Frostfire counts as both), they're Thermal Shocked and the user heals 20 more.
+    debuff (Frostfire counts as both), they're Thermal Shocked and the user heals 20 more; if not,
+    they gain Frostfire.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -402,6 +416,8 @@ consume.apocalypse:
           do:
             - { op: macro, id: thermal_check }
         - { op: heal, to: actor, amount: 20 }
+      else:
+        - { op: apply, to: primary, effect: frostfire }
 
 summon.apocalypse:
   archetype: Summon
@@ -707,8 +723,8 @@ smite.apocalypse:
   element: Apocalypse
   name: Rimebrand
   description: >-
-    Deals 15 damage to target enemy, who's Sanctified for 1 turn. For 2 turns, each Explosion that
-    hits them also Frostbites them for 1 turn.
+    Deals 15 damage to target enemy, who's Sanctified for 1 turn. For 2 turns, each time they use a
+    Harmful skill, they're Frostbitten for 1 turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -724,11 +740,10 @@ smite.apocalypse:
         name: Rimebrand
         kind: Debuff
         element: Apocalypse
-        description: Each Explosion from the bearer's enemies Frostbites them for 1 turn.
+        description: Each Harmful skill the bearer uses Frostbites them for 1 turn.
         triggers:
-          - on: signal
-            signal: explosion
-            when: { side: enemy }
+          - on: skillUsed
+            when: { harmful: true }
             do:
               - { op: apply, to: bearer, effect: frostbitten, duration: { enemyTurns: 1 } }
 

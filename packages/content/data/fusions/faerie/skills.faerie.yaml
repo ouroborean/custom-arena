@@ -369,14 +369,15 @@ stab.faerie:
   element: Faerie
   name: Nettle Prick
   description: >-
-    Target enemy takes 10 Piercing damage, and until the user's next turn their Toxin also ticks at the start of
-    their own turn.
+    Target enemy takes 5 Piercing damage and gains 1 Toxin, and until the user's next turn their Toxin also
+    ticks at the start of their own turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10, type: Piercing }
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }
     - op: apply
       to: primary
       duration: { raw: 2 }

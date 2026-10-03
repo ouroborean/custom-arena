@@ -475,18 +475,22 @@ describe('Mist skills', () => {
     return n;
   };
 
-  it('Cloak of Mist: Fog (redirects) while the ally is Rushing, none while not', () => {
-    const o = { p0: [['bless.mist'], ['rage.mist', 'shot'], ['shot']], p1: three() };
-    expect(redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).use(A2, 'rage.mist').end())).toBeGreaterThan(0);
+  it('Cloak of Mist: Fog (redirects) until the ally uses a Harmful skill', () => {
+    const o = { p0: [['bless.mist'], ['heal', 'shot'], ['shot']], p1: three() };
+    expect(redirects(o, (a) => a.use(A1, 'bless.mist', A2).end())).toBeGreaterThan(0);
+    expect(redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).use(A2, 'heal', A3).end())).toBeGreaterThan(0);
     expect(redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).use(A2, 'shot', B2).end())).toBe(0);
-    expect(redirects(o, (a) => a.end().pass(1).use(A2, 'rage.mist').end())).toBe(0); // Rushing without the Cloak
+    expect(redirects(o, (a) => a.end())).toBe(0); // no Cloak, no Fog
   });
 
-  it('Cloak of Mist: Leaping also brings Fog', () => {
-    const o = { p0: [['bless.mist'], ['ravage.mist'], ['shot']], p1: three() };
-    // Leaping without a Leap's Invulnerable (which would stop the Shot by itself): Fog redirects it.
-    const n = redirects(o, (a) => a.use(A1, 'bless.mist', A2).end().pass(1).give(A2, 'leaping').end());
-    expect(n).toBeGreaterThan(0);
+  it('Cloak of Mist: the Fog lasts 3 turns at most', () => {
+    const a = arena({ p0: [['bless.mist'], ['shot'], ['shot']], p1: three() });
+    a.use(A1, 'bless.mist', A2).end();
+    expect(fogged(a, A2)).toBe(true);
+    a.pass(4);
+    expect(fogged(a, A2)).toBe(true);
+    a.pass(2);
+    expect(fogged(a, A2)).toBe(false);
   });
 
   it('Heavy Air: the target counts as Immobile for 2 turns whatever they have, and gains 1 Weakness', () => {

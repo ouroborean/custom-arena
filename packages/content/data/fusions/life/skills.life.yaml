@@ -293,23 +293,31 @@ consume.life:
   archetype: Consume
   element: Life
   name: Harvest
-  description: Sacrifices an allied Seedling or Treant; target ally heals its remaining HP, which can Flourish.
+  description: >-
+    Target ally heals 10, plus the remaining HP of one of the user's Seedlings or Treants, which is sacrificed;
+    this can Flourish. If the user has none, they create a Seedling.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
-  requires: { any: { in: allAllies, cond: { minion: { unit: it, types: [seedling], mine: true } } } }
   ops:
+    - { op: set, var: sap, value: 0 }
+    - { op: set, var: reaped, value: 0 }
     - op: forEach
       in: { randomAlly: 1, where: { minion: { unit: it, types: [seedling], mine: true } } }
       do:
         - { op: set, var: sap, value: { hp: it } }
+        - { op: set, var: reaped, value: 1 }
         - { op: kill, to: it }
     - op: forEach
       in: primary
       do:
-        - { op: heal, to: it, amount: { var: sap } }
+        - { op: heal, to: it, amount: { sum: [10, { var: sap }] } }
         - { op: macro, id: flourish_it }
+    - op: if
+      cond: { not: { varTrue: reaped } }
+      then:
+        - { op: summon, minion: seedling }
 
 summon.life:
   archetype: Summon
@@ -386,8 +394,8 @@ stab.life:
   element: Life
   name: Splinter Spike
   description: >-
-    Sacrifices one of the user's Seedlings, if they have one, to deal 25 Piercing damage to target
-    enemy; otherwise 10 damage.
+    Sacrifices one of the user's Seedlings, if they have one, to deal 25 Piercing damage to target enemy;
+    otherwise it deals 10 damage and the user creates a Seedling.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -400,6 +408,7 @@ stab.life:
         - { op: damage, to: primary, amount: 25, type: Piercing }
       else:
         - { op: damage, to: primary, amount: 10 }
+        - { op: summon, minion: seedling }
 
 ravage.life:
   archetype: Ravage
@@ -683,12 +692,18 @@ shout.life:
   archetype: Shout
   element: Life
   name: Call of the Grove
-  description: Every allied Seedling Blooms now, and every allied minion heals to full.
+  description: >-
+    If there's no allied Seedling that hasn't Bloomed yet, the user creates one. Then every allied Seedling Blooms
+    now, and every allied minion heals to full.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - op: if
+      cond: { not: { any: { in: allAllies, cond: { and: [{ minion: { unit: it, types: [seedling] } }, { not: { minion: { unit: it, types: [treant] } } }] } } } }
+      then:
+        - { op: summon, minion: seedling }
     - op: forEach
       in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [seedling] } }, { not: { minion: { unit: it, types: [treant] } } }] } }
       do: [{ op: macro, id: bloom_it }]

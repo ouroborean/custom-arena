@@ -94,10 +94,12 @@ describe('Wind skills', () => {
     expect(['stun', 'weakness', 'might', 'immune'].map((s) => a.has(A1, s))).toEqual([false, false, true, true]);
   });
 
-  it('Air Bullet: 10; while Leaping, 15 (+5) and Leaps again', () => {
+  it('Air Bullet: 5 and the user Leaps; the next use, while Leaping, deals 10 more and spends the Leap', () => {
     const a = arena({ p0: [['shot.wind']], p1: [['shot']] });
-    a.give(A1, 'leaping').use(A1, 'shot.wind', B1).end();
-    expect([a.hp(B1), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([80, true, true]);
+    a.use(A1, 'shot.wind', B1).end();
+    expect([a.hp(B1), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([95, true, true]);
+    a.pass(1).use(A1, 'shot.wind', B1).end(); // no cooldown, so the Leap is still up
+    expect([a.hp(B1), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([75, false, false]); // 5 + 10 + Leaping's 5
   });
 
   it('Elegant Sweep: 25 Piercing to every enemy a turn later', () => {
@@ -132,10 +134,16 @@ describe('Wind skills', () => {
     expect(b.has(B1, 'stun_ns')).toBe(true);
   });
 
-  it('Spiral Burst: 10 to all, +10 Leaping, +10 Rushing', () => {
+  it('Spiral Burst: 20 to all; the user begins Rushing if not Leaping', () => {
     const a = arena({ p0: [['blast.wind']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'rushing').use(A1, 'blast.wind').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 80]);
+    a.use(A1, 'blast.wind').end();
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'rushing')]).toEqual([80, 80, true]);
+  });
+
+  it('Spiral Burst: while Leaping, 10 more to all (plus Leaping\'s +5) and no Rushing', () => {
+    const a = arena({ p0: [['blast.wind']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'leaping').use(A1, 'blast.wind').end();
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'rushing')]).toEqual([65, 65, false]);
   });
 
   it('Sap Speed: strips Mobility buffs; Swiftness for the user if the target is then Immobile', () => {
@@ -172,11 +180,12 @@ describe('Wind skills', () => {
     expect(b.effects(A1).find((e) => e.defId.endsWith('vortex'))!.duration).toBe(d + 2);
   });
 
-  it('Airknife: 10, or 20 while Rushing', () => {
+  it('Airknife: 10 and begins Rushing; 20 while Rushing', () => {
     const a = arena({ p0: [['stab.wind']], p1: [['shot']] });
     a.use(A1, 'stab.wind', B1).end();
-    a.give(A1, 'rushing').pass(1).use(A1, 'stab.wind', B1).end();
-    expect(a.hp(B1)).toBe(70);
+    expect([a.hp(B1), a.has(A1, 'rushing')]).toEqual([90, true]);
+    a.pass(1).use(A1, 'stab.wind', B1).end();
+    expect([a.hp(B1), a.has(A1, 'rushing')]).toEqual([70, true]);
   });
 
   it('Sonic Thrust: 25 Piercing; the user is Stunned through their next turn unless Rushing', () => {

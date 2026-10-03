@@ -76,21 +76,31 @@ describe('Water skills', () => {
     expect(['flow', 'might', 'focus'].map((s) => a.has(A1, s))).toEqual([true, true, true]);
   });
 
-  it('Coordinated Shot: gains Flow only against a Marked target', () => {
-    const a = arena({ p0: [['shot.water']], p1: [['shot'], ['shot']] });
+  it('Coordinated Shot: 10 and Marks the target; Flow only if they were already Marked', () => {
+    const a = arena({ p0: [['shot.water'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shot.water', B1).end();
-    expect([a.hp(B1), a.has(A1, 'flow')]).toEqual([90, false]);
-    a.give(B2, 'mark', { source: A1 }).pass(1).use(A1, 'shot.water', B2).end();
-    expect(a.has(A1, 'flow')).toBe(true);
+    expect([a.hp(B1), a.has(B1, 'mark'), a.has(A1, 'flow')]).toEqual([90, true, false]);
+    a.pass(1).use(A1, 'shot.water', B1).end(); // its own Mark: +10 from the Mark, Flow, and a fresh Mark
+    expect([a.hp(B1), a.has(B1, 'mark'), a.has(A1, 'flow')]).toEqual([70, true, true]);
+    const b = arena({ p0: [['shot.water'], ['shot']], p1: [['shot']] });
+    b.use(A1, 'shot.water', B1).use(A2, 'shot', B1).end(); // an ally cashes in the Mark
+    expect([b.hp(B1), b.has(B1, 'mark')]).toEqual([100 - 10 - 15 - 10, false]);
   });
 
-  it('Tidal Arrow: requires Flow; lands 40 a turn later', () => {
+  it('Tidal Arrow: lands 40 a turn later with a hidden target, then the user gains Flow', () => {
     const a = arena({ p0: [['snipe.water']], p1: [['shot']] });
-    expect(a.reject(() => a.use(A1, 'snipe.water', B1))).toBe('cannot_act');
-    a.give(A1, 'flow').use(A1, 'snipe.water', B1).end();
-    expect(a.hp(B1)).toBe(100);
+    a.use(A1, 'snipe.water', B1).end();
+    expect(viewFor(content, a.state, 1).effects.find((e) => e.bearer === A1)?.targets).toEqual([]);
+    expect([a.hp(B1), a.has(A1, 'flow')]).toEqual([100, false]);
     a.pass(2);
-    expect(a.hp(B1)).toBe(60);
+    expect([a.hp(B1), a.has(A1, 'flow')]).toEqual([60, true]);
+  });
+
+  it('Tidal Arrow: Channeled; a Stun interrupts it, so no damage and no Flow', () => {
+    const a = arena({ p0: [['snipe.water']], p1: [['stun']] });
+    a.use(A1, 'snipe.water', B1).end();
+    a.use(B1, 'stun', A1).end().pass(2);
+    expect([a.hp(B1), a.has(A1, 'flow')]).toEqual([100, false]);
   });
 
   it('Whirlpool Trap: Strategic skills give the target Confusion', () => {
@@ -127,18 +137,29 @@ describe('Water skills', () => {
     expect(a.stacks(A1, 'renew') + a.stacks(A2, 'renew')).toBeGreaterThanOrEqual(1);
   });
 
-  it('Deluge: requires Flow; 15 to all and non-Strategic stun', () => {
+  it('Deluge: 15 to all; without Flow the user gains Flow, with Flow it consumes it to stun non-Strategic skills', () => {
     const a = arena({ p0: [['blast.water']], p1: [['shot'], ['shot']] });
-    expect(a.reject(() => a.use(A1, 'blast.water'))).toBe('cannot_act');
-    a.give(A1, 'flow').use(A1, 'blast.water').end();
-    expect([a.hp(B1), a.hp(B2), a.has(B2, 'stun_ns')]).toEqual([85, 85, true]);
+    a.use(A1, 'blast.water').end();
+    expect([a.hp(B1), a.hp(B2), a.has(B2, 'stun_ns'), a.has(A1, 'flow')]).toEqual([85, 85, false, true]);
+    a.pass(5).use(A1, 'blast.water').end(); // its own Flow pays off the next cast
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'stun_ns'), a.has(B2, 'stun_ns')]).toEqual([70, 70, true, true]);
+    expect(a.has(A1, 'flow')).toBe(false); // the Flow was consumed
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.pass(5).use(A1, 'blast.water').end(); // so the third cast regains Flow instead of stunning
+    expect([a.has(A1, 'flow'), a.has(B1, 'stun_ns')]).toEqual([true, false]);
   });
 
-  it('Drink Deeply: strips all allied Renew and heals 5 per stack', () => {
+  it('Drink Deeply: strips all allied Renew and heals 10 per stack', () => {
     const a = arena({ p0: [['consume.water'], ['shot']], p1: [['shot']] });
     a.give(A1, 'renew', { stacks: 2 }).give(A2, 'renew', { stacks: 3 }).setHp(A2, 40);
     a.use(A1, 'consume.water', A2).end();
-    expect([a.hp(A2), a.stacks(A1, 'renew'), a.stacks(A2, 'renew')]).toEqual([65, 0, 0]);
+    expect([a.hp(A2), a.stacks(A1, 'renew'), a.stacks(A2, 'renew')]).toEqual([90, 0, 0]);
+  });
+
+  it('Drink Deeply: with no allied Renew, the target gains 3 Renew instead', () => {
+    const a = arena({ p0: [['consume.water'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).use(A1, 'consume.water', A2).end();
+    expect([a.hp(A2), a.stacks(A2, 'renew')]).toEqual([40 + 15, 3 - 1]); // 3 Renew, which ticked once at the end of the turn
   });
 
   it('Water Elemental: 15 HP minion for 3 turns with an Uncounterable free hit', () => {
@@ -159,12 +180,13 @@ describe('Water skills', () => {
     expect(a.hp(B1)).toBe(a.hp(B2));
   });
 
-  it('Shell Knife: 10, or 25 with 3+ Renew', () => {
+  it('Shell Knife: 10 and 2 Renew for the user; 25 (and no Renew) with 3+ Renew', () => {
     const a = arena({ p0: [['stab.water']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'stab.water', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.stacks(A1, 'renew')]).toEqual([90, 60, 1]); // 2 Renew, ticked once
+    a.pass(1).give(A1, 'renew', { stacks: 2 }); // 1 + 2 = 3
     a.use(A1, 'stab.water', B1).end();
-    expect(a.hp(B1)).toBe(90);
-    a.give(A1, 'renew', { stacks: 3 }).pass(1).use(A1, 'stab.water', B1).end();
-    expect(a.hp(B1)).toBe(65);
+    expect([a.hp(B1), a.stacks(A1, 'renew')]).toEqual([65, 1]); // 25, and no new Renew (both instances ticked once)
   });
 
   it('Drown: 25 Piercing; extends an active Stun by 1 turn', () => {

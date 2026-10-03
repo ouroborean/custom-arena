@@ -218,16 +218,15 @@ consume.ice:
   archetype: Consume
   element: Ice
   name: Siphon Frost
-  description: Deals 10 damage to target enemy. If the target has two or more Frost debuffs, the user gains Frostborn for 2 turns.
+  description: Deals 10 damage to target enemy and Chills them for 2 turns. The user gains Frostborn for 2 turns.
   cost: r
   cooldown: 3
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10 }
-    - op: if
-      cond: { compare: { value: { count: { effects: [frostbitten, chilled, numb], in: primary } }, atLeast: 2 } }
-      then: [{ op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 } }]
+    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 } }
 
 summon.ice:
   archetype: Summon
@@ -294,7 +293,9 @@ ravage.ice:
   archetype: Ravage
   element: Ice
   name: Shardstorm
-  description: Deals 25 Piercing damage to all Frostbitten enemies. If the user is Frostborn, this skill deals 10 additional damage.
+  description: >-
+    Deals 10 Piercing damage to all enemies. Frostbitten enemies take 15 additional damage; the
+    others are afflicted with Frostbitten for 1 turn.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -306,22 +307,43 @@ ravage.ice:
         - op: if
           cond: { has: { unit: it, effect: frostbitten } }
           then:
-            - op: damage
-              to: it
-              type: Piercing
-              amount: { if: { has: { unit: actor, effect: frostborn } }, then: 35, else: 25 }
+            - { op: damage, to: it, amount: 25, type: Piercing }
+          else:
+            - { op: damage, to: it, amount: 10, type: Piercing }
+            - { op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }
 
 mislead.ice:
   archetype: Mislead
   element: Ice
   name: Iceform
-  description: The user becomes Frostborn for 1 turn.
+  description: >-
+    The user becomes Frostborn for 1 turn. Any enemy who uses a Harmful skill on them during this
+    time is Numbed for 2 turns before it lands.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 1 } }
+    # A watcher on each enemy: "on use" triggers fire before the skill resolves, so the Numb is in
+    # place in time for Frostborn to block that skill's Debuffs.
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 1 }
+      effect:
+        id: iceform
+        name: Iceform
+        kind: Debuff
+        element: Ice
+        description: Using a Harmful skill on the Iceform user Numbs the bearer for 2 turns before it lands.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - op: if
+                cond: { any: { in: eventTargets, cond: { isActor: it } } }
+                then:
+                  - { op: apply, to: bearer, effect: numb, duration: { enemyTurns: 2 } }
 
 stun.ice:
   archetype: Stun
@@ -339,7 +361,9 @@ dance.ice:
   archetype: Dance
   element: Ice
   name: Boreal Dance
-  description: Deals 10 damage to each enemy for each Frost debuff that enemy has.
+  description: >-
+    Deals 10 damage to all enemies, plus 10 for each Frost debuff they have. Enemies with no Frost
+    debuffs are Chilled and Numbed for 1 turn.
   cost: AI
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -348,12 +372,14 @@ dance.ice:
     - op: forEach
       in: targets
       do:
+        - op: damage
+          to: it
+          amount: { sum: [10, { mul: [10, { count: { effects: [frostbitten, chilled, numb], in: it } }] }] }
         - op: if
-          cond: { compare: { value: { count: { effects: [frostbitten, chilled, numb], in: it } }, atLeast: 1 } }
+          cond: { compare: { value: { count: { effects: [frostbitten, chilled, numb], in: it } }, atMost: 0 } }
           then:
-            - op: damage
-              to: it
-              amount: { mul: [10, { count: { effects: [frostbitten, chilled, numb], in: it } }] }
+            - { op: apply, to: it, effect: chilled, duration: { enemyTurns: 1 } }
+            - { op: apply, to: it, effect: numb, duration: { enemyTurns: 1 } }
 
 heal.ice:
   archetype: Heal
@@ -372,13 +398,14 @@ bless.ice:
   archetype: Bless
   element: Ice
   name: Boreal Aegis
-  description: Target ally gains Frostborn until the end of their next turn.
+  description: Target ally gains Frostborn until the end of their next turn, and all enemies are Chilled for 1 turn.
   cost: I
-  cooldown: 1
+  cooldown: 3 # was 1; raised with the Chill-all rewrite (2026-10-03)
   tags: [Helpful, Strategic]
   target: ally
   ops:
     - { op: apply, to: primary, effect: frostborn, duration: { ownTurns: 1 } }
+    - { op: apply, to: allEnemies, effect: chilled, duration: { enemyTurns: 1 } }
 
 curse.ice:
   archetype: Curse
@@ -482,16 +509,23 @@ titan.ice:
   archetype: Titan
   element: Ice
   name: Frost Giant
-  description: The user gains Frostborn for 1 turn for each 15 health they are missing.
+  description: >-
+    All enemies are Chilled for 2 turns. The user gains Frostborn for 1 turn for each 15 health
+    they are missing (at least 1 turn).
   cost: Sr
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - { op: apply, to: allEnemies, effect: chilled, duration: { enemyTurns: 2 } }
     - op: apply
       to: actor
       effect: frostborn
-      duration: { enemyTurns: { div: [{ missingHp: actor }, 15] } }
+      duration:
+        enemyTurns:
+          if: { compare: { value: { div: [{ missingHp: actor }, 15] }, atLeast: 1 } }
+          then: { div: [{ missingHp: actor }, 15] }
+          else: 1
 
 # ---------------------------------------------------------------- minion skills
 

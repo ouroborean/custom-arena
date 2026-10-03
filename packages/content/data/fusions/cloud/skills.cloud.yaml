@@ -379,15 +379,16 @@ stab.cloud:
   archetype: Stab
   element: Cloud
   name: Sleet Needle
-  description: Deals 10 damage to target enemy. The user spends all their Swiftness, dealing 10 more per stack.
+  description: >-
+    Deals 5 damage to target enemy, and a second needle hangs in the sleet: 10 more damage Drifts onto
+    them at the start of the user's next turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: swift, value: { stacks: { unit: actor, effect: swiftness } } }
-    - { op: removeEffect, from: actor, effect: swiftness }
-    - { op: damage, to: primary, amount: { sum: [10, { mul: [10, { var: swift }] }] } }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, value: 10, duration: { raw: 2 }, effect: drifting_hit }
 
 ravage.cloud:
   archetype: Ravage

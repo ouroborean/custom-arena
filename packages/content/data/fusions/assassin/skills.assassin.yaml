@@ -120,13 +120,15 @@ shot.assassin:
   element: Assassin
   name: Blowdart
   description: >-
-    Deals 10 Piercing damage to target enemy. For 2 turns, their Toxin, Weakness and Vulnerable can't be removed.
+    Deals 10 Piercing damage to target enemy, who gains 1 Toxin. For 2 turns, their Toxin, Weakness and
+    Vulnerable can't be removed.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10, type: Piercing }
+    - { op: apply, to: primary, effect: toxin }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
@@ -208,13 +210,15 @@ maneuver.assassin:
   element: Assassin
   name: Covering Smoke
   description: >-
-    The user becomes Invulnerable for 1 turn. Meanwhile, Stealthed allies stay Stealthed whatever skills they use.
+    The user becomes Invulnerable for 1 turn, and their other ally with the least HP gains Stealth for as
+    long. Meanwhile, Stealthed allies stay Stealthed whatever skills they use.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: weakestOtherAlly, effect: stealth, duration: { enemyTurns: 1 } }
     - op: apply
       to: { filter: allAllies, where: { has: { unit: it, effect: stealth } } }
       duration: { enemyTurns: 1 }
@@ -281,18 +285,20 @@ consume.assassin:
   element: Assassin
   name: Fulfill the Contract
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If this executes them through your Death Mark, the
-    user heals 30 more and gains Stealth.
+    Deals 5 damage to target enemy, healing the user for it, and executes them if that leaves them at or below 15
+    HP. If they die, the user heals 30 more and gains Stealth.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: marked, value: { if: { has: { unit: primary, effect: death_mark } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: 5 }
+    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - op: forEach
+      in: { filter: allEnemies, where: { and: [{ isPrimary: it }, { hpAtMost: { unit: it, value: 15 } }] } }
+      do: [{ op: kill, to: it }]
     - op: if
-      cond: { and: [{ varTrue: marked }, { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }] }
+      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
       then:
         - { op: heal, to: actor, amount: 30 }
         - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }

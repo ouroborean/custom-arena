@@ -169,13 +169,13 @@ describe('Poison skills', () => {
     expect(a.stacks(B1, 'toxin')).toBe(2);
   });
 
-  it('Pounce: 5 Piercing; against Prey, the user gains a random energy', () => {
+  it('Pounce: 5 Piercing; against Prey, the user gains a random energy; otherwise 1 Toxin', () => {
     const a = arena({ p0: [['stab.poison']], p1: [['shot']] });
-    a.use(A1, 'stab.poison', B1).end();
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'stab.poison', B1).end();
     const gains = () => a.last.filter((e) => e.t === 'energyGained' && e.player === 0).length;
-    expect(gains()).toBe(0);
+    expect([gains(), a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([0, 90, 1]); // 5 Piercing through Armor, then a Toxin tick
     a.pass(1).give(B1, 'prey').use(A1, 'stab.poison', B1).end();
-    expect(gains()).toBe(1);
+    expect([gains(), a.stacks(B1, 'toxin')]).toEqual([1, 1]); // no more Toxin
   });
 
   it('Envenom: 25 Piercing that Bypasses Invulnerable; 2 Toxin against Prey or Invulnerable targets', () => {

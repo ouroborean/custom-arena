@@ -384,23 +384,23 @@ describe('Faerie skills', () => {
     expect(a.hp(B1)).toBe(75); // first tick 10, then the shot 15; no second tick
   });
 
-  it('Nettle Prick: 10 Piercing; until the user\'s next turn the target\'s Toxin also ticks at the start of their turn', () => {
+  it("Nettle Prick: 5 Piercing and 1 Toxin; until the user's next turn the target's Toxin also ticks at the start of their turn", () => {
     const a = arena({ p0: [['stab.faerie']], p1: [['shot']] });
     a.give(B1, 'toxin', { stacks: 2, source: A1 }).give(B1, 'armor', { stacks: 2 });
-    a.use(A1, 'stab.faerie', B1).end(); // 10 Piercing + 10 Toxin tick, then 10 more at the start of B's turn
-    expect(a.hp(B1)).toBe(70);
+    a.use(A1, 'stab.faerie', B1).end(); // 5 Piercing + 15 Toxin tick, then 15 more at the start of B's turn
+    expect([a.stacks(B1, 'toxin'), a.hp(B1)]).toEqual([3, 65]);
     a.pass(1);
-    expect(a.hp(B1)).toBe(70);
+    expect(a.hp(B1)).toBe(65);
     a.pass(1); // the normal tick at the end of the user's turn
-    expect(a.hp(B1)).toBe(60);
+    expect(a.hp(B1)).toBe(50);
     a.pass(1); // the extra tick is gone
-    expect(a.hp(B1)).toBe(60);
+    expect(a.hp(B1)).toBe(50);
   });
 
-  it('Nettle Prick: without Toxin it\'s just 10 Piercing', () => {
+  it('Nettle Prick: on a clean target, its own Toxin ticks twice', () => {
     const a = arena({ p0: [['stab.faerie']], p1: [['shot']] });
     a.use(A1, 'stab.faerie', B1).end().pass(1);
-    expect(a.hp(B1)).toBe(90);
+    expect([a.stacks(B1, 'toxin'), a.hp(B1)]).toEqual([1, 85]);
   });
 
   it('Wasp Dive: spends all Swiftness for +10 per stack on 25 Piercing', () => {

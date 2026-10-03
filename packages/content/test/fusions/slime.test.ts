@@ -346,17 +346,23 @@ describe('Slime skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([75, 75]);
   });
 
-  it('Digest: 5 damage, healing the user for it', () => {
+  it('Digest: 5 damage, healing the user for it; a new 10 HP Ooze Engulfs the target for 1 turn', () => {
     const a = arena({ p0: [['consume.slime']], p1: three() });
     a.setHp(A1, 50).use(A1, 'consume.slime', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 55]);
+    expect([a.hp(B1), a.hp(A1), engulfed(a, B1)]).toEqual([90, 55, true]); // 5, then the Engulf's 5 Affliction
+    expect(oozeHp(a)).toEqual([10]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().end();
+    expect(engulfed(a, B1)).toBe(false);
   });
 
   it('Digest: an Engulfed target is digested: 20 Affliction, healing the user as much', () => {
     const a = arena({ p0: [['stun.slime', 'consume.slime']], p1: three() });
     swallow(a);
+    const before = oozes(a).length;
     a.pass(1).setHp(A1, 50).give(B1, 'shield', { value: 50 }).use(A1, 'consume.slime', B1).end();
     expect([a.hp(B1), a.hp(A1)]).toEqual([95 - 20 - 5, 70]);
+    expect(oozes(a).length).toBe(before); // digested instead: no new Ooze
   });
 
   it('Slime Mother: 30 HP for 3 turns, no Split; Gloop deals 10', () => {

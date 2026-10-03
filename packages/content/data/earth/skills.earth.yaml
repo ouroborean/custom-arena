@@ -220,7 +220,9 @@ consume.earth:
   archetype: Consume
   element: Earth
   name: Worldmarch
-  description: Sacrifices all allied Seedling minions and creates that many Worldsprout minions.
+  description: >-
+    Sacrifices all allied Seedling minions and creates that many Worldsprout minions. If there were
+    none, the user creates 2 Seedling minions instead.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -229,8 +231,13 @@ consume.earth:
     - op: set
       var: seedlings
       value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
-    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
-    - { op: repeat, times: { var: seedlings }, do: [{ op: summon, minion: worldsprout }] }
+    - op: if
+      cond: { varTrue: seedlings }
+      then:
+        - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+        - { op: repeat, times: { var: seedlings }, do: [{ op: summon, minion: worldsprout }] }
+      else:
+        - { op: summon, minion: seedling, count: 2 }
 
 summon.earth:
   archetype: Summon
@@ -406,12 +413,13 @@ curse.earth:
   archetype: Curse
   element: Earth
   name: Worldmute
-  description: For each Might target ally has, a random enemy gains 1 Weakness.
+  description: Target ally gains 1 Might for 4 turns. Then, for each Might they have, a random enemy gains 1 Weakness.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
+    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 4 } }
     - op: repeat
       times: { stacks: { unit: primary, effect: might } }
       do:
@@ -463,27 +471,38 @@ cleave.earth:
   archetype: Cleave
   element: Earth
   name: Vine Whirl
-  description: Deals 5 damage to all enemies. If there's an allied Boulder, a random one is launched (as Launch Stone).
+  description: >-
+    Deals 5 damage to all enemies. If there's an allied Boulder, a random one is launched (as Launch
+    Stone); otherwise, the user creates a Boulder minion.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
+    - op: set
+      var: boulders
+      value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
     - { op: damage, to: targets, amount: 5 }
-    - op: forEach
-      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
-      do: [{ op: macro, id: launch_boulder }]
+    - op: if
+      cond: { varTrue: boulders }
+      then:
+        - op: forEach
+          in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
+          do: [{ op: macro, id: launch_boulder }]
+      else:
+        - { op: summon, minion: boulder }
 
 shout.earth:
   archetype: Shout
   element: Earth
   name: Awakener's Roar
-  description: All allied Boulder minions gain 1 Armor and are healed to full HP.
+  description: The user creates a Boulder minion. Then all allied Boulder minions gain 1 Armor and are healed to full HP.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - { op: summon, minion: boulder }
     - op: forEach
       in: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } }
       do:
@@ -532,12 +551,16 @@ titan.earth:
   archetype: Titan
   element: Earth
   name: Treant Form
-  description: For 4 turns, the user gains 1 Might per allied Seedling and 5 Shield per allied Boulder.
+  description: >-
+    The user creates a Seedling and a Boulder minion. Then, for 4 turns, they gain 1 Might per allied
+    Seedling and 5 Shield per allied Boulder.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
+    - { op: summon, minion: seedling }
+    - { op: summon, minion: boulder }
     - op: apply
       to: actor
       effect: might

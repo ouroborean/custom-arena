@@ -243,18 +243,30 @@ describe('Ocean skills', () => {
     expect([a.stacks(A1, 'renew'), a.stacks(A2, 'renew')]).toEqual([2, 2]);
   });
 
-  it('Ebbing Toll: 5 and the user heals 5; for 2 turns the target\'s Confusion heals the user 10 per extra energy', () => {
+  it('Ebbing Toll: 5 and the user heals 5; the target gains 1 Confusion for 2 turns', () => {
     const a = arena({ p0: [['consume.ocean']], p1: [['shot']] });
-    a.setHp(A1, 50).give(B1, 'confusion', { source: A1, duration: 10 }).use(A1, 'consume.ocean', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 55]);
-    a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(55 - 15 + 10);
+    a.setHp(A1, 50).use(A1, 'consume.ocean', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.stacks(B1, 'confusion')]).toEqual([95, 55, 1]);
+    a.pass(4);
+    expect(a.has(B1, 'confusion')).toBe(false);
   });
 
-  it('Ebbing Toll: no Confusion, no healing', () => {
+  it('Ebbing Toll: for 2 turns, each skill the target uses while Confused heals the user 5 per Confusion', () => {
     const a = arena({ p0: [['consume.ocean']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'consume.ocean', B1).end().use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(40);
+    a.setHp(A1, 50).use(A1, 'consume.ocean', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(55 - 15 + 5);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(45 - 15 + 5);
+    a.pass(1).use(B1, 'shot', A1).end(); // 2 turns are over
+    expect(a.hp(A1)).toBe(35 - 15);
+  });
+
+  it('Ebbing Toll: more Confusion from elsewhere pays out more', () => {
+    const a = arena({ p0: [['consume.ocean']], p1: [['shot']] });
+    a.setHp(A1, 50).give(B1, 'confusion', { source: A1, duration: 10 }).use(A1, 'consume.ocean', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(55 - 15 + 10);
   });
 
   it('Jellyfish Bloom: 3 Jellyfish (10 HP) for 3 turns', () => {
