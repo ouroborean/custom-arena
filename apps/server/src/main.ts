@@ -27,6 +27,7 @@ const app = await buildApp({
   devGrants: config.devGrants,
   testGold: config.testGold,
   seasons,
+  trustProxy: config.trustProxy,
   logger: true,
 });
 

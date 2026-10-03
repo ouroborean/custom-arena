@@ -20,6 +20,8 @@ export interface ServerConfig {
   testGold: number;
   /** Ranked season schedule (default: seasons.json next to the server's package.json). */
   seasonsFile?: string;
+  /** Behind a reverse proxy on this machine (TRUST_PROXY=1): client IPs come from X-Forwarded-For. */
+  trustProxy: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -33,5 +35,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     devGrants: env.NODE_ENV !== 'production',
     testGold: env.NODE_ENV === 'production' ? 0 : Number(env.TEST_GOLD ?? 0),
     ...(env.SEASONS_FILE ? { seasonsFile: env.SEASONS_FILE } : {}),
+    trustProxy: env.TRUST_PROXY === '1' || env.TRUST_PROXY === 'true',
   };
 }
