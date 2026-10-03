@@ -24,7 +24,7 @@ tutorial_2:
   name: "Statuses and Counters"
   description: "Buffs, Debuffs, and Invisible counters that punish the enemy's attacks."
   playerTeam:
-    - { name: "Squire", classId: knight, skills: [charge, riposte, shout], hp: 100 }
+    - { name: "Squire", classId: knight, skills: [charge, riposte, shout, strike], hp: 100 }
     - { name: "Acolyte", classId: priest, skills: [heal, bless], hp: 100 }
   enemies:
     - { name: "Sparring Partner", classId: knight, skills: [strike], hp: 80 }
