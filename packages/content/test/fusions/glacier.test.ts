@@ -109,17 +109,19 @@ describe('Glacier skills', () => {
     expect(a.stacks(A2, 'renew')).toBe(3); // only the user's Renew
   });
 
-  it('Meltwater Rush: 15 damage; a Chilled target loses the Chill and the user gains Meltwater for 2 turns', () => {
-    const a = arena({ p0: [['charge.glacier']], p1: [['shot']] });
-    a.give(B1, 'chilled', { source: A1 }).use(A1, 'charge.glacier', B1).end();
-    expect([a.hp(B1), a.has(B1, 'chilled'), a.has(A1, 'meltwater')]).toEqual([85, false, true]);
-    expect(appliedDur(a, A1, 'meltwater')).toBe(4);
-  });
-
-  it('Meltwater Rush: no Meltwater against a target that isn’t Chilled', () => {
+  it('Meltwater Rush: 15 damage, and the user gains Meltwater for 1 turn', () => {
     const a = arena({ p0: [['charge.glacier']], p1: [['shot']] });
     a.use(A1, 'charge.glacier', B1).end();
-    expect([a.hp(B1), a.has(A1, 'meltwater')]).toEqual([85, false]);
+    expect([a.hp(B1), a.has(A1, 'meltwater')]).toEqual([85, true]);
+    expect(appliedDur(a, A1, 'meltwater')).toBe(2);
+  });
+
+  it('Meltwater Rush: 2 turns of Meltwater if the target has a skill on cooldown', () => {
+    const a = arena({ p0: [['charge.glacier']], p1: [['shot', 'smash']] });
+    setCd(a, B1, 'smash', 2);
+    a.use(A1, 'charge.glacier', B1).end();
+    expect([a.hp(B1), a.has(A1, 'meltwater')]).toEqual([85, true]);
+    expect(appliedDur(a, A1, 'meltwater')).toBe(4);
   });
 
   it('Pressure Ridge: Invisible; counters only the first Harmful skill used on the user', () => {
@@ -312,10 +314,11 @@ describe('Glacier skills', () => {
     expect(appliedDur(a, A1, 'meltwater')).toBe(4);
   });
 
-  it('Stolen Thaw: no Meltwater if the target isn’t Icebound', () => {
+  it('Stolen Thaw: a target that isn’t Icebound becomes Icebound for 1 turn instead (no Meltwater)', () => {
     const a = arena({ p0: [['consume.glacier']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.glacier', B1).end();
-    expect([a.hp(A1), a.has(A1, 'meltwater')]).toEqual([55, false]);
+    expect([a.hp(B1), a.hp(A1), a.has(A1, 'meltwater'), a.has(B1, 'icebound')]).toEqual([95, 55, false, true]);
+    expect(appliedDur(a, B1, 'icebound')).toBe(2);
   });
 
   it('Advancing Glacier: a 50 HP Ice Tongue idles 2 turns, then deals 30 Piercing each turn until it leaves after 4', () => {
@@ -355,12 +358,12 @@ describe('Glacier skills', () => {
   });
 
   it('Hoarfrost Pick: for 2 turns, Frost debuffs on the target can’t be removed', () => {
-    const a = arena({ p0: [['stab.glacier'], ['charge.glacier']], p1: [['shot']] });
+    const a = arena({ p0: [['stab.glacier'], ['blast.glacier']], p1: [['shot']] });
     a.give(B1, 'chilled', { source: A1 });
-    a.use(A1, 'stab.glacier', B1).use(A2, 'charge.glacier', B1).end();
+    a.use(A1, 'stab.glacier', B1).use(A2, 'blast.glacier').end();
     expect(a.has(B1, 'chilled')).toBe(true);
-    const b = arena({ p0: [['shot'], ['charge.glacier']], p1: [['shot']] }); // control
-    b.give(B1, 'chilled', { source: A1 }).use(A2, 'charge.glacier', B1).end();
+    const b = arena({ p0: [['shot'], ['blast.glacier']], p1: [['shot']] }); // control
+    b.give(B1, 'chilled', { source: A1 }).use(A2, 'blast.glacier').end();
     expect(b.has(B1, 'chilled')).toBe(false);
   });
 

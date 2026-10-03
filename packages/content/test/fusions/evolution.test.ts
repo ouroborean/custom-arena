@@ -140,17 +140,24 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Charge
-  it('Scent Trail: 10 damage; the next Toxin-giving skill also gives it to every Prey enemy, once', () => {
-    const a = arena({ p0: [['charge.evolution', 'strike.evolution', 'shot']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
-    a.give(B2, 'prey');
+  it('Scent Trail I: 10 damage and 1 Toxin; the user gains 1 Focus', () => {
+    const a = arena({ p0: [['charge.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
     a.use(A1, 'charge.evolution', B1).end();
-    expect(a.hp(B1)).toBe(190);
-    a.pass(1).use(A1, 'shot', B1).end(); // gives no Toxin: doesn't use it up
-    expect(a.stacks(B2, 'toxin')).toBe(0);
-    a.pass(1).use(A1, 'strike.evolution', B1).end();
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([1, 1, 0]);
-    a.pass(1).use(A1, 'strike.evolution', B1).end(); // used up: no more spreading
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin')]).toEqual([2, 1]);
+    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.stacks(A1, 'focus')]).toEqual([185, 1, 1]);
+  });
+
+  it('Scent Trail II: 2 Toxin instead', () => {
+    const a = arena({ p0: [['charge.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
+    evolveTo(a, A1, 'charge.evolution', 2, B1).use(A1, 'charge.evolution', B1).end();
+    expect([a.stacks(B1, 'toxin'), a.stacks(A1, 'focus')]).toEqual([2, 1]);
+    expect([B2, B3].some((u) => a.has(u, 'toxin'))).toBe(false);
+  });
+
+  it('Scent Trail III: a random other enemy also gains 1 Toxin', () => {
+    const a = arena({ p0: [['charge.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
+    evolveTo(a, A1, 'charge.evolution', 3, B1).use(A1, 'charge.evolution', B1).end();
+    expect(a.stacks(B1, 'toxin')).toBe(2);
+    expect([B2, B3].map((u) => a.stacks(u, 'toxin')).sort()).toEqual([0, 1]);
   });
 
   // ---------------------------------------------------------------- Riposte
@@ -444,18 +451,27 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Consume
-  it('Cull the Weak: removes all Toxin; kills at HP ≤ 5 per stack', () => {
+  it('Cull the Weak: the target gains 3 Toxin, then all of it is culled; kills at HP ≤ 5 per stack', () => {
     const a = arena({ p0: [['consume.evolution']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 4, source: A1 }).setHp(B1, 20);
-    a.use(A1, 'consume.evolution', B1).end();
+    a.give(B1, 'toxin', { stacks: 1, source: A1 }).setHp(B1, 20);
+    a.use(A1, 'consume.evolution', B1).end(); // 1 + 3 = 4 stacks: 20 HP
     expect(a.unit(B1).alive).toBe(false);
   });
 
   it('Cull the Weak: otherwise the user heals 5 per stack removed', () => {
     const a = arena({ p0: [['consume.evolution']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 4, source: A1 }).setHp(B1, 21).setHp(A1, 50);
+    a.give(B1, 'toxin', { stacks: 1, source: A1 }).setHp(B1, 21).setHp(A1, 50);
     a.use(A1, 'consume.evolution', B1).end();
     expect([a.unit(B1).alive, a.hp(B1), a.has(B1, 'toxin'), a.hp(A1)]).toEqual([true, 21, false, 70]);
+  });
+
+  it('Cull the Weak: on its own, its 3 Toxin kill at HP ≤ 15 or heal 15', () => {
+    const a = arena({ p0: [['consume.evolution']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 15).use(A1, 'consume.evolution', B1).end();
+    expect(a.unit(B1).alive).toBe(false);
+    const b = arena({ p0: [['consume.evolution']], p1: [['shot'], ['shot']] });
+    b.setHp(B1, 16).setHp(A1, 50).use(A1, 'consume.evolution', B1).end();
+    expect([b.unit(B1).alive, b.hp(B1), b.hp(A1)]).toEqual([true, 16, 65]);
   });
 
   // ---------------------------------------------------------------- Summon
@@ -875,7 +891,7 @@ describe('Evolution skills', () => {
     const a = arena({ p0: [['shout.evolution'], ['consume.evolution']], p1: [['shot']], hp: 200 });
     a.give(B1, 'toxin', { stacks: 3, source: A1 });
     a.use(A1, 'shout.evolution').use(A2, 'consume.evolution', B1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(3);
+    expect(a.stacks(B1, 'toxin')).toBe(6); // Cull the Weak's 3 land, but none can be removed
     a.pass(4);
     ready(a, A2, 'consume.evolution').use(A2, 'consume.evolution', B1).end();
     expect(a.has(B1, 'toxin')).toBe(false);

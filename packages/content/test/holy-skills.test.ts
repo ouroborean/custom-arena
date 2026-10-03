@@ -128,8 +128,26 @@ describe('Holy skills', () => {
   it('Ascension: 5; against a Sanctified target, the user is permanently Anointed', () => {
     const a = arena({ p0: [['consume.holy']], p1: [['shot']] });
     a.give(B1, 'sanctify').use(A1, 'consume.holy', B1).end();
+    expect(a.hp(B1)).toBe(95);
     const anoint = a.effects(A1).find((e) => e.defId === 'anointed');
     expect(anoint?.duration).toBeNull();
+  });
+
+  it("Ascension: otherwise, the enemy is Sanctified for 1 turn and the user Anointed until the end of their next turn", () => {
+    const a = arena({ p0: [['consume.holy'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'consume.holy', B1).end();
+    expect([a.hp(B1), a.has(B1, 'sanctify'), a.has(A1, 'anointed')]).toEqual([95, true, true]);
+    expect(a.effects(A1).find((e) => e.defId === 'anointed')?.duration).not.toBeNull();
+    a.pass(1); // the enemy's turn ends: the 1-turn Sanctify is gone
+    expect([a.has(B1, 'sanctify'), a.has(A1, 'anointed')]).toEqual([false, true]);
+    a.pass(1); // the user's next turn ends: so does the Anoint
+    expect(a.has(A1, 'anointed')).toBe(false);
+  });
+
+  it('Ascension: a Sanctify from an ally earlier in the turn already counts', () => {
+    const a = arena({ p0: [['consume.holy'], ['bolt.holy']], p1: [['shot']] });
+    a.use(A2, 'bolt.holy', B1).use(A1, 'consume.holy', B1).end();
+    expect(a.effects(A1).find((e) => e.defId === 'anointed')?.duration).toBeNull();
   });
 
   it('Divine Blessing: its Blessing from Above Anoints an ally, then it dies', () => {
@@ -171,12 +189,28 @@ describe('Holy skills', () => {
     expect(a.effects(A2).find((e) => e.defId === 'anointed')?.duration).toBeNull();
   });
 
-  it('Repentance: only targets Condemned enemies; Stuns them for 1 turn', () => {
+  it("Repentance: an enemy who isn't Condemned is Condemned for 1 turn, not Stunned", () => {
+    const a = arena({ p0: [['stun.holy']], p1: [['shot']] });
+    a.use(A1, 'stun.holy', B1).end();
+    expect([a.has(B1, 'condemned'), a.has(B1, 'stun')]).toEqual([true, false]);
+    a.use(B1, 'shot', A1).end();
+    expect(debuffCount(a, B1)).toBe(1); // the Condemn resolved on their skill
+  });
+
+  it("Repentance: a 1-turn Condemn it applies runs out after the enemy's turn", () => {
+    const a = arena({ p0: [['stun.holy']], p1: [['shot']] });
+    a.use(A1, 'stun.holy', B1).end().pass(1);
+    expect(a.has(B1, 'condemned')).toBe(false);
+  });
+
+  it('Repentance: an already Condemned enemy is Stunned for 1 turn instead', () => {
     const a = arena({ p0: [['stun.holy']], p1: [['shot'], ['shot']] });
     a.give(B2, 'condemned', { source: A1 });
-    expect(a.reject(() => a.use(A1, 'stun.holy', B1))).toBe('bad_target');
     a.use(A1, 'stun.holy', B2).end();
     expect(a.has(B2, 'stun')).toBe(true);
+    expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('cannot_act');
+    a.end();
+    expect(a.has(B2, 'stun')).toBe(false);
   });
 
   it("Angel's Grace: Invulnerable, Immune and Ghosted for 3 turns", () => {
@@ -235,11 +269,20 @@ describe('Holy skills', () => {
     expect(a.hp(A2)).toBe(55);
   });
 
-  it('Excoriate: Sanctified enemies are Condemned for 1 turn, even Invulnerable ones', () => {
+  it('Excoriate: Sanctified enemies are Condemned for 1 turn, even Invulnerable ones; the others are Sanctified', () => {
     const a = arena({ p0: [['shout.holy']], p1: [['shot'], ['shot']] });
     a.give(B1, 'sanctify').give(B1, 'invulnerable');
     a.use(A1, 'shout.holy').end();
     expect([a.has(B1, 'condemned'), a.has(B2, 'condemned')]).toEqual([true, false]);
+    expect(a.has(B2, 'sanctify')).toBe(true);
+  });
+
+  it('Excoriate: with no Sanctified enemies, every enemy is Sanctified for 1 turn', () => {
+    const a = arena({ p0: [['shout.holy'], ['shot']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'invulnerable').use(A1, 'shout.holy').end();
+    expect([a.has(B1, 'sanctify'), a.has(B2, 'sanctify'), a.has(B1, 'condemned')]).toEqual([true, true, false]);
+    a.pass(1);
+    expect([a.has(B1, 'sanctify'), a.has(B2, 'sanctify')]).toEqual([false, false]);
   });
 
   it('Shield of Faith: 20 Shield; Immune for 2 turns if Anointed', () => {
@@ -257,10 +300,17 @@ describe('Holy skills', () => {
     expect([a.has(B1, 'taunt'), a.has(B1, 'condemned')]).toEqual([false, false]);
   });
 
-  it('Grand Crusader: 10 to all enemies; +1 Might and +1 Armor per Sanctified or Condemned enemy hit', () => {
-    const a = arena({ p0: [['titan.holy']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B1, 'sanctify').give(B2, 'condemned', { source: A1 });
-    a.use(A1, 'titan.holy').end();
+  it('Grand Crusader: 10 to all enemies and Sanctify for 1 turn; 2 Might and 2 Armor for 3 turns', () => {
+    const a = arena({ p0: [['titan.holy'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(A2, 50).use(A1, 'titan.holy').use(A2, 'shot', B1).end();
+    expect([a.hp(B2), a.hp(B3)]).toEqual([90, 90]);
+    expect(a.hp(A2)).toBe(65); // the ally's hit on a Sanctified enemy heals them 15
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([2, 2]);
+    a.pass(1);
+    expect([B1, B2, B3].some((b) => a.has(b, 'sanctify'))).toBe(false);
+    a.pass(3); // through the enemy's third turn…
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([2, 2]);
+    a.pass(1); // …and gone after it
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([0, 0]);
   });
 });

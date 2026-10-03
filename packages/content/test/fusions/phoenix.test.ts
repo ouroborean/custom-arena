@@ -389,20 +389,30 @@ describe('Phoenix skills', () => {
     expect([a.has(A1, 'confusion'), a.has(A2, 'weakness'), a.has(A2, 'might')]).toEqual([false, false, true]);
   });
 
-  it('Draw the Flame: 5 drain; every Ignite on enemies goes out, healing the weakest ally 10 each', () => {
+  it('Draw the Flame: 5 drain; an Ignited target\'s Ignite goes out, and the weakest ally heals 15 and gains 2 Renew', () => {
     const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
     a.setHp(A1, 90).setHp(A2, 30);
-    a.give(B1, 'ignite', { source: A2 }).give(B2, 'ignite', { source: A2 }).give(A1, 'ignite', { source: B1 });
-    a.use(A1, 'consume.phoenix', B1).end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, false]);
-    expect(a.has(A1, 'ignite')).toBe(true); // allies' Ignites stay
-    expect([a.hp(A1), a.hp(A2), a.hp(B1), a.hp(B2)]).toEqual([95, 50, 95, 100]);
+    a.give(B1, 'ignite', { source: A2 }).give(B2, 'ignite', { source: A2 });
+    a.use(A1, 'consume.phoenix', B1);
+    a.end();
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, true]); // only the target's goes out
+    expect(a.stacks(A2, 'renew')).toBe(1); // 2 Renew, one already spent on its tick
+    // A1: 90 + 5 drain. A2: 30 + 15 + 10 (Renew). B1: only the 5 hit.
+    expect([a.hp(A1), a.hp(A2), a.hp(B1)]).toEqual([95, 55, 95]);
   });
 
-  it('Draw the Flame: with no Ignites, nobody else heals', () => {
+  it('Draw the Flame: a target that isn\'t Ignited becomes Ignited, and nobody else heals', () => {
     const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 30).use(A1, 'consume.phoenix', B1).end();
-    expect(a.hp(A2)).toBe(30);
+    expect([a.has(B1, 'ignite'), a.hp(A2), a.has(A2, 'renew')]).toEqual([true, 30, false]);
+    expect(a.hp(B1)).toBe(90); // 5 + the new Ignite's tick
+  });
+
+  it('Draw the Flame: its own Ignite pays off on its next use', () => {
+    const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 30).use(A1, 'consume.phoenix', B1).end().pass(5);
+    a.use(A1, 'consume.phoenix', B1).end();
+    expect([a.has(B1, 'ignite'), a.hp(A2)]).toEqual([false, 55]);
   });
 
   it('Ember Spirit: a 20 HP minion for 3 turns', () => {

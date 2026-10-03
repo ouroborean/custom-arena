@@ -19,16 +19,8 @@ prey:
     - and:
         - { has: { unit: it, effect: low_battery } }
         - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, sapped], moreThan: 2 } }
-    # Stasis: Frozen Quarry makes Frost debuffs count toward it.
-    - and:
-        - { has: { unit: it, effect: frozen_quarry } }
-        - { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion, frostbitten, chilled, numb], moreThan: 2 } }
     # Antidote: Find the Wound (at or below 60 HP).
     - { and: [{ has: { unit: it, effect: find_the_wound } }, { hpAtMost: { unit: it, value: 60 } }] }
-    # Spore: Fester Pod makes every Debuff count toward it.
-    - and:
-        - { has: { unit: it, effect: fester_pod } }
-        - { compare: { value: { kindCount: { unit: it, kind: Debuff } }, atLeast: 3 } }
     - and:
         - { has: { unit: it, effect: cinder_scent } }
         - { or: [{ has: { unit: it, effect: ignite } }, { has: { unit: it, effect: scorched } }] }

@@ -98,14 +98,16 @@ shot.water:
   archetype: Shot
   element: Water
   name: Coordinated Shot
-  description: Deals 10 damage to target enemy. If that enemy was Marked, the user gains Flow.
+  description: Deals 10 damage to target enemy and Marks them. If they were already Marked, the user gains Flow.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    # Check before the hit: the hit consumes an existing Mark (for its 10 extra damage).
     - { op: set, var: marked, value: { if: { has: { unit: primary, effect: mark } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: mark }
     - { op: if, cond: { varTrue: marked }, then: [{ op: apply, to: actor, effect: flow }] }
 
 snipe.water:
@@ -113,13 +115,12 @@ snipe.water:
   element: Water
   name: Tidal Arrow
   description: >-
-    The user deals 40 damage to target enemy on the following turn. The target of this skill is
-    invisible. Channeled. Requires Flow.
+    The user deals 40 damage to target enemy on the following turn, then gains Flow. The target of
+    this skill is invisible. Channeled.
   cost: Ir
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
   target: enemy
-  requires: { has: { unit: actor, effect: flow } }
   ops:
     - op: apply
       to: actor
@@ -132,9 +133,10 @@ snipe.water:
         element: Water
         visibility: hiddenTarget
         interruptible: true
-        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill.
+        description: Fires at the end of the following turn unless the user is stunned, dies or uses another skill; then the user gains Flow.
         onExpire:
           - { op: damage, to: effectTargets, amount: 40 }
+          - { op: apply, to: actor, effect: flow }
 
 trap.water:
   archetype: Trap
@@ -205,29 +207,43 @@ blast.water:
   archetype: Blast
   element: Water
   name: Deluge
-  description: Deals 15 damage to all enemies and stuns their non-Strategic skills for 1 turn. Requires Flow.
+  description: >-
+    Deals 15 damage to all enemies. If the user has Flow, it is consumed to also stun their
+    non-Strategic skills for 1 turn; otherwise, the user gains Flow.
   cost: II
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
-  requires: { has: { unit: actor, effect: flow } }
   ops:
+    - { op: set, var: flowing, value: { if: { has: { unit: actor, effect: flow } }, then: 1, else: 0 } }
     - { op: damage, to: targets, amount: 15 }
-    - { op: apply, to: targets, effect: stun_ns, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { varTrue: flowing }
+      then:
+        - { op: removeEffect, from: actor, effect: flow }
+        - { op: apply, to: targets, effect: stun_ns, duration: { enemyTurns: 1 } }
+      else: [{ op: apply, to: actor, effect: flow }]
 
 consume.water:
   archetype: Consume
   element: Water
   name: Drink Deeply
-  description: Removes all Renew from allied units to heal target ally 5 HP for each stack removed.
+  description: >-
+    Removes all Renew from allied units to heal target ally 10 HP for each stack removed. If there
+    was none, the target gains 3 Renew instead.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
     - { op: set, var: drunk, value: { totalStacks: { in: allAllies, effect: renew } } }
-    - { op: removeEffect, from: allAllies, effect: renew }
-    - { op: heal, to: primary, amount: { mul: [5, { var: drunk }] } }
+    - op: if
+      cond: { compare: { value: { var: drunk }, atLeast: 1 } }
+      then:
+        - { op: removeEffect, from: allAllies, effect: renew }
+        - { op: heal, to: primary, amount: { mul: [10, { var: drunk }] } }
+      else:
+        - { op: apply, to: primary, effect: renew, stacks: 3 }
 
 summon.water:
   archetype: Summon
@@ -273,16 +289,22 @@ stab.water:
   archetype: Stab
   element: Water
   name: Shell Knife
-  description: Deals 10 damage to target enemy, increased to 25 if the user has at least 3 stacks of Renew.
+  description: >-
+    Deals 10 damage to target enemy, increased to 25 if the user has at least 3 stacks of Renew;
+    otherwise, the user gains 2 Renew.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: if, cond: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }, then: [{ op: signal, name: stab_bonus }] }
-    - op: damage
-      to: primary
-      amount: { if: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }, then: 25, else: 10 }
+    - op: if
+      cond: { compare: { value: { stacks: { unit: actor, effect: renew } }, atLeast: 3 } }
+      then:
+        - { op: signal, name: stab_bonus }
+        - { op: damage, to: primary, amount: 25 }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: actor, effect: renew, stacks: 2 }
 
 ravage.water:
   archetype: Ravage

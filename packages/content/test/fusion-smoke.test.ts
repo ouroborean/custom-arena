@@ -35,7 +35,7 @@ describe('Fusion kits: every skill runs', () => {
           try {
             a.use(A1, s.id, target);
           } catch (e) {
-            // Skills with a requirement or target filter (Harvest needs a Seedling) may be refused here.
+            // Skills with a requirement or target filter (Thunder Talon needs 3 Tempest) may be refused here.
             if (!s.requires && !s.targetFilter) throw e;
           }
           a.end();

@@ -334,17 +334,34 @@ describe('Devil skills', () => {
     expect(a.has(B1, 'hellfire')).toBe(false);
   });
 
-  it('Collect: 5 damage; a Contract on the target ends now, its price is collected and the user gains 2 Soul Fragments', () => {
+  it('Collect: 5 damage; a Contract on the target ends now, its price is collected, and the user gains 1 + 1 Soul Fragments', () => {
     const a = arena({ p0: [['companion.devil', 'consume.devil']], p1: [['shot']] });
     const imp = withImp(a);
     a.use(imp, 'imp_notary_offer', B1).use(A1, 'consume.devil', B1).end();
+    // 5 hit + the Offer's 10 price, collected now.
     expect([a.hp(B1), contracts(a, B1), sf(a, A1)]).toEqual([85, 0, 2]);
   });
 
-  it('Collect: no Contract, just 5 damage', () => {
+  it('Collect: with no Contract, 5 damage and 1 Soul Fragment, and the target is put in debt (a Contract)', () => {
     const a = arena({ p0: [['consume.devil']], p1: [['shot']] });
     a.use(A1, 'consume.devil', B1).end();
-    expect([a.hp(B1), sf(a, A1)]).toEqual([95, 0]);
+    expect([a.hp(B1), sf(a, A1), contracts(a, B1), counts(a, B1, 'contract')]).toEqual([95, 1, 1, true]);
+  });
+
+  it('Collect: the debt lasts 2 turns, then its price is 15 Affliction damage', () => {
+    const a = arena({ p0: [['consume.devil']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 3 });
+    a.use(A1, 'consume.devil', B1).end().pass(2);
+    expect([contracts(a, B1), a.hp(B1)]).toEqual([1, 100]); // the Armor stopped the hit
+    a.pass(1);
+    expect([contracts(a, B1), a.hp(B1)]).toEqual([0, 85]);
+  });
+
+  it('Collect: the debt is a Contract the next Collect can collect early', () => {
+    const a = arena({ p0: [['consume.devil'], ['consume.devil']], p1: [['shot']] });
+    a.use(A1, 'consume.devil', B1).use(A2, 'consume.devil', B1).end();
+    // 5 + 5, and A2 collects A1's 15 now.
+    expect([a.hp(B1), contracts(a, B1), sf(a, A1), sf(a, A2)]).toEqual([75, 0, 1, 2]);
   });
 
   it('Imp Captain: 25 HP for 3 turns; Ember Whip deals 10', () => {
@@ -517,22 +534,37 @@ describe('Devil skills', () => {
     expect(a.hp(A2)).toBe(60); // 20 − 15
   });
 
-  it('Double or Nothing: heads — each Debuff gains 1 stack and lasts 2 turns longer; tails — all are removed', () => {
+  it('Double or Nothing: target enemy gains Hellfire for 1 turn, then a coin: heads — each Debuff gains 1 stack and lasts 2 turns longer; tails — the user gains 1 Soul Fragment', () => {
     const seen = new Set<string>();
     for (let seed = 1; seed <= 12; seed++) {
       const a = arena({ p0: [['curse.devil']], p1: [['shot']], seed });
       a.give(B1, 'weakness', { source: A1, duration: 6 }).give(B1, 'vulnerable', { source: A1, duration: 6 });
       a.use(A1, 'curse.devil', B1).end();
+      expect(a.has(B1, 'hellfire')).toBe(true);
       const w = a.effects(B1).filter((e) => e.defId === 'weakness');
-      const v = a.effects(B1).filter((e) => e.defId === 'vulnerable');
-      if (w.length === 0 && v.length === 0) {
+      const hf = a.effects(B1).find((e) => e.defId === 'hellfire')!;
+      if (sf(a, A1) === 1) {
         seen.add('tails');
+        expect([a.stacks(B1, 'weakness'), a.stacks(B1, 'vulnerable')]).toEqual([1, 1]);
+        expect(hf.duration).toBe(1); // 1 turn: the enemy's next turn
       } else {
         seen.add('heads');
-        expect([a.stacks(B1, 'weakness'), a.stacks(B1, 'vulnerable')]).toEqual([2, 2]);
+        expect([a.stacks(B1, 'weakness'), a.stacks(B1, 'vulnerable'), sf(a, A1)]).toEqual([2, 2, 0]);
         // 6, minus the end of turn 1, plus 2 turns (4 ticks).
         expect(Math.max(...w.map((e) => e.duration!))).toBe(6 - 1 + 4);
+        expect(hf.duration).toBe(1 + 4); // its own Hellfire lasts 3 turns
       }
+    }
+    expect([...seen].sort()).toEqual(['heads', 'tails']);
+  });
+
+  it('Double or Nothing: on a target with no Debuffs, heads still stretches its own Hellfire', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: [['curse.devil']], p1: [['shot']], seed });
+      a.use(A1, 'curse.devil', B1).end().pass(2);
+      seen.add(a.has(B1, 'hellfire') ? 'heads' : 'tails');
+      expect(a.has(B1, 'hellfire')).toBe(sf(a, A1) === 0);
     }
     expect([...seen].sort()).toEqual(['heads', 'tails']);
   });
@@ -564,18 +596,26 @@ describe('Devil skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([70, 70]);
   });
 
-  it('Choir of the Pit: for 2 turns, a Helpful skill used on a Horrified enemy gives a random ally of the user 1 Might', () => {
+  it('Choir of the Pit: all enemies are Horrified for 1 turn', () => {
+    const a = arena({ p0: [['prayer.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'prayer.devil').end();
+    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([true, true]);
+    a.pass(1);
+    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([false, false]);
+  });
+
+  it('Choir of the Pit: a Helpful skill used on a Horrified enemy fails and gives a random ally of the user 1 Might', () => {
     const a = arena({ p0: [['prayer.devil'], ['shot']], p1: [['shot'], ['bless']] });
-    a.give(B1, 'horrified', { source: A1 });
     a.use(A1, 'prayer.devil').end().use(B2, 'bless', B1).end();
     expect(a.stacks(A1, 'might') + a.stacks(A2, 'might')).toBe(1);
     expect(a.has(B1, 'might')).toBe(false);
   });
 
-  it('Choir of the Pit: Helpful skills on un-Horrified enemies give nothing', () => {
+  it('Choir of the Pit: once the Horrify is over, Helpful skills on enemies give nothing', () => {
     const a = arena({ p0: [['prayer.devil'], ['shot']], p1: [['shot'], ['bless']] });
-    a.use(A1, 'prayer.devil').end().use(B2, 'bless', B1).end();
+    a.use(A1, 'prayer.devil').end().pass(2).use(B2, 'bless', B1).end();
     expect(a.stacks(A1, 'might') + a.stacks(A2, 'might')).toBe(0);
+    expect(a.has(B1, 'might')).toBe(true);
   });
 
   it('Pyre Swing: 25 and 15; an enemy it kills Explodes (10 Affliction to every enemy)', () => {

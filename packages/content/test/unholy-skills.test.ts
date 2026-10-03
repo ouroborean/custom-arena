@@ -67,14 +67,31 @@ describe('Unholy skills', () => {
     expect([a.hp(A1), a.has(B1, 'horrified')]).toEqual([100, true]);
   });
 
-  it('Undying Fury: 10 per consumed fragment to random enemies, then Immortal that long', () => {
+  it('Undying Fury: at full health, 10 to one random enemy, then Immortal for 2 turns', () => {
     const a = arena({ p0: [['rage.unholy']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'rage.unholy').end();
-    expect(200 - a.hp(B1) - a.hp(B2)).toBe(30); // fragments are gone before the hits: no Might
-    expect([a.stacks(A1, 'soul_fragment'), a.has(A1, 'immortal')]).toEqual([0, true]);
-    const b = arena({ p0: [['rage.unholy']], p1: [['shot']] });
-    b.use(A1, 'rage.unholy').end();
-    expect([b.hp(B1), b.has(A1, 'immortal')]).toEqual([100, false]);
+    a.use(A1, 'rage.unholy').end();
+    expect(200 - a.hp(B1) - a.hp(B2)).toBe(10);
+    expect(a.has(A1, 'immortal')).toBe(true);
+    a.pass(2); // through the enemy's next turn and the user's…
+    expect(a.has(A1, 'immortal')).toBe(true);
+    a.pass(1); // …and gone after the enemy's second turn
+    expect(a.has(A1, 'immortal')).toBe(false);
+  });
+
+  it('Undying Fury: one more 10-damage hit for every 25 health the user is missing', () => {
+    const a = arena({ p0: [['rage.unholy']], p1: [['shot'], ['shot']], hp: 200 });
+    a.setHp(A1, 140).use(A1, 'rage.unholy').end(); // missing 60: 1 + 2 hits
+    expect(400 - a.hp(B1) - a.hp(B2)).toBe(30);
+    const b = arena({ p0: [['rage.unholy']], p1: [['shot'], ['shot']], hp: 200 });
+    b.setHp(A1, 125).use(A1, 'rage.unholy').end(); // missing 75: 1 + 3 hits
+    expect(400 - b.hp(B1) - b.hp(B2)).toBe(40);
+  });
+
+  it('Undying Fury: Immortal keeps the user at 5 health', () => {
+    const a = arena({ p0: [['rage.unholy']], p1: [['smash']] });
+    a.setHp(A1, 20).use(A1, 'rage.unholy').end();
+    a.use(B1, 'smash', A1).end();
+    expect(a.hp(A1)).toBe(5);
   });
 
   it('Bone Shard: +5 per fragment (plus their Might)', () => {
@@ -275,14 +292,27 @@ describe('Unholy skills', () => {
     expect(a.has(A1, 'lifesteal')).toBe(true);
   });
 
-  it('Soul Colossus: consumes fragments to heal 5 each, then 2 Armor and Immortal that long', () => {
-    const a = arena({ p0: [['titan.unholy']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).setHp(A1, 50).use(A1, 'titan.unholy').end();
-    expect([a.hp(A1), a.stacks(A1, 'armor'), a.has(A1, 'immortal'), a.stacks(A1, 'soul_fragment')]).toEqual([
-      60,
-      2,
-      true,
-      0,
-    ]);
+  it('Soul Colossus: 2 Armor and Immortal for 2 turns', () => {
+    const a = arena({ p0: [['titan.unholy']], p1: [['smash']] });
+    a.setHp(A1, 20).use(A1, 'titan.unholy').end();
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immortal')]).toEqual([2, true]);
+    a.use(B1, 'smash', A1).end();
+    expect(a.hp(A1)).toBe(5);
+    a.pass(1); // through the user's next turn…
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immortal')]).toEqual([2, true]);
+    a.pass(1); // …and gone after the enemy's second turn
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immortal')]).toEqual([0, false]);
+  });
+
+  it('Soul Colossus: the first time an enemy damages the user each turn, they gain a Soul Fragment', () => {
+    const a = arena({ p0: [['titan.unholy']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.unholy').end();
+    expect(a.stacks(A1, 'soul_fragment')).toBe(0);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.stacks(A1, 'soul_fragment')).toBe(1); // two hits, one turn: one fragment
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
+    a.pass(1).use(B1, 'shot', A1).end(); // it has run out
+    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
   });
 });

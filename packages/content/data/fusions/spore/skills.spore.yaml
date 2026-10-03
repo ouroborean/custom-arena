@@ -124,16 +124,18 @@ shot.spore:
   archetype: Shot
   element: Spore
   name: Fester Pod
-  description: >-
-    Deals 10 Piercing damage to target enemy. For 2 turns, every Debuff on them counts toward Prey, not only
-    Toxin, Weakness, Vulnerable and Confusion.
+  description: Deals 10 Piercing damage to target enemy, who gains 1 Spore, or 2 if they already had Spores.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: festering, value: { stacks: { unit: primary, effect: spores } } }
     - { op: damage, to: primary, amount: 10, type: Piercing }
-    - { op: apply, to: primary, effect: fester_pod, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      effect: spores
+      stacks: { if: { compare: { value: { var: festering }, atLeast: 1 } }, then: 2, else: 1 }
 
 snipe.spore:
   archetype: Snipe
@@ -236,7 +238,8 @@ bolt.spore:
   element: Spore
   name: Binding Hypha
   description: >-
-    Deals 20 damage to target enemy and Marks them for 1 turn. For as long, their Toxin can't be removed.
+    Deals 20 damage to target enemy and Marks them for 1 turn. The hypha binds them to a random ally of theirs:
+    both gain 1 Spore.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -244,17 +247,8 @@ bolt.spore:
   ops:
     - { op: damage, to: primary, amount: 20 }
     - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: binding_hypha
-        name: Binding Hypha
-        kind: Debuff
-        element: Spore
-        description: The bearer's Toxin can't be removed while their Mark lasts.
-        modifiers:
-          - { mod: protectEffects, effects: [toxin] }
+    - { op: apply, to: primary, effect: spores }
+    - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: spores }
 
 blast.spore:
   archetype: Blast
@@ -279,8 +273,8 @@ consume.spore:
   element: Spore
   name: Decompose
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. They lose their Spores, and the user heals 10 per
-    Spore lost.
+    Deals 5 damage to target enemy, healing the user for it. If they have Spores, they lose them, and the user
+    heals 10 per Spore lost; if not, they gain 2 Spores.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -288,8 +282,15 @@ consume.spore:
   ops:
     - { op: set, var: rot, value: { stacks: { unit: primary, effect: spores } } }
     - { op: damage, to: primary, amount: 5 }
-    - { op: removeEffect, from: primary, effect: spores }
-    - { op: heal, to: actor, amount: { sum: [5, { mul: [10, { var: rot }] }] } }
+    - { op: set, var: dealt, value: { lastDamage: true } }
+    - op: if
+      cond: { compare: { value: { var: rot }, atLeast: 1 } }
+      then:
+        - { op: removeEffect, from: primary, effect: spores }
+        - { op: heal, to: actor, amount: { sum: [{ var: dealt }, { mul: [10, { var: rot }] }] } }
+      else:
+        - { op: heal, to: actor, amount: { var: dealt } }
+        - { op: apply, to: primary, effect: spores, stacks: 2 }
 
 summon.spore:
   archetype: Summon
@@ -310,7 +311,8 @@ channel.spore:
   element: Spore
   name: Mycelial Network
   description: >-
-    For 4 turns, at the end of each of the user's turns, every enemy with Spores gains 1 more. Channeled.
+    For 4 turns, at the end of each of the user's turns, every enemy with Spores gains 1 more; if none has any, a
+    random enemy gains 1. Channeled.
   cost: Wr
   cooldown: 3
   tags: [Harmful, Strategic, Channeled]
@@ -325,19 +327,24 @@ channel.spore:
         kind: Neutral
         element: Spore
         interruptible: true
-        description: Each turn, every enemy with Spores gains 1 more.
+        description: Each turn, every enemy with Spores gains 1 more; if none has any, a random enemy gains 1.
         triggers:
           - on: turnEnd
             do:
-              - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: spores } } }, effect: spores }
+              - op: if
+                cond: { any: { in: allEnemies, cond: { has: { unit: it, effect: spores } } } }
+                then:
+                  - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: spores } } }, effect: spores }
+                else:
+                  - { op: apply, to: { randomEnemy: 1 }, effect: spores }
 
 stab.spore:
   archetype: Stab
   element: Spore
   name: Thorn of Rot
   description: >-
-    First, 1 of target enemy's Armor rots into 1 Vulnerable; then deals them 10 Piercing damage, or 20 against
-    Prey.
+    First, 1 of target enemy's Armor rots into 1 Vulnerable; then deals them 10 Piercing damage, or 15 if they
+    already had Spores, and they gain 1 Spore.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -351,15 +358,16 @@ stab.spore:
     - op: damage
       to: primary
       type: Piercing
-      amount: { if: { check: { cond: prey, unit: primary } }, then: 20, else: 10 }
+      amount: { if: { has: { unit: primary, effect: spores } }, then: 15, else: 10 }
+    - { op: apply, to: primary, effect: spores }
 
 ravage.spore:
   archetype: Ravage
   element: Spore
   name: Rot Drill
   description: >-
-    Deals 25 Piercing damage to target enemy. If they have 3 or more Toxin, they lose it all, and the user gains
-    1 Might and 1 Armor for good.
+    Deals 25 Piercing damage to target enemy. If they have Spores, the drill rots them out: they lose them, and
+    the user gains 1 Might and 1 Armor for 3 turns. If not, they gain 2 Spores.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -367,11 +375,13 @@ ravage.spore:
   ops:
     - { op: damage, to: primary, amount: 25, type: Piercing }
     - op: if
-      cond: { compare: { value: { stacks: { unit: primary, effect: toxin } }, atLeast: 3 } }
+      cond: { has: { unit: primary, effect: spores } }
       then:
-        - { op: removeEffect, from: primary, effect: toxin }
-        - { op: apply, to: actor, effect: might }
-        - { op: apply, to: actor, effect: armor }
+        - { op: removeEffect, from: primary, effect: spores }
+        - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+        - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 3 } }
+      else:
+        - { op: apply, to: primary, effect: spores, stacks: 2 }
 
 mislead.spore:
   archetype: Mislead
@@ -441,8 +451,8 @@ dance.spore:
   element: Spore
   name: Rooted Rhythm
   description: >-
-    For 3 turns, the user gains 1 Swiftness and 1 Focus. Whenever one of their minions takes damage meanwhile, it
-    heals 5 and the user gains 1 Armor for 1 turn.
+    For 3 turns, the user gains 1 Swiftness and 1 Focus. Whenever they or one of their minions takes damage
+    meanwhile, it heals 5 and the user gains 1 Armor for 1 turn.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -451,7 +461,7 @@ dance.spore:
     - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
     - op: apply
-      to: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
+      to: { filter: allAllies, where: { or: [{ isActor: it }, { kind: { unit: it, is: minion } }] } }
       duration: { enemyTurns: 3 }
       effect:
         id: rooted_rhythm
@@ -469,21 +479,27 @@ heal.spore:
   archetype: Heal
   element: Spore
   name: Compost Bed
-  description: Target ally heals 15, +15 for each allied minion that died since the user's last turn.
+  description: >-
+    Target ally heals 20, and 1 random Debuff on them rots away into the bed, giving a random enemy 1 Spore.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: heal, to: primary, amount: { sum: [15, { mul: [15, { minionsLost: true }] }] } }
+    - { op: heal, to: primary, amount: 20 }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Debuff } }
+      then:
+        - { op: removeRandom, from: primary, kind: Debuff }
+        - { op: apply, to: { randomEnemy: 1 }, effect: spores }
 
 bless.spore:
   archetype: Bless
   element: Spore
   name: Mycorrhizal Bond
   description: >-
-    For 3 turns, target ally gains 1 Might, and they and the user share Buffs: each Buff either of them gains is
-    copied to the other.
+    For 3 turns, target ally and the user each gain 1 Might, and their roots warn each for the other: whenever an
+    enemy damages one of them, the other gains 1 Armor for 1 turn.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -497,14 +513,14 @@ bless.spore:
         name: Mycorrhizal Bond
         kind: Buff
         element: Spore
-        description: Each Buff the bearer gains is copied to the applier.
+        description: Whenever an enemy damages the bearer, the applier gains 1 Armor for 1 turn.
         triggers:
-          - on: effectGained
-            when: { kind: Buff }
+          - on: damaged
+            when: { byEnemy: true }
             do:
               - op: if
                 cond: { not: { isActor: bearer } }
-                then: [{ op: copyEventEffect, to: actor, noChain: true }]
+                then: [{ op: apply, to: actor, effect: armor, duration: { enemyTurns: 1 } }]
     - op: apply
       to: actor
       remember: primary
@@ -514,13 +530,18 @@ bless.spore:
         name: Mycorrhizal Bond (root)
         kind: Buff
         element: Spore
-        description: Each Buff the bearer gains is copied to the bonded ally.
+        description: Whenever an enemy damages the bearer, the bonded ally gains 1 Armor for 1 turn.
         triggers:
-          - on: effectGained
-            when: { kind: Buff }
+          - on: damaged
+            when: { byEnemy: true }
             do:
-              - { op: copyEventEffect, to: effectTargets, noChain: true }
+              - op: if
+                cond: { not: { any: { in: effectTargets, cond: { isActor: it } } } }
+                then: [{ op: apply, to: effectTargets, effect: armor, duration: { enemyTurns: 1 } }]
     - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
+    - op: if
+      cond: { not: { isActor: primary } }
+      then: [{ op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }]
 
 curse.spore:
   archetype: Curse
@@ -604,32 +625,14 @@ shout.spore:
   archetype: Shout
   element: Spore
   name: Carrion Bloom
-  description: >-
-    All enemies are Intimidated for 2 turns. Meanwhile, the first time each of them is Prey at the end of the
-    user's turn, a Seedling sprouts for the user.
+  description: All enemies are Intimidated for 2 turns and gain 1 Spore each.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
     - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: targets
-      duration: { enemyTurns: 2 }
-      effect:
-        id: carrion_bloom
-        name: Carrion Bloom
-        kind: Debuff
-        element: Spore
-        description: Once the bearer is Prey, a Seedling sprouts for the applier.
-        triggers:
-          - on: turnEnd
-            do:
-              - op: if
-                cond: { check: { cond: prey, unit: bearer } }
-                then:
-                  - { op: summon, minion: seedling }
-                  - { op: removeSelf }
+    - { op: apply, to: targets, effect: spores }
 
 withstand.spore:
   archetype: Withstand

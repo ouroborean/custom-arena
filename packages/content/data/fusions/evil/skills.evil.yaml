@@ -135,33 +135,28 @@ rage.evil:
   element: Evil
   name: Atrocity
   description: >-
-    Tithe all: the user is Immortal for 1 turn per Fragment spent (max 3). While Immortal, each enemy
-    who damages them loses a Soul Fragment to the user.
+    For 2 turns, the user is Immortal, and each enemy who damages them loses a Soul Fragment to the
+    user.
   cost: Sr
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: set, var: tithe, value: 3 }
-    - { op: macro, id: tithe }
-    - op: if
-      cond: { varTrue: spent }
-      then:
-        - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: { var: spent } } }
-        - op: apply
-          to: actor
-          duration: { enemyTurns: { var: spent } }
-          effect:
-            id: atrocity
-            name: Atrocity
-            kind: Buff
-            element: Evil
-            description: Each enemy who damages the bearer loses a Soul Fragment to them.
-            triggers:
-              - on: damaged
-                when: { byEnemy: true }
-                do:
-                  - { op: forEach, in: eventSource, do: [{ op: macro, id: drain_it }] }
+    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: atrocity
+        name: Atrocity
+        kind: Buff
+        element: Evil
+        description: Each enemy who damages the bearer loses a Soul Fragment to them.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - { op: forEach, in: eventSource, do: [{ op: macro, id: drain_it }] }
 
 shot.evil:
   archetype: Shot
@@ -337,18 +332,18 @@ consume.evil:
   archetype: Consume
   element: Evil
   name: Reap
-  description: Every Horrified enemy takes 5 damage and loses a Soul Fragment to the user; the user heals 10 per enemy reaped.
+  description: >-
+    Every enemy takes 5 damage and is Horrified for 1 turn. The user drains a Soul Fragment from the one
+    with the least HP and heals 10.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
-    - op: forEach
-      in: { filter: targets, where: { has: { unit: it, effect: horrified } } }
-      do:
-        - { op: damage, to: it, amount: 5 }
-        - { op: macro, id: drain_it }
-        - { op: heal, to: actor, amount: 10 }
+    - { op: damage, to: targets, amount: 5 }
+    - { op: forEach, in: weakestEnemy, do: [{ op: macro, id: drain_it }] }
+    - { op: heal, to: actor, amount: 10 }
+    - { op: apply, to: targets, effect: horrified, duration: { enemyTurns: 1 } }
 
 summon.evil:
   archetype: Summon
@@ -486,24 +481,22 @@ stun.evil:
   element: Evil
   name: Mutilate
   description: >-
-    Target enemy gains 1 permanent Vulnerable, plus 1 permanent Weakness if Horrified. Tithe 1:
-    they're also Stunned for 1 turn.
+    Target enemy is Stunned for 1 turn and gains 1 permanent Vulnerable. If they were Horrified, they
+    also gain 1 permanent Weakness; otherwise they're Horrified for 2 turns.
   cost: AS
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    - { op: set, var: dread, value: { if: { has: { unit: primary, effect: horrified } }, then: 1, else: 0 } }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
     - { op: apply, to: primary, effect: vulnerable }
     - op: if
-      cond: { has: { unit: primary, effect: horrified } }
+      cond: { varTrue: dread }
       then:
         - { op: apply, to: primary, effect: weakness }
-    - { op: set, var: tithe, value: 1 }
-    - { op: macro, id: tithe }
-    - op: if
-      cond: { varTrue: spent }
-      then:
-        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
 
 dance.evil:
   archetype: Dance

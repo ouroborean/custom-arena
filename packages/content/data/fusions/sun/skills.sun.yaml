@@ -20,32 +20,25 @@ smash.sun:
   element: Sun
   name: Scorched Earth
   description: >-
-    Deals 20 damage to target enemy and 10 to their allies. For 2 turns, Scorched on any of them also
-    halves their Shield, at the end of each of the user's turns.
+    Halves the Shield of target enemy and their allies, then deals 20 damage to the target and 10 to
+    their allies. Those who had no Shield are Scorched for 1 turn instead.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    # The target and their allies are the whole enemy team.
+    - op: forEach
+      in: allEnemies
+      do:
+        - op: if
+          cond: { hasShield: it }
+          then:
+            - { op: scaleShields, on: it, factor: 0.5 }
+          else:
+            - { op: apply, to: it, effect: scorched, duration: { enemyTurns: 1 } }
     - { op: damage, to: primary, amount: 20 }
     - { op: damage, to: primaryAllies, amount: 10 }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect: &scorched_earth
-        id: scorched_earth
-        name: Scorched Earth
-        kind: Debuff
-        element: Sun
-        description: While Scorched, the bearer's Shield is halved at the end of each of the applier's turns.
-        triggers:
-          - on: turnEnd
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: scorched } }
-                then:
-                  - { op: scaleShields, on: bearer, factor: 0.5 }
-    - { op: apply, to: primaryAllies, duration: { enemyTurns: 2 }, effect: *scorched_earth }
 
 charge.sun:
   archetype: Charge
@@ -273,18 +266,23 @@ bolt.sun:
   name: Ripening Vine
   description: >-
     Deals 20 damage to target enemy. Each allied Seedling ripens: it uses Channel Earth at no cost,
-    then loses 5 HP.
+    then loses 5 HP. If there's no allied Seedling, the user creates one instead.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - op: forEach
-      in: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
-      do:
-        - { op: castSkill, skill: seedling_channel_earth, on: it, as: it }
-        - { op: damage, to: it, amount: 5, raw: true, type: Affliction, direct: false }
+    - op: if
+      cond: { any: { in: allAllies, cond: { minion: { unit: it, types: [seedling] } } } }
+      then:
+        - op: forEach
+          in: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } }
+          do:
+            - { op: castSkill, skill: seedling_channel_earth, on: it, as: it }
+            - { op: damage, to: it, amount: 5, raw: true, type: Affliction, direct: false }
+      else:
+        - { op: summon, minion: seedling }
 
 blast.sun:
   archetype: Blast
@@ -371,8 +369,8 @@ stab.sun:
   element: Sun
   name: Tinder Spike
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The next Ignite put on them
-    before the user's next turn burns once the moment it lands.
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Ignited, the Ignite
+    burns once now; if not, they're Ignited.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -381,21 +379,12 @@ stab.sun:
     - op: damage
       to: primary
       amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: apply
-      to: primary
-      duration: { raw: 2 }
-      effect:
-        id: tinder_spike
-        name: Tinder
-        kind: Debuff
-        element: Sun
-        description: The next Ignite put on the bearer burns once the moment it lands.
-        triggers:
-          - on: effectGained
-            effect: ignite
-            consume: true
-            do:
-              - { op: forEach, in: bearer, do: [{ op: macro, id: ignite_tick }] }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: forEach, in: primary, do: [{ op: macro, id: ignite_tick }] }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 ravage.sun:
   archetype: Ravage
@@ -644,33 +633,24 @@ cleave.sun:
   element: Sun
   name: Stubble Burn
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy. Every allied Seedling is burned
-    off: it dies, and both enemies are Ignited and burn once now per Seedling lost.
+    Deals 20 damage to target enemy and 15 to a random other enemy, and Ignites the target. If they
+    were already Ignited, the fire spreads: the other enemy is Ignited too.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: stubble, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } } }
-    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+    - { op: set, var: spreads, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: ignite }
     - op: forEach
       in: { randomEnemy: 1, exclude: primary }
       do:
         - { op: damage, to: it, amount: 15 }
         - op: if
-          cond: { compare: { value: { var: stubble }, atLeast: 1 } }
+          cond: { compare: { value: { var: spreads }, atLeast: 1 } }
           then:
             - { op: apply, to: it, effect: ignite }
-            - { op: repeat, times: { var: stubble }, do: [{ op: macro, id: ignite_tick }] }
-    - op: if
-      cond: { compare: { value: { var: stubble }, atLeast: 1 } }
-      then:
-        - { op: apply, to: primary, effect: ignite }
-        - op: forEach
-          in: primary
-          do:
-            - { op: repeat, times: { var: stubble }, do: [{ op: macro, id: ignite_tick }] }
 
 shout.sun:
   archetype: Shout
@@ -698,8 +678,8 @@ withstand.sun:
   element: Sun
   name: Kiln Wall
   description: >-
-    The user gains 25 Shield for 2 turns. Damage it absorbs is baked into a random allied Boulder,
-    which gains that much max HP and HP.
+    The user gains 25 Shield for 2 turns. Each time it absorbs damage, the heat is banked: the user
+    gains 1 Corona.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -715,15 +695,11 @@ withstand.sun:
         kind: Buff
         element: Sun
         shield: true
-        description: A Shield; what it absorbs is baked into a random allied Boulder.
+        description: A Shield; each time it absorbs damage, the bearer gains 1 Corona.
         triggers:
           - on: shieldDamaged
             do:
-              - op: forEach
-                in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
-                do:
-                  - { op: addMaxHp, to: it, amount: { eventAmount: true } }
-                  - { op: heal, to: it, amount: { eventAmount: true }, raw: true }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: gain_corona }] }
 
 taunt.sun:
   archetype: Taunt

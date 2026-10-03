@@ -21,18 +21,15 @@ smash.shadow:
   archetype: Smash
   element: Shadow
   name: Shadow Crash
-  description: >-
-    Removes Stealth from every Stealthed ally, then deals 10 damage to target enemy and 5 to the
-    other enemies, +10 to each hit per Stealth removed.
+  description: Deals 15 damage to target enemy and 10 to the other enemies, then the user gains Stealth.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: shadows, value: { count: { effects: [stealth], in: allAllies } } }
-    - { op: removeEffect, from: allAllies, effect: stealth }
-    - { op: damage, to: primary, amount: { sum: [10, { mul: [10, { var: shadows }] }] } }
-    - { op: damage, to: primaryAllies, amount: { sum: [5, { mul: [10, { var: shadows }] }] } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }
 
 charge.shadow:
   archetype: Charge
@@ -103,26 +100,14 @@ shot.shadow:
   archetype: Shot
   element: Shadow
   name: Shadow Spine
-  description: >-
-    Deals 5 Piercing damage to target enemy, striking once more for each of Blinded, Isolated and
-    Sleeping the target is.
+  description: Deals 15 Piercing damage to target enemy and Isolates them for 1 turn.
   cost: r
-  cooldown: 0
+  cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: set
-      var: hits
-      value:
-        sum:
-          - 1
-          - { if: { has: { unit: primary, effect: blinded } }, then: 1, else: 0 }
-          - { if: { has: { unit: primary, effect: isolated } }, then: 1, else: 0 }
-          - { if: { has: { unit: primary, effect: sleep } }, then: 1, else: 0 }
-    - op: repeat
-      times: { var: hits }
-      do:
-        - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: damage, to: primary, amount: 15, type: Piercing }
+    - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 1 } }
 
 snipe.shadow:
   archetype: Snipe
@@ -238,18 +223,22 @@ consume.shadow:
   name: Drink Darkness
   description: >-
     Deals 5 Affliction damage to all enemies. Blinded ones lose their Blind and take 10 more
-    damage.
+    damage; if none were Blinded, a random enemy is Blinded for 2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
     - { op: damage, to: targets, amount: 5, type: Affliction }
+    - { op: set, var: drank, value: { count: { effects: [blinded], in: targets } } }
     - op: forEach
       in: { filter: targets, where: { has: { unit: it, effect: blinded } } }
       do:
         - { op: removeEffect, from: it, effect: blinded }
         - { op: damage, to: it, amount: 10, type: Affliction }
+    - op: if
+      cond: { compare: { value: { var: drank }, atMost: 0 } }
+      then: [{ op: apply, to: { randomEnemy: 1 }, effect: blinded, duration: { enemyTurns: 2 } }]
 
 summon.shadow:
   archetype: Summon
@@ -298,19 +287,16 @@ stab.shadow:
   archetype: Stab
   element: Shadow
   name: Backstab
-  description: Deals 10 damage to target enemy, increased to 25 if the user is Stealthed or the target is Blinded.
+  description: Deals 10 damage to target enemy, increased to 20 unless they were the last enemy to damage the user.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: if, cond: { or: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: blinded } }] }, then: [{ op: signal, name: stab_bonus }] }
-    - op: damage
-      to: primary
-      amount:
-        if: { or: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: blinded } }] }
-        then: 25
-        else: 10
+    # Checked before the hit: "the last enemy to damage the user" is the actor's lastAttacker.
+    - { op: set, var: unseen, value: { if: { isPrimary: lastAttacker }, then: 0, else: 1 } }
+    - { op: if, cond: { varTrue: unseen }, then: [{ op: signal, name: stab_bonus }] }
+    - { op: damage, to: primary, amount: { if: { varTrue: unseen }, then: 20, else: 10 } }
 
 ravage.shadow:
   archetype: Ravage

@@ -374,7 +374,8 @@ describe('Life skills', () => {
     a.end().use(A2, 'heal.earth', A2).end();
     expect(a.unit(ac.id).maxHp).toBe(m + 10); // its own growth only, not +20
     a.end().use(A1, 'shout.life').end().pass(6);
-    expect([minions(a, 0, 'acorn').length, minions(a, 0, 'treant').length]).toEqual([1, 0]);
+    // The Acorn stays an Acorn; the only Treant is the Seedling Call of the Grove created (no Seedling stood).
+    expect([minions(a, 0, 'acorn').length, minions(a, 0, 'treant').length]).toEqual([1, 1]);
   });
 
   it('Crush (r): damage equal to half the Acorn\'s HP', () => {
@@ -433,26 +434,41 @@ describe('Life skills', () => {
     expect([a.hp(B1), minions(a, 0).length]).toEqual([50, 0]);
   });
 
-  it('Harvest: needs an allied Seedling or Treant', () => {
-    const a = arena({ p0: [['consume.life']], p1: [['shot']] });
-    a.reject(() => a.use(A1, 'consume.life', A1));
+  it('Harvest: with no Seedling or Treant, target ally heals 10 and the user creates a Seedling', () => {
+    const a = arena({ p0: [['consume.life'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'consume.life', A2).end();
+    expect([a.hp(A2), minions(a, 0, 'seedling').length]).toEqual([60, 1]);
   });
 
-  it('Harvest: sacrifices the Seedling; the target ally heals its remaining HP, which can Flourish', () => {
+  it('Harvest: with no Seedling, the 10 can still Flourish', () => {
+    const a = arena({ p0: [['consume.life'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 95).use(A1, 'consume.life', A2).end();
+    expect([a.hp(A2), maxHp(a, A2)]).toEqual([105, 105]);
+  });
+
+  it("Harvest: sacrifices the user's Seedling; the target ally heals 10 plus its remaining HP, which can Flourish", () => {
     const a = arena({ p0: [['consume.life', 'charge.life'], ['shot']], p1: [['shot']] });
     a.use(A1, 'charge.life', B1).end().pass(1);
     const s = minions(a, 0, 'seedling')[0]!;
     a.unit(s.id).hp = 12;
     a.setHp(A2, 95).use(A1, 'consume.life', A2).end();
-    expect([a.unit(s.id).alive, a.hp(A2), maxHp(a, A2)]).toEqual([false, 107, 107]);
+    expect([a.unit(s.id).alive, a.hp(A2), maxHp(a, A2)]).toEqual([false, 117, 117]);
+    expect(minions(a, 0)).toHaveLength(0); // it had one, so no new Seedling
   });
 
   it('Harvest: a Treant works too, for its 40 HP', () => {
     const a = arena({ p0: [['consume.life', 'charge.life', 'shout.life'], ['shot']], p1: [['shot']], passives: { p0c0: GROVE } });
     a.use(A1, 'charge.life', B1).end().pass(1).use(A1, 'shout.life').end().pass(1);
     expect(minions(a, 0, 'treant')).toHaveLength(1);
-    a.setHp(A2, 50).use(A1, 'consume.life', A2).end();
+    a.setHp(A2, 40).use(A1, 'consume.life', A2).end();
     expect([a.hp(A2), minions(a, 0).length]).toEqual([90, 0]);
+  });
+
+  it("Harvest: only the user's own Seedlings are sacrificed", () => {
+    const a = arena({ p0: [['consume.life'], ['summon.earth']], p1: [['shot']] });
+    a.use(A2, 'summon.earth').end().pass(1);
+    a.setHp(A2, 50).use(A1, 'consume.life', A2).end();
+    expect([a.hp(A2), minions(a, 0, 'seedling').length]).toEqual([60, 3]); // A2's two stay, plus a new one
   });
 
   it('Twin Saplings: 2 Seedlings with 15 HP and Channel Earth', () => {
@@ -516,16 +532,23 @@ describe('Life skills', () => {
     expect([a.hp(B1), minions(a, 0).length]).toEqual([60, 0]); // 85 − 25, Armor ignored
   });
 
-  it('Splinter Spike: without a Seedling, 10 damage', () => {
+  it('Splinter Spike: without a Seedling, 10 damage and the user creates a Seedling', () => {
     const a = arena({ p0: [['stab.life']], p1: [['shot']] });
     a.use(A1, 'stab.life', B1).end();
-    expect(a.hp(B1)).toBe(90);
+    expect([a.hp(B1), minions(a, 0, 'seedling').length]).toEqual([90, 1]);
+  });
+
+  it('Splinter Spike: the Seedling it made is sacrificed by the next use, for 25 Piercing', () => {
+    const a = arena({ p0: [['stab.life']], p1: [['shot']] });
+    a.use(A1, 'stab.life', B1).end().pass(1);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'stab.life', B1).end();
+    expect([a.hp(B1), minions(a, 0).length]).toEqual([65, 0]); // 90 − 25, Armor ignored
   });
 
   it('Splinter Spike: a Boulder is not a Seedling', () => {
     const a = arena({ p0: [['stab.life', 'bolt.life']], p1: [['shot']] });
     a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'stab.life', B1).end();
-    expect([a.hp(B1), minions(a, 0, 'boulder').length]).toEqual([65, 1]);
+    expect([a.hp(B1), minions(a, 0, 'boulder').length, minions(a, 0, 'seedling').length]).toEqual([65, 1, 1]);
   });
 
   it('Taproot: 25 Piercing damage; no max HP moves from a target that isn\'t Stunned', () => {
@@ -747,6 +770,28 @@ describe('Life skills', () => {
     const a = arena({ p0: [['shout.life'], ['summon.earth']], p1: [['shot']] });
     a.use(A2, 'summon.earth').end().pass(1).use(A1, 'shout.life').end();
     expect(minions(a, 0, 'treant')).toHaveLength(2);
+  });
+
+  it('Call of the Grove: with no allied Seedling, the user creates one, and it Blooms at once', () => {
+    const a = arena({ p0: [['shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'shout.life').end();
+    expect([minions(a, 0).length, minions(a, 0, 'treant').map((t) => [t.hp, t.maxHp])]).toEqual([1, [[40, 40]]]);
+  });
+
+  it('Call of the Grove: with an allied Seedling already up, no new one is created', () => {
+    const a = arena({ p0: [['shout.life'], ['summon.earth']], p1: [['shot']] });
+    a.use(A2, 'summon.earth').end().pass(1).use(A1, 'shout.life').end();
+    expect([minions(a, 0).length, minions(a, 0, 'treant').length]).toEqual([2, 2]); // the two Treants, nothing more
+  });
+
+  it('Call of the Grove: Treants don\'t count as Seedlings waiting to Bloom, so with only Treants out it creates one', () => {
+    const a = arena({ p0: [['shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'shout.life').end().pass(7); // off cooldown, one Treant standing
+    expect(minions(a, 0, 'treant')).toHaveLength(1);
+    const t = minions(a, 0, 'treant')[0]!;
+    a.unit(t.id).hp = 10;
+    a.use(A1, 'shout.life').end();
+    expect([minions(a, 0).length, minions(a, 0, 'treant').length, a.unit(t.id).hp]).toEqual([2, 2, 40]);
   });
 
   it('Call of the Grove: enemy Seedlings are untouched', () => {

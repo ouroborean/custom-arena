@@ -36,14 +36,15 @@ charge.antidote:
   element: Antidote
   name: Quickened Venom
   description: >-
-    Deals 15 damage to target enemy. Until the end of their next turn, their Toxin also ticks each time they use
-    a skill.
+    Deals 15 damage to target enemy, who gains 1 Toxin. Until the end of their next turn, their Toxin also ticks
+    each time they use a skill.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: toxin }
     - op: apply
       to: primary
       duration: { enemyTurns: 1 }
@@ -135,8 +136,8 @@ snipe.antidote:
   element: Antidote
   name: Long Diagnosis
   description: >-
-    In 3 turns, deals 20 damage to target enemy, plus 15 for each Debuff they gained meanwhile (max 60 more).
-    The target of this skill is invisible. Channeled.
+    In 3 turns, deals 20 damage to target enemy, plus 15 for each skill they used meanwhile (max 45 more): every
+    symptom they show sharpens the diagnosis. The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -151,10 +152,10 @@ snipe.antidote:
         kind: Neutral
         element: Antidote
         visibility: hidden
-        description: Counts the Debuffs the bearer gains.
+        description: Counts the skills the bearer uses.
         triggers:
-          - on: effectGained
-            when: { kind: Debuff }
+          - on: skillUsed
+            silent: true
             do:
               - { op: addStacksSelf, amount: 1 }
     - op: apply
@@ -168,7 +169,7 @@ snipe.antidote:
         element: Antidote
         visibility: hiddenTarget
         interruptible: true
-        description: When this runs out, its target takes 20 damage plus 15 per Debuff gained meanwhile (max 60 more).
+        description: When this runs out, its target takes 20 damage plus 15 per skill they used meanwhile (max 45 more).
         onExpire:
           - op: set
             var: found
@@ -179,7 +180,7 @@ snipe.antidote:
           - { op: removeEffect, from: effectTargets, effect: diagnosis_chart }
           - op: damage
             to: effectTargets
-            amount: { sum: [20, { if: { compare: { value: { var: found }, atLeast: 4 } }, then: 60, else: { mul: [15, { var: found }] } }] }
+            amount: { sum: [20, { if: { compare: { value: { var: found }, atLeast: 3 } }, then: 45, else: { mul: [15, { var: found }] } }] }
 
 trap.antidote:
   archetype: Trap

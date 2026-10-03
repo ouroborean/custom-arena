@@ -11,11 +11,3 @@ rite:
     Completes once the user (or their Acolytes) have used as many more skills as it has stacks. Breaks
     if the user is Stunned, falls Asleep or is Banished.
 
-veiled_by_smoke:
-  name: Veiled by Smoke
-  kind: Buff
-  element: Ritual
-  stacking: unique
-  description: The bearer's next skill counts as Stealthy.
-  modifiers:
-    - { mod: nextSkillStealthy }

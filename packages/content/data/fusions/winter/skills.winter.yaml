@@ -508,8 +508,8 @@ bless.winter:
   element: Winter
   name: Rime Mantle
   description: >-
-    Target ally gains Frostborn for 2 turns. While they're Frostborn, Frost debuffs they apply last 1
-    turn longer.
+    Target ally gains Frostborn for 2 turns. Meanwhile, each enemy who damages them is Chilled for 1
+    turn.
   cost: I
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -524,15 +524,12 @@ bless.winter:
         name: Rime Mantle
         kind: Buff
         element: Winter
-        description: While Frostborn, Frost debuffs the bearer applies last 1 turn longer.
+        description: Each enemy who damages the bearer is Chilled for 1 turn.
         triggers:
-          - on: effectApplied
-            when: { effects: [frostbitten, chilled, numb, frostfire, snowbound] }
+          - on: damaged
+            when: { fromSide: enemy }
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: frostborn } }
-                then:
-                  - { op: eventEffect, extendBy: 2 }
+              - { op: apply, to: eventSource, effect: chilled, duration: { enemyTurns: 1 } }
 
 curse.winter:
   archetype: Curse

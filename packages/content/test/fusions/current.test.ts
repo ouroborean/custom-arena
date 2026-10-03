@@ -236,21 +236,23 @@ describe('Current skills', () => {
     expect(a.hp(B1)).toBe(after);
   });
 
-  it('Submerge: Invulnerable for 1 turn; when it ends, each Soaked enemy takes 10 per Charge spent', () => {
+  it('Submerge: Invulnerable for 1 turn and 1 Charge; when it ends, each Soaked enemy takes 10 per Charge spent', () => {
     const a = arena({ p0: [['maneuver.current']], p1: three(), passives: COND });
-    a.give(A1, 'charged', { stacks: 2 });
-    soak(a, B1, B3).use(A1, 'maneuver.current').end();
-    expect(a.has(A1, 'invulnerable')).toBe(true);
+    a.give(A1, 'charged', { stacks: 1 });
+    soak(a, B1, B2, B3).use(A1, 'maneuver.current').end();
+    expect([a.has(A1, 'invulnerable'), a.stacks(A1, 'charged')]).toEqual([true, 2]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
     a.end();
     expect(a.has(A1, 'invulnerable')).toBe(false);
-    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.stacks(A1, 'charged')]).toEqual([80, 100, 80, 0]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.stacks(A1, 'charged')]).toEqual([80, 80, 80, 0]);
   });
 
-  it('Submerge: with no Charge nobody takes damage', () => {
+  it('Submerge: on its own, a random enemy is Soaked as it ends and takes the 10 from its 1 Charge', () => {
     const a = arena({ p0: [['maneuver.current']], p1: three(), passives: COND });
-    soak(a, B1).use(A1, 'maneuver.current').end().end();
-    expect(a.hp(B1)).toBe(100);
+    a.use(A1, 'maneuver.current').end().end();
+    const hit = [B1, B2, B3].filter((u) => a.hp(u) < 100);
+    expect(hit).toHaveLength(1);
+    expect([a.hp(hit[0]!), a.has(hit[0]!, 'soaked'), a.stacks(A1, 'charged')]).toEqual([90, true, 0]);
   });
 
   it('Electric Eel: a permanent 30 HP Eel; Eel Shock deals 10 and Soaks', () => {
@@ -300,19 +302,18 @@ describe('Current skills', () => {
     expect(a.state.players[0].queue[0]?.cost.r).toBe(1); // only the next skill
   });
 
-  it('Ebb Siphon: 5 damage, and the user heals 10 per Sapped on the target', () => {
-    const a = arena({ p0: [['consume.current']], p1: three(), passives: COND });
-    a.setHp(A1, 50).give(B1, 'sapped', { stacks: 2, source: A1 }).use(A1, 'consume.current', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 70]);
-  });
-
-  it('Ebb Siphon: no Sapped, no healing; the healing is capped at 30', () => {
+  it('Ebb Siphon: 5 damage and Sapped; the user heals 10 per Sapped on the target', () => {
     const a = arena({ p0: [['consume.current']], p1: three(), passives: COND });
     a.setHp(A1, 50).use(A1, 'consume.current', B1).end();
-    expect(a.hp(A1)).toBe(50);
+    expect([a.hp(B1), a.stacks(B1, 'sapped'), a.hp(A1)]).toEqual([95, 1, 60]);
+    const b = arena({ p0: [['consume.current']], p1: three(), passives: COND });
+    b.setHp(A1, 50).give(B1, 'sapped', { stacks: 1, source: A1 }).use(A1, 'consume.current', B1).end();
+    expect([b.stacks(B1, 'sapped'), b.hp(A1)]).toEqual([2, 70]);
+  });
+
+  it('Ebb Siphon: the healing is capped at 30', () => {
     const b = arena({ p0: [['consume.current']], p1: three(), passives: COND });
     b.setHp(A1, 20).give(B1, 'sapped', { stacks: 3, source: A1 });
-    b.give(B1, 'sapped', { stacks: 1, source: A1 });
     b.use(A1, 'consume.current', B1).end();
     expect(b.hp(A1)).toBe(50);
   });
@@ -382,45 +383,41 @@ describe('Current skills', () => {
     expect(a.stacks(A1, 'charged')).toBe(2); // expired
   });
 
-  it('Riptide Pike: 25 Piercing; spends up to 3 Renew, each cutting the user\'s other cooldowns by 1', () => {
+  it('Riptide Pike: 25 Piercing; a target without Soaked is Soaked for 2 turns', () => {
     const a = arena({ p0: [['ravage.current', 'titan.current']], p1: three(), passives: COND });
     a.use(A1, 'titan.current').end().pass(1);
     const cd = a.cooldown(A1, 'titan.current');
-    a.give(B1, 'armor', { stacks: 2 }).give(A1, 'renew', { stacks: 2, source: B1 });
-    a.use(A1, 'ravage.current', B1).end();
-    expect(a.hp(B1)).toBe(75); // Armor doesn't reduce Piercing
-    expect(a.stacks(A1, 'renew')).toBe(0);
-    expect(a.cooldown(A1, 'titan.current')).toBe(cd - 2 - 1); // −2 from Renew, −1 end of turn
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.current', B1).end();
+    expect([a.hp(B1), a.has(B1, 'soaked')]).toEqual([75, true]); // Armor doesn't reduce Piercing
+    expect(a.cooldown(A1, 'titan.current')).toBe(cd - 1); // no cut, only the end of turn
+    a.pass(4);
+    expect(a.has(B1, 'soaked')).toBe(false);
+  });
+
+  it("Riptide Pike: against a Soaked target, the user's other cooldowns drop by 1", () => {
+    const a = arena({ p0: [['ravage.current', 'titan.current']], p1: three(), passives: COND });
+    a.use(A1, 'titan.current').end().pass(1);
+    const cd = a.cooldown(A1, 'titan.current');
+    soak(a, B1).use(A1, 'ravage.current', B1).end();
+    expect(a.hp(B1)).toBe(70); // the Conductor passive adds 5 against Soaked
+    expect(a.cooldown(A1, 'titan.current')).toBe(cd - 1 - 1);
     expect(a.cooldown(A1, 'ravage.current')).toBe(1);
-    const b = arena({ p0: [['ravage.current', 'titan.current']], p1: three(), passives: COND });
-    b.use(A1, 'titan.current').end().pass(1).use(A1, 'ravage.current', B1).end();
-    expect(b.cooldown(A1, 'titan.current')).toBe(cd - 1); // no Renew, no cut
   });
 
-  it('Riptide Pike: spends at most 3 Renew', () => {
-    const a = arena({ p0: [['ravage.current', 'dance']], p1: three(), passives: COND });
-    a.use(A1, 'dance').end().pass(1);
-    const cd = a.cooldown(A1, 'dance');
-    a.give(A1, 'renew', { stacks: 5, source: B1 }).use(A1, 'ravage.current', B1).end();
-    expect(a.stacks(A1, 'renew')).toBe(2);
-    expect(a.cooldown(A1, 'dance')).toBe(cd - 3 - 1);
-  });
-
-  it('Grounding: counters the target\'s Harmful skill and turns each Confusion into 1 Sapped', () => {
+  it("Grounding: counters the target's Harmful skill; they're Soaked for 2 turns and Sapped", () => {
     const a = arena({ p0: [['mislead.current']], p1: three(), passives: COND });
-    a.give(B1, 'confusion', { stacks: 2, source: A1 });
     const seen = seenByB(a, B1);
     a.use(A1, 'mislead.current', B1).end();
     expect(seenByB(a, B1)).toBe(seen); // Invisible
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.stacks(B1, 'confusion'), a.stacks(B1, 'sapped')]).toEqual([100, 0, 2]);
+    expect([a.hp(A1), a.has(B1, 'soaked'), a.stacks(B1, 'sapped')]).toEqual([100, true, 1]);
   });
 
   it('Grounding: Helpful skills are not countered', () => {
     const a = arena({ p0: [['mislead.current']], p1: [['heal'], ['shot'], ['shot']], passives: COND });
-    a.setHp(B2, 50).give(B1, 'confusion', { stacks: 1, source: A1 }).use(A1, 'mislead.current', B1).end();
+    a.setHp(B2, 50).use(A1, 'mislead.current', B1).end();
     a.use(B1, 'heal', B2).end();
-    expect([a.hp(B2), a.stacks(B1, 'sapped')]).toEqual([75, 0]);
+    expect([a.hp(B2), a.has(B1, 'soaked'), a.stacks(B1, 'sapped')]).toEqual([75, false, 0]);
   });
 
   it('Electric Undertow: 15 and a Stun; every other Soaked enemy has their non-Strategic skills stunned', () => {
@@ -463,10 +460,18 @@ describe('Current skills', () => {
     expect([a.hp(A2), a.stacks(A2, 'renew')]).toEqual([90, 1]);
   });
 
-  it('Overflow: for 3 turns the ally\'s single-target skills deal 5 more to Soaked enemies and conduct', () => {
+  it("Overflow: for 3 turns the ally's single-target skills deal 5 more to Soaked enemies and conduct", () => {
     const a = arena({ p0: [['bless.current'], ['shot']], p1: three(), passives: COND });
     soak(a, B1, B2).use(A1, 'bless.current', A2).use(A2, 'shot', B1).end();
     expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 80, 100]);
+  });
+
+  it("Overflow: the ally's single-target skills Soak their target for 2 turns before they hit", () => {
+    const a = arena({ p0: [['bless.current'], ['shot']], p1: three(), passives: COND });
+    a.use(A1, 'bless.current', A2).use(A2, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'soaked')]).toEqual([80, true]); // Soaked first, so 5 more
+    a.pass(1).use(A2, 'shot', B2).end(); // B2 is Soaked too; the hit conducts to B1
+    expect([a.hp(B2), a.hp(B1)]).toEqual([80, 60]);
   });
 
   it('Overflow: an ally without it gets no bonus and no conduct', () => {

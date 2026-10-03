@@ -43,19 +43,19 @@ charge.glacier:
   element: Glacier
   name: Meltwater Rush
   description: >-
-    Deals 15 damage to target enemy. If they're Chilled, the Chill melts off them and the user gains
-    Meltwater for 2 turns.
+    Deals 15 damage to target enemy, and the user gains Meltwater for 1 turn, or 2 if the target has a
+    skill on cooldown.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - op: if
-      cond: { has: { unit: primary, effect: chilled, exact: true } }
-      then:
-        - { op: removeEffect, from: primary, effect: chilled }
-        - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      effect: meltwater
+      duration:
+        enemyTurns: { if: { compare: { value: { skillsOnCooldown: primary }, atLeast: 1 } }, then: 2, else: 1 }
 
 riposte.glacier:
   archetype: Riposte
@@ -295,7 +295,7 @@ consume.glacier:
   name: Stolen Thaw
   description: >-
     Deals 5 damage to target enemy, healing the user for it. If they're Icebound, it ends, and the user
-    gains Meltwater for 2 turns.
+    gains Meltwater for 2 turns; otherwise they're Icebound for 1 turn.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -308,6 +308,8 @@ consume.glacier:
       then:
         - { op: removeEffect, from: primary, effect: icebound }
         - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 2 } }
+      else:
+        - { op: apply, to: primary, effect: icebound, duration: { enemyTurns: 1 } }
 
 summon.glacier:
   archetype: Summon

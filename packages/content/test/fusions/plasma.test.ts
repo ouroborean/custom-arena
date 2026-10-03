@@ -114,7 +114,7 @@ describe('Plasma skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
   });
 
-  it('Spark Rush: 15; Vent: the next skill costs 1 less per 2 Heat removed', () => {
+  it('Spark Rush: 15 (+5 per Heat); +2 Heat, then Vent: the next skill costs 1 less per 2 Heat removed', () => {
     const a = arena({ p0: [['charge.plasma', 'channel.plasma']], p1: [['shot']] });
     a.give(A1, 'heat', { stacks: 4 }).use(A1, 'charge.plasma', B1).end();
     expect([a.hp(B1), heat(a)]).toEqual([100 - 15 - 20, 0]);
@@ -122,10 +122,12 @@ describe('Plasma skills', () => {
     expect(totalCost(a.state.players[0].queue[0]?.cost)).toBe(0);
   });
 
-  it('Spark Rush: with no Heat, no discount', () => {
+  it('Spark Rush: with no Heat, its own 2 Heat still makes the next skill cost 1 less', () => {
     const a = arena({ p0: [['charge.plasma', 'channel.plasma']], p1: [['shot']] });
-    a.use(A1, 'charge.plasma', B1).end().pass(1).use(A1, 'channel.plasma');
-    expect(totalCost(a.state.players[0].queue[0]?.cost)).toBe(2);
+    a.use(A1, 'charge.plasma', B1).end();
+    expect([a.hp(B1), heat(a)]).toEqual([85, 0]);
+    a.pass(1).use(A1, 'channel.plasma');
+    expect(totalCost(a.state.players[0].queue[0]?.cost)).toBe(1);
   });
 
   it('Discharge Ward: counters only the next Harmful skill; Vent: 10 Affliction per Heat and Ignite to its user', () => {
@@ -259,9 +261,19 @@ describe('Plasma skills', () => {
     const a = arena({ p0: [['consume.plasma']], p1: [['shot']] });
     a.setHp(A1, 50).give(A1, 'heat', { stacks: 2 }).use(A1, 'consume.plasma', B1).end();
     expect([a.hp(B1), a.stacks(B1, 'sapped'), a.hp(A1), heat(a)]).toEqual([100 - 20, 1, 70, 0]);
-    const b = arena({ p0: [['consume.plasma']], p1: [['shot']] });
-    b.setHp(A1, 50).use(A1, 'consume.plasma', B1).end();
-    expect([b.hp(B1), b.hp(A1)]).toEqual([90, 50]);
+  });
+
+  it('Coolant Draw: with no Heat to remove, the user gains 2 Heat instead (and heals nothing)', () => {
+    const a = arena({ p0: [['consume.plasma']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.plasma', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'sapped'), a.hp(A1), heat(a)]).toEqual([90, 1, 50, 2]);
+  });
+
+  it('Coolant Draw: the next Draw vents the Heat the first one drew in', () => {
+    const a = arena({ p0: [['consume.plasma']], p1: [['shot']] });
+    a.use(A1, 'consume.plasma', B1).end().pass(5).setHp(A1, 50);
+    a.use(A1, 'consume.plasma', B1).end();
+    expect([a.hp(B1), a.hp(A1), heat(a)]).toEqual([90 - 20, 70, 0]);
   });
 
   it('Jumper Sparks: two 10 HP Sparks for 3 turns; each turn each deals 10 and gives an ally Charge', () => {
@@ -277,21 +289,26 @@ describe('Plasma skills', () => {
     expect(a.state.units.filter((u) => u.owner === 0 && u.defId === 'jumper_spark' && u.alive)).toHaveLength(0);
   });
 
-  it("Arc Furnace: 10 to all each turn; spends 1 Charge to tick every enemy's Ignite at once", () => {
-    const a = arena({ p0: [['channel.plasma']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'charged', { stacks: 1 }).give(B1, 'ignite', { source: B1 });
+  it('Arc Furnace: each turn, 10 to all and an Ignite on a random enemy, which ticks at once; the user gains 1 Charge', () => {
+    const a = arena({ p0: [['channel.plasma']], p1: [['shot']] });
     a.use(A1, 'channel.plasma').end();
-    expect([a.hp(B1), a.hp(B2), a.has(A1, 'charged')]).toEqual([85, 90, false]);
-    a.pass(2); // no Charge left: just the 10 (and B1's own Ignite tick on the enemy's turn)
-    expect([a.hp(B1), a.hp(B2)]).toEqual([85 - 5 - 10, 80]);
+    expect([a.hp(B1), a.has(B1, 'ignite'), a.stacks(A1, 'charged'), heat(a)]).toEqual([100 - 10 - 5, true, 1, 1]);
   });
 
-  it('Arc Furnace: lasts 3 turns', () => {
+  it("Arc Furnace: every enemy's Ignite ticks at once", () => {
+    const a = arena({ p0: [['channel.plasma']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'ignite', { source: B1 }).give(B2, 'ignite', { source: B2 });
+    a.use(A1, 'channel.plasma').end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 85]);
+  });
+
+  it('Arc Furnace: lasts 3 turns, its Charge heating each next turn up', () => {
     const a = arena({ p0: [['channel.plasma']], p1: [['shot']] });
     a.use(A1, 'channel.plasma').end().pass(4);
-    expect(a.hp(B1)).toBe(70);
+    // 10+5 · 15+5+5 (1 Heat, the Ignite's own tick) · 20+5+5 (2 Heat)
+    expect([a.hp(B1), heat(a)]).toEqual([100 - 15 - 25 - 30, 3]);
     a.pass(2);
-    expect(a.hp(B1)).toBe(70);
+    expect(a.hp(B1)).toBe(30 - 5); // just the Ignite's own tick
   });
 
   it('Hot Wire: 10, or 20 at or below 60 HP', () => {
@@ -497,15 +514,25 @@ describe('Plasma skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
   });
 
-  it('Reactor Core: Immune and 1 Armor per Heat, checked as each hit lands, for 3 turns', () => {
+  it('Reactor Core: +2 Heat; Immune and 1 Armor per Heat, checked as each hit lands, for 3 turns', () => {
     const a = arena({ p0: [['titan.plasma']], p1: [['strike'], ['curse']] });
-    a.give(A1, 'heat', { stacks: 3 }).use(A1, 'titan.plasma').end();
+    a.use(A1, 'titan.plasma').end();
+    expect(heat(a)).toBe(2);
     a.use(B1, 'strike', A1).use(B2, 'curse', A1).end();
-    expect([a.hp(A1), a.has(A1, 'confusion')]).toEqual([95, false]);
-    a.give(A1, 'heat', { stacks: 1 }).pass(1).use(B1, 'strike', A1).end(); // 4 Heat now
-    expect(a.hp(A1)).toBe(95 - (25 - 20)); // Strike's Might makes it 25; 4 Armor now
+    expect([a.hp(A1), a.has(A1, 'confusion')]).toEqual([90, false]); // 20 - 10
+    a.give(A1, 'heat', { stacks: 1 }).pass(1).use(B1, 'strike', A1).end(); // 3 Heat now
+    expect(a.hp(A1)).toBe(90 - (25 - 15)); // Strike's Might makes it 25; 3 Armor now
     a.pass(3);
     expect(a.has(A1, 'immune')).toBe(false);
+  });
+
+  it('Reactor Core: the Heat rises to at most 4', () => {
+    const a = arena({ p0: [['titan.plasma']], p1: [['shot']] });
+    a.give(A1, 'heat', { stacks: 3 }).use(A1, 'titan.plasma').end();
+    expect(heat(a)).toBe(4);
+    const b = arena({ p0: [['titan.plasma']], p1: [['shot']] });
+    b.give(A1, 'heat', { stacks: 4 }).use(A1, 'titan.plasma').end();
+    expect([heat(b), b.hp(A1)]).toEqual([4, 100]); // no Melt Down
   });
 });
 

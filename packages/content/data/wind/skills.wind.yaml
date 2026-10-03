@@ -78,15 +78,16 @@ shot.wind:
   archetype: Shot
   element: Wind
   name: Air Bullet
-  description: Deals 10 damage to target enemy. If the user is Leaping, deals 5 more damage and the user Leaps again.
+  description: Deals 5 damage to target enemy. If the user is Leaping, it deals 10 more; otherwise, they Leap.
   cost: r
-  cooldown: 1
+  # Cooldown 0 (was 1) so the Leap it grants is still up for its next use.
+  cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: set, var: leaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
-    - { op: damage, to: primary, amount: { if: { varTrue: leaping }, then: 15, else: 10 } }
-    - { op: if, cond: { varTrue: leaping }, then: [{ op: forEach, in: actor, do: [{ op: macro, id: leap }] }] }
+    - { op: damage, to: primary, amount: { if: { varTrue: leaping }, then: 15, else: 5 } }
+    - { op: if, cond: { not: { varTrue: leaping } }, then: [{ op: forEach, in: actor, do: [{ op: macro, id: leap }] }] }
 
 snipe.wind:
   archetype: Snipe
@@ -181,19 +182,15 @@ blast.wind:
   archetype: Blast
   element: Wind
   name: Spiral Burst
-  description: Deals 10 damage to all enemies, +10 if the user is Leaping and +10 if they are Rushing.
+  description: Deals 20 damage to all enemies. If the user is Leaping, it deals 10 more; otherwise, they begin Rushing.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
-    - op: damage
-      to: targets
-      amount:
-        sum:
-          - 10
-          - { if: { has: { unit: actor, effect: leaping } }, then: 10, else: 0 }
-          - { if: { has: { unit: actor, effect: rushing } }, then: 10, else: 0 }
+    - { op: set, var: leaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
+    - { op: damage, to: targets, amount: { if: { varTrue: leaping }, then: 30, else: 20 } }
+    - { op: if, cond: { not: { varTrue: leaping } }, then: [{ op: apply, to: actor, effect: rushing }] }
 
 consume.wind:
   archetype: Consume
@@ -268,16 +265,16 @@ stab.wind:
   archetype: Stab
   element: Wind
   name: Airknife
-  description: Deals 10 damage to target enemy, increased to 20 if the user is Rushing.
+  description: Deals 10 damage to target enemy, increased to 20 if the user is Rushing. If they aren't, they begin Rushing.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: if, cond: { has: { unit: actor, effect: rushing } }, then: [{ op: signal, name: stab_bonus }] }
-    - op: damage
-      to: primary
-      amount: { if: { has: { unit: actor, effect: rushing } }, then: 20, else: 10 }
+    - { op: set, var: rushing, value: { if: { has: { unit: actor, effect: rushing } }, then: 1, else: 0 } }
+    - { op: if, cond: { varTrue: rushing }, then: [{ op: signal, name: stab_bonus }] }
+    - { op: damage, to: primary, amount: { if: { varTrue: rushing }, then: 20, else: 10 } }
+    - { op: if, cond: { not: { varTrue: rushing } }, then: [{ op: apply, to: actor, effect: rushing }] }
 
 ravage.wind:
   archetype: Ravage

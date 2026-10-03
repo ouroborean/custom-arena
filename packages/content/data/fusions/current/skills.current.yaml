@@ -236,14 +236,16 @@ maneuver.current:
   element: Current
   name: Submerge
   description: >-
-    The user becomes Invulnerable for 1 turn. When it ends, they spend all their Charge: each Soaked enemy
-    takes 10 damage per Charge spent.
+    The user becomes Invulnerable for 1 turn and gains 1 Charge. When it ends, they surface and spend all
+    their Charge: a random enemy is Soaked for 2 turns, then each Soaked enemy takes 10 damage per Charge
+    spent.
   cost: I
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: charged }
     - op: apply
       to: actor
       duration: { enemyTurns: 1 }
@@ -252,10 +254,11 @@ maneuver.current:
         name: Submerge
         kind: Buff
         element: Current
-        description: When this ends, all the bearer's Charge discharges into Soaked enemies.
+        description: When this ends, a random enemy is Soaked, and all the bearer's Charge discharges into Soaked enemies.
         onExpire:
           - { op: set, var: charge, value: { stacks: { unit: bearer, effect: charged } } }
           - { op: removeEffect, from: bearer, effect: charged }
+          - { op: apply, to: { randomEnemy: 1 }, effect: soaked, duration: { enemyTurns: 2 } }
           - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: soaked } } }, amount: { mul: [10, { var: charge }] }, direct: false }
 
 companion.current:
@@ -304,13 +307,16 @@ consume.current:
   archetype: Consume
   element: Current
   name: Ebb Siphon
-  description: Deals 5 damage to target enemy, and the user heals 10 per stack of Sapped on them (max 30).
+  description: >-
+    Deals 5 damage to target enemy, who is Sapped. The user then heals 10 per stack of Sapped on them (max
+    30).
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: sapped }
     - op: heal
       to: actor
       amount:
@@ -400,30 +406,29 @@ ravage.current:
   element: Current
   name: Riptide Pike
   description: >-
-    Deals 25 Piercing damage to target enemy. The user spends up to 3 Renew, and each one spent cuts their
-    other cooldowns by 1.
+    Deals 25 Piercing damage to target enemy. If they're Soaked, the riptide carries the user on: their
+    other cooldowns drop by 1; if not, they're Soaked for 2 turns.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: wet, value: { if: { has: { unit: primary, effect: soaked } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 25, type: Piercing }
-    - op: set
-      var: tide
-      value:
-        if: { compare: { value: { totalStacks: { in: actor, effect: renew } }, atLeast: 3 } }
-        then: 3
-        else: { totalStacks: { in: actor, effect: renew } }
-    - { op: repeat, times: { var: tide }, do: [{ op: removeStacks, from: actor, effect: renew, amount: 1 }] }
-    - { op: adjustCooldowns, to: actor, by: { mul: [-1, { var: tide }] }, exceptCurrent: true }
+    - op: if
+      cond: { varTrue: wet }
+      then:
+        - { op: adjustCooldowns, to: actor, by: -1, exceptCurrent: true }
+      else:
+        - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 2 } }
 
 mislead.current:
   archetype: Mislead
   element: Current
   name: Grounding
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each Confusion on them becomes 1
-    Sapped. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the charge runs to ground
+    through them: they're Soaked for 2 turns and Sapped. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -438,16 +443,15 @@ mislead.current:
         kind: Debuff
         element: Current
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and their Confusion becomes Sapped.
+        description: The bearer's next Harmful skill is countered, and they're Soaked and Sapped.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: set, var: grounded, value: { totalStacks: { in: bearer, effect: confusion } } }
-              - { op: removeEffect, from: bearer, effect: confusion }
-              - { op: apply, to: bearer, effect: sapped, stacks: { var: grounded } }
+              - { op: apply, to: bearer, effect: soaked, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearer, effect: sapped }
 
 stun.current:
   archetype: Stun
@@ -520,8 +524,8 @@ bless.current:
   element: Current
   name: Overflow
   description: >-
-    For 3 turns, target ally's single-target skills count as Current skills: they deal 5 more to Soaked
-    enemies and conduct through them.
+    For 3 turns, target ally's single-target skills count as Current skills: they Soak the enemy they
+    target for 2 turns before they hit, deal 5 more to Soaked enemies and conduct through them.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -535,9 +539,18 @@ bless.current:
         name: Overflow
         kind: Buff
         element: Current
-        description: The bearer's skills deal 5 more to Soaked enemies, and their single-target hits conduct.
+        description: >-
+          The bearer's single-target skills Soak their enemy target before they hit; their skills deal 5
+          more to Soaked enemies, and their single-target hits conduct.
         modifiers:
           - { mod: damageDealt, amount: 5, when: { direct: true }, target: { has: { unit: it, effect: soaked } } }
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { eventSkill: { single: true } }
+                then:
+                  - { op: apply, to: { filter: eventTargets, where: { isEnemy: it } }, effect: soaked, duration: { enemyTurns: 2 } }
 
 curse.current:
   archetype: Curse

@@ -43,18 +43,21 @@ charge.fire:
   element: Fire
   name: Hot Foot
   description: >-
-    Deals 10 damage to target enemy. If that enemy is Ignited, the user gains 2 Might until they
-    use a new damaging skill.
+    Deals 10 damage to target enemy. If they are Ignited, the user gains 2 Might until they use a
+    new damaging skill; otherwise, they are Ignited.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: wasIgnited, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { has: { unit: primary, effect: ignite } }
+      cond: { varTrue: wasIgnited }
       then:
         - { op: apply, to: actor, effect: might, stacks: 2, until: { skillUsed: { nonStrategic: true } } }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 riposte.fire:
   archetype: Riposte
@@ -233,19 +236,22 @@ consume.fire:
   element: Fire
   name: Feed the Fire
   description: >-
-    Deals 10 damage to target enemy. If the target is Ignited, the Ignite is consumed to grant the
-    user Flameborn for 3 turns.
+    Deals 10 damage to target enemy. If they are Ignited, the Ignite is consumed and the user heals
+    20; otherwise, they are Ignited.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: wasIgnited, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { has: { unit: primary, effect: ignite } }
+      cond: { varTrue: wasIgnited }
       then:
         - { op: removeEffect, from: primary, effect: ignite }
-        - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }
+        - { op: heal, to: actor, amount: 20 }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 summon.fire:
   archetype: Summon
@@ -294,18 +300,23 @@ stab.fire:
   archetype: Stab
   element: Fire
   name: Searing Needle
-  description: Deals 10 damage to target enemy. If the target is Ignited or Scorched, they also take 10 Affliction damage.
+  description: >-
+    Deals 10 damage to target enemy. If they are Ignited or Scorched, they also take 10 Affliction
+    damage; otherwise, they are Ignited.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: burning, value: { if: { or: [{ has: { unit: primary, effect: ignite } }, { has: { unit: primary, effect: scorched } }] }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { or: [{ has: { unit: primary, effect: ignite } }, { has: { unit: primary, effect: scorched } }] }
+      cond: { varTrue: burning }
       then:
         - { op: damage, to: primary, amount: 10, type: Affliction }
         - { op: signal, name: stab_bonus }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 ravage.fire:
   archetype: Ravage
@@ -382,13 +393,27 @@ heal.fire:
   archetype: Heal
   element: Fire
   name: Flamethirst
-  description: Target ally gains Flameborn for 2 turns.
+  description: Target ally gains Flameborn for 2 turns, and their next Harmful skill Ignites its targets.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
     - { op: apply, to: primary, effect: flameborn, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      until: { skillUsed: { harmful: true } }
+      effect:
+        id: flamethirst
+        name: Flamethirst
+        kind: Buff
+        element: Fire
+        description: The bearer's next Harmful skill Ignites its targets (as the bearer's own Ignites).
+        triggers:
+          - on: skillResolved
+            when: { harmful: true }
+            do:
+              - { op: apply, to: eventTargets, effect: ignite, from: bearer }
 
 bless.fire:
   archetype: Bless
@@ -484,9 +509,7 @@ withstand.fire:
   archetype: Withstand
   element: Fire
   name: Ashen Barrier
-  description: >-
-    The user gains 10 Shield for each active Ignite or Scorch effect. If the user is Flameborn,
-    they gain 10 additional Shield.
+  description: The user gains 20 Shield. Each enemy that damages this Shield is Ignited.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -494,11 +517,18 @@ withstand.fire:
   ops:
     - op: apply
       to: actor
-      effect: shield
-      value:
-        sum:
-          - { mul: [10, { count: { effects: [ignite, scorched] } }] }
-          - { if: { has: { unit: actor, effect: flameborn } }, then: 10, else: 0 }
+      value: 20
+      effect:
+        id: ashen_barrier
+        name: Ashen Barrier
+        kind: Buff
+        element: Fire
+        shield: true
+        description: Absorbs damage; each enemy that damages it is Ignited.
+        triggers:
+          - on: shieldDamaged
+            do:
+              - { op: apply, to: eventSource, effect: ignite }
 
 taunt.fire:
   archetype: Taunt
@@ -538,17 +568,12 @@ titan.fire:
   archetype: Titan
   element: Fire
   name: Wraith in White
-  description: >-
-    For 3 turns, the user gains 1 Might for each active Ignite, 1 Armor for each active Scorch, and
-    Immune if they have Flameborn.
+  description: The user Ignites all enemies, then gains Immune and Flameborn for 3 turns.
   cost: SS
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: might, stacks: { count: { effects: [ignite] } }, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: armor, stacks: { count: { effects: [scorched] } }, duration: { enemyTurns: 3 } }
-    - op: if
-      cond: { has: { unit: actor, effect: flameborn } }
-      then:
-        - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: allEnemies, effect: ignite }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 3 } }

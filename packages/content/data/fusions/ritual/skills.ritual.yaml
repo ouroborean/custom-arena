@@ -94,8 +94,8 @@ charge.ritual:
   element: Ritual
   name: Candlestep
   description: >-
-    Deals 15 damage to target enemy, and the user gains 1 Focus. Any Ignite on them is carried off: it
-    ends, and the user's next damaging skill Ignites its targets.
+    Deals 15 damage to target enemy, and the user gains 1 Focus. They carry a flame away from the
+    strike: their next damaging skill Ignites its targets.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -103,24 +103,20 @@ charge.ritual:
   ops:
     - { op: damage, to: primary, amount: 15 }
     - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
-    - op: if
-      cond: { has: { unit: primary, effect: ignite } }
-      then:
-        - { op: removeEffect, from: primary, effect: ignite }
-        - op: apply
-          to: actor
-          until: { skillUsed: { harmful: true } }
-          effect:
-            id: candlestep
-            name: Carried Flame
-            kind: Buff
-            element: Ritual
-            description: The bearer's next damaging skill Ignites its targets.
-            triggers:
-              - on: dealtDamage
-                when: { direct: true, byEnemy: true }
-                do:
-                  - { op: apply, to: eventTarget, effect: ignite }
+    - op: apply
+      to: actor
+      until: { skillUsed: { harmful: true } }
+      effect:
+        id: candlestep
+        name: Carried Flame
+        kind: Buff
+        element: Ritual
+        description: The bearer's next damaging skill Ignites its targets.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: apply, to: eventTarget, effect: ignite }
 
 riposte.ritual:
   archetype: Riposte
@@ -252,8 +248,8 @@ maneuver.ritual:
   element: Ritual
   name: Hush of Smoke
   description: >-
-    The user becomes Invulnerable for 1 turn, and no enemy's Sleep can end before the user's next turn.
-    Stealthy.
+    The user becomes Invulnerable for 1 turn. Each enemy who uses a Harmful skill meanwhile is Blinded
+    for 1 turn. Stealthy.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Stealthy]
@@ -262,15 +258,20 @@ maneuver.ritual:
     - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
     - op: apply
       to: allEnemies
-      duration: { raw: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: hush_of_smoke
         name: Hush of Smoke
         kind: Debuff
         element: Ritual
-        description: The bearer's Sleep can't end early.
-        modifiers:
-          - { mod: protectEffects, effects: [sleep] }
+        visibility: hidden
+        description: If the bearer uses a Harmful skill, they're Blinded for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: blinded, duration: { enemyTurns: 1 } }
 
 companion.ritual:
   archetype: Companion
@@ -365,10 +366,10 @@ blast.ritual:
 consume.ritual:
   archetype: Consume
   element: Ritual
-  name: Snuff the Candles
+  name: Candle Offering
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If the user has a Rite, it ends without
-    completing, and they heal 10 per skill it had counted.
+    Deals 5 damage to target enemy, healing the user for it. If the user has a Rite, the offering
+    advances it by 1; if not, they heal 15 more.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -376,11 +377,13 @@ consume.ritual:
   ops:
     - { op: damage, to: primary, amount: 5 }
     - { op: heal, to: actor, amount: { lastDamage: true } }
+    # The Offering itself is already a step (every skill is), so a Rite it finishes is gone by now.
     - op: if
       cond: { has: { unit: actor, effect: rite } }
       then:
-        - { op: heal, to: actor, amount: { mul: [10, { counter: rite_counted }] } }
-        - { op: macro, id: clear_rite }
+        - { op: signal, name: rite_advance }
+      else:
+        - { op: heal, to: actor, amount: 15 }
 
 summon.ritual:
   archetype: Summon
@@ -448,13 +451,16 @@ ravage.ritual:
   archetype: Ravage
   element: Ritual
   name: Flashpoint
-  description: Deals 20 Piercing damage to target enemy. Then every Ignite on the enemy team burns once now.
+  description: >-
+    Deals 20 Piercing damage to target enemy and Ignites them. Then every Ignite on the enemy team
+    burns once now.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20, type: Piercing }
+    - { op: apply, to: primary, effect: ignite }
     - op: forEach
       in: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } }
       do:
@@ -573,13 +579,13 @@ bless.ritual:
   archetype: Bless
   element: Ritual
   name: Double Wick
-  description: For 2 turns, target ally gains 1 Might, and Ignites they apply can stack, up to 2.
+  description: >-
+    For 2 turns, target ally Ignites each enemy they damage, and Ignites they apply can stack, up to 2.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
@@ -588,9 +594,17 @@ bless.ritual:
         name: Double Wick
         kind: Buff
         element: Ritual
-        description: Ignites the bearer applies can stack, up to 2.
+        description: Enemies the bearer damages are Ignited, and Ignites the bearer applies can stack, up to 2.
         modifiers:
           - { mod: stackCap, effect: ignite, max: 2 }
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { isEnemy: eventTarget }
+                then:
+                  - { op: apply, to: eventTarget, from: bearer, effect: ignite }
 
 curse.ritual:
   archetype: Curse
@@ -625,8 +639,8 @@ smite.ritual:
   element: Ritual
   name: Veilbrand
   description: >-
-    Deals 15 damage to target enemy and Sanctifies them for 2 turns. For as long, a Stealthed ally who
-    damages them while they're Ignited has their next skill count as Stealthy.
+    Deals 15 damage to target enemy and Sanctifies them for 2 turns. If they're Ignited, the brand
+    veils their eyes: they're Blinded for 1 turn. If not, they're Ignited.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -634,23 +648,12 @@ smite.ritual:
   ops:
     - { op: damage, to: primary, amount: 15 }
     - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: veilbrand
-        name: Veilbrand
-        kind: Debuff
-        element: Ritual
-        description: While the bearer is Ignited, a Stealthed attacker's next skill counts as Stealthy.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            do:
-              - op: if
-                cond: { and: [{ has: { unit: bearer, effect: ignite } }, { has: { unit: eventSource, effect: stealth } }] }
-                then:
-                  - { op: apply, to: eventSource, effect: veiled_by_smoke, until: { skillUsed: {} } }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 1 } }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 prayer.ritual:
   archetype: Prayer
@@ -755,7 +758,7 @@ withstand.ritual:
   archetype: Withstand
   element: Ritual
   name: Smokewall
-  description: The user gains 20 Shield, which lasts for as long as they stay Stealthed (at least 1 turn).
+  description: The user gains 20 Shield for 1 turn. Each enemy who damages it is Ignited.
   cost: A
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -764,19 +767,21 @@ withstand.ritual:
     - op: apply
       to: actor
       value: 20
+      duration: { enemyTurns: 1 }
       effect:
         id: smokewall
         name: Smokewall
         kind: Buff
         element: Ritual
         shield: true
-        description: A Shield that lasts while the bearer stays Stealthed (checked at the start of their turns).
+        description: A Shield; enemies who damage it are Ignited.
         triggers:
-          - on: turnStart
+          - on: shieldDamaged
             do:
               - op: if
-                cond: { not: { has: { unit: bearer, effect: stealth } } }
-                then: [{ op: removeSelf }]
+                cond: { isEnemy: eventSource }
+                then:
+                  - { op: apply, to: eventSource, effect: ignite }
 
 taunt.ritual:
   archetype: Taunt

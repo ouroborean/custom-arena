@@ -219,23 +219,22 @@ describe('Aurora skills', () => {
     expect([a.hp(B1), hidden(a, B1, 1)]).toEqual([100, true]);
   });
 
-  it('Rime Snare: the first time the target has a Frost debuff at the end of the user’s turn: 15 Piercing, +2 turns', () => {
+  it('Rime Snare: the first time the target uses a skill: 15 Piercing and Chilled for 2 turns', () => {
     const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
     a.use(A1, 'trap.aurora', B1).end();
-    expect(a.hp(B1)).toBe(100);
-    a.end();
-    a.give(B1, 'armor', { stacks: 3 }).give(B1, 'chilled', { source: A1, duration: 2 }).end();
-    expect(a.hp(B1)).toBe(85);
-    expect(dur(a, B1, 'chilled')).toBe(5); // 2 → +4, then the turn's countdown
-    a.end().end();
+    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([100, false]);
+    a.give(B1, 'armor', { stacks: 3 }).use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([85, true]);
+    expect(appliedDur(a, B1, 'chilled')).toBe(5); // applied on the bearer's own turn
+    a.end().use(B1, 'shot', A1).end();
     expect(a.hp(B1)).toBe(85); // only the first time
   });
 
-  it('Rime Snare: doesn’t fire without a Frost debuff, and runs out after 3 turns', () => {
+  it('Rime Snare: doesn’t fire if the target doesn’t act, and runs out after 3 turns', () => {
     const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
     a.use(A1, 'trap.aurora', B1).end().pass(6);
-    a.give(B1, 'chilled', { source: A1 }).end();
-    expect(a.hp(B1)).toBe(100);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([100, false]);
   });
 
   it('Vanishing Light: Invulnerable for 1 turn; Sapped turns into as much Charge', () => {

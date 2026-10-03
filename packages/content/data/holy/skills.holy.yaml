@@ -220,14 +220,23 @@ consume.holy:
   archetype: Consume
   element: Holy
   name: Ascension
-  description: Deals 5 damage to target enemy. If that enemy is affected by Sanctify, the user is permanently Anointed.
+  description: >-
+    Deals 5 damage to target enemy. If that enemy is Sanctified, the user is permanently Anointed;
+    otherwise, the enemy is Sanctified for 1 turn and the user is Anointed until the end of the
+    user's next turn.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: sanctified, value: { if: { has: { unit: primary, effect: sanctify } }, then: 1, else: 0 } }
     - { op: damage, to: primary, amount: 5 }
-    - { op: if, cond: { has: { unit: primary, effect: sanctify } }, then: [{ op: apply, to: actor, effect: anointed }] }
+    - op: if
+      cond: { varTrue: sanctified }
+      then: [{ op: apply, to: actor, effect: anointed }]
+      else:
+        - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+        - { op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }
 
 summon.holy:
   archetype: Summon
@@ -349,14 +358,16 @@ stun.holy:
   archetype: Stun
   element: Holy
   name: Repentance
-  description: Target Condemned enemy is Stunned for 1 turn.
+  description: Target enemy is Condemned for 1 turn. If they're already Condemned, they're Stunned for 1 turn instead.
   cost: r
   cooldown: 1
   tags: [Harmful, Strategic]
   target: enemy
-  targetFilter: { has: { unit: it, effect: condemned } }
   ops:
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { has: { unit: primary, effect: condemned } }
+      then: [{ op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }]
+      else: [{ op: apply, to: primary, effect: condemned, duration: { enemyTurns: 1 } }]
 
 dance.holy:
   archetype: Dance
@@ -482,7 +493,9 @@ shout.holy:
   archetype: Shout
   element: Holy
   name: Excoriate
-  description: All Sanctified enemies are Condemned for 1 turn. This skill Bypasses.
+  description: >-
+    Sanctified enemies are Condemned for 1 turn, and every other enemy is Sanctified for 1 turn.
+    This skill Bypasses.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic, Bypass]
@@ -491,7 +504,10 @@ shout.holy:
     - op: forEach
       in: targets
       do:
-        - { op: if, cond: { has: { unit: it, effect: sanctify } }, then: [{ op: apply, to: it, effect: condemned, duration: { enemyTurns: 1 } }] }
+        - op: if
+          cond: { has: { unit: it, effect: sanctify } }
+          then: [{ op: apply, to: it, effect: condemned, duration: { enemyTurns: 1 } }]
+          else: [{ op: apply, to: it, effect: sanctify, duration: { enemyTurns: 1 } }]
 
 withstand.holy:
   archetype: Withstand
@@ -526,22 +542,17 @@ titan.holy:
   element: Holy
   name: Grand Crusader
   description: >-
-    Deals 10 damage to all enemies. For each Sanctified or Condemned enemy hit, the user gains 1
-    Might and 1 Armor for 3 turns.
+    Deals 10 damage to all enemies and Sanctifies them for 1 turn. For 3 turns, the user gains 2
+    Might and 2 Armor.
   cost: Wr
   cooldown: 4
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
     - { op: damage, to: targets, amount: 10 }
-    - op: forEach
-      in: lastDamaged
-      do:
-        - op: if
-          cond: { or: [{ has: { unit: it, effect: sanctify } }, { has: { unit: it, effect: condemned } }] }
-          then:
-            - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
-            - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 3 } }
+    - { op: apply, to: targets, effect: sanctify, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
 
 # ---------------------------------------------------------------- minion skills
 

@@ -209,30 +209,23 @@ describe('Grave skills', () => {
     expect(a.hp(B1)).toBe(85); // no Might
   });
 
-  it('Barrow Stone: 15; the next allied minion to die leaves a Boulder', () => {
-    const a = grave({ p0: [['shot.grave', 'rage.grave']], p1: [['shot'], ['shot']] });
-    setGraves(a, 2).use(A1, 'rage.grave').end().pass(1).use(A1, 'shot.grave', B1).end();
-    expect(a.hp(B1)).toBe(85);
-    const [s1, s2] = minions(a, 0, 'skeleton');
-    a.setHp(s1!.id, 5).setHp(s2!.id, 5).use(B1, 'shot', s1!.id).use(B2, 'shot', s2!.id).end();
-    expect(minions(a, 0, 'boulder').length).toBe(1); // only the next one
+  it('Barrow Stone: 15; with no Grave, no Boulder', () => {
+    const a = grave({ p0: [['shot.grave']], p1: [['shot']] });
+    a.use(A1, 'shot.grave', B1).end();
+    expect([a.hp(B1), minions(a, 0, 'boulder').length, graves(a)]).toEqual([85, 0, 0]);
   });
 
-  it('Barrow Stone: an enemy minion dying leaves no Boulder', () => {
-    const a = grave({ p0: [['shot.grave', 'shot']], p1: [['shot', 'charge.earth']] });
-    a.pass(1).use(B1, 'charge.earth', A1).end();
-    const b = minions(a, 1, 'boulder')[0]!;
-    a.use(A1, 'shot.grave', B1).end().pass(1);
-    a.setHp(b.id, 5).use(A1, 'shot', b.id).end();
-    expect(minions(a, 0, 'boulder').length).toBe(0);
+  it('Barrow Stone: spends 1 Grave, if the user has one, for a Boulder', () => {
+    const a = grave({ p0: [['shot.grave']], p1: [['shot']] });
+    setGraves(a, 3).use(A1, 'shot.grave', B1).end();
+    expect([a.hp(B1), minions(a, 0, 'boulder').length, graves(a)]).toEqual([85, 1, 2]);
+    expect(minions(a, 0, 'boulder')[0]!.hp).toBe(45);
   });
 
-  it("Barrow Stone: it lasts only until the user's next turn", () => {
-    const a = grave({ p0: [['shot.grave', 'rage.grave']], p1: [['shot']] });
-    setGraves(a, 1).use(A1, 'rage.grave').end().pass(1).use(A1, 'shot.grave', B1).end().pass(2);
-    const s = minions(a, 0, 'skeleton')[0]!;
-    a.setHp(s.id, 5).use(B1, 'shot', s.id).end();
-    expect(minions(a, 0, 'boulder').length).toBe(0);
+  it('Barrow Stone: its Boulder feeds Split the Earth', () => {
+    const a = grave({ p0: [['shot.grave', 'smash.grave']], p1: [['shot'], ['shot']] });
+    setGraves(a, 1).use(A1, 'shot.grave', B1).end().pass(1).use(A1, 'smash.grave', B1).end();
+    expect([minions(a, 0, 'boulder').length, a.stacks(A1, 'soul_fragment')]).toEqual([0, 2]);
   });
 
   it('Grave Burrower: 55 two turns later', () => {
@@ -353,12 +346,26 @@ describe('Grave skills', () => {
     expect([a.hp(B1), a.hp(B2), minions(a, 0, 'skeleton').length]).toEqual([80, 80, 0]);
   });
 
+  it('Marrow Draught: with no allied minion, a Skeleton claws up first (no Grave spent) and is drained', () => {
+    const a = grave({ p0: [['consume.grave']], p1: [['shot']] });
+    setGraves(a, 2).setHp(A1, 50).use(A1, 'consume.grave').end();
+    const s = minions(a, 0, 'skeleton');
+    expect([s.length, s[0]?.hp, a.hp(A1), graves(a), a.hp(B1)]).toEqual([1, 10, 60, 2, 100]);
+  });
+
   it('Marrow Draught: drains 10 from every minion on both sides; the user heals the total', () => {
     const a = grave({ p0: [['consume.grave', 'summon.grave']], p1: [['shot', 'charge.earth']] });
     a.pass(1).use(B1, 'charge.earth', A1).end();
     setGraves(a, 1).use(A1, 'summon.grave').end().pass(1);
     a.setHp(A1, 50).use(A1, 'consume.grave').end();
-    expect([a.hp(A1), minions(a, 0, 'skeleton')[0]?.hp, minions(a, 1, 'boulder')[0]?.hp]).toEqual([70, 10, 35]);
+    expect([a.hp(A1), minions(a, 0, 'skeleton').length, minions(a, 0, 'skeleton')[0]?.hp, minions(a, 1, 'boulder')[0]?.hp]).toEqual([70, 1, 10, 35]);
+  });
+
+  it('Marrow Draught: an enemy minion alone doesn\'t stop the Skeleton (only allied ones do)', () => {
+    const a = grave({ p0: [['consume.grave']], p1: [['shot', 'charge.earth']] });
+    a.pass(1).use(B1, 'charge.earth', A1).end();
+    a.setHp(A1, 50).use(A1, 'consume.grave').end();
+    expect([minions(a, 0, 'skeleton').length, a.hp(A1)]).toEqual([1, 70]);
   });
 
   it('Marrow Draught: a minion that dies leaves a Grave; only the HP it had is healed', () => {

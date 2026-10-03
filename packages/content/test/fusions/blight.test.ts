@@ -142,20 +142,26 @@ describe('Blight skills', () => {
     expect([a.has(A1, 'might'), a.has(A1, 'immortal'), withered(a, A1)]).toEqual([false, false, 3]);
   });
 
-  it('Dread Spittle: 15; for 2 turns no Buffs while they have 2+ Toxin', () => {
+  it('Dread Spittle: 15 and 1 Toxin; for 2 turns no Buffs while they have 2+ Toxin', () => {
     const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
-    a.give(B1, 'toxin', { stacks: 2, source: B1 });
+    a.give(B1, 'toxin', { stacks: 1, source: B1 });
     a.use(A1, 'shot.blight', B1).end();
-    expect([a.hp(B1), a.has(B1, 'horrified')]).toEqual([85, false]);
+    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.has(B1, 'horrified')]).toEqual([80, 2, false]); // 15 + its Toxin's tick
     a.use(B1, 'bless', B1).end();
     expect(a.has(B1, 'might')).toBe(false);
   });
 
-  it('Dread Spittle: with 1 Toxin, Buffs land', () => {
+  it('Dread Spittle: with only its own 1 Toxin, Buffs land', () => {
     const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
-    a.give(B1, 'toxin', { stacks: 1, source: B1 });
     a.use(A1, 'shot.blight', B1).end().use(B1, 'bless', B1).end();
-    expect(a.has(B1, 'might')).toBe(true);
+    expect([a.stacks(B1, 'toxin'), a.has(B1, 'might')]).toEqual([1, true]);
+  });
+
+  it('Dread Spittle: its own second use brings them to 2 Toxin, and the Buffs stop', () => {
+    const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
+    a.use(A1, 'shot.blight', B1).end().pass(3);
+    a.use(A1, 'shot.blight', B1).end().use(B1, 'bless', B1).end();
+    expect([a.stacks(B1, 'toxin'), a.has(B1, 'might')]).toEqual([2, false]);
   });
 
   it('Rotspear: on the following turn, 25 Affliction +10 per Withered', () => {

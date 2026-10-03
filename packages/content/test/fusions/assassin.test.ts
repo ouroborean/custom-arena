@@ -170,12 +170,12 @@ describe('Assassin skills', () => {
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([2, 2]);
   });
 
-  it("Blowdart: 10 Piercing; for 2 turns their Toxin, Weakness and Vulnerable can't be removed", () => {
+  it("Blowdart: 10 Piercing and 1 Toxin; for 2 turns their Toxin, Weakness and Vulnerable can't be removed", () => {
     const a = arena({ p0: [['shot.assassin']], p1: [['maneuver.spore']] });
-    a.give(B1, 'toxin', { source: B1 }).give(B1, 'weakness', { source: A1 }).give(B1, 'confusion', { source: A1 });
+    a.give(B1, 'weakness', { source: A1 }).give(B1, 'confusion', { source: A1 });
     a.give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'shot.assassin', B1).end();
-    expect(a.hp(B1)).toBe(90);
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([85, 1]); // 10 Piercing + the Toxin's first tick
     a.use(B1, 'maneuver.spore').end(); // sheds Debuffs
     expect([a.has(B1, 'toxin'), a.has(B1, 'weakness'), a.has(B1, 'confusion')]).toEqual([true, true, false]);
   });
@@ -217,6 +217,21 @@ describe('Assassin skills', () => {
   it('Covering Smoke: without it, a non-Stealthy skill ends Stealth', () => {
     const a = arena({ p0: [['shot'], ['shot']], p1: [['shot']] });
     a.give(A2, 'stealth', { duration: 4 }).use(A2, 'shot', B1).end();
+    expect(a.has(A2, 'stealth')).toBe(false);
+  });
+
+  it("Covering Smoke: the user's other ally with the least HP gains Stealth for 1 turn, kept through their skills", () => {
+    const a = arena({ p0: [['maneuver.assassin'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A3, 40).use(A1, 'maneuver.assassin').use(A3, 'shot', B1).end();
+    expect([a.has(A2, 'stealth'), a.has(A3, 'stealth')]).toEqual([false, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A3))).toBe('bad_target');
+  });
+
+  it('Covering Smoke: the Stealth it gives lasts 1 turn', () => {
+    const a = arena({ p0: [['maneuver.assassin'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).use(A1, 'maneuver.assassin').end();
+    expect(a.has(A2, 'stealth')).toBe(true);
+    a.end();
     expect(a.has(A2, 'stealth')).toBe(false);
   });
 
@@ -295,13 +310,32 @@ describe('Assassin skills', () => {
     expect([marked(a, B1), marked(a, B2)]).toEqual([false, false]);
   });
 
-  it('Fulfill the Contract: 5 lifesteal; executing through your Death Mark heals 30 more and grants Stealth', () => {
+  it('Fulfill the Contract: 5 lifesteal; leaving them at or below 15 executes them, and the kill heals 30 more and grants Stealth', () => {
+    const a = arena({ p0: [['consume.assassin']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 40).setHp(B1, 20).use(A1, 'consume.assassin', B1).end();
+    expect(alive(a, B1)).toBe(false);
+    expect([a.hp(A1), a.has(A1, 'stealth')]).toEqual([75, true]);
+  });
+
+  it('Fulfill the Contract: above 15 after the hit, no execution', () => {
+    const a = arena({ p0: [['consume.assassin']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 40).setHp(B1, 21).use(A1, 'consume.assassin', B1).end();
+    expect([alive(a, B1), a.hp(B1), a.hp(A1), a.has(A1, 'stealth')]).toEqual([true, 16, 45, false]);
+  });
+
+  it('Fulfill the Contract: an execution through your Death Mark counts too', () => {
     const a = arena({ p0: [['charge.assassin', 'consume.assassin']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.assassin', B1).end().pass(1);
     a.setHp(A1, 40).setHp(B1, 35).use(A1, 'consume.assassin', B1).end();
     expect(alive(a, B1)).toBe(false);
     expect(a.has(A1, 'stealth')).toBe(true);
     expect(a.hp(A1)).toBeGreaterThanOrEqual(40 + 5 + 30);
+  });
+
+  it('Fulfill the Contract: it heals the damage actually dealt', () => {
+    const a = arena({ p0: [['consume.assassin']], p1: [['shot']] });
+    a.setHp(A1, 40).give(B1, 'armor', { stacks: 1 }).use(A1, 'consume.assassin', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([100, 40]);
   });
 
   it('Fulfill the Contract: without an execution, just the 5', () => {

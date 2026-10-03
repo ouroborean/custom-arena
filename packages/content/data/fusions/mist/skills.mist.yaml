@@ -480,7 +480,7 @@ bless.mist:
   archetype: Bless
   element: Mist
   name: Cloak of Mist
-  description: For 3 turns, target ally gains 1 Renew, and has Fog whenever they're Rushing or Leaping.
+  description: Target ally gains 1 Renew, and has Fog for 3 turns or until they use a Harmful skill.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -490,14 +490,15 @@ bless.mist:
     - op: apply
       to: primary
       duration: { enemyTurns: 3 }
+      until: { skillUsed: { harmful: true } }
       effect:
         id: cloak_of_mist
         name: Cloak of Mist
         kind: Buff
         element: Mist
-        description: The bearer has Fog while Rushing or Leaping.
+        description: The bearer has Fog until they use a Harmful skill.
         modifiers:
-          - { mod: fogged, if: { or: [{ has: { unit: actor, effect: rushing } }, { has: { unit: actor, effect: leaping } }] } }
+          - { mod: fogged }
 
 curse.mist:
   archetype: Curse

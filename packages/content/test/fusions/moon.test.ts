@@ -229,23 +229,36 @@ describe('Moon skills', () => {
     expect([a.hp(B1), a.hp(A1)]).toEqual([60, 70]);
   });
 
-  it('Dreaming Stones: hidden; a Harmful skill on a minion puts them to Sleep and Isolates them', () => {
-    const a = moon({ p0: [['trap.moon', 'charge.earth']], p1: [['shot'], ['heal']] });
-    a.use(A1, 'charge.earth', B1).end().pass(1);
-    const b = minions(a, 0, 'boulder')[0]!;
+  it('Dreaming Stones: hidden; their first Harmful skill puts them to Sleep and Isolates them for 1 turn', () => {
+    const a = moon({ p0: [['trap.moon'], ['shot']], p1: [['shot'], ['heal']] });
     a.use(A1, 'trap.moon', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1 && e.source === A1)).toBe(false);
-    a.use(B1, 'shot', b.id).end();
+    a.use(B1, 'shot', A2).end();
     expect([a.has(B1, 'sleep'), a.has(B1, 'isolated')]).toEqual([true, true]);
     a.pass(1);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
     expect(a.reject(() => a.use(B2, 'heal', B1))).toBe('bad_target');
+    a.pass(1);
+    expect([a.has(B1, 'sleep'), a.has(B1, 'isolated')]).toEqual([false, false]); // 1 turn
   });
 
-  it('Dreaming Stones: a Harmful skill on a character does nothing', () => {
+  it("Dreaming Stones: only the first Harmful skill springs it; Helpful skills don't", () => {
+    const a = moon({ p0: [['trap.moon'], ['shot']], p1: [['shot', 'heal']] });
+    a.use(A1, 'trap.moon', B1).end();
+    a.use(B1, 'heal', B1).end();
+    expect(a.has(B1, 'sleep')).toBe(false);
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect(a.has(B1, 'sleep')).toBe(true);
+    a.pass(3);
+    a.use(B1, 'shot', A2).end();
+    expect(a.has(B1, 'sleep')).toBe(false); // spent
+  });
+
+  it('Dreaming Stones: lasts 2 turns', () => {
     const a = moon({ p0: [['trap.moon']], p1: [['shot']] });
-    a.use(A1, 'trap.moon', B1).end().use(B1, 'shot', A1).end();
-    expect([a.has(B1, 'sleep'), a.has(B1, 'isolated')]).toEqual([false, false]);
+    a.use(A1, 'trap.moon', B1).end().pass(4);
+    a.use(B1, 'shot', A1).end();
+    expect(a.has(B1, 'sleep')).toBe(false);
   });
 
   it('Eclipse: Invulnerable for 1 turn; the cycle advances one extra phase', () => {

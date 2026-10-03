@@ -129,16 +129,24 @@ describe('Antidote skills', () => {
     expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([50, 50, 65]);
   });
 
-  it("Quickened Venom: 15; until the end of their next turn, their Toxin also ticks when they use a skill", () => {
+  it('Quickened Venom: 15 and 1 Toxin; until the end of their next turn, their Toxin also ticks when they use a skill', () => {
+    const a = arena({ p0: [['charge.antidote']], p1: [['shot']] });
+    a.use(A1, 'charge.antidote', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([80, 1]); // 15 + the Toxin's first tick
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(75);
+    a.end(); // usual tick
+    expect(a.hp(B1)).toBe(70);
+    a.use(B1, 'shot', A1).end(); // over
+    expect(a.hp(B1)).toBe(70);
+  });
+
+  it('Quickened Venom: Toxin from elsewhere ticks along with it', () => {
     const a = arena({ p0: [['charge.antidote'], ['shot']], p1: [['shot']] });
     a.give(B1, 'toxin', { stacks: 2, source: A2 });
     a.use(A1, 'charge.antidote', B1).end();
-    expect(a.hp(B1)).toBe(75); // 15 + the usual tick
+    expect(a.hp(B1)).toBe(70); // 15 + a 3-stack tick
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(65);
-    a.end(); // usual tick
-    expect(a.hp(B1)).toBe(55);
-    a.use(B1, 'shot', A1).end(); // over
     expect(a.hp(B1)).toBe(55);
   });
 
@@ -187,31 +195,42 @@ describe('Antidote skills', () => {
     ]);
   });
 
-  it('Long Diagnosis: in 3 turns, 20 +15 per Debuff the target gained meanwhile', () => {
-    const a = arena({ p0: [['snipe.antidote'], ['trap.holy'], ['curse']], p1: [['shot']] });
-    a.use(A1, 'snipe.antidote', B1).end().pass(1);
-    a.use(A2, 'trap.holy', B1).use(A3, 'curse', B1).end();
+  it('Long Diagnosis: in 3 turns, 20 +15 per skill the target used meanwhile', () => {
+    const a = arena({ p0: [['snipe.antidote'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'snipe.antidote', B1).end();
+    a.use(B1, 'shot', A2).end().pass(1);
+    a.use(B1, 'shot', A2).end().pass(1);
     expect(a.hp(B1)).toBe(100);
-    a.pass(5);
-    expect(a.hp(B1)).toBe(50);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(B1)).toBe(35); // 20 + 3 × 15
   });
 
-  it('Long Diagnosis: with no Debuffs gained, just 20', () => {
+  it('Long Diagnosis: with no skills used, just 20', () => {
     const a = arena({ p0: [['snipe.antidote']], p1: [['shot']] });
     a.use(A1, 'snipe.antidote', B1).end().pass(6);
     expect(a.hp(B1)).toBe(80);
   });
 
-  it('Long Diagnosis: the bonus is at most 60', () => {
-    const a = arena({
-      p0: [['snipe.antidote'], ['trap.holy', 'curse.unholy'], ['curse', 'shout']],
-      p1: [['shot']],
-    });
-    a.use(A1, 'snipe.antidote', B1).end().pass(1);
-    a.use(A2, 'trap.holy', B1).use(A3, 'curse', B1).end().pass(1);
-    a.use(A2, 'curse.unholy', B1).use(A3, 'shout').end().pass(3);
-    // 4+ Debuffs gained (Condemned, Confusion, Horrified, Intimidated): 20 + 60
-    expect(a.hp(B1)).toBe(20);
+  it("Long Diagnosis: only the target's own skills count", () => {
+    const a = arena({ p0: [['snipe.antidote'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.antidote', B1).end();
+    a.use(B2, 'shot', A2).end().pass(1);
+    a.use(B2, 'shot', A2).end().pass(2);
+    expect(a.hp(B1)).toBe(80);
+  });
+
+  it('Long Diagnosis: the bonus is at most 45', () => {
+    const a = arena({ p0: [['snipe.antidote']], p1: [['shot']] });
+    a.use(A1, 'snipe.antidote', B1).end();
+    a.effects(B1).find((e) => e.inline?.id === 'diagnosis_chart')!.stacks = 7; // 6 skills seen
+    a.pass(6);
+    expect(a.hp(B1)).toBe(35);
+  });
+
+  it("Long Diagnosis: the target's skills don't reveal the diagnosis", () => {
+    const a = arena({ p0: [['snipe.antidote'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'snipe.antidote', B1).end().use(B1, 'shot', A2).end();
+    expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false);
   });
 
   it('Countervenom: the first Debuff the target gives an ally of the user is Purged back onto them', () => {

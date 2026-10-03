@@ -274,8 +274,8 @@ consume.phoenix:
   element: Phoenix
   name: Draw the Flame
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. Then every Ignite on enemies goes out,
-    and the user's ally with the least HP heals 10 for each one.
+    Deals 5 damage to target enemy, healing the user for it. If they're Ignited, the Ignite goes out
+    and the user's ally with the least HP heals 15 and gains 2 Renew; if not, they're Ignited.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -283,9 +283,17 @@ consume.phoenix:
   ops:
     - { op: damage, to: primary, amount: 5 }
     - { op: heal, to: actor, amount: { lastDamage: true } }
-    - { op: set, var: flames, value: { countOf: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } } } }
-    - { op: removeEffect, from: allEnemies, effect: ignite }
-    - { op: heal, to: weakestAlly, amount: { mul: [10, { var: flames }] } }
+    - op: if
+      cond: { has: { unit: primary, effect: ignite } }
+      then:
+        - { op: removeEffect, from: primary, effect: ignite }
+        - op: forEach
+          in: weakestAlly
+          do:
+            - { op: heal, to: it, amount: 15 }
+            - { op: apply, to: it, effect: renew, stacks: 2 }
+      else:
+        - { op: apply, to: primary, effect: ignite }
 
 summon.phoenix:
   archetype: Summon

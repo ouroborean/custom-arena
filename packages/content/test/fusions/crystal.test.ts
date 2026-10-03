@@ -232,11 +232,17 @@ describe('Crystal skills', () => {
     expect([a.has(B1, 'frostbitten'), a.has(B2, 'chilled')]).toEqual([false, false]);
   });
 
-  it('Harvest Shards: 10; removes all Brittle, 10 Shield per stack', () => {
+  it('Harvest Shards: 10 and 1 Brittle; it’s harvested at once for 10 Shield', () => {
+    const a = arena({ p0: [['consume.crystal']], p1: [['shot']] });
+    a.use(A1, 'consume.crystal', B1).end();
+    expect([a.hp(B1), a.has(B1, 'brittle'), shield(a, A1)]).toEqual([90, false, 10]);
+  });
+
+  it('Harvest Shards: Brittle already there is harvested too, 10 Shield per stack', () => {
     const a = arena({ p0: [['consume.crystal']], p1: [['shot']] });
     a.give(B1, 'brittle', { stacks: 2, source: A1 }).use(A1, 'consume.crystal', B1).end();
-    expect([a.has(B1, 'brittle'), shield(a, A1)]).toEqual([false, 20]);
-    expect(a.hp(B1)).toBe(80);
+    expect([a.has(B1, 'brittle'), shield(a, A1)]).toEqual([false, 30]);
+    expect(a.hp(B1)).toBe(80); // 10 + 10 from the 2 Brittle
   });
 
   it('Sentinel Shards: 2 Sentinels (15 HP, Diamond) for 3 turns', () => {

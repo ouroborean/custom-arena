@@ -325,8 +325,8 @@ channel.zealot:
   element: Zealot
   name: Mortification
   description: >-
-    For 3 turns, at the end of each of the user's turns, they take 10 Affliction, and a random enemy takes 10
-    damage per Fervor stack they have. Channeled.
+    For 3 turns, at the end of each of the user's turns, they take 10 Affliction and gain 1 Fervor, then a random
+    enemy takes 5 damage per Fervor stack they have. Channeled.
   cost: W
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -341,15 +341,13 @@ channel.zealot:
         kind: Neutral
         element: Zealot
         interruptible: true
-        description: Each turn, the bearer takes 10 Affliction and a random enemy 10 per Fervor.
+        description: Each turn, the bearer takes 10 Affliction and gains 1 Fervor, then a random enemy takes 5 per Fervor.
         triggers:
           - on: turnEnd
             do:
               - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
-              - op: if
-                cond: { has: { unit: bearer, effect: fervor } }
-                then:
-                  - { op: damage, to: { randomEnemy: 1 }, amount: { mul: [10, { stacks: { unit: bearer, effect: fervor } }] } }
+              - { op: apply, to: bearer, effect: fervor }
+              - { op: damage, to: { randomEnemy: 1 }, amount: { mul: [5, { stacks: { unit: bearer, effect: fervor } }] } }
 
 stab.zealot:
   archetype: Stab
@@ -549,8 +547,8 @@ smite.zealot:
   element: Zealot
   name: Holy Hunger
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 2 turns. An Anointed ally who triggers the Sanctify
-    also gains Lifesteal for 1 turn.
+    Deals 20 damage to target enemy and Sanctifies them for 2 turns. An ally who triggers the Sanctify also gains 1
+    Fervor.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -566,14 +564,14 @@ smite.zealot:
         name: Holy Hunger
         kind: Debuff
         element: Zealot
-        description: An Anointed ally who triggers the bearer's Sanctify gains Lifesteal for 1 turn.
+        description: An ally of the applier who triggers the bearer's Sanctify gains 1 Fervor.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
             do:
               - op: if
-                cond: { and: [{ has: { unit: bearer, effect: sanctify } }, { has: { unit: eventSource, effect: anointed } }] }
-                then: [{ op: apply, to: eventSource, effect: lifesteal, duration: { enemyTurns: 1 } }]
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then: [{ op: apply, to: eventSource, effect: fervor }]
 
 prayer.zealot:
   archetype: Prayer

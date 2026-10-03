@@ -322,8 +322,9 @@ consume.slime:
   element: Slime
   name: Digest
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If they're Engulfed, they're digested instead:
-    20 Affliction damage, healing the user as much.
+    Deals 5 damage to target enemy, healing the user for it, and a new Ooze with 10 HP Engulfs them for 1
+    turn. If they're already Engulfed, they're digested instead: 20 Affliction damage, healing the user as
+    much.
   cost: W
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -333,9 +334,16 @@ consume.slime:
       cond: { has: { unit: primary, effect: engulfed } }
       then:
         - { op: damage, to: primary, amount: 20, type: Affliction }
+        - { op: heal, to: actor, amount: { lastDamage: true } }
       else:
         - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: { lastDamage: true } }
+        - { op: heal, to: actor, amount: { lastDamage: true } }
+        - { op: set, var: ooze_hp, value: 10 }
+        - op: forEach
+          in: primary
+          do:
+            - { op: macro, id: make_ooze }
+            - { op: apply, to: it, effect: engulfed, from: lastSummoned, bindTo: lastSummoned, duration: { enemyTurns: 1 } }
 
 summon.slime:
   archetype: Summon

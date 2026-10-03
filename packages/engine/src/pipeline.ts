@@ -410,7 +410,7 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
     actor.counters.lastSlot = slotIndex;
     actor.counters['c:lastSlot'] = slotIndex; // readable from content
     for (const e of ending) removeEffect(ctx, e, 'consumed');
-    // Night's Hidden Moon: a "keep your Stealth" effect gained during this skill counts for it too.
+    // A "keep your Stealth" effect gained during this skill counts for it too.
     const keptStealth =
       stealthy || modsOn(ctx.s, ctx.c, actor.id, 'nextSkillStealthy').some(({ effect }) => effect.seq > myStart);
     for (const e of stealthed) {

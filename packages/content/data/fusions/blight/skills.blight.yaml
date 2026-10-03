@@ -112,14 +112,15 @@ shot.blight:
   element: Blight
   name: Dread Spittle
   description: >-
-    Deals 15 damage to target enemy. For 2 turns, they can't gain Buffs (as if Horrified) whenever they have 2 or
-    more Toxin.
+    Deals 15 damage to target enemy, who gains 1 Toxin. For 2 turns, they can't gain Buffs (as if Horrified)
+    whenever they have 2 or more Toxin.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: toxin }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }

@@ -3,7 +3,7 @@
 // Units: A1..A3 = p0c0..p0c2 (player 1, odd turns), B1..B3 = p1c0..p1c2.
 
 import { describe, expect, it } from 'vitest';
-import { evaluateNamedCondition, viewFor } from '@arena/engine';
+import { viewFor } from '@arena/engine';
 import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
@@ -15,7 +15,6 @@ const B3 = 'p1c2';
 
 const minions = (a: Arena, owner: 0 | 1, defId?: string) =>
   a.state.units.filter((u) => u.alive && u.owner === owner && u.kind === 'minion' && (!defId || u.defId === defId));
-const isPrey = (a: Arena, id: string) => evaluateNamedCondition(content, a.state, 'prey', id);
 const spores = (a: Arena, id: string) => a.stacks(id, 'spores');
 
 const parseCost = (c: string) => {
@@ -209,23 +208,27 @@ describe('Spore skills', () => {
     expect([...hit].sort()).toEqual([B1, B2]);
   });
 
-  it('Fester Pod: 10 Piercing; for 2 turns any 3 Debuffs make the target Prey', () => {
+  it('Fester Pod: 10 Piercing and 1 Spore', () => {
     const a = arena({ p0: [['shot.spore']], p1: [['shot']] });
     a.give(B1, 'armor', { stacks: 2 });
-    a.give(B1, 'blinded', { source: A1 }).give(B1, 'sanctify', { source: A1 }).give(B1, 'horrified', { source: A1 });
-    expect(isPrey(a, B1)).toBe(false);
     a.use(A1, 'shot.spore', B1).end();
-    expect(a.hp(B1)).toBe(90); // Piercing: Armor doesn't reduce it
-    expect(isPrey(a, B1)).toBe(true);
-    a.pass(3);
-    expect(isPrey(a, B1)).toBe(false);
+    expect([a.hp(B1), spores(a, B1)]).toEqual([90, 1]); // Piercing: Armor doesn't reduce it
   });
 
-  it('Fester Pod: two Debuffs are not enough', () => {
+  it('Fester Pod: 2 Spores if they already had Spores', () => {
     const a = arena({ p0: [['shot.spore']], p1: [['shot']] });
-    a.give(B1, 'blinded', { source: A1 }).give(B1, 'sanctify', { source: A1 });
+    a.give(B1, 'spores', { stacks: 1, source: A1 });
     a.use(A1, 'shot.spore', B1).end();
-    expect(isPrey(a, B1)).toBe(false);
+    expect(minions(a, 0, 'mushroom')).toHaveLength(1); // 1 + 2 reached 3: a Mushroom sprouted
+  });
+
+  it('Fester Pod: its own second use finds the first Spore and sprouts a Mushroom', () => {
+    const a = arena({ p0: [['shot.spore']], p1: [['shot']] });
+    a.use(A1, 'shot.spore', B1).end().pass(3);
+    expect(spores(a, B1)).toBe(1);
+    a.use(A1, 'shot.spore', B1).end();
+    expect(minions(a, 0, 'mushroom')).toHaveLength(1);
+    expect(a.hp(B1)).toBe(80);
   });
 
   it("Root Rot: in 2 turns, 50 to the target and 15 to each of their allies with Spores", () => {
@@ -317,19 +320,18 @@ describe('Spore skills', () => {
     expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([55, false]);
   });
 
-  it("Binding Hypha: while it lasts, the target's Toxin can't be removed", () => {
-    const a = arena({ p0: [['bolt.spore'], ['strike.poison']], p1: [['maneuver.spore']] });
-    a.use(A2, 'strike.poison', B1).use(A1, 'bolt.spore', B1).end();
-    a.use(B1, 'maneuver.spore').end(); // sheds Debuffs
-    expect(a.has(B1, 'toxin')).toBe(true);
-    expect(a.has(B1, 'mark')).toBe(false); // other Debuffs still go
+  it('Binding Hypha: the target and one random ally of theirs each gain 1 Spore', () => {
+    const a = arena({ p0: [['bolt.spore']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'bolt.spore', B1).end();
+    expect(spores(a, B1)).toBe(1);
+    expect([spores(a, B2), spores(a, B3)].sort()).toEqual([0, 1]);
+    expect([a.hp(B2), a.hp(B3)]).toEqual([100, 100]);
   });
 
-  it('Binding Hypha: without it, the same shed removes Toxin', () => {
-    const a = arena({ p0: [['shot'], ['strike.poison']], p1: [['maneuver.spore']] });
-    a.use(A2, 'strike.poison', B1).end();
-    a.use(B1, 'maneuver.spore').end();
-    expect(a.has(B1, 'toxin')).toBe(false);
+  it('Binding Hypha: with no allies to bind, only the target gains a Spore', () => {
+    const a = arena({ p0: [['bolt.spore']], p1: [['shot']] });
+    a.use(A1, 'bolt.spore', B1).end();
+    expect([a.hp(B1), spores(a, B1)]).toEqual([80, 1]);
   });
 
   it('Sporestorm: each allied Seedling Puffs a Spore onto an enemy, then 25 to all enemies', () => {
@@ -344,17 +346,31 @@ describe('Spore skills', () => {
     expect([a.hp(B1), a.hp(B2), spores(a, B1) + spores(a, B2)]).toEqual([75, 75, 0]);
   });
 
-  it('Decompose: 5 lifesteal; the target loses their Spores and the user heals 10 per Spore', () => {
+  it('Decompose: 5 lifesteal; a target with Spores loses them and the user heals 10 per Spore', () => {
     const a = arena({ p0: [['consume.spore']], p1: [['shot']] });
     a.setHp(A1, 50).give(B1, 'spores', { stacks: 2, source: A1 });
     a.use(A1, 'consume.spore', B1).end();
     expect([a.hp(B1), spores(a, B1), a.hp(A1)]).toEqual([95, 0, 75]);
   });
 
-  it('Decompose: without Spores, only the 5', () => {
+  it('Decompose: a target without Spores gains 2 instead, and the user heals only the 5', () => {
     const a = arena({ p0: [['consume.spore']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.spore', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 55]);
+    expect([a.hp(B1), a.hp(A1), spores(a, B1)]).toEqual([95, 55, 2]);
+  });
+
+  it('Decompose: it heals the damage actually dealt, so Armor shrinks the lifesteal', () => {
+    const a = arena({ p0: [['consume.spore']], p1: [['shot']] });
+    a.setHp(A1, 50).give(B1, 'armor', { stacks: 1 }).give(B1, 'spores', { stacks: 1, source: A1 });
+    a.use(A1, 'consume.spore', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([100, 60]); // 0 dealt + 10 for the Spore
+  });
+
+  it('Decompose: its own next use cashes in the Spores it planted', () => {
+    const a = arena({ p0: [['consume.spore']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.spore', B1).end().pass(5);
+    a.use(A1, 'consume.spore', B1).end();
+    expect([a.hp(A1), spores(a, B1)]).toEqual([80, 0]); // 55, then 5 + 2 × 10
   });
 
   it('Bloater: 20 HP; Rancid Spit deals 10', () => {
@@ -394,10 +410,19 @@ describe('Spore skills', () => {
     expect(minions(a, 0, 'mushroom')).toHaveLength(1);
   });
 
-  it('Mycelial Network: enemies without Spores gain none', () => {
+  it('Mycelial Network: only enemies with Spores gain one while any has some', () => {
     const a = arena({ p0: [['channel.spore']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'channel.spore').end().pass(2);
-    expect([spores(a, B1), spores(a, B2)]).toEqual([0, 0]);
+    a.give(B1, 'spores', { stacks: 1, source: A1 });
+    a.use(A1, 'channel.spore').end();
+    expect(spores(a, B1) + spores(a, B2)).toBe(2); // B1's 1 more (it may pass one on), no extra
+  });
+
+  it('Mycelial Network: if no enemy has Spores, a random enemy gains 1, and the network grows from there', () => {
+    const a = arena({ p0: [['channel.spore']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'channel.spore').end();
+    expect(spores(a, B1) + spores(a, B2)).toBe(1);
+    a.pass(2);
+    expect(spores(a, B1) + spores(a, B2)).toBe(2);
   });
 
   it("Mycelial Network: lasts 4 of the user's turns", () => {
@@ -418,25 +443,25 @@ describe('Spore skills', () => {
     expect(grown).toEqual([2, 2, 2, 2, 1]);
   });
 
-  it('Thorn of Rot: 1 Armor rots into 1 Vulnerable, then 10 Piercing (+5 from the Vulnerable)', () => {
+  it('Thorn of Rot: 1 Armor rots into 1 Vulnerable, then 10 Piercing (+5 from the Vulnerable) and 1 Spore', () => {
     const a = arena({ p0: [['stab.spore']], p1: [['shot']] });
     a.give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'stab.spore', B1).end();
-    expect([a.stacks(B1, 'armor'), a.stacks(B1, 'vulnerable'), a.hp(B1)]).toEqual([1, 1, 85]);
+    expect([a.stacks(B1, 'armor'), a.stacks(B1, 'vulnerable'), a.hp(B1), spores(a, B1)]).toEqual([1, 1, 85, 1]);
   });
 
-  it('Thorn of Rot: 20 against Prey', () => {
+  it('Thorn of Rot: 15 if they already had Spores', () => {
     const a = arena({ p0: [['stab.spore']], p1: [['shot']] });
-    a.give(B1, 'toxin', { stacks: 3, source: A1 });
+    a.give(B1, 'spores', { stacks: 1, source: A1 });
     a.use(A1, 'stab.spore', B1).end();
-    expect(a.hp(B1)).toBe(100 - 20 - 15); // 20 Piercing, then the Toxin ticks for 15
+    expect([a.hp(B1), spores(a, B1)]).toEqual([85, 2]);
   });
 
-  it('Thorn of Rot: the rotted Vulnerable counts toward Prey for the same hit', () => {
+  it('Thorn of Rot: its own Spore makes the next thorn hit for 15', () => {
     const a = arena({ p0: [['stab.spore']], p1: [['shot']] });
-    a.give(B1, 'weakness', { stacks: 2, source: A1 }).give(B1, 'armor');
+    a.use(A1, 'stab.spore', B1).end().pass(1);
     a.use(A1, 'stab.spore', B1).end();
-    expect(a.hp(B1)).toBe(75); // 20 + 5 Vulnerable
+    expect(a.hp(B1)).toBe(75);
   });
 
   it('Thorn of Rot: no Armor, no Vulnerable', () => {
@@ -445,20 +470,28 @@ describe('Spore skills', () => {
     expect([a.has(B1, 'vulnerable'), a.hp(B1)]).toEqual([false, 90]);
   });
 
-  it('Rot Drill: 25 Piercing; at 3+ Toxin the target loses it all and the user gains 1 Might and 1 Armor for good', () => {
+  it('Rot Drill: 25 Piercing; a target with Spores loses them and the user gains 1 Might and 1 Armor for 3 turns', () => {
     const a = arena({ p0: [['ravage.spore']], p1: [['shot']] });
-    a.give(B1, 'toxin', { stacks: 3, source: A1 }).give(B1, 'armor', { stacks: 2 });
+    a.give(B1, 'spores', { stacks: 2, source: A1 }).give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'ravage.spore', B1).end();
-    expect([a.hp(B1), a.has(B1, 'toxin'), a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([75, false, 1, 1]);
-    a.pass(8);
+    expect([a.hp(B1), spores(a, B1), a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([75, 0, 1, 1]);
+    a.pass(4);
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([1, 1]);
+    a.pass(1);
+    expect([a.has(A1, 'might'), a.has(A1, 'armor')]).toEqual([false, false]);
   });
 
-  it('Rot Drill: with 2 Toxin, nothing is drilled out', () => {
+  it('Rot Drill: a target without Spores gains 2, and the user gains nothing', () => {
     const a = arena({ p0: [['ravage.spore']], p1: [['shot']] });
-    a.give(B1, 'toxin', { stacks: 2, source: B1 });
     a.use(A1, 'ravage.spore', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.stacks(A1, 'might')]).toEqual([75, 2, 0]);
+    expect([a.hp(B1), spores(a, B1), a.stacks(A1, 'might')]).toEqual([75, 2, 0]);
+  });
+
+  it('Rot Drill: its own next use drills out the Spores it planted', () => {
+    const a = arena({ p0: [['ravage.spore']], p1: [['shot']] });
+    a.use(A1, 'ravage.spore', B1).end().pass(5);
+    a.use(A1, 'ravage.spore', B1).end();
+    expect([spores(a, B1), a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([0, 1, 1]);
   });
 
   it('Soft Ground: a Harmful skill is countered; without Spores, the user gains 2 Spores', () => {
@@ -521,6 +554,14 @@ describe('Spore skills', () => {
     expect(a.has(A1, 'armor')).toBe(false);
   });
 
+  it('Rooted Rhythm: when the user takes damage, they heal 5 and gain 1 Armor for 1 turn', () => {
+    const a = arena({ p0: [['dance.spore']], p1: [['shot']] });
+    a.use(A1, 'dance.spore').end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'armor')]).toEqual([90, 1]);
+    a.pass(2);
+    expect(a.has(A1, 'armor')).toBe(false);
+  });
+
   it('Rooted Rhythm: minions summoned after it are not covered (ruling)', () => {
     const a = arena({ p0: [['dance.spore'], ['companion.spore']], p1: [['shot']] });
     a.use(A1, 'dance.spore').use(A2, 'companion.spore').end();
@@ -529,43 +570,45 @@ describe('Spore skills', () => {
     expect([a.hp(s.id), a.has(A1, 'armor')]).toEqual([25, false]);
   });
 
-  it('Compost Bed: heals 15', () => {
+  it('Compost Bed: heals 20', () => {
     const a = arena({ p0: [['heal.spore'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'heal.spore', A2).end();
-    expect(a.hp(A2)).toBe(65);
+    expect([a.hp(A2), spores(a, B1)]).toEqual([70, 0]); // no Debuff to rot, no Spore
   });
 
-  it("Compost Bed: +15 per allied minion that died since the user's last turn", () => {
-    const a = arena({ p0: [['heal.spore', 'summon.earth'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.earth').end();
-    const [s1, s2] = minions(a, 0, 'seedling');
-    a.use(B1, 'shot', s1!.id).use(B2, 'shot', s2!.id).end();
-    a.setHp(A2, 20).use(A1, 'heal.spore', A2).end();
-    expect(a.hp(A2)).toBe(65);
+  it('Compost Bed: 1 random Debuff on the ally rots away into 1 Spore on a random enemy', () => {
+    const a = arena({ p0: [['heal.spore'], ['shot']], p1: [['shot'], ['shot']] });
+    a.give(A2, 'weakness', { source: B1 }).give(A2, 'vulnerable', { source: B1 });
+    a.setHp(A2, 50).use(A1, 'heal.spore', A2).end();
+    expect(a.hp(A2)).toBe(70);
+    expect(a.stacks(A2, 'weakness') + a.stacks(A2, 'vulnerable')).toBe(1);
+    expect(spores(a, B1) + spores(a, B2)).toBe(1);
   });
 
-  it('Compost Bed: deaths from before the user\'s last turn no longer count', () => {
-    const a = arena({ p0: [['heal.spore', 'summon.earth'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'summon.earth').end();
-    a.use(B1, 'shot', minions(a, 0, 'seedling')[0]!.id).end();
-    a.pass(2); // the user's turn 3 and the enemy's turn 4 pass
-    a.setHp(A2, 20).use(A1, 'heal.spore', A2).end();
-    expect(a.hp(A2)).toBe(35);
-  });
-
-  it('Mycorrhizal Bond: the ally gains 1 Might, and Buffs either of them gains are copied to the other', () => {
-    const a = arena({ p0: [['bless.spore'], ['rage'], ['shot']], p1: [['shot']] });
+  it('Mycorrhizal Bond: the ally and the user each gain 1 Might for 3 turns', () => {
+    const a = arena({ p0: [['bless.spore'], ['shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bless.spore', A2).end();
-    expect(a.stacks(A2, 'might')).toBeGreaterThanOrEqual(1);
-    a.pass(1).use(A2, 'rage').end();
-    expect([a.has(A1, 'immune'), a.has(A3, 'immune')]).toEqual([true, false]);
-    expect(a.effects(A2).filter((e) => e.defId === 'immune')).toHaveLength(1); // no echo back
+    expect([a.stacks(A1, 'might'), a.stacks(A2, 'might'), a.stacks(A3, 'might')]).toEqual([1, 1, 0]);
+    a.pass(4);
+    expect([a.has(A1, 'might'), a.has(A2, 'might')]).toEqual([true, true]);
+    a.pass(1);
+    expect([a.has(A1, 'might'), a.has(A2, 'might')]).toEqual([false, false]);
   });
 
-  it("Mycorrhizal Bond: Debuffs aren't shared", () => {
-    const a = arena({ p0: [['bless.spore'], ['shot']], p1: [['strike.poison']] });
-    a.use(A1, 'bless.spore', A2).end().use(B1, 'strike.poison', A2).end();
-    expect([a.has(A2, 'toxin'), a.has(A1, 'toxin')]).toEqual([true, false]);
+  it('Mycorrhizal Bond: whenever an enemy damages one of them, the other gains 1 Armor for 1 turn', () => {
+    const a = arena({ p0: [['bless.spore'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.spore', A2).end().use(B1, 'shot', A2).end();
+    expect([a.stacks(A1, 'armor'), a.stacks(A2, 'armor')]).toEqual([1, 0]);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.stacks(A2, 'armor')).toBe(1);
+    a.pass(2);
+    expect([a.has(A1, 'armor'), a.has(A2, 'armor')]).toEqual([false, false]);
+  });
+
+  it('Mycorrhizal Bond: hits on a third ally warn no one', () => {
+    const a = arena({ p0: [['bless.spore'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.spore', A2).end().use(B1, 'shot', A3).end();
+    expect([a.has(A1, 'armor'), a.has(A2, 'armor'), a.has(A3, 'armor')]).toEqual([false, false, false]);
   });
 
   it('Infest: 2 Spores and Confused for 2 turns', () => {
@@ -629,23 +672,13 @@ describe('Spore skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([80, 100]);
   });
 
-  it('Carrion Bloom: all enemies Intimidated for 2 turns', () => {
+  it('Carrion Bloom: all enemies are Intimidated for 2 turns and gain 1 Spore each', () => {
     const a = arena({ p0: [['shout.spore']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shout.spore').end();
     expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
+    expect([spores(a, B1), spores(a, B2)]).toEqual([1, 1]);
     a.pass(3);
     expect(a.has(B1, 'intimidated')).toBe(false);
-  });
-
-  it("Carrion Bloom: the first time each enemy is Prey at the end of the user's turn, a Seedling sprouts for the user", () => {
-    const a = arena({ p0: [['shout.spore']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'weakness', { stacks: 3, source: A1 });
-    a.use(A1, 'shout.spore').end();
-    expect(minions(a, 0, 'seedling')).toHaveLength(1); // B1 only; B2 isn't Prey
-    a.pass(2);
-    expect(minions(a, 0, 'seedling')).toHaveLength(1); // only the first time
-    a.give(B2, 'weakness', { stacks: 3, source: A1 }).pass(2);
-    expect(minions(a, 0, 'seedling')).toHaveLength(1); // the Intimidation is over
   });
 
   it('Humus Wall: 25 Shield for 1 turn; each enemy hit it absorbs gives the Seedlings Channel Growth', () => {
@@ -674,7 +707,8 @@ describe('Spore skills', () => {
     const before = spores(a, B1);
     expect(a.reject(() => a.use(B1, 'shot.shadow', A1))).toBe('bad_target');
     a.use(B1, 'shot.shadow', m.id).end();
-    expect([a.hp(A1), a.hp(m.id)]).toEqual([100, 10]);
+    expect(a.hp(A1)).toBe(100);
+    expect(a.hp(m.id)).toBeLessThan(15); // the Mushroom took the hit
     expect(spores(a, B1)).toBe(before + 1);
   });
 

@@ -13,12 +13,12 @@ const B2 = 'p1c1';
 
 describe('Shadow statuses', () => {
   it('Stealth: enemies can\'t target the bearer; a non-Stealthy skill ends it after resolving', () => {
-    const a = arena({ p0: [['bless.shadow', 'stab.shadow']], p1: [['shot']] });
+    const a = arena({ p0: [['bless.shadow', 'ravage.shadow']], p1: [['shot']] });
     a.use(A1, 'bless.shadow', A1).end();
     expect(a.has(A1, 'stealth')).toBe(true);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-    a.pass(1).use(A1, 'stab.shadow', B1).end();
-    expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([75, false]); // Backstab still saw the Stealth
+    a.pass(1).use(A1, 'ravage.shadow', B1).end();
+    expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([60, false]); // Ambush still saw the Stealth
   });
 
   it('Stealth: a Stealthy skill keeps it and extends it by 1 turn', () => {
@@ -74,10 +74,18 @@ describe('Shadow skills', () => {
     expect([a.unit(B2).alive, a.has(A1, 'stealth')]).toEqual([false, true]);
   });
 
-  it('Shadow Crash: spends every allied Stealth for +10 per hit each', () => {
-    const a = arena({ p0: [['smash.shadow'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'stealth').give(A2, 'stealth').use(A1, 'smash.shadow', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(A2, 'stealth')]).toEqual([70, 75, false]);
+  it('Shadow Crash: 15 to the target and 10 to the other enemies, then the user gains Stealth', () => {
+    const a = arena({ p0: [['smash.shadow'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'smash.shadow', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([85, 90, 90]);
+    expect(a.has(A1, 'stealth')).toBe(true); // its own use doesn't break the new Stealth
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+  });
+
+  it('Shadow Crash: an older Stealth is replaced by a fresh one', () => {
+    const a = arena({ p0: [['smash.shadow']], p1: [['shot']] });
+    a.give(A1, 'stealth', { duration: 1 }).use(A1, 'smash.shadow', B1).end();
+    expect(a.effects(A1).filter((e) => e.defId === 'stealth').map((e) => e.duration)).toEqual([3]);
   });
 
   it('Long Shadow: Stealthy, and the next skill is Stealthy too', () => {
@@ -100,11 +108,22 @@ describe('Shadow skills', () => {
     expect(['might', 'swiftness', 'stealth'].map((s) => a.has(A1, s))).toEqual([true, true, true]);
   });
 
-  it('Shadow Spine: 5 Piercing, +1 hit each for Blinded, Isolated and Sleeping', () => {
+  it('Shadow Spine: 15 Piercing and Isolated for 1 turn', () => {
+    const a = arena({ p0: [['shot.shadow']], p1: [['shot', 'heal'], ['heal']] });
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'shot.shadow', B1).end();
+    expect([a.hp(B1), a.has(B1, 'isolated')]).toEqual([85, true]);
+    expect(a.reject(() => a.use(B2, 'heal', B1))).toBe('bad_target'); // their allies can't reach them
+    a.end();
+    expect(a.has(B1, 'isolated')).toBe(false);
+  });
+
+  it("Shadow Spine: cooldown 1, so it can't keep the same enemy Isolated every turn", () => {
     const a = arena({ p0: [['shot.shadow']], p1: [['shot']] });
-    a.give(B1, 'blinded', { source: A1 }).give(B1, 'isolated', { source: A1 }).give(B1, 'sleep', { source: A1 });
-    a.use(A1, 'shot.shadow', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([80, false]);
+    a.use(A1, 'shot.shadow', B1).end().pass(1);
+    expect(a.has(B1, 'isolated')).toBe(false);
+    expect(a.reject(() => a.use(A1, 'shot.shadow', B1))).toBe('on_cooldown');
+    a.pass(2).use(A1, 'shot.shadow', B1).end();
+    expect(a.has(B1, 'isolated')).toBe(true);
   });
 
   it('Dream Seeker: 35 a turn later, through Invulnerable, without waking', () => {
@@ -177,6 +196,19 @@ describe('Shadow skills', () => {
     const a = arena({ p0: [['consume.shadow']], p1: [['shot'], ['shot']] });
     a.give(B2, 'blinded', { source: A1 }).use(A1, 'consume.shadow').end();
     expect([a.hp(B1), a.hp(B2), a.has(B2, 'blinded')]).toEqual([95, 85, false]);
+    expect(a.has(B1, 'blinded')).toBe(false); // someone was Blinded: no new Blind
+  });
+
+  it('Drink Darkness: if none were Blinded, a random enemy is Blinded for 2 turns', () => {
+    const a = arena({ p0: [['consume.shadow']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'consume.shadow').end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 95]);
+    const blinded = [B1, B2].filter((b) => a.has(b, 'blinded'));
+    expect(blinded).toHaveLength(1);
+    a.pass(2);
+    expect(a.has(blinded[0]!, 'blinded')).toBe(true); // still there on the user's next turn
+    a.pass(1);
+    expect(a.has(blinded[0]!, 'blinded')).toBe(false);
   });
 
   it('Call Shade: 15 HP for 3 turns; Shadow Choke is 5 Affliction and Blind', () => {
@@ -194,11 +226,15 @@ describe('Shadow skills', () => {
     expect([a.hp(B1), a.has(B1, 'sleep'), a.has(B2, 'sleep')]).toEqual([70, true, true]);
   });
 
-  it('Backstab: 10, or 25 from Stealth or against a Blinded target', () => {
+  it('Backstab: 20 against an enemy who wasn’t the last to damage the user; 10 against the one who was', () => {
     const a = arena({ p0: [['stab.shadow']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'blinded', { source: A1 }).use(A1, 'stab.shadow', B1).end().pass(1);
-    a.use(A1, 'stab.shadow', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 75]);
+    a.use(A1, 'stab.shadow', B1).end(); // nobody has damaged the user yet
+    expect(a.hp(B1)).toBe(80);
+    a.use(B2, 'shot', A1).use(B1, 'shot', A1).end(); // B1 hit the user last
+    a.use(A1, 'stab.shadow', B1).end();
+    expect(a.hp(B1)).toBe(70);
+    a.pass(1).use(A1, 'stab.shadow', B2).end();
+    expect(a.hp(B2)).toBe(80);
   });
 
   it('Ambush: 20 Piercing, doubled from Stealth', () => {

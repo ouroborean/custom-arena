@@ -59,14 +59,6 @@ sporeling_feed:
         - { op: addMaxHp, to: bearer, amount: 10 }
         - { op: heal, to: bearer, amount: 10 }
 
-# Fester Pod: every Debuff counts toward Prey (see the poison "prey" condition).
-fester_pod:
-  name: Fester Pod
-  kind: Neutral
-  element: Spore
-  stacking: unique
-  description: Every Debuff on the bearer counts toward Prey.
-
 # Infest: the Spores this bearer passes Confuse whoever receives them.
 infest:
   name: Infested

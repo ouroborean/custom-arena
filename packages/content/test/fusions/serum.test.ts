@@ -278,6 +278,14 @@ describe('Serum skills', () => {
     expect([a.hp(A2), dose(a, A2)]).toEqual([70, 0]);
   });
 
+  it('Extraction: it counts at least 2 stacks either way', () => {
+    const a = arena({ p0: [['consume.serum'], ['shot']], p1: three() });
+    a.setHp(A2, 40).give(B1, 'dose', { stacks: 1, source: B1 }).use(A1, 'consume.serum', B1).end();
+    expect([a.hp(B1), dose(a, B1)]).toEqual([80, 0]);
+    a.pass(5).use(A1, 'consume.serum', A2).end();
+    expect([a.hp(A2), dose(a, A2)]).toEqual([60, 0]);
+  });
+
   it('Spriggan Nurse: 15 HP for 3 turns; Titrate gives an ally 1 Dose', () => {
     const a = arena({ p0: [['summon.serum'], ['shot']], p1: three() });
     a.use(A1, 'summon.serum').end().pass(1);

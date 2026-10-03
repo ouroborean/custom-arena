@@ -6,20 +6,19 @@ strike.sanctuary:
   element: Sanctuary
   name: Toppled Idol
   description: >-
-    Deals 20 damage to target enemy. If an allied Boulder stands, one topples onto them: it dies, and they take 15
-    more and are Condemned.
+    Deals 20 damage to target enemy. If they have more HP than the user, they take 10 more and are Condemned.
   cost: S
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - op: forEach
-      in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
-      do:
-        - { op: kill, to: it }
-        - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { compare: { value: { sum: [{ hp: primary }, { mul: [-1, { hp: actor }] }] }, atLeast: 1 } }
+      then:
+        - { op: damage, to: primary, amount: 30 }
         - { op: apply, to: primary, effect: condemned }
+      else:
+        - { op: damage, to: primary, amount: 20 }
 
 smash.sanctuary:
   archetype: Smash
@@ -43,17 +42,15 @@ charge.sanctuary:
   element: Sanctuary
   name: Pilgrim's Stride
   description: >-
-    Deals 15 damage to target enemy. If an ally of the user has Shield, the user is Anointed until the end of
-    their next turn.
+    Deals 15 damage to target enemy, and the user's ally with the lowest HP (the user included) gains 15 Shield
+    for 1 turn.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - op: if
-      cond: { any: { in: allAllies, cond: { hasShield: it } } }
-      then: [{ op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }]
+    - { op: apply, to: weakestAlly, effect: shield, value: 15, duration: { enemyTurns: 1 } }
 
 riposte.sanctuary:
   archetype: Riposte
@@ -112,18 +109,15 @@ rage.sanctuary:
 shot.sanctuary:
   archetype: Shot
   element: Sanctuary
-  name: Sprouting Stone
-  description: Deals 15 damage to target enemy, and one allied Seedling grows into a Worldsprout.
+  name: Hallowed Sling
+  description: Deals 15 damage to target enemy, and the user gains 1 Armor for 2 turns.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - op: forEach
-      in: { randomAlly: 1, where: { minion: { unit: it, types: [seedling] } } }
-      do:
-        - { op: transformMinion, to: it, minion: worldsprout }
+    - { op: apply, to: actor, effect: armor, duration: { enemyTurns: 2 } }
 
 snipe.sanctuary:
   archetype: Snipe
@@ -273,17 +267,35 @@ consume.sanctuary:
   element: Sanctuary
   name: Holy Harvest
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If they're Sanctified, the user creates a Wardstone.
+    Deals 5 damage to target enemy, healing the user for it, and Sanctifies them for 1 turn. The first time that
+    Sanctify heals someone, the user creates a Wardstone.
   cost: W
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: set, var: had, value: { hp: primary } }
     - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: 5 }
-    - op: if
-      cond: { has: { unit: primary, effect: sanctify } }
-      then: [{ op: summon, minion: wardstone }]
+    - { op: heal, to: actor, amount: { sum: [{ var: had }, { mul: [-1, { hp: primary }] }] } }
+    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: holy_harvest
+        name: Holy Harvest
+        kind: Debuff
+        element: Sanctuary
+        description: The first direct hit on the Sanctified bearer creates a Wardstone for the applier.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: sanctify } }
+                then:
+                  - { op: summon, minion: wardstone }
+                  - { op: removeSelf }
 
 summon.sanctuary:
   archetype: Summon
@@ -337,8 +349,8 @@ stab.sanctuary:
   element: Sanctuary
   name: Penitent's Awl
   description: >-
-    Deals 10 damage to target enemy, or 20 at or below 60 HP. Their Condemned resolves now, as if they'd used a
-    skill.
+    Deals 10 damage to target enemy, or 20 at or below 60 HP. If they're Condemned, it resolves now, as if they'd
+    used a skill; otherwise they're Condemned.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -356,6 +368,8 @@ stab.sanctuary:
             - [{ op: apply, to: primary, effect: weakness }]
             - [{ op: apply, to: primary, effect: vulnerable }]
             - [{ op: apply, to: primary, effect: confusion }]
+      else:
+        - { op: apply, to: primary, effect: condemned }
 
 ravage.sanctuary:
   archetype: Ravage
@@ -535,8 +549,8 @@ smite.sanctuary:
   element: Sanctuary
   name: Firstfruits Brand
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Each time that Sanctify heals someone, Channel
-    Growth is triggered for the user's Seedlings.
+    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Each time that Sanctify heals someone, they
+    also gain 5 max HP for the rest of the match.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -552,14 +566,14 @@ smite.sanctuary:
         name: Firstfruits Brand
         kind: Debuff
         element: Sanctuary
-        description: Each direct hit on the Sanctified bearer triggers Channel Growth for the applier's Seedlings.
+        description: Each direct hit on the Sanctified bearer gives the damager 5 max HP for the match.
         triggers:
           - on: damaged
             when: { direct: true }
             do:
               - op: if
                 cond: { has: { unit: bearer, effect: sanctify } }
-                then: [{ op: macro, id: channel_growth }]
+                then: [{ op: addMaxHp, to: eventSource, amount: 5 }]
 
 prayer.sanctuary:
   archetype: Prayer
@@ -579,8 +593,8 @@ cleave.sanctuary:
   element: Sanctuary
   name: Shieldbearer's Sweep
   description: >-
-    Deals 20 damage to target enemy and 10 to a random other enemy. For 2 turns, Sanctify on either one also gives
-    its damager 15 Shield.
+    Deals 20 damage to target enemy and 10 to a random other enemy. For 2 turns, the first direct hit on each of
+    them gives its damager 15 Shield for 1 turn.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -599,16 +613,22 @@ shout.sanctuary:
   element: Sanctuary
   name: Call to the Faithful
   description: >-
-    Every allied Boulder is consecrated into a Wardstone, and all enemies are Intimidated for 2 turns.
+    Every allied Boulder that isn't a Wardstone yet is consecrated into one; if there's none, the user creates a
+    Wardstone. All enemies are Intimidated for 2 turns.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - op: forEach
-      in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [boulder] } }, { not: { minion: { unit: it, types: [wardstone] } } }] } }
-      do:
-        - { op: transformMinion, to: it, minion: wardstone }
+    - op: if
+      cond: { any: { in: allAllies, cond: { and: [{ minion: { unit: it, types: [boulder] } }, { not: { minion: { unit: it, types: [wardstone] } } }] } } }
+      then:
+        - op: forEach
+          in: { filter: allAllies, where: { and: [{ minion: { unit: it, types: [boulder] } }, { not: { minion: { unit: it, types: [wardstone] } } }] } }
+          do:
+            - { op: transformMinion, to: it, minion: wardstone }
+      else:
+        - { op: summon, minion: wardstone }
     - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
 
 withstand.sanctuary:

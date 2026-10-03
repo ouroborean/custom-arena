@@ -354,8 +354,8 @@ consume.ocean:
   element: Ocean
   name: Ebbing Toll
   description: >-
-    Deals 5 damage to target enemy, and the user heals 5. For 2 turns, each extra energy their
-    Confusion makes them pay heals the user 10.
+    Deals 5 damage to target enemy, and the user heals 5. The target gains 1 Confusion for 2 turns,
+    and for as long, each skill they use while Confused heals the user 5 per Confusion they have.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -363,6 +363,7 @@ consume.ocean:
   ops:
     - { op: damage, to: primary, amount: 5 }
     - { op: heal, to: actor, amount: 5 }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
@@ -371,14 +372,14 @@ consume.ocean:
         name: Ebbing Toll
         kind: Debuff
         element: Ocean
-        description: Each skill the bearer uses while Confused heals the applier 10 per Confusion.
+        description: Each skill the bearer uses while Confused heals the applier 5 per Confusion.
         triggers:
           - on: skillUsed
             do:
               - op: if
                 cond: { has: { unit: bearer, effect: confusion } }
                 then:
-                  - { op: heal, to: actor, amount: { mul: [10, { stacks: { unit: bearer, effect: confusion } }] } }
+                  - { op: heal, to: actor, amount: { mul: [5, { stacks: { unit: bearer, effect: confusion } }] } }
 
 summon.ocean:
   archetype: Summon

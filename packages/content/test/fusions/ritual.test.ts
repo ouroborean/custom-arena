@@ -111,19 +111,19 @@ describe('Ritual skills', () => {
     expect([a.hp(B1), a.stacks(A1, 'focus')]).toEqual([85, 1]);
   });
 
-  it('Candlestep: an Ignite on the target is carried off, and the user\'s next damaging skill Ignites what it hits', () => {
+  it('Candlestep: the user carries a flame: their next damaging skill Ignites what it hits', () => {
     const a = arena({ p0: [['charge.ritual', 'smash.ritual']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'ignite', { source: B1 });
     a.use(A1, 'charge.ritual', B1).end();
-    expect(a.has(B1, 'ignite')).toBe(false);
+    expect(a.has(B1, 'ignite')).toBe(false); // the Candlestep itself doesn't Ignite
     a.pass(1).use(A1, 'smash.ritual', B2).end();
     expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, true]);
   });
 
-  it('Candlestep: with no Ignite on the target, nothing is carried', () => {
-    const a = arena({ p0: [['charge.ritual', 'smash.ritual']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'charge.ritual', B1).end().pass(1).use(A1, 'smash.ritual', B2).end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, false]);
+  it('Candlestep: only the next damaging skill Ignites', () => {
+    const a = arena({ p0: [['charge.ritual', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.ritual', B1).end().pass(1).use(A1, 'shot', B1).end().pass(1);
+    a.use(A1, 'shot', B2).end();
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, false]);
   });
 
   it('Warding Candle: counters only the first Harmful skill on the user', () => {
@@ -194,15 +194,14 @@ describe('Ritual skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  it('Hush of Smoke: no enemy\'s Sleep can end before the user\'s next turn', () => {
-    const run = (hush: boolean) => {
-      const a = arena({ p0: [['maneuver.ritual'], ['shot']], p1: [['shot']] });
-      a.give(B1, 'sleep', { source: A1, duration: 6 });
-      if (hush) a.use(A1, 'maneuver.ritual');
-      a.use(A2, 'shot', B1).end();
-      return a.has(B1, 'sleep');
-    };
-    expect([run(false), run(true)]).toEqual([false, true]);
+  it('Hush of Smoke: each enemy who uses a Harmful skill meanwhile is Blinded for 1 turn', () => {
+    const a = arena({ p0: [['maneuver.ritual'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'maneuver.ritual').end().use(B1, 'shot', A2).end();
+    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([true, false]);
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(true); // through their next turn
+    a.use(B2, 'shot', A2).end(); // turn 4: the Hush is over
+    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([false, false]);
   });
 
   it('Shadow Acolyte: a permanent 30 HP minion; Chant heals an ally 10, Flame Lash deals 10 and Ignites', () => {
@@ -255,20 +254,26 @@ describe('Ritual skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([35 - 20, 80]);
   });
 
-  it('Snuff the Candles: 5 damage healing the user; without a Rite nothing else', () => {
+  it('Candle Offering: 5 damage healing the user; without a Rite they heal 15 more', () => {
     const a = arena({ p0: [['consume.ritual']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.ritual', B1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([55, 95]);
+    expect([a.hp(A1), a.hp(B1)]).toEqual([70, 95]);
   });
 
-  it('Snuff the Candles: the user\'s Rite ends without completing; they heal 10 per skill it had counted', () => {
-    const a = arena({ p0: [['consume.ritual', 'smash.ritual', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'smash.ritual', B1).end().pass(1).use(A1, 'shot', B1).end().pass(1); // 1 counted
+  it('Candle Offering: with a Rite, it advances it by 1 more (and no extra healing)', () => {
+    const a = arena({ p0: [['consume.ritual', 'smash.ritual']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.ritual', B1).end().pass(1);
     a.setHp(A1, 50).use(A1, 'consume.ritual', B1).end();
+    // Rite (3): the Offering is one step as a skill, and its advance another.
+    expect([rite(a, A1), a.hp(A1)]).toEqual([1, 55]);
+  });
+
+  it('Candle Offering: an advance that finishes the Rite completes it', () => {
+    const a = arena({ p0: [['consume.ritual', 'smash.ritual', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.ritual', B1).end().pass(1).use(A1, 'shot', B1).end().pass(1);
+    a.use(A1, 'consume.ritual', B1).end();
     expect(rite(a, A1)).toBe(0);
-    expect([a.has(B1, 'ignite'), a.has(B2, 'blinded')]).toEqual([false, false]); // not completed
-    // Counted: the Shot and the Snuff itself (every skill the user uses is a step, §21.19).
-    expect(a.hp(A1)).toBe(50 + 5 + 2 * 10);
+    expect([a.has(B1, 'ignite'), a.has(B2, 'blinded')]).toEqual([true, true]); // Circle of Ash
   });
 
   it('Tended Wick: a 15 HP Wick for 3 turns that deals 10 to a random enemy at the end of each of your turns, doubling', () => {
@@ -347,12 +352,14 @@ describe('Ritual skills', () => {
     expect(a.hp(B1)).toBe(190);
   });
 
-  it('Flashpoint: 20 Piercing, then every Ignite on the enemy team burns once now (not the user\'s team\'s)', () => {
+  it('Flashpoint: 20 Piercing and the target is Ignited, then every Ignite on the enemy team burns once now (not the user\'s team\'s)', () => {
     const a = arena({ p0: [['ravage.ritual'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'armor', { stacks: 3 }).give(B1, 'ignite', { source: B1 }).give(B2, 'ignite', { source: B1 });
+    a.give(B1, 'armor', { stacks: 3 }).give(B2, 'ignite', { source: B2 });
     a.give(A2, 'ignite', { source: B1 });
     a.use(A1, 'ravage.ritual', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([75, 95, 100]);
+    expect(a.has(B1, 'ignite')).toBe(true);
+    // B1: 20 (Armor doesn't stop Piercing), its new Ignite burns now, then ticks at the end of the turn.
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([70, 95, 100]);
   });
 
   it('Circle of Warding: counters the target\'s Harmful skill and completes the user\'s Rite at once', () => {
@@ -403,16 +410,30 @@ describe('Ritual skills', () => {
     expect([a.hp(A2), a.hp(A3)]).toEqual([90, 75]);
   });
 
-  it('Double Wick: 1 Might for 2 turns, and Ignites the ally applies can stack, up to 2', () => {
-    const a = arena({ p0: [['bless.ritual'], ['strike.phoenix']], p1: [['shot']] });
-    a.use(A1, 'bless.ritual', A2).use(A2, 'strike.phoenix', B1).end();
-    expect(a.stacks(A2, 'might')).toBeGreaterThanOrEqual(1);
-    a.pass(1).use(A2, 'strike.phoenix', B1);
+  it('Double Wick: the ally Ignites each enemy they damage', () => {
+    const a = arena({ p0: [['bless.ritual'], ['smash']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bless.ritual', A2).use(A2, 'smash', B1).end();
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, true]);
+    expect(a.effects(B1).find((e) => e.defId === 'ignite')!.source).toBe(A2);
+  });
+
+  it('Double Wick: Ignites the ally applies can stack, up to 2', () => {
+    const a = arena({ p0: [['bless.ritual'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.ritual', A2).use(A2, 'shot', B1).end().pass(1);
+    a.use(A2, 'shot', B1);
     const hp = a.hp(B1);
     a.end();
-    // 20 + 5 (Double Wick's Might) + 5 (the first Talon's permanent Might), then 5 × 2 Ignites.
-    expect(a.effects(B1).filter((e) => e.defId === 'ignite').reduce((n, e) => n + e.stacks, 0)).toBe(2);
-    expect(hp - a.hp(B1)).toBe(20 + 5 + 5 + 10);
+    expect(a.stacks(B1, 'ignite')).toBe(2);
+    expect(hp - a.hp(B1)).toBe(15 + 2 * 5);
+    a.pass(1).use(A2, 'shot', B1).end();
+    expect(a.stacks(B1, 'ignite')).toBe(2); // no more than 2
+  });
+
+  it('Double Wick: lasts 2 turns', () => {
+    const a = arena({ p0: [['bless.ritual'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bless.ritual', A2).end().pass(3);
+    a.use(A2, 'shot', B2).end();
+    expect(a.has(B2, 'ignite')).toBe(false);
   });
 
   it('Double Wick: without it, a second Ignite just refreshes the first', () => {
@@ -432,22 +453,34 @@ describe('Ritual skills', () => {
   it('Veilbrand: 15 damage and Sanctify for 2 turns', () => {
     const a = arena({ p0: [['smite.ritual'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'smite.ritual', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([70, 65]);
+    // B1: 15 + 15, then the new Ignite's tick. A2 heals 15 from Sanctify.
+    expect([a.hp(B1), a.hp(A2)]).toEqual([65, 65]);
     a.pass(2);
     expect(a.has(B1, 'sanctify')).toBe(true);
     a.pass(1);
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Veilbrand: a Stealthed ally who damages the Ignited target gets their next skill counted as Stealthy', () => {
-    const run = (ignited: boolean) => {
-      const a = arena({ p0: [['smite.ritual'], ['shot']], p1: [['shot']] });
-      if (ignited) a.give(B1, 'ignite', { source: B1 });
-      a.give(A2, 'stealth', { source: A2, duration: 4 });
-      a.use(A1, 'smite.ritual', B1).use(A2, 'shot', B1).end();
-      return a.has(A2, 'veiled_by_smoke');
-    };
-    expect([run(true), run(false)]).toEqual([true, false]);
+  it('Veilbrand: a target that isn\'t Ignited becomes Ignited (and isn\'t Blinded)', () => {
+    const a = arena({ p0: [['smite.ritual']], p1: [['shot']] });
+    a.use(A1, 'smite.ritual', B1).end();
+    expect([a.has(B1, 'ignite'), a.has(B1, 'blinded')]).toEqual([true, false]);
+  });
+
+  it('Veilbrand: an Ignited target is Blinded for 1 turn', () => {
+    const a = arena({ p0: [['smite.ritual']], p1: [['shot']] });
+    a.give(B1, 'ignite', { source: B1 });
+    a.use(A1, 'smite.ritual', B1).end();
+    expect(a.has(B1, 'blinded')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(false);
+  });
+
+  it('Veilbrand: its own Ignite makes the next use Blind', () => {
+    const a = arena({ p0: [['smite.ritual']], p1: [['shot']] });
+    a.use(A1, 'smite.ritual', B1).end().pass(3);
+    a.use(A1, 'smite.ritual', B1).end();
+    expect(a.has(B1, 'blinded')).toBe(true);
   });
 
   it('Vigil of Candles: all allies heal 20; Rite (3)', () => {
@@ -492,20 +525,20 @@ describe('Ritual skills', () => {
     expect([run(false), run(true)]).toEqual([2, 1]);
   });
 
-  it('Smokewall: 20 Shield for at least 1 turn; it ends once the user isn\'t Stealthed', () => {
+  it('Smokewall: 20 Shield for 1 turn', () => {
     const a = arena({ p0: [['withstand.ritual']], p1: [['shot']] });
     a.use(A1, 'withstand.ritual').end();
     expect(shieldLeft(a, A1)).toBe(20);
-    a.pass(2);
+    a.pass(1);
     expect(shieldLeft(a, A1)).toBe(0);
   });
 
-  it('Smokewall: it lasts while the user stays Stealthed', () => {
-    const a = arena({ p0: [['withstand.ritual']], p1: [['shot']] });
-    a.use(A1, 'withstand.ritual').end();
-    a.give(A1, 'stealth', { source: A1, duration: 20 }); // after the use: Smokewall isn't Stealthy
-    a.pass(4);
-    expect(shieldLeft(a, A1)).toBe(20);
+  it('Smokewall: each enemy who damages it is Ignited', () => {
+    const a = arena({ p0: [['withstand.ritual']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'withstand.ritual').end().use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    // 15 absorbed, then the last 5 absorbed: both hit it. B3 didn't.
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite'), a.has('p1c2', 'ignite')]).toEqual([true, true, false]);
+    expect(a.hp(A1)).toBe(90);
   });
 
   it('Effigy: creates a 10 HP Effigy and Taunts the target to it for 1 turn', () => {

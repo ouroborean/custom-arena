@@ -61,7 +61,9 @@ charge.evolution:
   archetype: Charge
   element: Evolution
   name: Scent Trail
-  description: Deals 10 damage to target enemy. The user's next skill that gives Toxin also gives it to every Prey enemy.
+  description: >-
+    I: 10 damage and 1 Toxin to target enemy, and the user gains 1 Focus. II: 2 Toxin instead. III: the
+    scent spreads: a random other enemy gains 1 Toxin too.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -69,22 +71,14 @@ charge.evolution:
   ops:
     - { op: damage, to: primary, amount: 10 }
     - op: apply
-      to: actor
-      effect:
-        id: scent_trail
-        name: Scent Trail
-        kind: Buff
-        element: Evolution
-        description: The bearer's next Toxin also goes to every Prey enemy.
-        triggers:
-          - on: effectApplied
-            when: { effects: [toxin], toEnemy: true }
-            consume: true
-            do:
-              - op: apply
-                to: { filter: allEnemies, where: { and: [{ check: { cond: prey, unit: it } }, { not: { isEventTarget: it } }] } }
-                effect: toxin
-                quiet: true
+      to: primary
+      effect: toxin
+      stacks: { if: { compare: { value: { timesUsed: true }, atLeast: 1 } }, then: 2, else: 1 }
+    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: if
+      cond: { compare: { value: { timesUsed: true }, atLeast: 2 } }
+      then:
+        - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: toxin }
 
 riposte.evolution:
   archetype: Riposte
@@ -369,17 +363,18 @@ consume.evolution:
   element: Evolution
   name: Cull the Weak
   description: >-
-    Removes all Toxin from target enemy. They die if their HP is at most 5 per stack removed;
-    otherwise the user heals 5 per stack.
+    Target enemy gains 3 Toxin, then all their Toxin is culled: they die if their HP is at most 5 per
+    stack removed; otherwise the user heals 5 per stack.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
+    - { op: apply, to: primary, effect: toxin, stacks: 3 }
     - { op: set, var: culled, value: { stacks: { unit: primary, effect: toxin } } }
     - { op: removeEffect, from: primary, effect: toxin }
     - op: if
-      cond: { and: [{ compare: { value: { var: culled }, atLeast: 1 } }, { compare: { value: { sum: [{ hp: primary }, { mul: [-5, { var: culled }] }] }, atMost: 0 } }] }
+      cond: { compare: { value: { sum: [{ hp: primary }, { mul: [-5, { var: culled }] }] }, atMost: 0 } }
       then:
         - { op: kill, to: primary }
       else:

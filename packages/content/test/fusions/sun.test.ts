@@ -122,26 +122,27 @@ describe('Sun skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 90, 90]);
   });
 
-  it('Scorched Earth: Scorched enemies hit by it have their Shield halved at the end of the user\'s turns; un-Scorched ones don\'t', () => {
+  it('Scorched Earth: Shields on the target and their allies are halved before it hits', () => {
     const a = arena({ p0: [['smash.sun']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B2, 'scorched').give(B2, 'shield', { value: 50 }).give(B3, 'shield', { value: 50 });
+    a.give(B1, 'shield', { value: 40 }).give(B2, 'shield', { value: 50 });
     a.use(A1, 'smash.sun', B1).end();
-    // B2: 50 − 10 = 40, halved to 20. B3 isn't Scorched: 40.
-    expect([shieldValue(a, B2), shieldValue(a, B3)]).toEqual([20, 40]);
-    a.pass(1);
-    expect(shieldValue(a, B2)).toBe(20); // not on the enemy's turn
-    a.pass(1);
-    expect(shieldValue(a, B2)).toBe(10); // the user's next turn
+    // B1: 40 → 20, then the 20 hit takes it all. B2: 50 → 25, then 10 → 15.
+    expect([shieldValue(a, B1), a.hp(B1), shieldValue(a, B2), a.hp(B2)]).toEqual([0, 100, 15, 100]);
   });
 
-  it('Scorched Earth: the Shield halving lasts 2 turns', () => {
+  it('Scorched Earth: those who had no Shield are Scorched instead; shielded ones are not', () => {
+    const a = arena({ p0: [['smash.sun']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'shield', { value: 50 });
+    a.use(A1, 'smash.sun', B1).end();
+    expect([a.has(B1, 'scorched'), a.has(B2, 'scorched'), a.has(B3, 'scorched')]).toEqual([true, false, true]);
+  });
+
+  it('Scorched Earth: the Scorch lasts 1 turn', () => {
     const a = arena({ p0: [['smash.sun']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'scorched').give(B2, 'shield', { value: 90 });
-    a.use(A1, 'smash.sun', B1).end(); // 80 → 40
-    a.pass(2); // 20
-    a.pass(2); // the 2 turns are over
-    a.pass(2);
-    expect(shieldValue(a, B2)).toBe(20);
+    a.use(A1, 'smash.sun', B1).end();
+    expect(a.has(B1, 'scorched')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'scorched')).toBe(false);
   });
 
   it('Rolling Sunstone: 10 damage and a 45 HP Sunstone (a Boulder)', () => {
@@ -366,6 +367,7 @@ describe('Sun skills', () => {
     a.use(A1, 'bolt.sun', B1).end();
     expect(b1 - a.hp(B1)).toBe(20);
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor'), a.hp(sd.id)]).toEqual([1, 1, 10]);
+    expect(seedlings(a, 0)).toHaveLength(1); // a Seedling was there, so none is created
   });
 
   it('Ripening Vine: the Sunflower counts as a Seedling and ripens too', () => {
@@ -376,10 +378,22 @@ describe('Sun skills', () => {
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor'), a.hp(sf.id)]).toEqual([1, 1, 40]); // −5, then its own Corona heals 5
   });
 
-  it('Ripening Vine: with no Seedlings, just 20 damage', () => {
+  it('Ripening Vine: with no allied Seedling, 20 damage and the user creates one instead (nothing ripens yet)', () => {
     const a = arena({ p0: [['bolt.sun']], p1: [['shot']] });
     a.use(A1, 'bolt.sun', B1).end();
     expect([a.hp(B1), a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([80, 0, 0]);
+    const sd = minions(a, 0, 'seedling');
+    expect(sd).toHaveLength(1);
+    expect(sd[0]!.summonedBy).toBe(A1);
+  });
+
+  it('Ripening Vine: the Seedling it created ripens on its next use', () => {
+    const a = arena({ p0: [['bolt.sun']], p1: [['shot']] });
+    a.use(A1, 'bolt.sun', B1).end().pass(3);
+    const sd = minions(a, 0, 'seedling')[0]!;
+    a.use(A1, 'bolt.sun', B1).end();
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor'), a.hp(sd.id)]).toEqual([1, 1, 10]);
+    expect(seedlings(a, 0)).toHaveLength(1);
   });
 
   it('Noonburst: 25 to all enemies; no Corona means no Flare and no Scorch', () => {
@@ -503,28 +517,29 @@ describe('Sun skills', () => {
 
   it('Tinder Spike: 10 damage, or 20 at or below 60 HP', () => {
     const a = arena({ p0: [['stab.sun']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60);
     a.use(A1, 'stab.sun', B1).end();
-    expect(a.hp(B1)).toBe(90);
-    a.pass(1).use(A1, 'stab.sun', B2).end();
-    expect(a.hp(B2)).toBe(40);
+    expect(a.hp(B1)).toBe(85); // 10, then the new Ignite's tick
+    const b = arena({ p0: [['stab.sun']], p1: [['shot'], ['shot']] });
+    b.setHp(B2, 60);
+    b.use(A1, 'stab.sun', B2).end();
+    expect(b.hp(B2)).toBe(35); // 20 + the tick
   });
 
-  it('Tinder Spike: the next Ignite put on the target before the user\'s next turn burns once as it lands', () => {
-    const a = arena({ p0: [['stab.sun'], ['stun.sun']], p1: [['shot']] });
-    a.use(A1, 'stab.sun', B1).use(A2, 'stun.sun', B1).end();
-    // 10 + 5 (immediate burn) + 5 (the Ignite's normal tick).
-    expect(a.hp(B1)).toBe(80);
-    const ctl = arena({ p0: [['shot'], ['stun.sun']], p1: [['shot']] });
-    ctl.use(A1, 'shot', B1).use(A2, 'stun.sun', B1).end();
-    expect(ctl.hp(B1)).toBe(80); // 15 + 5 tick: no extra burn without the Spike
+  it('Tinder Spike: a target that isn\'t Ignited becomes Ignited', () => {
+    const a = arena({ p0: [['stab.sun']], p1: [['shot']] });
+    a.use(A1, 'stab.sun', B1).end();
+    expect(a.has(B1, 'ignite')).toBe(true);
   });
 
-  it('Tinder Spike: an Ignite applied after the user\'s next turn starts doesn\'t burn on landing', () => {
-    const a = arena({ p0: [['stab.sun'], ['stun.sun']], p1: [['shot']] });
-    a.use(A1, 'stab.sun', B1).end().pass(1);
-    a.use(A2, 'stun.sun', B1).end();
-    expect(a.hp(B1)).toBe(85); // 10 + the normal tick only
+  it('Tinder Spike: on an Ignited target, the Ignite burns once now', () => {
+    const a = arena({ p0: [['stab.sun']], p1: [['shot']] });
+    a.give(B1, 'ignite', { source: A1 });
+    a.use(A1, 'stab.sun', B1).end();
+    expect(a.hp(B1)).toBe(80); // 10 + 5 (burns now) + 5 (its normal tick)
+    const b = arena({ p0: [['stab.sun']], p1: [['shot']] });
+    b.use(A1, 'stab.sun', B1).end().pass(1); // lights its own Ignite
+    b.use(A1, 'stab.sun', B1).end();
+    expect(b.hp(B1)).toBe(65); // 85, then 10 + 5 + 5
   });
 
   it('Upwelling Magma: 20 Piercing (Armor doesn\'t reduce it) right after dealing direct damage', () => {
@@ -729,30 +744,27 @@ describe('Sun skills', () => {
     expect([corona(b, A1), corona(b, A2)]).toEqual([1, 1]);
   });
 
-  it('Stubble Burn: 20 to the target and 15 to another enemy; no Seedlings, no Ignite', () => {
+  it('Stubble Burn: 20 to the target and 15 to another enemy, and the target is Ignited', () => {
     const a = arena({ p0: [['cleave.sun']], p1: [['shot'], ['shot']] });
     a.use(A1, 'cleave.sun', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([80, 85, false, false]);
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, false]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]); // 20 + the Ignite's tick; 15
   });
 
-  it('Stubble Burn: every allied Seedling dies; both enemies are Ignited and burn once now per Seedling', () => {
-    const a = arena({ p0: [['cleave.sun', 'trap.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'trap.sun', B1).end().use(B1, 'shot', A1).end().pass(1).use(B1, 'shot', A1).end();
-    expect(seedlings(a, 0)).toHaveLength(2);
-    const [b1, b2] = [a.hp(B1), a.hp(B2)];
+  it('Stubble Burn: if the target was already Ignited, the fire spreads to the other enemy', () => {
+    const a = arena({ p0: [['cleave.sun'], ['shot']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'ignite', { source: A2 });
     a.use(A1, 'cleave.sun', B1).end();
-    expect(seedlings(a, 0)).toHaveLength(0);
     expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, true]);
-    // 20 / 15, two burns of 5 now, then the Ignite's own tick at the end of the turn.
-    expect([b1 - a.hp(B1), b2 - a.hp(B2)]).toEqual([20 + 10 + 5, 15 + 10 + 5]);
+    expect(a.hp(B2)).toBe(80); // 15 + its new Ignite's tick
   });
 
-  it('Stubble Burn: the Sunflower (a Seedling) is burned off too', () => {
-    const a = arena({ p0: [['cleave.sun', 'companion.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'companion.sun').end().pass(1);
-    const sf = minions(a, 0, 'sunflower')[0]!;
+  it('Stubble Burn: its own Ignite makes the next use spread', () => {
+    const a = arena({ p0: [['cleave.sun']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.sun', B1).end().pass(3);
+    expect(a.has(B2, 'ignite')).toBe(false);
     a.use(A1, 'cleave.sun', B1).end();
-    expect([a.unit(sf.id).alive, a.has(B1, 'ignite')]).toEqual([false, true]);
+    expect(a.has(B2, 'ignite')).toBe(true);
   });
 
   it('Dawn Chorus: all enemies are Intimidated for 2 turns', () => {
@@ -781,14 +793,19 @@ describe('Sun skills', () => {
     expect([corona(a, A1), a.hp(B1)]).toEqual([0, 100]);
   });
 
-  it('Kiln Wall: 25 Shield; damage it absorbs is baked into an allied Boulder (max HP and HP)', () => {
-    const a = arena({ p0: [['withstand.sun', 'charge.sun']], p1: [['shot']] });
-    a.use(A1, 'charge.sun', B1).end().pass(1);
-    const st = minions(a, 0, 'sunstone')[0]!;
+  it('Kiln Wall: 25 Shield; each time it absorbs damage, the user gains 1 Corona', () => {
+    const a = arena({ p0: [['withstand.sun']], p1: [['shot'], ['shot']] });
     a.use(A1, 'withstand.sun').end();
-    expect(shieldValue(a, A1)).toBe(25);
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.unit(st.id).maxHp, a.hp(st.id)]).toEqual([100, 60, 60]);
+    expect([shieldValue(a, A1), corona(a, A1)]).toEqual([25, 0]);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    // 15 absorbed, then the last 10 absorbed and 5 through: two hits, 2 Corona.
+    expect([a.hp(A1), corona(a, A1)]).toEqual([95, 2]);
+  });
+
+  it('Kiln Wall: no Corona if nothing hits it', () => {
+    const a = arena({ p0: [['withstand.sun']], p1: [['shot']] });
+    a.use(A1, 'withstand.sun').end().pass(1);
+    expect(corona(a, A1)).toBe(0);
   });
 
   it('Kiln Wall: lasts 2 turns', () => {

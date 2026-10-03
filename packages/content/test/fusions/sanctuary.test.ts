@@ -135,31 +135,32 @@ describe('Sanctum', () => {
 
 describe('Wardstone', () => {
   it('is a 45 HP minion that counts as a Boulder', () => {
-    const a = arena({ p0: [['taunt.sanctuary', 'strike.sanctuary']], p1: [['shot']] });
+    const a = arena({ p0: [['taunt.sanctuary', 'smash.sanctuary']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.sanctuary', B1).end();
     const w = minions(a, 0, 'wardstone')[0]!;
     expect(w.hp).toBe(45);
-    a.pass(1).use(A1, 'strike.sanctuary', B1).end(); // Toppled Idol looks for a Boulder
-    expect([a.unit(w.id).alive, a.hp(B1)]).toEqual([false, 65]);
+    a.pass(1).use(A1, 'smash.sanctuary', B1).end(); // Cracking Foundation counts Boulders
+    expect([a.hp(w.id), a.hp(B1), a.hp(B2)]).toEqual([30, 70, 80]);
   });
 });
 
 describe('Sanctuary skills', () => {
-  it('Toppled Idol: 20; an allied Boulder topples: it dies, +15 and Condemned', () => {
-    const a = arena({ p0: [['strike.sanctuary'], ['charge.earth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'strike.sanctuary', B1).end();
+  it('Toppled Idol: 20 against a target with no more HP than the user, and no Condemned', () => {
+    const a = arena({ p0: [['strike.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'strike.sanctuary', B1).end(); // 100 vs 100: not more
     expect([a.hp(B1), a.has(B1, 'condemned')]).toEqual([80, false]);
-    a.pass(1).use(A2, 'charge.earth', B2).end().pass(1);
-    expect(minions(a, 0, 'boulder').length).toBe(1);
-    a.use(A1, 'strike.sanctuary', B1).end();
-    expect([a.hp(B1), a.has(B1, 'condemned'), minions(a, 0, 'boulder').length]).toEqual([45, true, 0]);
   });
 
-  it('Toppled Idol: only one Boulder topples', () => {
-    const a = arena({ p0: [['strike.sanctuary'], ['charge.earth'], ['charge.earth']], p1: [['shot']] });
-    a.use(A2, 'charge.earth', B1).use(A3, 'charge.earth', B1).end().pass(1);
-    a.use(A1, 'strike.sanctuary', B1).end();
-    expect([minions(a, 0, 'boulder').length, a.hp(B1)]).toEqual([1, 100 - 20 - 35]);
+  it('Toppled Idol: if they have more HP than the user, they take 10 more and are Condemned', () => {
+    const a = arena({ p0: [['strike.sanctuary']], p1: [['shot']] });
+    a.setHp(A1, 60).use(A1, 'strike.sanctuary', B1).end();
+    expect([a.hp(B1), a.has(B1, 'condemned')]).toEqual([70, true]);
+  });
+
+  it('Toppled Idol: it compares HP before the hit', () => {
+    const a = arena({ p0: [['strike.sanctuary']], p1: [['shot']] });
+    a.setHp(A1, 79).use(A1, 'strike.sanctuary', B1).end(); // 100 > 79, even though 80 would be left
+    expect(a.hp(B1)).toBe(70);
   });
 
   it('Cracking Foundation: 25 / 15 with no Boulder', () => {
@@ -176,23 +177,24 @@ describe('Sanctuary skills', () => {
     expect(minions(a, 0, 'boulder').map((u) => u.hp)).toEqual([30, 30]);
   });
 
-  it('Pilgrim\'s Stride: 15; with a Shielded ally the user is Anointed until the end of their next turn', () => {
-    const a = arena({ p0: [['charge.sanctuary'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'charge.sanctuary', B1).end();
-    expect([a.hp(B1), a.has(A1, 'anointed')]).toEqual([85, false]);
-    const b = arena({ p0: [['charge.sanctuary'], ['shot']], p1: [['shot']] });
-    b.give(A2, 'shield', { value: 10 }).use(A1, 'charge.sanctuary', B1).end();
-    expect(b.has(A1, 'anointed')).toBe(true);
-    b.pass(1);
-    expect(b.has(A1, 'anointed')).toBe(true);
-    b.pass(1);
-    expect(b.has(A1, 'anointed')).toBe(false);
+  it('Pilgrim\'s Stride: 15, and the user\'s ally with the lowest HP gains 15 Shield for 1 turn', () => {
+    const a = arena({ p0: [['charge.sanctuary'], ['shot'], ['shot']], p1: [['strike'], ['shot']] });
+    a.setHp(A3, 40).use(A1, 'charge.sanctuary', B1).end();
+    expect([a.hp(B1), a.has(A1, 'shield'), a.has(A2, 'shield'), a.has(A3, 'shield')]).toEqual([85, false, false, true]);
+    a.use(B1, 'strike', A3).end();
+    expect(a.hp(A3)).toBe(35); // the 15 Shield soaked 15 of the Strike's 20
   });
 
-  it('Pilgrim\'s Stride: an enemy\'s Shield doesn\'t count', () => {
-    const a = arena({ p0: [['charge.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'shield', { value: 10 }).use(A1, 'charge.sanctuary', B1).end();
-    expect(a.has(A1, 'anointed')).toBe(false);
+  it('Pilgrim\'s Stride: the user counts as their own ally', () => {
+    const a = arena({ p0: [['charge.sanctuary'], ['shot']], p1: [['shot']] });
+    a.setHp(A1, 30).use(A1, 'charge.sanctuary', B1).end();
+    expect([a.has(A1, 'shield'), a.has(A2, 'shield')]).toEqual([true, false]);
+  });
+
+  it('Pilgrim\'s Stride: the Shield lasts 1 turn', () => {
+    const a = arena({ p0: [['charge.sanctuary'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'charge.sanctuary', B1).end().pass(1);
+    expect(a.has(A2, 'shield')).toBe(false);
   });
 
   it('Sheltering Stone: hidden; counters only the first Harmful skill on the user, 10 Piercing to its user', () => {
@@ -245,16 +247,26 @@ describe('Sanctuary skills', () => {
     expect([a.hp(B1), a.has(A1, 'immune')]).toEqual([85, false]);
   });
 
-  it('Sprouting Stone: 15, and one allied Seedling grows into a Worldsprout', () => {
-    const a = arena({ p0: [['shot.sanctuary'], ['summon.earth']], p1: [['shot']] });
-    a.use(A2, 'summon.earth').end().pass(1).use(A1, 'shot.sanctuary', B1).end();
-    expect([a.hp(B1), minions(a, 0, 'seedling').length, minions(a, 0, 'worldsprout').length]).toEqual([85, 1, 1]);
+  it('Hallowed Sling: 15, and the user gains 1 Armor', () => {
+    const a = arena({ p0: [['shot.sanctuary']], p1: [['strike']] });
+    a.use(A1, 'shot.sanctuary', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'armor')]).toEqual([85, 1]);
+    a.use(B1, 'strike', A1).end();
+    expect(a.hp(A1)).toBe(85); // 20 − 5
   });
 
-  it('Sprouting Stone: no Seedling, no Worldsprout', () => {
-    const a = arena({ p0: [['shot.sanctuary']], p1: [['shot']] });
-    a.use(A1, 'shot.sanctuary', B1).end();
-    expect([a.hp(B1), minions(a, 0, 'worldsprout').length]).toEqual([85, 0]);
+  it('Hallowed Sling: the Armor lasts 2 turns', () => {
+    const a = arena({ p0: [['shot.sanctuary']], p1: [['strike']] });
+    a.use(A1, 'shot.sanctuary', B1).end().pass(2);
+    expect(a.stacks(A1, 'armor')).toBe(1);
+    a.pass(2);
+    expect(a.stacks(A1, 'armor')).toBe(0);
+  });
+
+  it('Hallowed Sling: its Armor feeds Ramstone Drill', () => {
+    const a = arena({ p0: [['shot.sanctuary', 'ravage.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'shot.sanctuary', B1).end().pass(1).use(A1, 'ravage.sanctuary', B1).end();
+    expect(a.hp(B1)).toBe(100 - 15 - 30);
   });
 
   it('Obelisk: a Wardstone now; 70 two turns later while a Wardstone stands', () => {
@@ -363,16 +375,31 @@ describe('Sanctuary skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([80, 80]);
   });
 
-  it('Holy Harvest: 5, healing the user for it; no Wardstone if not Sanctified', () => {
+  it('Holy Harvest: 5, healing the user for it, and Sanctifies them for 1 turn', () => {
     const a = arena({ p0: [['consume.sanctuary']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.sanctuary', B1).end();
-    expect([a.hp(B1), a.hp(A1), minions(a, 0, 'wardstone').length]).toEqual([95, 55, 0]);
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'sanctify'), minions(a, 0, 'wardstone').length]).toEqual([95, 55, true, 0]);
+    a.pass(1);
+    expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Holy Harvest: against a Sanctified enemy the user creates a Wardstone', () => {
+  it('Holy Harvest: the user heals only the damage it actually dealt', () => {
     const a = arena({ p0: [['consume.sanctuary']], p1: [['shot']] });
-    a.give(B1, 'sanctify', { source: A1, duration: 2 }).use(A1, 'consume.sanctuary', B1).end();
+    a.setHp(A1, 50).give(B1, 'shield', { value: 3 }).use(A1, 'consume.sanctuary', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([98, 52]);
+  });
+
+  it('Holy Harvest: the first time that Sanctify heals someone, the user creates a Wardstone (only one)', () => {
+    const a = arena({ p0: [['consume.sanctuary'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'consume.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(A2)).toBe(65); // Sanctify healed the damager
     expect(minions(a, 0, 'wardstone').length).toBe(1);
+  });
+
+  it('Holy Harvest: no hit while it lasts, no Wardstone', () => {
+    const a = arena({ p0: [['consume.sanctuary'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'consume.sanctuary', B1).end().pass(1).use(A2, 'shot', B1).end();
+    expect(minions(a, 0, 'wardstone').length).toBe(0);
   });
 
   it('Stonemason: 20 HP for 3 turns; Carve makes a Boulder below Sanctum 2', () => {
@@ -422,9 +449,20 @@ describe('Sanctuary skills', () => {
     const a = arena({ p0: [['stab.sanctuary']], p1: [['shot']] });
     a.give(B1, 'condemned', { source: A1 }).use(A1, 'stab.sanctuary', B1).end();
     expect([debuffCount(a, B1), a.has(B1, 'condemned')]).toEqual([1, false]);
-    const b = arena({ p0: [['stab.sanctuary']], p1: [['shot']] });
-    b.use(A1, 'stab.sanctuary', B1).end();
-    expect(debuffCount(b, B1)).toBe(0);
+  });
+
+  it('Penitent\'s Awl: if they aren\'t Condemned, they become Condemned', () => {
+    const a = arena({ p0: [['stab.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'stab.sanctuary', B1).end();
+    expect([debuffCount(a, B1), a.has(B1, 'condemned')]).toEqual([0, true]);
+    a.use(B1, 'shot', A1).end(); // it fires on their next skill as usual
+    expect([debuffCount(a, B1), a.has(B1, 'condemned')]).toEqual([1, false]);
+  });
+
+  it('Penitent\'s Awl: a second Awl resolves the Condemned the first one left', () => {
+    const a = arena({ p0: [['stab.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'stab.sanctuary', B1).end().pass(1).use(A1, 'stab.sanctuary', B1).end();
+    expect([debuffCount(a, B1), a.has(B1, 'condemned')]).toEqual([1, false]);
   });
 
   it('Ramstone Drill: 25 Piercing +5 per Armor; then the user loses 1 Armor', () => {
@@ -567,18 +605,25 @@ describe('Sanctuary skills', () => {
     expect(a.has(B1, 'isolated')).toBe(false);
   });
 
-  it('Firstfruits Brand: 20 and Sanctify for 1 turn; each heal from it triggers Channel Growth for the user\'s Seedlings', () => {
-    const a = arena({ p0: [['smite.sanctuary', 'summon.earth'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'summon.earth').end().pass(1);
-    a.use(A1, 'smite.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(50);
-    expect(minions(a, 0, 'seedling').map((u) => u.maxHp)).toEqual([35, 35]); // two heals, +10 each
+  it('Firstfruits Brand: 20 and Sanctify for 1 turn; each heal from it also gives the healed 5 max HP', () => {
+    const a = arena({ p0: [['smite.sanctuary'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'smite.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(A2)]).toEqual([50, 65]);
+    expect([a.unit(A1).maxHp, a.unit(A2).maxHp, a.unit(A3).maxHp]).toEqual([100, 105, 105]);
+    a.pass(1);
+    expect(a.has(B1, 'sanctify')).toBe(false);
+  });
+
+  it('Firstfruits Brand: the max HP lasts for the rest of the match', () => {
+    const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.sanctuary', B1).use(A2, 'shot', B1).end().pass(8);
+    expect(a.unit(A2).maxHp).toBe(105);
   });
 
   it('Firstfruits Brand: no heal, no growth', () => {
-    const a = arena({ p0: [['smite.sanctuary', 'summon.earth']], p1: [['shot']] });
-    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'smite.sanctuary', B1).end().pass(2);
-    expect(minions(a, 0, 'seedling').map((u) => u.maxHp)).toEqual([15, 15]);
+    const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.sanctuary', B1).end().pass(1).use(A2, 'shot', B1).end();
+    expect(a.unit(A2).maxHp).toBe(100);
   });
 
   it('Cornerstone Psalm: all allies gain 10 max HP and heal 15', () => {
@@ -595,30 +640,61 @@ describe('Sanctuary skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([80, 90]);
   });
 
-  it('Shieldbearer\'s Sweep: for 2 turns, Sanctify on either one also gives its damager 15 Shield', () => {
-    const a = arena({ p0: [['cleave.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.sanctuary', B1).end().pass(1);
-    a.give(B2, 'sanctify', { source: A1, duration: 2 }).setHp(A2, 50).use(A2, 'shot', B2).end();
-    expect(a.hp(A2)).toBe(65); // Sanctify still heals
-    a.use(B1, 'shot', A2).end();
-    expect(a.hp(A2)).toBe(65); // the 15 Shield soaked the 15
+  it('Shieldbearer\'s Sweep: the first direct hit on each of them gives its damager 15 Shield for 1 turn', () => {
+    const a = arena({ p0: [['cleave.sanctuary'], ['shot'], ['shot']], p1: [['strike'], ['shot']] });
+    a.use(A1, 'cleave.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect([a.has(A2, 'shield'), a.has(A3, 'shield')]).toEqual([true, false]); // only the first hit on B1
+    a.use(B1, 'strike', A2).end();
+    expect(a.hp(A2)).toBe(95); // 15 of the 20 soaked
+    a.use(A3, 'shot', B2).end(); // B2's mark is still unspent
+    expect(a.has(A3, 'shield')).toBe(true);
   });
 
-  it('Shieldbearer\'s Sweep: a Sanctified enemy it didn\'t hit gives no Shield', () => {
+  it('Shieldbearer\'s Sweep: the Shield lasts 1 turn', () => {
+    const a = arena({ p0: [['cleave.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.sanctuary', B1).use(A2, 'shot', B1).end();
+    expect(a.has(A2, 'shield')).toBe(true);
+    a.pass(1);
+    expect(a.has(A2, 'shield')).toBe(false);
+  });
+
+  it('Shieldbearer\'s Sweep: the marks last 2 turns', () => {
+    const a = arena({ p0: [['cleave.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.sanctuary', B1).end().pass(1).use(A2, 'shot', B1).end();
+    expect(a.has(A2, 'shield')).toBe(true); // still up on turn 3
+    const b = arena({ p0: [['cleave.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'cleave.sanctuary', B1).end().pass(3).use(A2, 'shot', B1).end();
+    expect(b.has(A2, 'shield')).toBe(false);
+  });
+
+  it('Shieldbearer\'s Sweep: an enemy it didn\'t hit gives no Shield', () => {
     const a = arena({ p0: [['cleave.sanctuary'], ['shot']], p1: [['shot'], ['shot'], ['shot']], seed: 3 });
     a.use(A1, 'cleave.sanctuary', B1).end();
     const missed = [B2, B3].find((u) => a.hp(u) === 100)!;
-    a.pass(1).give(missed, 'sanctify', { source: A1, duration: 2 }).use(A2, 'shot', missed).end();
-    a.use(B1, 'shot', A2).end();
-    expect(a.hp(A2)).toBe(85);
+    a.pass(1).use(A2, 'shot', missed).end();
+    expect(a.has(A2, 'shield')).toBe(false);
   });
 
-  it('Call to the Faithful: every allied Boulder becomes a Wardstone; enemies Intimidated', () => {
+  it('Call to the Faithful: every allied Boulder becomes a Wardstone; enemies Intimidated for 2 turns', () => {
     const a = arena({ p0: [['shout.sanctuary'], ['charge.earth'], ['charge.earth']], p1: [['shot'], ['shot']] });
     a.use(A2, 'charge.earth', B1).use(A3, 'charge.earth', B1).end().pass(1);
     a.use(A1, 'shout.sanctuary').end();
     expect([minions(a, 0, 'boulder').length, minions(a, 0, 'wardstone').length]).toEqual([0, 2]);
     expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
+    a.pass(4);
+    expect(a.has(B1, 'intimidated')).toBe(false);
+  });
+
+  it('Call to the Faithful: with no Boulder to consecrate, the user creates a Wardstone', () => {
+    const a = arena({ p0: [['shout.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'shout.sanctuary').end();
+    expect([minions(a, 0, 'wardstone').length, a.has(B1, 'intimidated')]).toEqual([1, true]);
+  });
+
+  it('Call to the Faithful: a Wardstone already standing doesn\'t count as a Boulder to consecrate', () => {
+    const a = arena({ p0: [['shout.sanctuary', 'taunt.sanctuary']], p1: [['shot']] });
+    a.use(A1, 'taunt.sanctuary', B1).end().pass(1).use(A1, 'shout.sanctuary').end();
+    expect(minions(a, 0, 'wardstone').length).toBe(2);
   });
 
   it('Rampart of Faith: 20 Shield, +10 per allied Boulder and Wardstone, each of which loses 10 HP', () => {
