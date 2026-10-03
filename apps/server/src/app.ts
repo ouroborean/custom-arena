@@ -47,6 +47,8 @@ export interface AppOptions {
   seasons?: SeasonSchedule;
   /** Login/register attempts per IP per minute. */
   authRateLimit?: number;
+  /** Behind a reverse proxy (nginx): take the client IP from X-Forwarded-For. */
+  trustProxy?: boolean;
   logger?: boolean;
 }
 
@@ -98,7 +100,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     clock: opts.clock ?? realClock,
     seasons: opts.seasons ?? OPEN_SCHEDULE,
   };
-  const app = Fastify({ logger: opts.logger ?? false });
+  const app = Fastify({ logger: opts.logger ?? false, trustProxy: opts.trustProxy ?? false });
   await app.register(cookie);
   // Opt-in per route (auth endpoints); in-memory store, so per process.
   await app.register(rateLimit, { global: false });

@@ -1,0 +1,25 @@
+# Custom Arena's API server on the anima-arena VM (docs/deploy.md). Installed by deploy/install.sh to
+# /etc/systemd/system/custom-arena.service. nginx (deploy/nginx-custom-arena.conf) serves the client
+# and proxies /api here.
+[Unit]
+Description=Custom Arena server
+After=network.target
+
+[Service]
+User=custom-arena
+Group=custom-arena
+WorkingDirectory=/opt/custom-arena/current/apps/server
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8795
+Environment=PGLITE_DIR=/var/lib/custom-arena/pglite
+Environment=TRUST_PROXY=1
+ExecStart=/usr/bin/node /opt/custom-arena/current/node_modules/tsx/dist/cli.mjs src/main.ts
+# The server closes PGlite cleanly on SIGTERM; give it time before a hard kill (which can damage it).
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
