@@ -17,9 +17,9 @@ live in `packages/meta/src/rules.ts`.
 
 | Step | Rule |
 |---|---|
-| Class | One of the six starting classes, weighted towards those the player owns fewer of (weight ∝ 1 / (1 + owned)). Warlock, Knight, Druid and Monk are **advanced** classes (`advanced: true` in `classes.yaml`): not recruited yet, to be unlocked later. |
+| Class | Any of the ten classes, weighted towards those the player owns fewer of (weight ∝ 1 / (1 + owned)). `advanced: true` in `classes.yaml` would keep a class out of recruiting until it's unlocked; no class uses it since 2026-10-03, when Warlock, Knight, Druid and Monk became recruitable. |
 | Base element | Uniform over the 10 elements. |
-| Native skills | **Two:** the class's **starter** skill (Warrior Strike, Rogue Stab, Mage Bolt, Priest Heal, Paladin Cleave, Ranger Shot), then one more drawn from the rest of its 6-skill pool. None are infused. |
+| Native skills | **Two:** the class's **starter** skill (Warrior Strike, Rogue Stab, Mage Bolt, Priest Heal, Paladin Cleave, Ranger Shot, Druid Companion, Monk Smite, Warlock Curse, Knight Charge), then one more drawn from the rest of its 6-skill pool. None are infused. |
 | Base element infusion | **One infusion of the base element in the character's pool** (`NATIVE_INFUSIONS`): the player places it on a skill, like an equipment infusion. |
 | Name / portrait | "<element epithet> <class title>" (e.g. *Brook Blademaster*); portrait id `<class>.<element>.01`. |
 

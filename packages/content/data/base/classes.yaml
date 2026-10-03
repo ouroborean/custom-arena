@@ -12,13 +12,13 @@ warrior:
 
 knight:
   name: Knight
-  advanced: true
+  starter: charge
   signatures: [charge, riposte, shout]
   affinity: [strike, cleave, stun]
 
 druid:
   name: Druid
-  advanced: true
+  starter: companion
   signatures: [rage, companion, ravage]
   affinity: [smash, trap, blast]
 
@@ -30,7 +30,7 @@ ranger:
 
 monk:
   name: Monk
-  advanced: true
+  starter: smite
   signatures: [maneuver, dance, smite]
   affinity: [riposte, bless, prayer]
 
@@ -42,7 +42,7 @@ mage:
 
 warlock:
   name: Warlock
-  advanced: true
+  starter: curse
   signatures: [consume, summon, curse]
   affinity: [bolt, withstand, taunt]
 
