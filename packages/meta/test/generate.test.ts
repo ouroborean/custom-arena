@@ -16,14 +16,25 @@ import {
 } from '../src/index.js';
 
 const content = loadContentOrThrow();
-const STARTERS = { warrior: 'strike', rogue: 'stab', mage: 'bolt', priest: 'heal', paladin: 'cleave', ranger: 'shot' };
+const STARTERS = {
+  warrior: 'strike',
+  rogue: 'stab',
+  mage: 'bolt',
+  priest: 'heal',
+  paladin: 'cleave',
+  ranger: 'shot',
+  druid: 'companion',
+  monk: 'smite',
+  warlock: 'curse',
+  knight: 'charge',
+};
 
 describe('rollCharacter', () => {
   it('is deterministic for a seed', () => {
     expect(rollCharacter(content, seedRng(42))).toEqual(rollCharacter(content, seedRng(42)));
   });
 
-  it("recruits only the six starting classes, never Warlock, Knight, Druid or Monk", () => {
+  it("recruits all ten classes, each with its starter", () => {
     expect(rollableClasses(content).map((c) => c.id).sort()).toEqual(Object.keys(STARTERS).sort());
     const rng = seedRng(4);
     const seen = new Set<string>();

@@ -1086,6 +1086,7 @@ Per element: statuses → 30 variants → scenario tests → tooltip-diff pass �
 | Q24 | Arcade mode (2026-10-03) | The single-player way to earn items: a **12-stage ladder** of bot teams on a fixed curve. Enemies start with 2 bare skills, then gain skills and infusions in turn; their infusions become cohesive, then gain double-element skills, then overlap across the team (partially, then fully). Each cleared stage pays in full, with a guaranteed drop and no practice penalties; a loss restarts the run. Arcade drops have their own daily cap. See `docs/single-player.md` §5a. | §2.2, §8.4 |
 | Q25 | Turn order vs bots (2026-10-03) | In practice and arcade matches, **who moves first is a coin flip** made by the server (fixed by the match seed); the player no longer picks a side. Story encounters keep their authored `first`; the sandbox keeps its free choice. | §2.2 |
 | Q26 | Open story chapters (2026-10-03) | The ten story chapters are **all open from the start**, with no chapter order: a player can chase any element's rewards first. Each chapter's three encounters still unlock in order. Chapter names drop their numbers. | §2.2 |
+| Q27 | All ten classes recruitable (2026-10-03) | Druid, Monk, Warlock and Knight are starting classes again, with starter skills Companion, Smite, Curse and Charge (Paladin keeps Cleave). All ten classes are recruited; none is advanced. | §6.2, §7.2 |
 
 ### 14.2 Content decisions: fixes to apply to the source sheets
 
