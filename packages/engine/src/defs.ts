@@ -883,6 +883,42 @@ export interface EconomyDef {
   split: { cost: CurrencyAmounts };
   /** What salvaging a piece pays, per component, by component type. */
   salvage: Partial<Record<ItemType, CurrencyAmounts>>;
+  /** Arcade mode's ladder (docs/single-player.md §Arcade); absent, the mode is off. */
+  arcade?: ArcadeDef;
+}
+
+/**
+ * One rung of the arcade ladder: the shape of the bot team's kits. Each enemy has `skills` skills
+ * (its class's starter first) carrying `infusions` infusions in all, `doubles` of those skills taking
+ * two (a fusion element).
+ */
+export interface ArcadeStage {
+  /** Skills per enemy (1–5). */
+  skills: number;
+  /** Infusions per enemy, counting both of a double skill's. */
+  infusions: number;
+  /** Skills with two infusions: the enemy's element and its second element. */
+  doubles: number;
+  /** Chance (0–1) that a single infusion is of the enemy's own elements rather than any element. */
+  cohesion: number;
+  /**
+   * How the three enemies' elements relate: `none`, each its own; `partial`, each one's second
+   * element is the next one's first; `full`, all three share the same two elements.
+   */
+  overlap: 'none' | 'partial' | 'full';
+  bot: 'easy' | 'normal' | 'hard';
+  /** Paid for clearing the stage. */
+  win: RewardSpec;
+}
+
+export interface ArcadeDef {
+  /** Arcade item drops per account per UTC day, apart from the match cap (0 = no cap). */
+  dailyDropCap: number;
+  /** Paid when a run ends in a played-out loss or a draw (never for a surrender). */
+  loss: RewardSpec;
+  /** Paid on top of the last stage's reward, for clearing the whole ladder. */
+  complete: RewardSpec;
+  stages: ArcadeStage[];
 }
 
 // ---------------------------------------------------------------- single-player (GDD §2.2, §11.9)

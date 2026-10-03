@@ -59,7 +59,28 @@ export interface AchievementStatus {
   completedAt: string | null;
 }
 
-/** The server's verdict on a finished story attempt or practice match. */
+/** Where the player's arcade run stands. */
+export interface ArcadeStatus {
+  /** The stage the run plays next (1 after a loss or a cleared ladder). */
+  stage: number;
+  stages: number;
+  bot: 'easy' | 'normal' | 'hard';
+  /** The highest stage ever cleared (0 for none). */
+  best: number;
+  dropsToday: number;
+  dailyDropCap: number;
+}
+
+/** An arcade stage the server issued (or reissued, when it was left unfinished). */
+export interface ArcadeStart {
+  attemptId: string;
+  stage: number;
+  bot: 'easy' | 'normal' | 'hard';
+  config: MatchConfig;
+  resumed: boolean;
+}
+
+/** The server's verdict on a finished story attempt, practice match or arcade stage. */
 export interface StoryResult {
   outcome: 'win' | 'loss' | 'draw';
   turns: number;
@@ -70,6 +91,8 @@ export interface StoryResult {
   achievements: { id: string; reward: Reward }[];
   chapters: ChapterStatus[];
   wallet: Wallet;
+  /** Arcade stages: the stage played, whether it finished the ladder, and where the run goes next. */
+  arcade?: { stage: number; ladderComplete: boolean; next: ArcadeStatus };
 }
 
 export interface Preset {
@@ -181,5 +204,8 @@ export const api = {
   startPractice: (bot: string, seat: PlayerId) => call<{ attemptId: string; config: MatchConfig }>('POST', '/practice/start', { bot, seat }),
   finishPractice: (attemptId: string, commands: MatchRecord['commands']) =>
     call<StoryResult>('POST', `/practice/attempts/${attemptId}/finish`, { commands }),
+  arcade: () => call<ArcadeStatus>('GET', '/arcade'),
+  startArcade: () => call<ArcadeStart>('POST', '/arcade/start'),
+  finishArcade: (attemptId: string, commands: MatchRecord['commands']) => call<StoryResult>('POST', `/arcade/attempts/${attemptId}/finish`, { commands }),
   achievements: () => call<{ achievements: AchievementStatus[] }>('GET', '/achievements'),
 };

@@ -10,6 +10,7 @@ import {
   type ContentBundle,
   type CurrencyAmounts,
   type ItemDef,
+  type RewardSpec,
   type RngState,
 } from '@arena/engine';
 
@@ -23,6 +24,11 @@ export interface Reward {
 
 /** Losses that weren't played out: they never pay (no surrender or AFK farming). */
 const FORFEITS = new Set(['surrender', 'disconnect', 'afk']);
+
+/** Whether a match ended without being played out (a surrender, disconnect or AFK). */
+export function isForfeit(endReason: string): boolean {
+  return FORFEITS.has(endReason);
+}
 
 export interface MatchRewardInput {
   /** Match kind: casual, ranked, private, … (kinds without rewards in the economy earn nothing). */
@@ -39,13 +45,16 @@ export function matchReward(content: ContentBundle, input: MatchRewardInput, rng
   const r = content.economy.rewards[input.kind];
   if (!r || input.turns < r.minTurns) return { currency: {}, items: [] };
   if (input.outcome === 'loss' && FORFEITS.has(input.endReason)) return { currency: {}, items: [] };
-  const spec = r[input.outcome];
-  const cap = content.economy.dailyDropCap;
+  return rollRewardSpec(content, r[input.outcome], content.economy.dailyDropCap, input.dropsToday, rng);
+}
+
+/** Pays one reward spec: its currency, and its drops up to a daily `cap` (0 = none) given `dropsToday`. */
+export function rollRewardSpec(content: ContentBundle, spec: RewardSpec, cap: number, dropsToday: number, rng: RngState): Reward {
   // Each drop happens with the spec's chance (rolled even past the daily cap, so the rng use is stable).
   const chance = spec.drops?.chance ?? 1;
   let wanted = 0;
   for (let i = 0; i < (spec.drops?.count ?? 0); i++) if (chance >= 1 || nextInt(rng, 1000) < Math.round(chance * 1000)) wanted++;
-  const count = cap > 0 ? Math.max(0, Math.min(wanted, cap - input.dropsToday)) : wanted;
+  const count = cap > 0 ? Math.max(0, Math.min(wanted, cap - dropsToday)) : wanted;
   return {
     currency: { ...spec.currency },
     items: spec.drops && count > 0 ? rollDrops(content, spec.drops.table, count, rng) : [],

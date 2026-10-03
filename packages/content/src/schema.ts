@@ -595,6 +595,26 @@ export const economySchema = z.strictObject({
   forge: z.strictObject({ cost: z.record(z.enum(['2', '3']), amounts) }),
   split: z.strictObject({ cost: amounts }),
   salvage: z.partialRecord(itemType, amounts),
+  arcade: z
+    .strictObject({
+      dailyDropCap: z.number().int().min(0),
+      loss: rewardSpec,
+      complete: rewardSpec,
+      stages: z
+        .array(
+          z.strictObject({
+            skills: z.number().int().min(1).max(5),
+            infusions: z.number().int().min(0).max(10),
+            doubles: z.number().int().min(0).max(5).default(0),
+            cohesion: z.number().min(0).max(1).default(0),
+            overlap: z.enum(['none', 'partial', 'full']).default('none'),
+            bot: z.enum(['easy', 'normal', 'hard']),
+            win: rewardSpec,
+          }),
+        )
+        .min(1),
+    })
+    .optional(),
 });
 
 const grantSpec = z.strictObject({

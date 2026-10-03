@@ -1,13 +1,13 @@
-// Home: active team, practice vs bot, roster (roll, open, pick a team), wallet and inventory.
+// Home: active team, practice vs bot, the arcade, roster (roll, open, pick a team), wallet and inventory.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { canAfford, formatAmounts } from '@arena/meta';
-import { api, ApiError } from '../api.js';
+import { api, ApiError, type ArcadeStatus } from '../api.js';
 import { content } from '../content.js';
 import type { BotKind } from '../match/LocalMatch.js';
 import { useT } from '../i18n/index.js';
 import { useMeta } from '../meta.js';
-import { useStore } from '../store.js';
+import { arcadeMode, useStore } from '../store.js';
 import { Brand } from './Account.js';
 import { InventoryPanel } from './Inventory.js';
 import { OnlinePanel } from './OnlinePanel.js';
@@ -23,6 +23,18 @@ export function Home() {
   const [bot, setBot] = useState<BotKind>('normal');
   const [human, setHuman] = useState<0 | 1>(0);
   const [problem, setProblem] = useState<{ message: string; problems: string[] } | null>(null);
+  const [arcade, setArcade] = useState<ArcadeStatus | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api.arcade().then(
+      (a) => live && setArcade(a),
+      () => live && setArcade(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const teamChars = team.map((id) => characters.find((c) => c.id === id)).filter((c) => c !== undefined);
 
@@ -32,6 +44,17 @@ export function Home() {
       // The server issues the match (seed and teams) and verifies the result, so practice can pay out.
       const r = await api.startPractice(bot, human);
       newMatch(content, r.config, { kind: 'vsBot', bot, human, practice: { attemptId: r.attemptId } }, 'home');
+    } catch (e) {
+      setProblem(e instanceof ApiError ? { message: e.message, problems: e.problems } : { message: String(e), problems: [] });
+    }
+  };
+
+  const playArcade = async () => {
+    setProblem(null);
+    try {
+      // The server issues the run's next stage (or the one left unfinished) and verifies the result.
+      const r = await api.startArcade();
+      newMatch(content, r.config, arcadeMode(r), 'home');
     } catch (e) {
       setProblem(e instanceof ApiError ? { message: e.message, problems: e.problems } : { message: String(e), problems: [] });
     }
@@ -129,6 +152,15 @@ export function Home() {
           </button>
           <button type="button" className="btn primary" onClick={() => void practice()} disabled={teamChars.length !== 3 || busy}>
             {t('home.practice')}
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => void playArcade()}
+            disabled={teamChars.length !== 3 || busy}
+            title={arcade ? t('home.arcadeTitle', { best: arcade.best, drops: arcade.dropsToday, cap: arcade.dailyDropCap }) : undefined}
+          >
+            {arcade ? t('home.arcadeStage', { stage: arcade.stage, stages: arcade.stages }) : t('home.arcade')}
           </button>
           <button type="button" className="btn" onClick={() => go('sandbox')}>
             {t('nav.sandbox')}

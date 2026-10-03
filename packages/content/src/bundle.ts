@@ -16,6 +16,7 @@ import {
   type FusionDef,
   type GlossaryDef,
   type EconomyDef,
+  type RewardSpec,
   type ForgingDef,
   type EncounterDef,
   type TutorialDef,
@@ -280,6 +281,22 @@ export function checkEconomy(b: ContentBundle): ContentIssue[] {
   for (const [n, amounts] of Object.entries(e.forge.cost)) currencies(`forge.cost.${n}`, amounts);
   currencies('split.cost', e.split.cost);
   for (const [type, amounts] of Object.entries(e.salvage)) currencies(`salvage.${type}`, amounts);
+  if (e.arcade) {
+    const reward = (where: string, spec: RewardSpec) => {
+      currencies(where, spec.currency);
+      if (spec.drops && !e.dropTables[spec.drops.table]) err(where, `unknown drop table "${spec.drops.table}"`);
+    };
+    reward('arcade.loss', e.arcade.loss);
+    reward('arcade.complete', e.arcade.complete);
+    e.arcade.stages.forEach((s, i) => {
+      const where = `arcade.stages.${i}`;
+      reward(`${where}.win`, s.win);
+      // Every double needs a skill of its own, and the singles need skills left over.
+      const singles = s.infusions - 2 * s.doubles;
+      if (singles < 0) err(where, `${s.doubles} double skill(s) need ${2 * s.doubles} infusions`);
+      else if (singles + s.doubles > s.skills) err(where, `${s.infusions} infusions don't fit on ${s.skills} skills (at most 2 per skill)`);
+    });
+  }
   return issues;
 }
 

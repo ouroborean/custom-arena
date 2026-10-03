@@ -1,0 +1,29 @@
+# Arcade mode (docs/single-player.md §Arcade): a ladder of bot teams that grow on a fixed curve, the
+# single-player way to earn items. Your active team climbs it one stage at a time; a loss (or a draw)
+# ends the run and the next starts again at stage 1.
+#
+# Every stage won pays its `win` reward in full: unlike practice there's no halved drop chance or
+# minimum length, and arcade drops have their own daily cap apart from the match one.
+#
+# The curve: enemies start with 2 bare skills, then gain skills and infusions in turn. Their
+# infusions start out random and grow cohesive (their own element), then come double skills (two
+# infusions: a fusion element), and last the three enemies' elements overlap (`partial`: each one's
+# second element is the next one's first; `full`: all three share both).
+
+arcade:
+  dailyDropCap: 15
+  loss: { currency: { gold: 15 } }
+  complete: { currency: { gold: 150 }, drops: { table: standard, count: 2 } }
+  stages:
+    - { skills: 2, infusions: 0, bot: easy, win: { currency: { gold: 15 }, drops: { table: standard, count: 1 } } }
+    - { skills: 3, infusions: 0, bot: easy, win: { currency: { gold: 20 }, drops: { table: standard, count: 1 } } }
+    - { skills: 3, infusions: 1, bot: easy, win: { currency: { gold: 25 }, drops: { table: standard, count: 1 } } }
+    - { skills: 4, infusions: 1, bot: normal, win: { currency: { gold: 30 }, drops: { table: standard, count: 1 } } }
+    - { skills: 4, infusions: 2, cohesion: 0.5, bot: normal, win: { currency: { gold: 35 }, drops: { table: standard, count: 1 } } }
+    - { skills: 5, infusions: 2, cohesion: 0.5, bot: normal, win: { currency: { gold: 40 }, drops: { table: standard, count: 1 } } }
+    - { skills: 5, infusions: 3, cohesion: 1, bot: normal, win: { currency: { gold: 45 }, drops: { table: standard, count: 1 } } }
+    - { skills: 5, infusions: 4, doubles: 1, cohesion: 1, bot: hard, win: { currency: { gold: 50 }, drops: { table: standard, count: 2 } } }
+    - { skills: 5, infusions: 5, doubles: 1, cohesion: 1, bot: hard, win: { currency: { gold: 55 }, drops: { table: standard, count: 2 } } }
+    - { skills: 5, infusions: 6, doubles: 2, cohesion: 1, overlap: partial, bot: hard, win: { currency: { gold: 60 }, drops: { table: standard, count: 2 } } }
+    - { skills: 5, infusions: 7, doubles: 2, cohesion: 1, overlap: partial, bot: hard, win: { currency: { gold: 70 }, drops: { table: standard, count: 2 } } }
+    - { skills: 5, infusions: 8, doubles: 3, cohesion: 1, overlap: full, bot: hard, win: { currency: { gold: 80 }, drops: { table: standard, count: 2 } } }

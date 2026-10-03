@@ -192,6 +192,54 @@ verification. Finishing all three pays a free character and a Dragon Crystal (tw
 - **Tests:** a test follows every script against its lesson's AI with forced energy (three seeds),
   so a content change that breaks a lesson fails CI.
 
+## 5a. Arcade
+
+The arcade is the single-player way to earn items. It is a ladder of bot teams that grow on a fixed
+curve, defined in `economy/economy.arcade.yaml`. Your active team climbs it one stage at a time.
+
+### The curve
+
+Each stage sets the enemies' kit shape:
+- `skills`: skill count, with the class's starter skill first.
+- `infusions`: infusions in total.
+- `doubles`: skills with two infusions, i.e. a fusion element.
+- `cohesion`: the chance that a single infusion is the enemy's own element.
+- `overlap`: how the three enemies' elements relate.
+- `bot`: the bot tier.
+
+| Stages | Skills / infusions | Elements | Bot |
+|---|---|---|---|
+| 1–2 | 2 → 3 skills, no infusions | none | Easy |
+| 3–6 | Skills and infusions grow in turn, up to 5 / 2 | Random, then half cohesive | Easy → Normal |
+| 7 | 5 / 3 | Cohesive: one element per enemy | Normal |
+| 8–9 | 5 / 4–5, one double skill | Each enemy has two elements: its own, plus a second for its double | Hard |
+| 10–11 | 5 / 6–7, two doubles | **Partial overlap:** each enemy's second element is the next enemy's first | Hard |
+| 12 | 5 / 8, three doubles | **Full overlap:** all three share both elements | Hard |
+
+Enemies are always three different classes. Stage 1 is three 2-skill enemies with no infusions.
+
+### Runs
+
+- A win moves the run to the next stage.
+- A loss or a draw ends the run, and the next one starts at stage 1.
+- Clearing stage 12 completes the ladder and pays the `complete` bonus; the next run starts over.
+- You always move first.
+
+The server issues and verifies stages the same way as story attempts (`POST /api/arcade/start`,
+`POST /api/arcade/attempts/:id/finish`; `GET /api/arcade` reports the run). If a stage is left
+unfinished, it is issued again: same seed, same enemies, same team. Leaving a match therefore can't
+reroll an easier team. A stage issued before a content or engine update is voided: it doesn't count
+either way, and the run goes on.
+
+### Rewards
+
+Practice pays half the casual drop chance and nothing below 8 turns. The arcade has neither of those
+penalties: every cleared stage pays its `win` reward in full.
+- Gold rises from 15 to 80 per stage.
+- Every stage drops 1 item; stages 8–12 drop 2.
+- A played-out loss or a draw pays 15 Gold. A surrender pays nothing.
+- Arcade drops have their **own daily cap** (15), separate from the match cap of 10.
+
 ## 6. Tools
 
 - `npm run sim -- --bots normal,hard --games 200`: tier duels.
