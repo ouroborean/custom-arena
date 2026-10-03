@@ -31,7 +31,9 @@ embers_3:
   enemies:
       - { name: "The Cinder Tyrant", classId: warrior, element: Fire, hp: 95, skillCount: 5, passives: [boss_cinder_tyrant] }
       - { name: "Ember Guard", classId: mage, element: Fire, hp: 73, skillCount: 4 }
-      - { name: "Blaze Caller", classId: druid, element: Fire, hp: 73, skillCount: 4 }
+      # Trap in place of the Druid's usual Smash: Chain Detonation on a companion made this first boss
+      # too punishing.
+      - { name: "Blaze Caller", classId: druid, element: Fire, hp: 73, skills: [rage.fire, companion.fire, ravage.fire, trap.fire] }
   ai:
     tier: easy
     script:
