@@ -1,12 +1,15 @@
 // The Tutorial screen: the tutorial chapter's lessons (encounters with fixed teams, forced energy and
-// a coach script). They run like story attempts, so the server verifies them and pays their rewards.
+// a coach script), which run like story attempts so the server verifies them and pays their rewards,
+// then the menu guides (guides.ts): coached walkthroughs of recruiting, equipment, infusions and forging.
 
 import { useEffect, useState } from 'react';
 import { formatAmounts } from '@arena/meta';
 import { pieceDisplayName, type GrantSpec } from '@arena/engine';
 import { api, ApiError, type ChapterStatus } from '../api.js';
 import { content } from '../content.js';
+import { GUIDES, snapshotOf, useGuide } from '../guides.js';
 import { useT } from '../i18n/index.js';
+import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 import { Brand } from './Account.js';
 
@@ -17,6 +20,21 @@ export function Tutorial() {
   const [chapters, setChapters] = useState<ChapterStatus[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
+  const done = useGuide((s) => s.done);
+  const beginGuide = useGuide((s) => s.begin);
+  const characters = useMeta((s) => s.characters);
+  const team = useMeta((s) => s.team);
+
+  /** Starts a guide on the screen its first step happens on. */
+  const startGuide = (id: string) => {
+    const guide = GUIDES.find((g) => g.id === id)!;
+    const first = guide.steps[0]!.screen ?? 'home';
+    const who = team[0] ?? characters[0]?.id;
+    const screen = first === 'character' && who ? 'character' : 'home';
+    beginGuide(id, snapshotOf(characters, useGuide.getState().signals, screen, screen === 'character' ? who! : null));
+    if (screen === 'character') go('character', who);
+    else go('home');
+  };
 
   const grantText = (g: GrantSpec | undefined): string => {
     const parts = [
@@ -101,6 +119,27 @@ export function Tutorial() {
           );
         })
       )}
+      <section className="panel chapter" aria-label={t('tutorial.guides')}>
+        <h2 className="panel-title">{t('tutorial.guides')}</h2>
+        <p className="muted">{t('tutorial.guidesIntro')}</p>
+        <ol className="encounters">
+          {GUIDES.map((g) => {
+            const finished = done.includes(g.id);
+            return (
+              <li key={g.id} className={`encounter${finished ? ' cleared' : ''}`}>
+                <div className="encounter-main">
+                  <b>{g.name}</b>
+                  <span className="muted">{g.description}</span>
+                  {finished && <span className="muted">{t('tutorial.done')}</span>}
+                </div>
+                <button type="button" className={`btn${finished ? '' : ' primary'}`} onClick={() => startGuide(g.id)}>
+                  {finished ? t('tutorial.again') : t('tutorial.start')}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
     </div>
   );
 }

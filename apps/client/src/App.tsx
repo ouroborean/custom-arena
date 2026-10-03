@@ -10,6 +10,7 @@ import { Setup } from './ui/Setup.js';
 import { Story } from './ui/Story.js';
 import { Settings } from './ui/Settings.js';
 import { Tutorial } from './ui/Tutorial.js';
+import { GuideCoach } from './ui/GuideCoach.js';
 import { KeywordHelp } from './ui/KeywordHelp.js';
 
 export function App() {
@@ -24,6 +25,7 @@ export function App() {
   return (
     <>
       <Page screen={screen} status={status} />
+      {status === 'signedIn' && <GuideCoach />}
       <KeywordHelp />
     </>
   );

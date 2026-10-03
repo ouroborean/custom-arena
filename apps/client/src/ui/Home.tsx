@@ -71,7 +71,7 @@ export function Home() {
       <div className="meta-header">
         <Brand />
         <div className="account-chip">
-          <span className="wallet" aria-label={t('home.wallet')}>
+          <span className="wallet" aria-label={t('home.wallet')} data-guide="wallet">
             {Object.entries(content.economy.currencies).map(([id, c]) => (
               <span key={id} className="currency">
                 <b>{wallet[id] ?? 0}</b> {c.name}
@@ -103,7 +103,7 @@ export function Home() {
       )}
 
       <section className="panel play-panel" aria-label={t('home.play')}>
-        <div className="team-strip" aria-label={t('home.activeTeam')}>
+        <div className="team-strip" aria-label={t('home.activeTeam')} data-guide="team">
           <span className="panel-title">{t('home.activeTeam')}</span>
           <div className="team-slots">
             {[0, 1, 2].map((i) => {
@@ -192,6 +192,7 @@ export function Home() {
             <button
               type="button"
               className="btn primary"
+              data-guide="recruit"
               disabled={busy || characters.length >= maxRoster || !canAfford(wallet, rollCost)}
               onClick={() => void roll()}
             >
@@ -199,7 +200,7 @@ export function Home() {
             </button>
           )}
         </div>
-        <div className="roster-grid">
+        <div className="roster-grid" data-guide="roster">
           {characters.map((c) => (
             <CharacterCard
               key={c.id}

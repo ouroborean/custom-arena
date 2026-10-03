@@ -188,7 +188,7 @@ export function LoadoutEditor({
 
   return (
     <div className="loadout-editor">
-      <div className="equip-slots" role="group" aria-label={`Equipment slots (${items.length} of ${EQUIPMENT_SLOTS} used)`}>
+      <div className="equip-slots" role="group" aria-label={`Equipment slots (${items.length} of ${EQUIPMENT_SLOTS} used)`} data-guide="slots">
         {Array.from({ length: EQUIPMENT_SLOTS }, (_, i) => {
           const eq = items[i];
           const def = eq ? describePiece(content, eq.itemId) : undefined;
@@ -246,7 +246,7 @@ export function LoadoutEditor({
       <SkillPoolPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
       <InfusionPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
 
-      <div className="item-pool" aria-label="Your items">
+      <div className="item-pool" aria-label="Your items" data-guide="items">
         <div className="pool-filters">
           <input type="search" aria-label="Search items" placeholder="Search items, skills, passives…" value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="segmented" role="group" aria-label="Item category">
@@ -377,7 +377,7 @@ function SkillPoolPanel({
   onChange: (next: Loadout) => void;
 }) {
   return (
-    <div className="infusion-panel skill-pool" role="group" aria-label="Equipment skills">
+    <div className="infusion-panel skill-pool" role="group" aria-label="Equipment skills" data-guide="skillPool">
       <div className="infusion-head">
         <span className="slot-label">Skills</span>
         {resolved.skillPool.length === 0 ? (
@@ -441,7 +441,7 @@ function InfusionPanel({
   const assign = (skill: string, element: string) => onChange({ ...draft, infusions: [...draft.infusions, { skill, element }] });
   const unassign = (index: number) => onChange({ ...draft, infusions: draft.infusions.filter((_, i) => i !== index) });
   return (
-    <div className="infusion-panel" role="group" aria-label="Infusions">
+    <div className="infusion-panel" role="group" aria-label="Infusions" data-guide="infusions">
       <div className="infusion-head">
         <span className="slot-label">Infusions</span>
         {total === 0 ? (
