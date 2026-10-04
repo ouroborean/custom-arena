@@ -329,7 +329,7 @@ Anti-farming rules:
   `match.end.reward`, and listed in match history.
 
 ### Drops, forging and salvage
-- **Drops:** the `standard` table picks a component type by weight (Skill 35, Shard 50, Sigil 15),
+- **Drops:** the `standard` table picks a component type by weight (Shard 60, Skill 30, Sigil 10),
   then one of that type's components uniformly. Only single components drop; forged pieces are made
   by players.
 - **Forging:** two unequipped pieces become one, for **50 Gold** (2 components) or **100 Gold**

@@ -35,7 +35,7 @@ dailyDropCap: 10
 dropTables:
   # Components only: forged pieces are made by players.
   standard:
-    types: { Skill: 35, Shard: 50, Sigil: 15 }
+    types: { Shard: 60, Skill: 30, Sigil: 10 }
 
 # Forging two unequipped pieces into one (docs/equipment.md §6), by the result's component count.
 forge:

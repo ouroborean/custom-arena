@@ -55,12 +55,13 @@ describe('economy', () => {
     expect(new Set(a.map((id) => content.items[id]!.type))).toEqual(new Set(['Skill', 'Shard', 'Sigil']));
   });
 
-  it('a drop is a Shard half the time, a Skill about a third, and a Sigil the rest', () => {
+  it('drops are 60% Shards, 30% Skills and 10% Sigils: Shards clearly the most common', () => {
     const drops = rollDrops(content, 'standard', 4000, seedRng(3));
     const share = (t: string) => drops.filter((id) => content.items[id]!.type === t).length / drops.length;
-    expect(share('Shard')).toBeCloseTo(0.5, 1);
-    expect(share('Skill')).toBeCloseTo(0.35, 1);
-    expect(share('Sigil')).toBeCloseTo(0.15, 1);
+    expect(share('Shard')).toBeCloseTo(0.6, 1);
+    expect(share('Skill')).toBeCloseTo(0.3, 1);
+    expect(share('Sigil')).toBeCloseTo(0.1, 1);
+    expect(share('Shard')).toBeGreaterThan(share('Skill') * 1.6);
   });
 
   it('forging costs more for a three-component piece; the base keeps its place at the front', () => {
