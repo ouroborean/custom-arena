@@ -834,7 +834,7 @@ describe('Anointment skills', () => {
       expect(a.stacks(B1, 'confusion')).toBe(0);
     });
 
-    it('each skill they use while Confused gives the user’s player 1 energy per Confusion', () => {
+    it('each skill they use while Confused gives the user’s player 2 energy per Confusion', () => {
       const run = (extraConfusion: number, act: boolean) => {
         const a = arena({ p0: [['curse.anointment']], p1: [['shot']] });
         a.use(A1, 'curse.anointment', B1).end();
@@ -844,7 +844,7 @@ describe('Anointment skills', () => {
         a.cmd(a.active, { t: 'endTurn' }); // no top-up, so p0's pool is exact
         return pool(a) - before - 1; // minus p0's 1 start-of-turn energy (one living character)
       };
-      expect([run(0, true), run(1, true), run(0, false)]).toEqual([1, 2, 0]);
+      expect([run(0, true), run(1, true), run(0, false)]).toEqual([2, 4, 0]);
     });
   });
 

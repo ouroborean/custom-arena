@@ -451,7 +451,7 @@ describe('Serum skills', () => {
 
   it('Flushing Drip: healing other allies flushes nothing', () => {
     const a = arena({ p0: [['bless.serum'], ['shot'], ['heal']], p1: three() });
-    a.setHp(A3, 50).give(A3, 'weakness', { source: B1 }).give(A3, 'confusion', { source: B1 });
+    a.setHp(A3, 50).give(A3, 'weakness', { source: B1 }).give(A3, 'vulnerable', { source: B1 });
     a.use(A1, 'bless.serum', A2).use(A3, 'heal', A3).end();
     expect([a.hp(A3), debuffs(a, A3)]).toEqual([75, 2]);
   });

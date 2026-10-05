@@ -236,9 +236,10 @@ describe('Mist skills', () => {
       const a = arena({ p0: three(['trap.mist']), p1: three(), seed });
       a.use(A1, 'trap.mist', B1).end().use(B1, 'shot', A1).end();
       const before = sideHp(a, [A1, A2, A3]);
+      expect(a.stacks(B1, 'confusion')).toBe(1); // from the first one
       a.pass(1).use(B1, 'shot', A1).end();
       expect(a.hp(A1)).toBe(before[0]! - 15);
-      expect(a.stacks(B1, 'confusion')).toBe(1);
+      expect(a.stacks(B1, 'confusion')).toBe(0); // their next skill spent it; no new one
     }
   });
 

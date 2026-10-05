@@ -704,6 +704,12 @@ export interface EffectDef {
    * is countered); a Stealthy skill extends it by one turn instead.
    */
   stealth?: boolean;
+  /**
+   * Ends, every instance of it, once the bearer has used a skill (whether it resolves or is
+   * countered); it still applies to that skill (Confusion raises its cost). Like `until: { skillUsed }`
+   * on an apply, but for the status wherever it comes from.
+   */
+  endsOnSkillUse?: boolean;
   /** hidden: invisible to the opponent of the applier. hiddenTarget: visible, but its remembered targets aren't. */
   visibility?: 'public' | 'hidden' | 'hiddenTarget';
   /** Damage-absorbing pool stored in the instance's value. */

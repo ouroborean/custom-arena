@@ -11,6 +11,25 @@ const B1 = 'p1c0';
 const B2 = 'p1c1';
 const B3 = 'p1c2';
 
+describe('Confusion', () => {
+  it('raises the cost of the next skill, then every stack ends once the bearer has used a skill', () => {
+    const a = arena({ p0: [['curse']], p1: [['shot']] });
+    a.give(B1, 'confusion', { source: A1 }).give(B1, 'confusion', { source: A1 });
+    expect(a.stacks(B1, 'confusion')).toBe(2);
+    a.end(); // B1's turn
+    a.use(B1, 'shot', A1).end();
+    expect(a.stacks(B1, 'confusion')).toBe(0);
+  });
+
+  it('a stated duration is an upper limit: without a skill used, it runs out as usual', () => {
+    const a = arena({ p0: [['curse']], p1: [['shot']] });
+    a.use(A1, 'curse', B1).end(); // Confused for 2 turns
+    expect(a.has(B1, 'confusion')).toBe(true);
+    a.pass(4);
+    expect(a.has(B1, 'confusion')).toBe(false);
+  });
+});
+
 describe('Strike', () => {
   it('deals 20 and grants 1 permanent Might, which boosts later direct damage', () => {
     const a = arena({ p0: [['strike']], p1: [['shot']] });

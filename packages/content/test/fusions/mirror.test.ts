@@ -678,12 +678,12 @@ describe('Mirror skills', () => {
     const a = arena({ p0: [['curse.mirror']], p1: [['shot']] });
     a.use(A1, 'curse.mirror', B1).end();
     a.use(B1, 'shot', A1).end();
-    expect(a.stacks(B1, 'confusion')).toBe(2);
+    // Their skill spent the first Confusion; the Glass gave them a new one for their next skill.
+    expect(a.stacks(B1, 'confusion')).toBe(1);
     a.pass(3); // turn 6: the 2-turn Blind ended with turn 4
     expect(a.has(B1, 'blinded')).toBe(false);
-    const before = a.stacks(B1, 'confusion');
     a.use(B1, 'shot', A1).end();
-    expect(a.stacks(B1, 'confusion')).toBe(before);
+    expect(a.stacks(B1, 'confusion')).toBe(0); // spent, and no new one
   });
 
   it('Brand in the Glass: 15 damage; the first ally to damage them makes the user Mimic their last skill', () => {

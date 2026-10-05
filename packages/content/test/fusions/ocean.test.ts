@@ -251,22 +251,21 @@ describe('Ocean skills', () => {
     expect(a.has(B1, 'confusion')).toBe(false);
   });
 
-  it('Ebbing Toll: for 2 turns, each skill the target uses while Confused heals the user 5 per Confusion', () => {
+  it('Ebbing Toll: for 2 turns, each skill the target uses while Confused heals the user 10 per Confusion', () => {
     const a = arena({ p0: [['consume.ocean']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.ocean', B1).end();
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(55 - 15 + 5);
+    expect(a.hp(A1)).toBe(55 - 15 + 10);
+    // That skill spent the Confusion: the next one doesn't pay.
     a.pass(1).use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(45 - 15 + 5);
-    a.pass(1).use(B1, 'shot', A1).end(); // 2 turns are over
-    expect(a.hp(A1)).toBe(35 - 15);
+    expect(a.hp(A1)).toBe(50 - 15);
   });
 
   it('Ebbing Toll: more Confusion from elsewhere pays out more', () => {
     const a = arena({ p0: [['consume.ocean']], p1: [['shot']] });
     a.setHp(A1, 50).give(B1, 'confusion', { source: A1, duration: 10 }).use(A1, 'consume.ocean', B1).end();
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(55 - 15 + 10);
+    expect(a.hp(A1)).toBe(55 - 15 + 20);
   });
 
   it('Jellyfish Bloom: 3 Jellyfish (10 HP) for 3 turns', () => {

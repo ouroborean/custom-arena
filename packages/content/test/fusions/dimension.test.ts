@@ -86,12 +86,12 @@ describe('Banished', () => {
 
   it('the bearer\'s effects neither tick nor count down while Banished', () => {
     const a = arena({ p0: [['smash.dimension'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'confusion', { duration: 3, source: B1 });
+    a.give(A1, 'weakness', { duration: 3, source: B1 });
     a.use(A1, 'smash.dimension', B1).end();
-    const d = a.effects(A1).find((e) => e.defId === 'confusion')!.duration;
+    const d = a.effects(A1).find((e) => e.defId === 'weakness')!.duration;
     a.pass(2); // through A1's Banished turn
     expect(banished(a, A1)).toBe(false);
-    expect(a.effects(A1).find((e) => e.defId === 'confusion')?.duration).toBe(d);
+    expect(a.effects(A1).find((e) => e.defId === 'weakness')?.duration).toBe(d);
   });
 
   it('a Banished enemy\'s Renew-style ticks don\'t run (Ignite on them doesn\'t burn)', () => {
