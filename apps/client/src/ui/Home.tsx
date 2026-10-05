@@ -1,4 +1,5 @@
-// Home: active team, practice vs bot, the arcade, roster (roll, open, pick a team), wallet and inventory.
+// Home: level and loot boxes, active team, practice vs bot, the arcade, roster (roll, open, pick a team),
+// wallet and inventory.
 
 import { useEffect, useState } from 'react';
 import { canAfford, formatAmounts } from '@arena/meta';
@@ -11,6 +12,7 @@ import { arcadeMode, useStore } from '../store.js';
 import { Brand } from './Account.js';
 import { InventoryPanel } from './Inventory.js';
 import { OnlinePanel } from './OnlinePanel.js';
+import { XpBar } from './Progress.js';
 import { CharacterCard, Portrait } from './Roster.js';
 
 export function Home() {
@@ -101,6 +103,8 @@ export function Home() {
           </button>
         </p>
       )}
+
+      <XpBar />
 
       <section className="panel play-panel" aria-label={t('home.play')}>
         <div className="team-strip" aria-label={t('home.activeTeam')} data-guide="team">

@@ -64,14 +64,14 @@ describe('story', () => {
     const a = await account('story2@example.com');
     const { body } = await winEncounter(a, 'embers_1');
     expect(body.outcome).toBe('win');
-    expect(body.reward).toEqual({ currency: { gold: 50 }, items: [] });
+    expect(body.reward).toMatchObject({ currency: { gold: 50 }, items: [], xp: { gained: content.economy.progression!.xp.story!.win } });
     expect(body.chapters[0].encounters[1].unlocked).toBe(true);
     expect(body.achievements.map((x: { id: string }) => x.id)).toContain('first_victory');
     const fromAchievements = body.achievements.reduce((n: number, x: { reward: { currency: { gold?: number } } }) => n + (x.reward.currency.gold ?? 0), 0);
     expect(body.wallet.gold).toBe(700 + 50 + fromAchievements); // 1000 less three recruits, the first-clear reward, First Victory (+ Quick Work)
 
     const again = await winEncounter(a, 'embers_1');
-    expect(again.body.reward).toEqual({ currency: { gold: 10 }, items: [] }); // repeat reward
+    expect(again.body.reward).toMatchObject({ currency: { gold: 10 }, items: [] }); // repeat reward
     const ach = (await a.call('GET', '/api/achievements')).json().achievements as { id: string; done: boolean }[];
     expect(ach.find((x) => x.id === 'first_victory')?.done).toBe(true);
   }, 60_000);

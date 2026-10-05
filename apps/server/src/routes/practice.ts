@@ -4,13 +4,14 @@
 
 import { botFor, randomConfig } from '@arena/ai';
 import { seedRng, type Command, type MatchConfig } from '@arena/engine';
-import { matchReward, singlePlayerBotSeed, singlePlayerFirst, storyStatus } from '@arena/meta';
+import { matchReward, matchXp, singlePlayerBotSeed, singlePlayerFirst, storyStatus } from '@arena/meta';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { itemInstances, spAttempts, storyProgress } from '../db/schema.js';
 import { credit, dropsToday, inTransaction, walletOf } from '../economy.js';
+import { awardXp } from '../progression.js';
 import { engineVersion, matchFact, recordAchievements, verifyMatch } from '../singleplayer.js';
 import { activeTeamSpecs } from './roster.js';
 
@@ -81,6 +82,8 @@ export function practiceRoutes(ctx: AppContext) {
         if (claimed.length === 0) throw new HttpError(409, 'That match was already submitted');
         await credit(db, ctx.content, userId, reward.currency);
         if (reward.items.length) await db.insert(itemInstances).values(reward.items.map((itemId) => ({ userId, itemId, source: 'reward' })));
+        const gain = await awardXp(db, ctx.content, userId, matchXp(ctx.content, { kind: 'practice', outcome: result.outcome, endReason: result.endReason, turns: result.turns }));
+        if (gain) reward.xp = gain;
       });
 
       const achievements = await recordAchievements(ctx.db, ctx.content, userId, matchFact('practice', result.outcome, result.turns, attempt.config.teams[seat]));

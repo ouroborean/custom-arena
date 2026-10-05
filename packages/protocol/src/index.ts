@@ -113,6 +113,13 @@ export interface RatingChange {
 export interface MatchReward {
   currency: Record<string, number>;
   items: string[];
+  /** Experience paid, the level reached and any loot boxes earned (docs/equipment.md §4.1). */
+  xp?: {
+    gained: number;
+    after: { level: number; xp: number; needed: number; total: number };
+    levelsGained: number;
+    boxes: string[];
+  };
 }
 
 export type ServerMessage =

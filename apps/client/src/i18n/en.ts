@@ -39,6 +39,23 @@ export const en = {
   'home.saveTeam': 'Save team',
   'home.roll': 'Recruit a character ({cost})',
 
+  'progress.label': 'Experience',
+  'progress.level': 'Level {level}',
+  'progress.xp': '{xp} / {needed} XP',
+  'progress.bubble': '{box} at {at}%',
+  'progress.bubbleEarned': '{box} at {at}% (earned)',
+  'progress.boxes': 'Open loot boxes ({count})',
+  'progress.noBoxes': 'Level up to earn loot boxes',
+  'progress.title': 'Loot boxes',
+  'progress.from': 'Level {level} · {at}%',
+  'progress.open': 'Open',
+  'progress.opening': 'Opening…',
+  'progress.openNext': 'Open next',
+  'progress.left': '{count} left',
+  'progress.close': 'Close',
+  'progress.gold': '{amount} Gold',
+  'progress.tier': 'Tier {tier}',
+
   // settings
   'settings.title': 'Settings',
   'settings.motion': 'Motion',
@@ -133,6 +150,9 @@ export const en = {
   'over.chapterComplete': '{chapter} complete!',
   'over.newCharacter': 'New character: {name}',
   'over.achievement': 'Achievement: {name}',
+  'over.xp': '+{xp} XP · level {level} ({at}%)',
+  'over.levelUp': 'Level up! You reached level {level}',
+  'over.lootBox': 'Loot box earned: {box}',
   // keyword explanations beside tooltips
   'keywords.title': 'Keywords',
   'keywords.hint': { one: 'Hold Alt · {count} keyword', other: 'Hold Alt · {count} keywords' },

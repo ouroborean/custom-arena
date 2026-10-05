@@ -16,7 +16,7 @@ describe('i18n', () => {
   it('pseudo-localizes every message while keeping its params', () => {
     expect(pseudo('Tip {n}/{total}')).toBe('[Típ {n}/{total}~~~~~~]'); // accents outside {params}, ~40% longer
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
-      const params = { count: 2, n: 1, total: 3, name: 'X', reward: 'R', cost: 'C', server: 'S', client: 'C', tier: 'T', className: 'K', hp: 5, reason: 'R', turn: 4, before: 1, after: 2, delta: '+1', amounts: 'A', message: 'M', outcome: 'win', chapter: 'Ch', season: 'S1', date: 'D', rating: 1500, rd: 90, wins: 1, games: 2, stage: 3, stages: 12, best: 2, drops: 1, cap: 15 };
+      const params = { count: 2, n: 1, total: 3, name: 'X', reward: 'R', cost: 'C', server: 'S', client: 'C', tier: 'T', className: 'K', hp: 5, reason: 'R', turn: 4, before: 1, after: 2, delta: '+1', amounts: 'A', message: 'M', outcome: 'win', chapter: 'Ch', season: 'S1', date: 'D', rating: 1500, rd: 90, wins: 1, games: 2, stage: 3, stages: 12, best: 2, drops: 1, cap: 15, level: 2, xp: 60, needed: 400, box: 'B', at: 25, amount: 40 };
       const out = format('en-XA', key, params);
       expect(out.startsWith('['), key).toBe(true);
       expect(out, key).not.toMatch(/\{\w+\}/); // every param was filled

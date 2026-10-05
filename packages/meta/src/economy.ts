@@ -13,6 +13,7 @@ import {
   type RewardSpec,
   type RngState,
 } from '@arena/engine';
+import type { XpGain } from './progression.js';
 
 export type Outcome = 'win' | 'loss' | 'draw';
 
@@ -20,6 +21,8 @@ export interface Reward {
   currency: CurrencyAmounts;
   /** Piece ids granted. */
   items: string[];
+  /** Experience the match paid, with any level-ups and loot boxes it brought (progression.ts). */
+  xp?: XpGain;
 }
 
 /** Losses that weren't played out: they never pay (no surrender or AFK farming). */

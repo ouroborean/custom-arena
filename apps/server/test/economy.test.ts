@@ -12,6 +12,7 @@ import { itemInstances, matches } from '../src/db/schema.js';
 import { dbRoomStore } from '../src/match/store.js';
 
 const content = loadContentOrThrow();
+const xp = content.economy.progression!.xp;
 let app: FastifyInstance;
 let dbh: OpenDb;
 let seed = 500;
@@ -132,7 +133,9 @@ describe('match rewards', () => {
     const out = await store.finish(id, { winner: 0, endReason: 'elimination', turns: 20 });
     expect(out?.rewards[0]).toMatchObject({ currency: { gold: 40 } });
     expect(out?.rewards[0]?.items).toHaveLength(1);
-    expect(out?.rewards[1]).toEqual({ currency: { gold: 15 }, items: [] });
+    expect(out?.rewards[1]).toMatchObject({ currency: { gold: 15 }, items: [] });
+    // Both also earn experience: the winner a win's, the loser a played-out loss's.
+    expect([out?.rewards[0]?.xp?.gained, out?.rewards[1]?.xp?.gained]).toEqual([xp.casual!.win, xp.casual!.loss]);
     // The winner's first online win also completes two achievements (First Victory, Arena Debut).
     expect(out?.achievements?.[0]).toEqual(['first_victory', 'online_debut']);
     expect([await a.gold(), await b.gold()]).toEqual([1040 + 50 + 100, 1015]);
@@ -144,7 +147,9 @@ describe('match rewards', () => {
     expect(await a.gold()).toBe(1190);
 
     const history = (await a.call('GET', '/api/matches')).json().matches as { id: string; reward: unknown }[];
-    expect(history.find((m) => m.id === id)?.reward).toEqual(out!.rewards[0]);
+    // History lists what was paid in gold and items (experience shows on the bar instead).
+    const { currency, items } = out!.rewards[0]!;
+    expect(history.find((m) => m.id === id)?.reward).toEqual({ currency, items });
   });
 
   it('surrenders pay the loser nothing; short and private matches pay no one', async () => {
