@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
-import { PORTRAIT_DIR, portraitManifest, scanPortraits } from './portraits.js';
+import sharp from 'sharp';
+import { PORTRAIT_DIR, PORTRAIT_WEB_SIZE, portraitManifest, scanPortraits, webFileName } from './portraits.js';
 
 const PUBLIC_DIR = new URL('./public/', import.meta.url);
 
@@ -44,7 +45,8 @@ function serviceWorker(): Plugin {
 /**
  * Character portraits from character_images/ (portraits.ts): served at /assets/portraits/ in
  * development, with the manifest built from the folder on every request (so a new file shows up on
- * reload), and emitted with the build. The client falls back to monogram portraits for the rest.
+ * reload). The build emits small WebP copies (PORTRAIT_WEB_SIZE square) instead of the originals,
+ * which stay untouched in the repo. The client falls back to monogram portraits for the rest.
  */
 function portraits(): Plugin {
   const MIME: Record<string, string> = { png: 'image/png', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
@@ -70,13 +72,20 @@ function portraits(): Plugin {
         res.end(readFileSync(url));
       });
     },
-    buildStart() {
+    async buildStart() {
       if (!build) return;
       const scan = scanPortraits();
-      for (const files of Object.values(scan.portraits)) {
-        for (const f of files) this.emitFile({ type: 'asset', fileName: `assets/portraits/${f}`, source: readFileSync(new URL(f, PORTRAIT_DIR)) });
-      }
-      this.emitFile({ type: 'asset', fileName: 'assets/portraits/manifest.json', source: portraitManifest(scan) });
+      const files = Object.values(scan.portraits).flat();
+      const copies = await Promise.all(
+        files.map((f) =>
+          sharp(readFileSync(new URL(f, PORTRAIT_DIR)))
+            .resize(PORTRAIT_WEB_SIZE, PORTRAIT_WEB_SIZE, { fit: 'cover', kernel: 'lanczos3' })
+            .webp({ quality: 85 })
+            .toBuffer(),
+        ),
+      );
+      files.forEach((f, i) => this.emitFile({ type: 'asset', fileName: `assets/portraits/${webFileName(f)}`, source: copies[i]! }));
+      this.emitFile({ type: 'asset', fileName: 'assets/portraits/manifest.json', source: portraitManifest(scan, webFileName) });
       if (scan.unrecognized.length) this.warn(`character_images: not named <element><class>prof.png, skipped: ${scan.unrecognized.join(', ')}`);
     },
   };

@@ -406,12 +406,13 @@ export const CATEGORY_LABEL: Record<SkillCategory, string> = { attack: 'Attack',
 
 /** Flat two-tone diagonal split in the class color. */
 /** Portrait art from the manifest (drawn under the name tag), or nothing to keep the generated look. */
-export function PortraitArt({ artKey, portraitId }: { artKey: string; portraitId?: string }) {
+/** Portrait art, if there is any. `flip` mirrors it, so the opponent's characters face the player's. */
+export function PortraitArt({ artKey, portraitId, flip }: { artKey: string; portraitId?: string; flip?: boolean }) {
   const portraits = useAssets((s) => s.portraits);
   const [broken, setBroken] = useState(false);
   const url = portraitUrl(portraits, artKey, portraitId);
   if (!url || broken) return null;
-  return <img className="portrait-art" src={url} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />;
+  return <img className={`portrait-art${flip ? ' flipped' : ''}`} src={url} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />;
 }
 
 export function portraitStyle(classOrDefId: string): CSSProperties {

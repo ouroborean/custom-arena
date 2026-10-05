@@ -31,7 +31,7 @@ export function ActionPopup({ units, content }: { units: readonly Unit[]; conten
   return (
     <div className="action-slot">
       <div key={shown.id} className={`action-popup ${actor.owner === viewer ? 'ally' : 'foe'}`}>
-        <Face unit={actor} />
+        <Face unit={actor} flip={actor.owner !== viewer} />
         <div className="action-text">
           <span className="action-actor">{actor.name}</span>
           <span className="action-used">
@@ -46,7 +46,7 @@ export function ActionPopup({ units, content }: { units: readonly Unit[]; conten
               on
               {targets.map((t) => (
                 <span key={t.id} className="action-target">
-                  <Face unit={t} small />
+                  <Face unit={t} small flip={t.owner !== viewer} />
                   {t.name}
                 </span>
               ))}
@@ -58,11 +58,11 @@ export function ActionPopup({ units, content }: { units: readonly Unit[]; conten
   );
 }
 
-/** A unit's portrait square, as on the board but small. */
-function Face({ unit, small }: { unit: Unit; small?: boolean }) {
+/** A unit's portrait square, as on the board but small (the opponent's mirrored, as on the board). */
+function Face({ unit, small, flip }: { unit: Unit; small?: boolean; flip?: boolean }) {
   return (
     <span className={`action-face${small ? ' small' : ''} ${elementClass(unit.element)}`} style={portraitStyle(unit.defId)} aria-hidden>
-      <PortraitArt artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })} />
+      <PortraitArt artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })} flip={flip} />
       <span className="mono">{unitCode(unit)}</span>
     </span>
   );
