@@ -20,21 +20,15 @@ smash.fire:
   element: Fire
   name: Chain Detonation
   description: >-
-    Deals 20 damage to target enemy and 10 damage to their allies. If any of the targets are
-    Ignited, they Explode.
+    Deals 15 damage to target enemy, then every Ignited enemy Explodes.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: damage, to: primaryAllies, amount: 10 }
+    - { op: damage, to: primary, amount: 15 }
     - op: forEach
-      in: primary
-      do:
-        - { op: if, cond: { has: { unit: it, effect: ignite } }, then: [{ op: macro, id: explode }] }
-    - op: forEach
-      in: primaryAllies
+      in: allEnemies
       do:
         - { op: if, cond: { has: { unit: it, effect: ignite } }, then: [{ op: macro, id: explode }] }
 
