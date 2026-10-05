@@ -90,9 +90,9 @@ describe('Purge', () => {
 
   it("Cleansing Blow: only one of the user's Debuffs is Purged", () => {
     const a = arena({ p0: [['strike.antidote']], p1: [['shot']] });
-    a.give(A1, 'confusion', { source: B1 }).give(A1, 'sanctify', { source: B1 });
+    a.give(A1, 'weakness', { source: B1 }).give(A1, 'sanctify', { source: B1 });
     a.use(A1, 'strike.antidote', B1).end();
-    expect([debuffs(a, A1).length, a.hp(B1)]).toEqual([1, 70]);
+    expect([debuffs(a, A1).length, a.hp(B1)]).toEqual([1, 75]); // Weakness takes 5 off the hit
   });
 
   it('Cleansing Blow: without Debuffs, just the 20', () => {
@@ -442,18 +442,16 @@ describe('Antidote skills', () => {
     expect([a.has(B1, 'confusion'), a.has(B1, 'condemned')]).toEqual([true, true]);
   });
 
-  it('Crisis of Conscience: while Confused, Condemned returns after each skill; after that it is spent normally', () => {
+  it('Crisis of Conscience: for 2 turns, Condemned returns after each skill; after that it is spent normally', () => {
     const a = arena({ p0: [['curse.antidote']], p1: [['shot']] });
-    const permanent = () =>
-      a.effects(B1).filter((e) => ['weakness', 'vulnerable', 'confusion'].includes(e.defId) && e.duration === null).length;
+    // Condemned hands out Weakness, Vulnerable or Confusion (which ends at their next skill).
+    const condemnDebuffs = () => ['weakness', 'vulnerable', 'confusion'].reduce((n, k) => n + a.stacks(B1, k), 0);
     a.use(A1, 'curse.antidote', B1).end();
     a.use(B1, 'shot', A1).end(); // turn 2: a random Debuff, and Condemned is back
-    expect([permanent(), a.has(B1, 'condemned')]).toEqual([1, true]);
-    a.pass(3); // the Confusion ends on turn 4
+    expect([condemnDebuffs() >= 1, a.has(B1, 'condemned')]).toEqual([true, true]);
+    a.pass(3); // the Crisis ends with turn 4
     a.use(B1, 'shot', A1).end(); // turn 6: Condemned resolves and stays gone
-    expect([permanent(), a.has(B1, 'condemned')]).toEqual([2, false]);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect(permanent()).toBe(2);
+    expect(a.has(B1, 'condemned')).toBe(false);
   });
 
   it('Theriac Brand: 20 and Sanctified for 1 turn, healing 5 more per Toxin on them', () => {

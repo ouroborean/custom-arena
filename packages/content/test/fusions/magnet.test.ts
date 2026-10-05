@@ -125,10 +125,11 @@ describe('Magnet skills', () => {
 
   it('Repulsor Ward: Reflects the first Harmful skill and Repels one Debuff onto its user', () => {
     const a = arena({ p0: [['riposte.magnet']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'confusion', { source: B1 });
+    a.give(A1, 'vulnerable', { source: B1 });
     a.use(A1, 'riposte.magnet').end();
     a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.hp(B1), a.has(B1, 'confusion'), a.has(A1, 'confusion')]).toEqual([85, true, false]);
+    // The reflected 15 lands on B1 after the Vulnerable was Repelled onto them: 20.
+    expect([a.hp(B1), a.has(B1, 'vulnerable'), a.has(A1, 'vulnerable')]).toEqual([80, true, false]);
     expect(a.hp(A1)).toBe(85); // only the first
   });
 
@@ -392,7 +393,7 @@ describe('Magnet skills', () => {
 
   it('Offload: the user Repels one of their Debuffs onto the target', () => {
     const a = arena({ p0: [['curse.magnet']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'confusion', { source: B1 }).give(A1, 'isolated', { source: B1 });
+    a.give(A1, 'weakness', { source: B1 }).give(A1, 'isolated', { source: B1 });
     a.use(A1, 'curse.magnet', B1).end();
     expect([debuffs(a, A1).length, debuffs(a, B1).length, debuffs(a, B2).length]).toEqual([1, 1, 0]);
   });
@@ -442,7 +443,7 @@ describe('Magnet skills', () => {
 
   it('Rebound Plate: 20 Shield for 1 turn; when it ends, one Debuff is Repelled onto each enemy who damaged the user', () => {
     const a = arena({ p0: [['withstand.magnet']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'confusion', { source: B1 }).give(A1, 'isolated', { source: B1 });
+    a.give(A1, 'weakness', { source: B1 }).give(A1, 'isolated', { source: B1 });
     a.use(A1, 'withstand.magnet').end();
     a.use(B1, 'shot', A1).end();
     expect(a.hp(A1)).toBe(100);

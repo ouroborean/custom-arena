@@ -527,8 +527,8 @@ curse.antidote:
   element: Antidote
   name: Crisis of Conscience
   description: >-
-    Target enemy is Confused for 2 turns and Condemned. Until the Confusion ends, their Condemned returns after it
-    resolves, so every skill they use costs them another random Debuff.
+    Target enemy is Confused for 2 turns and Condemned. For 2 turns, their Condemned returns after it resolves,
+    so every skill they use costs them another random Debuff.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]

@@ -1,4 +1,0 @@
-{
-  "_comment": "Portrait art (GDD §7.4). Keys: '<class>.<element>' for characters (element lowercase, 'none' for no element) and 'minion.<minion id>' for minions. Each lists image files in this folder (512×512 WebP recommended); a character's portraitId '<class>.<element>.NN' picks the NN-th. Missing keys fall back to the generated monogram portraits. Check with: npm run assets:check",
-  "portraits": {}
-}

@@ -132,10 +132,14 @@ focus:
   modifiers:
     - { mod: costGeneric, amount: -1, perStack: true }
 
+# Ends, every stack of it, once the bearer uses a skill (decided 2026-10-04): it still taxes that
+# skill and anything queued with it, and reactions to the skill still see it; it clears after the
+# skill has resolved (or been countered).
 confusion:
   name: Confusion
   kind: Debuff
-  description: Increases skill costs by 1 GEN per stack.
+  endsOnSkillUse: true
+  description: Increases skill costs by 1 GEN per stack. All of it ends once the bearer uses a skill.
   modifiers:
     - { mod: costGeneric, amount: 1, perStack: true }
 

@@ -346,8 +346,11 @@ describe('Type D passives', () => {
 
   it('Emblem of the Plague: stacking Debuffs you give or get are permanent', () => {
     const a = arena({ p0: [['curse']], p1: [['curse']] });
-    a.give(A1, 'eq_emblem_of_the_plague').use(A1, 'curse', B1).end().use(B1, 'curse', A1).end();
-    expect([durationOf(a, B1, 'confusion'), durationOf(a, A1, 'confusion')]).toEqual([null, null]);
+    // Checked before each bearer acts: Confusion still ends when its bearer uses a skill.
+    a.give(A1, 'eq_emblem_of_the_plague').use(A1, 'curse', B1).end();
+    expect(durationOf(a, B1, 'confusion')).toBeNull();
+    a.use(B1, 'curse', A1).end();
+    expect(durationOf(a, A1, 'confusion')).toBeNull();
   });
 
   it('Emblem of the Lich: Harmful skills give you and your minions 5 Shield', () => {

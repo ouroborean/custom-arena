@@ -481,6 +481,7 @@ export const effectDefSchema: z.ZodType<EffectDef> = z.lazy(() =>
     stacking: z.enum(['independent', 'unique', 'merge']).optional(),
     maxStacks: z.number().int().min(1).optional(),
     stealth: z.boolean().optional(),
+    endsOnSkillUse: z.boolean().optional(),
     visibility: z.enum(['public', 'hidden', 'hiddenTarget']).optional(),
     shield: z.boolean().optional(),
     interruptible: z.boolean().optional(),

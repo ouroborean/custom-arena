@@ -121,6 +121,7 @@ For each queued skill:
 5. **Hidden effects** (Q11) are visible only to the applier's side. They're revealed to both players when triggered. One that expires untriggered is announced to both players.
 6. Multiple traps and counters stack on one unit, unless a skill says otherwise.
 7. **Minions** count as allies and enemies for every effect. Only text that says "character" excludes them (Q13).
+8. **Confusion ends when its bearer uses a skill** (decided 2026-10-04; status flag `endsOnSkillUse`). Every stack goes at once. It still raises the cost of that skill and of anything queued with it, and effects that react to the skill ("each skill they use while Confused") still see it. It ends once the skill has resolved or been countered. Confusion applied during that skill, by the skill itself or by a reaction to it (Condemned, Maddening Glass), stays for the next one. A stated duration ("Confused for 2 turns") is now an upper limit. Skills that paid out each time over a Confused window were adjusted to pay once: Offertory gives 2 energy per Confusion, Ebbing Toll heals 10 per Confusion. Crisis of Conscience's window is now a flat 2 turns.
 
 ## 9. Randomness and determinism — `rng.ts`, `replay.ts`
 

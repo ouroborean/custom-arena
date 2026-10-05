@@ -600,7 +600,8 @@ describe('Vigilante skills', () => {
     a.use(B1, 'shot', A1).end();
     expect(['weakness', 'vulnerable', 'confusion'].map((k) => a.stacks(B1, k))).toEqual([1, 1, 1]);
     a.give(B1, 'condemned', { source: A1 }).pass(1).use(B1, 'shot', A1).end();
-    expect(condemnDebuffs(a, B1)).toBe(4);
+    // One more random Debuff; the first Confusion ended when they used this skill: 3 + 1 - 1.
+    expect(condemnDebuffs(a, B1)).toBe(3);
   });
 
   it('Full Sentence: without it, Condemned gives one', () => {

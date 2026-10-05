@@ -384,10 +384,11 @@ export function useSkill(ctx: Ctx, actor: Unit, slotIndex: number, def: SkillDef
   // Only effects that existed before this use qualify (not ones the skill itself applies).
   const ending = effectsOn(ctx.s, actor.id).filter(
     (e) =>
-      e.until &&
-      !(e.until.skillUsed.harmful && !harmful) &&
-      !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')) &&
-      !(e.until.skillUsed.archetypes && !e.until.skillUsed.archetypes.includes(def.archetype)),
+      effectDef(ctx.c, e).endsOnSkillUse ||
+      (e.until &&
+        !(e.until.skillUsed.harmful && !harmful) &&
+        !(e.until.skillUsed.nonStrategic && def.tags.includes('Strategic')) &&
+        !(e.until.skillUsed.archetypes && !e.until.skillUsed.archetypes.includes(def.archetype))),
   );
   const wasInSkill = ctx.inSkill;
   ctx.inSkill = true;

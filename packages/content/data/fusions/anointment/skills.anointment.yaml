@@ -521,7 +521,7 @@ curse.anointment:
   name: Offertory
   description: >-
     Target enemy is Confused for 2 turns. Each time they use a skill while Confused, the user's player
-    gains 1 random energy per Confusion.
+    gains 2 random energy per Confusion.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -536,11 +536,12 @@ curse.anointment:
         name: Offertory
         kind: Debuff
         element: Anointment
-        description: Each skill the bearer uses while Confused gives the applier's player energy.
+        description: Each skill the bearer uses while Confused gives the applier's player 2 energy per Confusion.
+        # Confusion ends once its bearer uses a skill, so this usually pays once: 2 per stack, not 1.
         triggers:
           - on: skillUsed
             do:
-              - { op: repeat, times: { totalStacks: { in: bearer, effect: confusion } }, do: [{ op: gainEnergy, amount: 1 }] }
+              - { op: repeat, times: { mul: [2, { totalStacks: { in: bearer, effect: confusion } }] }, do: [{ op: gainEnergy, amount: 1 }] }
 
 smite.anointment:
   archetype: Smite
