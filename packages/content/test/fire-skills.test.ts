@@ -58,11 +58,25 @@ describe('Fire skills', () => {
     expect(a.has(B1, 'ignite')).toBe(true);
   });
 
-  it('Chain Detonation: 20 + 10 splash; every Ignited target Explodes', () => {
+  it('Chain Detonation: 15 to the target, then every Ignited enemy Explodes', () => {
     const a = arena({ p0: [['smash.fire'], ['blast.fire']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A2, 'blast.fire').use(A1, 'smash.fire', B1).end();
-    // 3 Explosions × 10 to each enemy, then the Ignite tick.
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([100 - 20 - 30 - 5, 100 - 10 - 30 - 5, 100 - 10 - 30 - 5]);
+    // 15 to the target only; 3 Explosions × 10 to each enemy, then the Ignite tick.
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([100 - 15 - 30 - 5, 100 - 30 - 5, 100 - 30 - 5]);
+  });
+
+  it('Chain Detonation: Ignited enemies Explode even when the target is not Ignited', () => {
+    const a = arena({ p0: [['smash.fire']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'ignite', { source: A1 });
+    a.use(A1, 'smash.fire', B1).end();
+    // B2 alone Explodes: 10 to each enemy. B1 also takes the 15; B2's Ignite ticks for 5.
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([100 - 15 - 10, 100 - 10 - 5, 100 - 10]);
+  });
+
+  it('Chain Detonation: with no Ignited enemy, just 15 to the target', () => {
+    const a = arena({ p0: [['smash.fire']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'smash.fire', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([85, 100, 100]);
   });
 
   it('Hot Foot: 10 and Ignites an un-Ignited target, with no Might', () => {
