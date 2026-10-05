@@ -33,13 +33,13 @@ describe('Dragon keywords', () => {
   });
 
   it('Dragonfire: applied to an Ignited unit it upgrades the Ignite (one 10 burn, not 5 + 10)', () => {
-    const a = arena({ p0: [['strike.fire'], ['cleave.dragon']], p1: [['shot']] });
+    const a = arena({ p0: [['strike.fire'], ['curse.dragon']], p1: [['shot']] });
     a.use(A1, 'strike.fire', B1).end(); // 25 + Ignite tick 5
     expect(a.hp(B1)).toBe(70);
-    a.pass(1).use(A2, 'cleave.dragon', B1).end(); // already Ignited → Dragonfire; 20 damage
+    a.pass(1).use(A2, 'curse.dragon', B1).end(); // Slag on an Ignited target: Dragonfire, no damage
     expect(a.has(B1, 'dragonfire')).toBe(true);
     expect(a.stacks(B1, 'ignite')).toBe(1);
-    expect(a.hp(B1)).toBe(70 - 20 - 10);
+    expect(a.hp(B1)).toBe(70 - 10);
   });
 
   it('Hoard (Wyrm\'s Heart): each burn of an Ignite the character applied gives them 1 Hoard', () => {
@@ -90,19 +90,24 @@ describe('Dragon skills', () => {
     expect(b.hp(B1)).toBe(80);
   });
 
-  it('Tail Sweep: 25 to the target and 15 to their allies', () => {
+  it("Tail Sweep: 30 to the target only; each of their allies loses a random Buff, 1 Hoard per Buff taken", () => {
     const a = arena({ p0: [['smash.dragon']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'smash.dragon', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 85, 85]);
-    expect([B1, B2, B3].some((b) => a.has(b, 'dragonfire'))).toBe(false); // no one was channeling
+    a.give(B1, 'might').give(B2, 'might').use(A1, 'smash.dragon', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([70, 100, 100]);
+    expect([a.has(B1, 'might'), a.has(B2, 'might'), a.stacks(A1, 'hoard')]).toEqual([true, false, 1]);
   });
 
-  it('Tail Sweep: a channeling enemy stops and gains Dragonfire', () => {
-    const a = arena({ p0: [['smash.dragon']], p1: [['shot'], ['channel']] });
-    a.pass(1).use(B2, 'channel').end();
-    expect(channeling(a, B2)).toBe(true);
-    a.use(A1, 'smash.dragon', B1).end();
-    expect([channeling(a, B2), a.has(B2, 'dragonfire'), a.has(B1, 'dragonfire')]).toEqual([false, true, false]);
+  it('Tail Sweep: one Buff from each ally, picked at random; none to take, no Hoard', () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const a = arena({ seed, p0: [['smash.dragon']], p1: [['shot'], ['shot'], ['shot']] });
+      a.give(B2, 'might').give(B2, 'shield', { value: 20 }).give(B3, 'focus');
+      a.use(A1, 'smash.dragon', B1).end();
+      expect([a.has(B2, 'might'), a.has(B2, 'shield')].filter(Boolean).length).toBe(1);
+      expect([a.has(B3, 'focus'), a.stacks(A1, 'hoard')]).toEqual([false, 2]);
+    }
+    const b = arena({ p0: [['smash.dragon']], p1: [['shot'], ['shot']] });
+    b.give(B2, 'weakness').use(A1, 'smash.dragon', B1).end();
+    expect([b.has(B2, 'weakness'), b.has(A1, 'hoard')]).toEqual([true, false]);
   });
 
   it('Dragon\'s Descent: 15, Ignites the target, and 1 Focus for the next skill', () => {
@@ -343,18 +348,36 @@ describe('Dragon skills', () => {
     expect(channeling(a, A1)).toBe(false);
   });
 
-  it('Fang: 10, increased to 25 against a target at or below 60 health', () => {
-    const a = arena({ p0: [['stab.dragon'], ['stab.dragon']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.dragon', B1).use(A2, 'stab.dragon', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([100 - 10 - 5, 60 - 25 - 5]); // each new Ignite burns for 5
-  });
-
-  it('Fang: Ignites the target, or gives Dragonfire if they already were', () => {
+  it('Fang: 5 now, and a fang sinks into the target; no Hoard yet', () => {
     const a = arena({ p0: [['stab.dragon']], p1: [['shot']] });
     a.use(A1, 'stab.dragon', B1).end();
-    expect([a.has(B1, 'ignite'), a.has(B1, 'dragonfire')]).toEqual([true, false]);
+    expect([a.hp(B1), a.has(B1, 'fang'), a.has(A1, 'hoard')]).toEqual([95, true, false]);
+  });
+
+  it("Fang: the user's next Fang on them tears it out for 25 and 1 Hoard; the one after bites again", () => {
+    const a = arena({ p0: [['stab.dragon']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'stab.dragon', B1).end().pass(1);
+    a.use(A1, 'stab.dragon', B1).end();
+    expect([a.hp(B1), a.has(B1, 'fang'), a.stacks(A1, 'hoard')]).toEqual([200 - 5 - 25, false, 1]);
     a.pass(1).use(A1, 'stab.dragon', B1).end();
-    expect([a.has(B1, 'ignite'), a.has(B1, 'dragonfire')]).toEqual([true, true]);
+    expect([a.hp(B1), a.has(B1, 'fang')]).toEqual([165, true]);
+  });
+
+  it('Fang: the fang stays 2 turns; after that the next Fang just bites', () => {
+    const a = arena({ p0: [['stab.dragon']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'stab.dragon', B1).end().pass(2);
+    expect(a.has(B1, 'fang')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'fang')).toBe(false);
+    a.use(A1, 'stab.dragon', B1).end();
+    expect([a.hp(B1), a.has(A1, 'hoard')]).toEqual([190, false]);
+  });
+
+  it("Fang: only the user's own fang is torn out; another target just gets bitten", () => {
+    const a = arena({ p0: [['stab.dragon'], ['stab.dragon']], p1: [['shot'], ['shot']], hp: 200 });
+    a.use(A1, 'stab.dragon', B1).end().pass(1);
+    a.use(A2, 'stab.dragon', B1).use(A1, 'stab.dragon', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'hoard'), a.has(A2, 'hoard')]).toEqual([190, 195, false, false]);
   });
 
   it('Molten Maw: 25 Piercing, 15 more if Scorched', () => {
@@ -390,24 +413,33 @@ describe('Dragon skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Dragonfear: 15 and Stun for 1 turn', () => {
+  it('Dragonfear: the target falls Asleep for 2 turns; no damage', () => {
     const a = arena({ p0: [['stun.dragon']], p1: [['shot']] });
     a.use(A1, 'stun.dragon', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([85, true]);
+    expect(a.hp(B1)).toBe(100);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().pass(1);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().pass(1);
+    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
   });
 
-  it('Dragonfear: at the end of the target\'s next turn, they Explode (10 Affliction to their team)', () => {
+  it('Dragonfear: whatever wakes them makes them Explode (10 Affliction to their team), once', () => {
     const a = arena({ p0: [['stun.dragon'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A2, 50).give(A2, 'flameborn').use(A1, 'stun.dragon', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 100]);
-    a.end(); // the target's turn ends: the Stun ends and they Explode
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'stun')]).toEqual([75, 90, false]);
+    a.setHp(A2, 50).give(A2, 'flameborn').use(A1, 'stun.dragon', B1).end().pass(1);
+    a.use(A2, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100 - 15 - 10, 90]);
     expect(a.hp(A2)).toBe(60); // Flameborn allies heal 10 on the user's side's Explosion
-    a.pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 90]); // only once
+    expect(() => a.use(B1, 'shot', A1)).not.toThrow(); // awake
+    a.end().use(A2, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 90]); // no second Explosion
   });
 
+  it('Dragonfear: if nothing wakes them, no Explosion', () => {
+    const a = arena({ p0: [['stun.dragon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.dragon', B1).end().pass(4);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
+  });
 
   it('Warming Wings: Swiftness and Focus; the user\'s Ignite burns heal the ally with the least HP as much', () => {
     const a = arena({ p0: [['dance.dragon'], ['shot']], p1: [['shot'], ['shot']] });
@@ -490,12 +522,50 @@ describe('Dragon skills', () => {
     expect(a.hp(A2)).toBe(hp);
   });
 
-  it('Scything Wing: 20 + 15 to another enemy; each is Ignited, or gains Dragonfire if already Ignited', () => {
+  it('Wildfire Wing: 15 to the target, who gains Dragonfire, and the fire spreads at once: a random other enemy is Ignited (and burns as the user’s turn ends)', () => {
     const a = arena({ p0: [['cleave.dragon']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'ignite', { source: B2 }).use(A1, 'cleave.dragon', B1).end();
-    expect(a.hp(B1)).toBe(75); // 20 + the new Ignite's 5
-    expect(a.hp(B2)).toBe(75); // 15, then the Dragonfire (now A1's) burns for 10
-    expect([a.has(B1, 'ignite'), a.has(B1, 'dragonfire'), a.has(B2, 'dragonfire')]).toEqual([true, false, true]);
+    a.use(A1, 'cleave.dragon', B1).end();
+    expect([a.has(B1, 'dragonfire'), a.has(B2, 'ignite')]).toEqual([true, true]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 95]); // 15 + Dragonfire 10; the spread Ignite already burned for 5
+    expect(a.has(B2, 'dragonfire')).toBe(false); // no second spread as this turn ends
+  });
+
+  it('Wildfire Wing: an enemy already Ignited gains Dragonfire from the spread instead', () => {
+    const a = arena({ p0: [['cleave.dragon']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'ignite', { source: A1 }).use(A1, 'cleave.dragon', B1).end();
+    expect([a.has(B2, 'ignite'), a.has(B2, 'dragonfire'), a.hp(B2)]).toEqual([true, true, 90]); // burns for 10
+  });
+
+  it('Wildfire Wing: the spread never lands on the target, and Ignites it gives are the user’s, permanent like any Ignite', () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: [['cleave.dragon']], p1: [['shot'], ['shot'], ['shot']], seed });
+      a.use(A1, 'cleave.dragon', B2).end();
+      const lit = [B1, B3].filter((b) => a.has(b, 'ignite'));
+      expect(lit.length).toBe(1);
+      const ig = a.effects(lit[0]!).find((e) => e.defId === 'ignite')!;
+      expect([ig.source, ig.duration]).toEqual([A1, null]);
+    }
+  });
+
+  it('Wildfire Wing: it spreads once more at the end of the user’s next turn (an Ignited enemy gains Dragonfire), then no more', () => {
+    const a = arena({ p0: [['cleave.dragon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.dragon', B1).end().pass(1).end();
+    expect([a.hp(B1), a.has(B2, 'dragonfire')]).toEqual([65, true]);
+    expect(a.has(B1, 'wildfire_wing')).toBe(false);
+  });
+
+  it('Wildfire Wing: once the target’s Dragonfire is gone, it doesn’t spread again', () => {
+    const a = arena({ p0: [['cleave.dragon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.dragon', B1).end();
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && (e.defId === 'dragonfire' || e.defId === 'ignite')));
+    a.pass(1).end();
+    expect([a.has(B2, 'ignite'), a.has(B2, 'dragonfire')]).toEqual([true, false]);
+  });
+
+  it('Wildfire Wing: with no other enemy, nothing spreads', () => {
+    const a = arena({ p0: [['cleave.dragon']], p1: [['shot']] });
+    a.use(A1, 'cleave.dragon', B1).end().pass(1).end();
+    expect([a.hp(B1), a.has(B1, 'dragonfire')]).toEqual([65, true]);
   });
 
   it('Terrible Roar: all enemies Intimidated for 2 turns; healing one Ignites them', () => {
@@ -513,13 +583,44 @@ describe('Dragon skills', () => {
     expect(a.has(B1, 'ignite')).toBe(false);
   });
 
-  it('Smoldering Hide: 20 Shield and Flameborn; Ignites every enemy who damages the user', () => {
-    const a = arena({ p0: [['withstand.dragon']], p1: [['shot'], ['shot']] });
+  it('Furnace Hide: a random enemy gains Dragonfire, banked: it doesn’t burn, and as the user’s turn ends they gain 15 Shield for 1 turn', () => {
+    const a = arena({ p0: [['withstand.dragon']], p1: [['shot']] });
     a.use(A1, 'withstand.dragon').end();
-    expect([a.effects(A1).find((e) => e.defId === 'shield')?.value, a.has(A1, 'flameborn')]).toEqual([20, true]);
+    expect([a.has(B1, 'dragonfire'), a.has(B1, 'ignite'), a.hp(B1), a.stacks(A1, 'hoard')]).toEqual([true, true, 100, 0]);
+    expect(a.effects(A1).filter((e) => e.defId === 'shield').map((e) => e.value)).toEqual([15]);
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([100, true, false]);
-    expect(a.effects(B1).find((e) => e.defId === 'ignite')?.source).toBe(A1);
+    expect(a.hp(A1)).toBe(100);
+  });
+
+  it('Furnace Hide: it stokes again at the end of the user’s next turn; after its 2 turns the banked fire goes out (Dragonfire and Ignite)', () => {
+    const a = arena({ p0: [['withstand.dragon']], p1: [['shot']] });
+    a.use(A1, 'withstand.dragon').end().pass(1);
+    const shields = () => a.effects(A1).filter((e) => e.defId === 'shield').length;
+    expect(shields()).toBe(0); // the first 15 lasted 1 turn
+    a.end();
+    expect([shields(), a.hp(B1), a.has(B1, 'dragonfire')]).toEqual([1, 100, true]);
+    a.pass(1);
+    expect([a.has(B1, 'banked_fire'), a.has(B1, 'dragonfire'), a.has(B1, 'ignite')]).toEqual([false, false, false]);
+    a.pass(1);
+    expect([shields(), a.hp(B1)]).toEqual([0, 100]);
+  });
+
+  it('Furnace Hide: once that enemy’s Dragonfire is gone, no more Shield', () => {
+    const a = arena({ p0: [['withstand.dragon']], p1: [['shot']] });
+    a.use(A1, 'withstand.dragon').end().pass(1);
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && (e.defId === 'dragonfire' || e.defId === 'ignite')));
+    a.end();
+    expect(a.effects(A1).some((e) => e.defId === 'shield')).toBe(false);
+  });
+
+  it('Furnace Hide: a Dragonfire the enemy already had is banked too, and goes out with it', () => {
+    const a = arena({ p0: [['withstand.dragon'], ['shot.dragon']], p1: [['shot']] });
+    a.use(A2, 'shot.dragon', B1).end(); // 10 + Dragonfire burning 10
+    expect(a.hp(B1)).toBe(80);
+    a.pass(1).use(A1, 'withstand.dragon').end();
+    expect([a.hp(B1), a.effects(A1).some((e) => e.defId === 'shield')]).toEqual([80, true]);
+    a.pass(3);
+    expect([a.has(B1, 'dragonfire'), a.hp(B1)]).toEqual([false, 80]);
   });
 
   it('Wyrm\'s Domain: Taunt for 2 turns; another enemy using a Harmful skill on the user\'s allies takes 10', () => {

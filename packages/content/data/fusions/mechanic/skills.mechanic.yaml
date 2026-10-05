@@ -203,37 +203,38 @@ maneuver.mechanic:
   archetype: Maneuver
   element: Mechanic
   name: Jetpack
-  description: The user Leaps. When a damaging skill ends the Leap, it also causes an Explosion.
+  description: >-
+    The user takes to the air: Invulnerable for 2 turns, but they can't use skills on their next turn.
+    When the flight ends, they come down with an Explosion.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 2 } }
+    # Through the user's next turn (as Cocoon of Flame).
     - op: apply
       to: actor
-      duration: { ownTurns: 2 }
+      duration: { raw: 3 }
+      effect:
+        id: jetpack_airborne
+        name: Airborne
+        kind: Neutral
+        element: Mechanic
+        description: Can't use skills while the jetpack flies.
+        modifiers:
+          - { mod: cannotUseSkills }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
       effect:
         id: jetpack
         name: Jetpack
-        kind: Buff
+        kind: Neutral
         element: Mechanic
-        description: When a damaging skill ends the bearer's Leap, it also causes an Explosion.
-        triggers:
-          # A direct hit while Leaping spends the Leap (Leaping ends as that skill resolves): Explode then.
-          - on: dealtDamage
-            when: { direct: true }
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: leaping } }
-                then: [{ op: setFlag, flag: hit }]
-          - on: skillResolved
-            do:
-              - op: if
-                cond: { flag: hit }
-                then:
-                  - { op: removeSelf }
-                  - { op: macro, id: explode }
+        description: When this ends, the bearer lands with an Explosion.
+        onExpire:
+          - { op: macro, id: explode }
 
 companion.mechanic:
   archetype: Companion
@@ -354,42 +355,46 @@ stab.mechanic:
   archetype: Stab
   element: Mechanic
   name: Drill Bit
-  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Usable while Stunned.
+  description: >-
+    Deals 10 damage to target enemy, 5 more for each earlier Drill Bit still in them (up to 10 more):
+    the hole only gets deeper. Usable while Stunned.
   cost: nc
   cooldown: 1
   tags: [Harmful, NonStrategic, UsableWhileStunned]
   target: enemy
   ops:
-    - op: damage
+    - { op: damage, to: primary, amount: { sum: [10, { mul: [5, { stacks: { unit: primary, effect: drill_hole } }] }] } }
+    - op: apply
       to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+      effect:
+        id: drill_hole
+        name: Drill Hole
+        kind: Debuff
+        element: Mechanic
+        stacking: merge
+        maxStacks: 2
+        description: Each Drill Bit in the bearer makes the next one deal 5 more (up to 10).
 
 ravage.mechanic:
   archetype: Ravage
   element: Mechanic
   name: Chainsaw
   description: >-
-    Deals 25 Piercing damage to target enemy, doubled against minions. If it destroys one, the user
-    builds a Turret from the wreck.
+    Deals Piercing damage to target enemy equal to a third of their current HP (at least 10, at most
+    25): the saw bites deepest into the thickest hide.
   cost: A
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: before, value: { hp: primary } }
-    - { op: set, var: minion, value: { if: { kind: { unit: primary, is: minion } }, then: 1, else: 0 } }
+    - { op: set, var: bite, value: { div: [{ hp: primary }, 3] } }
     - op: damage
       to: primary
       type: Piercing
-      amount: { if: { kind: { unit: it, is: minion } }, then: 50, else: 25 }
-    - op: if
-      cond:
-        and:
-          - { compare: { value: { var: before }, atLeast: 1 } }
-          - { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
-          - { compare: { value: { var: minion }, atLeast: 1 } }
-      then:
-        - { op: summon, minion: turret }
+      amount:
+        if: { compare: { value: { var: bite }, atLeast: 25 } }
+        then: 25
+        else: { if: { compare: { value: { var: bite }, atMost: 10 } }, then: 10, else: { var: bite } }
 
 mislead.mechanic:
   archetype: Mislead
@@ -454,34 +459,31 @@ stun.mechanic:
 dance.mechanic:
   archetype: Dance
   element: Mechanic
-  name: Autogyro
+  name: Overclock
   description: >-
-    For 3 turns, the user gains 1 Might and Ghosted and begins Rushing. At the end of each of their
-    turns they're still Rushing, every allied minion is Upgraded.
+    For 3 turns, the user gains 1 Might and runs overclocked: at the end of each of their turns, their
+    cooldowns tick down 1 extra turn, and the engine burns them for 5 Affliction damage.
   cost: AA
   cooldown: 5
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: rushing }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
-        id: autogyro
-        name: Autogyro
+        id: overclock
+        name: Overclock
         kind: Buff
         element: Mechanic
-        description: At the end of each of the bearer's turns while Rushing, every allied minion is Upgraded.
+        description: At the end of each of the bearer's turns, their cooldowns tick down 1 extra turn and they take 5 Affliction damage.
+        modifiers:
+          - { mod: cooldownTick, amount: 1 }
         triggers:
           - on: turnEnd
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: rushing } }
-                then:
-                  - { op: macro, id: upgrade_all }
+              - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false, raw: true }
 
 heal.mechanic:
   archetype: Heal
@@ -745,14 +747,14 @@ titan.mechanic:
   element: Mechanic
   name: Mech Suit
   description: >-
-    For 3 turns, the user counts as a Contraption: 20 Shield, Immune, ignores Stuns, and can be
-    Upgraded. Then they Leap.
+    For 3 turns, the user climbs into the suit and counts as a Contraption: Immune, ignores Stuns and
+    can't be healed, and it's Upgraded now and at the start of each of their turns. When the suit comes
+    off, so do its Upgrades.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
@@ -763,7 +765,15 @@ titan.mechanic:
         kind: Buff
         element: Mechanic
         countsAs: [contraption]
-        description: Counts as a Contraption that can be Upgraded; ignores Stuns.
+        description: Counts as a Contraption that can be Upgraded; ignores Stuns, can't be healed, and is Upgraded at the start of each of the bearer's turns. Its Upgrades come off with it.
         modifiers:
           - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s, sleep] }
-    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+          - { mod: healingReceived, mul: 0 }
+        triggers:
+          - on: turnStart
+            do:
+              - { op: forEach, in: bearer, do: [{ op: macro, id: upgrade }] }
+        onExpire:
+          - { op: addMaxHp, to: bearer, amount: { mul: [-10, { stacks: { unit: bearer, effect: upgraded } }] } }
+          - { op: removeEffect, from: bearer, effect: upgraded }
+    - { op: forEach, in: actor, do: [{ op: macro, id: upgrade }] }

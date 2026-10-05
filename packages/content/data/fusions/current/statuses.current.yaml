@@ -33,3 +33,16 @@ current_conductor:
   description: This character's Current skills deal 5 more damage to Soaked units.
   modifiers:
     - { mod: damageDealt, amount: 5, elements: [Current], when: { direct: true }, target: { has: { unit: it, effect: soaked } } }
+
+# Arc Lash: the bearer is wired to the unit this effect remembers; each direct hit on the bearer also
+# deals 10 to that unit (indirect, so it doesn't bounce back).
+arc_lash:
+  name: Arc Lash
+  kind: Debuff
+  element: Current
+  description: Each direct hit on the bearer also deals 10 damage to the enemy they're wired to.
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - { op: damage, to: effectTargets, amount: 10, direct: false }

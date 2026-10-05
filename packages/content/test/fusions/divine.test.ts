@@ -16,13 +16,14 @@ const B3 = 'p1c2';
 type A = ReturnType<typeof arena>;
 
 const debuffCount = (a: A, id: string) => a.stacks(id, 'weakness') + a.stacks(id, 'vulnerable') + a.stacks(id, 'confusion');
-/** Sanctify plus the Divine variants that count as Sanctify. */
-const sanctified = (a: A, id: string) => a.has(id, 'sanctify') || a.has(id, 'spear_sanctify') || a.has(id, 'karmic_light');
+/** Sanctify (no Divine skill has its own variant of it any more). */
+const sanctified = (a: A, id: string) => a.has(id, 'sanctify');
 const minion = (a: A, defId: string) => {
   const m = a.state.units.find((u) => u.defId === defId);
   if (!m) throw new Error(`No ${defId}`);
   return m;
 };
+const dur = (a: A, id: string, key: string) => a.effects(id).find((e) => (e.inline ? e.inline.id : e.defId) === key)?.duration;
 const hiddenFromB = (a: A, bearer: string) => !viewFor(content, a.state, 1).effects.some((e) => e.bearer === bearer);
 
 describe('Divine: cost, cooldown and tags', () => {
@@ -46,7 +47,7 @@ describe('Divine: cost, cooldown and tags', () => {
     ['stab.divine', 'A', 0],
     ['ravage.divine', 'Wr', 1],
     ['mislead.divine', 'A', 2],
-    ['stun.divine', 'r', 1],
+    ['stun.divine', 'A', 2],
     ['dance.divine', 'AA', 5],
     ['heal.divine', 'nc', 6],
     ['bless.divine', 'r', 2],
@@ -259,27 +260,29 @@ describe('Divine skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([85, 40]);
   });
 
-  it('Apotheosis: Exalted for 3 turns', () => {
+  it('Apotheosis: for 3 turns; it doesn’t make the user Exalted', () => {
     const a = arena({ p0: [['rage.divine']], p1: [['shot']] });
-    a.use(A1, 'rage.divine').end().pass(4);
-    expect(a.has(A1, 'exalted')).toBe(true);
+    a.use(A1, 'rage.divine').end();
+    expect([a.has(A1, 'apotheosis'), a.has(A1, 'exalted')]).toEqual([true, false]);
+    a.pass(4);
+    expect(a.has(A1, 'apotheosis')).toBe(true);
     a.pass(1);
-    expect(a.has(A1, 'exalted')).toBe(false);
+    expect(a.has(A1, 'apotheosis')).toBe(false);
   });
 
-  it('Apotheosis: damaging an enemy heals the ally with the least HP 10', () => {
-    const a = arena({ p0: [['rage.divine', 'shot'], ['shot'], ['shot']], p1: [['shot']] });
+  it('Apotheosis: the user’s direct damage to an enemy heals the ally with the least HP half as much, and that healing then hits an enemy for half', () => {
+    const a = arena({ p0: [['rage.divine', 'strike'], ['shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'rage.divine').end().pass(1);
-    a.setHp(A2, 50).setHp(A3, 70).use(A1, 'shot', B1).end();
-    // 15 from the shot, then that heal is itself a heal the user does: 10 more (indirect, so it stops).
+    a.setHp(A2, 50).setHp(A3, 70).use(A1, 'strike', B1).end();
+    // 20 heals A2 10; that heal is itself one the user does: 5 to a random enemy (indirect, so it stops).
     expect([a.hp(B1), a.hp(A2), a.hp(A3)]).toEqual([75, 60, 70]);
   });
 
-  it('Apotheosis: healing an ally deals 10 to a random enemy (indirect, so no loop)', () => {
+  it('Apotheosis: each heal the user does deals half as much to a random enemy (indirect, so no loop)', () => {
     const a = arena({ p0: [['rage.divine', 'heal'], ['shot']], p1: [['shot']] });
     a.use(A1, 'rage.divine').end().pass(1);
     a.setHp(A2, 50).use(A1, 'heal', A2).end();
-    expect([a.hp(A2), a.hp(B1)]).toEqual([75, 90]);
+    expect([a.hp(A2), a.hp(B1)]).toEqual([75, 88]); // 25 healed, 12 dealt
   });
 
   it("Apotheosis: other allies' damage doesn't trigger it", () => {
@@ -307,39 +310,39 @@ describe('Divine skills', () => {
     expect(a.has(B2, 'condemned')).toBe(false);
   });
 
-  it('Spear of Heaven: 45 on the following turn, target hidden, Sanctified', () => {
+  it('Spear of Heaven: 35 on the following turn, target hidden; nothing else', () => {
     const a = arena({ p0: [['snipe.divine']], p1: [['shot']] });
     a.use(A1, 'snipe.divine', B1).end();
     expect(viewFor(content, a.state, 1).effects.find((e) => e.bearer === A1)?.targets).toEqual([]);
     expect(a.hp(B1)).toBe(100);
     a.end();
-    expect(a.hp(B1)).toBe(55);
-    expect(sanctified(a, B1)).toBe(true);
+    expect([a.hp(B1), sanctified(a, B1)]).toEqual([65, false]);
   });
 
-  it('Spear of Heaven: each ally healed by its Sanctify heals 15 and is Anointed until the end of their next turn', () => {
-    const a = arena({ p0: [['snipe.divine'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'snipe.divine', B1).end().end();
-    a.setHp(A2, 50).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2), a.has(A2, 'anointed')]).toEqual([40, 65, true]);
-    a.pass(2);
-    expect(a.has(A2, 'anointed')).toBe(false);
+  it('Spear of Heaven: 10 more for each time an ally of the user is healed before it lands', () => {
+    const a = arena({ p0: [['snipe.divine'], ['heal'], ['heal']], p1: [['shot']] });
+    a.setHp(A2, 50).setHp(A3, 50).use(A1, 'snipe.divine', B1).use(A2, 'heal', A3).use(A3, 'heal', A2).end().end();
+    expect(a.hp(B1)).toBe(45);
+  });
+
+  it('Spear of Heaven: at most 30 more', () => {
+    const a = arena({ p0: [['snipe.divine'], ['prayer'], ['heal']], p1: [['shot']] });
+    for (const u of [A1, A2, A3]) a.setHp(u, 40);
+    a.use(A1, 'snipe.divine', B1).use(A2, 'prayer').use(A3, 'heal', A2).end().end(); // 4 heals
+    expect(a.hp(B1)).toBe(35);
+  });
+
+  it('Spear of Heaven: heals before it was aimed, or after it lands, don’t count', () => {
+    const a = arena({ p0: [['snipe.divine', 'heal'], ['heal']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A2, 'heal', A2).use(A1, 'snipe.divine', B1).end().end();
+    expect(a.hp(B1)).toBe(65);
   });
 
   it('Spear of Heaven: stunning the user before it fires stops it (Channeled)', () => {
     const a = arena({ p0: [['snipe.divine']], p1: [['stun']] });
     a.use(A1, 'snipe.divine', B1).end();
     a.use(B1, 'stun', A1).end();
-    expect([a.hp(B1), sanctified(a, B1)]).toEqual([100, false]);
-  });
-
-  it('Spear of Heaven: its Sanctify lasts 2 turns', () => {
-    const a = arena({ p0: [['snipe.divine']], p1: [['shot']] });
-    a.use(A1, 'snipe.divine', B1).end().end();
-    a.pass(3);
-    expect(sanctified(a, B1)).toBe(true);
-    a.pass(2);
-    expect(sanctified(a, B1)).toBe(false);
+    expect(a.hp(B1)).toBe(100);
   });
 
   it("Sacred Tithe: the enemy's first Helpful skill lands on the user's weakest ally instead", () => {
@@ -604,27 +607,29 @@ describe('Divine skills', () => {
     expect([a.has(B1, 'condemned'), a.has(B2, 'condemned')]).toEqual([true, false]);
   });
 
-  it('Awe (enemy): Condemned if not already', () => {
+  it('Awe (enemy): Stunned for 1 turn, then Condemned when it ends', () => {
     const a = arena({ p0: [['stun.divine']], p1: [['shot']] });
     a.use(A1, 'stun.divine', B1).end();
-    expect([a.has(B1, 'condemned'), a.has(B1, 'stun')]).toEqual([true, false]);
+    expect([a.has(B1, 'stun'), a.has(B1, 'condemned')]).toEqual([true, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end();
+    expect([a.has(B1, 'stun'), a.has(B1, 'condemned')]).toEqual([false, true]);
+    a.end().use(B1, 'shot', A1).end(); // acting sets the Condemn off
+    expect([a.has(B1, 'condemned'), debuffCount(a, B1)]).toEqual([false, 1]);
   });
 
-  it('Awe (enemy): Stunned for 1 turn if Condemned', () => {
-    const a = arena({ p0: [['stun.divine']], p1: [['shot']] });
-    a.give(B1, 'condemned', { source: A1 }).use(A1, 'stun.divine', B1).end();
-    expect(a.has(B1, 'stun')).toBe(true);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
-    a.end().end();
-    a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(85);
-  });
-
-  it('Awe (ally): loses all Stuns, and is not Condemned', () => {
+  it('Awe (ally): loses all Stuns and gains 1 Swiftness for 2 turns, and is not Condemned', () => {
     const a = arena({ p0: [['stun.divine'], ['shot']], p1: [['shot']] });
     a.give(A2, 'stun').give(A2, 'stun_ns').give(A2, 'weakness');
     a.use(A1, 'stun.divine', A2).end();
     expect([a.has(A2, 'stun'), a.has(A2, 'stun_ns'), a.has(A2, 'condemned'), a.has(A2, 'weakness')]).toEqual([false, false, false, true]);
+    expect([a.stacks(A2, 'swiftness'), dur(a, A2, 'swiftness')]).toEqual([1, 3]);
+  });
+
+  it('Awe (ally): the Swiftness shrugs off the next Stun', () => {
+    const a = arena({ p0: [['stun.divine'], ['shot']], p1: [['stun']] });
+    a.use(A1, 'stun.divine', A2).end().use(B1, 'stun', A2).end();
+    expect([a.has(A2, 'stun'), a.has(A2, 'swiftness'), a.hp(A2)]).toEqual([false, false, 85]);
   });
 
   it('Transfiguration: Invulnerable and Immune, healing doubled, only Helpful skills', () => {
@@ -658,74 +663,69 @@ describe('Divine skills', () => {
     expect(a.hp(A1)).toBe(100);
   });
 
-  it('Consecrate (ally): Exalted until the end of their next turn, and 1 Might for 3 turns', () => {
-    const a = arena({ p0: [['bless.divine'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bless.divine', A2).end();
-    expect([a.has(A2, 'exalted'), a.stacks(A2, 'might')]).toEqual([true, 1]);
-    a.pass(1);
-    expect(a.has(A2, 'exalted')).toBe(true);
-    a.pass(1);
-    expect(a.has(A2, 'exalted')).toBe(false);
-    a.pass(2);
-    expect(a.stacks(A2, 'might')).toBe(1);
-    a.pass(1);
-    expect(a.stacks(A2, 'might')).toBe(0);
+  it('Consecrate (ally): for 2 turns, each enemy they hit is Condemned', () => {
+    const a = arena({ p0: [['bless.divine'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bless.divine', A2).use(A2, 'shot', B1).end();
+    expect([a.has(B1, 'condemned'), a.has(A2, 'exalted'), a.has(A2, 'might')]).toEqual([true, false, false]);
+    expect(dur(a, A2, 'consecrated')).toBe(3);
+    a.pass(3).use(A2, 'shot', B2).end(); // turn 5: over
+    expect(a.has(B2, 'condemned')).toBe(false);
   });
 
-  it('Consecrate (enemy): loses Anointed and Exalted; other enemies keep theirs', () => {
+  it('Consecrate (enemy): for 2 turns, each ally of the user who hits them is Anointed until the end of their next turn', () => {
+    const a = arena({ p0: [['bless.divine'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.divine', B1).use(A2, 'shot', B1).end();
+    expect([a.has(A2, 'anointed'), a.has(A3, 'anointed'), a.has(B1, 'condemned')]).toEqual([true, false, false]);
+    a.end();
+    expect(a.has(A2, 'anointed')).toBe(true);
+    a.end();
+    expect(a.has(A2, 'anointed')).toBe(false);
+  });
+
+  it('Consecrate (enemy): the enemy’s own side hitting them gets nothing', () => {
     const a = arena({ p0: [['bless.divine']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'anointed').give(B1, 'exalted').give(B2, 'anointed');
     a.use(A1, 'bless.divine', B1).end();
-    expect([a.has(B1, 'anointed'), a.has(B1, 'exalted'), a.has(B2, 'anointed')]).toEqual([false, false, true]);
+    expect(a.reject(() => a.use(B2, 'shot', B1))).toBe('bad_target');
+    expect(dur(a, B1, 'consecrated_ground')).toBe(3);
   });
 
-  it("Consecrate (enemy): can't gain Anointed or Exalted for 2 turns", () => {
-    const a = arena({ p0: [['bless.divine']], p1: [['shot'], ['bless.holy'], ['bless.holy']] });
-    a.use(A1, 'bless.divine', B1).end();
-    a.use(B2, 'bless.holy', B1).end(); // Holy Favor: Anoint
-    expect(a.has(B1, 'anointed')).toBe(false);
-    a.pass(3);
-    a.use(B3, 'bless.holy', B1).end(); // turn 6: the 2 turns are over
-    expect(a.has(B1, 'anointed')).toBe(true);
-  });
-
-  it('Anathema (enemy): Condemned and Sanctified for 2 turns', () => {
-    const a = arena({ p0: [['curse.divine'], ['shot']], p1: [['shot']] });
+  it('Anathema (enemy): Condemned, and every Debuff on the user’s ally with the least HP moves onto them', () => {
+    const a = arena({ p0: [['curse.divine'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 40).setHp(A3, 60).give(A2, 'weakness', { source: B2 }).give(A2, 'stun', { source: B2, duration: 3 }).give(A3, 'vulnerable', { source: B2 });
     a.use(A1, 'curse.divine', B1).end();
-    expect([a.has(B1, 'condemned'), sanctified(a, B1)]).toEqual([true, true]);
-    a.pass(2);
-    expect(sanctified(a, B1)).toBe(true);
-    a.pass(1);
-    expect(sanctified(a, B1)).toBe(false);
+    expect([a.has(B1, 'condemned'), a.has(B1, 'weakness'), a.has(B1, 'stun')]).toEqual([true, true, true]);
+    expect([a.has(A2, 'weakness'), a.has(A2, 'stun'), a.has(A3, 'vulnerable')]).toEqual([false, false, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
   });
 
-  it('Anathema (enemy): an unused Condemn also ends after 2 turns', () => {
-    const a = arena({ p0: [['curse.divine']], p1: [['shot']] });
-    a.use(A1, 'curse.divine', B1).end().pass(3);
-    expect(a.has(B1, 'condemned')).toBe(false);
-  });
-
-  it('Anathema (ally): loses Condemn, Weakness, Vulnerable and Confusion, but not other Debuffs', () => {
-    const a = arena({ p0: [['curse.divine'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'condemned').give(A2, 'weakness').give(A2, 'vulnerable').give(A2, 'confusion').give(A2, 'stun');
+  it('Anathema (ally): their Debuffs move onto the enemy with the most HP, who is Condemned', () => {
+    const a = arena({ p0: [['curse.divine'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 50).give(A2, 'weakness', { source: B1 }).give(A2, 'vulnerable', { source: B1 });
     a.use(A1, 'curse.divine', A2).end();
-    expect(debuffCount(a, A2) + (a.has(A2, 'condemned') ? 1 : 0)).toBe(0);
-    expect(a.has(A2, 'stun')).toBe(true);
-    expect(sanctified(a, A2)).toBe(false);
+    expect([a.has(A2, 'weakness'), a.has(A2, 'vulnerable')]).toEqual([false, false]);
+    expect([a.has(B2, 'weakness'), a.has(B2, 'vulnerable'), a.has(B2, 'condemned'), a.has(B1, 'condemned')]).toEqual([true, true, true, false]);
   });
 
-  it('Karmic Light: 15 damage and Sanctified; its healing goes to the weakest ally, not the damager', () => {
-    const a = arena({ p0: [['smite.divine'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).setHp(A3, 80).use(A1, 'smite.divine', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A3), a.hp(A2)]).toEqual([70, 80, 65]);
+  it('Anathema (ally): with no Debuffs to move, the enemy with the most HP is still Condemned', () => {
+    const a = arena({ p0: [['curse.divine'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(B2, 50).use(A1, 'curse.divine', A2).end();
+    expect([a.has(B1, 'condemned'), a.has(B2, 'condemned')]).toEqual([true, false]);
   });
 
-  it('Karmic Light: its Sanctify lasts 2 turns', () => {
-    const a = arena({ p0: [['smite.divine']], p1: [['shot']] });
-    a.use(A1, 'smite.divine', B1).end().pass(2);
-    expect(sanctified(a, B1)).toBe(true);
-    a.pass(1);
-    expect(sanctified(a, B1)).toBe(false);
+  it('Karmic Light: 15 damage; for 2 turns, each unit they hit heals 10 afterward', () => {
+    const a = arena({ p0: [['smite.divine'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.divine', B1).end();
+    expect([a.hp(B1), sanctified(a, B1)]).toEqual([85, false]);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(95);
+  });
+
+  it('Karmic Light: lasts 2 turns', () => {
+    const a = arena({ p0: [['smite.divine'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.divine', B1).end().pass(2).use(B1, 'shot', A2).end(); // their second turn
+    expect(a.hp(A2)).toBe(95);
+    a.pass(1).use(B1, 'shot', A2).end(); // over
+    expect([a.hp(A2), a.has(B1, 'karmic_light')]).toEqual([80, false]);
   });
 
   it('Benediction: all allies heal 20 and gain 10 Shield', () => {
@@ -835,7 +835,7 @@ describe('Divine skills', () => {
   it('Avatar: condemning an enemy Anoints a random ally until the end of their next turn', () => {
     const a = arena({ p0: [['titan.divine', 'stun.divine', 'shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'titan.divine').end().pass(1);
-    a.use(A1, 'stun.divine', B1).end(); // Awe: Condemns
+    a.use(A1, 'stun.divine', B1).end().end(); // Awe: Condemns once its Stun ends
     expect(a.has(B1, 'condemned')).toBe(true);
     const anointed = [A1, A2].filter((u) => a.has(u, 'anointed'));
     expect(anointed).toHaveLength(1);

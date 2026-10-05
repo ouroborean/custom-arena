@@ -106,10 +106,10 @@ charge.apocalypse:
 riposte.apocalypse:
   archetype: Riposte
   element: Apocalypse
-  name: Twin Spines
+  name: Splintering Spines
   description: >-
-    For 1 turn, counters any Harmful skill used on the user. Its user gains Frostfire and is Thermal
-    Shocked the next time they use a skill. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user, and the spines splinter outward: every
+    other enemy gains Frostfire. Invisible.
   cost: I
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -120,34 +120,18 @@ riposte.apocalypse:
       duration: { enemyTurns: 1 }
       effect:
         id: twin_spines
-        name: Twin Spines
+        name: Splintering Spines
         kind: Buff
         element: Apocalypse
         visibility: hidden
-        description: Counters Harmful skills used on the bearer; their users gain Frostfire and a delayed Thermal Shock.
+        description: Counters the first Harmful skill used on the bearer; every other enemy gains Frostfire.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
+            consume: true
             do:
-              - { op: apply, to: eventSource, effect: frostfire }
-              - op: apply
-                to: eventSource
-                duration: { enemyTurns: 2 }
-                effect:
-                  id: twin_spines_sting
-                  name: Twin Spines
-                  kind: Debuff
-                  element: Apocalypse
-                  description: Thermal Shocked the next time the bearer uses a skill.
-                  triggers:
-                    - on: skillUsed
-                      consume: true
-                      do:
-                        - op: forEach
-                          in: bearer
-                          do:
-                            - { op: macro, id: thermal_check }
+              - { op: apply, to: { filter: allEnemies, exclude: eventSource, where: { isEnemy: it } }, effect: frostfire }
 
 rage.apocalypse:
   archetype: Rage
@@ -195,19 +179,29 @@ shot.apocalypse:
   element: Apocalypse
   name: Sleetspark
   description: >-
-    Deals 15 damage to target enemy, who gains Frostfire. If they have no Buffs, they're also Numbed
-    for 1 turn, Thermal Shocking them.
+    Deals 10 damage to target enemy and leaves a spark in them until the end of the user's next turn.
+    Hitting them with it again while the spark is there sets it off: they're Thermal Shocked.
   cost: r
-  cooldown: 1
+  cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: frostfire }
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { not: { hasKind: { unit: primary, kind: Buff } } }
+      cond: { has: { unit: primary, effect: sleetspark, mine: true } }
       then:
-        - { op: apply, to: primary, effect: numb, duration: { enemyTurns: 1 } }
+        - { op: removeEffect, from: primary, effect: sleetspark }
+        - { op: forEach, in: primary, do: [{ op: macro, id: thermal_check }] }
+      else:
+        - op: apply
+          to: primary
+          duration: { ownTurns: 1 }
+          effect:
+            id: sleetspark
+            name: Sleetspark
+            kind: Debuff
+            element: Apocalypse
+            description: Another Sleetspark from the applier sets it off, Thermal Shocking the bearer.
 
 snipe.apocalypse:
   archetype: Snipe
@@ -391,8 +385,8 @@ consume.apocalypse:
   name: Equilibrium
   description: >-
     Deals 10 damage to target enemy, healing the user as much. If they have both a Fire and a Frost
-    debuff (Frostfire counts as both), they're Thermal Shocked and the user heals 20 more; if not,
-    they gain Frostfire.
+    debuff (Frostfire counts as both), the extremes cancel out: all their Fire and Frost debuffs end, and
+    the user heals 10 for each one that ended.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -411,13 +405,14 @@ consume.apocalypse:
               - { has: { unit: primary, effect: chilled } }
               - { has: { unit: primary, effect: numb } }
       then:
-        - op: forEach
-          in: primary
-          do:
-            - { op: macro, id: thermal_check }
-        - { op: heal, to: actor, amount: 20 }
-      else:
-        - { op: apply, to: primary, effect: frostfire }
+        - { op: set, var: cancelled, value: { count: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb], in: primary } } }
+        - { op: removeEffect, from: primary, effect: ignite }
+        - { op: removeEffect, from: primary, effect: scorched }
+        - { op: removeEffect, from: primary, effect: frostfire }
+        - { op: removeEffect, from: primary, effect: frostbitten }
+        - { op: removeEffect, from: primary, effect: chilled }
+        - { op: removeEffect, from: primary, effect: numb }
+        - { op: heal, to: actor, amount: { mul: [10, { var: cancelled }] } }
 
 summon.apocalypse:
   archetype: Summon
@@ -494,22 +489,15 @@ stab.apocalypse:
   element: Apocalypse
   name: Twin Needle
   description: >-
-    Deals 10 damage to target enemy, who gains Frostfire. Against targets at or below 60 HP, it's 20
-    damage, and their Frostfire ticks at once.
+    Deals 5 damage to target enemy and Shatters them for the rest of the turn, then deals 10 more.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: if
-      cond: { hpAtMost: { unit: primary, value: 60 } }
-      then:
-        - { op: damage, to: primary, amount: 20 }
-        - { op: apply, to: primary, effect: frostfire }
-        - { op: damage, to: primary, amount: 5, type: Affliction, direct: false }
-      else:
-        - { op: damage, to: primary, amount: 10 }
-        - { op: apply, to: primary, effect: frostfire }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: shattered, duration: { thisTurn: true } }
+    - { op: damage, to: primary, amount: 10 }
 
 ravage.apocalypse:
   archetype: Ravage
@@ -839,7 +827,9 @@ withstand.apocalypse:
   archetype: Withstand
   element: Apocalypse
   name: Heart of the Glacier
-  description: The user gains 25 Shield for 2 turns, and is Frostborn while any of it remains.
+  description: >-
+    The user gains 30 Shield until the end of their next turn. Then the heart thaws: whatever is left of it
+    bursts onto a random enemy as that much damage, and they gain Frostfire.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -847,16 +837,21 @@ withstand.apocalypse:
   ops:
     - op: apply
       to: actor
-      value: 25
-      duration: { enemyTurns: 2 }
+      value: 30
+      duration: { ownTurns: 1 }
       effect:
         id: heart_of_the_glacier
         name: Heart of the Glacier
         kind: Buff
         element: Apocalypse
         shield: true
-        description: A Shield; the bearer is Frostborn while any of it remains.
-    - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 }, linkTo: heart_of_the_glacier }
+        description: A Shield; when it runs out, what's left bursts onto a random enemy, who gains Frostfire.
+        onExpire:
+          - op: forEach
+            in: { randomEnemy: 1 }
+            do:
+              - { op: damage, to: it, amount: { effectValue: true }, direct: false }
+              - { op: apply, to: it, effect: frostfire }
 
 taunt.apocalypse:
   archetype: Taunt
@@ -877,13 +872,16 @@ titan.apocalypse:
   archetype: Titan
   element: Apocalypse
   name: Twilight Colossus
-  description: For 3 turns, the user gains 3 Armor and Immune, and enemies who damage them gain Frostfire.
+  description: >-
+    For 3 turns, the user is Immune, and the first enemy they deal direct damage to on each of their turns
+    is Thermal Shocked, but they're Shattered meanwhile.
   cost: IW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
+    # Shattered first: Immune would keep it off.
+    - { op: apply, to: actor, effect: shattered, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
@@ -893,9 +891,16 @@ titan.apocalypse:
         name: Twilight Colossus
         kind: Buff
         element: Apocalypse
-        description: Enemies who damage the bearer gain Frostfire.
+        description: The first enemy the bearer deals direct damage to on each of their turns is Thermal Shocked.
         triggers:
-          - on: damaged
-            when: { byEnemy: true }
+          - on: dealtDamage
+            when: { direct: true }
             do:
-              - { op: apply, to: eventSource, effect: frostfire }
+              - op: if
+                cond:
+                  and:
+                    - { isEnemy: eventTarget }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: colossus_turn }] }] }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, name: colossus_turn, value: { turn: true } }
+                  - { op: forEach, in: eventTarget, do: [{ op: macro, id: thermal_check }] }

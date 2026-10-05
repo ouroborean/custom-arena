@@ -220,30 +220,37 @@ bolt.sanctuary:
   element: Sanctuary
   name: Stone Rebuke
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 1 turn. The first ally who damages them meanwhile also
-    raises your Sanctum by 1.
-  cost: I
+    Deals 15 damage to target enemy and Condemns them. When that Condemnation takes hold, the stone falls:
+    they take 10 more damage and your Sanctum rises by 1.
+  cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: condemned }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
       effect:
         id: stone_rebuke
         name: Stone Rebuke
         kind: Debuff
         element: Sanctuary
-        description: The first direct hit from the applier's side raises their Sanctum by 1.
+        stacking: unique
+        description: When the bearer's Condemnation takes hold, they take 10 damage and the applier's Sanctum rises by 1.
         triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            consume: true
+          - on: skillUsed
             do:
-              - { op: macro, id: raise_sanctum }
+              - op: if
+                cond: { check: { cond: condemn_fired, unit: bearer } }
+                then:
+                  - { op: damage, to: bearer, amount: 10 }
+                  - { op: macro, id: raise_sanctum }
+                  - { op: removeSelf }
+                else:
+                  - op: if
+                    cond: { not: { has: { unit: bearer, effect: condemned } } }
+                    then: [{ op: removeSelf }]
 
 blast.sanctuary:
   archetype: Blast
@@ -547,33 +554,26 @@ curse.sanctuary:
 smite.sanctuary:
   archetype: Smite
   element: Sanctuary
-  name: Firstfruits Brand
+  name: Firstfruits Tithe
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Each time that Sanctify heals someone, they
-    also gain 5 max HP for the rest of the match.
+    Deals 15 damage to target enemy and takes a tithe of their life: they lose 10 max HP, and the ally with
+    the lowest HP (the user included) gains 10 max HP and heals 10, both for the rest of the match. Each
+    enemy character can be tithed 3 times at most; minions can't be.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: firstfruits_brand
-        name: Firstfruits Brand
-        kind: Debuff
-        element: Sanctuary
-        description: Each direct hit on the Sanctified bearer gives the damager 5 max HP for the match.
-        triggers:
-          - on: damaged
-            when: { direct: true }
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then: [{ op: addMaxHp, to: eventSource, amount: 5 }]
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond:
+        and:
+          - { kind: { unit: primary, is: character } }
+          - { compare: { value: { counterOf: { unit: primary, name: firstfruits_tithe } }, atMost: 2 } }
+      then:
+        - { op: setCounter, name: firstfruits_tithe, on: primary, value: { sum: [{ counterOf: { unit: primary, name: firstfruits_tithe } }, 1] } }
+        - { op: addMaxHp, to: primary, amount: -10 }
+        - { op: forEach, in: weakestAlly, do: [{ op: addMaxHp, to: it, amount: 10 }, { op: heal, to: it, amount: 10 }] }
 
 prayer.sanctuary:
   archetype: Prayer

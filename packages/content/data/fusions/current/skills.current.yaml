@@ -201,35 +201,30 @@ trap.current:
   element: Current
   name: Live Wire
   description: >-
-    For 3 turns, the first time target enemy uses a Harmful skill, they and every Soaked enemy take 15
-    damage, and each one hit is Sapped. Invisible.
-  cost: r
-  cooldown: 2
+    For 2 turns, the first time target enemy uses a Harmful skill, the shock floods their whole team: every
+    enemy is Soaked for 2 turns, then takes 10 damage. Invisible.
+  cost: A
+  cooldown: 3
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
     - op: apply
       to: primary
-      duration: { enemyTurns: 3 }
+      duration: { enemyTurns: 2 }
       effect:
         id: live_wire
         name: Live Wire
         kind: Debuff
         element: Current
         visibility: hidden
-        description: The bearer's first Harmful skill shocks them and every Soaked enemy.
+        description: The bearer's first Harmful skill floods their team with the shock - every one Soaked, then 10 damage.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             consume: true
             do:
-              - op: forEach
-                in: { filter: allEnemies, where: { has: { unit: it, effect: soaked } }, exclude: bearer }
-                do:
-                  - { op: damage, to: it, amount: 15, direct: false }
-                  - { op: apply, to: it, effect: sapped }
-              - { op: damage, to: bearer, amount: 15, direct: false }
-              - { op: apply, to: bearer, effect: sapped }
+              - { op: apply, to: allEnemies, effect: soaked, duration: { enemyTurns: 2 } }
+              - { op: damage, to: allEnemies, amount: 10, direct: false }
 
 maneuver.current:
   archetype: Maneuver
@@ -472,30 +467,32 @@ stun.current:
 dance.current:
   archetype: Dance
   element: Current
-  name: River of Lightning
+  name: Eelskin Waltz
   description: >-
-    For 4 turns, the user gains Stormborn and 1 Swiftness; each Charge they gain also brings 2 Renew.
+    For 3 turns, the user gains 1 Swiftness, and Soaked enemies can't target or damage them. Each enemy
+    who damages them meanwhile is Soaked for 2 turns.
   cost: Ar
   cooldown: 5
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 4 } }
-    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
+    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
-      duration: { enemyTurns: 4 }
+      duration: { enemyTurns: 3 }
       effect:
-        id: river_of_lightning
-        name: River of Lightning
+        id: eelskin_waltz
+        name: Eelskin Waltz
         kind: Buff
         element: Current
-        description: Each Charge the bearer gains brings 2 Renew.
+        description: Soaked enemies can't target or damage the bearer; each enemy who damages them is Soaked.
+        modifiers:
+          - { mod: invulnerableTo, sourceHas: [soaked] }
         triggers:
-          - on: effectGained
-            effect: charged
+          - on: damaged
+            when: { byEnemy: true }
             do:
-              - { op: apply, to: bearer, effect: renew, stacks: 2 }
+              - { op: apply, to: eventSource, effect: soaked, duration: { enemyTurns: 2 } }
 
 heal.current:
   archetype: Heal
@@ -648,29 +645,19 @@ cleave.current:
   element: Current
   name: Arc Lash
   description: >-
-    Deals 25 damage to target enemy, and 15 to another Soaked enemy (a random one if none is Soaked). Each
-    is Soaked for 1 turn.
+    Target enemy is wired to a random other enemy until the end of the turn: each direct hit on either
+    one also deals 10 damage to the other. Then the target takes 25 damage.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: apply, to: it, effect: arc_lash, remember: primary, duration: { thisTurn: true } }
+        - { op: apply, to: primary, effect: arc_lash, remember: it, duration: { thisTurn: true } }
     - { op: damage, to: primary, amount: 25 }
-    - op: if
-      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: soaked } } } }, atLeast: 1 } }
-      then:
-        - op: forEach
-          in: { randomEnemy: 1, exclude: primary, where: { has: { unit: it, effect: soaked } } }
-          do:
-            - { op: damage, to: it, amount: 15 }
-            - { op: apply, to: it, effect: soaked, duration: { enemyTurns: 1 } }
-      else:
-        - op: forEach
-          in: { randomEnemy: 1, exclude: primary }
-          do:
-            - { op: damage, to: it, amount: 15 }
-            - { op: apply, to: it, effect: soaked, duration: { enemyTurns: 1 } }
-    - { op: apply, to: primary, effect: soaked, duration: { enemyTurns: 1 } }
 
 shout.current:
   archetype: Shout

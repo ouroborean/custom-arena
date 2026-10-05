@@ -4,19 +4,27 @@ crystal_golem:
   name: Crystal Golem
   hp: 40
   skills: [golem_shard_slam]
-  passives:
-    - id: golem_facets
-      name: Facets
-      kind: Neutral
-      element: Crystal
-      description: At the start of its owner's turn, their ally with the least HP gains Diamond for 1 turn.
-      triggers:
-        - on: turnStart
-          do:
-            - { op: apply, to: weakestAlly, effect: diamond, duration: { enemyTurns: 1 } }
 
 sentinel:
   name: Sentinel
   hp: 15
   skills: [sentinel_glint]
   passives: [diamond]
+
+# Crystal Effigy (the Taunt): Diamond, and each enemy hit on it gives the attacker 1 Brittle.
+crystal_effigy:
+  name: Crystal Effigy
+  hp: 30
+  skills: []
+  passives:
+    - diamond
+    - id: effigy_shards
+      name: Splintering
+      kind: Neutral
+      element: Crystal
+      description: Each enemy hit on it gives the attacker 1 Brittle.
+      triggers:
+        - on: damaged
+          when: { byEnemy: true }
+          do:
+            - { op: apply, to: eventSource, effect: brittle }

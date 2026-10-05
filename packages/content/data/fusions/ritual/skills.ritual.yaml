@@ -94,29 +94,30 @@ charge.ritual:
   element: Ritual
   name: Candlestep
   description: >-
-    Deals 15 damage to target enemy, and the user gains 1 Focus. They carry a flame away from the
-    strike: their next damaging skill Ignites its targets.
+    Deals 10 damage to target enemy. Rite (1): the flame catches up with them: they take 15 damage
+    and are Ignited.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: macro, id: clear_rite }
     - op: apply
       to: actor
-      until: { skillUsed: { harmful: true } }
+      remember: primary
+      stacks: 1
       effect:
-        id: candlestep
-        name: Carried Flame
-        kind: Buff
+        id: rite_candlestep
+        name: "Rite: Candlestep"
+        kind: Neutral
         element: Ritual
-        description: The bearer's next damaging skill Ignites its targets.
-        triggers:
-          - on: dealtDamage
-            when: { direct: true, byEnemy: true }
-            do:
-              - { op: apply, to: eventTarget, effect: ignite }
+        countsAs: [rite]
+        description: When it completes, the target takes 15 damage and is Ignited.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: damage, to: effectTargets, amount: 15 }
+          - { op: apply, to: effectTargets, effect: ignite }
 
 riposte.ritual:
   archetype: Riposte
@@ -248,30 +249,30 @@ maneuver.ritual:
   element: Ritual
   name: Hush of Smoke
   description: >-
-    The user becomes Invulnerable for 1 turn. Each enemy who uses a Harmful skill meanwhile is Blinded
-    for 1 turn. Stealthy.
+    For 2 turns, the first time an enemy hits the user, the user bursts into smoke and cinders: they
+    become Invulnerable for 1 turn, and that enemy is Ignited. Stealthy.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Stealthy]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
     - op: apply
-      to: allEnemies
-      duration: { enemyTurns: 1 }
+      to: actor
+      duration: { enemyTurns: 2 }
       effect:
         id: hush_of_smoke
         name: Hush of Smoke
-        kind: Debuff
+        kind: Buff
         element: Ritual
-        visibility: hidden
-        description: If the bearer uses a Harmful skill, they're Blinded for 1 turn.
+        description: The first enemy hit on the bearer turns them to smoke (Invulnerable for 1 turn) and Ignites the attacker.
         triggers:
-          - on: skillUsed
-            when: { harmful: true }
+          # The hit lands; the Invulnerable covers the rest of that turn and the next enemy turn.
+          - on: damaged
+            when: { direct: true, byEnemy: true }
             consume: true
             do:
-              - { op: apply, to: bearer, effect: blinded, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: invulnerable, duration: { enemyTurns: 1 } }
+              - { op: apply, to: eventSource, effect: ignite }
 
 companion.ritual:
   archetype: Companion
@@ -292,31 +293,15 @@ bolt.ritual:
   element: Ritual
   name: Shadowflame Bolt
   description: >-
-    Deals 20 damage to target enemy, who is Blinded for 2 turns; each skill they use while Blinded
-    Ignites them.
+    Deals 30 damage to target enemy, but the shadowflame's glare takes the user's sight: they're
+    Blinded until the end of their next turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: shadowflame
-        name: Shadowflame
-        kind: Debuff
-        element: Ritual
-        description: Each skill the bearer uses while Blinded Ignites them.
-        triggers:
-          - on: skillUsed
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: blinded } }
-                then:
-                  - { op: apply, to: bearer, effect: ignite }
+    - { op: damage, to: primary, amount: 30 }
+    - { op: apply, to: actor, effect: blinded, duration: { ownTurns: 1 } }
 
 blast.ritual:
   archetype: Blast
@@ -368,22 +353,27 @@ consume.ritual:
   element: Ritual
   name: Candle Offering
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If the user has a Rite, the offering
-    advances it by 1; if not, they heal 15 more.
+    Target enemy burns as an offering for 2 turns: at the end of each of the user's turns, they take 5
+    Affliction damage and the user heals 10.
   cost: r
   cooldown: 2
-  tags: [Harmful, NonStrategic]
+  tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: { lastDamage: true } }
-    # The Offering itself is already a step (every skill is), so a Rite it finishes is gone by now.
-    - op: if
-      cond: { has: { unit: actor, effect: rite } }
-      then:
-        - { op: signal, name: rite_advance }
-      else:
-        - { op: heal, to: actor, amount: 15 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: candle_offering
+        name: Candle Offering
+        kind: Debuff
+        element: Ritual
+        description: At the end of each of the applier's turns, the bearer takes 5 Affliction damage and the applier heals 10.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+              - { op: heal, to: actor, amount: 10 }
 
 summon.ritual:
   archetype: Summon
@@ -609,51 +599,76 @@ bless.ritual:
 curse.ritual:
   archetype: Curse
   element: Ritual
-  name: Rite of Blindness
+  name: Cursed Flame
   description: >-
-    Target enemy is Blinded for 2 turns. Rite (2): every enemy is Blinded for 2 turns and Scorched.
+    For 2 turns, target enemy unknowingly carries a cursed flame: each skill they use Ignites a random
+    ally of theirs. Invisible.
   cost: A
   cooldown: 2
-  tags: [Harmful, Strategic]
+  tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
-    - { op: macro, id: clear_rite }
     - op: apply
-      to: actor
-      stacks: 2
+      to: primary
+      duration: { enemyTurns: 2 }
       effect:
-        id: rite_of_blindness
-        name: "Rite: Blindness"
-        kind: Neutral
+        id: cursed_flame
+        name: Cursed Flame
+        kind: Debuff
         element: Ritual
-        countsAs: [rite]
-        description: When it completes, every enemy is Blinded for 2 turns and Scorched.
-        triggers: *rite_triggers
-        onExpire:
-          - { op: apply, to: allEnemies, effect: blinded, duration: { enemyTurns: 2 } }
-          - { op: apply, to: allEnemies, effect: scorched, duration: { enemyTurns: 2 } }
+        visibility: hidden
+        description: Each skill the bearer uses Ignites a random ally of theirs (the applier's Ignite).
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: randomBearerAlly, effect: ignite }
 
 smite.ritual:
   archetype: Smite
   element: Ritual
-  name: Veilbrand
+  name: Offering Brand
   description: >-
-    Deals 15 damage to target enemy and Sanctifies them for 2 turns. If they're Ignited, the brand
-    veils their eyes: they're Blinded for 1 turn. If not, they're Ignited.
-  cost: S
+    Deals 20 damage to target enemy and brands them. Rite (2): the brand is burned as an offering: the
+    user's ally with the least HP heals half of all the direct damage the target took while it counted.
+  cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
-    - op: if
-      cond: { has: { unit: primary, effect: ignite } }
-      then:
-        - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 1 } }
-      else:
-        - { op: apply, to: primary, effect: ignite }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: macro, id: clear_rite }
+    # The offering is gathered on the user, so a target who dies meanwhile still pays out.
+    - { op: setCounter, name: offering, value: 0 }
+    - op: apply
+      to: actor
+      remember: primary
+      stacks: 2
+      effect:
+        id: rite_offering_brand
+        name: "Rite: Offering Brand"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, the user's ally with the least HP heals half the direct damage the branded enemy took meanwhile.
+        triggers: *rite_triggers
+        onExpire:
+          - { op: heal, to: weakestAlly, amount: { div: [{ counter: offering }, 2] } }
+          - { op: setCounter, name: offering, value: 0 }
+    # The brand lasts exactly as long as its Rite.
+    - op: apply
+      to: primary
+      linkTo: rite_offering_brand
+      effect:
+        id: offering_brand
+        name: Offering Brand
+        kind: Debuff
+        element: Ritual
+        description: Direct damage the bearer takes is gathered for the applier's Rite.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - { op: setCounter, name: offering, on: actor, value: { sum: [{ counterOf: { unit: actor, name: offering } }, { eventAmount: true }] } }
 
 prayer.ritual:
   archetype: Prayer
@@ -739,28 +754,43 @@ cleave.ritual:
 shout.ritual:
   archetype: Shout
   element: Ritual
-  name: Invocation
+  name: Rings of Ash
   description: >-
-    All enemies are Intimidated for 2 turns. The user's Rite advances by 1 per enemy that's Blinded or
-    Ignited.
+    All enemies are Isolated for 2 turns, each shut inside a ring of ash. Rite (1): the rings catch
+    fire: every enemy who's still Isolated takes 10 Affliction damage.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - op: repeat
-      times: { countOf: { filter: targets, where: { or: [{ has: { unit: it, effect: blinded } }, { has: { unit: it, effect: ignite } }] } } }
-      do:
-        - { op: signal, name: rite_advance }
+    - { op: apply, to: targets, effect: isolated, duration: { enemyTurns: 2 } }
+    - { op: macro, id: clear_rite }
+    - op: apply
+      to: actor
+      stacks: 1
+      effect:
+        id: rite_rings_of_ash
+        name: "Rite: Rings of Ash"
+        kind: Neutral
+        element: Ritual
+        countsAs: [rite]
+        description: When it completes, every enemy who's still Isolated takes 10 Affliction damage.
+        triggers: *rite_triggers
+        onExpire:
+          - op: forEach
+            in: { filter: allEnemies, where: { has: { unit: it, effect: isolated } } }
+            do:
+              - { op: damage, to: it, amount: 10, type: Affliction, direct: false }
 
 withstand.ritual:
   archetype: Withstand
   element: Ritual
   name: Smokewall
-  description: The user gains 20 Shield for 1 turn. Each enemy who damages it is Ignited.
+  description: >-
+    The user gains 20 Shield for 1 turn. If any of it is left when the turn is up, the smoke catches
+    fire: a random enemy takes damage equal to what's left.
   cost: A
-  cooldown: 1
+  cooldown: 2
   tags: [Helpful, Strategic]
   target: self
   ops:
@@ -774,53 +804,81 @@ withstand.ritual:
         kind: Buff
         element: Ritual
         shield: true
-        description: A Shield; enemies who damage it are Ignited.
-        triggers:
-          - on: shieldDamaged
-            do:
-              - op: if
-                cond: { isEnemy: eventSource }
-                then:
-                  - { op: apply, to: eventSource, effect: ignite }
+        description: A Shield; whatever is left of it when it runs out is dealt to a random enemy as damage.
+        onExpire:
+          - { op: damage, to: { randomEnemy: 1 }, amount: { effectValue: true }, direct: false }
 
 taunt.ritual:
   archetype: Taunt
   element: Ritual
   name: Effigy
   description: >-
-    Creates an Effigy (10 HP); target enemy is Taunted by it for 1 turn. If the Effigy is destroyed, the
-    user's Rite completes at once.
+    The user offers up 15 of their HP to raise an Effigy (30 HP), and target enemy is Taunted by it for
+    2 turns. If it still stands when the Taunt ends, it burns as an offering: the user heals for half the
+    HP it has left. The user needs more than 15 HP to use it.
   cost: r
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
+  requires: { hpAbove: { unit: actor, value: 15 } }
   ops:
+    - { op: damage, to: actor, amount: 15, raw: true, type: Affliction, direct: false }
     - { op: summon, minion: effigy }
-    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
+    # On the Effigy: when its time is up, it gives the user back what it has left and burns away.
+    - op: apply
+      to: lastSummoned
+      duration: { enemyTurns: 2 }
+      effect:
+        id: effigy_offering
+        name: Offering
+        kind: Neutral
+        element: Ritual
+        description: When the Taunt ends, the Effigy burns away and the user heals for half the HP it has left.
+        onExpire:
+          # Half, so an untouched Effigy gives back exactly the 15 offered: never a profit.
+          - { op: heal, to: actor, amount: { div: [{ hp: bearer }, 2] } }
+          - { op: kill, to: bearer }
 
 titan.ritual:
   archetype: Titan
   element: Ritual
-  name: Avatar of the Rite
+  name: Candle Colossus
   description: >-
-    For 3 turns, the user gains 3 Armor and Immune, and any Rite of theirs that completes meanwhile
-    takes effect twice.
+    For 3 turns, the user gains Immune and burns like a candle that won't go out: their HP can't drop
+    below 1. When it ends, the wax runs off them as fire: every enemy takes 5 Affliction damage for
+    every 20 damage the user took meanwhile (at most 30).
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: setCounter, name: colossus_wax, value: 0 }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
-        id: avatar_of_the_rite
-        name: Avatar of the Rite
+        id: candle_colossus
+        name: Candle Colossus
         kind: Buff
         element: Ritual
-        description: Rites that complete take effect twice.
+        description: HP can't drop below 1; when it ends, every enemy takes 5 Affliction per 20 damage taken meanwhile (max 30).
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - { op: setCounter, name: colossus_wax, on: bearer, value: { sum: [{ counterOf: { unit: bearer, name: colossus_wax } }, { eventAmount: true }] } }
+        onExpire:
+          - op: damage
+            to: allEnemies
+            type: Affliction
+            direct: false
+            amount:
+              if: { compare: { value: { counterOf: { unit: bearer, name: colossus_wax } }, atLeast: 120 } }
+              then: 30
+              else: { mul: [5, { div: [{ counterOf: { unit: bearer, name: colossus_wax } }, 20] }] }
 
 # Minion skills.
 

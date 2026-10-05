@@ -142,17 +142,36 @@ describe('Night skills', () => {
     expect(a.hp(B1)).toBe(65);
   });
 
-  it("Moonfall: 25 and 15 to their allies; Frostborn for 1 turn +1 per enemy hit without Buffs", () => {
-    const a = arena({ p0: [['smash.night']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B3, 'might').use(A1, 'smash.night', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 85, 85]);
-    expect(dur(a, A1, 'frostborn')).toBe(2 * 3 - 1);
+  it('Moonfall: 15 damage, and the target gains Dusk 3; the moon waits', () => {
+    const a = arena({ p0: [['smash.night']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.night', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.stacks(B1, 'dusk')]).toEqual([85, 100, 3]);
+    expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false); // hidden, like the Dusk
   });
 
-  it('Moonfall: every enemy Buffed, Frostborn for just 1 turn', () => {
-    const a = arena({ p0: [['smash.night']], p1: [['shot']] });
-    a.give(B1, 'might').use(A1, 'smash.night', B1).end();
-    expect(dur(a, A1, 'frostborn')).toBe(1);
+  it('Moonfall: an existing Dusk is deepened by 1 instead', () => {
+    const a = arena({ p0: [['smash.night']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'dusk', { stacks: 3, source: A1 }).use(A1, 'smash.night', B1).end();
+    expect(a.stacks(B1, 'dusk')).toBe(2);
+  });
+
+  it('Moonfall: when Midnight strikes them, the moon falls: 20 to them and 10 to each of their allies', () => {
+    const a = arena({ p0: [['smash.night']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
+    a.use(A1, 'smash.night', B1).end();
+    expect(midnightTurn(a)).toBe(8); // turns 2, 4 and 6 pass
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([165, 190, 190]);
+    a.pass(8);
+    expect(a.hp(B1)).toBe(165); // only once
+  });
+
+  it('Moonfall: deepening a Dusk to Midnight brings the moon down at once', () => {
+    const a = arena({ p0: [['smash.night']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'dusk', { stacks: 1, source: A1 }).use(A1, 'smash.night', B1).end();
+    expect([asleep(a, B1), a.hp(B1), a.hp(B2)]).toEqual([true, 65, 90]);
+  });
+
+  it('Moonfall: it deals direct damage now, so it is non-Strategic', () => {
+    expect(content.skills['smash.night']!.tags).toContain('NonStrategic');
   });
 
   it('Silent Descent: 15 and Dusk 3; Stealthy: keeps Stealth and gives 1 Focus if Stealthed', () => {
@@ -260,20 +279,29 @@ describe('Night skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([85, 70]);
   });
 
-  it('Rime Lance: 20 and Mark for 1 turn; whoever spends the Mark leaves them Frostbitten for 2 turns', () => {
-    const a = arena({ p0: [['bolt.night'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.night', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark'), a.has(B1, 'frostbitten')]).toEqual([55, false, true]);
-    a.pass(3);
-    expect(a.has(B1, 'frostbitten')).toBe(false);
-  });
-
-  it('Rime Lance: an unspent Mark leaves no Frostbite', () => {
+  it('Rime Lance: 20 damage, and the target gains Dusk 3', () => {
     const a = arena({ p0: [['bolt.night']], p1: [['shot']] });
     a.use(A1, 'bolt.night', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark'), a.has(B1, 'frostbitten')]).toEqual([80, true, false]);
-    a.pass(2);
-    expect([a.has(B1, 'mark'), a.has(B1, 'frostbitten')]).toEqual([false, false]);
+    expect([a.hp(B1), a.stacks(B1, 'dusk'), a.has(B1, 'mark')]).toEqual([80, 3, false]);
+  });
+
+  it('Rime Lance: an existing Dusk deepens by 1 instead', () => {
+    const a = arena({ p0: [['bolt.night']], p1: [['shot']] });
+    a.give(B1, 'dusk', { stacks: 4, source: A1 }).use(A1, 'bolt.night', B1).end();
+    expect(a.stacks(B1, 'dusk')).toBe(3);
+  });
+
+  it('Rime Lance: until the user’s next turn, the next hit they take deepens it by 1 more (only the next)', () => {
+    const a = arena({ p0: [['bolt.night'], ['shot'], ['shot']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'bolt.night', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.stacks(B1, 'dusk')).toBe(2);
+    expect(midnightTurn(a)).toBe(6);
+  });
+
+  it('Rime Lance: by the user’s next turn, hits no longer deepen it', () => {
+    const a = arena({ p0: [['bolt.night'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bolt.night', B1).end().end().use(A2, 'shot', B1).end();
+    expect(midnightTurn(a)).toBe(8); // Dusk 3's own pace: turns 2, 4 and 6 pass
   });
 
   it('Eventide: 20 to all enemies; each gains Dusk 3 or has it deepened', () => {
@@ -457,16 +485,25 @@ describe('Night skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
   });
 
-  it('Crescent Cleave: 25, and 15 to another enemy with Dusk', () => {
-    const a = arena({ p0: [['cleave.night', 'shot.night']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'shot.night', B3).end().pass(1).use(A1, 'cleave.night', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 100, 75]);
-  });
-
-  it('Crescent Cleave: with no one else Dusked, a random other enemy', () => {
+  it('Crescent Cleave: 15 to the target and a random other enemy; each without Dusk gains Dusk 4', () => {
     const a = arena({ p0: [['cleave.night']], p1: [['shot'], ['shot']] });
     a.use(A1, 'cleave.night', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), a.stacks(B1, 'dusk'), a.stacks(B2, 'dusk')]).toEqual([85, 85, 4, 4]);
+  });
+
+  it('Crescent Cleave: a Dusk is cut short: 5 more per turn it had left, and it ends', () => {
+    const a = arena({ p0: [['cleave.night']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'dusk', { stacks: 3, source: A1 }).give(B2, 'dusk', { stacks: 1, source: A1 });
+    a.use(A1, 'cleave.night', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'dusk'), a.has(B2, 'dusk')]).toEqual([70, 80, false, false]);
+    expect([asleep(a, B1), asleep(a, B2)]).toEqual([false, false]); // no Midnight
+  });
+
+  it('Crescent Cleave: its own Dusk, cut on the next swing', () => {
+    const a = arena({ p0: [['cleave.night']], p1: [['shot']] });
+    a.use(A1, 'cleave.night', B1).end().pass(3); // turn 4 counted the Dusk down to 3
+    a.use(A1, 'cleave.night', B1).end();
+    expect([a.hp(B1), a.has(B1, 'dusk')]).toEqual([55, false]);
   });
 
   it('Hoarfrost Howl: Intimidated for 2 turns; Frost debuffs they gain meanwhile last 1 turn longer', () => {

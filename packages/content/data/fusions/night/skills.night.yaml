@@ -21,20 +21,33 @@ smash.night:
   element: Night
   name: Moonfall
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. The user gains Frostborn for 1 turn, plus 1
-    turn for each enemy hit who has no Buffs.
+    Deals 15 damage to target enemy, who gains Dusk 3, or has their Dusk deepened by 1. When Midnight
+    strikes them, the moon falls: 20 damage to them and 10 to each of their allies.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
+    - { op: damage, to: primary, amount: 15 }
+    # The watcher goes on first, so a Midnight struck by the Dusk below already brings the moon down.
     - op: apply
-      to: actor
-      effect: frostborn
-      duration:
-        enemyTurns: { sum: [1, { countOf: { filter: allEnemies, where: { not: { hasKind: { unit: it, kind: Buff } } } } }] }
+      to: primary
+      effect:
+        id: moonfall
+        name: Moonfall
+        kind: Debuff
+        element: Night
+        visibility: hidden
+        description: When Midnight strikes the bearer, the moon falls on them and their allies.
+        triggers:
+          - on: effectGained
+            effect: frozen_sleep
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 20 }
+              - { op: damage, to: bearerAllies, amount: 10 }
+    - { op: set, var: dusk, value: 3 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dusk }] }
 
 charge.night:
   archetype: Charge
@@ -216,30 +229,32 @@ bolt.night:
   element: Night
   name: Rime Lance
   description: >-
-    Deals 20 damage to target enemy and Marks them for 1 turn. Whoever spends the Mark also leaves them
-    Frostbitten for 2 turns.
+    Deals 20 damage to target enemy, who gains Dusk 3, or has their Dusk deepened by 1. Until the user's
+    next turn, the next hit they take deepens it by 1 more.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: set, var: dusk, value: 3 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dusk }] }
     - op: apply
-      to: actor
-      duration: { raw: 3 }
+      to: primary
+      duration: { raw: 2 }
       effect:
         id: rime_lance
         name: Rime Lance
-        kind: Neutral
+        kind: Debuff
         element: Night
-        description: When the Mark is spent, its bearer is Frostbitten for 2 turns.
+        visibility: hidden
+        description: The next hit the bearer takes deepens their Dusk by 1.
         triggers:
-          - on: ownEffectEnded
-            when: { effects: [mark], reason: [consumed, removed] }
+          - on: damaged
+            when: { direct: true }
             consume: true
             do:
-              - { op: apply, to: eventTarget, effect: frostbitten, duration: { enemyTurns: 2 } }
+              - { op: forEach, in: bearer, do: [{ op: macro, id: deepen_dusk }] }
 
 blast.night:
   archetype: Blast
@@ -533,19 +548,16 @@ cleave.night:
   element: Night
   name: Crescent Cleave
   description: >-
-    Deals 25 damage to target enemy, and 15 to another enemy with Dusk (random if none has it).
+    The crescent cuts the night short: target enemy and a random other enemy each take 15 damage, plus 5
+    for each turn of Dusk they have left, and their Dusk ends. Each of them who had no Dusk gains Dusk 4
+    instead.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - op: if
-      cond: { compare: { value: { countOf: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: dusk } } } }, atLeast: 1 } }
-      then:
-        - { op: damage, to: { randomEnemy: 1, exclude: primary, where: { has: { unit: it, effect: dusk } } }, amount: 15 }
-      else:
-        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: crescent_cut }] }
+    - { op: forEach, in: { randomEnemy: 1, exclude: primary }, do: [{ op: macro, id: crescent_cut }] }
 
 shout.night:
   archetype: Shout

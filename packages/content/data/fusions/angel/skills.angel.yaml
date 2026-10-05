@@ -40,30 +40,37 @@ charge.angel:
   element: Angel
   name: Swoop
   description: >-
-    The user begins Rushing and Wards target ally for 1 turn; the first hit redirected this way deals them half
-    damage.
-  cost: nc
+    The user Wards target ally for 1 turn. If a hit is redirected to the user meanwhile, the user begins
+    Rushing; if none is, the ally begins Rushing when the Ward ends.
+  cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: actor, effect: rushing }
     - { op: apply, to: primary, effect: warded, duration: { enemyTurns: 1 } }
     - op: apply
-      to: actor
+      to: primary
       duration: { enemyTurns: 1 }
       effect:
         id: swoop
         name: Swoop
         kind: Buff
         element: Angel
-        description: The first redirected hit deals the bearer half damage.
-        modifiers:
-          - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
+        description: If a hit is redirected to the Angel, they begin Rushing; if not, the bearer does when this ends.
         triggers:
-          - on: damaged
-            when: { byEnemy: true, direct: true }
-            consume: true
+          - on: signal
+            signal: ward_redirect
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { and: [{ isActor: eventSource }, { not: { flag: caught } }] }
+                then:
+                  - { op: setFlag, flag: caught }
+                  - { op: apply, to: actor, effect: rushing }
+        onExpire:
+          - op: if
+            cond: { not: { flag: caught } }
+            then: [{ op: apply, to: bearer, effect: rushing }]
 
 riposte.angel:
   archetype: Riposte
@@ -136,46 +143,45 @@ shot.angel:
   element: Angel
   name: Quill of Light
   description: >-
-    Deals 15 damage to target enemy. Until the user's next turn, a Sanctify on them heals the damager's whole
-    team, not just the damager.
+    Deals 10 damage to target enemy, leaving a quill in them for 1 turn. If they use a Harmful skill meanwhile,
+    the quill flares once it resolves: they take 10 damage, and each unit on the user's side it targeted heals 10.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
+    - { op: damage, to: primary, amount: 10 }
     - op: apply
       to: primary
-      duration: { raw: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: quill_of_light
         name: Quill of Light
         kind: Debuff
         element: Angel
-        description: While Sanctified, each direct hit on the bearer heals the attacker's allies 15 too.
+        description: The bearer's next Harmful skill makes the quill flare - 10 damage to them, 10 healing for its targets.
         triggers:
-          - on: damaged
-            when: { direct: true }
+          - on: skillResolved
+            when: { harmful: true }
+            consume: true
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then:
-                  # The Sanctify already healed the damager; the rest of their team heals too.
-                  - { op: heal, to: { filter: allUnits, where: { not: { isEnemy: it } }, exclude: eventSource }, amount: 15 }
+              - { op: damage, to: bearer, amount: 10, direct: false }
+              - { op: heal, to: { filter: eventTargets, where: { not: { isEnemy: it } } }, amount: 10 }
 
 snipe.angel:
   archetype: Snipe
   element: Angel
   name: Descending Spear
   description: >-
-    On the following turn, deals 40 damage to target enemy, +10 for each hit redirected to the user meanwhile;
-    until it lands, the user Wards every ally. The target of this skill is invisible. Channeled.
+    For 1 turn, the user Wards every ally. If no hit is redirected to them meanwhile, the spear falls on target
+    enemy on the following turn for 40 damage; if any is, it's turned to the user's defense instead, and they
+    heal 20 for each hit redirected. The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
   target: enemy
   ops:
-    - { op: setCounter, name: spear_redirects, value: 0 }
+    - { op: setCounter, name: spear_caught, value: 0 }
     - op: apply
       to: actor
       remember: primary
@@ -187,7 +193,9 @@ snipe.angel:
         element: Angel
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn, harder for each hit the bearer took for an ally.
+        description: >-
+          Falls on its target at the end of the following turn, unless a hit is redirected to the bearer first;
+          then it heals the bearer 20 per redirected hit instead.
         triggers:
           - on: signal
             signal: ward_redirect
@@ -195,9 +203,14 @@ snipe.angel:
             do:
               - op: if
                 cond: { isActor: eventSource }
-                then: [{ op: setCounter, name: spear_redirects, value: { sum: [{ counter: spear_redirects }, 1] } }]
+                then: [{ op: setCounter, name: spear_caught, value: { sum: [{ counter: spear_caught }, 1] } }]
         onExpire:
-          - { op: damage, to: effectTargets, amount: { sum: [40, { mul: [10, { counter: spear_redirects }] }] } }
+          - op: if
+            cond: { compare: { value: { counter: spear_caught }, atLeast: 1 } }
+            then:
+              - { op: heal, to: bearer, amount: { mul: [20, { counter: spear_caught }] } }
+            else:
+              - { op: damage, to: effectTargets, amount: 40 }
     - { op: apply, to: { filter: allAllies, where: { not: { isActor: it } } }, effect: warded, duration: { enemyTurns: 1 } }
 
 trap.angel:
@@ -239,16 +252,21 @@ maneuver.angel:
   archetype: Maneuver
   element: Angel
   name: Take Flight
-  description: The user Leaps. If they're below 40 HP, they also gain a Halo for 2 turns.
+  description: >-
+    The user gains Leaping, but hands its cover down: their other ally with the least HP becomes Invulnerable for
+    1 turn instead of them. With no other ally, the user keeps it.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    # The Leap macro without its Invulnerable, which goes to the weakest other ally.
+    - { op: removeEffect, from: actor, effect: leaping }
+    - { op: apply, to: actor, effect: leaping, duration: { ownTurns: 1 } }
     - op: if
-      cond: { hpAtMost: { unit: actor, value: 39 } }
-      then: [{ op: apply, to: actor, effect: halo, duration: { enemyTurns: 2 } }]
+      cond: { any: { in: weakestOtherAlly, cond: { kind: { unit: it, is: character } } } }
+      then: [{ op: apply, to: weakestOtherAlly, effect: invulnerable, duration: { enemyTurns: 1 } }]
+      else: [{ op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }]
 
 companion.angel:
   archetype: Companion
@@ -269,15 +287,15 @@ bolt.angel:
   element: Angel
   name: Beam from Above
   description: >-
-    Deals 25 damage to target enemy, who is Marked for 1 turn. The last unit who damaged them heals 25.
-  cost: I
+    Deals 20 damage to target enemy. The light then falls on the ally with the least HP, the user included, who
+    heals as much as it dealt.
+  cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: heal, to: primaryLastAttacker, amount: 25 }
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: heal, to: weakestAlly, amount: { lastDamage: true } }
 
 blast.angel:
   archetype: Blast
@@ -398,26 +416,27 @@ stab.angel:
   element: Angel
   name: Piercing Feather
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. An Anointed user trades it for a dive:
-    they spend Anointed to Leap before the hit, so its bonus applies and they stay Invulnerable for 1 turn.
+    Deals 15 damage to target enemy and pins them for 1 turn: meanwhile, they can't target a character on the
+    user's team who is at or below 40 HP with a skill.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: if
-      cond: { has: { unit: actor, effect: anointed } }
-      then:
-        - { op: removeEffect, from: actor, effect: anointed }
-        - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
-        - { op: set, var: dove, value: true }
-    - op: damage
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
       to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    # The dive's Leap is spent by this hit (it was made mid-skill, too new to end itself).
-    - op: if
-      cond: { varTrue: dove }
-      then: [{ op: removeEffect, from: actor, effect: leaping }]
+      duration: { enemyTurns: 1 }
+      effect:
+        id: piercing_feather
+        name: Pinned
+        kind: Debuff
+        element: Angel
+        description: Can't target an enemy character at or below 40 HP with a single-target skill.
+        modifiers:
+          - mod: targetExclude
+            singleOnly: true
+            where: { and: [{ isEnemy: it }, { kind: { unit: it, is: character } }, { hpAtMost: { unit: it, value: 40 } }] }
 
 ravage.angel:
   archetype: Ravage
@@ -480,30 +499,14 @@ stun.angel:
   element: Angel
   name: Glorious Light
   description: >-
-    Target enemy is Stunned for 1 turn. The first ally to damage them before it ends heals 15 and is Anointed
-    until the end of their next turn.
+    Target enemy is Stunned for 1 turn, but the light is merciful: they also gain a Halo for 2 turns.
   cost: r
-  cooldown: 1
+  cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
     - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: glorious_light
-        name: Glorious Light
-        kind: Debuff
-        element: Angel
-        description: The first of the applier's allies to damage the bearer heals 15 and is Anointed.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            consume: true
-            do:
-              - { op: heal, to: eventSource, amount: 15 }
-              - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
+    - { op: apply, to: primary, effect: halo, duration: { enemyTurns: 2 } }
 
 dance.angel:
   archetype: Dance
@@ -662,29 +665,31 @@ cleave.angel:
   element: Angel
   name: Sweeping Wings
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy. The downdraft lifts the ally with the least
-    HP: they Leap.
+    Deals 20 damage to target enemy. The backswing deals 20 to the last enemy who damaged the user, if that's
+    someone else; if not, it deals 10 to every other enemy.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
-    - { op: forEach, in: weakestAlly, do: [{ op: macro, id: leap }] }
+    - op: if
+      cond: { any: { in: lastAttacker, cond: { not: { isPrimary: it } } } }
+      then: [{ op: damage, to: { filter: lastAttacker, where: { not: { isPrimary: it } } }, amount: 20 }]
+      else: [{ op: damage, to: { filter: allEnemies, where: { not: { isPrimary: it } } }, amount: 10 }]
 
 shout.angel:
   archetype: Shout
   element: Angel
   name: Last Trumpet
-  description: All enemies are Intimidated for 2 turns, and every ally below 30 HP gains a Halo for 1 turn.
+  description: >-
+    The trumpet calls every enemy to face the user: all enemies are Taunted by the user for 1 turn.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - { op: apply, to: { filter: allAllies, where: { hpAtMost: { unit: it, value: 29 } } }, effect: halo, duration: { enemyTurns: 1 } }
+    - { op: apply, to: targets, effect: taunt, duration: { enemyTurns: 1 } }
 
 withstand.angel:
   archetype: Withstand
@@ -721,14 +726,37 @@ taunt.angel:
   archetype: Taunt
   element: Angel
   name: Radiant Challenge
-  description: Target enemy is Taunted by the user for 2 turns; the user has a Halo while the Taunt lasts.
+  description: >-
+    Target enemy is Taunted by the user until they've damaged the user twice, for up to 3 turns. Each of those
+    hits heals every other ally of the user 10.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - { op: apply, to: actor, effect: halo, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: radiant_challenge
+        name: Radiant Challenge
+        kind: Debuff
+        element: Angel
+        description: Each hit the bearer lands on the Angel heals the Angel's allies 10; the second ends their Taunt.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then:
+                  - { op: heal, to: { filter: allAllies, where: { not: { isActor: it } } }, amount: 10 }
+                  - op: if
+                    cond: { flag: struck }
+                    then:
+                      - { op: removeEffect, from: bearer, effect: taunt }
+                      - { op: removeSelf }
+                    else: [{ op: setFlag, flag: struck }]
 
 titan.angel:
   archetype: Titan

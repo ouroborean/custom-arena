@@ -49,33 +49,31 @@ charge.thunder:
   element: Thunder
   name: Sonic Boom
   description: >-
-    Deals 15 damage to target enemy, and the user gains 1 Focus for their next skill. If that
-    skill hits them, they're Deafened for 2 turns before it lands.
+    Deals 10 damage to target enemy, who is Deafened until the end of the user's next turn. The boom
+    catches up when the user next uses a skill, by the end of their next turn: every Deafened enemy
+    takes 10 damage.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
-    # Watched from the user's side: their next skill's use comes before any counter is checked.
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: deafened, duration: { ownTurns: 1 } }
     - op: apply
       to: actor
-      remember: primary
-      duration: { enemyTurns: 2 }
+      until: { skillUsed: {} }
+      duration: { ownTurns: 1 }
       effect:
         id: sonic_boom
         name: Sonic Boom
         kind: Buff
         element: Thunder
-        description: If the bearer's next skill targets the boomed enemy, they're Deafened for 2 turns before it lands.
+        description: When the bearer next uses a skill, every Deafened enemy takes 10 damage.
         triggers:
+          # Fires as that skill is used, before it lands (not on Sonic Boom itself).
           - on: skillUsed
-            consume: true
             do:
-              - op: if
-                cond: { any: { in: effectTargets, cond: { isEventTarget: it } } }
-                then: [{ op: apply, to: effectTargets, effect: deafened, duration: { enemyTurns: 2 } }]
+              - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: deafened } } }, amount: 10, direct: false }
 
 riposte.thunder:
   archetype: Riposte
@@ -266,37 +264,24 @@ bolt.thunder:
   archetype: Bolt
   element: Thunder
   name: Thundercrack
-  description: Deals 25 damage to target enemy and Marks them for 1 turn. The hit that spends the Mark Resounds, whoever it's from.
+  description: >-
+    Deals 15 damage to target enemy and Resounds, but the crack doesn't wait: every Echo on the enemy
+    side, this one included, lands at once.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: thundercrack
-        name: Thundercrack
-        kind: Debuff
-        element: Thunder
-        description: The hit that spends the bearer's Mark Resounds.
-        triggers:
-          - on: damaged
-            when: { direct: true }
-            do:
-              - op: if
-                cond: { not: { has: { unit: bearer, effect: mark } } }
-                then:
-                  - op: apply
-                    to: bearer
-                    from: eventSource
-                    value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
-                    duration: { raw: 2 }
-                    effect: resound_echo
-                  - { op: removeSelf }
+    - op: forEach
+      in: primary
+      do:
+        - { op: damage, to: it, amount: 15 }
+        - { op: macro, id: resound_it }
+    # Every kind of Echo, whoever owns it; each owner still gains its Charge.
+    - { op: expire, on: allEnemies, effect: resound_echo }
+    - { op: expire, on: allEnemies, effect: resound_echo_wide }
+    - { op: expire, on: allEnemies, effect: resound_echo_fork }
+    - { op: expire, on: allEnemies, effect: resound_echo_stun }
 
 blast.thunder:
   archetype: Blast
@@ -444,38 +429,51 @@ mislead.thunder:
   element: Thunder
   name: Hush
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they and all their allies
-    are Deafened for 1 turn. Invisible.
+    Target enemy is Deafened for 1 turn. When that turn is over, the hush falls: for 1 turn, if they
+    use a Harmful skill, it's countered and the user gains 1 Charge. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
+    - { op: apply, to: primary, effect: deafened, duration: { enemyTurns: 1 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 1 }
       effect:
-        id: hush
-        name: Hush
+        id: hush_gathering
+        name: Gathering Hush
         kind: Debuff
         element: Thunder
         visibility: hidden
-        description: The bearer's Harmful skills are countered, and their whole team is Deafened for 1 turn.
-        triggers:
-          - on: skillUsed
-            when: { harmful: true }
-            intercept: counter
-            consume: true
-            do:
-              - { op: apply, to: allEnemies, effect: deafened, duration: { enemyTurns: 1 } }
+        description: When this runs out, the hush falls on the bearer's next turn.
+        onExpire:
+          # Runs out as their turn ends, so the counter covers their following turn.
+          - op: apply
+            to: bearer
+            duration: { enemyTurns: 1 }
+            effect:
+              id: hush
+              name: Hush
+              kind: Debuff
+              element: Thunder
+              visibility: hidden
+              description: If the bearer uses a Harmful skill, it's countered and the user gains 1 Charge.
+              triggers:
+                - on: skillUsed
+                  when: { harmful: true }
+                  intercept: counter
+                  consume: true
+                  do:
+                    - { op: apply, to: actor, effect: charged }
 
 stun.thunder:
   archetype: Stun
   element: Thunder
   name: Concussion
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 1 turn. Resound; the echo also stuns their
-    Strategic skills for 1 turn.
+    Deals 15 damage to target enemy and stuns their Strategic skills for 1 turn. Resound; when the
+    echo lands, they're fully Stunned for 1 turn.
   cost: AS
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -490,7 +488,7 @@ stun.thunder:
           value: { mul: [5, { div: [{ sum: [{ lastDamage: true }, 9] }, 10] }] }
           duration: { raw: 2 }
           effect: resound_echo_stun
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: stun_s, duration: { enemyTurns: 1 } }
 
 dance.thunder:
   archetype: Dance
@@ -685,8 +683,8 @@ withstand.thunder:
   element: Thunder
   name: Thunder Cage
   description: >-
-    The user gains 25 Shield for 2 turns. Damage it absorbs echoes back: at the start of the user's
-    next turn, each attacker takes half of what they dealt to it.
+    For 1 turn, direct hits on the user deal half damage, and each one Resounds back on its dealer:
+    they take half of what it dealt (rounded up to 5) as their turn ends, and the user gains 1 Charge.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -694,39 +692,77 @@ withstand.thunder:
   ops:
     - op: apply
       to: actor
-      value: 25
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: thunder_cage
         name: Thunder Cage
         kind: Buff
         element: Thunder
-        shield: true
-        description: Damage this Shield absorbs echoes back at its attacker for half.
+        description: Direct hits on the bearer deal half damage, and each one echoes back on its dealer for half of what it dealt.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
         triggers:
-          - on: shieldDamaged
+          - on: damaged
+            when: { direct: true, byEnemy: true }
             do:
-              - op: apply
-                to: eventSource
-                value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
-                # Hit on their turn: it echoes as that turn ends, i.e. at the start of the user's next turn.
-                duration: { raw: 1 }
-                effect: resound_echo
+              - op: if
+                cond: { compare: { value: { eventAmount: true }, atLeast: 1 } }
+                then:
+                  # The bearer owns the echo, so they gain its Charge.
+                  - op: apply
+                    to: eventSource
+                    from: bearer
+                    value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
+                    duration: { raw: 1 }
+                    effect: resound_echo
 
 taunt.thunder:
   archetype: Taunt
   element: Thunder
   name: Challenge Peal
   description: >-
-    Taunts target enemy for 2 turns. The peal deafens the rest of their team: every other enemy is
-    Deafened for as long.
+    Taunts target enemy until they damage the user, for up to 3 turns. That hit echoes back on them
+    for half (rounded up to 5) as their turn ends, giving the user 1 Charge.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primaryAllies, effect: deafened, duration: { enemyTurns: 2 } }
+    # The challenger holds the duel; this Taunt and the hit-watcher end with it (and only this Taunt:
+    # a Taunt from anyone else stays).
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: challenge_peal_duel
+        name: Challenge Peal
+        kind: Neutral
+        element: Thunder
+        description: The bearer's challenge stands until the challenged enemy damages them.
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 }, linkTo: challenge_peal_duel }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      linkTo: challenge_peal_duel
+      effect:
+        id: challenge_peal
+        name: Challenge Peal
+        kind: Debuff
+        element: Thunder
+        description: The bearer's first hit on the challenger ends the challenger's Taunt and echoes back on them for half.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then:
+                  - op: apply
+                    to: bearer
+                    value: { mul: [5, { div: [{ sum: [{ eventAmount: true }, 9] }, 10] }] }
+                    duration: { raw: 1 }
+                    effect: resound_echo
+                  - { op: removeEffect, from: actor, effect: challenge_peal_duel }
 
 titan.thunder:
   archetype: Titan

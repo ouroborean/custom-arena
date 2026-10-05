@@ -88,16 +88,16 @@ rage.assassin:
   element: Assassin
   name: Open Contract
   description: >-
-    For 3 turns, the user gains 1 Might and 1 Swiftness, and a random enemy gains your Death Mark. Each execution
-    meanwhile gives the user 1 Might and 1 Swiftness for 2 more turns. Stealthy.
+    A random enemy gains your Death Mark if none has it. For 3 turns, the user gains 1 Might, and at
+    the end of each of their turns the Mark's threshold rises by 5 (max 40), going to a random enemy
+    first if none has it. Stealthy.
   cost: WA
   cooldown: 4
   tags: [Helpful, Strategic, Stealthy]
   target: self
   ops:
+    - { op: macro, id: mark_if_none }
     - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
-    - { op: forEach, in: { randomEnemy: 1 }, do: [{ op: macro, id: place_mark }] }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -106,40 +106,38 @@ rage.assassin:
         name: Open Contract
         kind: Buff
         element: Assassin
-        description: Each execution gives the bearer 1 Might and 1 Swiftness for 2 turns.
+        description: At the end of each of the bearer's turns, your Death Mark's threshold rises by 5 (max 40).
         triggers:
-          - on: signal
-            signal: mark_executed
-            when: { side: ally }
+          - on: turnEnd
             do:
-              - { op: apply, to: bearer, effect: might, duration: { enemyTurns: 2 } }
-              - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 2 } }
+              - { op: macro, id: mark_if_none }
+              - { op: growShield, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } } }, effect: death_mark, amount: 5, max: 40 }
 
 shot.assassin:
   archetype: Shot
   element: Assassin
   name: Blowdart
   description: >-
-    Deals 10 Piercing damage to target enemy, who gains 1 Toxin. For 2 turns, their Toxin, Weakness and
-    Vulnerable can't be removed.
+    Deals 5 Piercing damage to target enemy and slips them a hidden dose: at the end of their next turn,
+    it takes hold for 15 Affliction damage.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10, type: Piercing }
-    - { op: apply, to: primary, effect: toxin }
+    - { op: damage, to: primary, amount: 5, type: Piercing }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: blowdart
         name: Blowdart
         kind: Debuff
         element: Assassin
-        description: The bearer's Toxin, Weakness and Vulnerable can't be removed.
-        modifiers:
-          - { mod: protectEffects, effects: [toxin, weakness, vulnerable] }
+        visibility: hidden
+        description: When this ends, the bearer takes 15 Affliction damage.
+        onExpire:
+          - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
 
 snipe.assassin:
   archetype: Snipe
@@ -283,25 +281,30 @@ blast.assassin:
 consume.assassin:
   archetype: Consume
   element: Assassin
-  name: Fulfill the Contract
+  name: Bloodletting
   description: >-
-    Deals 5 damage to target enemy, healing the user for it, and executes them if that leaves them at or below 15
-    HP. If they die, the user heals 30 more and gains Stealth.
+    Deals 5 Piercing damage to target enemy, who gains 2 Toxin. For 2 turns, at the end of each of the
+    user's turns, the user heals 5 per Toxin on them.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: { lastDamage: true } }
-    - op: forEach
-      in: { filter: allEnemies, where: { and: [{ isPrimary: it }, { hpAtMost: { unit: it, value: 15 } }] } }
-      do: [{ op: kill, to: it }]
-    - op: if
-      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
-      then:
-        - { op: heal, to: actor, amount: 30 }
-        - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 5, type: Piercing }
+    - { op: apply, to: primary, effect: toxin, stacks: 2 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: bloodletting
+        name: Bloodletting
+        kind: Debuff
+        element: Assassin
+        description: At the end of each of the applier's turns, they heal 5 per Toxin on the bearer.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: heal, to: actor, amount: { mul: [5, { stacks: { unit: bearer, effect: toxin } }] } }
 
 summon.assassin:
   archetype: Summon
@@ -420,17 +423,22 @@ stun.assassin:
   element: Assassin
   name: Knockout Poison
   description: >-
-    Deals 10 damage to target enemy, who falls Asleep for 1 turn, or 2 if they have 4 or more Toxin.
+    Target enemy gains 2 Toxin, then the draught takes hold all at once: they lose all their Toxin,
+    take 10 Affliction damage per stack lost (at most 30), and are Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10 }
-    - op: apply
+    - { op: apply, to: primary, effect: toxin, stacks: 2 }
+    # Every side's Toxin counts and goes; the poison spent becomes one burst.
+    - { op: set, var: dose, value: { totalStacks: { in: primary, effect: toxin } } }
+    - { op: removeEffect, from: primary, effect: toxin }
+    - op: damage
       to: primary
-      effect: sleep
-      duration: { enemyTurns: { if: { compare: { value: { stacks: { unit: primary, effect: toxin } }, atLeast: 4 } }, then: 2, else: 1 } }
+      type: Affliction
+      amount: { if: { compare: { value: { var: dose }, atLeast: 3 } }, then: 30, else: { mul: [10, { var: dose }] } }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.assassin:
   archetype: Dance
@@ -464,14 +472,31 @@ heal.assassin:
   archetype: Heal
   element: Assassin
   name: Blood Debt
-  description: Target ally heals 25, and the enemy who damaged them most recently gains your Death Mark.
+  description: >-
+    Target ally heals 20, and the enemy who damaged them most recently owes them blood: the next time
+    that enemy takes a direct hit from the user's side within 2 turns, the ally heals 20 more.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: heal, to: primary, amount: 25 }
-    - { op: forEach, in: primaryLastAttacker, do: [{ op: macro, id: place_mark }] }
+    - { op: heal, to: primary, amount: 20 }
+    - op: apply
+      to: primaryLastAttacker
+      remember: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: blood_debt
+        name: Blood Debt
+        kind: Debuff
+        element: Assassin
+        description: The next direct hit the bearer takes from the applier's side heals the one they hurt 20.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: heal, to: effectTargets, amount: 20 }
 
 bless.assassin:
   archetype: Bless
@@ -578,23 +603,23 @@ shout.assassin:
   element: Assassin
   name: Pick the Target
   description: >-
-    All enemies are Blinded for 2 turns. Your Death Mark's bearer (a random enemy, if none has it) is also Isolated
-    for 2 turns.
+    All enemies are Isolated for 1 turn, cut off from each other's help, and the one with the least HP
+    gains your Death Mark.
   cost: Wr
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: blinded, duration: { enemyTurns: 2 } }
-    - { op: macro, id: mark_if_none }
-    - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: death_mark } } }, effect: isolated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: targets, effect: isolated, duration: { enemyTurns: 1 } }
+    - { op: forEach, in: weakestEnemy, do: [{ op: macro, id: place_mark }] }
 
 withstand.assassin:
   archetype: Withstand
   element: Assassin
   name: Hidden Mail
   description: >-
-    The user gains 25 Shield for 1 turn. Each enemy skill that hits it has its cooldown raised by 1. Invisible.
+    For 1 turn, direct hits on the user deal half damage, and the first enemy to hit them gains your
+    Death Mark. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -609,13 +634,19 @@ withstand.assassin:
         kind: Buff
         element: Assassin
         visibility: hidden
-        shield: true
-        description: Absorbs damage; each enemy skill that hits it has its cooldown raised by 1.
+        stacking: unique
+        description: Direct hits on the bearer deal half damage; the first enemy to land one gains the Death Mark.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
         triggers:
-          - on: shieldDamaged
+          - on: damaged
+            when: { direct: true, byEnemy: true }
             do:
-              - { op: adjustCooldowns, to: eventSource, by: 1, onlyEvent: true }
-      value: 25
+              - op: if
+                cond: { not: { flag: marked } }
+                then:
+                  - { op: setFlag, flag: marked }
+                  - { op: forEach, in: eventSource, do: [{ op: macro, id: place_mark }] }
 
 taunt.assassin:
   archetype: Taunt

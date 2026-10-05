@@ -12,8 +12,3 @@ mirror_shade:
   onDeath:
     - { op: castSkill, lastUsedBy: lastAttacker, on: lastAttacker, as: it }
   skills: [mirror_shade_glass_shard]
-
-mirror_reflection:
-  name: Reflection
-  hp: 5
-  skills: []

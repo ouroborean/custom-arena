@@ -204,16 +204,16 @@ describe('Cloud skills', () => {
     expect([a.hp(B1), a.hp(B2), a.has(B2, 'mark')]).toEqual([100, 30, true]);
   });
 
-  it('Cloudburst: 30 to all; if the user wasn\'t Leaping, they Leap once it resolves', () => {
+  it('Cloudburst: 20 to all enemies, then 10 more Drifts onto each at the start of each of the user\'s next 2 turns', () => {
     const a = arena({ p0: [['blast.cloud']], p1: [['shot'], ['shot']] });
     a.use(A1, 'blast.cloud').end();
-    expect([a.hp(B1), a.hp(B2), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([70, 70, true, true]);
-  });
-
-  it('Cloudburst: it doesn\'t end the user\'s Leaping', () => {
-    const a = arena({ p0: [['blast.cloud']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'leaping').use(A1, 'blast.cloud').end();
-    expect([a.hp(B1), a.has(A1, 'leaping')]).toEqual([65, true]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 80]);
+    a.end(); // the user's next turn starts
+    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 70]);
+    a.end().end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 60]);
+    a.end().end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 60]); // twice only
   });
 
   it('Evaporate: 5 and the user heals 5; at the start of the user\'s next turn it drains 15 more', () => {
@@ -246,18 +246,36 @@ describe('Cloud skills', () => {
     expect(a.hp(B1)).toBe(90);
   });
 
-  it('Gathering Clouds: 10 to all enemies each of the user\'s turns for 3 turns; every ally is Aloft meanwhile', () => {
+  it('Gathering Clouds: a storm gathers over every enemy and grows by 15 at the end of each of the user\'s turns', () => {
     const a = arena({ p0: [['channel.cloud'], ['shot']], p1: [['shot'], ['shot']] });
+    expect(content.skills['channel.cloud']!.tags).toContain('Channeled');
+    const storm = (id: string) => a.effects(id).find((e) => e.defId === 'gathering_storm')?.value;
     a.use(A1, 'channel.cloud').end();
-    expect([a.hp(B1), a.hp(B2), a.has(A1, 'aloft'), a.has(A2, 'aloft'), a.has(B1, 'aloft')]).toEqual([
-      90,
-      90,
-      true,
-      true,
-      false,
-    ]);
-    a.pass(6);
-    expect([a.hp(B1), a.has(A2, 'aloft')]).toEqual([70, false]);
+    expect([storm(B1), storm(B2), a.hp(B1)]).toEqual([15, 15, 100]);
+    a.pass(1);
+    expect(storm(B1)).toBe(15); // not on the enemy's turn
+    a.pass(1);
+    expect([storm(B1), a.hp(B1)]).toEqual([30, 100]);
+  });
+
+  it('Gathering Clouds: at the end of the user\'s third turn, it breaks: each enemy takes all of theirs', () => {
+    const a = arena({ p0: [['channel.cloud'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'channel.cloud').end().pass(3);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
+    a.pass(1);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'gathering_storm'), channeling(a, A1)]).toEqual([55, 55, false, false]);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(55);
+  });
+
+  it('Gathering Clouds: breaking the channel stops the storm growing, but it still breaks on time', () => {
+    const a = arena({ p0: [['channel.cloud'], ['shot']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'channel.cloud').end().use(B1, 'stun', A1).end();
+    expect(channeling(a, A1)).toBe(false);
+    a.pass(2);
+    expect(a.hp(B2)).toBe(100);
+    a.pass(1); // the end of the user's third turn
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 85]);
   });
 
   it("Sleet Needle: 5 now, and 10 more Drifts onto the target at the start of the user's next turn", () => {
@@ -270,13 +288,30 @@ describe('Cloud skills', () => {
     expect(a.hp(B1)).toBe(85); // once only
   });
 
-  it('Downdraft: 25 Piercing; if Aloft, the user ends it for 20 more', () => {
+  it('Downburst: nothing lands at once; the first Harmful skill the target uses brings 35 Piercing damage down on them', () => {
     const a = arena({ p0: [['ravage.cloud']], p1: [['shot'], ['shot']] });
     a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.cloud', B1).end();
-    expect(a.hp(B1)).toBe(75);
-    a.give(A1, 'aloft', { duration: 10 }).pass(3).use(A1, 'ravage.cloud', B2).end();
-    expect(a.has(A1, 'aloft')).toBe(false);
-    expect([55, 50]).toContain(a.hp(B2)); // 45, plus Aloft's own +5 if it counts before it ends
+    expect([a.hp(B1), a.has(B1, 'downburst')]).toEqual([100, true]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'downburst')]).toEqual([65, 85, false]); // their skill still goes
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(65); // once only
+  });
+
+  it('Downburst: Helpful skills don\'t set it off; with no Harmful one, it falls for 20 as it ends', () => {
+    const a = arena({ p0: [['ravage.cloud']], p1: [['heal'], ['shot']] });
+    a.use(A1, 'ravage.cloud', B1).end().use(B1, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(100);
+    a.end();
+    expect(a.hp(B1)).toBe(100);
+    a.end();
+    expect([a.hp(B1), a.has(B1, 'downburst')]).toEqual([80, false]);
+  });
+
+  it('Downburst: a second one on the same enemy replaces the first', () => {
+    const a = arena({ p0: [['ravage.cloud'], ['ravage.cloud']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'ravage.cloud', B1).use(A2, 'ravage.cloud', B1).end().use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(65);
   });
 
   it('Low Ceiling: counters the target\'s Harmful skill, and they count as Immobile for 2 turns', () => {
@@ -295,12 +330,33 @@ describe('Cloud skills', () => {
     expect(immobile(a, B1)).toBe(false);
   });
 
-  it('Sleet Squall: 15 and Stun; the user is Aloft for as long', () => {
-    const a = arena({ p0: [['stun.cloud']], p1: [['shot']] });
-    a.use(A1, 'stun.cloud', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun'), a.has(A1, 'aloft')]).toEqual([85, true, true]);
+  it('Sleet Squall: Drift; when it lands, 10 damage to the target and each of their allies, and the enemy with the most HP is Stunned for 1 turn', () => {
+    const a = arena({ p0: [['stun.cloud']], p1: [['shot'], ['shot']] });
+    expect(content.skills['stun.cloud']!.tags).toContain('Drift');
+    a.setHp(B2, 50).use(A1, 'stun.cloud', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 50]);
+    a.use(B1, 'shot', A1).end(); // it hangs in plain sight; the target still acts this turn
+    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([85, 90, 40]);
     a.end();
-    expect([a.has(B1, 'stun'), a.has(A1, 'aloft')]).toEqual([false, false]);
+    a.use(B2, 'shot', A1);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().end();
+    a.use(B1, 'shot', A1);
+  });
+
+  it('Sleet Squall: the Stun goes to whoever has the most HP, not necessarily the target', () => {
+    const a = arena({ p0: [['stun.cloud']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 50).use(A1, 'stun.cloud', B1).end().end().end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([40, 90]);
+    expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('cannot_act');
+    a.use(B1, 'shot', A1);
+  });
+
+  it('Sleet Squall: it\'s the ordinary Stun, so Swiftness stops it', () => {
+    const a = arena({ p0: [['stun.cloud']], p1: [['shot']] });
+    a.give(B1, 'swiftness').use(A1, 'stun.cloud', B1).end().end().end();
+    expect(a.has(B1, 'swiftness')).toBe(false);
+    a.use(B1, 'shot', A1);
   });
 
   it('Sky Dancer: Aloft and 1 Focus; each of the user\'s turns a random enemy loses their mobility buffs', () => {
@@ -412,7 +468,7 @@ const KIT: [string, string, number][] = [
   ['strike', 'S', 0], ['smash', 'Arr', 3], ['charge', 'nc', 1], ['riposte', 'r', 2], ['rage', 'S', 4],
   ['shot', 'r', 1], ['snipe', 'Ar', 2], ['trap', 'A', 3], ['maneuver', 'r', 3], ['companion', 'I', 1],
   ['bolt', 'I', 1], ['blast', 'Arr', 2], ['consume', 'r', 2], ['summon', 'r', 3], ['channel', 'AI', 3],
-  ['stab', 'r', 0], ['ravage', 'A', 1], ['mislead', 'A', 2], ['stun', 'r', 2], ['dance', 'AA', 4],
+  ['stab', 'r', 0], ['ravage', 'Ar', 1], ['mislead', 'A', 2], ['stun', 'r', 2], ['dance', 'AA', 4],
   ['heal', 'A', 1], ['bless', 'A', 2], ['curse', 'A', 2], ['smite', 'Wr', 1], ['prayer', 'Wrr', 2],
   ['cleave', 'Ar', 1], ['shout', 'A', 3], ['withstand', 'r', 3], ['taunt', 'r', 3], ['titan', 'SW', 4],
 ];

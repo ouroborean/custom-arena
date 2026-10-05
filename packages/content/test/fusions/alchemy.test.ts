@@ -110,21 +110,19 @@ describe('Alchemy skills', () => {
     expect(a.hp(B1)).toBe(100 - 20 - 5 - 15);
   });
 
-  it('Kiln Crash: 25 to the target and 15 to their allies', () => {
-    const a = arena({ p0: [['smash.alchemy']], p1: [['shot'], ['shot']] });
+  it('Kiln Crash: 25 to the target; their allies take no damage but each gains Catalyst (2 turns)', () => {
+    const a = arena({ p0: [['smash.alchemy'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'smash.alchemy', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 100, 100]);
+    expect([a.has(B1, 'catalyst_debuff'), a.has(B2, 'catalyst_debuff'), a.has(B3, 'catalyst_debuff')]).toEqual([false, true, true]);
+    a.pass(1).use(A2, 'shot', B2).end(); // the Catalyst doubles the next hit
+    expect([a.hp(B2), a.has(B2, 'catalyst_debuff')]).toEqual([70, false]);
   });
 
-  it("Kiln Crash: for 2 turns, a Scorched enemy's Shield is halved at the end of each of the user's turns", () => {
+  it('Kiln Crash: a Catalyst already on the target doubles the crash itself', () => {
     const a = arena({ p0: [['smash.alchemy']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'scorched', { source: B2 }).give(B2, 'shield', { value: 55 }).give(B1, 'shield', { value: 65 });
-    a.use(A1, 'smash.alchemy', B1).end();
-    expect([shieldOf(a, B1), shieldOf(a, B2)]).toEqual([40, 20]); // only the Scorched one halves
-    a.pass(2);
-    expect(shieldOf(a, B2)).toBe(10);
-    a.pass(2);
-    expect(shieldOf(a, B2)).toBe(10); // over after 2 turns
+    a.give(B1, 'catalyst_debuff', { source: A1, duration: 4 }).use(A1, 'smash.alchemy', B1).end();
+    expect(a.hp(B1)).toBe(50);
   });
 
   it('Steam Rush: 15 and 1 Focus for the next skill', () => {
@@ -146,21 +144,20 @@ describe('Alchemy skills', () => {
     expect(b.has(A1, 'renew')).toBe(false);
   });
 
-  it("Reactive Flask: counters every Harmful skill on the user and Ignites the attacker", () => {
+  it('Reactive Flask: Invisible; counters the first Harmful skill on the user; its user gains Catalyst', () => {
     const a = arena({ p0: [['riposte.alchemy']], p1: [['shot'], ['shot']] });
     a.use(A1, 'riposte.alchemy').end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1)).toBe(false); // Invisible
     a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.hp(A1), a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([100, true, true]);
+    expect([a.hp(A1), a.has(B1, 'catalyst_debuff'), a.has(B2, 'catalyst_debuff')]).toEqual([85, true, false]); // only the first
   });
 
-  it("Reactive Flask: on a counter, the user's Debuffs are Transmuted into Renew", () => {
+  it("Reactive Flask: the attacker's Might, Armor, Focus and Renew are Transmuted; other Buffs stay", () => {
     const a = arena({ p0: [['riposte.alchemy']], p1: [['shot']] });
-    a.give(A1, 'scorched', { source: B1 }).give(A1, 'ignite', { source: B1 });
+    a.give(B1, 'might', { stacks: 2 }).give(B1, 'armor').give(B1, 'swiftness');
     a.use(A1, 'riposte.alchemy').end();
-    expect(a.has(A1, 'scorched')).toBe(true); // nothing happens until a counter
     a.use(B1, 'shot', A1).end();
-    expect([a.has(A1, 'scorched'), a.has(A1, 'ignite'), a.stacks(A1, 'renew')]).toEqual([false, false, 2]);
+    expect([a.stacks(B1, 'weakness'), a.stacks(B1, 'vulnerable'), a.has(B1, 'might'), a.has(B1, 'armor'), a.has(B1, 'swiftness')]).toEqual([2, 1, false, false, true]);
   });
 
   it('Magnum Opus: 2 Might for 3 turns, and Catalyst at the start of each of the user’s turns', () => {
@@ -350,48 +347,46 @@ describe('Alchemy skills', () => {
     expect(a.unit(al.id).alive).toBe(false);
   });
 
-  it('Slow Distillation: 5 to all enemies and 1 Renew to all allies each turn', () => {
+  it('Slow Distillation: nothing while it brews; run its course (3 turns), it releases 30 to every enemy and 15 healing to every ally', () => {
     const a = arena({ p0: [['channel.alchemy'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A2, 50).use(A1, 'channel.alchemy').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 95]);
-    expect(a.log().filter((l) => /A2 gains Renew/.test(l))).toHaveLength(1);
-    a.pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]);
+    a.setHp(A1, 50).setHp(A2, 50).use(A1, 'channel.alchemy').end().pass(4);
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([100, 100, 50]);
+    a.pass(1); // the 3rd turn's countdown ends it
+    expect([a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2)]).toEqual([70, 70, 65, 65]);
+    a.pass(4);
+    expect(a.hp(B1)).toBe(70); // once
   });
 
-  it("Slow Distillation: after the full 4 turns, allies' Renew boils off as 5 Affliction per stack", () => {
-    const a = arena({ p0: [['channel.alchemy']], p1: [['shot']] });
-    a.give(A1, 'renew', { stacks: 10, source: B1 }); // ticks (and decays) on the enemy's turns only
-    a.use(A1, 'channel.alchemy').end().pass(5);
-    const before = a.hp(B1);
-    const renew = a.stacks(A1, 'renew');
-    expect(renew).toBeGreaterThanOrEqual(7);
-    a.pass(2); // 4th tick; the channel runs out at the end of the enemy's turn and the Renew boils off
-    expect(a.has(A1, 'renew')).toBe(false);
-    expect(before - a.hp(B1)).toBeGreaterThanOrEqual(5 + 5 * (renew - 1));
+  it('Slow Distillation: using another skill breaks it early and releases what has brewed so far', () => {
+    const a = arena({ p0: [['channel.alchemy', 'shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'channel.alchemy').end().pass(3); // 2 turns brewed
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(A2)]).toEqual([100 - 20 - 15, 60]);
   });
 
-  it('Slow Distillation: broken early, no boil-off', () => {
-    const a = arena({ p0: [['channel.alchemy', 'shot']], p1: [['shot']] });
-    a.give(A1, 'renew', { stacks: 5, source: B1 });
-    a.use(A1, 'channel.alchemy').end().pass(1);
-    a.use(A1, 'shot', B1).end(); // using a skill ends the channel
-    const before = a.hp(B1);
-    a.pass(6);
-    expect(a.hp(B1)).toBe(before);
+  it('Slow Distillation: Channeled: a Stun breaks it early too', () => {
+    const a = arena({ p0: [['channel.alchemy']], p1: [['stun']] });
+    a.use(A1, 'channel.alchemy').end();
+    a.use(B1, 'stun', A1).end(); // 1 turn brewed
+    expect(a.hp(B1)).toBe(90);
   });
 
-  it('Probing Lancet: 10, or 20 at or below 60 HP', () => {
+  it('Probing Lancet: a target with no more Buffs than Debuffs takes 20 (the weak spot)', () => {
     const a = arena({ p0: [['stab.alchemy'], ['stab.alchemy']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.alchemy', B1).use(A2, 'stab.alchemy', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+    a.give(B2, 'might').give(B2, 'weakness').use(A1, 'stab.alchemy', B1).use(A2, 'stab.alchemy', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B2, 'might')]).toEqual([80, 80, true]);
   });
 
-  it("Probing Lancet: can't be countered", () => {
-    const a = arena({ p0: [['stab.alchemy']], p1: [['riposte']] });
-    a.pass(1).use(B1, 'riposte').end();
-    a.use(A1, 'stab.alchemy', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([90, 100]);
+  it('Probing Lancet: with more Buffs than Debuffs, 10 and one Buff is Transmuted (or removed, with no recipe)', () => {
+    const a = arena({ p0: [['stab.alchemy'], ['stab.alchemy']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'might', { stacks: 2 }).give(B2, 'swiftness');
+    a.use(A1, 'stab.alchemy', B1).use(A2, 'stab.alchemy', B2).end();
+    expect([a.hp(B1), a.has(B1, 'might'), a.stacks(B1, 'weakness')]).toEqual([90, false, 2]);
+    expect([a.hp(B2), a.has(B2, 'swiftness')]).toEqual([90, false]);
+  });
+
+  it('Probing Lancet: can be countered now', () => {
+    expect(content.skills['stab.alchemy']!.tags).not.toContain('Uncounterable');
   });
 
   it("Boiling Point: 25 Piercing; boils off the user's Renew, ticking the target's Ignite once per stack", () => {
@@ -536,16 +531,25 @@ describe('Alchemy skills', () => {
     expect([a.hp(A1), a.hp(A2), a.stacks(A2, 'renew')]).toEqual([75, 75, 1]);
   });
 
-  it('Splash Potion: 25 + 15 to a random other enemy', () => {
-    const a = arena({ p0: [['cleave.alchemy']], p1: [['shot'], ['shot']] });
+  it('Splash Potion: 20 to the target, who is Weakened for 1 turn; with only that Debuff, 5 to every other enemy', () => {
+    const a = arena({ p0: [['cleave.alchemy']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.alchemy', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2'), a.stacks(B1, 'weakness')]).toEqual([80, 95, 95, 1]);
+    a.end();
+    expect(a.has(B1, 'weakness')).toBe(false); // 1 turn
   });
 
-  it('Splash Potion: if the target has Catalyst, both hits are doubled', () => {
+  it('Splash Potion: 5 to every other enemy per Debuff on the target', () => {
     const a = arena({ p0: [['cleave.alchemy']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'catalyst_debuff', { source: A1, duration: 4 }).use(A1, 'cleave.alchemy', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([50, 70]);
+    a.give(B1, 'scorched', { source: A1, duration: 4 }).use(A1, 'cleave.alchemy', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 90]);
+  });
+
+  it('Splash Potion: up to 15', () => {
+    const a = arena({ p0: [['cleave.alchemy']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'scorched', { source: A1, duration: 4 }).give(B1, 'vulnerable', { source: A1, duration: 4 }).give(B1, 'confusion', { source: A1, duration: 4 });
+    a.use(A1, 'cleave.alchemy', B1).end();
+    expect(a.hp(B2)).toBe(85);
   });
 
   it('Souring Vapors: for 1 turn, every Buff an enemy gains is Transmuted on arrival', () => {
@@ -620,7 +624,7 @@ describe('Alchemy costs and cooldowns (kit table)', () => {
     curse: ['r', 3],
     smite: ['I', 1],
     prayer: ['Wrr', 2],
-    cleave: ['S', 1],
+    cleave: ['Sr', 1],
     shout: ['I', 2],
     withstand: ['r', 2],
     taunt: ['S', 3],

@@ -120,14 +120,14 @@ rage.divine:
   element: Divine
   name: Apotheosis
   description: >-
-    For 3 turns, the user is Exalted. Each time they damage an enemy, the ally with the least HP
-    heals 10; each time they heal an ally, a random enemy takes 10.
+    For 3 turns, each time the user deals direct damage to an enemy, the ally with the least HP heals
+    half as much; each time the user heals someone, that healing included, a random enemy takes half as
+    much.
   cost: S
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: exalted, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -136,15 +136,15 @@ rage.divine:
         name: Apotheosis
         kind: Buff
         element: Divine
-        description: Direct damage to an enemy heals the weakest ally 10; each heal hits a random enemy for 10.
+        description: The bearer's direct damage to enemies heals the weakest ally half as much; their heals hit a random enemy for half as much.
         triggers:
           - on: dealtDamage
             when: { byEnemy: true, direct: true }
             do:
-              - { op: heal, to: weakestAlly, amount: 10 }
+              - { op: heal, to: weakestAlly, amount: { div: [{ eventAmount: true }, 2] } }
           - on: healDone
             do:
-              - { op: damage, to: { randomEnemy: 1 }, amount: 10, direct: false }
+              - { op: damage, to: { randomEnemy: 1 }, amount: { div: [{ eventAmount: true }, 2] }, direct: false }
 
 shot.divine:
   archetype: Shot
@@ -172,9 +172,8 @@ snipe.divine:
   element: Divine
   name: Spear of Heaven
   description: >-
-    On the following turn, deals 45 damage to target enemy, and they're Sanctified for 2 turns. Each
-    ally healed by that Sanctify is Anointed until the end of their next turn. The target of this
-    skill is invisible. Channeled.
+    On the following turn, deals 35 damage to target enemy, plus 10 for each time an ally of the user
+    is healed meanwhile (max 30 more). The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -191,25 +190,37 @@ snipe.divine:
         element: Divine
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes at the end of the following turn unless interrupted.
+        description: Strikes at the end of the following turn unless interrupted, 10 harder for each heal the user's side gathers (max 30).
         onExpire:
-          - { op: damage, to: effectTargets, amount: 45 }
-          - op: apply
+          - op: damage
             to: effectTargets
-            duration: { enemyTurns: 2 }
-            effect:
-              id: spear_sanctify
-              name: Sanctified (Spear of Heaven)
-              kind: Debuff
-              element: Divine
-              countsAs: [sanctify]
-              description: When the bearer takes direct damage, the damager heals 15 and is Anointed until the end of their next turn.
-              triggers:
-                - on: damaged
-                  when: { direct: true }
-                  do:
-                    - { op: heal, to: eventSource, amount: 15 }
-                    - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
+            amount: { sum: [35, { mul: [10, { stacks: { unit: bearer, effect: gathered_light } }] }] }
+          - { op: removeEffect, from: bearer, effect: gathered_light }
+    # Each heal on the user's side while it's aimed gathers light for the Spear.
+    - op: apply
+      to: allAllies
+      linkTo: spear_of_heaven
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spear_of_heaven_watch
+        name: Spear of Heaven
+        kind: Neutral
+        element: Divine
+        description: Each time the bearer is healed, the Spear of Heaven gathers light.
+        triggers:
+          - on: healed
+            do:
+              - op: apply
+                to: actor
+                duration: { raw: 3 }
+                effect:
+                  id: gathered_light
+                  name: Gathered Light
+                  kind: Neutral
+                  element: Divine
+                  stacking: merge
+                  maxStacks: 3
+                  description: Each stack adds 10 to the Spear of Heaven.
 
 trap.divine:
   archetype: Trap
@@ -451,9 +462,10 @@ stun.divine:
   element: Divine
   name: Awe
   description: >-
-    Radiant. Enemy: Stunned for 1 turn if Condemned, otherwise Condemned. Ally: loses all Stuns.
-  cost: r
-  cooldown: 1
+    Radiant. Enemy: Stunned for 1 turn, then Condemned when it ends. Ally: loses all Stuns and gains 1
+    Swiftness for 2 turns.
+  cost: A
+  cooldown: 2
   tags: [Radiant, Strategic]
   target: any
   ops:
@@ -514,8 +526,8 @@ bless.divine:
   element: Divine
   name: Consecrate
   description: >-
-    Radiant. Ally: Exalted until the end of their next turn, and 1 Might for 3 turns. Enemy: they
-    lose Anointed and Exalted, and can't gain either for 2 turns.
+    Radiant. Ally: for 2 turns, each enemy they hit is Condemned. Enemy: for 2 turns, each ally of the
+    user who hits them is Anointed until the end of their next turn.
   cost: r
   cooldown: 2
   tags: [Radiant, Strategic]
@@ -535,8 +547,8 @@ curse.divine:
   element: Divine
   name: Anathema
   description: >-
-    Radiant. Enemy: Condemned and Sanctified for 2 turns. Ally: loses their Condemn, Weakness,
-    Vulnerable and Confusion.
+    Radiant. Enemy: Condemned, and every Debuff on the user's ally with the least HP moves onto them.
+    Ally: their Debuffs move onto the enemy with the most HP, who is Condemned.
   cost: A
   cooldown: 2
   tags: [Radiant, Strategic]
@@ -556,8 +568,7 @@ smite.divine:
   element: Divine
   name: Karmic Light
   description: >-
-    Deals 15 damage to target enemy, and they're Sanctified for 2 turns. Its healing goes to the
-    ally with the least HP instead of the damager.
+    Deals 15 damage to target enemy. For 2 turns, each unit they hit heals 10 afterward.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -569,16 +580,15 @@ smite.divine:
       duration: { enemyTurns: 2 }
       effect:
         id: karmic_light
-        name: Sanctified (Karmic Light)
+        name: Karmic Light
         kind: Debuff
         element: Divine
-        countsAs: [sanctify]
-        description: When the bearer takes direct damage, the caster's ally with the least HP heals 15.
+        description: Each unit the bearer hits heals 10 afterward.
         triggers:
-          - on: damaged
+          - on: dealtDamage
             when: { direct: true }
             do:
-              - { op: heal, to: weakestAlly, amount: 15 }
+              - { op: heal, to: eventTarget, amount: 10 }
 
 prayer.divine:
   archetype: Prayer

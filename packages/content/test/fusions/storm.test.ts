@@ -3,7 +3,7 @@
 // Units: A1..A3 = p0c0..p0c2 (player 1, odd turns), B1..B3 = p1c0..p1c2.
 
 import { describe, expect, it } from 'vitest';
-import { evaluateNamedCondition, type Cost, type GameEvent } from '@arena/engine';
+import { type Cost, type GameEvent } from '@arena/engine';
 import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
@@ -40,8 +40,8 @@ function parseCost(s: string): Cost {
 
 const kit: [string, string, number][] = [
   ['strike', 'S', 0], ['smash', 'Ar', 2], ['charge', 'S', 2], ['riposte', 'r', 3], ['rage', 'Sr', 4],
-  ['shot', 'r', 0], ['snipe', 'Ar', 2], ['trap', 'A', 3], ['maneuver', 'r', 2], ['companion', 'I', 1],
-  ['bolt', 'I', 1], ['blast', 'Ar', 2], ['consume', 'r', 2], ['summon', 'r', 2], ['channel', 'SI', 3],
+  ['shot', 'r', 0], ['snipe', 'Ar', 2], ['trap', 'A', 3], ['maneuver', 'r', 3], ['companion', 'I', 1],
+  ['bolt', 'I', 2], ['blast', 'Ar', 2], ['consume', 'r', 2], ['summon', 'r', 2], ['channel', 'SI', 3],
   ['stab', 'r', 0], ['ravage', 'A', 1], ['mislead', 'S', 2], ['stun', 'A', 2], ['dance', 'AA', 5],
   ['heal', 'A', 2], ['bless', 'S', 2], ['curse', 'I', 2], ['smite', 'Wr', 1], ['prayer', 'Wrr', 2],
   ['cleave', 'Ar', 1], ['shout', 'S', 3], ['withstand', 'r', 3], ['taunt', 'r', 3], ['titan', 'SW', 4],
@@ -150,15 +150,15 @@ describe('Eye of the Storm', () => {
   it('the Storm skill that brings Tempest to 5 is not itself empowered (the Eye is for the next one)', () => {
     const a = arena({ p0: [['stab.storm']], p1: [['shot'], ['shot'], ['shot']] });
     a.give(A1, 'tempest', { stacks: 4 });
-    a.use(A1, 'stab.storm', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.has(A1, 'eye_of_the_storm')]).toEqual([90, 100, 100, true]);
+    a.use(A1, 'stab.storm', B1).end(); // the Knife's gale finds B1 again (least HP): 20 in all
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.has(A1, 'eye_of_the_storm')]).toEqual([80, 100, 100, true]);
   });
 
   it('the next Storm skill also hits every enemy it did not target for 15 (not the target), and Tempest drops to 3', () => {
     const a = arena({ p0: [['stab.storm'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.give(A1, 'tempest', { stacks: 5 }).give(A1, 'eye_of_the_storm');
     a.use(A1, 'stab.storm', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([90, 85, 85, 100]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([80, 85, 85, 100]); // B1: the Knife and its gale
     expect([a.has(A1, 'eye_of_the_storm'), a.stacks(A1, 'tempest')]).toEqual([false, 3]);
   });
 
@@ -193,59 +193,55 @@ describe('Storm skills', () => {
     expect(a.hp(B1)).toBe(70);
   });
 
-  it('Downburst: 25 to the target and 10 to their allies, not to the user\'s side', () => {
+  it('Spider Lightning: 10 to the target, then it arcs through their allies one at a time, 10 stronger each arc; each arc spends 1 Tempest', () => {
     const a = arena({ p0: [['smash.storm'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'smash.storm', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([75, 90, 90, 100]);
+    a.give(A1, 'tempest', { stacks: 2 }).use(A1, 'smash.storm', B1).end(); // 3 Tempest: two arcs
+    expect([a.hp(B1), [a.hp(B2), a.hp(B3)].sort((x, y) => x - y), a.hp(A2)]).toEqual([90, [70, 80], 100]);
+    expect(a.stacks(A1, 'tempest')).toBe(1);
   });
 
-  it('Downburst: the user gains 1 Swiftness at the start of their next turn (not at once)', () => {
+  it('Spider Lightning: once the user has no Tempest left, the lightning grounds out', () => {
+    const a = arena({ p0: [['smash.storm']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'smash.storm', B1).end(); // only its own Tempest: one arc
+    expect([a.hp(B1), [a.hp(B2), a.hp(B3)].sort((x, y) => x - y), a.stacks(A1, 'tempest')]).toEqual([90, [80, 100], 0]);
+  });
+
+  it('Spider Lightning: the arcs grow up to 30', () => {
+    const a = arena({ p0: [['smash.storm']], p1: [['shot'], ['summon'], ['shot']] });
+    a.pass(1).use(B2, 'summon').end();
+    const [fam] = a.state.units.filter((u) => u.alive && u.owner === 1 && u.kind === 'minion');
+    a.setHp(fam!.id, 100).give(A1, 'tempest', { stacks: 3 }).use(A1, 'smash.storm', B1).end(); // 4 Tempest: three arcs
+    const lost = [100 - a.hp(B2), 100 - a.hp(B3), 100 - a.hp(fam!.id)].sort((x, y) => x - y);
+    expect([a.hp(B1), lost, a.stacks(A1, 'tempest')]).toEqual([90, [20, 30, 30], 1]);
+  });
+
+  it('Spider Lightning: against a lone enemy, only the 10, and no Tempest is spent', () => {
     const a = arena({ p0: [['smash.storm']], p1: [['shot']] });
     a.use(A1, 'smash.storm', B1).end();
-    expect(a.has(A1, 'swiftness')).toBe(false);
-    a.pass(1);
-    expect(a.stacks(A1, 'swiftness')).toBe(1);
+    expect([a.hp(B1), a.stacks(A1, 'tempest')]).toEqual([90, 1]);
   });
 
-  it('Downburst: 1 Swiftness at the start of each of the user\'s next 2 turns, then no more', () => {
-    const a = arena({ p0: [['smash.storm']], p1: [['shot']] });
-    const dropSwift = () => (a.state.effects = a.state.effects.filter((e) => !(e.bearer === A1 && e.defId === 'swiftness')));
-    a.use(A1, 'smash.storm', B1).end();
-    expect(a.has(A1, 'swiftness')).toBe(false);
-    a.pass(1);
-    expect(a.stacks(A1, 'swiftness')).toBe(1);
-    dropSwift();
-    a.pass(2);
-    expect(a.stacks(A1, 'swiftness')).toBe(1);
-    dropSwift();
-    a.pass(2);
-    expect(a.has(A1, 'swiftness')).toBe(false);
-  });
-
-  it('Ride the Wind: 10 damage and the user begins Rushing', () => {
+  it('Ride the Wind: 15 damage', () => {
     const a = arena({ p0: [['charge.storm']], p1: [['shot']] });
     a.use(A1, 'charge.storm', B1).end();
-    expect([a.hp(B1), a.has(A1, 'rushing')]).toEqual([90, true]);
+    expect(a.hp(B1)).toBe(85);
   });
 
-  it('Ride the Wind: each turn the user starts Rushing they gain 1 Charge', () => {
-    const a = arena({ p0: [['charge.storm', 'shot']], p1: [['shot']] });
-    a.use(A1, 'charge.storm', B1).end();
-    const c0 = a.stacks(A1, 'charged');
-    a.pass(1);
-    expect(a.stacks(A1, 'charged')).toBe(c0 + 1);
-    a.use(A1, 'shot', B1).end().pass(1); // keeps Rushing
-    expect(a.stacks(A1, 'charged')).toBe(c0 + 2);
-  });
-
-  it('Ride the Wind: no Charge at the start of a turn the user is not Rushing', () => {
-    const a = arena({ p0: [['charge.storm', 'shot']], p1: [['shot']] });
+  it('Ride the Wind: the user\'s next Harmful skill also hits a random other enemy for 5 per Tempest, once', () => {
+    const a = arena({ p0: [['charge.storm', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.storm', B1).end().pass(1);
-    const c = a.stacks(A1, 'charged');
-    a.end(); // no skill: Rushing ends
-    expect(a.has(A1, 'rushing')).toBe(false);
-    a.pass(1);
-    expect(a.stacks(A1, 'charged')).toBe(c);
+    expect(a.hp(B2)).toBe(100); // not on the Charge itself
+    setTempest(a, A1, 3).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 85]);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B2)).toBe(85);
+  });
+
+  it('Ride the Wind: a Helpful skill doesn\'t use up the gust', () => {
+    const a = arena({ p0: [['charge.storm', 'heal']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.storm', B1).end().pass(1);
+    a.use(A1, 'heal', A1).end();
+    expect([a.hp(B2), a.has(A1, 'ride_the_wind')]).toEqual([100, true]);
   });
 
   it('Grounded Arc: counters the first Harmful skill on the user and Saps its user once per energy it cost', () => {
@@ -278,23 +274,37 @@ describe('Storm skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Gathering Storm: Stormborn and 1 Might for 3 turns', () => {
-    const a = arena({ p0: [['rage.storm', 'shot']], p1: [['shot']] });
+  it('Storm Within: nothing on its own use; then each Harmful Storm skill spends 1 Tempest to strike every enemy it didn\'t target for 10', () => {
+    const a = arena({ p0: [['rage.storm', 'charge.storm']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'rage.storm').end();
-    expect([a.has(A1, 'stormborn'), a.stacks(A1, 'might')]).toEqual([true, 1]);
-    a.pass(6);
-    expect([a.has(A1, 'stormborn'), a.stacks(A1, 'might')]).toEqual([false, 0]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.stacks(A1, 'tempest')]).toEqual([100, 100, 100, 1]);
+    a.pass(1).use(A1, 'charge.storm', B1).end(); // its own +1, then spent: Tempest stays where it was
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([85, 90, 90]);
+    expect(a.stacks(A1, 'tempest')).toBe(1);
   });
 
-  it('Gathering Storm: Charge filling to 3 raises Tempest by 1; Charge below 3 does not', () => {
-    const a = arena({ p0: [['rage.storm', 'shot']], p1: [['shot']] });
+  it('Storm Within: a Helpful Storm skill, or one that targets every enemy, doesn\'t ride it or spend Tempest', () => {
+    const a = arena({ p0: [['rage.storm', 'heal.storm', 'blast.storm']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'rage.storm').end().pass(1);
-    setTempest(a, A1, 0).give(A1, 'charged', { stacks: 1 });
-    a.use(A1, 'shot', B1).end(); // Stormborn: 2 Charge
-    setTempest(a, A1, 0);
-    expect(a.stacks(A1, 'charged')).toBe(2);
-    a.use(B1, 'shot', A1).end(); // Stormborn: 3 Charge
-    expect(a.stacks(A1, 'tempest')).toBe(1);
+    a.use(A1, 'heal.storm', A1).end().pass(1); // Helpful: no strike
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.stacks(A1, 'tempest')]).toEqual([100, 100, 100, 2]);
+    a.use(A1, 'blast.storm').end(); // every enemy targeted: only Supercell's own -1
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.stacks(A1, 'tempest')]).toEqual([75, 75, 75, 2]);
+  });
+
+  it('Storm Within: a non-Storm skill doesn\'t ride it', () => {
+    const a = arena({ p0: [['rage.storm', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.storm').end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 100]);
+  });
+
+  it('Storm Within: lasts 3 turns', () => {
+    const a = arena({ p0: [['rage.storm', 'stab.storm']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.storm').end().pass(3);
+    a.setHp(B1, 50).use(A1, 'stab.storm', B1).end(); // still on: B2 struck
+    expect(a.hp(B2)).toBe(90);
+    a.pass(1).use(A1, 'stab.storm', B1).end(); // over
+    expect(a.hp(B2)).toBe(90);
   });
 
   it('Shared Static: 15, then each time an ally takes damage before the user\'s next turn, the user gains 1 Charge', () => {
@@ -357,14 +367,42 @@ describe('Storm skills', () => {
     expect(a.hp(B1)).toBe(100);
   });
 
-  it('Lightning Leap: the user Leaps and gains Conduit; the landing blow steals the target\'s Charge, then Conduit ends', () => {
-    const a = arena({ p0: [['maneuver.storm', 'shot']], p1: [['shot']] });
+  it('Into the Eye: Tempest rises to 3; enemies can\'t single the user out, but skills that hit their whole side still reach them', () => {
+    const a = arena({ p0: [['maneuver.storm'], ['shot']], p1: [['shot'], ['blast']] });
     a.use(A1, 'maneuver.storm').end();
-    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable'), a.has(A1, 'conduit')]).toEqual([true, true, true]);
-    a.give(B1, 'charged', { stacks: 2 }).pass(1);
-    a.use(A1, 'shot', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'charged'), a.stacks(A1, 'charged')]).toEqual([80, 0, 2]);
-    expect([a.has(A1, 'leaping'), a.has(A1, 'conduit')]).toEqual([false, false]);
+    expect([a.stacks(A1, 'tempest'), a.has(A1, 'invulnerable')]).toEqual([3, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B1, 'shot', A2).use(B2, 'blast').end();
+    expect(a.hp(A1)).toBeLessThan(100);
+    expect(a.hp(A2)).toBeLessThan(a.hp(A1));
+  });
+
+  it('Into the Eye: at 3 or more Tempest already, it only adds its own 1', () => {
+    const a = arena({ p0: [['maneuver.storm']], p1: [['shot']] });
+    a.give(A1, 'tempest', { stacks: 3 }).use(A1, 'maneuver.storm').end();
+    expect(a.stacks(A1, 'tempest')).toBe(4);
+  });
+
+  it('Into the Eye: it holds through a second enemy turn while Tempest stays at 3 or more', () => {
+    const a = arena({ p0: [['maneuver.storm', 'stab.storm']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'maneuver.storm').end().pass(1).use(A1, 'stab.storm', B1).end(); // 4 Tempest
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+  });
+
+  it('Into the Eye: once Tempest falls below 3, the user can be singled out again', () => {
+    const a = arena({ p0: [['maneuver.storm']], p1: [['shot']] });
+    a.use(A1, 'maneuver.storm').end().pass(2); // a turn with no Storm skill: 3 falls to 2
+    expect(a.stacks(A1, 'tempest')).toBe(2);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Into the Eye: lasts 2 turns', () => {
+    const a = arena({ p0: [['maneuver.storm']], p1: [['shot']] });
+    a.use(A1, 'maneuver.storm').end().pass(4); // two enemy turns covered; this is the third
+    setTempest(a, A1, 5);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Storm Roc: a permanent 40 HP minion whose Gale Wing deals 5', () => {
@@ -389,21 +427,32 @@ describe('Storm skills', () => {
     expect([a.hp(B1), a.stacks(B1, 'sapped')]).toEqual([80, 1]);
   });
 
-  it('Stormbolt: 20 and a Sap on the target, no arcs at under 2 Tempest', () => {
-    const a = arena({ p0: [['bolt.storm']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'bolt.storm', B1).end(); // 1 Tempest
-    expect([a.hp(B1), a.stacks(B1, 'sapped'), a.hp(B2), a.hp(B3)]).toEqual([80, 1, 100, 100]);
+  it('Thunderhead: nothing at first; as the user’s next turn ends it breaks on the target: 20 damage', () => {
+    const a = arena({ p0: [['bolt.storm']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bolt.storm', B1).end();
+    expect([a.hp(B1), a.has(A1, 'thunderhead'), a.stacks(A1, 'tempest')]).toEqual([100, true, 1]);
+    a.pass(1);
+    expect(a.hp(B1)).toBe(100);
+    a.pass(1);
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'thunderhead')]).toEqual([80, 100, false]);
   });
 
-  it('Stormbolt: arcs to 1 other enemy per 2 Tempest for 10 each, without Sapping them', () => {
-    const a = arena({ p0: [['bolt.storm']], p1: [['shot'], ['shot'], ['shot']], seed: 3 });
-    a.give(A1, 'tempest', { stacks: 2 }).use(A1, 'bolt.storm', B1).end(); // 3 Tempest: 1 arc
-    expect(a.hp(B1)).toBe(80);
-    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 90].sort());
-    expect([a.has(B2, 'sapped'), a.has(B3, 'sapped')]).toEqual([false, false]);
-    const b = arena({ p0: [['bolt.storm']], p1: [['shot'], ['shot'], ['shot']] });
-    b.give(A1, 'tempest', { stacks: 3 }).use(A1, 'bolt.storm', B1).end(); // 4 Tempest: 2 arcs
-    expect([b.hp(B1), b.hp(B2), b.hp(B3)]).toEqual([80, 90, 90]);
+  it('Thunderhead: meanwhile the user’s Tempest doesn’t rise; each Storm skill their team uses charges it instead, for 10 more each', () => {
+    const a = arena({ p0: [['bolt.storm', 'strike.storm'], ['shot.storm']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bolt.storm', B1).use(A2, 'shot.storm', B2).end();
+    expect([a.stacks(A1, 'tempest'), a.stacks(A2, 'tempest')]).toEqual([1, 2]);
+    a.pass(1).use(A1, 'strike.storm', B1).end(); // 15 + 5: still 1 Tempest; then it breaks for 20 + 2 x 10
+    expect([a.hp(B1), a.stacks(A1, 'tempest')]).toEqual([40, 1]);
+    a.pass(1).use(A1, 'strike.storm', B2).end(); // over: Tempest rises again
+    expect(a.stacks(A1, 'tempest')).toBe(2);
+  });
+
+  it('Thunderhead: at most 3 charges', () => {
+    const a = arena({ p0: [['bolt.storm', 'strike.storm'], ['shot.storm'], ['shot.storm']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bolt.storm', B1).use(A2, 'shot.storm', B2).use(A3, 'shot.storm', B2).end();
+    setTempest(setTempest(a.pass(1), A2, 0), A3, 0); // keep the allies' Eye out of it
+    a.use(A1, 'strike.storm', B2).use(A2, 'shot.storm', B2).use(A3, 'shot.storm', B2).end();
+    expect(a.hp(B1)).toBe(50); // 20 + 3 x 10
   });
 
   it('Supercell: 25 to all enemies, Tempest falls by 1, and each ally gains 1 Charge', () => {
@@ -466,33 +515,27 @@ describe('Storm skills', () => {
   });
 
   it('Hurricane: ends early once Tempest reaches 5', () => {
-    const a = arena({ p0: [['channel.storm'], ['stab.storm']], p1: [['shot'], ['shot']] });
+    const a = arena({ p0: [['channel.storm'], ['charge.storm']], p1: [['shot'], ['shot']] });
     a.give(A1, 'tempest', { stacks: 2 }).use(A1, 'channel.storm').end(); // tick at 3 → 25, Tempest 4
     expect(a.hp(B1)).toBe(75);
     a.end();
-    setTempest(a, A1, 3).use(A2, 'stab.storm', B2).end(); // the ally's Storm skill: 4; tick → 30, Tempest 5: it ends
+    setTempest(a, A1, 3).use(A2, 'charge.storm', B2).end(); // the ally's Storm skill: 4; tick → 30, Tempest 5: it ends
     expect(a.hp(B1)).toBe(45);
     a.end();
     setTempest(a, A1, 0).end();
     expect(a.hp(B1)).toBe(45);
   });
 
-  it('Pinning Knife: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.storm']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.storm', B1).end().pass(1).use(A1, 'stab.storm', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Knife in the Gale: 10 to the target, then the gale carries it to the enemy with the least HP, 5 per Tempest', () => {
+    const a = arena({ p0: [['stab.storm']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(B3, 60).use(A1, 'stab.storm', B1).end(); // 1 Tempest
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([90, 100, 55]);
   });
 
-  it('Pinning Knife: the target counts as Immobile until the end of the user\'s next turn', () => {
-    const a = arena({ p0: [['stab.storm']], p1: [['charge']] });
-    const imm = () => evaluateNamedCondition(content, a.state, 'immobile', B1);
-    expect(imm()).toBe(false);
-    a.use(A1, 'stab.storm', B1).end();
-    expect(imm()).toBe(true);
-    a.end();
-    expect(imm()).toBe(true);
-    a.end();
-    expect(imm()).toBe(false);
+  it('Knife in the Gale: at most 10 to the weakest, who can be the target itself (checked after the first cut)', () => {
+    const a = arena({ p0: [['stab.storm']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'tempest', { stacks: 3 }).setHp(B1, 65).setHp(B2, 60).use(A1, 'stab.storm', B1).end(); // 4 Tempest
+    expect([a.hp(B1), a.hp(B2)]).toEqual([45, 60]);
   });
 
   it('Summit Strike: 25 Piercing to the enemy with the most HP, +15 if Stunned', () => {
@@ -666,30 +709,38 @@ describe('Storm skills', () => {
     expect(a.stacks(A1, 'tempest')).toBe(3);
   });
 
-  it('Shearing Gale: 25 to the target and 15 to a random other enemy', () => {
-    const a = arena({ p0: [['cleave.storm']], p1: [['shot'], ['shot']] });
+  it('Shearing Gale: with only its own Tempest, 25 to the target and 5 to every other enemy', () => {
+    const a = arena({ p0: [['cleave.storm']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.storm', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 95, 95]);
   });
 
-  it('Shearing Gale: while Leaping, both hits gain the Leap\'s bonus', () => {
-    const a = arena({ p0: [['cleave.storm']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'leaping').use(A1, 'cleave.storm', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 80]);
+  it('Shearing Gale: each Tempest beyond the first moves 5 from the target to every other enemy, up to 3 more', () => {
+    const run = (given: number) => {
+      const a = arena({ p0: [['cleave.storm']], p1: [['shot'], ['shot'], ['shot']] });
+      a.give(A1, 'tempest', { stacks: given }).use(A1, 'cleave.storm', B1).end();
+      return [100 - a.hp(B1), 100 - a.hp(B2), 100 - a.hp(B3)];
+    };
+    expect([run(1), run(2), run(3), run(4)]).toEqual([
+      [20, 10, 10], // 2 Tempest
+      [15, 15, 15], // 3
+      [10, 20, 20], // 4
+      [10, 20, 20], // 5: capped
+    ]);
   });
 
-  it('Storm Warning: all enemies are Intimidated for 2 turns; below 5 Tempest, no Sap', () => {
-    const a = arena({ p0: [['shout.storm']], p1: [['shot'], ['shot']] });
+  it('Storm Warning: for 2 turns, each time a Storm skill damages an enemy, they\'re Sapped', () => {
+    const a = arena({ p0: [['shout.storm', 'smash.storm'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'shout.storm').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated'), a.has(B1, 'sapped')]).toEqual([true, true, false]);
-    a.pass(4);
-    expect(a.has(B1, 'intimidated')).toBe(false);
+    expect([B1, B2, B3].map((u) => a.has(u, 'sapped'))).toEqual([false, false, false]);
+    a.pass(1).use(A1, 'smash.storm', B1).use(A2, 'shot', B2).end(); // the plain Shot doesn't Sap
+    expect([B1, B2, B3].map((u) => a.stacks(u, 'sapped'))).toEqual([1, 1, 1]);
   });
 
-  it('Storm Warning: at 5 Tempest it also Saps every enemy', () => {
-    const a = arena({ p0: [['shout.storm']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'tempest', { stacks: 5 }).use(A1, 'shout.storm').end();
-    expect([a.stacks(B1, 'sapped'), a.stacks(B2, 'sapped')]).toEqual([1, 1]);
+  it('Storm Warning: lasts 2 turns', () => {
+    const a = arena({ p0: [['shout.storm', 'stab.storm']], p1: [['shot']] });
+    a.use(A1, 'shout.storm').end().pass(3).use(A1, 'stab.storm', B1).end();
+    expect(a.has(B1, 'sapped')).toBe(false);
   });
 
   it('Storm Cellar: every ally gains 20 Shield for 1 turn; the user gains 3 Sapped', () => {

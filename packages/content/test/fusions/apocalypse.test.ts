@@ -92,35 +92,34 @@ describe('Apocalypse: Thermal Shock (fusion passive)', () => {
 
 describe('Apocalypse: Frostfire', () => {
   it('ticks 5 Affliction at the end of its applier’s turn, and does not stack', () => {
-    const a = ap([['stab.apocalypse'], ['shot.apocalypse']], [['shot']]);
-    a.give(B1, 'might'); // a Buff, so Sleetspark doesn't Numb
-    a.use(A1, 'stab.apocalypse', B1).use(A2, 'shot.apocalypse', B1).end();
+    const a = ap([['bolt.apocalypse'], ['curse.apocalypse']], [['shot']]);
+    a.use(A1, 'bolt.apocalypse', B1).use(A2, 'curse.apocalypse', B1).end();
     expect(a.stacks(B1, 'frostfire')).toBe(1);
-    expect(a.hp(B1)).toBe(100 - 10 - 15 - 5);
+    expect(a.hp(B1)).toBe(100 - 20 - 5);
     a.pass(1); // the enemy's turn: no tick
-    expect(a.hp(B1)).toBe(70);
+    expect(a.hp(B1)).toBe(75);
     a.pass(1);
-    expect(a.hp(B1)).toBe(65);
+    expect(a.hp(B1)).toBe(70);
   });
 
   it('on its own it does not Shock', () => {
-    const a = ap([['stab.apocalypse']], [['shot']]);
-    a.use(A1, 'stab.apocalypse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'shattered'), a.has(B1, 'frostfire')]).toEqual([85, false, true]);
+    const a = ap([['curse.apocalypse']], [['shot']]);
+    a.use(A1, 'curse.apocalypse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered'), a.has(B1, 'frostfire')]).toEqual([95, false, true]);
   });
 
   it('a Fire or Frost debuff gained after Frostfire does Shock', () => {
-    const a = ap([['stab.apocalypse', 'stab.ice']], [['shot']]);
-    a.use(A1, 'stab.apocalypse', B1).end().pass(1);
+    const a = ap([['curse.apocalypse', 'stab.ice']], [['shot']]);
+    a.use(A1, 'curse.apocalypse', B1).end().pass(1);
     const before = a.hp(B1);
     a.use(A1, 'stab.ice', B1).end();
     expect([before - a.hp(B1), a.has(B1, 'shattered')]).toEqual([10 + 15 + 5, true]);
   });
 
   it('gaining Frostfire while carrying a Frost debuff Shocks (it counts as a Fire debuff)', () => {
-    const a = ap([['stab.apocalypse']], [['shot']]);
-    a.give(B1, 'frostbitten', { source: B1 }).use(A1, 'stab.apocalypse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([100 - 10 - 15 - 5, true]);
+    const a = ap([['curse.apocalypse']], [['shot']]);
+    a.give(B1, 'frostbitten', { source: B1 }).use(A1, 'curse.apocalypse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([100 - 15 - 5, true]);
   });
 
   it('counts as an Ignite: Ignite checks see it (Bolt of Fire Explodes)', () => {
@@ -138,8 +137,8 @@ describe('Apocalypse: Frostfire', () => {
   });
 
   it('runs Fire’s burn aftermath: a Flameborn applier heals for its tick', () => {
-    const a = ap([['stab.apocalypse']], [['shot']]);
-    a.setHp(A1, 50).give(A1, 'flameborn').use(A1, 'stab.apocalypse', B1).end();
+    const a = ap([['curse.apocalypse']], [['shot']]);
+    a.setHp(A1, 50).give(A1, 'flameborn').use(A1, 'curse.apocalypse', B1).end();
     expect(a.hp(A1)).toBe(55);
   });
 });
@@ -210,30 +209,33 @@ describe('Apocalypse skills', () => {
     expect(b.hp(B2)).toBe(100 - 5 - 15);
   });
 
-  it('Twin Spines: counters every Harmful skill on the user; the attacker gains Frostfire', () => {
-    const a = ap([['riposte.apocalypse']], [['shot'], ['shot']]);
+  it('Splintering Spines: counters the first Harmful skill on the user; every other enemy gains Frostfire', () => {
+    const a = ap([['riposte.apocalypse']], [['shot'], ['shot'], ['shot']]);
     a.use(A1, 'riposte.apocalypse').end();
     a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.hp(A1), a.has(B1, 'frostfire'), a.has(B2, 'frostfire')]).toEqual([100, true, true]);
+    expect(a.hp(A1)).toBe(85); // countered once; the second lands
+    expect([a.has(B1, 'frostfire'), a.has(B2, 'frostfire'), a.has(B3, 'frostfire')]).toEqual([false, true, true]);
+    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([100, false]); // nothing else happens to the attacker
   });
 
-  it('Twin Spines: is Invisible to the enemy', () => {
+  it('Splintering Spines: an enemy who already had a Fire debuff is Thermal Shocked by the Frostfire', () => {
+    const a = ap([['riposte.apocalypse']], [['shot'], ['shot']]);
+    a.give(B2, 'ignite', { source: A1 }).use(A1, 'riposte.apocalypse').end().use(B1, 'shot', A1).end();
+    expect([a.has(B2, 'frostfire'), a.has(B2, 'shattered')]).toEqual([true, true]);
+  });
+
+  it('Splintering Spines: is Invisible to the enemy', () => {
     const a = ap([['riposte.apocalypse']], [['shot']]);
     a.use(A1, 'riposte.apocalypse').end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1 && e.defId !== 'thermal_shock')).toBe(false);
   });
 
-  it('Twin Spines: the countered attacker is Thermal Shocked the next time they use a skill', () => {
-    const a = ap([['riposte.apocalypse']], [['shot']]);
-    a.use(A1, 'riposte.apocalypse').end();
-    a.use(B1, 'shot', A1).end();
-    expect(a.has(B1, 'shattered')).toBe(false);
-    a.pass(1); // Frostfire ticks at the end of A1's turn
-    const before = a.hp(B1);
-    a.use(B1, 'shot', A1).end();
-    expect([before - a.hp(B1), a.hp(A1)]).toEqual([15, 85]);
-    expect(a.has(B1, 'shattered')).toBe(true);
+  it('Splintering Spines: lasts 1 turn', () => {
+    const a = ap([['riposte.apocalypse']], [['shot'], ['shot']]);
+    a.use(A1, 'riposte.apocalypse').end().pass(2).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B2, 'frostfire')]).toEqual([85, false]);
   });
+
 
   it('Ragnarok: 3 Might on the first and third turns, 3 Armor and Immune on the second and fourth', () => {
     const a = ap([['rage.apocalypse']], [['shot']]);
@@ -250,24 +252,30 @@ describe('Apocalypse skills', () => {
     expect(st()).toEqual([0, 0, false]); // over
   });
 
-  it('Sleetspark: 15 and Frostfire; with no Buffs also Numbed for 1 turn, Shocking them', () => {
+  it('Sleetspark: 10 damage and a spark in the target until the end of the user\'s next turn; no Shock yet', () => {
     const a = ap([['shot.apocalypse']], [['shot']]);
     a.use(A1, 'shot.apocalypse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'frostfire'), a.has(B1, 'numb'), a.has(B1, 'shattered')]).toEqual([
-      100 - 15 - 15 - 5,
-      true,
-      true,
-      true,
-    ]);
-    a.pass(1);
-    expect(a.has(B1, 'numb')).toBe(false);
+    expect([a.hp(B1), a.has(B1, 'sleetspark'), a.has(B1, 'shattered')]).toEqual([90, true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'sleetspark')).toBe(false);
   });
 
-  it('Sleetspark: a target with a Buff is not Numbed or Shocked', () => {
+  it('Sleetspark: hitting them again while the spark is there sets it off — Thermal Shocked; the next hit starts over', () => {
     const a = ap([['shot.apocalypse']], [['shot']]);
-    a.give(B1, 'might').use(A1, 'shot.apocalypse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'numb'), a.has(B1, 'shattered')]).toEqual([80, false, false]);
+    a.use(A1, 'shot.apocalypse', B1).end().pass(1).use(A1, 'shot.apocalypse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered'), a.has(B1, 'sleetspark')]).toEqual([100 - 10 - 10 - 15, true, false]);
+    a.pass(1).use(A1, 'shot.apocalypse', B1).end();
+    expect([a.hp(B1), a.has(B1, 'sleetspark')]).toEqual([100 - 10 - 10 - 15 - 10, true]);
   });
+
+  it('Sleetspark: a spark that has run out, or a hit on a different enemy, sets nothing off', () => {
+    const a = ap([['shot.apocalypse']], [['shot'], ['shot']]);
+    a.use(A1, 'shot.apocalypse', B1).end().pass(1).use(A1, 'shot.apocalypse', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'shattered'), a.has(B2, 'shattered')]).toEqual([90, 90, false, false]);
+    a.pass(3).use(A1, 'shot.apocalypse', B1).end(); // B1's spark ran out at the end of the user's last turn
+    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([80, false]);
+  });
+
 
   it('Comet of Ruin: 45 on the following turn, target hidden', () => {
     const a = ap([['snipe.apocalypse']], [['shot']]);
@@ -374,9 +382,9 @@ describe('Apocalypse skills', () => {
   });
 
   it('Paradox Bolt: it Shocks even a target already Shocked this turn', () => {
-    const a = ap([['shot.apocalypse'], ['bolt.apocalypse']], [['shot']]);
-    a.use(A1, 'shot.apocalypse', B1).use(A2, 'bolt.apocalypse', B1).end();
-    expect(a.hp(B1)).toBe(100 - 15 - 15 - 20 - 15 - 5);
+    const a = ap([['curse.apocalypse'], ['bolt.apocalypse']], [['shot']]);
+    a.give(B1, 'chilled', { source: B1 }).use(A1, 'curse.apocalypse', B1).use(A2, 'bolt.apocalypse', B1).end();
+    expect(a.hp(B1)).toBe(100 - 15 - 20 - 15 - 5); // the curse's Frostfire Shocks, then the paradox again
   });
 
   it('Fimbulfire: 20 to all; each Ignite turns into Frostfire, Shocking its bearer', () => {
@@ -404,33 +412,24 @@ describe('Apocalypse skills', () => {
     ]);
   });
 
-  it('Equilibrium: 10 and heals the user as much; without both kinds, the target gains Frostfire', () => {
+  it('Equilibrium: 10 and heals the user as much; without both kinds, nothing more', () => {
     const a = ap([['consume.apocalypse']], [['shot']]);
-    a.setHp(A1, 50).use(A1, 'consume.apocalypse', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'frostfire'), a.has(B1, 'shattered')]).toEqual([100 - 10 - 5, 60, true, false]);
+    a.setHp(A1, 50).give(B1, 'scorched', { source: B1 }).use(A1, 'consume.apocalypse', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'scorched'), a.has(B1, 'frostfire')]).toEqual([90, 60, true, false]);
   });
 
-  it('Equilibrium: with only a Fire debuff, the Frostfire it gains Shocks them (no extra heal)', () => {
+  it('Equilibrium: Frostfire counts as both; it ends and the user heals 10 more', () => {
     const a = ap([['consume.apocalypse']], [['shot']]);
-    a.setHp(A1, 50).give(B1, 'ignite', { source: B1 }).use(A1, 'consume.apocalypse', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'shattered')]).toEqual([100 - 10 - 15 - 5, 60, true]);
+    a.setHp(A1, 50).give(B1, 'frostfire', { source: A1 }).use(A1, 'consume.apocalypse', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'frostfire')]).toEqual([90, 70, false]);
   });
 
-  it('Equilibrium: the next Equilibrium strikes the balance its Frostfire set up', () => {
+  it('Equilibrium: every Fire and Frost debuff ends, healing 10 each; others stay', () => {
     const a = ap([['consume.apocalypse']], [['shot']]);
-    a.use(A1, 'consume.apocalypse', B1).end().pass(5).setHp(A1, 50);
+    a.setHp(A1, 30).give(B1, 'ignite', { source: B1 }).give(B1, 'chilled', { source: B1 }).give(B1, 'numb', { source: B1 }).give(B1, 'weakness', { source: B1 });
     a.use(A1, 'consume.apocalypse', B1).end();
-    expect([a.hp(A1), a.has(B1, 'shattered')]).toEqual([80, true]);
-  });
-
-  it('Equilibrium: with both a Fire and a Frost debuff (Frostfire counts), Shocks them and heals 20 more', () => {
-    const a = ap([['consume.apocalypse']], [['shot'], ['shot']]);
-    a.setHp(A1, 50).give(B1, 'frostfire', { source: B1 }).use(A1, 'consume.apocalypse', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'shattered')]).toEqual([75, 80, true]);
-    const b = ap([['consume.apocalypse']], [['shot']]);
-    b.setHp(A1, 50).give(B1, 'scorched', { source: B1 }).give(B1, 'numb', { source: B1 });
-    b.use(A1, 'consume.apocalypse', B1).end();
-    expect([b.hp(B1), b.hp(A1)]).toEqual([75, 80]);
+    expect(['ignite', 'chilled', 'numb', 'weakness'].map((s) => a.has(B1, s))).toEqual([false, false, false, true]);
+    expect(a.hp(A1)).toBe(30 + 10 + 30);
   });
 
   it('Twilight Jotunn: 60 HP; 25 to a random enemy at the end of each of your turns', () => {
@@ -485,16 +484,17 @@ describe('Apocalypse skills', () => {
     expect([mid[0]! - a.hp(B1), mid[1]! - a.hp(B2)]).toEqual([5, 5]); // channel over: only the Ignite
   });
 
-  it('Twin Needle: 10 and Frostfire', () => {
+  it('Twin Needle: 5, then Shattered for the rest of the turn, then 10 more that the Shield doesn\'t stop', () => {
     const a = ap([['stab.apocalypse']], [['shot']]);
-    a.use(A1, 'stab.apocalypse', B1).end();
-    expect([a.hp(B1), a.has(B1, 'frostfire')]).toEqual([85, true]);
+    a.give(B1, 'shield', { value: 20 }).use(A1, 'stab.apocalypse', B1).end();
+    expect([a.hp(B1), a.effects(B1).find((e) => e.defId === 'shield')?.value]).toEqual([90, 15]);
+    expect(a.has(B1, 'shattered')).toBe(false); // over with the turn
   });
 
-  it('Twin Needle: at or below 60 HP, 20 and the Frostfire ticks at once', () => {
-    const a = ap([['stab.apocalypse']], [['shot']]);
-    a.setHp(B1, 60).use(A1, 'stab.apocalypse', B1).end();
-    expect(a.hp(B1)).toBe(60 - 20 - 5 - 5);
+  it('Twin Needle: allies acting after it that turn hit the Shattered target too', () => {
+    const a = ap([['stab.apocalypse'], ['shot']], [['shot']]);
+    a.give(B1, 'shield', { value: 20 }).use(A1, 'stab.apocalypse', B1).use(A2, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 10 - 15);
   });
 
   it('Twofold Ruin: 20 Affliction +10 per Fire or Frost debuff, then those are removed', () => {
@@ -702,23 +702,25 @@ describe('Apocalypse skills', () => {
     expect([a.cooldown(other, 'shot'), a.cooldown(ff, 'shot')]).toEqual([1, 2]);
   });
 
-  it('Heart of the Glacier: 25 Shield for 2 turns and Frostborn while any of it remains', () => {
-    const a = ap([['withstand.apocalypse']], [['shot'], ['smash']]);
+  it('Heart of the Glacier: 30 Shield until the end of the user\'s next turn; untouched, all of it bursts onto a random enemy, who gains Frostfire', () => {
+    const a = ap([['withstand.apocalypse']], [['withstand']]);
     a.use(A1, 'withstand.apocalypse').end();
-    expect([a.effects(A1).find((e) => e.inline?.shield)?.value, a.has(A1, 'frostborn')]).toEqual([25, true]);
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(A1, 'frostborn')]).toEqual([100, true]);
-    a.end().use(B2, 'smash', A1).end();
-    expect(a.has(A1, 'frostborn')).toBe(false);
+    expect(a.effects(A1).find((e) => e.inline?.shield)?.value).toBe(30);
+    a.pass(1);
+    expect([a.has(A1, 'heart_of_the_glacier'), a.hp(B1)]).toEqual([true, 100]);
+    a.pass(1);
+    expect([a.has(A1, 'heart_of_the_glacier'), a.hp(B1), a.has(B1, 'frostfire')]).toEqual([false, 70, true]);
   });
 
-  it('Heart of the Glacier: Frostborn ends when the Shield expires', () => {
+  it('Heart of the Glacier: only what is left bursts; a broken heart bursts for nothing', () => {
     const a = ap([['withstand.apocalypse']], [['shot']]);
-    a.use(A1, 'withstand.apocalypse').end().pass(1);
-    expect(a.has(A1, 'frostborn')).toBe(true);
-    a.pass(3);
-    expect([a.effects(A1).some((e) => e.inline?.shield), a.has(A1, 'frostborn')]).toEqual([false, false]);
+    a.use(A1, 'withstand.apocalypse').end().use(B1, 'shot', A1).end().pass(1);
+    expect([a.hp(A1), a.hp(B1), a.has(B1, 'frostfire')]).toEqual([100, 85, true]);
+    const b = ap([['withstand.apocalypse']], [['shot'], ['shot']]);
+    b.use(A1, 'withstand.apocalypse').end().use(B1, 'shot', A1).use(B2, 'shot', A1).end().pass(1);
+    expect([b.hp(A1), b.hp(B1), b.hp(B2), b.has(B1, 'frostfire'), b.has(B2, 'frostfire')]).toEqual([100, 100, 100, false, false]);
   });
+
 
   it('Circle of Extremes: Taunts for 2 turns and pulls every Fire and Frost debuff off their allies onto them', () => {
     const a = ap([['taunt.apocalypse'], ['shot']], [['shot'], ['shot']]);
@@ -734,18 +736,28 @@ describe('Apocalypse skills', () => {
     expect(a.state.players[1].queue).toHaveLength(1);
   });
 
-  it('Twilight Colossus: 3 Armor and Immune for 3 turns; enemies who damage the user gain Frostfire', () => {
-    const a = ap([['titan.apocalypse']], [['strike'], ['curse']]);
-    a.use(A1, 'titan.apocalypse').end();
-    a.use(B1, 'strike', A1).use(B2, 'curse', A1).end();
-    expect([a.hp(A1), a.has(A1, 'confusion'), a.has(B1, 'frostfire'), a.has(B2, 'frostfire')]).toEqual([
-      95,
-      false,
-      true,
-      false,
-    ]);
-    a.pass(6);
-    expect([a.has(A1, 'armor'), a.has(A1, 'immune')]).toEqual([false, false]);
+  it('Twilight Colossus: Immune for 3 turns, but Shattered meanwhile', () => {
+    const a = ap([['titan.apocalypse']], [['shot'], ['curse']]);
+    a.give(A1, 'shield', { value: 20 }).use(A1, 'titan.apocalypse').end();
+    a.use(B1, 'shot', A1).use(B2, 'curse', A1).end();
+    expect([a.hp(A1), a.has(A1, 'confusion'), a.has(A1, 'shattered')]).toEqual([85, false, true]);
+    a.pass(5);
+    expect([a.has(A1, 'immune'), a.has(A1, 'shattered'), a.has(A1, 'twilight_colossus')]).toEqual([false, false, false]);
+  });
+
+  it('Twilight Colossus: only the first enemy the user hits on each of their turns is Thermal Shocked', () => {
+    const a = ap([['titan.apocalypse', 'blast']], [['shot'], ['shot']], { hp: 200 });
+    a.use(A1, 'titan.apocalypse').end().pass(1).use(A1, 'blast').end();
+    expect([B1, B2].filter((b) => a.has(b, 'shattered'))).toHaveLength(1);
+    expect(a.hp(B1) + a.hp(B2)).toBe(400 - 35 - 35 - 15);
+  });
+
+  it('Twilight Colossus: on the user\'s next turn, their first hit Shocks again', () => {
+    const a = ap([['titan.apocalypse', 'shot']], [['shot']]);
+    a.use(A1, 'titan.apocalypse').end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered')]).toEqual([100 - 15 - 15, true]);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 30 - 15 - 15);
   });
 });
 
@@ -756,7 +768,7 @@ describe('Apocalypse costs and cooldowns (kit table)', () => {
     charge: ['S', 2],
     riposte: ['I', 3],
     rage: ['SS', 4],
-    shot: ['r', 1],
+    shot: ['r', 0],
     snipe: ['AIr', 2],
     trap: ['I', 3],
     maneuver: ['S', 3],

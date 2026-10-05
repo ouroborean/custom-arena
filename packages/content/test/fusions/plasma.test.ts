@@ -5,11 +5,12 @@
 // bearer's Plasma skills, and a Vent skill vents first, so its own bonus counts the Heat it vented (§21.13).
 
 import { describe, expect, it } from 'vitest';
-import { viewFor, type GameEvent } from '@arena/engine';
+import { viewFor } from '@arena/engine';
 import { arena, content } from '../harness.js';
 
 const A1 = 'p0c0';
 const A2 = 'p0c1';
+const A3 = 'p0c2';
 const B1 = 'p1c0';
 const B2 = 'p1c1';
 const B3 = 'p1c2';
@@ -19,11 +20,6 @@ const heat = (a: A, id = A1) => a.stacks(id, 'heat');
 const shieldOf = (a: A, id: string) =>
   a.effects(id).filter((e) => e.defId === 'shield' || e.inline?.shield).reduce((n, e) => n + e.value, 0);
 const totalCost = (c: unknown) => Object.values((c ?? {}) as Record<string, number>).reduce((n, v) => n + v, 0);
-function gained(events: readonly GameEvent[], player: 0 | 1): number {
-  const e = [...events].reverse().find((x) => x.t === 'energyGained' && x.player === player);
-  if (!e || e.t !== 'energyGained') throw new Error('no energyGained event');
-  return Object.values(e.gained).reduce((x, y) => x + y, 0);
-}
 
 describe('Plasma: Heat and Plasma Core', () => {
   it('the passive comes with a Plasma skill, once, and not without one', () => {
@@ -44,9 +40,9 @@ describe('Plasma: Heat and Plasma Core', () => {
   });
 
   it('gaining Charge gives 1 Heat (a Plasma character only)', () => {
-    const a = arena({ p0: [['shot.plasma'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'stormborn').use(A1, 'shot.plasma', B1).use(A2, 'shot', B1).end();
-    // Arc Spark's Ignite tick gives A1 a Charge; A2's Stormborn gives A2 one
+    const a = arena({ p0: [['strike.plasma', 'shot'], ['shot']], p1: [['shot']] });
+    a.give(A1, 'stormborn').give(A2, 'stormborn').use(A1, 'shot', B1).use(A2, 'shot', B1).end();
+    // Each Stormborn hit gives its user a Charge
     expect([a.stacks(A1, 'charged'), heat(a)]).toEqual([1, 1]);
     expect([a.stacks(A2, 'charged'), heat(a, A2)]).toEqual([1, 0]);
   });
@@ -138,12 +134,16 @@ describe('Plasma skills', () => {
     expect([a.hp(A1), a.hp(B1), a.has(B1, 'ignite'), a.has(B2, 'ignite'), heat(a)]).toEqual([85, 80, true, false, 0]);
   });
 
-  it('Critical Mass: +2 Heat, Stormborn and Flameborn for 3 turns', () => {
+  it('Critical Mass: +2 Heat, and 1 more at the start of each of the user\'s turns for 3 turns', () => {
     const a = arena({ p0: [['rage.plasma']], p1: [['shot']] });
     a.use(A1, 'rage.plasma').end();
-    expect([heat(a), a.has(A1, 'stormborn'), a.has(A1, 'flameborn')]).toEqual([2, true, true]);
-    a.pass(5);
-    expect([a.has(A1, 'stormborn'), a.has(A1, 'flameborn')]).toEqual([false, false]);
+    expect(heat(a)).toBe(2);
+    a.end();
+    expect(heat(a)).toBe(3); // their turn has started
+    a.end().end();
+    expect(heat(a)).toBe(4);
+    a.end().end(); // it ended at the end of the enemy's 3rd turn: no more
+    expect([heat(a), a.hp(A1)]).toEqual([4, 100]);
   });
 
   it("Critical Mass: no Melt Down while it lasts; at 5 Heat when it ends, they Melt Down then", () => {
@@ -156,12 +156,27 @@ describe('Plasma skills', () => {
     expect([heat(a), a.hp(B1), a.hp(A1)]).toEqual([0, 80, 80]);
   });
 
-  it('Arc Spark: 15 and Ignite; each tick of that Ignite gives the user 1 Charge', () => {
+  it('Critical Mass: its Heat feeds the user\'s Plasma skills', () => {
+    const a = arena({ p0: [['rage.plasma', 'strike.plasma']], p1: [['shot']] });
+    a.use(A1, 'rage.plasma').end().end().use(A1, 'strike.plasma', B1).end();
+    expect(a.hp(B1)).toBe(100 - 20 - 15); // 3 Heat when it hit
+  });
+
+  it('Arc Spark: 10 to the target and 10 to a random other enemy, +1 Heat', () => {
+    const a = arena({ p0: [['shot.plasma']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.plasma', B1).end();
+    expect([a.hp(B1), a.hp(B2), heat(a)]).toEqual([90, 90, 1]);
+    const b = arena({ p0: [['shot.plasma']], p1: [['shot'], ['shot'], ['shot']] });
+    b.give(A1, 'heat', { stacks: 2 }).use(A1, 'shot.plasma', B1).end();
+    expect(b.hp(B1)).toBe(80); // +5 per Heat on each hit
+    expect(b.hp(B2) + b.hp(B3)).toBe(180);
+    expect(heat(b)).toBe(3);
+  });
+
+  it('Arc Spark: with no other enemy, only the target is hit', () => {
     const a = arena({ p0: [['shot.plasma']], p1: [['shot']] });
     a.use(A1, 'shot.plasma', B1).end();
-    expect([a.hp(B1), a.has(B1, 'ignite'), a.stacks(A1, 'charged')]).toEqual([80, true, 1]);
-    a.pass(2);
-    expect(a.stacks(A1, 'charged')).toBe(2);
+    expect(a.hp(B1)).toBe(90);
   });
 
   it('Coilgun: fires when 3 turns pass, 30 Piercing +15 per turn held; hidden target', () => {
@@ -408,36 +423,43 @@ describe('Plasma skills', () => {
     expect(a.stacks(A2, 'charged')).toBe(1);
   });
 
-  it('Brownout: Sapped and Confused for 2 turns', () => {
+  it('Power Surge: for 2 turns, each skill the target uses deals them 5 Affliction per energy in its cost', () => {
+    const a = arena({ p0: [['curse.plasma']], p1: [['shot', 'cleave']] });
+    a.use(A1, 'curse.plasma', B1).end();
+    a.use(B1, 'shot', A1).end(); // Shot costs 1
+    expect(a.hp(B1)).toBe(95);
+    a.end().use(B1, 'cleave', A1).end(); // Cleave costs 2
+    expect(a.hp(B1)).toBe(85);
+    a.end().use(B1, 'shot', A1).end(); // over
+    expect(a.hp(B1)).toBe(85);
+  });
+
+  it('Power Surge: Affliction, so Armor and Shield don\'t stop it; no skill, no damage', () => {
     const a = arena({ p0: [['curse.plasma']], p1: [['shot']] });
-    a.use(A1, 'curse.plasma', B1).end();
-    expect([a.stacks(B1, 'sapped'), a.stacks(B1, 'confusion')]).toEqual([1, 1]);
-    a.pass(4);
-    expect(a.has(B1, 'confusion')).toBe(false);
+    a.give(B1, 'armor', { stacks: 3 }).give(B1, 'shield', { value: 30 }).use(A1, 'curse.plasma', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(95);
+    const b = arena({ p0: [['curse.plasma']], p1: [['shot']] });
+    b.use(A1, 'curse.plasma', B1).end().pass(4);
+    expect(b.hp(B1)).toBe(100);
   });
 
-  it('Brownout: while Confused, they generate 1 less energy each turn', () => {
-    const a = arena({ p0: [['curse.plasma']], p1: [['shot'], ['shot']], richEnergy: false });
-    a.use(A1, 'curse.plasma', B1).end();
-    expect(gained(a.last, 1)).toBe(1);
-    a.pass(2);
-    expect(gained(a.last, 1)).toBe(1);
-    a.pass(4);
-    expect(gained(a.last, 1)).toBe(2);
-  });
-
-  it('Quench Brand: 20 and Sanctify for 1 turn; Vent: the Sanctify heals 5 more per Heat removed', () => {
+  it('Arc Brand: 20 (+5 per Heat); with no ally hits, the brand ends without bursting', () => {
     const a = arena({ p0: [['smite.plasma'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).give(A1, 'heat', { stacks: 2 }).use(A1, 'smite.plasma', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2), heat(a)]).toEqual([100 - 30 - 15, 50 + 15 + 10, 0]);
+    a.give(A1, 'heat', { stacks: 2 }).use(A1, 'smite.plasma', B1).end();
+    expect([a.hp(B1), heat(a)]).toEqual([70, 2]);
+    a.end();
+    expect(a.hp(B1)).toBe(70);
   });
 
-  it('Quench Brand: plain Sanctify without Heat', () => {
-    const a = arena({ p0: [['smite.plasma'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'smite.plasma', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([65, 65]);
-    a.pass(1).use(A2, 'shot', B1).end(); // the Sanctify lasted 1 turn
-    expect(a.hp(A2)).toBe(65);
+  it('Arc Brand: each ally hit on them heats the brand by 10, and it bursts for that much when it ends', () => {
+    const a = arena({ p0: [['smite.plasma'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.plasma', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 20 - 15 - 15);
+    a.end(); // the end of the enemy's turn: it bursts for 20
+    expect(a.hp(B1)).toBe(30);
+    a.use(A2, 'shot', B1).end().end(); // it lasted 1 turn: nothing more
+    expect(a.hp(B1)).toBe(15);
   });
 
   it('Heat Exchange: allies heal 15 and gain 10 Shield for 1 turn', () => {

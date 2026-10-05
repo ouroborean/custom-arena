@@ -45,8 +45,9 @@ charge.sun:
   element: Sun
   name: Rolling Sunstone
   description: >-
-    Deals 10 damage to target enemy, and creates a Sunstone: a Boulder (45 HP) that Explodes when it's
-    destroyed or launched.
+    Deals 10 damage to target enemy and sets a Sunstone rolling: a Boulder (20 HP) that, at the start of
+    the user's next turn, crashes into them for its remaining HP. It Explodes when it crashes or is
+    destroyed.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -54,6 +55,20 @@ charge.sun:
   ops:
     - { op: damage, to: primary, amount: 10 }
     - { op: summon, minion: sunstone }
+    - op: apply
+      to: lastSummoned
+      remember: primary
+      duration: { raw: 2 }
+      effect:
+        id: rolling_sunstone
+        name: Rolling
+        kind: Neutral
+        element: Sun
+        description: At the start of its creator's next turn, it crashes into its target for its remaining HP, then Explodes.
+        onExpire:
+          - { op: set, var: boulderHp, value: { hp: bearer } }
+          - { op: damage, to: effectTargets, from: bearer, amount: { var: boulderHp } }
+          - { op: kill, to: bearer }
 
 riposte.sun:
   archetype: Riposte
@@ -369,22 +384,16 @@ stab.sun:
   element: Sun
   name: Tinder Spike
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Ignited, the Ignite
-    burns once now; if not, they're Ignited.
+    Deals 15 damage to target enemy and Ignites them, and the spark catches the user too: they're Ignited
+    as well.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: if
-      cond: { has: { unit: primary, effect: ignite } }
-      then:
-        - { op: forEach, in: primary, do: [{ op: macro, id: ignite_tick }] }
-      else:
-        - { op: apply, to: primary, effect: ignite }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: ignite }
+    - { op: apply, to: actor, effect: ignite }
 
 ravage.sun:
   archetype: Ravage
@@ -633,24 +642,34 @@ cleave.sun:
   element: Sun
   name: Stubble Burn
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy, and Ignites the target. If they
-    were already Ignited, the fire spreads: the other enemy is Ignited too.
+    Deals 15 damage to target enemy and 15 to a random other enemy. Then the fire runs to whichever of them
+    has more HP left: 10 more damage, and they're Ignited.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: spreads, value: { if: { has: { unit: primary, effect: ignite } }, then: 1, else: 0 } }
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: ignite }
+    - { op: damage, to: primary, amount: 15 }
     - op: forEach
       in: { randomEnemy: 1, exclude: primary }
       do:
         - { op: damage, to: it, amount: 15 }
+        - { op: set, var: second, value: 1 }
+        # The healthier of the two (the target on a tie).
         - op: if
-          cond: { compare: { value: { var: spreads }, atLeast: 1 } }
+          cond: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { hp: primary }] }] }, atLeast: 1 } }
           then:
+            - { op: damage, to: it, amount: 10 }
             - { op: apply, to: it, effect: ignite }
+          else:
+            - { op: damage, to: primary, amount: 10 }
+            - { op: apply, to: primary, effect: ignite }
+    # No other enemy: the fire stays on the target.
+    - op: if
+      cond: { not: { varTrue: second } }
+      then:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: primary, effect: ignite }
 
 shout.sun:
   archetype: Shout

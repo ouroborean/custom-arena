@@ -102,13 +102,19 @@ describe('Angel skills', () => {
     expect([A1, A2].filter((u) => a.has(u, 'halo'))).toHaveLength(1);
   });
 
-  it('Swoop: Rushing, and Wards target ally for 1 turn; the first redirected hit is halved', () => {
-    const a = arena({ p0: [['charge.angel'], ['shot']], p1: [['smash'], ['shot']] });
+  it('Swoop: Wards target ally for 1 turn; a hit redirected to the user makes the user begin Rushing', () => {
+    const a = arena({ p0: [['charge.angel'], ['shot']], p1: [['shot']] });
     a.use(A1, 'charge.angel', A2).end();
-    expect([a.has(A1, 'rushing'), find(a, A2, 'warded')?.source]).toEqual([true, A1]);
-    a.use(B1, 'smash', A2).end(); // 25 to the target → redirected and halved; 15 splash to the target's allies
-    expect(100 - a.hp(A1)).toBeGreaterThanOrEqual(12);
-    expect(100 - a.hp(A1)).toBeLessThanOrEqual(13);
+    expect([find(a, A2, 'warded')?.source, a.has(A1, 'rushing'), a.has(A2, 'rushing')]).toEqual([A1, false, false]);
+    a.use(B1, 'shot', A2).end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([85, 100]);
+    expect([a.has(A1, 'rushing'), a.has(A2, 'rushing')]).toEqual([true, false]);
+  });
+
+  it('Swoop: with no hit redirected, the ally begins Rushing when the Ward ends', () => {
+    const a = arena({ p0: [['charge.angel'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'charge.angel', A2).end().use(B1, 'shot', A1).end();
+    expect([a.has(A2, 'warded'), a.has(A2, 'rushing'), a.has(A1, 'rushing')]).toEqual([false, true, false]);
   });
 
   it('Swoop: the Ward ends after 1 turn', () => {
@@ -155,33 +161,51 @@ describe('Angel skills', () => {
     expect(d).toBeGreaterThan(0);
   });
 
-  it('Quill of Light: 15; a Sanctify on the target then heals the damager\'s whole team', () => {
-    const a = arena({ p0: [['shot.angel'], ['smite'], ['shot']], p1: [['shot']] });
-    a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50);
-    a.use(A1, 'shot.angel', B1).use(A2, 'smite', B1).use(A3, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 15 - 20 - 15);
-    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([65, 65, 65]);
+  it('Quill of Light: 10; if the target uses a Harmful skill, the quill flares after it: 10 to them, 10 healing for its target', () => {
+    const a = arena({ p0: [['shot.angel'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'shot.angel', B1).end();
+    expect([a.hp(B1), a.has(B1, 'quill_of_light')]).toEqual([90, true]);
+    a.use(B1, 'shot', A2).end();
+    expect([a.hp(B1), a.hp(A2), a.has(B1, 'quill_of_light')]).toEqual([80, 95, false]);
   });
 
-  it('Quill of Light: without it, a Sanctify heals only the damager', () => {
-    const a = arena({ p0: [['shot'], ['smite'], ['shot']], p1: [['shot']] });
-    a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50);
-    a.use(A1, 'shot', B1).use(A2, 'smite', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([50, 50, 65]);
+  it('Quill of Light: an area skill heals every unit on the user\'s side it targeted', () => {
+    const a = arena({ p0: [['shot.angel'], ['shot']], p1: [['blast']] });
+    a.use(A1, 'shot.angel', B1).end().use(B1, 'blast').end();
+    expect([a.hp(B1), a.hp(A1), a.hp(A2)]).toEqual([80, 75, 75]);
   });
 
-  it('Descending Spear: 40 on the following turn; while aiming, every ally is Warded', () => {
-    const a = arena({ p0: [['snipe.angel'], ['shot']], p1: [['withstand'], ['withstand']] });
+  it('Quill of Light: a Helpful skill doesn\'t set it off, and it\'s gone after 1 turn', () => {
+    const a = arena({ p0: [['shot.angel']], p1: [['withstand', 'shot']] });
+    a.use(A1, 'shot.angel', B1).end().use(B1, 'withstand').end();
+    expect([a.hp(B1), a.has(B1, 'quill_of_light')]).toEqual([90, false]);
+  });
+
+  it('Descending Spear: Wards every ally for 1 turn; with nothing redirected, 40 to the target on the following turn', () => {
+    const a = arena({ p0: [['snipe.angel'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'snipe.angel', B1).end();
-    expect([a.hp(B1), a.has(A2, 'warded')]).toEqual([100, true]);
+    expect([a.hp(B1), find(a, A2, 'warded')?.source, find(a, A3, 'warded')?.source]).toEqual([100, A1, A1]);
     a.pass(1);
-    expect([a.hp(B1), a.has(A2, 'warded')]).toEqual([60, false]);
+    expect([a.hp(B1), a.hp(B2), a.has(A2, 'warded')]).toEqual([60, 100, false]);
   });
 
-  it('Descending Spear: +10 for each hit redirected to the user meanwhile', () => {
-    const a = arena({ p0: [['snipe.angel'], ['shot']], p1: [['withstand'], ['shot']] });
-    a.use(A1, 'snipe.angel', B1).end().use(B2, 'shot', A2).end();
-    expect([a.hp(A1), a.hp(A2), a.hp(B1)]).toEqual([85, 100, 50]);
+  it('Descending Spear: if hits are redirected to the user, the spear doesn\'t fall; the user heals 20 per hit instead', () => {
+    const a = arena({ p0: [['snipe.angel'], ['shot'], ['shot']], p1: [['withstand'], ['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'snipe.angel', B1).end().use(B2, 'shot', A2).use('p1c2', 'shot', A3).end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([60, 100, 100]); // 50 - 15 - 15 + 40
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([100, 100, 100]);
+  });
+
+  it('Descending Spear: the target\'s own redirected hit turns it too', () => {
+    const a = arena({ p0: [['snipe.angel'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'snipe.angel', B1).end().use(B1, 'shot', A2).end();
+    expect([a.hp(A1), a.hp(A2), a.hp(B1)]).toEqual([55, 100, 100]);
+  });
+
+  it('Descending Spear: a hit aimed at the user isn\'t redirected, so the spear still falls', () => {
+    const a = arena({ p0: [['snipe.angel'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.angel', B1).end().use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 60]);
   });
 
   it('Descending Spear: the target is hidden from the opponent', () => {
@@ -210,20 +234,33 @@ describe('Angel skills', () => {
     expect(a.unit(A2).alive).toBe(false);
   });
 
-  it('Take Flight: the user Leaps; at 40+ HP, no Halo', () => {
-    const a = arena({ p0: [['maneuver.angel']], p1: [['shot']] });
-    a.setHp(A1, 40).use(A1, 'maneuver.angel').end();
-    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable'), a.has(A1, 'halo')]).toEqual([true, true, false]);
+  it('Take Flight: the user gains Leaping, but their other ally with the least HP is the one made Invulnerable for 1 turn', () => {
+    const a = arena({ p0: [['maneuver.angel'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 60).setHp(A3, 40).use(A1, 'maneuver.angel').end();
+    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable'), a.has(A2, 'invulnerable'), a.has(A3, 'invulnerable')])
+      .toEqual([true, false, false, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A3))).toBe('bad_target');
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(A3, 'invulnerable')]).toEqual([85, false]);
   });
 
-  it('Take Flight: below 40 HP, also a Halo for 2 turns', () => {
+  it('Take Flight: the Leaping still adds 5 to the user\'s next hit', () => {
+    const a = arena({ p0: [['maneuver.angel', 'shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'maneuver.angel').end().pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(80);
+  });
+
+  it('Take Flight: with no other ally, the user keeps the Invulnerable', () => {
     const a = arena({ p0: [['maneuver.angel']], p1: [['shot']] });
-    a.setHp(A1, 39).use(A1, 'maneuver.angel').end();
-    expect(a.has(A1, 'halo')).toBe(true);
-    a.pass(2);
-    expect(a.has(A1, 'halo')).toBe(true); // on through the enemy's 2nd turn
-    a.pass(1);
-    expect(a.has(A1, 'halo')).toBe(false);
+    a.use(A1, 'maneuver.angel').end();
+    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([true, true]);
+  });
+
+  it('Take Flight: "ally" means a character: a minion with less HP is passed over', () => {
+    const a = arena({ p0: [['companion.angel', 'maneuver.angel'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'companion.angel').end().pass(1).setHp(A2, 60).use(A1, 'maneuver.angel').end();
+    const cherub = minions(a, 0, 'cherub')[0]!;
+    expect([a.has(A2, 'invulnerable'), a.has(cherub.id, 'invulnerable'), a.has(A1, 'invulnerable')]).toEqual([true, false, false]);
   });
 
   it('Cherub: a permanent 35 HP minion', () => {
@@ -249,10 +286,29 @@ describe('Angel skills', () => {
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Beam from Above: 25 and Marked for 1 turn; the last unit who damaged the target heals 25', () => {
+  it('Beam from Above: 20; the ally with the least HP heals as much as it dealt', () => {
+    const a = arena({ p0: [['bolt.angel'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).setHp(A3, 60).use(A1, 'bolt.angel', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([80, 100, 60, 60]);
+  });
+
+  it('Beam from Above: the user is included when they have the least HP', () => {
     const a = arena({ p0: [['bolt.angel'], ['shot']], p1: [['shot']] });
-    a.setHp(A1, 50).setHp(A2, 50).use(A2, 'shot', B1).use(A1, 'bolt.angel', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark'), a.hp(A2), a.hp(A1)]).toEqual([60, true, 75, 50]);
+    a.setHp(A1, 30).setHp(A2, 50).use(A1, 'bolt.angel', B1).end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([50, 50]);
+  });
+
+  it('Beam from Above: the heal matches the hit, even past a kill (ruling)', () => {
+    const a = arena({ p0: [['bolt.angel'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).setHp(B1, 5).use(A1, 'bolt.angel', B1).end();
+    expect([a.unit(B1).alive, a.hp(A2)]).toEqual([false, 60]);
+  });
+
+  it('Beam from Above: armor shrinks the hit, and the heal with it', () => {
+    const a = arena({ p0: [['bolt.angel'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).give(B1, 'armor', { stacks: 2 }).use(A1, 'bolt.angel', B1).end();
+    expect(100 - a.hp(B1)).toBe(a.hp(A2) - 40);
+    expect(a.hp(B1)).toBeGreaterThan(80);
   });
 
   it('Endless Verdict: 20 Piercing to all enemies', () => {
@@ -340,23 +396,39 @@ describe('Angel skills', () => {
     expect(a.has(A2, 'warded')).toBe(false);
   });
 
-  it('Piercing Feather: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.angel']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.angel', B1).end().pass(1).use(A1, 'stab.angel', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Piercing Feather: 15, and the target can\'t aim a skill at a character of the user\'s at or below 40 HP for 1 turn', () => {
+    const a = arena({ p0: [['stab.angel'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 40).setHp(A3, 41).use(A1, 'stab.angel', B1).end();
+    expect(a.hp(B1)).toBe(85);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A3).use(B2, 'shot', A2).end(); // above 40 is fair game, and other enemies aren't pinned
+    expect([a.hp(A3), a.hp(A2)]).toEqual([26, 25]);
   });
 
-  it('Piercing Feather: an Anointed user spends it to Leap first: +5, and stays Invulnerable for 1 turn', () => {
-    const a = arena({ p0: [['stab.angel']], p1: [['shot']] });
-    a.give(A1, 'anointed').use(A1, 'stab.angel', B1).end();
-    expect([a.hp(B1), a.has(A1, 'anointed'), a.has(A1, 'invulnerable')]).toEqual([85, false, true]);
+  it('Piercing Feather: the user is covered too, and the pin is checked as they aim', () => {
+    const a = arena({ p0: [['stab.angel'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'stab.angel', B1).end().setHp(A1, 30);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  it('Piercing Feather: the dive\'s Leaping is spent by the Feather\'s own hit', () => {
-    const a = arena({ p0: [['stab.angel']], p1: [['shot']] });
-    a.give(A1, 'anointed').use(A1, 'stab.angel', B1).end();
-    expect(a.has(A1, 'leaping')).toBe(false);
+  it('Piercing Feather: area skills still reach them (ruling)', () => {
+    const a = arena({ p0: [['stab.angel'], ['shot']], p1: [['blast']] });
+    a.setHp(A2, 30).use(A1, 'stab.angel', B1).end().use(B1, 'blast').end();
+    expect(a.hp(A2)).toBeLessThan(30);
+  });
+
+  it('Piercing Feather: a low-HP minion isn\'t a character, so it isn\'t covered', () => {
+    const a = arena({ p0: [['summon.angel', 'stab.angel']], p1: [['shot']] });
+    a.use(A1, 'summon.angel').end().pass(1).use(A1, 'stab.angel', B1).end();
+    const lesser = minions(a, 0, 'lesser_angel')[0]!;
+    a.use(B1, 'shot', lesser.id).end();
+    expect(a.unit(lesser.id).alive).toBe(false);
+  });
+
+  it('Piercing Feather: the pin lasts 1 turn', () => {
+    const a = arena({ p0: [['stab.angel'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 30).use(A1, 'stab.angel', B1).end().pass(2).use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(15);
   });
 
   it('Plummet: the user Leaps, then dives at the start of their next turn for 30 Piercing +5', () => {
@@ -393,18 +465,20 @@ describe('Angel skills', () => {
     expect(a.has(B1, 'stun')).toBe(false);
   });
 
-  it('Glorious Light: the first ally to damage them heals 15 and is Anointed; the second gets nothing', () => {
-    const a = arena({ p0: [['stun.angel'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).setHp(A3, 50).use(A1, 'stun.angel', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(A2), a.has(A2, 'anointed'), a.hp(A3), a.has(A3, 'anointed')]).toEqual([65, true, 50, false]);
+  it('Glorious Light: the target also gains a Halo: a lethal hit meanwhile leaves them at 25', () => {
+    const a = arena({ p0: [['stun.angel'], ['shot']], p1: [['shot']] });
+    a.setHp(B1, 10).use(A1, 'stun.angel', B1).use(A2, 'shot', B1).end();
+    expect([a.unit(B1).alive, a.hp(B1), a.has(B1, 'halo'), a.has(B1, 'stun')]).toEqual([true, 25, false, true]);
   });
 
-  it('Glorious Light: the Anointed lasts until the end of the ally\'s next turn', () => {
+  it('Glorious Light: the Halo lasts 2 turns, a turn longer than the Stun', () => {
     const a = arena({ p0: [['stun.angel'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'stun.angel', B1).use(A2, 'shot', B1).end().pass(1);
-    expect(a.has(A2, 'anointed')).toBe(true);
-    a.pass(1);
-    expect(a.has(A2, 'anointed')).toBe(false);
+    a.use(A1, 'stun.angel', B1).end().pass(1);
+    expect([a.has(B1, 'halo'), a.has(B1, 'stun')]).toEqual([true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'halo')).toBe(false);
+    a.setHp(B1, 10).use(A2, 'shot', B1).end();
+    expect(a.unit(B1).alive).toBe(false);
   });
 
   it('Wings of Respite: 1 Might and 2 Swiftness for 4 turns', () => {
@@ -489,20 +563,33 @@ describe('Angel skills', () => {
     expect(a.has(A1, 'armor')).toBe(false);
   });
 
-  it('Sweeping Wings: 20 to the target, 15 to another enemy, and the least-HP ally Leaps', () => {
-    const a = arena({ p0: [['cleave.angel'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A2, 70).setHp(A3, 40).use(A1, 'cleave.angel', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 85]);
-    expect([a.has(A3, 'leaping'), a.has(A2, 'leaping'), a.has(A1, 'leaping')]).toEqual([true, false, false]);
+  it('Sweeping Wings: no one has damaged the user: 20 to the target and 10 to every other enemy', () => {
+    const a = arena({ p0: [['cleave.angel']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'cleave.angel', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([80, 90, 90]);
   });
 
-  it('Last Trumpet: all enemies Intimidated for 2 turns; only allies below 30 HP gain a 1-turn Halo', () => {
-    const a = arena({ p0: [['shout.angel'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A2, 29).setHp(A3, 30).use(A1, 'shout.angel').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    expect([a.has(A2, 'halo'), a.has(A3, 'halo'), a.has(A1, 'halo')]).toEqual([true, false, false]);
-    a.pass(2);
-    expect(a.has(A2, 'halo')).toBe(false);
+  it('Sweeping Wings: the backswing deals 20 to the last enemy who damaged the user', () => {
+    const a = arena({ p0: [['cleave.angel']], p1: [['shot'], ['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A1).use(B2, 'shot', A1).end().use(A1, 'cleave.angel', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([80, 80, 100]);
+  });
+
+  it('Sweeping Wings: if that enemy is the target, the backswing spreads instead', () => {
+    const a = arena({ p0: [['cleave.angel']], p1: [['shot'], ['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A1).end().use(A1, 'cleave.angel', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([80, 90, 90]);
+  });
+
+  it('Last Trumpet: all enemies are Taunted by the user for 1 turn', () => {
+    const a = arena({ p0: [['shout.angel'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.angel').end();
+    expect([a.has(B1, 'taunt'), a.has(B2, 'taunt'), a.has(B1, 'intimidated')]).toEqual([true, true, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([70, 100]);
+    a.pass(1).use(B1, 'shot', A2).end(); // turn 4: over
+    expect(a.hp(A2)).toBe(85);
   });
 
   it('Spread Wings: 25 Shield and every ally Warded for 1 turn', () => {
@@ -521,13 +608,30 @@ describe('Angel skills', () => {
     expect(shieldOn(a, A2)).toBe(shieldOn(a, A3));
   });
 
-  it('Radiant Challenge: Taunts for 2 turns, and the user has a Halo while it lasts', () => {
-    const a = arena({ p0: [['taunt.angel'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'taunt.angel', B1).end();
-    expect([find(a, B1, 'taunt')?.source, a.has(A1, 'halo')]).toEqual([A1, true]);
+  it('Radiant Challenge: Taunted by the user; each hit they land on the user heals every other ally 10', () => {
+    const a = arena({ p0: [['taunt.angel'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).setHp(A3, 50).use(A1, 'taunt.angel', B1).end();
+    expect(find(a, B1, 'taunt')?.source).toBe(A1);
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-    a.pass(3);
-    expect([a.has(B1, 'taunt'), a.has(A1, 'halo')]).toEqual([false, false]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3), a.has(B1, 'taunt')]).toEqual([85, 60, 60, true]);
+  });
+
+  it('Radiant Challenge: the second hit on the user ends the Taunt', () => {
+    const a = arena({ p0: [['taunt.angel'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).setHp(A3, 50).use(A1, 'taunt.angel', B1).end();
+    a.use(B1, 'shot', A1).end().pass(1).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3), a.has(B1, 'taunt')]).toEqual([70, 70, 70, false]);
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(55);
+  });
+
+  it('Radiant Challenge: without those hits, it lasts 3 turns', () => {
+    const a = arena({ p0: [['taunt.angel'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'taunt.angel', B1).end().pass(4);
+    expect(a.has(B1, 'taunt')).toBe(true); // on through the enemy's 3rd turn
+    a.pass(1);
+    expect(a.has(B1, 'taunt')).toBe(false);
   });
 
   it('Seraphic Form: 2 Armor and Immune for 3 turns', () => {
@@ -554,10 +658,10 @@ describe('Angel skills', () => {
 
 describe('Angel costs and cooldowns (kit table)', () => {
   const kit: Record<string, [string, number]> = {
-    strike: ['S', 0], smash: ['Sr', 2], charge: ['nc', 1], riposte: ['A', 3], rage: ['A', 4],
+    strike: ['S', 0], smash: ['Sr', 2], charge: ['r', 1], riposte: ['A', 3], rage: ['A', 4],
     shot: ['r', 0], snipe: ['Arr', 2], trap: ['r', 2], maneuver: ['r', 3], companion: ['AI', 4],
-    bolt: ['I', 1], blast: ['Ar', 2], consume: ['r', 2], summon: ['I', 1], channel: ['A', 3],
-    stab: ['A', 0], ravage: ['A', 1], mislead: ['A', 2], stun: ['r', 1], dance: ['AW', 5],
+    bolt: ['Ir', 1], blast: ['Ar', 2], consume: ['r', 2], summon: ['I', 1], channel: ['A', 3],
+    stab: ['A', 0], ravage: ['A', 1], mislead: ['A', 2], stun: ['r', 2], dance: ['AW', 5],
     heal: ['Wr', 2], bless: ['A', 2], curse: ['A', 2], smite: ['Wr', 1], prayer: ['W', 2],
     cleave: ['S', 1], shout: ['A', 3], withstand: ['r', 3], taunt: ['W', 3], titan: ['WA', 4],
   };

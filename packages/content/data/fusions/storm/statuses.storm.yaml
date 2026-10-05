@@ -30,7 +30,11 @@ storm_heart:
       signal: "used:Storm"
       when: { side: ally }
       do:
-        - { op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }
+        # Thunderhead (bolt.storm): while the bearer gathers one, the storm charges it instead.
+        - op: if
+          cond: { not: { has: { unit: bearer, effect: thunderhead } } }
+          then:
+            - { op: forEach, in: bearer, do: [{ op: macro, id: gain_tempest }] }
         - { op: setCounter, name: storm_turn, value: { turn: true } }
     - on: turnEnd
       do:

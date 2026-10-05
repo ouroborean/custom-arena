@@ -104,28 +104,37 @@ describe('Prism skills', () => {
     expect([a.hp(A1), a.hp(B2)]).toEqual([85, 100]);
   });
 
-  it('Burning Glass: Anointed for 3 turns', () => {
-    const a = arena({ p0: [['rage.prism']], p1: [['shot']] });
-    a.use(A1, 'rage.prism').end();
-    expect(a.has(A1, 'anointed')).toBe(true);
-    a.pass(4);
-    expect(a.has(A1, 'anointed')).toBe(true);
+  it('Burning Glass: Immune for 3 turns (and not Anointed)', () => {
+    const a = arena({ p0: [['rage.prism']], p1: [['curse']] });
+    a.use(A1, 'rage.prism').end().use(B1, 'curse', A1).end();
+    expect([a.has(A1, 'immune'), a.has(A1, 'confusion'), a.has(A1, 'anointed')]).toEqual([true, false, false]);
+    a.pass(3);
+    expect(a.has(A1, 'immune')).toBe(true);
     a.pass(1);
-    expect(a.has(A1, 'anointed')).toBe(false);
+    expect(a.has(A1, 'immune')).toBe(false);
   });
 
-  it('Burning Glass: Lens for damaging the same enemy as on the previous turn, not a different one', () => {
-    const a = arena({ p0: [['rage.prism', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.prism').end().pass(1);
-    a.use(A1, 'shot', B1).end().pass(1);
-    expect(a.has(A1, 'lens')).toBe(false);
-    a.use(A1, 'shot', B1).end();
-    expect(a.has(A1, 'lens')).toBe(true);
-    const b = arena({ p0: [['rage.prism', 'shot']], p1: [['shot'], ['shot']] });
-    b.use(A1, 'rage.prism').end().pass(1);
-    b.use(A1, 'shot', B1).end().pass(1).use(A1, 'shot', B2).end();
-    expect(b.has(A1, 'lens')).toBe(false);
+  it('Burning Glass: the user gains Lens; their next skill spends it and heats the glass: 1 Might', () => {
+    const a = arena({ p0: [['rage.prism', 'strike', 'withstand']], p1: [['withstand'], ['withstand']] });
+    a.use(A1, 'rage.prism').end();
+    expect([a.has(A1, 'lens'), a.stacks(A1, 'burning_glass_heat')]).toEqual([true, 0]);
+    a.pass(1).use(A1, 'withstand').end();
+    expect([a.has(A1, 'lens'), a.stacks(A1, 'burning_glass_heat')]).toEqual([false, 1]);
+    a.pass(1).use(A1, 'strike', B2).end();
+    expect([a.hp(B2), a.stacks(A1, 'burning_glass_heat')]).toEqual([75, 1]); // 20 + 5; no Lens, no more heat
   });
+
+  it('Burning Glass: each skill used with Lens adds 1 Might, counting for that skill too, until it ends', () => {
+    const a = arena({ p0: [['rage.prism', 'shot']], p1: [['withstand']], hp: 400 });
+    a.give(A1, 'lens').use(A1, 'rage.prism').end(); // a lasting Lens, never spent
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect([a.stacks(A1, 'burning_glass_heat'), a.hp(B1)]).toEqual([1, 400 - 30]); // (15 + 5) × 1.5
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect([a.stacks(A1, 'burning_glass_heat'), a.hp(B1)]).toEqual([2, 400 - 30 - 38]); // (15 + 10) × 1.5
+    a.pass(1); // the enemy's 3rd turn ends it
+    expect([a.has(A1, 'burning_glass'), a.has(A1, 'immune')]).toEqual([false, false]);
+  });
+
 
   it('Glint Shot: 15; a Helpful skill on their next turn leaves them Numb for 2 turns', () => {
     const a = arena({ p0: [['shot.prism']], p1: [['heal'], ['shot']] });
@@ -148,42 +157,43 @@ describe('Prism skills', () => {
     expect([a.has(B1, 'numb'), a.has(B2, 'numb')]).toEqual([false, false]);
   });
 
-  it('Focal Point: Invisible target; 50 Piercing on the following turn', () => {
-    const a = arena({ p0: [['snipe.prism']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'snipe.prism', B1).end();
-    expect(a.hp(B1)).toBe(100);
+  it('Focal Point: Invisible target; on the following turn, 30 Piercing to the target and 15 Piercing to each other enemy', () => {
+    const a = arena({ p0: [['snipe.prism']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).give(B2, 'armor', { stacks: 2 }).use(A1, 'snipe.prism', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([100, 100, 100]);
+    expect(content.skills['snipe.prism']!.tags).toEqual(expect.arrayContaining(['Channeled', 'HiddenTarget']));
     a.end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([50, 100]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([70, 85, 85]);
   });
 
-  it('Focal Point: on a kill, the damage left over hits a random ally of theirs at full strength', () => {
-    const a = arena({ p0: [['snipe.prism']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 30).use(A1, 'snipe.prism', B1).end().end();
-    expect([a.unit(B1).alive, a.hp(B2)]).toEqual([false, 80]);
+  it('Focal Point: Channeled — stunning the user before it lands stops it', () => {
+    const a = arena({ p0: [['snipe.prism']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'snipe.prism', B1).end().use(B1, 'stun', A1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
-  it('Standing Decree: Invisible; Condemned, and the Condemnation returns after it triggers', () => {
-    const a = arena({ p0: [['trap.prism']], p1: [['shot']] });
-    a.use(A1, 'trap.prism', B1).end();
-    expect(a.has(B1, 'condemned')).toBe(true);
-    a.use(B1, 'shot', A1).end();
-    const debuffs = ['weakness', 'vulnerable', 'confusion'].reduce((n, k) => n + a.stacks(B1, k), 0);
-    expect([a.has(B1, 'condemned'), debuffs]).toEqual([false, 1]);
-    a.end(); // end of the user's next turn
-    expect(a.has(B1, 'condemned')).toBe(true);
-  });
-
-  it('Standing Decree: Invisible, so the opponent does not see the Condemnation', () => {
+  it('Standing Decree: Invisible; the opponent does not see it', () => {
     const a = arena({ p0: [['trap.prism']], p1: [['shot']] });
     a.use(A1, 'trap.prism', B1).end();
     expect(seenByFoe(a, B1)).toEqual([]);
   });
 
-  it('Standing Decree: after 3 turns it no longer returns', () => {
-    const a = arena({ p0: [['trap.prism']], p1: [['shot']] });
-    a.use(A1, 'trap.prism', B1).end().pass(6);
-    a.use(B1, 'shot', A1).end().pass(2);
-    expect(a.has(B1, 'condemned')).toBe(false);
+  it('Standing Decree: the first Harmful skill they use Frostbites them for 2 turns, and a random ally of theirs too', () => {
+    const a = arena({ p0: [['trap.prism']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'trap.prism', B1).end().use(B1, 'shot', A1).end();
+    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten'), a.has(B1, 'standing_decree')]).toEqual([true, true, false]);
+    a.pass(3);
+    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([true, true]);
+    a.pass(1);
+    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([false, false]);
+  });
+
+  it('Standing Decree: Helpful skills don\'t spring it; after 3 turns it\'s gone', () => {
+    const a = arena({ p0: [['trap.prism']], p1: [['shot', 'heal'], ['shot']] });
+    a.use(A1, 'trap.prism', B1).end().use(B1, 'heal', B1).end();
+    expect([a.has(B1, 'frostbitten'), a.has(B1, 'standing_decree')]).toEqual([false, true]);
+    a.pass(5).use(B1, 'shot', A1).end();
+    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([false, false]);
   });
 
   it('Afterglow: Invulnerable for 1 turn', () => {
@@ -215,21 +225,20 @@ describe('Prism skills', () => {
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Hallowed Hoarfrost: 20 and Sanctified for 2 turns', () => {
-    const a = arena({ p0: [['bolt.prism']], p1: [['shot']] });
+  it('Splinter of Light: 10 now; at the start of the user\'s next turn it bursts for 15, and 10 to a random ally of theirs', () => {
+    const a = arena({ p0: [['bolt.prism']], p1: [['withstand'], ['withstand']] });
     a.use(A1, 'bolt.prism', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sanctify'), a.has(B1, 'chilled')]).toEqual([80, true, false]);
-    a.pass(2);
-    expect(a.has(B1, 'sanctify')).toBe(true);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'splinter_of_light')]).toEqual([90, 100, true]);
     a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'splinter_of_light')]).toEqual([75, 90, false]);
   });
 
-  it('Hallowed Hoarfrost: each time the Sanctify heals someone, the target gains Chilled', () => {
-    const a = arena({ p0: [['bolt.prism'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bolt.prism', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(A2), a.has(B1, 'chilled')]).toEqual([65, true]);
+  it('Splinter of Light: healing the target before it bursts draws it out', () => {
+    const a = arena({ p0: [['bolt.prism']], p1: [['withstand'], ['heal']] });
+    a.use(A1, 'bolt.prism', B1).end().use(B2, 'heal', B1).end();
+    expect([a.has(B1, 'splinter_of_light'), a.hp(B1), a.hp(B2)]).toEqual([false, 100, 100]);
   });
+
 
   it('Colorless Nova: 25 Piercing to all enemies; each loses one Buff', () => {
     const a = arena({ p0: [['blast.prism']], p1: [['shot'], ['shot'], ['shot']] });
@@ -311,18 +320,16 @@ describe('Prism skills', () => {
     expect([a.has(A1, 'lens'), a.has(A2, 'lens'), a.has(A3, 'lens')]).toEqual([true, false, false]);
   });
 
-  it('Cold Crusade: 20 Piercing to the target and every other Condemned enemy; those above 75 HP are Condemned', () => {
-    const a = arena({ p0: [['ravage.prism']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B2, 'condemned', { source: A1 }).give(B1, 'armor', { stacks: 2 }).setHp(B2, 70);
-    a.use(A1, 'ravage.prism', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 50, 100]);
-    expect([a.has(B1, 'condemned'), a.has(B3, 'condemned')]).toEqual([true, false]);
+  it('Converging Light: 20 Piercing with no Condemned or Sanctified allies around the target', () => {
+    const a = arena({ p0: [['ravage.prism']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).give(B1, 'condemned', { source: A1 }).use(A1, 'ravage.prism', B1).end();
+    expect(a.hp(B1)).toBe(80); // the target's own Condemn doesn't count
   });
 
-  it('Cold Crusade: a target left at or below 75 HP is not Condemned', () => {
-    const a = arena({ p0: [['ravage.prism']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 60).use(A1, 'ravage.prism', B1).end();
-    expect([a.hp(B1), a.has(B1, 'condemned')]).toEqual([40, false]);
+  it('Converging Light: +10 for each ally of the target who is Condemned or Sanctified', () => {
+    const a = arena({ p0: [['ravage.prism']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'condemned', { source: A1 }).give(B3, 'sanctify', { source: A1 }).use(A1, 'ravage.prism', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([60, 100, 100]);
   });
 
   it('Caught Light: Invisible; counters a Harmful skill', () => {
@@ -397,20 +404,21 @@ describe('Prism skills', () => {
     expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([80, 70, 90]);
   });
 
-  it('Lens of Favor: Anointed until the end of their next turn', () => {
-    const a = arena({ p0: [['bless.prism'], ['shot']], p1: [['shot']] });
+  it('Lens of Favor: target ally gains Lens', () => {
+    const a = arena({ p0: [['bless.prism'], ['strike']], p1: [['shot']] });
     a.use(A1, 'bless.prism', A2).end();
-    expect([a.has(A2, 'anointed'), a.has(A2, 'lens')]).toEqual([true, false]);
-    a.pass(1);
-    expect(a.has(A2, 'anointed')).toBe(true);
-    a.pass(1);
-    expect(a.has(A2, 'anointed')).toBe(false);
+    expect(a.has(A2, 'lens')).toBe(true);
+    a.pass(1).use(A2, 'strike', B1).end();
+    expect(a.hp(B1)).toBe(70);
   });
 
-  it('Lens of Favor: an ally who already was Anointed also gains Lens', () => {
-    const a = arena({ p0: [['bless.prism'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'anointed').use(A1, 'bless.prism', A2).end();
-    expect([a.has(A2, 'anointed'), a.has(A2, 'lens')]).toEqual([true, true]);
+  it('Lens of Favor: when they spend it, a random other ally gains Lens', () => {
+    const a = arena({ p0: [['bless.prism', 'strike'], ['strike'], ['strike']], p1: [['shot']] });
+    a.use(A1, 'bless.prism', A2).end().pass(1);
+    expect([a.has(A1, 'lens'), a.has(A3, 'lens')]).toEqual([false, false]);
+    a.use(A2, 'strike', B1).end();
+    expect(a.has(A2, 'lens')).toBe(false);
+    expect([A1, A3].filter((u) => a.has(u, 'lens'))).toHaveLength(1);
   });
 
   it("Split Verdict: Condemned until the end of the user's next turn; a random ally of theirs is Sanctified as long", () => {
@@ -423,14 +431,38 @@ describe('Prism skills', () => {
     expect([a.has(B1, 'condemned'), a.has(B2, 'sanctify')]).toEqual([false, false]);
   });
 
-  it('Glacial Rebuke: 20 and Sanctified for 1 turn; the first ally to damage them gains Lens', () => {
+  it('Glacial Rebuke: 20 damage; the user\'s ally with the least HP is guarded until the end of the enemy\'s next turn', () => {
     const a = arena({ p0: [['smite.prism'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'smite.prism', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sanctify'), a.hp(A2)]).toEqual([50, true, 65]);
-    expect([a.has(A2, 'lens'), a.has(A3, 'lens')]).toEqual([true, false]);
+    a.setHp(A2, 50).setHp(A3, 70).use(A1, 'smite.prism', B1).end();
+    expect([a.hp(B1), a.has(A2, 'glacial_rebuke'), a.has(A3, 'glacial_rebuke'), a.has(B1, 'sanctify')]).toEqual([80, true, false, false]);
     a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
+    expect(a.has(A2, 'glacial_rebuke')).toBe(false);
   });
+
+  it('Glacial Rebuke: the first enemy direct hit on the guarded ally heals them 15 and Frostbites that enemy for 1 turn', () => {
+    const a = arena({ p0: [['smite.prism'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'smite.prism', B1).end().use(B1, 'shot', A2).end();
+    expect([a.hp(A2), a.has(B1, 'frostbitten')]).toEqual([50, true]); // −15 +15
+    a.pass(1);
+    expect(a.has(B1, 'frostbitten')).toBe(true); // through their next turn
+    a.pass(1);
+    expect(a.has(B1, 'frostbitten')).toBe(false);
+  });
+
+  it('Glacial Rebuke: only the first enemy hit is rebuked; later hits land as usual', () => {
+    const a = arena({ p0: [['smite.prism'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 50).use(A1, 'smite.prism', B1).end().use(B1, 'shot', A2).use(B2, 'shot', A2).end();
+    expect([a.hp(A2), a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten'), a.has(A2, 'glacial_rebuke')]).toEqual([35, true, false, false]);
+  });
+
+  it('Glacial Rebuke: the user can be the one guarded; allies\' hits don\'t trigger it', () => {
+    const a = arena({ p0: [['smite.prism'], ['shot']], p1: [['shot']] });
+    a.setHp(A1, 40).use(A1, 'smite.prism', B1).end();
+    expect(a.has(A1, 'glacial_rebuke')).toBe(true);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(40);
+  });
+
 
   it('Beacon of Mercy: allies heal 20 with 10 Shield for 1 turn; then the lowest unit on the field heals 40', () => {
     const a = arena({ p0: [['prayer.prism'], ['shot']], p1: [['shot']] });

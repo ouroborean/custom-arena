@@ -1,5 +1,6 @@
 // Spec-driven tests for Devil (Fire + Unholy): Hellfire, Contracts, Devil's Ledger and all 30 skills.
-// Sources: skill/status descriptions, docs/rules.md §21.18, and the fire-pairs.md kit table.
+// Sources: skill/status descriptions, docs/rules.md §21.18, and the fire-pairs.md kit table (with the
+// 2026-10-05 evolution redesigns).
 // Units: A1..A3 = p0c0..p0c2 (player 1, odd turns), B1..B3 = p1c0..p1c2.
 
 import { describe, expect, it } from 'vitest';
@@ -8,7 +9,6 @@ import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
 const A2 = 'p0c1';
-const A3 = 'p0c2';
 const B1 = 'p1c0';
 const B2 = 'p1c1';
 const B3 = 'p1c2';
@@ -25,6 +25,7 @@ const counts = (a: Arena, id: string, key: string) =>
 const contracts = (a: Arena, id: string) => a.effects(id).filter((e) => e.defId === 'contract' || (e.inline?.countsAs ?? []).includes('contract')).length;
 const sf = (a: Arena, id: string) => a.stacks(id, 'soul_fragment');
 const energy = (a: Arena, p: 0 | 1) => Object.values(a.state.players[p].energy).reduce((n, v) => n + v, 0);
+const tabs = (a: Arena, id: string) => a.effects(id).filter((e) => e.defId === 'devils_tab').length;
 const queuedR = (a: Arena, p: 0 | 1 = 0) => a.state.players[p].queue[0]!.cost.r;
 const shieldLeft = (a: Arena, id: string) =>
   a.effects(id).reduce((n, e) => n + (e.defId === 'shield' || e.inline?.id === 'bargained_aegis' ? e.value : 0), 0);
@@ -37,17 +38,17 @@ function withImp(a: Arena): string {
 
 describe('Devil keywords', () => {
   it('Hellfire: 5 Affliction at the end of its applier\'s turn, and it counts as Ignite and Horrified', () => {
-    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'armor', { stacks: 4 });
-    a.use(A1, 'bolt.devil', B1).end();
+    const a = arena({ p0: [['strike.devil']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'armor', { stacks: 5 });
+    a.use(A1, 'strike.devil', B1).end();
     expect(a.has(B1, 'hellfire')).toBe(true);
     expect([counts(a, B1, 'ignite'), counts(a, B1, 'horrified')]).toEqual([true, true]);
-    expect(a.hp(B1)).toBe(100 - 0 - 5); // Armor stops the 20 hit, not the Affliction burn
+    expect(a.hp(B1)).toBe(100 - 0 - 5); // Armor stops the 25 hit, not the Affliction burn
   });
 
   it('Hellfire: the bearer can\'t gain Buffs while it lasts', () => {
-    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['bless']] });
-    a.use(A1, 'bolt.devil', B1).end().use(B2, 'bless', B1).end();
+    const a = arena({ p0: [['strike.devil']], p1: [['shot'], ['bless']] });
+    a.use(A1, 'strike.devil', B1).end().use(B2, 'bless', B1).end();
     expect([a.has(B1, 'might'), a.has(B1, 'renew')]).toEqual([false, false]);
   });
 
@@ -97,8 +98,8 @@ describe('Devil keywords', () => {
   });
 
   it('Contract: forced on an enemy, it is Neutral, so Horrified doesn\'t stop it (Fine Print on a Hellfired enemy)', () => {
-    const a = arena({ p0: [['trap.devil'], ['bolt.devil']], p1: [['heal']] });
-    a.use(A2, 'bolt.devil', B1).use(A1, 'trap.devil', B1).end();
+    const a = arena({ p0: [['trap.devil'], ['strike.devil']], p1: [['heal']] });
+    a.use(A2, 'strike.devil', B1).use(A1, 'trap.devil', B1).end();
     a.use(B1, 'heal', B1).end();
     expect(contracts(a, B1)).toBe(1);
   });
@@ -112,8 +113,8 @@ describe('Devil skills', () => {
   });
 
   it('Infernal Edge: a Hellfired target spreads it to a random ally of theirs for 1 turn', () => {
-    const a = arena({ p0: [['strike.devil'], ['bolt.devil']], p1: [['shot'], ['shot']] });
-    a.use(A2, 'bolt.devil', B1).end().pass(1).use(A1, 'strike.devil', B1).end();
+    const a = arena({ p0: [['strike.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'hellfire', { source: A2 }).use(A1, 'strike.devil', B1).end();
     expect([a.has(B1, 'hellfire'), a.has(B2, 'hellfire')]).toEqual([true, true]);
     a.pass(1);
     expect(a.has(B2, 'hellfire')).toBe(false); // 1 turn
@@ -143,13 +144,29 @@ describe('Devil skills', () => {
     expect(queuedR(a)).toBe(0); // rr − 2
   });
 
-  it('Devil\'s Due: counters every Harmful skill on the user for 1 turn; each attacker gains Hellfire, the user 1 Soul Fragment per counter', () => {
+  it('Devil\'s Due: counters every Harmful skill on the user for 1 turn; an attacker with Buffs hands over a random one, one without takes 15 Affliction', () => {
     const a = arena({ p0: [['riposte.devil'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     expect(content.skills['riposte.devil']!.tags).toContain('Invisible');
+    a.give(B1, 'might', { stacks: 2 }).give(B1, 'armor', { stacks: 1 });
     a.use(A1, 'riposte.devil').end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).use(B3, 'shot', A2).end();
-    expect([a.hp(A1), a.hp(A2), sf(a, A1)]).toEqual([100, 85, 2]);
-    expect([a.has(B1, 'hellfire'), a.has(B2, 'hellfire'), a.has(B3, 'hellfire')]).toEqual([true, true, false]);
+    a.use(B1, 'shot', A1).use(B3, 'shot', A2).end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([100, 85]); // B1's shot is countered; B3's, on A2, isn't
+    // One of B1's two Buffs (the whole effect, stacks and all) moves to the user; the other stays.
+    const moved = [a.has(A1, 'might'), a.has(A1, 'armor')];
+    expect(moved.filter(Boolean)).toHaveLength(1);
+    expect([a.has(B1, 'might'), a.has(B1, 'armor')]).toEqual(moved.map((m) => !m));
+    if (moved[0]) expect(a.stacks(A1, 'might')).toBe(2);
+    expect([a.hp(B1), a.hp(B3)]).toEqual([100, 100]);
+    const b = arena({ p0: [['riposte.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    b.give(B2, 'armor', { stacks: 3 });
+    b.use(A1, 'riposte.devil').end().use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([b.hp(A1), b.hp(B1), b.hp(B2), b.stacks(A1, 'armor')]).toEqual([100, 85, 100, 3]);
+  });
+
+  it('Devil\'s Due: it lasts 1 turn', () => {
+    const a = arena({ p0: [['riposte.devil'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'riposte.devil').end().pass(2).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100]);
   });
 
   it('Faustian Fury: a 3-turn Contract — 2 Might, Flameborn and Immortal now', () => {
@@ -194,8 +211,8 @@ describe('Devil skills', () => {
   });
 
   it('Infernal Coin: if the target already had Hellfire, the user gains 1 Soul Fragment', () => {
-    const a = arena({ p0: [['shot.devil'], ['bolt.devil']], p1: [['shot']] });
-    a.use(A2, 'bolt.devil', B1).use(A1, 'shot.devil', B1).end();
+    const a = arena({ p0: [['shot.devil'], ['strike.devil']], p1: [['shot']] });
+    a.use(A2, 'strike.devil', B1).use(A1, 'shot.devil', B1).end();
     expect(sf(a, A1)).toBe(1);
   });
 
@@ -239,15 +256,36 @@ describe('Devil skills', () => {
     expect(contracts(a, B1)).toBe(0);
   });
 
-  it('Loophole: Invulnerable for 1 turn; each ally at or below 30 HP becomes Immortal for as long', () => {
-    const a = arena({ p0: [['maneuver.devil'], ['shot'], ['shot']], p1: [['shot']] });
+  it('Put It on My Tab: for 1 turn, each hit on the user goes on their tab instead, each as its own Contract', () => {
+    const a = arena({ p0: [['maneuver.devil'], ['shot']], p1: [['strike'], ['shot']] });
     expect(content.skills['maneuver.devil']!.tags).toContain('Invisible');
-    a.setHp(A2, 30).setHp(A3, 31).use(A1, 'maneuver.devil').end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-    expect([counts(a, A2, 'immortal'), counts(a, A3, 'immortal')]).toEqual([true, false]);
-    a.setHp(A2, 10).use(B1, 'shot', A2).end();
-    expect(a.hp(A2)).toBe(5);
-    expect(counts(a, A2, 'immortal')).toBe(false);
+    a.use(A1, 'maneuver.devil').end();
+    a.use(B1, 'strike', A1).use(B2, 'shot', A1).end(); // 20 + 15, both held
+    expect([a.hp(A1), tabs(a, A1)]).toEqual([100, 2]);
+    expect(content.statuses['devils_tab']!.countsAs).toContain('contract');
+  });
+
+  it('Put It on My Tab: the price, at the end of the user\'s next turn, is half of each hit as Affliction', () => {
+    const a = arena({ p0: [['maneuver.devil'], ['shot']], p1: [['strike'], ['shot']] });
+    a.give(A1, 'armor', { stacks: 5 }); // Affliction ignores Armor
+    a.use(A1, 'maneuver.devil').end();
+    a.use(B1, 'strike', A1).use(B2, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(100);
+    a.pass(1); // the end of the user's next turn: 10 + 7
+    expect([a.hp(A1), tabs(a, A1)]).toEqual([83, 0]);
+  });
+
+  it('Put It on My Tab: it lasts 1 turn; later hits land as normal', () => {
+    const a = arena({ p0: [['maneuver.devil'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'maneuver.devil').end().pass(2).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), tabs(a, A1)]).toEqual([85, 0]);
+  });
+
+  it('Put It on My Tab: Hellfire on the user (no Buffs) doesn\'t stop the tab', () => {
+    const a = arena({ p0: [['maneuver.devil'], ['shot']], p1: [['shot']] });
+    a.give(A1, 'hellfire', { source: B1, duration: 4 });
+    a.use(A1, 'maneuver.devil').end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), tabs(a, A1)]).toEqual([100, 2]); // the shot and B1's Hellfire burn are both held
   });
 
   it('Imp Notary: a permanent 25 HP minion', () => {
@@ -283,27 +321,28 @@ describe('Devil skills', () => {
     expect(b.has(B2, 'hellfire')).toBe(false); // 1 turn
   });
 
-  it('Hellbolt: 20 damage and Hellfire for 2 turns', () => {
-    const a = arena({ p0: [['bolt.devil']], p1: [['shot']] });
+  it('Borrowed Fire: 35 damage on credit — a 2-turn Contract whose price is 15 Affliction', () => {
+    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'armor', { stacks: 3 });
     a.use(A1, 'bolt.devil', B1).end();
-    expect([a.hp(B1), a.has(B1, 'hellfire')]).toEqual([75, true]);
+    expect([a.hp(B1), contracts(a, A1)]).toEqual([65, 1]);
     a.pass(2);
-    expect(a.has(B1, 'hellfire')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'hellfire')).toBe(false);
+    expect(a.hp(A1)).toBe(100);
+    a.pass(1); // the end of turn 4
+    expect([a.hp(A1), contracts(a, A1)]).toEqual([85, 0]);
   });
 
-  it('Hellbolt: each Helpful skill used on the Hellfired target gives the user 1 Soul Fragment', () => {
-    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['bless'], ['heal']] });
-    a.use(A1, 'bolt.devil', B1).end().use(B2, 'bless', B1).use(B3, 'heal', B1).end();
-    expect(sf(a, A1)).toBe(2);
-    expect(a.has(B1, 'might')).toBe(false);
+  it('Borrowed Fire: the price is waived if that enemy has died by then', () => {
+    const a = arena({ p0: [['bolt.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bolt.devil', B1).end().pass(1);
+    a.setHp(B1, 10).use(A2, 'shot', B1).end().pass(1);
+    expect([a.unit(B1).alive, contracts(a, A1), a.hp(A1)]).toEqual([false, 0, 100]);
   });
 
-  it('Hellbolt: Helpful skills on other enemies don\'t count', () => {
-    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['bless']] });
-    a.use(A1, 'bolt.devil', B1).end().use(B2, 'bless', B2).end();
-    expect(sf(a, A1)).toBe(0);
+  it('Borrowed Fire: a Horrified user still owes the price', () => {
+    const a = arena({ p0: [['bolt.devil']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'horrified', { source: B1 }).use(A1, 'bolt.devil', B1).end().pass(3);
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Hellstorm: 20 to all enemies; with no fragments, no Hellfire', () => {
@@ -334,34 +373,32 @@ describe('Devil skills', () => {
     expect(a.has(B1, 'hellfire')).toBe(false);
   });
 
-  it('Collect: 5 damage; a Contract on the target ends now, its price is collected, and the user gains 1 + 1 Soul Fragments', () => {
-    const a = arena({ p0: [['companion.devil', 'consume.devil']], p1: [['shot']] });
-    const imp = withImp(a);
-    a.use(imp, 'imp_notary_offer', B1).use(A1, 'consume.devil', B1).end();
-    // 5 hit + the Offer's 10 price, collected now.
-    expect([a.hp(B1), contracts(a, B1), sf(a, A1)]).toEqual([85, 0, 2]);
-  });
-
-  it('Collect: with no Contract, 5 damage and 1 Soul Fragment, and the target is put in debt (a Contract)', () => {
+  it('Collect: 5 damage, and the target is put in debt to the user (a Contract)', () => {
     const a = arena({ p0: [['consume.devil']], p1: [['shot']] });
     a.use(A1, 'consume.devil', B1).end();
-    expect([a.hp(B1), sf(a, A1), contracts(a, B1), counts(a, B1, 'contract')]).toEqual([95, 1, 1, true]);
+    expect([a.hp(B1), contracts(a, B1), counts(a, B1, 'contract'), sf(a, A1)]).toEqual([95, 1, true, 0]);
   });
 
-  it('Collect: the debt lasts 2 turns, then its price is 15 Affliction damage', () => {
+  it('Collect: the debt lasts 2 turns; its price is 20 Affliction damage, and the user heals as much', () => {
     const a = arena({ p0: [['consume.devil']], p1: [['shot']] });
     a.give(B1, 'armor', { stacks: 3 });
-    a.use(A1, 'consume.devil', B1).end().pass(2);
-    expect([contracts(a, B1), a.hp(B1)]).toEqual([1, 100]); // the Armor stopped the hit
+    a.setHp(A1, 50).use(A1, 'consume.devil', B1).end().pass(2);
+    expect([contracts(a, B1), a.hp(B1), a.hp(A1)]).toEqual([1, 100, 50]); // the Armor stopped the hit
     a.pass(1);
-    expect([contracts(a, B1), a.hp(B1)]).toEqual([0, 85]);
+    expect([contracts(a, B1), a.hp(B1), a.hp(A1)]).toEqual([0, 80, 70]);
   });
 
-  it('Collect: the debt is a Contract the next Collect can collect early', () => {
-    const a = arena({ p0: [['consume.devil'], ['consume.devil']], p1: [['shot']] });
-    a.use(A1, 'consume.devil', B1).use(A2, 'consume.devil', B1).end();
-    // 5 + 5, and A2 collects A1's 15 now.
-    expect([a.hp(B1), contracts(a, B1), sf(a, A1), sf(a, A2)]).toEqual([75, 0, 1, 2]);
+  it('Collect: the user heals only what the price deals', () => {
+    const a = arena({ p0: [['consume.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.devil', B1).end().pass(1);
+    a.setHp(B1, 10).pass(2); // the price comes due at the end of turn 4
+    expect([a.unit(B1).alive, a.hp(A1)]).toEqual([false, 60]);
+  });
+
+  it('Collect: a Horrified (Hellfired) enemy still takes the debt', () => {
+    const a = arena({ p0: [['consume.devil'], ['strike.devil']], p1: [['shot']] });
+    a.use(A2, 'strike.devil', B1).use(A1, 'consume.devil', B1).end();
+    expect(contracts(a, B1)).toBe(1);
   });
 
   it('Imp Captain: 25 HP for 3 turns; Ember Whip deals 10', () => {
@@ -383,42 +420,44 @@ describe('Devil skills', () => {
     expect([a.hp(B1), sf(a, A1)]).toEqual([80, 2]);
   });
 
-  it('Soulburn: at the end of the user\'s turns, 10 damage and Hellfire for 1 turn to the target; the user heals 15', () => {
-    const a = arena({ p0: [['channel.devil']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 50).use(A1, 'channel.devil', B1).end();
-    expect([a.hp(A1), a.has(B1, 'hellfire'), a.hp(B2)]).toEqual([65, true, 100]);
-    expect(a.hp(B1)).toBeLessThanOrEqual(90);
+  it('Soulburn: the target has Hellfire, and at the end of each of the user\'s turns it burns them for 10 more Affliction', () => {
+    const a = arena({ p0: [['channel.devil']], p1: [['shot'], ['bless']] });
+    expect(content.skills['channel.devil']!.tags).toContain('Channeled');
+    a.give(B1, 'armor', { stacks: 3 });
+    a.use(A1, 'channel.devil', B1).end();
+    expect([a.has(B1, 'hellfire'), a.hp(B1), a.hp(B2)]).toEqual([true, 85, 100]); // 5 burn + 10 more
+    a.use(B2, 'bless', B1).end();
+    expect([a.hp(B1), a.has(B1, 'might')]).toEqual([85, false]); // not on the enemy's turn; no Buffs
   });
 
-  it('Soulburn: lasts up to 3 of the user\'s turns', () => {
+  it('Soulburn: it burns up to 3 turns, then the Hellfire goes out with it', () => {
     const a = arena({ p0: [['channel.devil']], p1: [['shot']] });
-    a.setHp(A1, 10).use(A1, 'channel.devil', B1).end().pass(4);
-    expect(a.hp(A1)).toBe(55);
+    a.use(A1, 'channel.devil', B1).end().pass(3);
+    expect([a.hp(B1), a.has(B1, 'hellfire')]).toEqual([70, true]);
+    a.pass(1); // the end of the user's third turn
+    expect([a.hp(B1), a.has(B1, 'hellfire')]).toEqual([55, false]);
     a.pass(2);
-    expect(a.hp(A1)).toBe(55);
+    expect(a.hp(B1)).toBe(55);
   });
 
-  it('Toasting Fork: 10 damage, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.devil']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.devil', B1).end().pass(1).use(A1, 'stab.devil', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Soulburn: broken early, it stops burning and the Hellfire ends', () => {
+    const a = arena({ p0: [['channel.devil']], p1: [['stun']] });
+    a.use(A1, 'channel.devil', B1).end().use(B1, 'stun', A1).end();
+    expect(a.has(B1, 'hellfire')).toBe(false);
+    a.pass(4);
+    expect(a.hp(B1)).toBe(85);
   });
 
-  it('Toasting Fork: for 2 turns the user heals 5 at the end of their turns while the target is Ignited (whoever lit it)', () => {
+  it('Pitchfork: 10 damage, and a random Buff of the target\'s burns away', () => {
     const a = arena({ p0: [['stab.devil']], p1: [['shot']] });
-    a.setHp(A1, 50).give(B1, 'ignite', { source: B1 });
+    a.give(B1, 'might').give(B1, 'swiftness').use(A1, 'stab.devil', B1).end();
+    expect([a.hp(B1), Number(a.has(B1, 'might')) + Number(a.has(B1, 'swiftness'))]).toEqual([90, 1]);
+  });
+
+  it('Pitchfork: against a target with no Buffs, 20 damage', () => {
+    const a = arena({ p0: [['stab.devil']], p1: [['shot']] });
     a.use(A1, 'stab.devil', B1).end();
-    expect(a.hp(A1)).toBe(55);
-    a.pass(2);
-    expect(a.hp(A1)).toBe(60);
-    a.pass(2);
-    expect(a.hp(A1)).toBe(60); // over
-  });
-
-  it('Toasting Fork: no Ignite, no healing', () => {
-    const a = arena({ p0: [['stab.devil']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'stab.devil', B1).end();
-    expect(a.hp(A1)).toBe(50);
+    expect(a.hp(B1)).toBe(80);
   });
 
   it('Hellraze: 35 Piercing; the target\'s Buffs become a Contract: kept 1 turn, then 10 Affliction per Buff', () => {
@@ -461,20 +500,43 @@ describe('Devil skills', () => {
     expect([b.hp(B1), sf(b, A1)]).toEqual([70, 0]);
   });
 
-  it('Binding Clause: 10 damage and a 1-turn Stun', () => {
+  it('Hellbound: 10 damage, and the target gains Hellfire for 1 turn, Stunned while it lasts', () => {
     const a = arena({ p0: [['stun.devil']], p1: [['shot']] });
     a.use(A1, 'stun.devil', B1).end();
-    expect([a.hp(B1), a.reject(() => a.use(B1, 'shot', A1))]).toEqual([90, 'cannot_act']);
-    a.pass(2);
-    a.use(B1, 'shot', A1);
-  });
-
-  it('Binding Clause: 2 turns of Stun on a Contract holder', () => {
-    const a = arena({ p0: [['companion.devil', 'stun.devil']], p1: [['shot']] });
-    const imp = withImp(a);
-    a.use(imp, 'imp_notary_offer', B1).use(A1, 'stun.devil', B1).end().pass(2);
+    expect([a.hp(B1), a.has(B1, 'hellfire')]).toEqual([85, true]); // 10 + its burn
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
     a.pass(2);
+    expect(a.has(B1, 'hellfire')).toBe(false);
+    a.use(B1, 'shot', A1); // the Hellfire's gone, so they act
+  });
+
+  it('Hellbound: Swiftness doesn\'t stop it', () => {
+    const a = arena({ p0: [['stun.devil']], p1: [['shot']] });
+    a.give(B1, 'swiftness').use(A1, 'stun.devil', B1).end();
+    expect([a.reject(() => a.use(B1, 'shot', A1)), a.stacks(B1, 'swiftness')]).toEqual(['cannot_act', 1]);
+  });
+
+  it('Hellbound: never on two of their turns in a row — Hellfire right after a Hellbound turn doesn\'t Stun them', () => {
+    const a = arena({ p0: [['stun.devil', 'strike.devil']], p1: [['shot']] });
+    a.use(A1, 'stun.devil', B1).end().pass(1);
+    a.use(A1, 'strike.devil', B1).end(); // Hellfire again on turn 3
+    expect(a.has(B1, 'hellfire')).toBe(true);
+    a.use(B1, 'shot', A1).end(); // turn 4: free
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Hellbound: within the 3 turns, Hellfire after a free turn Stuns them again', () => {
+    const a = arena({ p0: [['stun.devil', 'strike.devil']], p1: [['shot']] });
+    a.use(A1, 'stun.devil', B1).end().pass(3); // turn 4 is free (no Hellfire)
+    a.use(A1, 'strike.devil', B1).end(); // turn 5
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+  });
+
+  it('Hellbound: after the 3 turns, Hellfire no longer Stuns them', () => {
+    const a = arena({ p0: [['stun.devil', 'strike.devil']], p1: [['shot']] });
+    a.use(A1, 'stun.devil', B1).end().pass(5);
+    a.use(A1, 'strike.devil', B1).end(); // turn 7
+    expect(a.has(B1, 'hellfire')).toBe(true);
     a.use(B1, 'shot', A1);
   });
 
@@ -618,24 +680,47 @@ describe('Devil skills', () => {
     expect(a.has(B1, 'might')).toBe(true);
   });
 
-  it('Pyre Swing: 25 and 15; an enemy it kills Explodes (10 Affliction to every enemy)', () => {
-    const a = arena({ p0: [['cleave.devil']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 15).use(A1, 'cleave.devil', B1).end();
-    expect([a.unit(B2).alive, a.hp(B1)]).toEqual([false, 65]);
-  });
-
-  it('Pyre Swing: no kill, no Explosion', () => {
+  it('Co-signed Debt: 20 to the target; a random other enemy co-signs a Contract (2 turns) whose price is half that hit, as Affliction', () => {
     const a = arena({ p0: [['cleave.devil']], p1: [['shot'], ['shot']] });
     a.use(A1, 'cleave.devil', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), contracts(a, B2), contracts(a, B1)]).toEqual([80, 100, 1, 0]);
+    a.pass(2);
+    expect([a.hp(B2), contracts(a, B2)]).toEqual([100, 1]);
+    a.pass(1); // due as the second enemy turn ends
+    expect([a.hp(B2), contracts(a, B2)]).toEqual([90, 0]);
   });
 
-  it('Infernal Shriek: all enemies Intimidated for 2 turns; Hellfired ones twice, and the user gains a fragment for each', () => {
-    const a = arena({ p0: [['shout.devil'], ['bolt.devil']], p1: [['shot'], ['shot']] });
-    a.use(A2, 'bolt.devil', B1).use(A1, 'shout.devil').end();
-    expect([a.stacks(B1, 'intimidated'), a.stacks(B2, 'intimidated'), sf(a, A1)]).toEqual([2, 1, 1]);
+  it('Co-signed Debt: every hit the target takes before the price is due adds half to it (rounded down to 5)', () => {
+    const a = arena({ p0: [['cleave.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.devil', B1).use(A2, 'shot', B1).end().pass(1); // 35 so far
+    a.use(A2, 'shot', B1).end().pass(1); // 50 in all
+    expect([a.hp(B1), a.hp(B2)]).toEqual([50, 75]);
+  });
+
+  it('Co-signed Debt: with no other enemy, nobody co-signs', () => {
+    const a = arena({ p0: [['cleave.devil']], p1: [['shot']] });
+    a.use(A1, 'cleave.devil', B1).end();
+    expect([a.hp(B1), contracts(a, B1)]).toEqual([80, 0]);
     a.pass(3);
-    expect(a.has(B2, 'intimidated')).toBe(false);
+    expect(a.hp(B1)).toBe(80);
+  });
+
+  it('Infernal Toll: for 2 turns, each skill an enemy uses deals them 5 Affliction per energy it cost', () => {
+    const a = arena({ p0: [['shout.devil']], p1: [['strike', 'smash'], ['shot']] });
+    a.give(B1, 'armor', { stacks: 3 });
+    a.use(A1, 'shout.devil').end();
+    a.use(B1, 'smash', A1).use(B2, 'shot', A1).end(); // Sr → 10; r → 5
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 95]);
+    a.pass(1).use(B1, 'strike', A1).end(); // turn 4: S → 5
+    expect(a.hp(B1)).toBe(85);
+    a.pass(1).use(B2, 'shot', A1).end(); // turn 6: the 2 turns are over
+    expect(a.hp(B2)).toBe(95);
+  });
+
+  it('Infernal Toll: a free skill costs nothing', () => {
+    const a = arena({ p0: [['shout.devil']], p1: [['charge.devil']] });
+    a.use(A1, 'shout.devil').end().use(B1, 'charge.devil', A1).end();
+    expect(a.hp(B1)).toBe(85); // only Hellbent's own 15
   });
 
   it('Bargained Aegis: the price takes only the Shield that\'s left', () => {
@@ -646,38 +731,51 @@ describe('Devil skills', () => {
     expect([a.hp(A1), shieldLeft(a, A1)]).toEqual([75, 0]);
   });
 
-  it('Dare the Damned: Taunts for 2 turns; the user is Immortal until their next turn', () => {
+  it('Dare the Damned: Taunts target enemy for up to 3 turns', () => {
     const a = arena({ p0: [['taunt.devil'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.devil', B1).end();
     expect(a.has(B1, 'taunt')).toBe(true);
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-    expect(counts(a, A1, 'immortal')).toBe(true);
-    a.pass(1);
-    expect(counts(a, A1, 'immortal')).toBe(false);
-  });
-
-  it('Dare the Damned: each hit Immortal stops from killing the user causes an Explosion', () => {
-    const a = arena({ p0: [['taunt.devil'], ['shot']], p1: [['strike'], ['shot']] });
-    a.setHp(A1, 10).use(A1, 'taunt.devil', B1).end();
-    a.use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(5);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]);
-  });
-
-  it('Dare the Damned: a hit that wouldn\'t kill causes no Explosion', () => {
-    const a = arena({ p0: [['taunt.devil'], ['shot']], p1: [['strike'], ['shot']] });
-    a.use(A1, 'taunt.devil', B1).end().use(B1, 'strike', A1).end();
-    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([80, 100, 100]);
-  });
-
-  it('Archfiend: 2 Armor and Immune for 3 turns; enemies who damage the user gain Hellfire for 1 turn', () => {
-    const a = arena({ p0: [['titan.devil'], ['shot']], p1: [['strike'], ['shot'], ['curse']] });
-    a.use(A1, 'titan.devil').end();
-    a.use(B1, 'strike', A1).use(B2, 'shot', A2).use(B3, 'curse', A1).end();
-    expect([a.hp(A1), a.has(A1, 'confusion'), a.stacks(A1, 'armor')]).toEqual([90, false, 2]);
-    expect([a.has(B1, 'hellfire'), a.has(B2, 'hellfire'), a.has(B3, 'hellfire')]).toEqual([true, false, false]);
     a.pass(4);
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, false]);
+    expect(a.has(B1, 'taunt')).toBe(true); // nothing paid: still Taunted on turn 6
+    a.pass(2);
+    expect(a.has(B1, 'taunt')).toBe(false);
+  });
+
+  it('Dare the Damned: the Taunt ends once they\'ve dealt the user 30 damage in all', () => {
+    const a = arena({ p0: [['taunt.devil'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.devil', B1).end().use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.has(B1, 'taunt')).toBe(true); // 15 paid; B2's hit doesn't count for B1
+    a.pass(1).use(B1, 'shot', A1).end(); // 30 paid
+    expect(a.has(B1, 'taunt')).toBe(false);
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Dare the Damned: one big hit pays it off at once', () => {
+    const a = arena({ p0: [['taunt.devil'], ['shot']], p1: [['smash.devil']] });
+    a.use(A1, 'taunt.devil', B1).end().use(B1, 'smash.devil', A1).end(); // 40
+    expect(a.has(B1, 'taunt')).toBe(false);
+  });
+
+  it('Archfiend: Immune and Lifesteal for 3 turns', () => {
+    const a = arena({ p0: [['titan.devil'], ['shot']], p1: [['strike'], ['curse']] });
+    a.use(A1, 'titan.devil').end();
+    a.use(B1, 'strike', A1).use(B2, 'curse', A1).end();
+    expect([a.hp(A1), a.has(A1, 'confusion'), counts(a, A1, 'lifesteal')]).toEqual([80, false, true]);
+    expect(a.has(B1, 'hellfire')).toBe(false); // it's who the user damages, not who damages them
+    a.pass(4);
+    expect([counts(a, A1, 'lifesteal'), a.has(A1, 'immune')]).toEqual([false, false]);
+  });
+
+  it('Archfiend: each enemy the user damages gains Hellfire for 1 turn (and the user steals its burn too)', () => {
+    const a = arena({ p0: [['titan.devil', 'shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.devil').end().pass(1);
+    a.setHp(A1, 50).use(A1, 'shot', B1).end();
+    expect([a.has(B1, 'hellfire'), a.has(B2, 'hellfire')]).toEqual([true, false]);
+    expect([a.hp(B1), a.hp(A1)]).toEqual([80, 70]); // 15 hit + 5 burn, all stolen
+    a.pass(2);
+    expect(a.has(B1, 'hellfire')).toBe(false);
   });
 });
 

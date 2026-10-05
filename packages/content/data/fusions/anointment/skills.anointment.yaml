@@ -101,58 +101,53 @@ riposte.anointment:
 rage.anointment:
   archetype: Rage
   element: Anointment
-  name: Chrismation
-  description: For 3 turns, the user gains Chrism, and 1 Might for each ally they Anoint with it (max 3).
+  name: Fervent Unction
+  description: >-
+    The user gains 2 Unction. For 3 turns, they have 1 Might, and 1 more at the start of each of their
+    turns while they still have Unction.
   cost: S
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: chrism, duration: { enemyTurns: 3 } }
-    - { op: setCounter, name: chrismation, value: 0 }
+    - { op: apply, to: actor, effect: unction, stacks: 2 }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
         id: chrismation
-        name: Chrismation
+        name: Fervent Unction
         kind: Buff
         element: Anointment
-        description: Each ally the bearer Anoints gives them 1 Might while this lasts (max 3).
+        description: At the start of each of the bearer's turns, 1 more Might while they have Unction.
         triggers:
-          - on: skillResolved
-            when: { harmful: false }
+          - on: turnStart
             do:
-              - op: repeat
-                times: { countOf: { filter: eventTargets, where: { and: [{ not: { isEnemy: it } }, { not: { isActor: it } }] } } }
-                do:
-                  - op: if
-                    cond: { compare: { value: { counter: chrismation }, atMost: 2 } }
-                    then:
-                      - { op: setCounter, name: chrismation, value: { sum: [{ counter: chrismation }, 1] } }
-                      - { op: apply, to: bearer, effect: might, linkTo: chrismation }
+              - op: if
+                cond: { has: { unit: bearer, effect: unction } }
+                then:
+                  - { op: apply, to: bearer, effect: might, linkTo: chrismation }
+    - { op: apply, to: actor, effect: might, linkTo: chrismation }
 
 shot.anointment:
   archetype: Shot
   element: Anointment
   name: Holy Sprinkle
   description: >-
-    Deals 15 damage to target enemy. If the user has Unction, they fling 1 stack with it: 10 more damage,
-    and the target is Condemned. If not, they gain 1.
+    Deals 10 damage to target enemy, and the holy water washes one of their Buffs onto the ally with the
+    lowest HP (the user included). If they have none, that ally gains 1 Unction instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { has: { unit: actor, effect: unction } }
+      cond: { hasKind: { unit: primary, kind: Buff } }
       then:
-        - { op: removeStacks, from: actor, effect: unction, amount: 1 }
-        - { op: damage, to: primary, amount: 25 }
-        - { op: apply, to: primary, effect: condemned }
+        - { op: stealRandom, from: primary, to: weakestAlly, kind: Buff }
       else:
-        - { op: damage, to: primary, amount: 15 }
-        - { op: apply, to: actor, effect: unction }
+        - { op: apply, to: weakestAlly, effect: unction }
 
 snipe.anointment:
   archetype: Snipe
@@ -259,22 +254,20 @@ bolt.anointment:
   element: Anointment
   name: Vial of Holy Water
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn. If they were already Sanctified, it
-    bursts instead: every ally heals 15 and gains 1 Unction.
-  cost: I
+    Deals 20 damage to target enemy, and the vial splashes over the user's side: every ally with a Debuff
+    gains 1 Unction. If none has one, the ally with the lowest HP gains it.
+  cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
     - op: if
-      cond: { has: { unit: primary, effect: sanctify } }
+      cond: { any: { in: allAllies, cond: &debuffed_ally { and: [{ kind: { unit: it, is: character } }, { hasKind: { unit: it, kind: Debuff } }] } } }
       then:
-        - { op: removeEffect, from: primary, effect: sanctify }
-        - { op: heal, to: allAllies, amount: 15 }
-        - { op: apply, to: allAllies, effect: unction }
+        - { op: apply, to: { filter: allAllies, where: *debuffed_ally }, effect: unction }
       else:
-        - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+        - { op: apply, to: weakestAlly, effect: unction }
 
 blast.anointment:
   archetype: Blast
@@ -349,16 +342,18 @@ stab.anointment:
   archetype: Stab
   element: Anointment
   name: Brine Needle
-  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Each Weakness on them lasts 1 turn longer.
+  description: >-
+    The user washes off one of their Debuffs. Then this deals 10 damage to target enemy, or 20 if the user
+    has no Debuffs left.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: removeRandom, from: actor, kind: Debuff }
     - op: damage
       to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - { op: extendEffects, on: primary, effects: [weakness], by: 2 }
+      amount: { if: { hasKind: { unit: actor, kind: Debuff } }, then: 10, else: 20 }
 
 ravage.anointment:
   archetype: Ravage
@@ -395,8 +390,8 @@ mislead.anointment:
   element: Anointment
   name: Turned to Grace
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and its targets heal 20 instead.
-    Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Condemned, and every
+    Debuff on the user's side washes onto them. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -411,14 +406,15 @@ mislead.anointment:
         kind: Debuff
         element: Anointment
         visibility: hidden
-        description: The bearer's next Harmful skill is countered and heals its targets instead.
+        description: The bearer's next Harmful skill is countered; they're Condemned and take on the applier's side's Debuffs.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: heal, to: eventTargets, amount: 20 }
+              - { op: moveEffects, from: allAllies, to: bearer, kind: Debuff }
+              - { op: apply, to: bearer, effect: condemned }
 
 stun.anointment:
   archetype: Stun
@@ -518,30 +514,26 @@ bless.anointment:
 curse.anointment:
   archetype: Curse
   element: Anointment
-  name: Offertory
+  name: Font of Penance
   description: >-
-    Target enemy is Confused for 2 turns. Each time they use a skill while Confused, the user's player
-    gains 2 random energy per Confusion.
+    Target enemy's Buffs are washed away, and for 2 turns they can't gain new ones.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: removeKind, from: primary, kind: Buff }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
       effect:
-        id: offertory
-        name: Offertory
+        id: font_of_penance
+        name: Font of Penance
         kind: Debuff
         element: Anointment
-        description: Each skill the bearer uses while Confused gives the applier's player 2 energy per Confusion.
-        # Confusion ends once its bearer uses a skill, so this usually pays once: 2 per stack, not 1.
-        triggers:
-          - on: skillUsed
-            do:
-              - { op: repeat, times: { mul: [2, { totalStacks: { in: bearer, effect: confusion } }] }, do: [{ op: gainEnergy, amount: 1 }] }
+        description: Can't gain Buffs.
+        modifiers:
+          - { mod: immuneTo, kind: Buff }
 
 smite.anointment:
   archetype: Smite
@@ -584,21 +576,17 @@ prayer.anointment:
 cleave.anointment:
   archetype: Cleave
   element: Anointment
-  name: Sweeping Grace
+  name: Penitent's Sweep
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. Any Sanctify or Condemned on the first
-    flows onto the second.
+    Deals 30 damage to target enemy and 20 to a random other enemy, but the user is Condemned for it.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 15 }
-        - { op: moveEffects, from: primary, to: it, effects: [sanctify, condemned] }
+    - { op: damage, to: primary, amount: 30 }
+    - { op: forEach, in: { randomEnemy: 1, exclude: primary }, do: [{ op: damage, to: it, amount: 20 }] }
+    - { op: apply, to: actor, effect: condemned }
 
 shout.anointment:
   archetype: Shout
@@ -636,30 +624,15 @@ taunt.anointment:
   element: Anointment
   name: Call of the Font
   description: >-
-    Target enemy is Taunted by the user for 2 turns. Each time they damage the user meanwhile, the user
-    gains Chrism until the end of their next turn.
+    Raises a Holy Spring (20 HP) for 2 turns; target enemy is Taunted by it for as long. When the Spring
+    fades or is destroyed, it pours out: every allied character gains 1 Unction.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 2 }
-      effect:
-        id: call_of_the_font
-        name: Call of the Font
-        kind: Buff
-        element: Anointment
-        description: Each hit from the Taunted enemy gives the bearer Chrism.
-        triggers:
-          - on: damaged
-            when: { byEnemy: true }
-            do:
-              - op: if
-                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
-                then: [{ op: apply, to: bearer, effect: chrism, duration: { ownTurns: 1 } }]
+    - { op: summon, minion: holy_spring, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
 
 titan.anointment:
   archetype: Titan

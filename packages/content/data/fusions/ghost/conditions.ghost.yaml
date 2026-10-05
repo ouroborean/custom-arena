@@ -5,4 +5,3 @@ ghost_haunted:
   or:
     - { has: { unit: it, effect: haunt } }
     - { has: { unit: it, effect: breath_haunt } }
-    - { has: { unit: it, effect: restless_haunt } }

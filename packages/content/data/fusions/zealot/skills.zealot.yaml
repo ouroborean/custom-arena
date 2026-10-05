@@ -140,8 +140,8 @@ snipe.zealot:
   element: Zealot
   name: Martyr's Spear
   description: >-
-    On the following turn, deals 50 damage to target enemy. If the user dies before it lands, it lands at once,
-    doubled. The target of this skill is invisible. Channeled.
+    On the following turn, deals 35 damage to target enemy, +10 for each time an enemy damages the user meanwhile (up
+    to +30). The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -158,24 +158,30 @@ snipe.zealot:
         element: Zealot
         visibility: hiddenTarget
         interruptible: true
-        description: When this runs out, its target takes 50 damage; if the bearer dies first, 100 at once.
+        description: When this runs out, its target takes 25 damage, +10 per stack; each enemy hit on the bearer adds a stack (max 4).
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            silent: true
+            do:
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atMost: 3 } }
+                then: [{ op: addStacksSelf, amount: 1 }]
         onExpire:
-          - { op: damage, to: effectTargets, amount: 50 }
-        onDeath:
-          - { op: damage, to: effectTargets, amount: 100, direct: false }
+          - { op: damage, to: effectTargets, amount: { sum: [25, { mul: [10, { effectStacks: true }] }] } }
 
 trap.zealot:
   archetype: Trap
   element: Zealot
   name: Inquisition
   description: >-
-    For 3 turns, target enemy has Trap 15, and each skill they use Condemns them again. Invisible.
+    For 3 turns, each skill target enemy uses gives the user 1 Fervor. When it ends, they take 5 damage for each skill
+    they used. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: trap, value: 15, duration: { enemyTurns: 3 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 3 }
@@ -185,26 +191,27 @@ trap.zealot:
         kind: Debuff
         element: Zealot
         visibility: hidden
-        description: Each skill the bearer uses Condemns them again.
+        description: Each skill the bearer uses gives the inquisitor 1 Fervor; when this ends, the bearer takes 5 damage per skill used.
         triggers:
-          - on: skillResolved
+          # The effect's stacks count the skills (it starts at 1).
+          - on: skillUsed
             do:
-              - op: if
-                cond: { check: { cond: condemn_fired, unit: bearer } }
-                then: [{ op: apply, to: bearer, effect: condemned }]
+              - { op: apply, to: actor, effect: fervor }
+              - { op: addStacksSelf, amount: 1 }
+        onExpire:
+          - { op: damage, to: bearer, amount: { mul: [5, { sum: [{ effectStacks: true }, -1] }] }, direct: false }
 
 maneuver.zealot:
   archetype: Maneuver
   element: Zealot
   name: Hair Shirt
   description: >-
-    The user becomes Immortal for 1 turn. If they're brought to 5 HP meanwhile, they gain 3 Fervor. Invisible.
+    For 1 turn, the user takes half damage, and each enemy hit on them gives them 2 Fervor. Invisible.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
   target: self
   ops:
-    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 1 }
@@ -214,15 +221,18 @@ maneuver.zealot:
         kind: Buff
         element: Zealot
         visibility: hidden
-        description: Brought to 5 HP, the bearer gains 3 Fervor.
+        description: The bearer takes half damage, and each enemy hit gives them 2 Fervor.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0.5 }
         triggers:
+          # Fervor already grows by 1 from the hit itself; this adds the other (or both, with none yet).
           - on: damaged
+            when: { direct: true, byEnemy: true }
             do:
               - op: if
-                cond: { hpAtMost: { unit: bearer, value: 5 } }
-                then:
-                  - { op: apply, to: bearer, effect: fervor, stacks: 3 }
-                  - { op: removeSelf }
+                cond: { has: { unit: bearer, effect: fervor } }
+                then: [{ op: apply, to: bearer, effect: fervor }]
+                else: [{ op: apply, to: bearer, effect: fervor, stacks: 2 }]
 
 companion.zealot:
   archetype: Companion
@@ -241,33 +251,22 @@ companion.zealot:
 bolt.zealot:
   archetype: Bolt
   element: Zealot
-  name: Heresy Bolt
+  name: Eye for an Eye
   description: >-
-    Deals 25 damage to target enemy and Sanctifies them for 1 turn; an ally who triggers the Sanctify also drains a
-    Soul Fragment from them.
+    Deals 20 damage to target enemy. If they were the last enemy to damage the user, it deals 15 more and the user
+    gains 1 Fervor.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: heresy_bolt
-        name: Heresy
-        kind: Debuff
-        element: Zealot
-        description: An ally of the applier who triggers the bearer's Sanctify also gains a Soul Fragment.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then: [{ op: apply, to: eventSource, effect: soul_fragment }]
+    - op: if
+      cond: { isPrimary: lastAttacker }
+      then:
+        - { op: damage, to: primary, amount: 35 }
+        - { op: apply, to: actor, effect: fervor }
+      else:
+        - { op: damage, to: primary, amount: 20 }
 
 blast.zealot:
   archetype: Blast
@@ -352,21 +351,17 @@ channel.zealot:
 stab.zealot:
   archetype: Stab
   element: Zealot
-  name: Votive Dagger
+  name: Atoning Blade
   description: >-
-    Deals 10 damage to target enemy, or 20 at or below 60 HP. If it kills them, the user's allies get the Martyr
-    payout for the user's Fervor, and the user keeps it.
+    Deals 15 damage to target enemy, and the user's penance goes into the wound: a random Debuff of theirs
+    moves onto that enemy, with the time it had left.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
-    - op: if
-      cond: { not: { any: { in: allEnemies, cond: { isPrimary: it } } } }
-      then: [{ op: macro, id: martyr_payout }]
+    - { op: damage, to: primary, amount: 15 }
+    - { op: stealRandom, from: actor, to: primary, kind: Debuff }
 
 ravage.zealot:
   archetype: Ravage
@@ -485,32 +480,28 @@ heal.zealot:
 bless.zealot:
   archetype: Bless
   element: Zealot
-  name: Unholy Unction
+  name: Zealous Unction
   description: >-
-    For 3 turns, target ally gains 1 Might and Lifesteal, and each heal that tops them up to full HP also gives
-    them 10 Shield (max 30).
+    Target ally gains 1 Fervor. For 3 turns, at the end of each of the user's turns, they heal 5 per Fervor they have.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: might, duration: { enemyTurns: 3 } }
-    - { op: apply, to: primary, effect: lifesteal, duration: { enemyTurns: 3 } }
+    - { op: apply, to: primary, effect: fervor }
     - op: apply
       to: primary
       duration: { enemyTurns: 3 }
       effect:
-        id: unholy_unction
-        name: Unholy Unction
+        id: zealous_unction
+        name: Zealous Unction
         kind: Buff
         element: Zealot
-        description: Each heal that leaves the bearer at full HP becomes 10 Shield.
+        description: At the end of each of the applier's turns, the bearer heals 5 per Fervor they have.
         triggers:
-          - on: healed
+          - on: turnEnd
             do:
-              - op: if
-                cond: { compare: { value: { missingHp: bearer }, atMost: 0 } }
-                then: [{ op: growShield, to: bearer, effect: unction_shield, amount: 10, max: 30 }]
+              - { op: heal, to: bearer, amount: { mul: [5, { stacks: { unit: bearer, effect: fervor } }] } }
 
 curse.zealot:
   archetype: Curse
@@ -545,33 +536,16 @@ curse.zealot:
 smite.zealot:
   archetype: Smite
   element: Zealot
-  name: Holy Hunger
+  name: Unguarded Wrath
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 2 turns. An ally who triggers the Sanctify also gains 1
-    Fervor.
+    Deals 30 damage to target enemy. The user is Sanctified for 1 turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: holy_hunger
-        name: Holy Hunger
-        kind: Debuff
-        element: Zealot
-        description: An ally of the applier who triggers the bearer's Sanctify gains 1 Fervor.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then: [{ op: apply, to: eventSource, effect: fervor }]
+    - { op: damage, to: primary, amount: 30 }
+    - { op: apply, to: actor, effect: sanctify, duration: { enemyTurns: 1 } }
 
 prayer.zealot:
   archetype: Prayer
@@ -610,44 +584,54 @@ shout.zealot:
   element: Zealot
   name: Sermon of Dread
   description: >-
-    All enemies are Intimidated for 2 turns. Each Horrified enemy is also Condemned.
+    For 2 turns, each Buff an enemy would gain is lost, and the user gains 1 Fervor for it.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - { op: apply, to: { filter: targets, where: { has: { unit: it, effect: horrified } } }, effect: condemned }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: sermon_of_dread
+        name: Sermon of Dread
+        kind: Debuff
+        element: Zealot
+        description: Each Buff the bearer would gain is lost, and the preacher gains 1 Fervor for it.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            do:
+              - { op: eventEffect, remove: true }
+              - { op: apply, to: actor, effect: fervor }
 
 withstand.zealot:
   archetype: Withstand
   element: Zealot
-  name: Shield of Martyrs
+  name: Hardened Faith
   description: >-
-    The user gains 25 Shield for 1 turn. If an ally dies meanwhile, the user also gains 2 Fervor, on top of their
-    Martyr payout.
+    For 1 turn, each enemy hit on the user hardens them: after it lands, they gain 15 Shield for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 1 }
       effect:
-        id: shield_of_martyrs
-        name: Shield of Martyrs
+        id: hardened_faith
+        name: Hardened Faith
         kind: Buff
         element: Zealot
-        description: If an ally dies, the bearer gains 2 Fervor.
+        description: After each enemy hit on the bearer, they gain 15 Shield for 1 turn.
         triggers:
-          - on: signal
-            signal: died
+          # Gained on the enemy's turn, each Shield lasts through their next turn too.
+          - on: damaged
+            when: { direct: true, byEnemy: true }
             do:
-              - op: if
-                cond: { not: { isEnemy: eventTarget } }
-                then: [{ op: apply, to: bearer, effect: fervor, stacks: 2 }]
+              - { op: apply, to: bearer, effect: shield, value: 15, duration: { enemyTurns: 1 } }
 
 taunt.zealot:
   archetype: Taunt

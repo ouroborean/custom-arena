@@ -236,32 +236,18 @@ companion.glacier:
 bolt.glacier:
   archetype: Bolt
   element: Glacier
-  name: Glacial Erratic
+  name: Stolen Season
   description: >-
-    Deals 20 damage to target enemy and Marks them for 2 turns. If nothing has spent the Mark when it
-    expires, it breaks on them anyway for 30 damage.
+    Deals 20 damage to target enemy and steals a turn of thaw: a random skill of theirs still on cooldown gains 1
+    turn, and a random other skill of the user's still on cooldown loses 1.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      duration: { raw: 5 }
-      effect:
-        id: glacial_erratic
-        name: Glacial Erratic
-        kind: Neutral
-        element: Glacier
-        description: If the bearer's Mark expires unspent, it breaks for 30 damage.
-        triggers:
-          - on: ownEffectEnded
-            when: { effects: [mark], reason: [expired] }
-            consume: true
-            do:
-              - { op: damage, to: eventTarget, amount: 30, direct: false }
+    - { op: adjustCooldowns, to: primary, by: 1, random: true }
+    - { op: adjustCooldowns, to: actor, by: -1, random: true, exceptCurrent: true }
 
 blast.glacier:
   archetype: Blast
@@ -361,27 +347,21 @@ stab.glacier:
   element: Glacier
   name: Hoarfrost Pick
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. For 2 turns, Frost debuffs on
-    them can't be removed.
+    Deals 20 damage to target enemy, paid for in time: a random other skill of the user's still on cooldown
+    gains 1 turn. If none is, the frost settles on the pick instead: it goes on cooldown for 1 turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: hoarfrost_pick
-        name: Hoarfrost
-        kind: Debuff
-        element: Glacier
-        description: Frost debuffs on the bearer can't be removed.
-        modifiers:
-          - { mod: protectEffects, effects: [frostbitten, chilled, numb, frostfire] }
+    - { op: damage, to: primary, amount: 20 }
+    # This skill is itself cooling down (1) as its ops run, so "another one" means 2 or more.
+    - op: if
+      cond: { compare: { value: { skillsOnCooldown: actor }, atLeast: 2 } }
+      then:
+        - { op: adjustCooldowns, to: actor, by: 1, random: true, exceptCurrent: true }
+      else:
+        - { op: adjustCooldowns, to: actor, by: 1, skill: stab.glacier }
 
 ravage.glacier:
   archetype: Ravage
@@ -413,52 +393,50 @@ mislead.glacier:
   element: Glacier
   name: Thin Ice
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Icebound for 1 turn per
-    turn of its cooldown (max 3). Invisible.
+    The user freezes over to wait: they're Icebound for up to 3 turns. Meanwhile, the first Harmful skill
+    target enemy uses breaks through the ice and is countered, and the user thaws: their Icebound ends,
+    and they gain Meltwater for 1 turn. Invisible.
   cost: I
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
+    # The wait is paid in time: the user's cooldowns (this one's included) stay put until the ice breaks.
+    - { op: apply, to: actor, effect: icebound, duration: { enemyTurns: 3 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 3 }
       effect:
         id: thin_ice
         name: Thin Ice
         kind: Debuff
         element: Glacier
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and they're Icebound by its cooldown.
+        description: The bearer's first Harmful skill is countered, and the user thaws out.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              # 1 turn per turn of the countered skill's cooldown (max 3): a cooldown-0 skill gives none.
-              - op: if
-                cond: { compare: { value: { skillCooldown: true }, atLeast: 1 } }
-                then:
-                  - op: apply
-                    to: bearer
-                    effect: icebound
-                    duration:
-                      enemyTurns: { if: { compare: { value: { skillCooldown: true }, atLeast: 3 } }, then: 3, else: { skillCooldown: true } }
+              - { op: removeEffect, from: actor, effect: icebound }
+              - { op: apply, to: actor, effect: meltwater, duration: { enemyTurns: 1 } }
 
 stun.glacier:
   archetype: Stun
   element: Glacier
   name: Pack Ice
-  description: Deals 15 damage to target enemy and Stuns them for 1 turn; they're Icebound for as long.
+  description: >-
+    Deals 10 damage to target enemy and Stuns them for 2 turns. The ice locks the user in too: they're Icebound
+    for as long.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
-    - { op: apply, to: primary, effect: icebound, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: icebound, duration: { enemyTurns: 2 } }
 
 dance.glacier:
   archetype: Dance
@@ -593,34 +571,61 @@ cleave.glacier:
   element: Glacier
   name: Calving
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. The two then share their Debuffs:
-    each gains copies of the other's.
+    Deals 25 damage to target enemy. The calved slab drifts on: the next of their allies to use a skill before
+    the user's next turn takes 20 damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 25 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 15 }
-        - { op: shareEffects, a: primary, b: it, kind: Debuff }
+    - op: apply
+      to: primaryAllies
+      duration: { enemyTurns: 1 }
+      effect:
+        id: calving
+        name: Calved Slab
+        kind: Debuff
+        element: Glacier
+        description: The first of these to use a skill takes 20 damage, and the slab is gone.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 20, direct: false }
+              - { op: removeEffect, from: bearerAllies, effect: calving }
 
 shout.glacier:
   archetype: Shout
   element: Glacier
   name: Floe Horn
   description: >-
-    All enemies are Intimidated for 2 turns, and every ally of the user with Flow becomes Frostborn for
-    as long.
+    For 2 turns, the floes grind in on every enemy: at the end of each of the user's turns, each enemy takes 5
+    damage for each of their skills on cooldown (max 15).
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - { op: apply, to: { filter: allAllies, where: { has: { unit: it, effect: flow } } }, effect: frostborn, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: floe_horn
+        name: Floe Horn
+        kind: Debuff
+        element: Glacier
+        description: At the end of each of the applier's turns, 5 damage per skill of the bearer's on cooldown (max 15).
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { skillsOnCooldown: bearer }, atLeast: 1 } }
+                then:
+                  - op: damage
+                    to: bearer
+                    direct: false
+                    amount: { if: { compare: { value: { skillsOnCooldown: bearer }, atLeast: 3 } }, then: 15, else: { mul: [5, { skillsOnCooldown: bearer }] } }
 
 withstand.glacier:
   archetype: Withstand

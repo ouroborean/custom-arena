@@ -11,14 +11,22 @@ dose:
   triggers:
     - on: turnEnd
       do:
-        - { op: heal, to: bearer, amount: { mul: [5, { effectStacks: true }] } }
+        # Fermenting Jab: while Fermenting, the Dose grows by 1 instead of healing.
+        - op: if
+          cond: { has: { unit: bearer, effect: fermenting } }
+          then:
+            - { op: apply, to: bearer, effect: dose }
+          else:
+            - { op: heal, to: bearer, amount: { mul: [5, { effectStacks: true }] } }
     - on: effectGained
       effect: dose
       do:
+        # Relief Valve vents the Overdose itself (onto a random enemy).
         - op: if
           cond:
             and:
               - { compare: { value: { totalStacks: { in: bearer, effect: dose } }, atLeast: 4 } }
               - { not: { has: { unit: bearer, effect: mutagen } } }
+              - { not: { has: { unit: bearer, effect: relief_valve } } }
           then:
             - { op: forEach, in: bearer, do: [{ op: macro, id: overdose }] }

@@ -35,7 +35,7 @@ function firstSeed(o: Omit<ArenaOptions, 'seed'>, setup: (a: Arena) => void, pre
 const sideHp = (a: Arena, ids: string[]) => ids.map((id) => a.hp(id));
 
 /**
- * Whether the unit has Fog: the Fog status itself or one of its variants (Heron, Will-o'-Mist, Mercy, Marid…),
+ * Whether the unit has Fog: the Fog status itself or one of its variants (Heron, Mercy, Marid…),
  * i.e. any effect carrying the unconditional `fogged` modifier.
  */
 const fogged = (a: Arena, id: string) =>
@@ -47,8 +47,8 @@ const fogged = (a: Arena, id: string) =>
 describe('Mist keyword: Fog', () => {
   it('Fog is a unique Buff', () => {
     expect(content.statuses.fog?.kind).toBe('Buff');
-    const a = arena({ p0: [['shot.mist']], p1: three() });
-    a.use(A1, 'shot.mist', B1).end().pass(1).use(A1, 'shot.mist', B1).end();
+    const a = arena({ p0: [['dance.mist', 'maneuver.mist']], p1: three() });
+    a.use(A1, 'dance.mist').end().pass(1).use(A1, 'maneuver.mist').end();
     expect(a.stacks(A1, 'fog')).toBe(1);
   });
 
@@ -93,8 +93,8 @@ describe('Mist keyword: Fog', () => {
   });
 
   it('when Fog ends, it condenses into 2 Renew', () => {
-    const a = arena({ p0: [['shot.mist']], p1: three() });
-    a.use(A1, 'shot.mist', B1).end();
+    const a = arena({ p0: [['maneuver.mist']], p1: three() });
+    a.use(A1, 'maneuver.mist').end();
     expect([fogged(a, A1), a.stacks(A1, 'renew')]).toEqual([true, 0]);
     a.end();
     expect([fogged(a, A1), a.stacks(A1, 'renew')]).toEqual([false, 2]);
@@ -102,22 +102,29 @@ describe('Mist keyword: Fog', () => {
 });
 
 describe('Mist skills', () => {
-  it('Veiled Strike: 20, and the user gains Fog for 1 turn', () => {
+  it('Veiled Strike: 15, and the user gains Fog for 1 turn', () => {
     const a = arena({ p0: three(['strike.mist']), p1: three() });
     a.use(A1, 'strike.mist', B1).end();
-    expect([a.hp(B1), fogged(a, A1)]).toEqual([80, true]);
-    a.pass(1).use(A1, 'strike.mist', B1).end();
-    expect(a.hp(B1)).toBe(60); // no redirect, no bonus
+    expect([a.hp(B1), fogged(a, A1)]).toEqual([85, true]);
   });
 
-  it('Veiled Strike: +15 if Fog redirected a skill away from the user since their last turn', () => {
+  it('Veiled Strike: its Fog condenses on the enemy instead of the user: 15 damage when it ends, and no Renew', () => {
+    const a = arena({ p0: three(['strike.mist']), p1: three() });
+    a.use(A1, 'strike.mist', B1).end().end();
+    expect([fogged(a, A1), a.hp(B1), a.stacks(A1, 'renew')]).toEqual([false, 70, 0]);
+    // A skill that lands on the user anyway isn't a redirect: still 15.
+    const b = arena({ p0: [['strike.mist']], p1: three() });
+    b.use(A1, 'strike.mist', B1).end().use(B2, 'shot', A1).end();
+    expect([b.hp(A1), b.hp(B1)]).toEqual([85, 70]);
+  });
+
+  it('Veiled Strike: 25 instead if the Fog redirected a skill', () => {
     const a = firstSeed(
       { p0: three(['strike.mist']), p1: three() },
-      (x) => x.use(A1, 'strike.mist', B1).end().use(B1, 'shot', A1).end(),
+      (x) => x.use(A1, 'strike.mist', B1).end().use(B2, 'shot', A1).end(),
       (x) => x.hp(A1) === 100,
     );
-    a.use(A1, 'strike.mist', B1).end();
-    expect(a.hp(B1)).toBe(45); // 80 − 35
+    expect(a.hp(B1)).toBe(60); // 85 − 25
   });
 
   it('Gale Spindle: 20 / 10; each Swiftness spent adds 10 to every hit', () => {
@@ -130,13 +137,43 @@ describe('Mist skills', () => {
     expect(b.stacks(A1, 'swiftness')).toBe(0);
   });
 
-  it('Mistwalk: 15, 1 Focus, and the ally with the lowest HP gains Fog for 1 turn', () => {
+  it('Mistwalk: 10 to the target, and nothing more on its own', () => {
     const a = arena({ p0: three(['charge.mist']), p1: three() });
-    a.setHp(A2, 30).setHp(A3, 50).use(A1, 'charge.mist', B1).end();
-    expect([a.hp(B1), a.has(A1, 'focus')]).toEqual([85, true]);
-    expect([fogged(a, A1), fogged(a, A2), fogged(a, A3)]).toEqual([false, true, false]);
-    a.end();
-    expect(fogged(a, A2)).toBe(false);
+    a.use(A1, 'charge.mist', B1).end();
+    expect(sideHp(a, [B1, B2, B3])).toEqual([90, 100, 100]);
+    a.pass(4);
+    expect(sideHp(a, [B1, B2, B3])).toEqual([90, 100, 100]);
+    expect(fogged(a, A1)).toBe(false);
+  });
+
+  it('Mistwalk: the user\'s next direct hit on another enemy is echoed onto the target, once', () => {
+    const a = arena({ p0: three(['charge.mist', 'shot']), p1: three() });
+    a.use(A1, 'charge.mist', B1).end().pass(1);
+    a.use(A1, 'shot', B2).end();
+    expect(sideHp(a, [B1, B2, B3])).toEqual([75, 85, 100]);
+    a.pass(1).use(A1, 'shot', B3).end();
+    expect(sideHp(a, [B1, B2, B3])).toEqual([75, 85, 85]); // used up
+  });
+
+  it('Mistwalk: the echo is as much as the hit, up to 25', () => {
+    const a = arena({ p0: three(['charge.mist', 'ravage']), p1: three() });
+    a.use(A1, 'charge.mist', B1).end().pass(1);
+    a.give(A1, 'might', { stacks: 2 }).use(A1, 'ravage', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([65, 65]); // a 35 hit echoes for 25
+  });
+
+  it('Mistwalk: hitting the target itself doesn\'t spend it, and it\'s gone after the user\'s next turn', () => {
+    const a = arena({ p0: three(['charge.mist', 'shot']), p1: three() });
+    a.use(A1, 'charge.mist', B1).end().pass(1);
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(75);
+    expect(a.has(A1, 'mistwalk')).toBe(false); // over at the end of that turn
+    a.pass(1).use(A1, 'shot', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    // An ally's hit doesn't wake it.
+    const b = arena({ p0: three(['charge.mist']), p1: three() });
+    b.use(A1, 'charge.mist', B1).end().pass(1).use(A2, 'shot', B2).end();
+    expect([b.hp(B1), b.hp(B2)]).toEqual([90, 85]);
   });
 
   it('Fogbank: the user has Fog and counters the first Harmful skill used on them', () => {
@@ -184,19 +221,18 @@ describe('Mist skills', () => {
     expect(a.stacks(A1, 'renew')).toBeLessThanOrEqual(before);
   });
 
-  it('Dew Shot: 15, and the user gains Fog for 1 turn', () => {
-    const a = arena({ p0: [['shot.mist']], p1: three() });
-    a.use(A1, 'shot.mist', B1).end();
-    expect([a.hp(B1), fogged(a, A1)]).toEqual([85, true]);
-  });
-
-  it('Dew Shot: an existing Fog lasts 1 turn longer instead', () => {
-    const a = arena({ p0: [['shot.mist']], p1: three() });
-    a.give(A1, 'fog', { source: A1, duration: 3 }).use(A1, 'shot.mist', B1).end().pass(2);
-    expect([fogged(a, A1), a.stacks(A1, 'fog')]).toEqual([true, 1]);
-    const b = arena({ p0: [['shot']], p1: three() });
-    b.give(A1, 'fog', { source: A1, duration: 3 }).use(A1, 'shot', B1).end().pass(2);
-    expect(fogged(b, A1)).toBe(false);
+  it('Dew Shot: it lands on a random enemy instead: 20, or 10 if that turns out to be the target', () => {
+    const hit = new Set<string>();
+    for (let seed = 1; seed <= 24; seed++) {
+      const a = arena({ p0: [['shot.mist']], p1: three(), seed });
+      a.use(A1, 'shot.mist', B1).end();
+      const lost = sideHp(a, [B1, B2, B3]).map((h) => 100 - h);
+      expect(lost.filter((x) => x > 0)).toHaveLength(1);
+      if (lost[0]! > 0) expect(lost).toEqual([10, 0, 0]);
+      else expect(lost[1]! + lost[2]!).toBe(20);
+      hit.add(lost.join(','));
+    }
+    expect(hit).toEqual(new Set(['10,0,0', '0,20,0', '0,0,20']));
   });
 
   it('Mistpiercer: 45 on the following turn, and the user has Fog meanwhile', () => {
@@ -243,14 +279,33 @@ describe('Mist skills', () => {
     }
   });
 
-  it('Dissipate: Invulnerable for 1 turn, and every ally has Fog until the user\'s next turn', () => {
+  it('Dissipate: the user gains Fog for 1 turn, not Invulnerable; it condenses as usual', () => {
     const a = arena({ p0: three(['maneuver.mist']), p1: three() });
     a.use(A1, 'maneuver.mist').end();
-    expect(a.has(A1, 'invulnerable')).toBe(true);
-    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([true, true, true]);
+    expect([fogged(a, A1), a.has(A1, 'invulnerable')]).toEqual([true, false]);
     a.end();
-    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([false, false, false]);
-    expect(a.stacks(A2, 'renew')).toBe(2); // it condensed
+    expect([fogged(a, A1), a.has(A1, 'invulnerable'), a.stacks(A1, 'renew')]).toEqual([false, false, 2]);
+  });
+
+  it('Dissipate: the first time the Fog sends a skill elsewhere, the user becomes Invulnerable for 1 turn', () => {
+    const a = firstSeed(
+      { p0: three(['maneuver.mist']), p1: three() },
+      (x) => x.use(A1, 'maneuver.mist').end().use(B1, 'shot', A1).use(B2, 'shot', A1).end(),
+      (x) => x.hp(A2) + x.hp(A3) === 185,
+    );
+    // The first shot went elsewhere; the second couldn't reach the now-Invulnerable user.
+    expect([a.hp(A1), a.has(A1, 'invulnerable')]).toEqual([100, true]);
+    a.end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy(); // still Invulnerable on the next enemy turn
+    a.end();
+    expect(a.has(A1, 'invulnerable')).toBe(false);
+    // A shot that lands on the user anyway isn't a redirect: no Invulnerable.
+    const b = firstSeed(
+      { p0: three(['maneuver.mist']), p1: three() },
+      (x) => x.use(A1, 'maneuver.mist').end().use(B1, 'shot', A1).end(),
+      (x) => x.hp(A1) === 85,
+    );
+    expect(b.has(A1, 'invulnerable')).toBe(false);
   });
 
   it('Mist Heron: a permanent 35 HP Heron that always has Fog', () => {
@@ -308,36 +363,50 @@ describe('Mist skills', () => {
     expect(a.hp(A1)).toBe(75);
   });
 
-  it('Will-o\'-Mists: two 10 HP Mists for 3 turns; while any stands, every ally has Fog', () => {
+  it('Mist Double: a Double for 2 turns; when it fades, the user gains Fog for 1 turn', () => {
     const a = arena({ p0: three(['summon.mist']), p1: three() });
     a.use(A1, 'summon.mist').end();
-    const mists = minions(a, 0, 'will_o_mist');
-    expect(mists.map((m) => m.hp)).toEqual([10, 10]);
-    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([true, true, true]);
-    a.pass(5);
-    expect(minions(a, 0, 'will_o_mist')).toHaveLength(0);
-    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([false, false, false]);
+    expect(minions(a, 0, 'mist_double')).toHaveLength(1);
+    expect(fogged(a, A1)).toBe(false);
+    a.pass(2);
+    expect(minions(a, 0, 'mist_double')).toHaveLength(1);
+    a.pass(1);
+    expect(minions(a, 0, 'mist_double')).toHaveLength(0);
+    expect(a.has(A1, 'mist_double_decoy')).toBe(false);
+    expect(fogged(a, A1)).toBe(true);
   });
 
-  it('Will-o\'-Mists: the Fog stays while one Mist stands, and goes when both are gone', () => {
-    const a = arena({ p0: three(['summon.mist']), p1: [['blast'], ['blast'], ['shot']] });
+  it('Mist Double: the first enemy single-target Harmful skill aimed at the user strikes the Double, which bursts: its user takes 10, and the user gains Fog for 1 turn', () => {
+    const a = arena({ p0: three(['summon.mist']), p1: three() });
     a.use(A1, 'summon.mist').end();
-    const [, m2] = minions(a, 0, 'will_o_mist');
-    a.setHp(m2!.id, 50); // survives one Blast
-    a.use(B1, 'blast').end();
-    expect(minions(a, 0, 'will_o_mist')).toHaveLength(1);
-    expect(fogged(a, A2)).toBe(true);
-    a.pass(1).use(B2, 'blast').end();
-    expect(minions(a, 0, 'will_o_mist')).toHaveLength(0);
-    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([false, false, false]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1), minions(a, 0, 'mist_double').length, fogged(a, A1)]).toEqual([100, 90, 0, true]);
+    a.end().pass(1);
+    expect(fogged(a, A1)).toBe(false);
+    expect(a.stacks(A1, 'renew')).toBeGreaterThan(0); // that Fog condensed as usual
   });
 
-  it('Will-o\'-Mists: Pale Touch deals 5 Piercing', () => {
-    const a = arena({ p0: [['summon.mist']], p1: three() });
-    a.use(A1, 'summon.mist').end().pass(1);
-    const m = minions(a, 0, 'will_o_mist')[0]!;
-    a.give(B1, 'armor', { stacks: 2 }).use(m.id, 'will_o_mist_pale_touch', B1).end();
-    expect(a.hp(B1)).toBe(95);
+  it('Mist Double: a skill that does no damage bursts it too: a Stun meant for the user is spent on it', () => {
+    const a = arena({ p0: three(['summon.mist']), p1: [['stun'], ['shot'], ['shot']] });
+    a.use(A1, 'summon.mist').end();
+    a.use(B1, 'stun', A1).end();
+    expect([a.has(A1, 'stun'), a.hp(A1), a.hp(B1), minions(a, 0, 'mist_double').length]).toEqual([false, 100, 90, 0]);
+  });
+
+  it('Mist Double: it can’t be hurt (a burn doesn’t touch it), and the user’s allies aren’t covered', () => {
+    const a = arena({ p0: three(['summon.mist']), p1: three() });
+    a.use(A1, 'summon.mist').end();
+    const [d] = minions(a, 0, 'mist_double');
+    a.give(d!.id, 'ignite', { source: B1 }).use(B3, 'shot', A2).end();
+    expect([a.unit(d!.id).alive, a.unit(d!.id).hp, a.hp(A2), a.hp(B3)]).toEqual([true, 20, 85, 100]);
+  });
+
+  it('Mist Double: a skill that hits the user’s whole side bursts it as well', () => {
+    const a = arena({ p0: three(['summon.mist']), p1: [['blast'], ['shot'], ['shot']] });
+    a.use(A1, 'summon.mist').end().use(B1, 'blast').end();
+    expect(sideHp(a, [A1, A2, A3])).toEqual([65, 65, 65]);
+    expect(minions(a, 0, 'mist_double')).toHaveLength(0);
+    expect(a.hp(B1)).toBe(90);
   });
 
   it('Rolling Fog: 10 to all enemies at the end of each of the user\'s turns, for 2 turns, and all allies have Fog meanwhile', () => {
@@ -363,16 +432,29 @@ describe('Mist skills', () => {
     expect(b.stacks(B1, 'confusion')).toBe(0);
   });
 
-  it('Whisper Knife: 10, or 20 at or below 60 HP', () => {
+  it('Whisper Knife: 10 to the target; on its own, that\'s all', () => {
     const a = arena({ p0: [['stab.mist']], p1: three() });
-    a.use(A1, 'stab.mist', B1).end().pass(1).setHp(B2, 60).use(A1, 'stab.mist', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+    a.setHp(B1, 50).use(A1, 'stab.mist', B1).end();
+    expect(a.hp(B1)).toBe(40);
   });
 
-  it('Whisper Knife: can\'t be countered', () => {
-    const a = arena({ p0: [['stab.mist']], p1: [['riposte'], ['shot'], ['shot']] });
-    a.end().use(B1, 'riposte').end().use(A1, 'stab.mist', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([90, 100]);
+  it('Whisper Knife: the first direct hit from an ally while the target is at or below 60 HP brings 15 more, once', () => {
+    const a = arena({ p0: [['stab.mist'], ['shot'], ['shot']], p1: three() });
+    a.setHp(B1, 70).use(A1, 'stab.mist', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(15); // 70 − 10 − 15 − 15 (knife) − 15
+  });
+
+  it('Whisper Knife: a hit above 60 HP doesn\'t spring it, and it\'s gone by the user\'s next turn', () => {
+    const a = arena({ p0: [['stab.mist'], ['shot'], ['shot']], p1: three() });
+    a.use(A1, 'stab.mist', B1).use(A2, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(75); // 100 − 10 − 15: above 60 when the shot landed
+    const b = arena({ p0: [['stab.mist'], ['shot'], ['shot']], p1: three() });
+    b.setHp(B1, 50).use(A1, 'stab.mist', B1).end();
+    expect(b.has(B1, 'whisper_knife')).toBe(true);
+    b.end();
+    expect(b.has(B1, 'whisper_knife')).toBe(false);
+    b.use(A2, 'shot', B1).end();
+    expect(b.hp(B1)).toBe(25); // 40 − 15, no knife
   });
 
   it('Undertow Thrust: 25 Piercing +5 per Renew (max 20), then the user loses all Renew and Leaps', () => {
@@ -388,24 +470,34 @@ describe('Mist skills', () => {
     expect(c.hp(B1)).toBe(75);
   });
 
-  it('Lost in the Fog: counters the target\'s Harmful skill; each unit it targeted gains Fog for 2 turns', () => {
-    const a = arena({ p0: three(['mislead.mist']), p1: three() });
-    const seen = seenByB(a, B1);
-    a.use(A1, 'mislead.mist', B1).end();
-    expect(seenByB(a, B1)).toBe(seen); // Invisible
-    a.use(B1, 'shot', A2).end();
-    expect(a.hp(A2)).toBe(100);
-    expect([fogged(a, A1), fogged(a, A2), fogged(a, A3)]).toEqual([false, true, false]);
-    a.pass(3);
-    expect(fogged(a, A2)).toBe(true);
-    a.pass(1);
-    expect(fogged(a, A2)).toBe(false);
+  it('Lost in the Fog: Invisible; for 1 turn the target\'s Harmful skill is countered, and a single-target one lands on a random one of their own allies', () => {
+    const hit = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: three(['mislead.mist']), p1: three(), seed });
+      const seen = seenByB(a, B1);
+      a.use(A1, 'mislead.mist', B1).end();
+      expect(seenByB(a, B1)).toBe(seen); // Invisible
+      a.use(B1, 'shot', A2).end();
+      expect(sideHp(a, [A1, A2, A3])).toEqual([100, 100, 100]);
+      expect(a.hp(B1)).toBe(100);
+      expect(a.hp(B2) + a.hp(B3)).toBe(185);
+      hit.add(a.hp(B2) === 85 ? B2 : B3);
+      a.pass(1).use(B1, 'shot', A2).end();
+      expect(a.hp(A2)).toBe(85); // over after 1 turn
+    }
+    expect(hit.size).toBe(2);
   });
 
-  it('Lost in the Fog: Helpful skills aren\'t countered', () => {
-    const a = arena({ p0: three(['mislead.mist']), p1: [['heal'], ['shot'], ['shot']] });
-    a.setHp(B2, 50).use(A1, 'mislead.mist', B1).end().use(B1, 'heal', B2).end();
-    expect([a.hp(B2), fogged(a, B2)]).toEqual([75, false]);
+  it('Lost in the Fog: an area skill is just countered; so is a single-target one with no allies to land on; Helpful skills go through', () => {
+    const a = arena({ p0: three(['mislead.mist']), p1: [['blast'], ['shot'], ['shot']] });
+    a.use(A1, 'mislead.mist', B1).end().use(B1, 'blast').end();
+    expect([...sideHp(a, [A1, A2, A3]), ...sideHp(a, [B1, B2, B3])]).toEqual([100, 100, 100, 100, 100, 100]);
+    const b = arena({ p0: three(['mislead.mist']), p1: [['shot']] });
+    b.use(A1, 'mislead.mist', B1).end().use(B1, 'shot', A2).end();
+    expect([b.hp(A2), b.hp(B1)]).toEqual([100, 100]);
+    const c = arena({ p0: three(['mislead.mist']), p1: [['heal'], ['shot'], ['shot']] });
+    c.setHp(B2, 50).use(A1, 'mislead.mist', B1).end().use(B1, 'heal', B2).end();
+    expect(c.hp(B2)).toBe(75);
   });
 
   it('Squall in the Fog: a random enemy takes 15 and is Stunned for 2 turns', () => {
@@ -513,45 +605,118 @@ describe('Mist skills', () => {
     expect(a.hp(B1)).toBe(85);
   });
 
-  it('Dewfall Ring: 20 and Sanctified; allies who damage them gain 3 Renew instead of healing 15', () => {
-    const a = arena({ p0: [['smite.mist'], ['shot']], p1: three() });
-    a.setHp(A2, 50).use(A1, 'smite.mist', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(65);
-    // 3 Renew, which ticks once at the end of the turn (15) and drops to 2; no flat 15 on top
-    expect([a.hp(A2), a.stacks(A2, 'renew')]).toEqual([65, 2]);
+  it('Dewfall Ring: 20; each of the user\'s allies the target deals direct damage to gains Fog for 1 turn', () => {
+    const a = arena({ p0: three(['smite.mist']), p1: three() });
+    a.use(A1, 'smite.mist', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([false, false, false]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A3).end();
+    expect(sideHp(a, [A2, A3])).toEqual([85, 85]);
+    expect([A1, A2, A3].map((u) => fogged(a, u))).toEqual([false, true, false]); // only the ringed enemy's hits
+    a.pass(1);
+    expect(fogged(a, A2)).toBe(true); // through the enemy's next turn
+    a.pass(1);
+    expect([fogged(a, A2), a.stacks(A2, 'renew')]).toEqual([false, 2]);
   });
 
-  it('Dewfall Ring: the Sanctify lasts 1 turn', () => {
-    const a = arena({ p0: [['smite.mist'], ['shot']], p1: three() });
-    a.use(A1, 'smite.mist', B1).end().pass(1).use(A2, 'shot', B1).end();
-    expect(a.stacks(A2, 'renew')).toBe(0);
+  it('Dewfall Ring: it lasts 2 turns', () => {
+    const a = arena({ p0: three(['smite.mist']), p1: three() });
+    a.use(A1, 'smite.mist', B1).end().pass(2).use(B1, 'shot', A3).end();
+    expect([a.hp(A3), fogged(a, A3)]).toEqual([85, true]);
+    const b = arena({ p0: three(['smite.mist']), p1: three() });
+    b.use(A1, 'smite.mist', B1).end().pass(4).use(B1, 'shot', A3).end();
+    expect([b.hp(A3), fogged(b, A3)]).toEqual([85, false]);
   });
 
-  it('Mercy of the Mist: all allies heal 20 and gain Fog for 1 turn, which condenses into 3 Renew', () => {
+  it('Mercy of the Mist: all allies heal 15 and gain Fog for 1 turn, which doesn\'t condense into Renew', () => {
     const a = arena({ p0: three(['prayer.mist']), p1: three() });
     a.setHp(A1, 50).setHp(A2, 50).use(A1, 'prayer.mist').end();
-    expect([a.hp(A1), a.hp(A2), fogged(a, A2)]).toEqual([70, 70, true]);
+    expect([a.hp(A1), a.hp(A2), fogged(a, A2)]).toEqual([65, 65, true]);
     a.end();
-    expect([fogged(a, A2), a.stacks(A2, 'renew'), a.stacks(A3, 'renew')]).toEqual([false, 3, 3]);
+    expect([fogged(a, A2), a.stacks(A2, 'renew'), a.stacks(A3, 'renew')]).toEqual([false, 0, 0]);
   });
 
-  it('Stolen Wind: 25 / 15 to a random other enemy; the user takes all their mobility buffs', () => {
-    const a = arena({ p0: [['cleave.mist']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'swiftness', { stacks: 2 }).give(B2, 'rushing');
+  it('Mercy of the Mist: meanwhile, each skill Fog redirects heals every ally 10', () => {
+    const a = firstSeed(
+      { p0: three(['prayer.mist']), p1: three() },
+      (x) => x.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).use(A1, 'prayer.mist').end().use(B1, 'shot', A1).end(),
+      (x) => x.hp(A1) !== 50,
+    );
+    expect(a.hp(A1)).toBe(75); // 65, and 10 when the Shot was redirected
+    expect([a.hp(A2), a.hp(A3)].sort()).toEqual([60, 75]); // the one it landed on: 65 − 15 + 10
+    const b = firstSeed(
+      { p0: three(['prayer.mist']), p1: three() },
+      (x) => x.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).use(A1, 'prayer.mist').end().use(B1, 'shot', A1).end(),
+      (x) => x.hp(A1) === 50,
+    );
+    expect([b.hp(A2), b.hp(A3)]).toEqual([65, 65]); // landed as aimed: no redirect, no healing
+  });
+
+  it('Mistcutter: 20 to the target; without Fog, the mist gathers: a random other enemy takes 10, and the user gains Fog until the end of their next 2 turns', () => {
+    const a = arena({ p0: three(['cleave.mist']), p1: three() });
     a.use(A1, 'cleave.mist', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-    expect([a.stacks(B1, 'swiftness'), a.has(B2, 'rushing')]).toEqual([0, false]);
-    expect([a.stacks(A1, 'swiftness') >= 2, a.has(A1, 'rushing')]).toEqual([true, true]);
+    expect(a.hp(B1)).toBe(80);
+    expect([a.hp(B2), a.hp(B3)].sort((x, y) => x - y)).toEqual([90, 100]);
+    expect(a.hp(A2) + a.hp(A3)).toBe(200);
+    expect([fogged(a, A1), a.has(A1, 'renew')]).toEqual([true, false]);
+    a.pass(2); // past the end of the user's next turn
+    expect(fogged(a, A1)).toBe(true);
+    a.pass(1); // their second turn: still there
+    expect(fogged(a, A1)).toBe(true);
+    a.pass(1); // the end of their second turn
+    expect([fogged(a, A1), a.has(A1, 'renew')]).toEqual([false, true]); // unspent, it condensed as usual
   });
 
-  it('Foghorn: all enemies Intimidated for 2 turns; for 1 turn their Harmful skills on the user are turned back', () => {
-    const a = arena({ p0: three(['shout.mist']), p1: three() });
+  it('Mistcutter: the random enemy is never the target', () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: three(['cleave.mist']), p1: three(), seed });
+      a.use(A1, 'cleave.mist', B2).end();
+      expect(a.hp(B2)).toBe(80);
+      expect(a.hp(B1) + a.hp(B3)).toBe(190);
+    }
+  });
+
+  it('Mistcutter: with Fog, it condenses into the blade instead of Renew: the Fog ends, and every other enemy takes 15', () => {
+    const a = arena({ p0: three(['cleave.mist']), p1: three() });
+    a.use(A1, 'cleave.mist', B1).end().pass(1);
+    expect(a.cooldown(A1, 'cleave.mist')).toBeGreaterThan(0); // cooldown 1: not ready the next turn
+    a.pass(2);
+    const before = sideHp(a, [B1, B2, B3]);
+    a.use(A1, 'cleave.mist', B2).end(); // the gathered Fog is still there when it's ready again
+    expect(sideHp(a, [B1, B2, B3])).toEqual([before[0]! - 15, before[1]! - 20, before[2]! - 15]);
+    expect([fogged(a, A1), a.has(A1, 'renew')]).toEqual([false, false]);
+  });
+
+  it('Mistcutter: Fog from anywhere condenses into it, and the user’s side is untouched', () => {
+    const a = arena({ p0: three(['cleave.mist']), p1: three() });
+    a.give(A1, 'fog').use(A1, 'cleave.mist', B3).end();
+    expect(sideHp(a, [B1, B2, B3, A2, A3])).toEqual([85, 85, 80, 100, 100]);
+    expect([fogged(a, A1), a.has(A1, 'renew')]).toEqual([false, false]);
+  });
+
+  it('Foghorn: 3 times, a random enemy character is Intimidated for 2 turns; it can be the same one', () => {
+    let doubled = false;
+    for (let seed = 1; seed <= 20; seed++) {
+      const a = arena({ p0: three(['shout.mist']), p1: three(), seed });
+      a.use(A1, 'shout.mist').end();
+      const s = [B1, B2, B3].map((b) => a.stacks(b, 'intimidated'));
+      expect(s.reduce((n, x) => n + x, 0)).toBe(3);
+      if (Math.max(...s) >= 2) doubled = true;
+    }
+    expect(doubled).toBe(true);
+  });
+
+  it('Foghorn: minions aren\'t picked, and it lasts 2 turns', () => {
+    const total = (a: Arena) => [B1, B2, B3].reduce((n, b) => n + a.stacks(b, 'intimidated'), 0);
+    const a = arena({ p0: three(['shout.mist']), p1: [['companion.mist'], ['shot'], ['shot']] });
+    a.end().use(B1, 'companion.mist').end();
+    const heron = minions(a, 1, 'mist_heron')[0]!;
     a.use(A1, 'shout.mist').end();
-    expect([B1, B2, B3].map((b) => a.has(b, 'intimidated'))).toEqual([true, true, true]);
-    a.use(B1, 'shot', A1).use(B2, 'shot', A2).end();
-    expect([a.hp(A1), a.hp(B1), a.hp(A2)]).toEqual([100, 85, 85]); // only skills aimed at the user
-    a.pass(1).use(B3, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B3)]).toEqual([85, 100]); // over after 1 turn
+    expect([a.stacks(heron.id, 'intimidated'), total(a)]).toEqual([0, 3]);
+    a.pass(2);
+    expect(total(a)).toBe(3);
+    a.pass(1);
+    expect(total(a)).toBe(0);
   });
 
   it('Veil of Mist: 15 Shield for 1 turn', () => {
@@ -589,26 +754,37 @@ describe('Mist skills', () => {
     expect(sideHp(a, [A1, A2])).toEqual([85, 100]);
   });
 
-  it('Marid Form: 2 Armor, Immune and Fog for 3 turns; then the Fog condenses into 6 Renew', () => {
+  it('Marid Form: Immune and Fog for 3 turns, and no Armor', () => {
     const a = arena({ p0: [['titan.mist']], p1: three() });
     a.use(A1, 'titan.mist').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), fogged(a, A1)]).toEqual([2, true, true]);
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), fogged(a, A1)]).toEqual([0, true, true]);
     a.pass(4);
-    expect(fogged(a, A1)).toBe(true);
+    expect([a.has(A1, 'immune'), fogged(a, A1)]).toEqual([true, true]);
     a.pass(1);
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), fogged(a, A1)]).toEqual([0, false, false]);
-    expect(a.stacks(A1, 'renew')).toBe(6);
+    expect([a.has(A1, 'immune'), fogged(a, A1), a.has(A1, 'marid_form')]).toEqual([false, false, false]);
+    expect(a.stacks(A1, 'renew')).toBe(2); // an ordinary Fog: it condenses into 2
+  });
+
+  it('Marid Form: each of the user\'s skills that deals direct damage also deals 10 to a random enemy', () => {
+    const lost = (a: Arena) => 300 - a.hp(B1) - a.hp(B2) - a.hp(B3);
+    const a = arena({ p0: [['titan.mist', 'shot', 'curse']], p1: three() });
+    a.use(A1, 'titan.mist').end();
+    expect(lost(a)).toBe(0);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(lost(a)).toBe(25); // 15 + 10
+    a.pass(1).use(A1, 'curse', B2).end();
+    expect(lost(a)).toBe(25); // no direct damage: no spill
   });
 });
 
 describe('Mist cost and cooldown (kit table)', () => {
   const table: Record<string, [string, number]> = {
-    strike: ['I', 0], smash: ['Ar', 2], charge: ['nc', 1], riposte: ['r', 3], rage: ['S', 4],
+    strike: ['I', 0], smash: ['Ar', 2], charge: ['S', 2], riposte: ['r', 3], rage: ['S', 4],
     shot: ['r', 0], snipe: ['Ar', 2], trap: ['A', 3], maneuver: ['r', 3], companion: ['I', 1],
-    bolt: ['I', 2], blast: ['Ar', 2], consume: ['r', 2], summon: ['r', 3], channel: ['II', 3],
-    stab: ['r', 0], ravage: ['A', 1], mislead: ['I', 2], stun: ['r', 2], dance: ['Ar', 5],
+    bolt: ['I', 2], blast: ['Ar', 2], consume: ['r', 2], summon: ['I', 2], channel: ['II', 3],
+    stab: ['r', 0], ravage: ['A', 1], mislead: ['I', 3], stun: ['r', 2], dance: ['Ar', 5],
     heal: ['A', 1], bless: ['r', 2], curse: ['W', 2], smite: ['I', 1], prayer: ['Wrr', 2],
-    cleave: ['Ar', 1], shout: ['I', 2], withstand: ['r', 1], taunt: ['r', 3], titan: ['SW', 4],
+    cleave: ['Ar', 1], shout: ['I', 3], withstand: ['r', 1], taunt: ['r', 3], titan: ['SW', 4],
   };
   const parse = (s: string): Cost => {
     const c: Cost = { S: 0, A: 0, I: 0, W: 0, r: 0 };
@@ -621,8 +797,8 @@ describe('Mist cost and cooldown (kit table)', () => {
       expect([s.cost, s.cooldown]).toEqual([parse(cost), cd]);
     });
   }
-  it('minion skills: Spear Beak r, Pale Touch nc', () => {
+  it('minion skills: Spear Beak r; the Mist Double has none', () => {
     expect(content.skills.mist_heron_spear_beak!.cost).toEqual(parse('r'));
-    expect(content.skills.will_o_mist_pale_touch!.cost).toEqual(parse('nc'));
+    expect(content.minions.mist_double!.skills).toEqual([]);
   });
 });

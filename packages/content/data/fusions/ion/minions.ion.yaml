@@ -15,12 +15,3 @@ jammer:
     - { op: apply, to: allEnemies, effect: blackout, bindTo: actor }
     - { op: apply, to: { filter: allEnemies, where: { kind: { unit: it, is: minion } } }, effect: blacked_out, bindTo: actor }
   skills: [jammer_static_hiss]
-
-signal_ghost:
-  name: Signal Ghost
-  hp: 10
-  # If it's destroyed, its destroyer has Blackout for 2 turns.
-  onDeath:
-    - { op: set, var: blackout, value: 2 }
-    - { op: forEach, in: lastAttacker, do: [{ op: macro, id: blackout }] }
-  skills: []

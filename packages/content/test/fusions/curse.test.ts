@@ -43,7 +43,7 @@ describe('Curse: costs and cooldowns match the kit table', () => {
     ['shot.curse', 'r', 0],
     ['snipe.curse', 'AS', 2],
     ['trap.curse', 'A', 3],
-    ['maneuver.curse', 'r', 3],
+    ['maneuver.curse', 'r', 4],
     ['companion.curse', 'I', 1],
     ['bolt.curse', 'Ir', 1],
     ['blast.curse', 'Irr', 2],
@@ -60,10 +60,10 @@ describe('Curse: costs and cooldowns match the kit table', () => {
     ['curse.curse', 'r', 2],
     ['smite.curse', 'S', 1],
     ['prayer.curse', 'Wrr', 2],
-    ['cleave.curse', 'S', 1],
+    ['cleave.curse', 'Sr', 1],
     ['shout.curse', 'Sr', 3],
     ['withstand.curse', 'A', 2],
-    ['taunt.curse', 'r', 2],
+    ['taunt.curse', 'r', 3],
     ['titan.curse', 'SW', 4],
     // Minion skills: the kit lists costs only.
     ['cat_scratch', 'r', null],
@@ -174,23 +174,46 @@ describe('Curse skills', () => {
     expect(hexes(a, B1)).toHaveLength(0);
   });
 
-  it('Crushing Malediction: 25 and 15 to their allies; each Hex on the target is copied to an ally for 2 turns', () => {
-    const a = arena({ p0: [['smash.curse']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'hex_silence', { source: A1, duration: 20 }).give(B1, 'hex_ruin', { source: A1, duration: 20 });
+  it('Crushing Malediction: 35 to the target, who gains Hex of Pain for 2 turns; no one else is hit yet', () => {
+    const a = arena({ p0: [['smash.curse']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'smash.curse', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-    expect(hexes(a, B1)).toEqual(['hex_silence', 'hex_ruin']); // the target keeps them
-    expect(hexes(a, B2)).toEqual(['hex_silence', 'hex_ruin']);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([65, 100, 100]);
+    expect(hexes(a, B1)).toEqual(['hex_pain']);
+    expect([hexes(a, B2), hexes(a, B3)]).toEqual([[], []]);
     a.pass(2);
-    expect(hexes(a, B2)).toHaveLength(2);
+    expect(a.has(B1, 'hex_pain')).toBe(true);
     a.pass(1);
-    expect(hexes(a, B2)).toHaveLength(0);
+    expect(a.has(B1, 'hex_pain')).toBe(false);
   });
 
-  it('Crushing Malediction: no Hexes on the target, nothing copied', () => {
-    const a = arena({ p0: [['smash.curse']], p1: [['shot'], ['shot']] });
+  it('Crushing Malediction: each time the Pain hurts the target, their allies take 10 Affliction too', () => {
+    const a = arena({ p0: [['smash.curse'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'smash.curse', B1).end();
-    expect(hexes(a, B2)).toEqual([]);
+    a.use(B1, 'shot', A2).end(); // the Pain: 10 to B1, and 10 to each ally
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([55, 90, 90]);
+    a.pass(1).use(B1, 'shot', A2).end(); // and again on their second turn
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([45, 80, 80]);
+  });
+
+  it("Crushing Malediction: if they don't strike, their allies are spared; once the Pain is gone, so is the sharing", () => {
+    const a = arena({ p0: [['smash.curse']], p1: [['shot'], ['heal']] });
+    a.use(A1, 'smash.curse', B1).end().pass(4); // B1 deals no damage during it
+    expect([a.hp(B2), a.has(B1, 'hex_pain')]).toEqual([100, false]);
+    a.give(B1, 'hex_pain', { source: A1, duration: 10 }); // a later Pain from elsewhere
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([55, 100]);
+  });
+
+  it('Crushing Malediction: a cleansed Pain ends the sharing, though the Pain itself Lingers', () => {
+    const a = arena({ p0: [['smash.curse']], p1: [['shot'], ['prayer.vigilante', 'shot'], ['shot']] });
+    a.use(A1, 'smash.curse', B1).end();
+    a.give(B1, 'anointed').use(B2, 'prayer.vigilante').end(); // B1's Debuffs are cleansed
+    const holder = [B2, B3].find((b) => a.has(b, 'hex_pain'))!;
+    const other = holder === B2 ? B3 : B2;
+    expect(a.has(B1, 'hex_pain')).toBe(false);
+    const hp = [a.hp(B1), a.hp(holder), a.hp(other)];
+    a.pass(1).use(holder, 'shot', A1).end(); // the jumped Pain hurts its new bearer only
+    expect([a.hp(B1), a.hp(holder), a.hp(other)]).toEqual([hp[0], hp[1]! - 10, hp[2]]);
   });
 
   it('Crossed Path: 15, and the next Harmful skill gives each enemy it targets a random Hex for 2 turns', () => {
@@ -338,35 +361,35 @@ describe('Curse skills', () => {
     expect([a.has(B1, 'stun'), a.has(B1, 'hex_ruin')]).toEqual([false, false]);
   });
 
-  it("Familiar's Cover: Invulnerable for 1 turn", () => {
+  it('Wretched Haven: the user is Invulnerable for 2 turns', () => {
     const a = arena({ p0: [['maneuver.curse']], p1: [['shot']] });
     a.use(A1, 'maneuver.curse').end();
-    expect(a.has(A1, 'invulnerable')).toBe(true);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-    a.end();
+    a.pass(2);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.pass(2);
     expect(a.has(A1, 'invulnerable')).toBe(false);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it("Familiar's Cover: the user's Lifesteal also heals them for their minions' damage", () => {
-    const a = arena({ p0: [['companion.curse', 'maneuver.curse']], p1: [['shot']] });
-    a.use(A1, 'companion.curse').end().pass(1);
-    const cat = minion(a, 'black_cat');
-    a.give(A1, 'lifesteal').setHp(A1, 50).use(A1, 'maneuver.curse').use(cat.id, 'cat_scratch', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([90, 60]);
+  it('Wretched Haven: but the user bears all three Hexes for 3 turns', () => {
+    const a = arena({ p0: [['maneuver.curse']], p1: [['shot']] });
+    a.use(A1, 'maneuver.curse').end();
+    expect(hexes(a, A1)).toEqual([...HEXES]);
+    expect(a.hp(A1)).toBe(100); // becoming Invulnerable isn't punished by the Ruin
+    a.pass(4);
+    expect(hexes(a, A1)).toEqual([...HEXES]); // still there after the Invulnerability ends
+    a.pass(2);
+    expect(hexes(a, A1)).toEqual([]);
   });
 
-  it("Familiar's Cover: no Lifesteal, no healing; and it lasts 2 turns", () => {
-    const a = arena({ p0: [['companion.curse', 'maneuver.curse']], p1: [['shot']] });
-    a.use(A1, 'companion.curse').end().pass(1);
-    const cat = minion(a, 'black_cat');
-    a.setHp(A1, 50).use(A1, 'maneuver.curse').use(cat.id, 'cat_scratch', B1).end();
-    expect(a.hp(A1)).toBe(50);
-    const b = arena({ p0: [['companion.curse', 'maneuver.curse']], p1: [['shot']] });
-    b.use(A1, 'companion.curse').end().pass(1);
-    const cat2 = minion(b, 'black_cat');
-    b.give(A1, 'lifesteal').use(A1, 'maneuver.curse').end().pass(3);
-    b.setHp(A1, 50).use(cat2.id, 'cat_scratch', B1).end();
-    expect(b.hp(A1)).toBe(50);
+  it('Wretched Haven: the Hexes bite while the user hides (Pain on their hits, Silence on their Strategic skills)', () => {
+    const a = arena({ p0: [['maneuver.curse', 'shot', 'curse']], p1: [['shot']] });
+    a.use(A1, 'maneuver.curse').end().pass(1);
+    expect(costOf(a, A1, 'curse')).toEqual(parseCost('rr'));
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([85, 90]);
   });
 
   it('Black Cat: a permanent 25 HP minion; Scratch is 10 Piercing', () => {
@@ -477,17 +500,39 @@ describe('Curse skills', () => {
     expect(a.hp(B1)).toBe(40);
   });
 
-  it('Cursed Dagger: 10, or 20 at or below 60 HP; an un-Hexed target gains no Hex', () => {
+  it('Cursed Dagger: 15 damage, whatever their HP; an un-Hexed user passes nothing', () => {
     const a = arena({ p0: [['stab.curse'], ['stab.curse']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 70).setHp(B2, 60).use(A1, 'stab.curse', B1).use(A2, 'stab.curse', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 40]);
-    expect([hexes(a, B1), hexes(a, B2)]).toEqual([[], []]);
+    a.setHp(B2, 50).give(B1, 'hex_ruin', { source: A1, duration: 10 }); // a Hexed target changes nothing
+    a.use(A1, 'stab.curse', B1).use(A2, 'stab.curse', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 35]);
+    expect([hexes(a, B1), hexes(a, B2)]).toEqual([['hex_ruin'], []]);
   });
 
-  it('Cursed Dagger: a Hexed target gains a random Hex for 2 turns (ruling)', () => {
-    const a = arena({ p0: [['stab.curse']], p1: [['shot']] });
-    a.give(B1, 'hex_pain', { source: A1, duration: 2 }).use(A1, 'stab.curse', B1).end().pass(1);
-    expect(hexes(a, B1).length).toBeGreaterThanOrEqual(1); // the original Pain alone would be gone by now
+  it("Cursed Dagger: a Hexed user's Hex passes into the wound, and the hit deals 25", () => {
+    const a = arena({ p0: [['stab.curse'], ['shot']], p1: [['shot']] });
+    a.give(A1, 'hex_silence', { source: B1, duration: 10 }).use(A1, 'stab.curse', B1).end();
+    expect([a.hp(B1), hexes(a, A1), hexes(a, B1)]).toEqual([75, [], ['hex_silence']]);
+    expect(hexDuration(a, B1, 'hex_silence')).toBe(9); // it keeps its time left (ticked once since)
+    expect(hexes(a, A2)).toEqual([]); // a move isn't a cleanse: nothing Lingers
+  });
+
+  it('Cursed Dagger: only one Hex passes, chosen at random', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ seed, p0: [['stab.curse']], p1: [['shot']] });
+      for (const h of HEXES) a.give(A1, h, { source: B1, duration: 10 });
+      a.give(B1, 'shield', { value: 100 }).use(A1, 'stab.curse', B1).end();
+      expect([hexes(a, A1).length, hexes(a, B1).length]).toEqual([2, 1]);
+      seen.add(hexes(a, B1)[0]!);
+    }
+    expect([...seen].sort()).toEqual([...HEXES].sort());
+  });
+
+  it('Cursed Dagger: the next use after Wretched Haven pays off', () => {
+    const a = arena({ p0: [['maneuver.curse', 'stab.curse']], p1: [['shot']] });
+    a.use(A1, 'maneuver.curse').end().pass(1).use(A1, 'stab.curse', B1).end();
+    expect(a.hp(B1)).toBe(75);
+    expect([hexes(a, A1).length, hexes(a, B1).length]).toEqual([2, 1]);
   });
 
   it('Rend the Wards: the target loses a random Buff, then takes 30 Piercing; no Fragments needed', () => {
@@ -658,39 +703,78 @@ describe('Curse skills', () => {
     expect(a.unit(A2).alive).toBe(false);
   });
 
-  it('Spreading Dread: 25 and 15 to a random other enemy', () => {
+  it("Grudging Cut: 20 damage to the target; the other enemy with the most HP takes Affliction equal to half the HP they have over the target (Shield doesn't stop it)", () => {
+    const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(B2, 70).give(B3, 'shield', { value: 50 }).use(A1, 'cleave.curse', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 70, 90]); // B3: (100 - 80) / 2
+    const b = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot'], ['shot']] });
+    b.setHp(B1, 60).setHp(B2, 75).setHp(B3, 70).use(A1, 'cleave.curse', B1).end();
+    expect([b.hp(B1), b.hp(B2), b.hp(B3)]).toEqual([40, 58, 70]); // B2: (75 - 40) / 2, rounded down
+  });
+
+  it('Grudging Cut: only one enemy takes it, even when two have the most HP', () => {
     const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.curse', B1).end();
-    expect(a.hp(B1)).toBe(75);
-    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85].sort());
+    expect([a.hp(B2), a.hp(B3)].sort((x, y) => x - y)).toEqual([90, 100]);
   });
 
-  it('Spreading Dread: the target is Horrified for 2 turns, the other one for 1', () => {
-    const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
+  it('Grudging Cut: at least 5, at most 25', () => {
+    const a = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(B2, 60).setHp(B3, 50).use(A1, 'cleave.curse', B1).end(); // they have less than the target
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 55, 50]);
+    const b = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
+    b.setHp(B1, 30).use(A1, 'cleave.curse', B1).end(); // (100 - 10) / 2 = 45
+    expect([b.hp(B1), b.hp(B2)]).toEqual([10, 75]);
+    const c = arena({ p0: [['cleave.curse']], p1: [['shot'], ['shot']] });
+    c.setHp(B1, 15).use(A1, 'cleave.curse', B1).end(); // a slain target has nothing left
+    expect([c.unit(B1).alive, c.hp(B2)]).toEqual([false, 75]);
+  });
+
+  it('Grudging Cut: with no other enemy, only the target is hit', () => {
+    const a = arena({ p0: [['cleave.curse']], p1: [['shot']] });
     a.use(A1, 'cleave.curse', B1).end();
-    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([true, true]);
-    a.pass(1);
-    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified')]).toEqual([true, false]);
-    a.pass(2);
-    expect(a.has(B1, 'horrified')).toBe(false);
+    expect([a.hp(B1), a.hp(A1)]).toEqual([80, 100]);
   });
 
-  it('Ill Wind: all enemies Intimidated for 2 turns', () => {
+  it('Ill Wind: all enemies gain Hex of Silence for 2 turns, and no one is Intimidated yet', () => {
     const a = arena({ p0: [['shout.curse']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shout.curse').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
+    expect([hexes(a, B1), hexes(a, B2)]).toEqual([['hex_silence'], ['hex_silence']]);
+    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([false, false]);
     a.pass(2);
-    expect(a.has(B1, 'intimidated')).toBe(true);
+    expect(a.has(B1, 'hex_silence')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'hex_silence')).toBe(false);
+  });
+
+  it('Ill Wind: the first Strategic skill each one uses leaves them Intimidated for 2 turns', () => {
+    const a = arena({ p0: [['shout.curse']], p1: [['curse', 'shot'], ['shot']] });
+    a.use(A1, 'shout.curse').end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // non-Strategic skills don't count
+    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([false, false]);
+    a.pass(1).use(B1, 'curse', A1).end();
+    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, false]);
+    a.pass(3);
+    expect(a.has(B1, 'intimidated')).toBe(true); // through their next 2 turns
     a.pass(1);
     expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  it("Ill Wind: meanwhile their Hexes can't be removed (other Debuffs still can)", () => {
-    const a = arena({ p0: [['shout.curse']], p1: [['shot'], ['prayer.vigilante']] });
-    a.give(B1, 'hex_pain', { source: A1, duration: 20 }).give(B1, 'weakness', { source: A1 }).give(B1, 'anointed');
-    a.use(A1, 'shout.curse').end();
-    a.use(B2, 'prayer.vigilante').end();
-    expect([a.has(B1, 'hex_pain'), a.has(B1, 'weakness'), a.has(B2, 'hex_pain')]).toEqual([true, false, false]);
+  it("Ill Wind: the Strategic skill that sets it off isn't slowed itself (ruling)", () => {
+    const a = arena({ p0: [['shout.curse']], p1: [['curse']] });
+    a.use(A1, 'shout.curse').end().use(B1, 'curse', A1).end();
+    const b = arena({ p0: [['shot']], p1: [['curse']] });
+    b.pass(1).use(B1, 'curse', A1).end();
+    expect(a.cooldown(B1, 'curse')).toBe(b.cooldown(B1, 'curse'));
+  });
+
+  it('Ill Wind: only the first one; and not after the 2 turns', () => {
+    const a = arena({ p0: [['shout.curse']], p1: [['curse', 'heal']] });
+    a.use(A1, 'shout.curse').end().use(B1, 'curse', A1).end().pass(1).use(B1, 'heal', B1).end();
+    expect(a.stacks(B1, 'intimidated')).toBe(1); // the second Strategic skill adds nothing
+    const b = arena({ p0: [['shout.curse']], p1: [['curse', 'heal']] });
+    b.use(A1, 'shout.curse').end().pass(4).use(B1, 'curse', A1).end();
+    expect(b.has(B1, 'intimidated')).toBe(false); // the wind has passed
   });
 
   it('Shrouded Ward: 20 Shield for 1 turn', () => {
@@ -727,45 +811,71 @@ describe('Curse skills', () => {
     expect(a.has(A1, 'stealth')).toBe(true);
   });
 
-  it('Poppet: a 10 HP Poppet Taunts the target for 1 turn; damage it takes hits them as Affliction', () => {
-    const a = arena({ p0: [['taunt.curse'], ['shot']], p1: [['stab']] });
-    a.give(B1, 'shield', { value: 50 }).use(A1, 'taunt.curse', B1).end();
-    const p = minion(a, 'poppet');
-    expect([p.owner, p.hp]).toEqual([0, 10]);
-    expect(a.reject(() => a.use(B1, 'stab', A1))).toBe('bad_target');
-    a.use(B1, 'stab', p.id).end(); // 20: the Poppet is at or below 60 HP
-    expect(a.unit(p.id).alive).toBe(false);
-    expect(a.hp(B1)).toBe(80); // the whole hit is passed on, Shield ignored
+  it('Geas: the target gains a random Hex for 2 turns and is Taunted by the user for 1 turn', () => {
+    const a = arena({ p0: [['taunt.curse'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.curse', B1).end();
+    expect(hexes(a, B1)).toHaveLength(1);
+    expect(a.effects(B1).find((e) => e.defId === 'taunt')?.source).toBe(A1);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Poppet: the Taunt lasts 1 turn', () => {
-    const a = arena({ p0: [['taunt.curse'], ['shot']], p1: [['stab']] });
+  it('Geas: every other Hexed enemy is Taunted too; an un-Hexed one isn\'t', () => {
+    const a = arena({ p0: [['taunt.curse'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'hex_ruin', { duration: 4, source: A1 }).use(A1, 'taunt.curse', B1).end();
+    expect([a.has(B1, 'taunt'), a.has(B2, 'taunt'), a.has(B3, 'taunt')]).toEqual([true, true, false]);
+    expect(a.reject(() => a.use(B2, 'shot', A2))).toBe('bad_target');
+    a.use(B3, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Geas: the Taunt lasts 1 turn; the Hex lasts 2', () => {
+    const a = arena({ p0: [['taunt.curse'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.curse', B1).end().pass(2);
-    a.use(B1, 'stab', A1).end();
-    expect(a.hp(A1)).toBe(90);
+    expect([a.has(B1, 'taunt'), hexes(a, B1).length]).toEqual([false, 1]);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
   });
 
-  it('The Accursed: 2 Armor and Immune for 3 turns', () => {
+  it('The Accursed: Immune for 3 turns, and no Armor', () => {
     const a = arena({ p0: [['titan.curse']], p1: [['shot']] });
     a.use(A1, 'titan.curse').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([2, true]);
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, true]);
     a.pass(4);
     expect(a.has(A1, 'immune')).toBe(true);
     a.pass(1);
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, false]);
+    expect(a.has(A1, 'immune')).toBe(false);
   });
 
-  it('The Accursed: at the end of each user turn, each Hex on enemies deals its bearer 5 Affliction', () => {
+  it('The Accursed: every enemy gains a random Hex for 2 turns', () => {
     const a = arena({ p0: [['titan.curse']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B1, 'hex_pain', { source: A1, duration: 30 }).give(B1, 'hex_ruin', { source: A1, duration: 30 });
-    a.give(B2, 'hex_silence', { source: A1, duration: 30 }).give(B1, 'shield', { value: 50 });
     a.use(A1, 'titan.curse').end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([90, 95, 100]);
-    a.pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 90]);
-    a.pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 85]);
-    a.pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 85]);
+    expect([B1, B2, B3].map((b) => hexes(a, b).length)).toEqual([1, 1, 1]);
+    const b = arena({ p0: [['strike.curse']], p1: [['shot']] }); // a 2-turn Hex, for comparison
+    b.use(A1, 'strike.curse', B1).end();
+    expect(hexDuration(a, B1, hexes(a, B1)[0]!)).toBe(hexDuration(b, B1, hexes(b, B1)[0]!));
   });
+
+  it('The Accursed: each enemy who hits the user takes 10 Affliction per Hex they bear', () => {
+    const a = arena({ p0: [['titan.curse']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.curse').end();
+    const extra = HEXES.find((h) => !a.has(B1, h) && h !== 'hex_pain')!;
+    a.give(B1, extra, { duration: 4, source: A1 });
+    const pain = a.has(B1, 'hex_pain') ? 10 : 0; // Pain bites on its own when they hit
+    a.use(B1, 'shot', A1).end();
+    expect(hexes(a, B1)).toHaveLength(2);
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100 - 20 - pain]);
+  });
+
+  it('The Accursed: an enemy with no Hex left hits for free, and it ends after 3 turns', () => {
+    const a = arena({ p0: [['titan.curse']], p1: [['shot']] });
+    a.use(A1, 'titan.curse').end().pass(4); // the enemy's third turn: their 2-turn Hex has run out
+    expect(hexes(a, B1)).toEqual([]);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(100);
+    a.pass(1).give(B1, 'hex_silence', { duration: 4, source: A1 }).use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(100);
+  });
+
 });

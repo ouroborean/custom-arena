@@ -249,20 +249,28 @@ describe('Slime skills', () => {
     expect(a.stacks(A1, 'might')).toBe(3);
   });
 
-  it('Mud Ball: 15 and 1 Confusion for 2 turns', () => {
+  it('Feeding Glob: 10 damage; with no Ooze, a 10 HP one forms', () => {
     const a = arena({ p0: [['shot.slime']], p1: three() });
     a.use(A1, 'shot.slime', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'confusion'), a.has(B1, 'stun')]).toEqual([85, 1, false]);
-    a.pass(3);
-    expect(a.has(B1, 'confusion')).toBe(false);
+    expect([a.hp(B1), oozeHp(a)]).toEqual([90, [10]]);
   });
 
-  it('Mud Ball: at 3 Confusion they lose it all and are Stunned for 1 turn', () => {
-    const a = arena({ p0: [['shot.slime']], p1: three() });
-    a.give(B1, 'confusion', { stacks: 2, source: A1 }).use(A1, 'shot.slime', B1).end();
-    expect([a.stacks(B1, 'confusion'), a.has(B1, 'stun')]).toEqual([0, true]);
-    a.end();
-    expect(a.has(B1, 'stun')).toBe(false);
+  it('Feeding Glob: with an Ooze, the splash feeds it instead: +10 max HP and heals 10', () => {
+    const a = arena({ p0: [['shot.slime', 'blast.slime']], p1: three() });
+    a.use(A1, 'blast.slime').end().pass(1);
+    const o = oozes(a)[0]!;
+    a.setHp(o.id, 15).use(A1, 'shot.slime', B1).end();
+    expect([oozes(a).length, a.unit(o.id).maxHp, a.hp(o.id)]).toEqual([1, 30, 25]);
+  });
+
+  it('Feeding Glob: the fed Ooze grows to 40 max HP at most (it still heals 10)', () => {
+    const a = arena({ p0: [['shot.slime', 'blast.slime']], p1: three() });
+    a.use(A1, 'blast.slime').end().pass(1);
+    const o = oozes(a)[0]!;
+    for (let i = 0; i < 3; i++) a.use(A1, 'shot.slime', B1).end().pass(1);
+    expect(a.unit(o.id).maxHp).toBe(40);
+    a.setHp(o.id, 25).use(A1, 'shot.slime', B1).end();
+    expect([a.unit(o.id).maxHp, a.hp(o.id)]).toEqual([40, 35]);
   });
 
   it('Ooze Mortar: an Ooze now; next turn an Ooze is hurled for 30 and Engulfs the target, keeping its HP', () => {
@@ -408,18 +416,27 @@ describe('Slime skills', () => {
     expect(oozeHp(a)).toEqual([10]);
   });
 
-  it('Grit Shiv: 10, or 20 at or below 60 HP', () => {
+  it('Oozing Cut: 10 damage, then the glob deals 5 Affliction at the end of each of the user\'s turns, for 2 turns', () => {
     const a = arena({ p0: [['stab.slime']], p1: three() });
-    a.use(A1, 'stab.slime', B1).end().pass(1).setHp(B2, 60).use(A1, 'stab.slime', B2).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'confusion')]).toEqual([90, 40, false]);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'stab.slime', B1).end(); // Armor stops the cut, not the Affliction
+    expect(a.hp(B1)).toBe(95);
+    a.pass(1);
+    expect(a.hp(B1)).toBe(95); // not on the enemy's turn
+    a.end();
+    expect(a.hp(B1)).toBe(90);
+    a.pass(2);
+    expect([a.hp(B1), a.has(B1, 'oozing_cut')]).toEqual([90, false]);
   });
 
-  it('Grit Shiv: 1 Confusion for 1 turn per allied Boulder', () => {
-    const a = arena({ p0: [['stab.slime'], ['charge.earth']], p1: three() });
-    a.use(A2, 'charge.earth', B2).end().pass(1).use(A1, 'stab.slime', B1).end();
-    expect(a.stacks(B1, 'confusion')).toBe(1);
-    a.end();
-    expect(a.has(B1, 'confusion')).toBe(false);
+  it('Oozing Cut: a new cut refreshes the glob instead of adding a second', () => {
+    const a = arena({ p0: [['stab.slime']], p1: three() });
+    a.use(A1, 'stab.slime', B1).end().end().use(A1, 'stab.slime', B1).end(); // 10 + 5, then 10 + 5
+    expect(a.effects(B1).filter((e) => e.inline?.id === 'oozing_cut')).toHaveLength(1);
+    expect(a.hp(B1)).toBe(70);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(65);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(65);
   });
 
   it('Crushing Mass: 25 Piercing; against a Stunned target, 1 Might and 1 Armor for good', () => {
@@ -551,29 +568,76 @@ describe('Slime skills', () => {
     expect(shieldOn(a, A2)).toBe(0);
   });
 
-  it('Mudguard Sweep: 25 / 15 to a random other enemy; until the user\'s next turn, their Armor reduces Piercing', () => {
-    const a = arena({ p0: [['cleave.slime']], p1: [['ravage'], ['ravage']] });
-    a.give(A1, 'armor', { stacks: 2 }).use(A1, 'cleave.slime', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-    a.use(B1, 'ravage', A1).end();
-    expect(a.hp(A1)).toBe(85); // 25 Piercing − 10
-    a.pass(1).use(B2, 'ravage', A1).end();
-    expect(a.hp(A1)).toBe(60); // back to normal
+  it('Clinging Sweep: 20 damage to the target and a gel coat; the blow itself Splits it off at once onto a random ally of theirs: 15 damage, and they’re coated for 2 turns', () => {
+    const a = arena({ p0: [['cleave.slime']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.slime', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 85]);
+    expect([a.has(B1, 'gel_coat'), a.has(B2, 'gel_coat')]).toEqual([false, true]);
+    a.pass(3); // turns 2-4
+    expect(a.has(B2, 'gel_coat')).toBe(false);
   });
 
-  it('Quagmire: all enemies Intimidated for 2 turns, and their skills cost 1 more random energy', () => {
-    const a = arena({ p0: [['shout.slime']], p1: three() });
+  it('Clinging Sweep: the hop goes to a random ally of theirs, never back to the target or to the user’s side', () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: three(['cleave.slime']), p1: three(), seed });
+      a.use(A1, 'cleave.slime', B2).end();
+      expect(a.hp(B2)).toBe(80);
+      expect([a.hp(B1), a.hp(B3)].sort((x, y) => x - y)).toEqual([85, 100]);
+      expect([a.hp(A2), a.hp(A3)]).toEqual([100, 100]);
+    }
+  });
+
+  it('Clinging Sweep: if the blow leaves them below 10 HP, they stay coated for 2 turns, and the next direct hit that leaves them with 10+ HP Splits it', () => {
+    const a = arena({ p0: [['cleave.slime'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 25).use(A1, 'cleave.slime', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.stacks(B1, 'gel_coat')]).toEqual([5, 100, 2]);
+    a.setHp(B1, 40).use(B1, 'shot', A1).end();
+    a.use(A2, 'shot', B1).end(); // 40 -> 25: it Splits now
+    expect([a.hp(B1), a.hp(B2)]).toEqual([25, 85]);
+    expect([a.has(B1, 'gel_coat'), a.has(B2, 'gel_coat')]).toEqual([false, true]);
+    const b = arena({ p0: [['cleave.slime']], p1: [['shot'], ['shot']] });
+    b.setHp(B1, 25).use(A1, 'cleave.slime', B1).end().pass(3); // turns 2-4: unsplit, it wears off
+    expect(b.has(B1, 'gel_coat')).toBe(false);
+  });
+
+  it("Clinging Sweep: a hit that isn't direct doesn't split it", () => {
+    const a = arena({ p0: [['cleave.slime']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'hemorrhage', { source: A1, stacks: 2 }).use(A1, 'cleave.slime', B1).end();
+    // B2 is coated by the hop (85), then takes 10 Affliction as the turn ends: no split back onto B1
+    expect([a.hp(B1), a.hp(B2), a.has(B2, 'gel_coat')]).toEqual([80, 75, true]);
+  });
+
+  it('Clinging Sweep: it hops at most twice: once off the blow, once more off the next direct hit that leaves a coated ally with 10+ HP', () => {
+    const a = arena({ p0: [['cleave.slime'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.slime', B1).use(A2, 'shot', B2).end();
+    // B1: 20, then the second hop (15) back off B2; B2: 15 hop + 15 shot
+    expect([a.hp(B1), a.hp(B2)]).toEqual([65, 70]);
+    expect([a.has(B1, 'gel_coat'), a.has(B2, 'gel_coat')]).toEqual([false, false]);
+  });
+
+  it('Quagmire: for 1 turn, every enemy\'s non-Strategic skills are Stunned (Strategic ones still work)', () => {
+    const a = arena({ p0: [['shout.slime']], p1: [['shot', 'heal'], ['shot'], ['shot']] });
     a.use(A1, 'shout.slime').end();
-    expect([B1, B2, B3].map((b) => a.has(b, 'intimidated'))).toEqual([true, true, true]);
-    a.use(B1, 'shot', A1);
-    expect(a.state.players[1].queue[0]?.cost.r).toBe(2);
+    expect([B1, B2, B3].map((b) => a.has(b, 'quagmire'))).toEqual([true, true, true]);
+    expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('cannot_act');
+    a.setHp(B1, 50).use(B1, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(75);
+    a.pass(1).use(B2, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Quagmire: wears off after 2 turns', () => {
-    const a = arena({ p0: [['shout.slime']], p1: three() });
-    a.use(A1, 'shout.slime').end().pass(4);
-    a.use(B1, 'shot', A1);
-    expect(a.state.players[1].queue[0]?.cost.r).toBe(1);
+  it('Quagmire: damage pulls an enemy free (only that one)', () => {
+    const a = arena({ p0: [['shout.slime'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.slime').use(A2, 'shot', B1).end();
+    expect([a.has(B1, 'quagmire'), a.has(B2, 'quagmire')]).toEqual([false, true]);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Quagmire: it counts as a non-Strategic Stun, so Swiftness shrugs it off', () => {
+    const a = arena({ p0: [['shout.slime']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'swiftness').use(A1, 'shout.slime').end();
+    expect([a.has(B1, 'quagmire'), a.has(B1, 'swiftness'), a.has(B2, 'quagmire')]).toEqual([false, false, true]);
   });
 
   it('Quivering Wall: 40 Shield with no time limit, melting by 10 at the end of each of the user\'s turns', () => {
@@ -641,7 +705,7 @@ describe('Slime cost and cooldown (kit table)', () => {
     bolt: ['Ir', 1], blast: ['Irr', 2], consume: ['W', 2], summon: ['I', 1], channel: ['Ir', 3],
     stab: ['r', 0], ravage: ['Wr', 2], mislead: ['A', 2], stun: ['Ar', 4], dance: ['AI', 4],
     heal: ['r', 1], bless: ['r', 2], curse: ['r', 2], smite: ['W', 1], prayer: ['Irr', 2],
-    cleave: ['Sr', 1], shout: ['I', 3], withstand: ['r', 4], taunt: ['W', 3], titan: ['WW', 4],
+    cleave: ['Sr', 1], shout: ['Ir', 4], withstand: ['r', 4], taunt: ['W', 3], titan: ['WW', 4],
   };
   const parse = (s: string): Cost => {
     const c: Cost = { S: 0, A: 0, I: 0, W: 0, r: 0 };

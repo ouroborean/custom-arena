@@ -26,9 +26,6 @@ spores:
             - op: forEach
               in: randomBearerAlly
               do:
-                - op: if
-                  cond: { has: { unit: bearer, effect: infest } }
-                  then: [{ op: apply, to: it, effect: confusion, duration: { enemyTurns: 2 } }]
                 - { op: apply, to: it, effect: spores }
                 - { op: addStacksSelf, amount: -1 }
 
@@ -59,18 +56,55 @@ sporeling_feed:
         - { op: addMaxHp, to: bearer, amount: 10 }
         - { op: heal, to: bearer, amount: 10 }
 
-# Infest: the Spores this bearer passes Confuse whoever receives them.
+# Humus Wall: a Shield that rots by 10 at the end of each of its applier's later turns (the first
+# turn end only settles it), seeding a random enemy with 1 Spore each time.
+humus_wall:
+  name: Humus Wall
+  kind: Buff
+  element: Spore
+  stacking: unique
+  shield: true
+  description: >-
+    A Shield. At the end of each of its applier's later turns, it rots: it loses 10, and a random enemy
+    gains 1 Spore.
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { flag: settled }
+          then:
+            - { op: apply, to: { randomEnemy: 1 }, effect: spores }
+            - { op: growShield, to: bearer, effect: humus_wall, amount: -10 }
+          else:
+            - { op: setFlag, flag: settled }
+
+# Infest: a Spore carrier's skills cost 1 more.
 infest:
   name: Infested
   kind: Debuff
   element: Spore
   stacking: unique
-  description: Each ally the bearer passes a Spore to is Confused for 2 turns.
+  description: While the bearer carries Spores, their skills cost 1 more.
+  modifiers:
+    - { mod: costGeneric, amount: 1, if: { has: { unit: bearer, effect: spores } } }
 
-# Fungal Colossus: sprouting Mushrooms are absorbed by the user.
+# Fungal Colossus: a Mushroom sprouts for the bearer at the end of each of their turns, and each
+# Mushroom on their side is 1 Armor for them.
 fungal_colossus:
   name: Fungal Colossus
   kind: Buff
   element: Spore
   stacking: unique
-  description: Each Mushroom that would sprout for the bearer is absorbed instead (+1 Armor, heals 15).
+  description: >-
+    A Mushroom sprouts for the bearer at the end of each of their turns; they have 1 Armor for each
+    Mushroom on their side.
+  modifiers:
+    - mod: damageTaken
+      amount: 0
+      armor: true
+      when: { types: [Normal] }
+      value: { mul: [-5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [mushroom] } } } }] }
+  triggers:
+    - on: turnEnd
+      do:
+        - { op: macro, id: sprout }

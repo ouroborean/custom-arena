@@ -119,14 +119,15 @@ rage.prism:
   element: Prism
   name: Burning Glass
   description: >-
-    For 3 turns, the user is Anointed, and gains Lens each time they damage the enemy they damaged on
-    their previous turn.
+    For 3 turns, the user is Immune. They gain Lens, and the glass heats with every Lens: each time they use a
+    skill with Lens meanwhile, they gain 1 Might until this ends.
   cost: I
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: anointed, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: forEach, in: actor, do: [{ op: macro, id: gain_lens }] }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -135,25 +136,26 @@ rage.prism:
         name: Burning Glass
         kind: Buff
         element: Prism
-        description: Damaging the same enemy as on the bearer's previous turn grants Lens.
+        description: Each skill the bearer uses with Lens gives them 1 Might until this ends.
         triggers:
-          - on: dealtDamage
-            when: { direct: true, byEnemy: true }
+          - on: skillUsed
             do:
               - op: if
-                cond: { has: { unit: eventTarget, effect: burning_glass_focus } }
+                cond: { has: { unit: bearer, effect: lens } }
                 then:
-                  - { op: forEach, in: bearer, do: [{ op: macro, id: gain_lens }] }
-              - { op: removeEffect, from: allEnemies, effect: burning_glass_focus }
-              - op: apply
-                to: eventTarget
-                duration: { raw: 3 }
-                effect:
-                  id: burning_glass_focus
-                  name: Focused
-                  kind: Debuff
-                  element: Prism
-                  description: The Burning Glass is focused on the bearer.
+                  - op: apply
+                    to: bearer
+                    linkTo: burning_glass
+                    effect:
+                      id: burning_glass_heat
+                      name: Burning Glass
+                      kind: Buff
+                      element: Prism
+                      stacking: merge
+                      countsAs: [might]
+                      description: +5 direct damage per stack until Burning Glass ends.
+                      modifiers:
+                        - { mod: damageDealt, amount: 5, perStack: true, when: { direct: true } }
 
 shot.prism:
   archetype: Shot
@@ -187,9 +189,8 @@ snipe.prism:
   element: Prism
   name: Focal Point
   description: >-
-    On the following turn, deals 50 Piercing damage to target enemy. If it kills them, the damage left
-    over Refracts to a random ally of theirs at full strength. The target of this skill is invisible.
-    Channeled.
+    On the following turn, deals 30 Piercing damage to target enemy, and the beam splits into a spectrum:
+    15 Piercing damage to each other enemy. The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -206,31 +207,26 @@ snipe.prism:
         element: Prism
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; overkill refracts to an ally of theirs.
+        description: Strikes its target at the end of the following turn, splitting onto every other enemy.
         onExpire:
           - op: forEach
             in: effectTargets
             do:
-              - { op: set, var: before, value: { hp: it } }
-              - { op: damage, to: it, amount: 50, type: Piercing }
-              - op: if
-                cond: { compare: { value: { sum: [50, { mul: [-1, { var: before }] }] }, atLeast: 1 } }
-                then:
-                  - { op: damage, to: { randomEnemy: 1, exclude: it }, amount: { sum: [50, { mul: [-1, { var: before }] }] }, type: Piercing }
+              - { op: damage, to: it, amount: 30, type: Piercing }
+              - { op: damage, to: primaryAllies, amount: 15, type: Piercing }
 
 trap.prism:
   archetype: Trap
   element: Prism
   name: Standing Decree
   description: >-
-    For 3 turns, target enemy is Condemned; each time it triggers, it returns at the end of the user's
-    next turn. Invisible.
+    For 3 turns, the first time target enemy uses a Harmful skill, they're Frostbitten for 2 turns, and it
+    Refracts: a random ally of theirs is Frostbitten for 2 turns too. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: condemned }
     - op: apply
       to: primary
       duration: { enemyTurns: 3 }
@@ -240,14 +236,15 @@ trap.prism:
         kind: Debuff
         element: Prism
         visibility: hidden
-        description: The bearer's Condemnation returns at the end of each of the applier's turns.
+        countsAs: [trap]
+        description: The bearer's next Harmful skill Frostbites them and a random ally of theirs.
         triggers:
-          - on: turnEnd
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
             do:
-              - op: if
-                cond: { not: { has: { unit: bearer, effect: condemned } } }
-                then:
-                  - { op: apply, to: bearer, effect: condemned }
+              - { op: apply, to: bearer, effect: frostbitten, duration: { enemyTurns: 2 } }
+              - { op: apply, to: randomBearerAlly, effect: frostbitten, duration: { enemyTurns: 2 } }
 
 maneuver.prism:
   archetype: Maneuver
@@ -302,37 +299,34 @@ companion.prism:
 bolt.prism:
   archetype: Bolt
   element: Prism
-  name: Hallowed Hoarfrost
+  name: Splinter of Light
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 2 turns. Each time that Sanctify heals
-    someone, the target gains 1 turn of Chilled.
+    Deals 10 damage to target enemy and lodges a splinter of light in them. At the start of the user's next
+    turn, it bursts: 15 damage to them and 10 to a random ally of theirs. Healing them first draws it out.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 10 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { raw: 2 }
       effect:
-        id: hallowed_hoarfrost
-        name: Hallowed Hoarfrost
+        id: splinter_of_light
+        name: Splinter of Light
         kind: Debuff
         element: Prism
-        description: Each direct hit on the Sanctified bearer gives them 1 turn of Chilled.
+        description: >-
+          Bursts at the start of the applier's next turn: 15 damage to the bearer and 10 to a random ally of
+          theirs. Healing the bearer draws it out.
         triggers:
-          - on: damaged
-            when: { direct: true }
+          - on: healed
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then:
-                  - op: if
-                    cond: { has: { unit: bearer, effect: chilled } }
-                    then: [{ op: extendEffects, on: bearer, effects: [chilled], by: 2 }]
-                    else: [{ op: apply, to: bearer, effect: chilled, duration: { enemyTurns: 1 } }]
+              - { op: removeSelf }
+        onExpire:
+          - { op: damage, to: bearer, amount: 15 }
+          - { op: damage, to: randomBearerAlly, amount: 10 }
 
 blast.prism:
   archetype: Blast
@@ -445,20 +439,19 @@ stab.prism:
 ravage.prism:
   archetype: Ravage
   element: Prism
-  name: Cold Crusade
+  name: Converging Light
   description: >-
-    Deals 20 Piercing damage to target enemy and every other Condemned enemy. Any it hits above 75 HP are
-    Condemned afterward.
+    Deals 20 Piercing damage to target enemy, +10 for each of their allies who is Condemned or Sanctified,
+    as their light converges on the target.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20, type: Piercing }
-    - { op: damage, to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: condemned } } }, amount: 20, type: Piercing }
-    - op: if
-      cond: { hpAbove: { unit: primary, value: 75 } }
-      then: [{ op: apply, to: primary, effect: condemned }]
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { sum: [20, { mul: [10, { countOf: { filter: primaryAllies, where: { or: [{ has: { unit: it, effect: condemned } }, { has: { unit: it, effect: sanctify } }] } } }] }] }
 
 mislead.prism:
   archetype: Mislead
@@ -567,17 +560,34 @@ bless.prism:
   archetype: Bless
   element: Prism
   name: Lens of Favor
-  description: Target ally is Anointed until the end of their next turn; if they already were, they also gain Lens.
+  description: >-
+    Target ally gains Lens. When they spend it, it Refracts: a random other ally gains Lens.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - op: if
-      cond: { has: { unit: primary, effect: anointed } }
-      then:
-        - { op: forEach, in: primary, do: [{ op: macro, id: gain_lens }] }
-    - { op: apply, to: primary, effect: anointed, duration: { ownTurns: 1 } }
+    - { op: forEach, in: primary, do: [{ op: macro, id: gain_lens }] }
+    # The Lens is the user's effect, so its end is heard on the user.
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { ownTurns: 2 }
+      effect:
+        id: lens_of_favor
+        name: Lens of Favor
+        kind: Buff
+        element: Prism
+        description: When the blessed ally spends their Lens, a random other ally gains Lens.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [lens], reason: [consumed] }
+            do:
+              - op: if
+                cond: { eventTargetIs: effectTargets }
+                then:
+                  - { op: forEach, in: { randomAlly: 1, exclude: effectTargets, where: { kind: { unit: it, is: character } } }, do: [{ op: macro, id: gain_lens }] }
+                  - { op: removeSelf }
 
 curse.prism:
   archetype: Curse
@@ -602,30 +612,31 @@ smite.prism:
   element: Prism
   name: Glacial Rebuke
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn. The first ally who damages them before
-    then gains Lens.
+    Deals 20 damage to target enemy. Until the end of the enemy's next turn, the user's ally with the least
+    HP is guarded by cold grace: the first time an enemy deals direct damage to them, they heal 15 and that
+    enemy is Frostbitten for 1 turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
     - op: apply
-      to: primary
+      to: weakestAlly
       duration: { enemyTurns: 1 }
       effect:
         id: glacial_rebuke
         name: Glacial Rebuke
-        kind: Debuff
+        kind: Buff
         element: Prism
-        description: The first of the applier's allies to damage the bearer gains Lens.
+        description: The first enemy direct hit on the bearer heals them 15 and Frostbites that enemy for 1 turn.
         triggers:
           - on: damaged
-            when: { direct: true, fromSide: ally }
+            when: { direct: true, byEnemy: true }
             consume: true
             do:
-              - { op: forEach, in: eventSource, do: [{ op: macro, id: gain_lens }] }
+              - { op: heal, to: bearer, amount: 15 }
+              - { op: apply, to: eventSource, effect: frostbitten, duration: { enemyTurns: 1 } }
 
 prayer.prism:
   archetype: Prayer

@@ -46,14 +46,24 @@ charge.ninja:
   archetype: Charge
   element: Ninja
   name: Blur
-  description: The user begins Rushing and creates a Clone.
-  cost: nc
+  description: >-
+    The user creates a Clone and blurs among their Clones: their next Harmful skill Flurries twice.
+  cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: rushing }
     - { op: macro, id: make_clone }
+    # Read and spent by the Flurry passive.
+    - op: apply
+      to: actor
+      effect:
+        id: blur
+        name: Blur
+        kind: Buff
+        element: Ninja
+        stacking: unique
+        description: The bearer's next Harmful skill Flurries twice.
 
 riposte.ninja:
   archetype: Riposte
@@ -343,54 +353,75 @@ stab.ninja:
   element: Ninja
   name: Second Draw
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If the user is still Rushing at the
-    start of their next turn, it strikes the same enemy again for 10.
+    Deals 5 damage to target enemy, and a Clone slips into their blind spot (a new one, unless the user
+    already has 3): if it's still standing at the start of the user's next turn, it stabs them for 15
+    and is destroyed.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: apply
-      to: actor
-      remember: primary
-      duration: { raw: 2 }
-      effect:
-        id: second_draw
-        name: Second Draw
-        kind: Neutral
-        element: Ninja
-        description: Strikes again at the start of the bearer's next turn if they're still Rushing.
-        onExpire:
-          - op: if
-            cond: { has: { unit: bearer, effect: rushing } }
-            then: [{ op: damage, to: effectTargets, amount: 10 }]
+    - { op: damage, to: primary, amount: 5 }
+    # The new Clone waits in the blind spot; at 3 Clones, one of them goes instead.
+    - op: if
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }, atMost: 2 } }
+      then:
+        - { op: macro, id: make_clone }
+        - op: apply
+          to: lastSummoned
+          remember: primary
+          duration: { raw: 2 }
+          effect: &blind_spot
+            id: blind_spot
+            name: Blind Spot
+            kind: Neutral
+            element: Ninja
+            description: At the start of its Ninja's next turn, it stabs the enemy it waits behind for 15 and is destroyed.
+            onExpire:
+              - { op: damage, to: effectTargets, amount: 15 }
+              - { op: kill, to: bearer }
+      else:
+        - op: forEach
+          in: { randomAlly: 1, where: { minion: { unit: it, types: [shadow_clone] } } }
+          do:
+            - { op: apply, to: it, remember: primary, duration: { raw: 2 }, effect: *blind_spot }
 
 ravage.ninja:
   archetype: Ravage
   element: Ninja
   name: Quickdraw
-  description: Deals 25 Piercing damage to target enemy. If the user was Leaping, they land in the shadows and gain Stealth.
-  cost: A
+  description: >-
+    The user waits for an opening. For 1 turn, the first time target enemy uses a skill, they're cut for 30
+    Piercing damage before it takes effect; if they use none, the cut lands as the turn ends, for 20.
+  cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: leapt, value: { count: { effects: [leaping], in: actor } } }
-    - { op: damage, to: primary, amount: 25, type: Piercing }
-    - op: if
-      cond: { compare: { value: { var: leapt }, atLeast: 1 } }
-      then: [{ op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }]
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: quickdraw
+        name: Quickdraw
+        kind: Debuff
+        element: Ninja
+        description: The bearer's next skill draws a 30 Piercing cut first; if they use none, 20 as it ends.
+        triggers:
+          - on: skillUsed
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 30, type: Piercing }
+        onExpire:
+          - { op: damage, to: bearer, amount: 20, type: Piercing }
 
 mislead.ninja:
   archetype: Mislead
   element: Ninja
   name: Feint
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user creates Clones until they have
-    3. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user Leaps. If they don't, the
+    feint is read: the user is Marked for 1 turn. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -405,37 +436,44 @@ mislead.ninja:
         kind: Debuff
         element: Ninja
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and the applier fills out their Clones.
+        description: The bearer's next Harmful skill is countered and the applier Leaps; unbitten, the applier is Marked.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: macro, id: make_clone }
-              - { op: macro, id: make_clone }
-              - { op: macro, id: make_clone }
+              - op: forEach
+                in: actor
+                do:
+                  - { op: macro, id: leap }
+        onExpire:
+          - { op: apply, to: actor, effect: mark, duration: { enemyTurns: 1 } }
 
 stun.ninja:
   archetype: Stun
   element: Ninja
   name: Pressure Point
   description: >-
-    Deals 10 damage to target enemy and Stuns them for 1 turn. If they were Rushing or Leaping, it ends, and
-    their mobility skills go 1 turn further onto cooldown.
+    Deals 10 damage to target enemy and presses a pressure point. At the end of their next turn it seizes:
+    they're Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10 }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
-    - op: if
-      cond: { or: [{ has: { unit: primary, effect: rushing } }, { has: { unit: primary, effect: leaping } }] }
-      then:
-        - { op: removeEffect, from: primary, effect: rushing }
-        - { op: removeEffect, from: primary, effect: leaping }
-        - { op: adjustCooldowns, to: primary, by: 1, archetypes: [Charge, Maneuver, Mislead, Dance] }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: pressure_point
+        name: Pressure Point
+        kind: Debuff
+        element: Ninja
+        description: At the end of the bearer's next turn, they're Stunned for 1 turn.
+        onExpire:
+          - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.ninja:
   archetype: Dance
@@ -523,15 +561,29 @@ bless.ninja:
 curse.ninja:
   archetype: Curse
   element: Ninja
-  name: Blinding Dust
-  description: Target enemy is Blinded for 2 turns and gains 1 Confusion.
+  name: Haunting Shadows
+  description: >-
+    The user creates a Clone. For 2 turns, target enemy is haunted by the user's Clones: each skill they
+    use draws a Flurry on them.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: macro, id: make_clone }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: haunting_shadows
+        name: Haunting Shadows
+        kind: Debuff
+        element: Ninja
+        description: Each skill the bearer uses draws a Flurry on them (5 Piercing per Clone on the applier's side).
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: damage, to: bearer, type: Piercing, direct: false, amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] } }
 
 smite.ninja:
   archetype: Smite
@@ -591,22 +643,16 @@ cleave.ninja:
   element: Ninja
   name: Shadow Whirl
   description: >-
-    The user creates a Clone if they have none; then 20 damage to target enemy and 15 to a random other enemy,
-    and each Clone adds 10 to another random enemy. Stealthy.
-  cost: S
+    The user creates a Clone and whirls: 10 damage to target enemy, and this skill's Flurry hits every
+    enemy, not just them. Stealthy.
+  cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic, Stealthy]
   target: enemy
   ops:
-    - op: if
-      cond: { not: { any: { in: allAllies, cond: { minion: { unit: it, types: [shadow_clone] } } } } }
-      then: [{ op: macro, id: make_clone }]
-    - { op: damage, to: primary, amount: 20 }
-    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
-    - op: repeat
-      times: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }
-      do:
-        - { op: damage, to: { randomEnemy: 1 }, amount: 10, direct: false }
+    - { op: macro, id: make_clone }
+    # The Flurry passive spreads this skill's Flurry to every enemy.
+    - { op: damage, to: primary, amount: 10 }
 
 shout.ninja:
   archetype: Shout
@@ -627,55 +673,53 @@ withstand.ninja:
   archetype: Withstand
   element: Ninja
   name: Shadow Guard
-  description: The user gains 20 Shield for 1 turn and creates a Clone.
+  description: >-
+    The user creates a Clone, then each of their Clones gains 20 Shield for 1 turn: the decoys hold up.
   cost: A
-  cooldown: 1
+  cooldown: 2
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 1 } }
     - { op: macro, id: make_clone }
+    - { op: apply, to: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } }, effect: shield, value: 20, duration: { enemyTurns: 1 } }
 
 taunt.ninja:
   archetype: Taunt
   element: Ninja
   name: Mocking Shadows
   description: >-
-    The user creates a Clone. Target enemy is Taunted by the user for 2 turns, and each skill they use during it
-    draws a Flurry from every Clone.
+    The user steps out from among their Clones: every Clone on their side is destroyed, and target enemy is
+    Taunted by the user for 1 turn, plus 1 turn per Clone destroyed (up to 3 turns).
   cost: r
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: macro, id: make_clone }
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: set, var: spent, value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } } }
+    - { op: kill, to: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: mocking_shadows
-        name: Mocking Shadows
-        kind: Debuff
-        element: Ninja
-        description: Each skill the bearer uses draws a Flurry from every Clone.
-        triggers:
-          - on: skillUsed
-            do:
-              - { op: damage, to: bearer, type: Piercing, direct: false, amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] } }
+      effect: taunt
+      duration: { enemyTurns: { if: { compare: { value: { var: spent }, atLeast: 2 } }, then: 3, else: { sum: [1, { var: spent }] } } }
 
 titan.ninja:
   archetype: Titan
   element: Ninja
   name: Shadow Master
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune and creates a Clone at the start of each of their turns.
+    The user creates Clones until they have 2. For 3 turns, they gain Immune, and enemies can't target them
+    until their side has no Clones left.
   cost: AW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
+    - op: repeat
+      times: 2
+      do:
+        - op: if
+          cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }, atMost: 1 } }
+          then: [{ op: macro, id: make_clone }]
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
@@ -685,11 +729,17 @@ titan.ninja:
         name: Shadow Master
         kind: Buff
         element: Ninja
-        description: A new Clone at the start of each of the bearer's turns.
+        description: Enemies can't target the bearer until their side has no Shadow Clones left.
+        modifiers:
+          - { mod: untargetable, by: enemies, bypassable: true }
         triggers:
-          - on: turnStart
+          - on: signal
+            signal: clone_destroyed
+            when: { side: ally }
             do:
-              - { op: macro, id: make_clone }
+              - op: if
+                cond: { not: { any: { in: allAllies, cond: { minion: { unit: it, types: [shadow_clone] } } } } }
+                then: [{ op: removeSelf }]
 
 # Minion skills.
 

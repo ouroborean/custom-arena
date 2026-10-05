@@ -60,27 +60,40 @@ charge.winter:
   archetype: Charge
   element: Winter
   name: Ice Skate
-  description: The user begins Rushing, and their next damaging skill also Snowbinds its targets for 1 turn.
-  cost: nc
+  description: >-
+    The user gains 2 Swiftness for 2 turns. Their next Harmful skill ends the skate in a spray of ice:
+    it spends their Swiftness for 5 more damage per stack, and every enemy it damages is Snowbound for 1
+    turn.
+  cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: rushing }
+    - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 2 } }
     - op: apply
       to: actor
+      duration: { enemyTurns: 2 }
       until: { skillUsed: { harmful: true } }
       effect:
         id: ice_skate
         name: Ice Skate
         kind: Buff
         element: Winter
-        description: The bearer's next damaging skill Snowbinds its targets for 1 turn.
+        stacking: unique
+        description: >-
+          The bearer's next Harmful skill spends their Swiftness for 5 more damage per stack and
+          Snowbinds every enemy it damages for 1 turn.
+        modifiers:
+          - { mod: damageDealt, amount: 0, when: { direct: true }, value: { mul: [5, { stacks: { unit: actor, effect: swiftness } }] } }
         triggers:
           - on: dealtDamage
             when: { direct: true, byEnemy: true }
             do:
               - { op: apply, to: eventTarget, effect: snowbound, duration: { enemyTurns: 1 } }
+          - on: skillResolved
+            when: { harmful: true }
+            do:
+              - { op: removeEffect, from: bearer, effect: swiftness }
 
 riposte.winter:
   archetype: Riposte
@@ -177,14 +190,13 @@ snipe.winter:
   element: Winter
   name: Whiteout
   description: >-
-    Every enemy is Snowbound until it lands. On the following turn, 30 Piercing damage to the enemy team.
-    Channeled.
+    On the following turn, the whiteout closes in: 60 Piercing damage, split evenly among the enemy
+    characters who aren't Immobile then (or among all of them, if every one is). Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: snowbound, duration: { enemyTurns: 1 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 1 }
@@ -194,9 +206,25 @@ snipe.winter:
         kind: Neutral
         element: Winter
         interruptible: true
-        description: Hits the enemy team at the end of the following turn unless interrupted.
+        description: >-
+          At the end of the following turn, 60 Piercing split among the enemy characters who aren't
+          Immobile (or all of them), unless interrupted.
         onExpire:
-          - { op: damage, to: allEnemies, amount: 30, type: Piercing }
+          - op: set
+            var: moving
+            value: { countOf: { filter: allEnemies, where: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: immobile, unit: it } } }] } } }
+          - op: if
+            cond: { compare: { value: { var: moving }, atLeast: 1 } }
+            then:
+              - op: damage
+                to: { filter: allEnemies, where: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: immobile, unit: it } } }] } }
+                amount: { div: [60, { var: moving }] }
+                type: Piercing
+            else:
+              - op: damage
+                to: { filter: allEnemies, where: { kind: { unit: it, is: character } } }
+                amount: { div: [60, { countOf: { filter: allEnemies, where: { kind: { unit: it, is: character } } } }] }
+                type: Piercing
 
 trap.winter:
   archetype: Trap
@@ -233,14 +261,37 @@ maneuver.winter:
   archetype: Maneuver
   element: Winter
   name: Powder Leap
-  description: The user Leaps. The last enemy who damaged them is Snowbound for 1 turn.
+  description: >-
+    For 2 turns, the user is ready to spring: the first time an enemy uses a Harmful skill on them,
+    they Leap before it lands, and that enemy is Snowbound for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
-    - { op: apply, to: lastAttacker, effect: snowbound, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: allEnemies
+      duration: { enemyTurns: 2 }
+      effect:
+        id: powder_leap
+        name: Powder Leap
+        kind: Neutral
+        element: Winter
+        description: >-
+          The bearer's first Harmful skill on the applier makes them Leap before it lands, and
+          Snowbinds the bearer for 1 turn.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do:
+              - op: if
+                cond: { isEventTarget: actor }
+                then:
+                  - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+                  - { op: apply, to: bearer, effect: snowbound, duration: { enemyTurns: 1 } }
+                  # Once: the other enemies' watches end too.
+                  - { op: removeEffect, from: bearerAllies, effect: powder_leap }
+                  - { op: removeSelf }
 
 companion.winter:
   archetype: Companion
@@ -261,20 +312,19 @@ bolt.winter:
   element: Winter
   name: Frostwind Bolt
   description: >-
-    Deals 20 damage to target enemy. If they're Immobile, their non-Strategic skills are stunned for 1
-    turn; if not, they're Snowbound for 2 turns.
-  cost: I
+    Deals 20 damage to target enemy. The gust carries on to a random other enemy: 10 damage, and
+    they're Snowbound for 1 turn.
+  cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - op: if
-      cond: { check: { cond: immobile, unit: primary } }
-      then:
-        - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 1 } }
-      else:
-        - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
+        - { op: apply, to: it, effect: snowbound, duration: { enemyTurns: 1 } }
 
 blast.winter:
   archetype: Blast
@@ -302,39 +352,39 @@ consume.winter:
   element: Winter
   name: Steal Warmth
   description: >-
-    Deals 5 damage to target enemy, who is Snowbound for 1 turn. The user heals 10 and gains each
-    mobility buff this strips from them.
+    Deals 5 damage to target enemy and passes them the user's chill: every Frost debuff on the user
+    (Snowbound included) moves to them. The user heals 10, plus 10 for each one passed.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 5 }
-    - { op: moveEffects, from: primary, to: actor, effects: [swiftness, rushing, leaping] }
-    - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 1 } }
-    - { op: heal, to: actor, amount: 10 }
+    - { op: set, var: chill, value: { count: { effects: [frostbitten, chilled, numb, frostfire, snowbound], in: actor } } }
+    - { op: moveEffects, from: actor, to: primary, effects: [frostbitten, chilled, numb, frostfire, snowbound] }
+    - { op: heal, to: actor, amount: { sum: [10, { mul: [10, { var: chill }] }] } }
 
 summon.winter:
   archetype: Summon
   element: Winter
   name: Snow Sprites
   description: >-
-    Summons 2 Snow Sprites (10 HP) for 3 turns. Flurry (nc): 5 Piercing damage; a target hit twice in
-    one turn is Snowbound for 1 turn.
+    Summons a Snow Sprite (20 HP) for 3 turns. Flurry (nc): 5 Piercing damage to all enemies. When the
+    Sprite melts (it's destroyed or its time runs out), every enemy is Snowbound for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: summon, minion: snow_sprite, count: 2, duration: { enemyTurns: 3 } }
+    - { op: summon, minion: snow_sprite, duration: { enemyTurns: 3 } }
 
 channel.winter:
   archetype: Channel
   element: Winter
   name: Long Winter
   description: >-
-    For up to 2 turns, at the end of each of the user's turns, deals 10 damage to all enemies, and a
-    random one is Snowbound for 1 turn. While it lasts, enemies' Frost debuffs don't wear off.
+    For up to 3 turns, at the end of each of the user's turns, the cold deepens: 5 damage to all
+    enemies, then 10, then 15. The third wave also leaves every enemy Snowbound for 2 turns.
     Channeled.
   cost: II
   cooldown: 3
@@ -343,20 +393,24 @@ channel.winter:
   ops:
     - op: apply
       to: actor
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: long_winter
         name: Long Winter
         kind: Neutral
         element: Winter
         interruptible: true
-        description: Each turn, 10 damage to all enemies and Snowbound on one; their Frost debuffs hold.
+        description: Each turn, 5 more damage to all enemies than the last; the third wave Snowbinds them.
         triggers:
+          # Stacks count the waves.
           - on: turnEnd
             do:
-              - { op: damage, to: allEnemies, amount: 10 }
-              - { op: apply, to: { randomEnemy: 1 }, effect: snowbound, duration: { enemyTurns: 1 } }
-              - { op: extendEffects, on: allEnemies, effects: [frostbitten, chilled, numb, frostfire, snowbound], by: 2 }
+              - { op: damage, to: allEnemies, amount: { mul: [5, { effectStacks: true }] } }
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atLeast: 3 } }
+                then:
+                  - { op: apply, to: allEnemies, effect: snowbound, duration: { enemyTurns: 2 } }
+              - { op: addStacksSelf, amount: 1 }
 
 stab.winter:
   archetype: Stab
@@ -393,10 +447,12 @@ ravage.winter:
 mislead.winter:
   archetype: Mislead
   element: Winter
-  name: Updraft Feint
+  name: Snatching Gale
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user Leaps. Invisible.
-  cost: I
+    For 1 turn, if target enemy uses a Harmful skill, the gale snatches it: it's countered, and held
+    frozen in the wind until the end of the user's next turn. The next Harmful skill the user uses
+    meanwhile unleashes it too, as the user's own, on that skill's first target. Invisible.
+  cost: Ir
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
   target: enemy
@@ -405,36 +461,66 @@ mislead.winter:
       to: primary
       duration: { enemyTurns: 1 }
       effect:
-        id: updraft_feint
-        name: Updraft Feint
+        id: snatching_gale
+        name: Snatching Gale
         kind: Debuff
         element: Winter
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and the applier Leaps.
+        description: The bearer's next Harmful skill is countered and snatched by the applier.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+              # The snatched skill is the bearer's last one (Mimic's lookup), cast by the user later.
+              - op: apply
+                to: actor
+                remember: eventSource
+                duration: { ownTurns: 1 }
+                effect:
+                  id: snatched_skill
+                  name: Snatched Skill
+                  kind: Buff
+                  element: Winter
+                  description: >-
+                    The bearer's next Harmful skill also unleashes the skill the gale snatched, as their own,
+                    on its first target.
+                  triggers:
+                    - on: skillResolved
+                      when: { harmful: true }
+                      consume: true
+                      do:
+                        - { op: castSkill, lastUsedBy: effectTargets, on: eventPrimary }
 
 stun.winter:
   archetype: Stun
   element: Winter
   name: Squall
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 1 turn; Swiftness can't stop it: they lose all
-    their Swiftness instead, and it lasts 1 turn longer per stack lost.
+    Deals 15 damage to target enemy, who is Snowbound for 2 turns. If they're still Snowbound at the end
+    of their next turn, the squall freezes them solid: they're Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - { op: set, var: swift, value: { totalStacks: { in: primary, effect: swiftness } } }
-    - { op: removeEffect, from: primary, effect: swiftness }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: { sum: [1, { var: swift }] } } }
+    - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: squall
+        name: Squall
+        kind: Debuff
+        element: Winter
+        description: If the bearer is still Snowbound at the end of their next turn, they're Stunned for 1 turn.
+        onExpire:
+          - op: if
+            cond: { has: { unit: bearer, effect: snowbound } }
+            then:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.winter:
   archetype: Dance
@@ -536,24 +622,40 @@ curse.winter:
   element: Winter
   name: Snowbind
   description: >-
-    Target enemy is Snowbound for 2 turns, and gains 1 Weakness for each mobility buff this strips from
-    them.
+    Target enemy is Snowbound for 1 turn. Each skill they use while it lasts packs the snow tighter:
+    it lasts 1 turn longer (up to 3 times).
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: set, var: stripped, value: { count: { effects: [swiftness, rushing, leaping], in: primary } } }
-    - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: weakness, stacks: { var: stripped }, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: primary
+      stacks: 3
+      duration: { enemyTurns: 4 }
+      effect:
+        id: snowbind
+        name: Snowbind
+        kind: Debuff
+        element: Winter
+        description: Each skill the bearer uses while Snowbound adds 1 turn to it (stacks are the turns left to add).
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: snowbound } }
+                then:
+                  - { op: extendEffects, on: bearer, effects: [snowbound], by: 2 }
+                  - { op: addStacksSelf, amount: -1 }
 
 smite.winter:
   archetype: Smite
   element: Winter
   name: Frostfeather
   description: >-
-    Deals 20 damage to target enemy. For 1 turn, allies who damage them gain 1 Swiftness; once two have,
-    the target is Snowbound for 2 turns.
+    Deals 20 damage to target enemy and coats them in frost for 1 turn: the second time the user's side
+    damages them again meanwhile, the frost sets: 10 Piercing damage, and they're Frostbitten for 1 turn.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -568,17 +670,19 @@ smite.winter:
         name: Frostfeather
         kind: Debuff
         element: Winter
-        description: Each ally of the applier who damages the bearer gains Swiftness; the second one Snowbinds them.
+        description: >-
+          The second direct hit from the applier's side sets the frost: 10 Piercing, and Frostbitten for 1
+          turn.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
             do:
-              - { op: apply, to: eventSource, effect: swiftness, duration: { enemyTurns: 1 } }
               - op: if
                 cond: { flag: once }
                 then:
                   - { op: removeSelf }
-                  - { op: apply, to: bearer, effect: snowbound, duration: { enemyTurns: 2 } }
+                  - { op: damage, to: bearer, amount: 10, type: Piercing, direct: false }
+                  - { op: apply, to: bearer, effect: frostbitten, duration: { enemyTurns: 1 } }
                 else:
                   - { op: setFlag, flag: once }
 
@@ -603,25 +707,24 @@ cleave.winter:
   element: Winter
   name: Winter's Descent
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. If the user is Leaping, they come
-    down on both: each is Frostbitten for 1 turn.
+    Deals 25 damage to target enemy. The descent rolls on through the others: each Immobile one takes
+    10, and each one still moving takes 5 and is Snowbound for 1 turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: leapt, value: { count: { effects: [leaping], in: actor } } }
     - { op: damage, to: primary, amount: 25 }
     - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
+      in: { filter: allEnemies, where: { not: { isPrimary: it } } }
       do:
-        - { op: damage, to: it, amount: 15 }
         - op: if
-          cond: { compare: { value: { var: leapt }, atLeast: 1 } }
-          then: [{ op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }]
-    - op: if
-      cond: { compare: { value: { var: leapt }, atLeast: 1 } }
-      then: [{ op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 1 } }]
+          cond: { check: { cond: immobile, unit: it } }
+          then:
+            - { op: damage, to: it, amount: 10 }
+          else:
+            - { op: damage, to: it, amount: 5 }
+            - { op: apply, to: it, effect: snowbound, duration: { enemyTurns: 1 } }
 
 shout.winter:
   archetype: Shout
@@ -680,31 +783,25 @@ taunt.winter:
   element: Winter
   name: Call of the Cold
   description: >-
-    Target enemy is Taunted by the user for 2 turns. Each Harmful skill they use on the user leaves them
-    Snowbound for 1 turn.
+    Target enemy is Snowbound for 1 turn, and Taunted by the user for as long as they stay Snowbound
+    (up to 3 turns).
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 1 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: call_of_the_cold
         name: Call of the Cold
         kind: Debuff
         element: Winter
-        description: Each Harmful skill the bearer uses on the applier Snowbinds them for 1 turn.
-        triggers:
-          - on: skillUsed
-            when: { harmful: true }
-            do:
-              - op: if
-                cond: { isEventTarget: actor }
-                then:
-                  - { op: apply, to: bearer, effect: snowbound, duration: { enemyTurns: 1 } }
+        description: Taunted by the applier while Snowbound.
+        modifiers:
+          - { mod: forceTarget, if: { has: { unit: bearer, effect: snowbound } } }
 
 titan.winter:
   archetype: Titan
@@ -748,24 +845,10 @@ snow_sprite_flurry:
   archetype: Minion
   element: Winter
   name: Flurry
-  description: Deals 5 Piercing damage to target enemy; a target hit twice in one turn is Snowbound for 1 turn.
+  description: Deals 5 Piercing damage to all enemies.
   cost: nc
   cooldown: 0
   tags: [Harmful, NonStrategic]
-  target: enemy
+  target: allEnemies
   ops:
-    - { op: damage, to: primary, amount: 5, type: Piercing }
-    - op: if
-      cond: { has: { unit: primary, effect: flurried } }
-      then:
-        - { op: apply, to: primary, effect: snowbound, duration: { enemyTurns: 1 } }
-      else:
-        - op: apply
-          to: primary
-          duration: { raw: 1 }
-          effect:
-            id: flurried
-            name: Flurried
-            kind: Debuff
-            element: Winter
-            description: Another Flurry this turn Snowbinds the bearer.
+    - { op: damage, to: targets, amount: 5, type: Piercing }

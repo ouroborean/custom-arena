@@ -13,6 +13,7 @@ const A1 = 'p0c0';
 const A2 = 'p0c1';
 const B1 = 'p1c0';
 const B2 = 'p1c1';
+const B3 = 'p1c2';
 
 /** Internal duration of the first effect with this key on the unit (null = permanent / absent). */
 function dur(a: Arena, id: string, key: string): number | null | undefined {
@@ -269,23 +270,20 @@ describe('Glacier skills', () => {
     expect(appliedDur(a, A2, 'meltwater')).toBe(4);
   });
 
-  it('Glacial Erratic: 20 damage and a 2-turn Mark that breaks for 30 if it expires unspent', () => {
-    const a = arena({ p0: [['bolt.glacier']], p1: [['shot']] });
+  it('Stolen Season: 20 damage; one of their cooling skills gains a turn, and one of the user’s other cooling skills loses one', () => {
+    const a = arena({ p0: [['bolt.glacier', 'smash']], p1: [['shot', 'smash']] });
+    setCd(a, B1, 'smash', 2);
+    setCd(a, A1, 'smash', 3);
     a.use(A1, 'bolt.glacier', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([80, true]);
-    a.pass(2);
-    expect(a.hp(B1)).toBe(80); // still waiting
-    a.pass(1);
-    expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([50, false]);
+    expect(a.hp(B1)).toBe(80);
+    expect([a.cooldown(B1, 'smash'), a.cooldown(B1, 'shot')]).toEqual([3, 0]);
+    expect(a.cooldown(A1, 'smash')).toBe(1); // 3 − 1 stolen − 1 tick
   });
 
-  it('Glacial Erratic: a Mark spent by a direct hit doesn’t also break for 30', () => {
-    const a = arena({ p0: [['bolt.glacier'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.glacier', B1).end().end();
-    a.use(A2, 'shot', B1).end(); // 15 + 10 from the Mark
-    expect(a.hp(B1)).toBe(55);
-    a.pass(4);
-    expect(a.hp(B1)).toBe(55);
+  it('Stolen Season: it never shortens itself, and a side with nothing cooling loses or gains nothing', () => {
+    const a = arena({ p0: [['bolt.glacier', 'smash']], p1: [['shot']] });
+    a.use(A1, 'bolt.glacier', B1).end();
+    expect([a.cooldown(A1, 'bolt.glacier'), a.cooldown(A1, 'smash'), a.cooldown(B1, 'shot')]).toEqual([1, 0, 0]);
   });
 
   it('Thawburst: 25 to all enemies; every Frost debuff is removed and gives a random ally 2 Renew', () => {
@@ -351,20 +349,33 @@ describe('Glacier skills', () => {
     expect(a.cooldown(A1, 'smash')).toBeLessThan(3); // ticking again
   });
 
-  it('Hoarfrost Pick: 10 damage, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.glacier'], ['stab.glacier']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.glacier', B1).use(A2, 'stab.glacier', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Hoarfrost Pick: 20 damage, paid in time: a random other skill of the user\'s on cooldown gains 1 turn', () => {
+    const a = arena({ p0: [['stab.glacier', 'smash', 'cleave']], p1: [['shot']] });
+    setCd(a, A1, 'smash', 2);
+    a.use(A1, 'stab.glacier', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    expect([a.cooldown(A1, 'smash'), a.cooldown(A1, 'cleave'), a.cooldown(A1, 'stab.glacier')]).toEqual([2, 0, 0]); // 3, then the turn's tick
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const b = arena({ p0: [['stab.glacier', 'smash', 'cleave']], p1: [['shot']], seed });
+      setCd(b, A1, 'smash', 2);
+      setCd(b, A1, 'cleave', 2);
+      b.use(A1, 'stab.glacier', B1).end();
+      const cds = [b.cooldown(A1, 'smash'), b.cooldown(A1, 'cleave')];
+      expect([...cds].sort()).toEqual([1, 2]); // just one of them
+      seen.add(cds.join());
+    }
+    expect(seen.size).toBe(2);
   });
 
-  it('Hoarfrost Pick: for 2 turns, Frost debuffs on the target can’t be removed', () => {
-    const a = arena({ p0: [['stab.glacier'], ['blast.glacier']], p1: [['shot']] });
-    a.give(B1, 'chilled', { source: A1 });
-    a.use(A1, 'stab.glacier', B1).use(A2, 'blast.glacier').end();
-    expect(a.has(B1, 'chilled')).toBe(true);
-    const b = arena({ p0: [['shot'], ['blast.glacier']], p1: [['shot']] }); // control
-    b.give(B1, 'chilled', { source: A1 }).use(A2, 'blast.glacier').end();
-    expect(b.has(B1, 'chilled')).toBe(false);
+  it('Hoarfrost Pick: with nothing else on cooldown, the pick itself goes on cooldown for 1 turn', () => {
+    const a = arena({ p0: [['stab.glacier', 'smash']], p1: [['shot']] });
+    a.use(A1, 'stab.glacier', B1).end();
+    expect([a.hp(B1), a.cooldown(A1, 'stab.glacier'), a.cooldown(A1, 'smash')]).toEqual([80, 1, 0]);
+    a.end();
+    expect(a.reject(() => a.use(A1, 'stab.glacier', B1))).toBeTruthy();
+    a.end().end().use(A1, 'stab.glacier', B1).end();
+    expect(a.hp(B1)).toBe(60);
   });
 
   it('Scouring Melt: 25 Piercing, +10 per Confusion (max 3), then the Confusion is washed away', () => {
@@ -378,46 +389,63 @@ describe('Glacier skills', () => {
     expect(c.hp(B1)).toBe(75);
   });
 
-  it('Thin Ice: Invisible; counters the target’s Harmful skill and Icebinds them', () => {
-    const a = arena({ p0: [['mislead.glacier']], p1: [['smash']] });
+  it('Thin Ice: Invisible; the user freezes over and is Icebound while they wait, for up to 3 turns', () => {
+    const a = arena({ p0: [['mislead.glacier'], ['shot'], ['shot']], p1: [['heal', 'shot'], ['shot'], ['shot']] });
     a.use(A1, 'mislead.glacier', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1 && e.source === A1)).toBe(false);
-    a.use(B1, 'smash', A1).end();
-    expect([a.hp(A1), a.has(B1, 'icebound')]).toEqual([100, true]);
+    expect(a.has(A1, 'icebound')).toBe(true);
+    expect(a.cooldown(A1, 'mislead.glacier')).toBe(4); // frozen: it didn't tick
+    a.setHp(B1, 50).use(B1, 'heal', B1).end(); // a Helpful skill goes through the ice
+    expect(a.hp(B1)).toBe(75);
+    a.pass(4); // turns 3-6: no Harmful skill from the target, so the ice never breaks
+    expect(a.has(A1, 'icebound')).toBe(false);
+    expect(a.cooldown(A1, 'mislead.glacier')).toBe(4); // three of the user's turns spent frozen
+    a.end(); // turn 7: thawed, it ticks again
+    expect(a.cooldown(A1, 'mislead.glacier')).toBe(3);
+    a.use(B1, 'shot', A1).end(); // the 3 turns are up
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Thin Ice: Icebound lasts 1 turn per turn of the countered skill’s cooldown', () => {
-    const a = arena({ p0: [['mislead.glacier']], p1: [['smash']] });
-    a.use(A1, 'mislead.glacier', B1).end().use(B1, 'smash', A1).end();
-    expect(appliedDur(a, B1, 'icebound')).toBe(5); // 2 turns, applied on their turn
+  it("Thin Ice: the target's first Harmful skill in that time breaks through and is countered, even on their third turn", () => {
+    const a = arena({ p0: [['mislead.glacier'], ['shot'], ['shot']], p1: [['smash', 'shot'], ['shot'], ['shot']] });
+    a.use(A1, 'mislead.glacier', B1).end().pass(4);
+    a.use(B1, 'smash', A1).end(); // turn 6
+    expect([a.hp(A1), a.hp(A2), a.hp('p0c2')]).toEqual([100, 100, 100]); // Smash's splash too
+    a.end().use(B1, 'shot', A1).end(); // only the first
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Thin Ice: Icebound is capped at 3 turns', () => {
-    const a = arena({ p0: [['mislead.glacier']], p1: [['trap.glacier']] });
-    a.use(A1, 'mislead.glacier', B1).end().use(B1, 'trap.glacier', A1).end();
-    expect(appliedDur(a, B1, 'icebound')).toBe(7);
+  it('Thin Ice: when the ice breaks, the user thaws: their Icebound ends and they gain Meltwater for 1 turn', () => {
+    const a = arena({ p0: [['mislead.glacier', 'smash'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'mislead.glacier', B1).end().use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(100);
+    expect([a.has(A1, 'icebound'), a.has(A1, 'meltwater')]).toEqual([false, true]);
+    a.end(); // the user's turn ends thawed: 1 tick + 1 from Meltwater
+    expect(a.cooldown(A1, 'mislead.glacier')).toBe(2);
+    a.end();
+    expect(a.has(A1, 'meltwater')).toBe(false);
   });
 
-  it('Thin Ice: a countered cd-0 skill gives no Icebound', () => {
-    const b = arena({ p0: [['mislead.glacier']], p1: [['shot']] });
-    b.use(A1, 'mislead.glacier', B1).end().use(B1, 'shot', A1).end();
-    expect([b.hp(A1), b.has(B1, 'icebound')]).toEqual([100, false]);
-  });
-
-  it('Thin Ice: Helpful skills go through', () => {
-    const a = arena({ p0: [['mislead.glacier']], p1: [['heal']] });
-    a.setHp(B1, 50).use(A1, 'mislead.glacier', B1).end().use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.has(B1, 'icebound')]).toEqual([75, false]);
-  });
-
-  it('Pack Ice: 15 damage and a 1-turn Stun, Icebound for as long', () => {
+  it('Pack Ice: 10 damage and a 2-turn Stun', () => {
     const a = arena({ p0: [['stun.glacier']], p1: [['shot']] });
     a.use(A1, 'stun.glacier', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun'), a.has(B1, 'icebound')]).toEqual([85, true, true]);
-    expect(dur(a, B1, 'icebound')).toBe(dur(a, B1, 'stun'));
+    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([90, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.pass(2);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
     a.end();
-    expect([a.has(B1, 'stun'), a.has(B1, 'icebound')]).toEqual([false, false]);
+    expect(a.has(B1, 'stun')).toBe(false);
+  });
+
+  it('Pack Ice: the user is Icebound for as long, so their cooldowns hold', () => {
+    const a = arena({ p0: [['stun.glacier']], p1: [['shot']] });
+    a.use(A1, 'stun.glacier', B1).end();
+    expect([a.has(A1, 'icebound'), dur(a, A1, 'icebound')]).toEqual([true, dur(a, B1, 'stun')]);
+    expect(a.cooldown(A1, 'stun.glacier')).toBe(3);
+    a.pass(2);
+    expect(a.cooldown(A1, 'stun.glacier')).toBe(3);
+    a.pass(2);
+    expect([a.has(A1, 'icebound'), a.cooldown(A1, 'stun.glacier')]).toEqual([false, 2]);
   });
 
   it('Spring Current: 1 Swiftness and Meltwater for 3 turns; allies the user helps gain Meltwater for 1 turn', () => {
@@ -499,27 +527,39 @@ describe('Glacier skills', () => {
     a.use(B1, 'heal', B1).end(); // over after 2 turns
   });
 
-  it('Calving: 25 to the target and 15 to another enemy, who then share their Debuffs', () => {
-    const a = arena({ p0: [['cleave.glacier']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'chilled', { source: A1 }).give(B2, 'weakness', { source: A1 });
+  it('Calving: 25 to the target; the next of their allies to use a skill takes 20, and the slab is gone', () => {
+    const a = arena({ p0: [['cleave.glacier']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.glacier', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-    expect([a.has(B1, 'weakness'), a.has(B2, 'chilled'), a.stacks(B1, 'chilled'), a.stacks(B2, 'weakness')]).toEqual([true, true, 1, 1]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 100, 100]);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).use(B3, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 80, 100]);
   });
 
-  it('Calving: Buffs aren’t shared', () => {
+  it('Calving: it lasts until the user’s next turn', () => {
     const a = arena({ p0: [['cleave.glacier']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'might');
-    a.use(A1, 'cleave.glacier', B1).end();
-    expect(a.has(B2, 'might')).toBe(false);
+    a.use(A1, 'cleave.glacier', B1).end().pass(2);
+    a.use(B2, 'shot', A1).end();
+    expect(a.hp(B2)).toBe(100);
   });
 
-  it('Floe Horn: all enemies Intimidated for 2 turns; only allies with Flow become Frostborn', () => {
-    const a = arena({ p0: [['shout.glacier'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(A2, 'flow').use(A1, 'shout.glacier').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    expect([a.has(A1, 'frostborn'), a.has(A2, 'frostborn')]).toEqual([false, true]);
-    expect(appliedDur(a, A2, 'frostborn')).toBe(appliedDur(a, B1, 'intimidated'));
+  it('Floe Horn: at the end of each of the user\'s turns, every enemy takes 5 per skill of theirs on cooldown', () => {
+    const a = arena({ p0: [['shout.glacier']], p1: [['smash', 'shot'], ['shot']] });
+    setCd(a, B1, 'smash', 2);
+    a.use(A1, 'shout.glacier').end(); // B1's Smash is cooling; B2 has nothing on cooldown
+    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 100]);
+    a.use(B2, 'shot', A1).end(); // a Shot has no cooldown, and nothing lands on the enemy's turn
+    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 100]);
+  });
+
+  it('Floe Horn: at most 15 a turn, for 2 turns', () => {
+    const a = arena({ p0: [['shout.glacier']], p1: [['smash', 'cleave', 'heal', 'stun']] });
+    for (const s of ['smash', 'cleave', 'heal', 'stun']) setCd(a, B1, s, 9);
+    a.use(A1, 'shout.glacier').end().end();
+    expect(a.hp(B1)).toBe(85);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(70);
+    a.pass(2);
+    expect([a.hp(B1), a.has(B1, 'floe_horn')]).toEqual([70, false]);
   });
 
   it('Ice Shelf: 20 Shield for 2 turns, with Meltwater while any of it remains', () => {
@@ -605,7 +645,7 @@ describe('Glacier costs and cooldowns match the kit table', () => {
     'channel.glacier': ['I', 3],
     'stab.glacier': ['r', 0],
     'ravage.glacier': ['Ir', 1],
-    'mislead.glacier': ['I', 2],
+    'mislead.glacier': ['I', 3],
     'stun.glacier': ['A', 2],
     'dance.glacier': ['Ar', 4],
     'heal.glacier': ['W', 1],

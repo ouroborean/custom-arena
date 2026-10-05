@@ -27,6 +27,17 @@ contract:
   stacking: independent
   description: A deal with a due date. When it expires, the Devil collects the price.
 
+# Put It on My Tab: a held hit. Its value is the damage held; the price is half of it.
+devils_tab:
+  name: On the Tab
+  kind: Neutral
+  element: Devil
+  stacking: independent
+  countsAs: [contract]
+  description: "A Contract. Price when it expires: half its value as Affliction damage."
+  onExpire:
+    - { op: damage, to: bearer, amount: { div: [{ effectValue: true }, 2] }, type: Affliction, direct: false }
+
 # Fusion passive (every Devil character): collects on Contracts whose holders die, and on bounties.
 devils_ledger:
   name: Devil's Ledger

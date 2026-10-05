@@ -7,59 +7,129 @@ strike.phoenix:
   element: Phoenix
   name: Firebrand Talon
   description: >-
-    Kindle: 20 damage and Ignite to target enemy, or 20 healing and 2 Renew to target ally. Either
-    way, the user gains 1 Might.
+    Brands target unit for 2 turns. An enemy takes 10 damage, then 10 Affliction damage each time they
+    use a skill meanwhile; an ally heals 10, then heals 10 more each time they use a skill meanwhile.
   cost: S
   cooldown: 0
   tags: [Radiant, NonStrategic]
   target: any
   ops:
-    - { op: set, var: burn, value: 20 }
-    - { op: macro, id: kindle }
-    # No duration given: permanent (Q16), as with base Strike.
-    - { op: apply, to: actor, effect: might }
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: damage, to: primary, amount: 10 }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: firebrand
+            name: Firebrand
+            kind: Debuff
+            element: Phoenix
+            stacking: unique
+            description: Each skill the bearer uses burns them for 10 Affliction damage.
+            triggers:
+              - on: skillUsed
+                do:
+                  - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
+      else:
+        - { op: heal, to: primary, amount: 10 }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: firebrand_mend
+            name: Firebrand
+            kind: Buff
+            element: Phoenix
+            stacking: unique
+            description: Each skill the bearer uses heals them 10.
+            triggers:
+              - on: skillUsed
+                do:
+                  - { op: heal, to: bearer, amount: 10 }
 
 smash.phoenix:
   archetype: Smash
   element: Phoenix
-  name: Wingbeat
+  name: Pyre Plunge
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. The beat fans the user's side: each ally
-    in Ashes rises at the end of this turn instead of their next.
+    The user dives in as a living pyre: they burn up to 40 of their own HP, never below 1. Target enemy
+    takes that much damage, and each of their allies half as much. The user rises from the plunge with
+    Rebirth for 1 turn.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
-    - op: apply
-      to: { filter: allUnits, where: { and: [{ has: { unit: it, effect: ashes } }, { not: { isEnemy: it } }] } }
-      duration: { raw: 1 }
-      effect:
-        id: wingbeat
-        name: Wingbeat
-        kind: Buff
-        element: Phoenix
-        description: Rises from Ashes at the end of this turn.
-        onExpire:
-          - { op: forEach, in: bearer, do: [{ op: macro, id: rise }] }
+    # The fuel is the user's own HP (as Sacrificial Flame burns it); the hits scale with what burned.
+    - op: set
+      var: burned
+      value:
+        if: { hpAbove: { unit: actor, value: 40 } }
+        then: 40
+        else: { sum: [{ hp: actor }, -1] }
+    - { op: damage, to: actor, amount: { var: burned }, raw: true, type: Affliction, direct: false }
+    - op: if
+      cond: { compare: { value: { var: burned }, atLeast: 1 } }
+      then:
+        - { op: damage, to: primary, amount: { var: burned } }
+        - { op: damage, to: primaryAllies, amount: { div: [{ var: burned }, 2] } }
+    - { op: apply, to: actor, effect: rebirth, duration: { enemyTurns: 1 } }
 
 charge.phoenix:
   archetype: Charge
   element: Phoenix
   name: Rising Dive
   description: >-
-    Kindle: 15 damage and Ignite to target enemy, or 15 healing and 2 Renew to target ally. The user
-    gains 1 Focus for their next skill.
+    Deals 15 damage to target enemy, or heals target ally 15. The user rises from the dive with Rebirth
+    until their next skill lands (for up to 2 turns); if it's still unspent then, that skill also deals
+    15 more damage to its first target if they're an enemy, or heals them 15 more if they're an ally.
   cost: S
   cooldown: 2
   tags: [Radiant, NonStrategic]
   target: any
   ops:
-    - { op: set, var: burn, value: 15 }
-    - { op: macro, id: kindle }
-    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
+    - op: if
+      cond: { isEnemy: primary }
+      then:
+        - { op: damage, to: primary, amount: 15 }
+      else:
+        - { op: heal, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: rising_dive
+        name: Rising Dive
+        kind: Buff
+        element: Phoenix
+        stacking: unique
+        countsAs: [rebirth]
+        description: Rebirth until the bearer's next skill lands; unspent, that skill deals 15 more to its enemy target or heals its ally target 15 more.
+        modifiers:
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: damaged
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 1 } }
+                then:
+                  - { op: removeSelf }
+                  - { op: apply, to: bearer, effect: ashes }
+          # After resolution: a countered skill spends nothing.
+          - on: skillResolved
+            consume: true
+            do:
+              - op: forEach
+                in: eventPrimary
+                do:
+                  - op: if
+                    cond: { isEnemy: it }
+                    then:
+                      - { op: damage, to: it, amount: 15 }
+                    else:
+                      - { op: heal, to: it, amount: 15 }
 
 riposte.phoenix:
   archetype: Riposte
@@ -100,16 +170,13 @@ rage.phoenix:
   element: Phoenix
   name: Pyreheart Fury
   description: >-
-    For 3 turns, the user gains 2 Might, Immune and Rebirth. If they rise from Ashes meanwhile, the
-    Rage starts over for 3 more turns.
+    For 3 turns, the user's fury catches: each enemy they deal direct damage to is Ignited, and their
+    direct damage is 5 more for each Ignited enemy.
   cost: SA
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: might, stacks: 2, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: rebirth, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -118,31 +185,57 @@ rage.phoenix:
         name: Pyreheart Fury
         kind: Buff
         element: Phoenix
-        description: Rising from Ashes starts the Rage over.
+        stacking: unique
+        description: Direct hits Ignite their enemy target and deal 5 more per Ignited enemy.
+        modifiers:
+          # Counted as the hit lands, before this hit's own Ignite.
+          - mod: damageDealt
+            amount: 0
+            when: { direct: true }
+            value: { mul: [5, { countOf: { filter: allEnemies, where: { has: { unit: it, effect: ignite } } } }] }
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: apply, to: eventTarget, effect: ignite }
 
 shot.phoenix:
   archetype: Shot
   element: Phoenix
   name: Ember Shot
-  description: Deals 15 damage to target enemy. If the user is at or below 30 HP, they gain Rebirth for 1 turn.
+  description: >-
+    Deals 10 damage to target enemy and lodges an ember in them for 1 turn: the next direct hit they
+    take from the user's side deals 10 more and Ignites them.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - op: if
-      cond: { hpAtMost: { unit: actor, value: 30 } }
-      then:
-        - { op: apply, to: actor, effect: rebirth, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: lodged_ember
+        name: Lodged Ember
+        kind: Debuff
+        element: Phoenix
+        description: The next direct hit from the applier's side deals 10 more and Ignites the bearer.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 10 }
+              - { op: apply, to: bearer, effect: ignite }
 
 snipe.phoenix:
   archetype: Snipe
   element: Phoenix
   name: Sunfall Lance
   description: >-
-    On the following turn, deals 50 damage to target enemy. It still fires if the user is in Ashes
-    when it lands, and then deals 25 more. The target of this skill is invisible. Channeled.
+    On the following turn, the sun falls on target enemy: 35 damage to them and 15 to each of their
+    allies. The target of this skill is invisible. Channeled.
   cost: Srr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -159,11 +252,13 @@ snipe.phoenix:
         element: Phoenix
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; 25 more from Ashes.
+        description: Falls on its target at the end of the following turn, burning them and their allies.
         onExpire:
-          - op: damage
-            to: effectTargets
-            amount: { if: { has: { unit: bearer, effect: ashes } }, then: 75, else: 50 }
+          - op: forEach
+            in: effectTargets
+            do:
+              - { op: damage, to: it, amount: 35 }
+              - { op: damage, to: { filter: allEnemies, exclude: it, where: { not: { isActor: it } } }, amount: 15 }
 
 trap.phoenix:
   archetype: Trap
@@ -203,22 +298,34 @@ trap.phoenix:
 maneuver.phoenix:
   archetype: Maneuver
   element: Phoenix
-  name: Anointed Ascent
+  name: Banked Embers
   description: >-
-    The user becomes Invulnerable for 1 turn and is Anointed until the end of their next turn. If they
-    were Condemned, it's purged, and they heal 15.
+    The user sinks into the embers: until the start of their next turn, they're Untargetable by allies
+    and enemies alike and can't lose HP. They come back out with the HP they had.
   cost: r
   cooldown: 3
-  tags: [Helpful, Strategic, Purifying]
+  tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - { op: apply, to: actor, effect: anointed, duration: { ownTurns: 1 } }
-    # Purifying: the user's Condemned is spent on this use without its Debuff (condemn_fired).
-    - op: if
-      cond: { check: { cond: condemn_fired, unit: actor } }
-      then:
-        - { op: heal, to: actor, amount: 15 }
+    # Like Ashes, but no rise: it never heals.
+    - op: apply
+      to: actor
+      effect:
+        id: banked_embers
+        name: Banked Embers
+        kind: Neutral
+        element: Phoenix
+        stacking: unique
+        description: Untargetable by everyone and can't lose HP until the start of the bearer's next turn.
+        modifiers:
+          - { mod: untargetable, by: enemies, bypassable: false }
+          - { mod: untargetable, by: allies, bypassable: false }
+          - { mod: damageTaken, amount: 0, mul: 0 }
+          - { mod: hpFloor, amount: 1 }
+        triggers:
+          - on: turnStart
+            do:
+              - { op: removeSelf }
 
 companion.phoenix:
   archetype: Companion
@@ -274,26 +381,21 @@ consume.phoenix:
   element: Phoenix
   name: Draw the Flame
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. If they're Ignited, the Ignite goes out
-    and the user's ally with the least HP heals 15 and gains 2 Renew; if not, they're Ignited.
+    Deals 10 damage to target enemy. If they still have more HP than the user, the user draws on their
+    brighter flame and heals half the difference (at most 25).
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: { lastDamage: true } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: set, var: gap, value: { sum: [{ hp: primary }, { mul: [-1, { hp: actor }] }] } }
     - op: if
-      cond: { has: { unit: primary, effect: ignite } }
+      cond: { compare: { value: { var: gap }, atLeast: 2 } }
       then:
-        - { op: removeEffect, from: primary, effect: ignite }
-        - op: forEach
-          in: weakestAlly
-          do:
-            - { op: heal, to: it, amount: 15 }
-            - { op: apply, to: it, effect: renew, stacks: 2 }
-      else:
-        - { op: apply, to: primary, effect: ignite }
+        - op: heal
+          to: actor
+          amount: { if: { compare: { value: { var: gap }, atLeast: 50 } }, then: 25, else: { div: [{ var: gap }, 2] } }
 
 summon.phoenix:
   archetype: Summon
@@ -314,13 +416,14 @@ channel.phoenix:
   element: Phoenix
   name: Eternal Pyre
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, the pyre Kindles everyone: 10 damage and
-    Ignite to each enemy, and 10 healing and 2 Renew to each ally. Channeled.
+    For up to 3 turns, at the end of each of the user's turns, the pyre burns all enemies, growing as
+    it burns: 5 damage, then 10, then 15. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
   target: allEnemies
   ops:
+    # Stacks = the next burn's size in fives.
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -330,51 +433,73 @@ channel.phoenix:
         kind: Neutral
         element: Phoenix
         interruptible: true
-        description: Each turn, burns every enemy and mends every ally.
+        description: Each turn, all enemies burn, 5 more than the turn before (5, 10, 15).
         triggers:
           - on: turnEnd
             do:
-              - { op: damage, to: allEnemies, amount: 10 }
-              - { op: apply, to: allEnemies, effect: ignite }
-              - { op: heal, to: allAllies, amount: 10 }
-              - { op: apply, to: allAllies, effect: renew, stacks: 2 }
+              - { op: damage, to: allEnemies, amount: { mul: [5, { effectStacks: true }] } }
+              - { op: addStacksSelf, amount: 1 }
 
 stab.phoenix:
   archetype: Stab
   element: Phoenix
-  name: Ember Needle
+  name: Cautery Needle
   description: >-
-    Kindle: 10 damage and Ignite to target enemy, or 20 if they're at or below 60 HP. On an ally, it's
-    10 healing and 2 Renew, or 20 at or below 60 HP.
+    On target enemy, 15 damage, and their wounds are seared shut: they can't be healed until the end of
+    their next turn. On target ally, the needle cauterizes: up to 2 of their Debuffs burn away, and they
+    lose 10 HP for each (never below 1).
   cost: r
   cooldown: 0
-  tags: [Radiant, NonStrategic]
-  target: any
-  ops:
-    - { op: set, var: burn, value: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 } }
-    - { op: macro, id: kindle }
-
-ravage.phoenix:
-  archetype: Ravage
-  element: Phoenix
-  name: Pyre Talon
-  description: >-
-    Kindle: 25 Piercing damage and Ignite to target enemy, 15 more if they're Stunned. On an ally, it's
-    25 healing and 2 Renew, and it ends their Stun.
-  cost: Ar
-  cooldown: 1
   tags: [Radiant, NonStrategic]
   target: any
   ops:
     - op: if
       cond: { isEnemy: primary }
       then:
-        - { op: damage, to: primary, type: Piercing, amount: { if: { stunned: primary }, then: 40, else: 25 } }
-        - { op: apply, to: primary, effect: ignite }
+        - { op: damage, to: primary, amount: 15 }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 1 }
+          effect:
+            id: seared_shut
+            name: Seared Shut
+            kind: Debuff
+            element: Phoenix
+            description: Can't be healed.
+            modifiers:
+              - { mod: healingReceived, mul: 0 }
       else:
-        - { op: heal, to: primary, amount: 25 }
-        - { op: apply, to: primary, effect: renew, stacks: 2 }
-        - { op: removeEffect, from: primary, effect: stun }
+        - op: repeat
+          times: 2
+          do:
+            - op: if
+              cond: { hasKind: { unit: primary, kind: Debuff } }
+              then:
+                - { op: removeRandom, from: primary, kind: Debuff }
+                - op: damage
+                  to: primary
+                  amount: { if: { hpAbove: { unit: primary, value: 10 } }, then: 10, else: { sum: [{ hp: primary }, -1] } }
+                  type: Affliction
+                  direct: false
+                  raw: true
+
+ravage.phoenix:
+  archetype: Ravage
+  element: Phoenix
+  name: Pyre Talon
+  description: >-
+    Deals 20 Piercing damage to target enemy, plus 5 for every 10 HP the user is missing (at most 30
+    more): the nearer the pyre, the hotter the talon.
+  cost: Ar
+  cooldown: 1
+  tags: [Harmful, NonStrategic]
+  target: enemy
+  ops:
+    - { op: set, var: heat, value: { mul: [5, { div: [{ missingHp: actor }, 10] }] } }
+    - op: damage
+      to: primary
+      type: Piercing
+      amount: { sum: [20, { if: { compare: { value: { var: heat }, atLeast: 30 } }, then: 30, else: { var: heat } }] }
 
 mislead.phoenix:
   archetype: Mislead
@@ -409,36 +534,44 @@ mislead.phoenix:
 stun.phoenix:
   archetype: Stun
   element: Phoenix
-  name: Blinding Plumage
+  name: Cinder Shroud
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 1 turn. If they're Condemned, the Stun lasts 3
-    turns, as their Condemnation can't trigger meanwhile.
+    Deals 15 damage to target enemy and Stuns them for 2 turns, wrapped in cinders: while they're
+    Stunned, they can't lose HP.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
-      effect: stun
-      duration: { enemyTurns: { if: { has: { unit: primary, effect: condemned } }, then: 3, else: 1 } }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: cinder_shroud
+        name: Cinder Shroud
+        kind: Debuff
+        element: Phoenix
+        description: While the bearer is Stunned, they can't lose HP.
+        modifiers:
+          - { mod: damageTaken, amount: 0, mul: 0, if: { stunned: bearer } }
+          - { mod: hpFloor, amount: 1, if: { stunned: bearer } }
 
 dance.phoenix:
   archetype: Dance
   element: Phoenix
   name: Dance of Embers
   description: >-
-    For 4 turns, the user gains 1 Might, 2 Swiftness and 1 Focus. Meanwhile, each Kindle skill they use
-    on an enemy also heals the user's ally with the least HP for half its damage.
+    For 4 turns, the user gains 2 Swiftness, and each skill they use meanwhile leaves an ember. When the
+    dance ends, the embers burst: each one deals 10 damage to every enemy and heals every ally 5.
   cost: AW
   cooldown: 5
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 4 } }
     - { op: apply, to: actor, effect: swiftness, stacks: 2, duration: { enemyTurns: 4 } }
-    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 4 } }
+    - { op: setCounter, name: dance_embers, value: 0 }
     - op: apply
       to: actor
       duration: { enemyTurns: 4 }
@@ -447,15 +580,17 @@ dance.phoenix:
         name: Dance of Embers
         kind: Buff
         element: Phoenix
-        description: The bearer's Kindle damage heals their weakest ally for half.
+        description: Each skill the bearer uses leaves an ember; when this ends, each ember burns every enemy for 10 and heals every ally 5.
         triggers:
-          - on: dealtDamage
-            when: { direct: true, byEnemy: true }
+          - on: skillUsed
             do:
-              - op: if
-                cond: { eventSkill: { tags: [Radiant] } }
-                then:
-                  - { op: heal, to: weakestAlly, amount: { div: [{ eventAmount: true }, 2] } }
+              - { op: setCounter, name: dance_embers, value: { sum: [{ counter: dance_embers }, 1] } }
+        onExpire:
+          - op: repeat
+            times: { counter: dance_embers }
+            do:
+              - { op: damage, to: allEnemies, amount: 10, direct: false }
+              - { op: heal, to: allAllies, amount: 5 }
 
 heal.phoenix:
   archetype: Heal
@@ -512,61 +647,69 @@ curse.phoenix:
   element: Phoenix
   name: Cinders of Doubt
   description: >-
-    Target enemy is Confused for 2 turns and Condemned. For 2 turns, each Weakness, Vulnerable or
-    Confusion they gain lasts 1 turn longer.
+    Target enemy is Ignited, and for 3 turns the fire breeds doubt: at the end of each of the user's
+    turns, if they're still Ignited, they randomly gain 1 Weakness or 1 Vulnerable for 1 turn, or 1
+    Confusion.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: condemned }
+    - { op: apply, to: primary, effect: ignite }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: cinders_of_doubt
         name: Cinders of Doubt
         kind: Debuff
         element: Phoenix
-        description: Each Weakness, Vulnerable or Confusion the bearer gains lasts 1 turn longer.
+        stacking: unique
+        description: At the end of each of the applier's turns, if the bearer is Ignited, they randomly gain 1 Weakness or 1 Vulnerable for 1 turn, or 1 Confusion.
         triggers:
-          - on: effectGained
-            when: { effects: [weakness, vulnerable, confusion] }
+          - on: turnEnd
             do:
-              - { op: eventEffect, extendBy: 2 }
+              - op: if
+                cond: { has: { unit: bearer, effect: ignite } }
+                then:
+                  - op: random
+                    options:
+                      - [{ op: apply, to: bearer, effect: weakness, duration: { enemyTurns: 1 } }]
+                      - [{ op: apply, to: bearer, effect: vulnerable, duration: { enemyTurns: 1 } }]
+                      - [{ op: apply, to: bearer, effect: confusion }]
 
 smite.phoenix:
   archetype: Smite
   element: Phoenix
   name: Sanctified Pyre
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 2 turns. Each time the Sanctify heals
-    someone, their Ignite burns once.
+    Deals 20 damage to target enemy and lays them on a pyre for 1 turn: it counts as Sanctify, but
+    rather than heal their attackers, each direct hit they take stokes it. When it ends, they burn for
+    15 Affliction damage per hit.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 2 } }
+    # Stacks - 1 = hits taken.
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: sanctified_pyre
         name: Sanctified Pyre
         kind: Debuff
         element: Phoenix
-        description: Each time the bearer's Sanctify heals someone, their Ignite burns once.
+        countsAs: [sanctify]
+        description: Counts as Sanctify. Each direct hit stokes it; when it ends, the bearer takes 15 Affliction damage per hit.
         triggers:
           - on: damaged
             when: { direct: true }
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sanctify } }
-                then:
-                  - { op: forEach, in: bearer, do: [{ op: macro, id: ignite_tick }] }
+              - { op: addStacksSelf, amount: 1 }
+        onExpire:
+          - { op: damage, to: bearer, amount: { mul: [15, { sum: [{ effectStacks: true }, -1] }] }, type: Affliction, direct: false }
 
 prayer.phoenix:
   archetype: Prayer
@@ -586,54 +729,63 @@ cleave.phoenix:
   element: Phoenix
   name: Fanned Flames
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. Each one's Ignite burns once at
-    once, and the user heals as much as those burns deal.
+    Deals 20 damage to target enemy and 15 to a random other enemy, and fans the flames between them
+    for 1 turn: each direct hit either of them takes also burns the other for 5.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
+    - { op: damage, to: primary, amount: 20 }
     - op: forEach
       in: { randomEnemy: 1, exclude: primary }
       do:
         - { op: damage, to: it, amount: 15 }
-        - op: if
-          cond: { has: { unit: it, effect: ignite } }
-          then:
-            - { op: macro, id: ignite_tick }
-            - { op: heal, to: actor, amount: 5 }
-    - op: if
-      cond: { has: { unit: primary, effect: ignite } }
-      then:
-        - { op: forEach, in: primary, do: [{ op: macro, id: ignite_tick }] }
-        - { op: heal, to: actor, amount: 5 }
+        # Each of the pair carries a link that remembers the other.
+        - op: apply
+          to: primary
+          remember: it
+          duration: { enemyTurns: 1 }
+          effect: &fanned_flames
+            id: fanned_flames
+            name: Fanned Flames
+            kind: Debuff
+            element: Phoenix
+            description: Each direct hit on the bearer burns the unit they're linked to for 5.
+            triggers:
+              - on: damaged
+                when: { direct: true }
+                do:
+                  - { op: damage, to: effectTargets, amount: 5, direct: false }
+        - { op: apply, to: it, remember: primary, duration: { enemyTurns: 1 }, effect: *fanned_flames }
 
 shout.phoenix:
   archetype: Shout
   element: Phoenix
   name: Phoenix Cry
   description: >-
-    All enemies are Intimidated for 2 turns. Each ally of the user who is in Ashes or has risen this
-    battle gains 1 Might and 1 Swiftness for 2 turns.
+    For 2 turns, each enemy who deals direct damage to an ally of the user is Ignited, and the ally
+    they hurt gains 1 Renew.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - op: forEach
-      in:
-        filter: allUnits
-        where:
-          and:
-            - { not: { isEnemy: it } }
-            - or:
-                - { has: { unit: it, effect: ashes } }
-                - { compare: { value: { counterOf: { unit: it, name: risen } }, atLeast: 1 } }
-      do:
-        - { op: apply, to: it, effect: might, duration: { enemyTurns: 2 } }
-        - { op: apply, to: it, effect: swiftness, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: phoenix_cry
+        name: Phoenix Cry
+        kind: Debuff
+        element: Phoenix
+        description: Each direct hit the bearer lands on the applier's side Ignites them and gives the one hit 1 Renew.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: apply, to: bearer, effect: ignite }
+              - { op: apply, to: eventTarget, effect: renew }
 
 withstand.phoenix:
   archetype: Withstand
@@ -677,23 +829,23 @@ taunt.phoenix:
   element: Phoenix
   name: Blazing Challenge
   description: >-
-    Target enemy is Taunted by the user for 2 turns. Each time they hit the user meanwhile, the user's
-    next skill costs 1 less.
+    Target enemy is Taunted by the user for 1 turn. Each time they hit the user meanwhile, every other
+    ally of the user heals 10.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 1 } }
     - op: apply
       to: actor
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: blazing_challenge
         name: Blazing Challenge
         kind: Buff
         element: Phoenix
-        description: Each hit from the Taunted enemy makes the bearer's next skill cost 1 less.
+        description: Each hit from the Taunted enemy heals every other ally of the bearer 10.
         triggers:
           - on: damaged
             when: { direct: true, byEnemy: true }
@@ -701,23 +853,21 @@ taunt.phoenix:
               - op: if
                 cond: { has: { unit: eventSource, effect: taunt, mine: true } }
                 then:
-                  - { op: apply, to: bearer, effect: focus, until: { skillUsed: {} } }
+                  - { op: heal, to: { filter: allAllies, where: { not: { isActor: it } } }, amount: 10 }
 
 titan.phoenix:
   archetype: Titan
   element: Phoenix
   name: Undying Phoenix
   description: >-
-    For 3 turns, the user gains 2 Armor, Immune and Rebirth. If they rise from Ashes meanwhile, they
-    rise with 40 HP instead of 25, and the Titan starts over.
+    For 3 turns, the user gains Immune, and their wounds rekindle: each direct hit they take gives them
+    1 Renew for every 10 damage, up to 3 Renew at a time.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: rebirth, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -726,7 +876,22 @@ titan.phoenix:
         name: Undying Phoenix
         kind: Buff
         element: Phoenix
-        description: Rises from Ashes with 40 HP, and the Titan starts over.
+        description: Each direct hit on the bearer gives them 1 Renew per 10 damage, up to 3 Renew at a time.
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              # Topped up to at most 3 stacks in all, so big hits can't snowball.
+              - op: set
+                var: room
+                value: { sum: [3, { mul: [-1, { totalStacks: { in: bearer, effect: renew } }] }] }
+              - op: set
+                var: gain
+                value: { if: { compare: { value: { sum: [{ div: [{ eventAmount: true }, 10] }, { mul: [-1, { var: room }] }] }, atLeast: 0 } }, then: { var: room }, else: { div: [{ eventAmount: true }, 10] } }
+              - op: if
+                cond: { compare: { value: { var: gain }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: bearer, effect: renew, stacks: { var: gain } }
 
 # Minion skills.
 

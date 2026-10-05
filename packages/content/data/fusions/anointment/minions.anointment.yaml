@@ -22,3 +22,12 @@ baptismal_font:
         modifiers:
           - { mod: immuneTo, kind: Debuff }
   skills: [baptismal_font_pour]
+
+# Call of the Font's stand-in: the Taunted enemy must hit it. When it fades or is destroyed, every
+# allied character gains 1 Unction (applied by the summoner).
+holy_spring:
+  name: Holy Spring
+  hp: 20
+  onDeath:
+    - { op: apply, to: { filter: allAllies, where: { kind: { unit: it, is: character } } }, effect: unction, from: summoner }
+  skills: []

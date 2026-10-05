@@ -32,16 +32,16 @@ const cost = (s: string) => {
 
 describe('Lich keywords', () => {
   it('Soulfrost: direct damage to the bearer gives its applier a Soul Fragment, once per turn', () => {
-    const a = arena({ p0: [['charge.lich'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'charge.lich', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    const a = arena({ p0: [['strike.lich'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'strike.lich', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
     expect([a.has(B1, 'soulfrost'), sf(a, A1), sf(a, A2)]).toEqual([true, 1, 0]);
     a.pass(1).use(A2, 'shot', B1).end();
     expect(sf(a, A1)).toBe(2);
   });
 
   it('Soulfrost: the applying hit itself yields nothing, and it lasts 2 turns', () => {
-    const a = arena({ p0: [['charge.lich'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'charge.lich', B1).end();
+    const a = arena({ p0: [['strike.lich'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'strike.lich', B1).end();
     expect(sf(a, A1)).toBe(0);
     a.pass(2);
     expect(a.has(B1, 'soulfrost')).toBe(true);
@@ -50,9 +50,9 @@ describe('Lich keywords', () => {
   });
 
   it('Soulfrost: indirect damage gives no Soul Fragment', () => {
-    const a = arena({ p0: [['charge.lich'], ['channel']], p1: [['shot']] });
-    a.use(A1, 'charge.lich', B1).end().pass(1).use(A2, 'channel').end();
-    expect([a.hp(B1), sf(a, A1)]).toEqual([75, 0]);
+    const a = arena({ p0: [['strike.lich'], ['channel']], p1: [['shot']] });
+    a.use(A1, 'strike.lich', B1).end().pass(1).use(A2, 'channel').end();
+    expect([a.hp(B1), sf(a, A1)]).toEqual([70, 0]);
   });
 
   it('Phylactery: a 30 HP minion with 2 Armor; while it stands, its creator’s HP can’t drop below 1', () => {
@@ -101,14 +101,25 @@ describe('Lich skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3), sf(a, A1)]).toEqual([50, 90, 90, 1]);
   });
 
-  it('Chill Stride: 15 and Soulfrost; 1 Focus for the next skill only', () => {
-    const a = arena({ p0: [['charge.lich', 'shot.lich', 'stab.lich']], p1: [['shot']] });
+  it('Chill Stride: 15 damage, and the user Soulfrosts themselves for 2 turns (not the target)', () => {
+    const a = arena({ p0: [['charge.lich']], p1: [['shot']] });
     a.use(A1, 'charge.lich', B1).end();
-    expect([a.hp(B1), a.has(B1, 'soulfrost'), a.stacks(A1, 'focus')]).toEqual([85, true, 1]);
-    a.pass(1).use(A1, 'stab.lich', B1);
-    expect(a.state.players[0].queue[0]?.cost).toEqual(cost('nc'));
-    a.end().pass(1);
-    expect(a.has(A1, 'focus')).toBe(false);
+    expect([a.hp(B1), a.has(B1, 'soulfrost')]).toEqual([85, false]);
+    expect(a.effects(A1).some((e) => e.defId === 'soulfrost' && e.source === A1)).toBe(true);
+    a.pass(2);
+    expect(a.has(A1, 'soulfrost')).toBe(true);
+    a.pass(1);
+    expect(a.has(A1, 'soulfrost')).toBe(false);
+  });
+
+  it('Chill Stride: meanwhile, enemy hits on the user give the user a Soul Fragment, once per turn', () => {
+    const a = arena({ p0: [['charge.lich']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.lich', B1).end().use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(sf(a, A1)).toBe(1);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(sf(a, A1)).toBe(2);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(sf(a, A1)).toBe(2); // it's over
   });
 
   it('Hidden Vessel: Invisible; counters every Harmful skill on the user and Soulfrosts its user', () => {

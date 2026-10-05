@@ -16,15 +16,23 @@ dragonfire:
         - op: if
           cond: { has: { unit: bearer, effect: ignite } }
           then:
-            - { op: damage, to: bearer, amount: 10, type: Affliction }
-            - { op: macro, id: burn_aftermath }
+            # Furnace Hide banks it: it doesn't burn while Banked Fire lasts.
+            - op: if
+              cond: { not: { has: { unit: bearer, effect: banked_fire } } }
+              then:
+                - { op: damage, to: bearer, amount: 10, type: Affliction }
+                - { op: macro, id: burn_aftermath }
           # Its Ignite was removed: Dragonfire goes out with it.
           else:
             - { op: removeSelf }
     - on: turnStart
       do:
         - op: if
-          cond: { and: [{ has: { unit: actor, effect: burning_wake } }, { has: { unit: bearer, effect: ignite } }] }
+          cond:
+            and:
+              - { has: { unit: actor, effect: burning_wake } }
+              - { has: { unit: bearer, effect: ignite } }
+              - { not: { has: { unit: bearer, effect: banked_fire } } }
           then:
             - { op: damage, to: bearer, amount: 10, type: Affliction }
             - { op: macro, id: burn_aftermath }
@@ -79,3 +87,26 @@ elder_wyrm:
   element: Dragon
   stacking: unique
   description: Every Hoard gives 1 Armor instead of every 2.
+
+# Furnace Hide (Withstand): the Dragonfire it lit is banked. While this lasts that Dragonfire doesn't
+# burn; at the end of the applier's turns (after the Dragonfire's own tick), the applier gains 15
+# Shield if the bearer still has Dragonfire. When it runs out, the fire goes out.
+banked_fire:
+  name: Banked Fire
+  kind: Neutral
+  element: Dragon
+  stacking: unique
+  description: >-
+    The bearer's Dragonfire doesn't burn. At the end of the applier's turn, if the bearer still has
+    Dragonfire, the applier gains 15 Shield for 1 turn. When this ends, the bearer loses their
+    Dragonfire and Ignite.
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: dragonfire } }
+          then:
+            - { op: apply, to: actor, effect: shield, value: 15, duration: { enemyTurns: 1 } }
+  onExpire:
+    - { op: removeEffect, from: bearer, effect: dragonfire }
+    - { op: removeEffect, from: bearer, effect: ignite }

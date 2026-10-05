@@ -238,17 +238,33 @@ bolt.spore:
   element: Spore
   name: Binding Hypha
   description: >-
-    Deals 20 damage to target enemy and Marks them for 1 turn. The hypha binds them to a random ally of theirs:
-    both gain 1 Spore.
+    Deals 20 damage to target enemy, and a hypha binds them to a random ally of theirs for 2 turns:
+    whenever either of them takes direct damage, the other gains 1 Spore.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - { op: apply, to: primary, effect: spores }
-    - { op: apply, to: { randomEnemy: 1, exclude: primary }, effect: spores }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - op: apply
+          to: primary
+          remember: it
+          duration: { enemyTurns: 2 }
+          effect: &hypha
+            id: binding_hypha
+            name: Binding Hypha
+            kind: Debuff
+            element: Spore
+            description: Whenever the bearer takes direct damage, the one they're bound to gains 1 Spore.
+            triggers:
+              - on: damaged
+                when: { direct: true }
+                do:
+                  - { op: apply, to: effectTargets, effect: spores }
+        - { op: apply, to: it, remember: primary, duration: { enemyTurns: 2 }, effect: *hypha }
 
 blast.spore:
   archetype: Blast
@@ -548,16 +564,15 @@ curse.spore:
   element: Spore
   name: Infest
   description: >-
-    Target enemy gains 2 Spores and is Confused for 2 turns; each ally they pass a Spore to is Confused for 2
-    turns too.
+    Target enemy gains 2 Spores. For 2 turns, every enemy carrying Spores pays 1 more for their
+    skills.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: infest, duration: { enemyTurns: 2 } }
     - { op: apply, to: primary, effect: spores, stacks: 2 }
-    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: apply, to: allEnemies, effect: infest, duration: { enemyTurns: 2 } }
 
 smite.spore:
   archetype: Smite
@@ -625,41 +640,36 @@ shout.spore:
   archetype: Shout
   element: Spore
   name: Carrion Bloom
-  description: All enemies are Intimidated for 2 turns and gain 1 Spore each.
+  description: >-
+    The user creates a Mushroom. Then every enemy gains 1 Spore for each Seedling on the user's side,
+    Mushrooms included (up to 2).
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - { op: apply, to: targets, effect: spores }
+    - { op: summon, minion: mushroom }
+    - op: set
+      var: colony
+      value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }
+    - op: apply
+      to: targets
+      effect: spores
+      stacks: { if: { compare: { value: { var: colony }, atLeast: 2 } }, then: 2, else: { var: colony } }
 
 withstand.spore:
   archetype: Withstand
   element: Spore
   name: Humus Wall
   description: >-
-    The user gains 25 Shield for 1 turn. Each enemy hit it absorbs triggers Channel Growth for the user's
-    Seedlings.
+    The user gains 20 Shield. At the end of each of their later turns, it rots: it loses 10, and a
+    random enemy gains 1 Spore, until it's gone.
   cost: W
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: humus_wall
-        name: Humus Wall
-        kind: Buff
-        element: Spore
-        description: Each enemy hit the bearer's Shield absorbs triggers Channel Growth.
-        triggers:
-          - on: shieldDamaged
-            do:
-              - { op: macro, id: channel_growth }
+    - { op: apply, to: actor, effect: humus_wall, value: 20 }
 
 taunt.spore:
   archetype: Taunt
@@ -696,14 +706,13 @@ titan.spore:
   element: Spore
   name: Fungal Colossus
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune, and absorbs each Mushroom that sprouts for them: instead of
-    the minion, they gain 1 Armor and heal 15.
+    For 3 turns, the user is Immune, a Mushroom sprouts for them at the end of each of their turns, and
+    they have 1 Armor for each Mushroom on their side.
   cost: WW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: fungal_colossus, duration: { enemyTurns: 3 } }
 

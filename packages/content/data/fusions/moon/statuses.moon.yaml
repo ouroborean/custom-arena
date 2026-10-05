@@ -10,9 +10,8 @@ lunar_cycle:
     Starts at New Moon and advances at the end of each of this character's turns: New, Waxing, Full, Waning. Moon
     skills add the current phase's rider.
   modifiers:
-    # Moonstone Fist is Stealthy at New Moon; Feral Maw keeps Stealth at Full Moon.
+    # Moonstone Fist is Stealthy at New Moon.
     - { mod: skillTags, add: [Stealthy], archetypes: [Strike], elements: [Moon], if: { check: { cond: moon_new, unit: bearer } } }
-    - { mod: skillTags, add: [Stealthy], archetypes: [Ravage], elements: [Moon], if: { check: { cond: moon_full, unit: bearer } } }
   triggers:
     - on: turnEnd
       do:
@@ -56,10 +55,42 @@ wolf_howl:
         - { op: heal, to: bearer, amount: 20 }
         - { op: apply, to: { randomEnemy: 1 }, effect: taunt, from: bearer, duration: { enemyTurns: 1 } }
 
-# Face of the Moon: the bearer's Lunar Cycle holds.
+# Prowl and Turn Beast: the bearer's Lunar Cycle holds while they have it.
 face_of_the_moon:
-  name: Face of the Moon
+  name: Held Moon
   kind: Buff
   element: Moon
   stacking: unique
   description: The bearer's Lunar Cycle holds at its current phase.
+
+# Lunacy: the two sleepers share one dream; damage that wakes either wakes both.
+shared_dream:
+  name: Shared Dream
+  kind: Debuff
+  element: Moon
+  stacking: unique
+  description: Damage that wakes the bearer wakes everyone sharing the dream with them.
+  triggers:
+    - on: damaged
+      when: { wakes: true }
+      do:
+        - op: if
+          cond: { has: { unit: bearer, effect: sleep } }
+          then:
+            - { op: removeEffect, from: { filter: bearerAllies, where: { has: { unit: it, effect: shared_dream } } }, effect: sleep }
+            - { op: removeEffect, from: bearerAllies, effect: shared_dream }
+            - { op: removeSelf }
+
+# Face of the Moon: on an enemy who hit the glaring user.
+moonglare:
+  name: Moonglare
+  kind: Debuff
+  element: Moon
+  stacking: unique
+  description: While Blinded, the bearer deals 10 less direct damage to a unit under the Face of the Moon.
+  modifiers:
+    - mod: damageDealt
+      amount: -10
+      when: { direct: true }
+      if: { has: { unit: bearer, effect: blinded } }
+      target: { has: { unit: it, effect: face_of_the_moon_glare } }

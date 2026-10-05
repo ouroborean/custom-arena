@@ -106,31 +106,31 @@ riposte.reanimation:
 rage.reanimation:
   archetype: Rage
   element: Reanimation
-  name: Soul Dynamo
+  name: Galvanic Overdrive
   description: >-
-    For 3 turns, the user has Stormborn, and Charge they gain while at 3 also becomes Soul Fragments.
+    For 3 turns, the user is Galvanized and runs on stolen current: at the start of each of their turns,
+    they lose 10 HP to gain 2 Might for 1 turn and 1 Charge.
   cost: Sr
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: galvanized, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
-        id: soul_dynamo
-        name: Soul Dynamo
+        id: galvanic_overdrive
+        name: Galvanic Overdrive
         kind: Buff
         element: Reanimation
-        description: Charge gained at 3 also becomes a Soul Fragment.
+        description: At the start of each of the bearer's turns, they lose 10 HP and gain 2 Might for 1 turn and 1 Charge.
         triggers:
-          - on: effectGained
-            effect: charged
+          - on: turnStart
             do:
-              - op: if
-                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
-                then: [{ op: apply, to: bearer, effect: soul_fragment }]
+              - { op: damage, to: bearer, amount: 10, raw: true, type: Affliction, direct: false }
+              - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: charged }
 
 shot.reanimation:
   archetype: Shot
@@ -533,41 +533,30 @@ bless.reanimation:
 curse.reanimation:
   archetype: Curse
   element: Reanimation
-  name: Death Rattle
+  name: Short Circuit
   description: >-
-    Target enemy is Horrified for 2 turns. If they die before it ends, every ally of the user gains 1 Soul
-    Fragment.
+    For 2 turns, each Buff target enemy would gain shorts out: it's lost, and they gain 1 Sapped
+    instead.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
       effect:
-        id: death_rattle
-        name: Death Rattle
+        id: short_circuit
+        name: Short Circuit
         kind: Debuff
         element: Reanimation
-        description: If the bearer dies, every ally of the applier gains a Soul Fragment.
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 2 }
-      effect:
-        id: death_rattle_listen
-        name: Death Rattle
-        kind: Neutral
-        element: Reanimation
-        description: When the rattled enemy dies, every ally gains a Soul Fragment.
+        description: Each Buff the bearer would gain is lost, and they gain 1 Sapped instead.
         triggers:
-          - on: signal
-            signal: died
+          - on: effectGained
+            when: { kind: Buff }
             do:
-              - op: if
-                cond: { eventTargetHad: { effects: [death_rattle] } }
-                then: [{ op: apply, to: allAllies, effect: soul_fragment }]
+              - { op: eventEffect, remove: true }
+              - { op: apply, to: bearer, effect: sapped }
 
 smite.reanimation:
   archetype: Smite

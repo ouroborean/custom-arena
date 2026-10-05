@@ -32,7 +32,7 @@ describe('Anointment: cost and cooldown match the kit table', () => {
     ['trap.anointment', 'A', 3],
     ['maneuver.anointment', 'I', 3],
     ['companion.anointment', 'I', 1],
-    ['bolt.anointment', 'I', 1],
+    ['bolt.anointment', 'Ir', 1],
     ['blast.anointment', 'IA', 2],
     ['consume.anointment', 'r', 2],
     ['summon.anointment', 'I', 1],
@@ -312,65 +312,53 @@ describe('Anointment skills', () => {
     });
   });
 
-  describe('Chrismation', () => {
-    it('the user gains Chrism for 3 turns', () => {
+  describe('Fervent Unction', () => {
+    it('the user gains 2 Unction and 1 Might', () => {
       const a = arena({ p0: [['rage.anointment']], p1: [['shot']] });
-      a.use(A1, 'rage.anointment').end();
-      expect(a.has(A1, 'chrism')).toBe(true);
-      a.pass(4); // through the opponent's 3rd turn... minus the last one
-      expect(a.has(A1, 'chrism')).toBe(true);
-      a.pass(1); // end of the opponent's 3rd turn
-      expect(a.has(A1, 'chrism')).toBe(false);
+      a.setHp(A1, 50).use(A1, 'rage.anointment').end();
+      // One stack is the user's own, used at the end of the turn: a Debuff washed and 10 healed.
+      expect([a.stacks(A1, 'unction'), a.hp(A1), a.stacks(A1, 'might')]).toEqual([1, 60, 1]);
     });
 
-    it('1 Might per ally Anointed with it, and the Might ends with it', () => {
-      const a = arena({ p0: [['rage.anointment', 'heal', 'bless'], ['shot'], ['shot']], p1: [['shot']] });
-      a.use(A1, 'rage.anointment').end().pass(1);
-      expect(a.stacks(A1, 'might')).toBe(0);
-      a.use(A1, 'heal', A2).end().pass(1);
-      expect(a.stacks(A1, 'might')).toBe(1);
-      a.use(A1, 'bless', A3).end();
-      expect(a.stacks(A1, 'might')).toBe(2);
-      a.end(); // Chrismation's 3 turns are over
-      expect([a.has(A1, 'chrism'), a.stacks(A1, 'might')]).toEqual([false, 0]);
+    it('1 more Might at the start of each of their turns while they still have Unction', () => {
+      const a = arena({ p0: [['rage.anointment']], p1: [['shot']] });
+      a.use(A1, 'rage.anointment').end().end();
+      expect(a.stacks(A1, 'might')).toBe(2); // 1 Unction left at the start of their turn
+      a.end().end();
+      expect([a.stacks(A1, 'unction'), a.stacks(A1, 'might')]).toEqual([0, 2]); // none left: no more
     });
 
-    it('caps at 3 Might (4 allies Anointed at once by a Prayer)', () => {
-      const a = arena({
-        p0: [['rage.anointment', 'prayer.anointment'], ['companion.anointment'], ['summon.anointment']],
-        p1: [['shot']],
-      });
-      a.use(A1, 'rage.anointment').use(A2, 'companion.anointment').use(A3, 'summon.anointment').end().pass(1);
-      a.use(A1, 'prayer.anointment').end(); // A2, A3, the Koi and the Font
-      const helped = [A2, A3, minions(a, 'sacred_koi')[0]!.id, minions(a, 'baptismal_font')[0]!.id];
-      expect(helped.every((id) => a.has(id, 'anointed'))).toBe(true);
+    it('more Unction from elsewhere keeps it growing; all its Might ends after 3 turns', () => {
+      const a = arena({ p0: [['rage.anointment']], p1: [['shot']] });
+      a.use(A1, 'rage.anointment').give(A1, 'unction', { stacks: 3, source: A1 }).end().pass(3);
       expect(a.stacks(A1, 'might')).toBe(3);
-    });
-
-    it('helping only oneself gives no Might', () => {
-      const a = arena({ p0: [['rage.anointment', 'withstand'], ['shot']], p1: [['shot']] });
-      a.use(A1, 'rage.anointment').end().pass(1);
-      a.use(A1, 'withstand').end();
+      a.pass(2); // the end of the opponent's 3rd turn
       expect(a.stacks(A1, 'might')).toBe(0);
     });
   });
 
   describe('Holy Sprinkle', () => {
-    it('without Unction: 15 damage and the user gains 1 Unction', () => {
-      const a = arena({ p0: [['shot.anointment']], p1: [['shot']] });
-      a.setHp(A1, 50).use(A1, 'shot.anointment', B1).end();
-      expect(a.hp(B1)).toBe(85);
-      expect(a.has(B1, 'condemned')).toBe(false);
-      // The gained stack is the user's own, so it may already have been used at the end of the turn.
-      expect(a.stacks(A1, 'unction') + (a.hp(A1) - 50) / 10).toBe(1);
+    it('10 damage, and one of the target\'s Buffs washes onto the ally with the lowest HP', () => {
+      const a = arena({ p0: [['shot.anointment'], ['shot'], ['shot']], p1: [['shot']] });
+      a.give(B1, 'might', { stacks: 2 }).setHp(A2, 70).setHp(A3, 40).use(A1, 'shot.anointment', B1).end();
+      expect(a.hp(B1)).toBe(90);
+      expect([a.stacks(B1, 'might'), a.stacks(A1, 'might'), a.stacks(A2, 'might'), a.stacks(A3, 'might')]).toEqual([0, 0, 0, 2]);
+      expect(unctionOn(a, [A1, A2, A3]) + (a.hp(A3) - 40) / 10).toBe(0); // a Buff moved, so no Unction
     });
 
-    it('with Unction: flings 1 stack for 10 more damage and Condemns the target', () => {
-      const a = arena({ p0: [['shot.anointment']], p1: [['shot']] });
-      a.give(A1, 'unction', { stacks: 3, source: A1 }).use(A1, 'shot.anointment', B1).end();
-      expect(a.hp(B1)).toBe(75);
-      expect(a.has(B1, 'condemned')).toBe(true);
-      expect(a.stacks(A1, 'unction')).toBe(1); // 1 flung, 1 used at the end of the turn
+    it('only one Buff moves', () => {
+      const a = arena({ p0: [['shot.anointment'], ['shot']], p1: [['shot']] });
+      a.give(B1, 'might').give(B1, 'armor').setHp(A2, 40).use(A1, 'shot.anointment', B1).end();
+      expect(a.stacks(B1, 'might') + a.stacks(B1, 'armor')).toBe(1);
+      expect(a.stacks(A2, 'might') + a.stacks(A2, 'armor')).toBe(1);
+    });
+
+    it('if they have no Buff, that ally gains 1 Unction instead; the user counts when they have the lowest HP', () => {
+      const a = arena({ p0: [['shot.anointment'], ['shot']], p1: [['shot']] });
+      a.setHp(A1, 30).use(A1, 'shot.anointment', B1).end();
+      // The user's Unction is used at the end of their turn: 10 healed.
+      expect(a.stacks(A1, 'unction') + (a.hp(A1) - 30) / 10).toBe(1);
+      expect(a.stacks(A2, 'unction')).toBe(0);
     });
   });
 
@@ -496,23 +484,21 @@ describe('Anointment skills', () => {
   });
 
   describe('Vial of Holy Water', () => {
-    it('20 damage and the target is Sanctified for 1 turn', () => {
-      const a = arena({ p0: [['bolt.anointment']], p1: [['shot']] });
+    it('20 damage, and every ally with a Debuff gains 1 Unction; allies without one don’t', () => {
+      const a = arena({ p0: [['bolt.anointment'], ['shot'], ['shot']], p1: [['shot']] });
+      a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).give(A1, 'confusion').give(A3, 'weakness');
       a.use(A1, 'bolt.anointment', B1).end();
-      expect([a.hp(B1), a.has(B1, 'sanctify')]).toEqual([80, true]);
-      a.end();
-      expect(a.has(B1, 'sanctify')).toBe(false);
+      expect(a.hp(B1)).toBe(80);
+      // Each Unction is the user's, so it's used at the end of the turn: the Debuff washed and 10 healed.
+      expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([60, 50, 60]);
+      expect([debuffs(a, A1), debuffs(a, A3)]).toEqual([0, 0]);
     });
 
-    it('if already Sanctified it bursts instead: every ally heals 15 and gains 1 Unction', () => {
+    it('if no ally has a Debuff, the ally with the lowest HP gains it', () => {
       const a = arena({ p0: [['bolt.anointment'], ['shot'], ['shot']], p1: [['shot']] });
-      a.setHp(A2, 50).setHp(A3, 50).setHp(B1, 50).give(B1, 'sanctify', { source: A1 });
-      a.use(A1, 'bolt.anointment', B1).end();
-      expect(a.hp(B1)).toBe(30);
-      expect(a.has(B1, 'sanctify')).toBe(false);
-      // +15 from the burst, and the Unction (theirs from the user) is used at the end of the turn for +10
-      for (const id of [A2, A3]) expect(a.stacks(id, 'unction') + (a.hp(id) - 65) / 10).toBe(1);
-      expect(a.hp(B1)).toBe(30); // the enemy doesn't heal
+      a.setHp(A2, 70).setHp(A3, 40).use(A1, 'bolt.anointment', B1).end();
+      expect(a.stacks(A3, 'unction') + (a.hp(A3) - 40) / 10).toBe(1);
+      expect([a.hp(A2), a.stacks(A2, 'unction')]).toEqual([70, 0]);
     });
   });
 
@@ -626,29 +612,23 @@ describe('Anointment skills', () => {
   });
 
   describe('Brine Needle', () => {
-    it('10 damage, or 20 at or below 60 HP', () => {
-      const a = arena({ p0: [['stab.anointment'], ['stab.anointment']], p1: [['shot'], ['shot']] });
-      a.setHp(B2, 60).use(A1, 'stab.anointment', B1).use(A2, 'stab.anointment', B2).end();
-      expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+    it('with no Debuffs on the user: 20 damage', () => {
+      const a = arena({ p0: [['stab.anointment']], p1: [['shot']] });
+      a.use(A1, 'stab.anointment', B1).end();
+      expect(a.hp(B1)).toBe(80);
     });
 
-    it('each Weakness on the target lasts 1 turn longer; other Debuffs don’t', () => {
-      const run = (stab: boolean) => {
-        const a = arena({ p0: [['stab.anointment', 'shot']], p1: [['shot']] });
-        a.give(B1, 'weakness', { duration: 3 }).give(B1, 'weakness', { duration: 5 }).give(B1, 'vulnerable', { duration: 3 });
-        a.use(A1, stab ? 'stab.anointment' : 'shot', B1).end();
-        return a.effects(B1).map((e) => [e.defId, e.duration]);
-      };
-      expect(run(true)).toEqual([
-        ['weakness', 4],
-        ['weakness', 6],
-        ['vulnerable', 2],
-      ]);
-      expect(run(false)).toEqual([
-        ['weakness', 2],
-        ['weakness', 4],
-        ['vulnerable', 2],
-      ]);
+    it('the user washes off one Debuff first; if none is left, 20', () => {
+      const a = arena({ p0: [['stab.anointment']], p1: [['shot']] });
+      a.give(A1, 'confusion').use(A1, 'stab.anointment', B1).end();
+      expect([debuffs(a, A1), a.hp(B1)]).toEqual([0, 80]);
+    });
+
+    it('with Debuffs left after the wash: only 10', () => {
+      const a = arena({ p0: [['stab.anointment']], p1: [['shot']] });
+      a.give(A1, 'weakness', { duration: 6 }).give(A1, 'vulnerable', { duration: 6 }).use(A1, 'stab.anointment', B1).end();
+      expect(debuffs(a, A1)).toBe(1);
+      expect([90, 95]).toContain(a.hp(B1)); // 10, less 5 if it was the Weakness that stayed
     });
   });
 
@@ -685,34 +665,32 @@ describe('Anointment skills', () => {
   });
 
   describe('Turned to Grace', () => {
-    it('is Invisible and counters the target’s Harmful skill', () => {
+    it('is Invisible and counters the target’s Harmful skill; they’re Condemned', () => {
       const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['shot']] });
-      a.setHp(A2, 50).use(A1, 'mislead.anointment', B1).end();
+      a.use(A1, 'mislead.anointment', B1).end();
       expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false);
       a.use(B1, 'shot', A2).end();
-      expect(a.hp(A2)).toBeGreaterThanOrEqual(50);
+      expect(a.hp(A2)).toBe(100);
       expect(a.log().some((l) => l.includes('countered by'))).toBe(true);
+      expect(a.has(B1, 'condemned')).toBe(true);
     });
 
-    it('the countered skill’s target heals 20 instead', () => {
-      const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['shot']] });
-      a.setHp(A2, 50).use(A1, 'mislead.anointment', B1).end();
+    it('every Debuff on the user’s side washes onto them', () => {
+      const a = arena({ p0: [['mislead.anointment'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+      a.use(A1, 'mislead.anointment', B1).end();
+      a.give(A1, 'weakness', { duration: 6 }).give(A2, 'vulnerable', { duration: 6 }).give(A3, 'confusion');
       a.use(B1, 'shot', A2).end();
-      expect(a.hp(A2)).toBe(70);
+      expect([debuffs(a, A1), debuffs(a, A2), debuffs(a, A3)]).toEqual([0, 0, 0]);
+      expect([a.has(B1, 'weakness'), a.has(B1, 'vulnerable'), a.has(B1, 'confusion')]).toEqual([true, true, true]);
+      expect(debuffs(a, B2)).toBe(0); // only the one who was countered
     });
 
-    it('an AoE countered heals every target 20', () => {
-      const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['blast']] });
-      a.setHp(A1, 50).setHp(A2, 50).use(A1, 'mislead.anointment', B1).end();
-      a.use(B1, 'blast').end();
-      expect([a.hp(A1), a.hp(A2)]).toEqual([70, 70]);
-    });
-
-    it('Helpful skills go through, and it lasts only 1 turn', () => {
+    it('Helpful skills go through and wash nothing, and it lasts only 1 turn', () => {
       const a = arena({ p0: [['mislead.anointment'], ['shot']], p1: [['heal', 'shot']] });
       a.use(A1, 'mislead.anointment', B1).end();
+      a.give(A2, 'weakness', { duration: 6 });
       a.setHp(B1, 50).use(B1, 'heal', B1).end();
-      expect(a.hp(B1)).toBe(75);
+      expect([a.hp(B1), a.has(B1, 'condemned'), debuffs(a, A2)]).toEqual([75, false, 1]);
       a.pass(1).use(B1, 'shot', A2).end();
       expect(a.hp(A2)).toBe(85);
     });
@@ -823,28 +801,22 @@ describe('Anointment skills', () => {
     });
   });
 
-  describe('Offertory', () => {
-    const pool = (a: Arena) => { const e = a.state.players[0].energy; return e.S + e.A + e.I + e.W; };
-
-    it('Confuses the target for 2 turns', () => {
-      const a = arena({ p0: [['curse.anointment']], p1: [['shot']] });
+  describe('Font of Penance', () => {
+    it('washes away the target’s Buffs (only theirs)', () => {
+      const a = arena({ p0: [['curse.anointment']], p1: [['shot'], ['shot']] });
+      a.give(B1, 'might', { stacks: 2 }).give(B1, 'armor').give(B2, 'might');
       a.use(A1, 'curse.anointment', B1).end();
-      expect(a.stacks(B1, 'confusion')).toBe(1);
-      a.pass(4);
-      expect(a.stacks(B1, 'confusion')).toBe(0);
+      expect([a.has(B1, 'might'), a.has(B1, 'armor'), a.has(B2, 'might')]).toEqual([false, false, true]);
     });
 
-    it('each skill they use while Confused gives the user’s player 2 energy per Confusion', () => {
-      const run = (extraConfusion: number, act: boolean) => {
-        const a = arena({ p0: [['curse.anointment']], p1: [['shot']] });
-        a.use(A1, 'curse.anointment', B1).end();
-        if (extraConfusion) a.give(B1, 'confusion', { stacks: extraConfusion });
-        if (act) a.use(B1, 'shot', A1);
-        const before = pool(a);
-        a.cmd(a.active, { t: 'endTurn' }); // no top-up, so p0's pool is exact
-        return pool(a) - before - 1; // minus p0's 1 start-of-turn energy (one living character)
-      };
-      expect([run(0, true), run(1, true), run(0, false)]).toEqual([2, 4, 0]);
+    it('for 2 turns they can’t gain new ones', () => {
+      const a = arena({ p0: [['curse.anointment']], p1: [['withstand', 'maneuver']] });
+      a.use(A1, 'curse.anointment', B1).end();
+      a.use(B1, 'withstand').end();
+      expect(a.has(B1, 'shield')).toBe(false);
+      a.pass(3); // the 2 turns are over
+      a.use(B1, 'maneuver').end();
+      expect(a.has(B1, 'invulnerable')).toBe(true);
     });
   });
 
@@ -906,19 +878,24 @@ describe('Anointment skills', () => {
     });
   });
 
-  describe('Sweeping Grace', () => {
-    it('25 damage to the target and 15 to a random other enemy', () => {
+  describe("Penitent's Sweep", () => {
+    it('30 damage to the target and 20 to a random other enemy', () => {
       const a = arena({ p0: [['cleave.anointment']], p1: [['shot'], ['shot']] });
       a.use(A1, 'cleave.anointment', B1).end();
-      expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+      expect([a.hp(B1), a.hp(B2)]).toEqual([70, 80]);
     });
 
-    it('Sanctify and Condemned on the first flow onto the second; other Debuffs stay', () => {
-      const a = arena({ p0: [['cleave.anointment']], p1: [['shot'], ['shot']] });
-      a.give(B1, 'sanctify', { source: A1 }).give(B1, 'condemned', { source: A1 }).give(B1, 'confusion');
-      a.use(A1, 'cleave.anointment', B1).end();
-      expect([a.has(B1, 'sanctify'), a.has(B1, 'condemned'), a.has(B1, 'confusion')]).toEqual([false, false, true]);
-      expect([a.has(B2, 'sanctify'), a.has(B2, 'condemned'), a.has(B2, 'confusion')]).toEqual([true, true, false]);
+    it('the user is Condemned for it: their next skill gives them a random Weakness, Vulnerable or Confusion', () => {
+      const got = new Set<string>();
+      for (let seed = 1; seed <= 20; seed++) {
+        const a = arena({ p0: [['cleave.anointment', 'shot']], p1: [['shot'], ['shot']], seed });
+        a.use(A1, 'cleave.anointment', B1).end();
+        expect([a.has(A1, 'condemned'), debuffs(a, A1)]).toEqual([true, 1]); // it doesn't fire on the Sweep itself
+        a.pass(1).use(A1, 'shot', B2).end();
+        for (const d of ['weakness', 'vulnerable', 'confusion']) if (a.has(A1, d)) got.add(d);
+        expect(a.has(A1, 'condemned')).toBe(false);
+      }
+      expect(got).toEqual(new Set(['weakness', 'vulnerable', 'confusion']));
     });
   });
 
@@ -969,44 +946,41 @@ describe('Anointment skills', () => {
   });
 
   describe('Call of the Font', () => {
-    it('Taunts the target for 2 turns', () => {
+    it('raises a Holy Spring (20 HP) for 2 turns, and the target is Taunted by it for as long', () => {
       const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot']] });
       a.use(A1, 'taunt.anointment', B1).end();
+      const spring = minions(a, 'holy_spring')[0]!;
+      expect(spring.hp).toBe(20);
+      expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
       expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-      a.pass(2);
+      a.use(B1, 'shot', spring.id).end();
+      expect([a.hp(spring.id), a.hp(A1), a.hp(A2)]).toEqual([5, 100, 100]);
+      a.pass(1);
       expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-      a.pass(2);
-      a.use(B1, 'shot', A2).end();
+      a.pass(1);
+      expect(minions(a, 'holy_spring')).toHaveLength(0);
+      a.pass(1).use(B1, 'shot', A2).end();
       expect(a.hp(A2)).toBe(85);
     });
 
-    it('when the Taunted enemy damages the user, the user gains Chrism', () => {
+    it('when the Spring fades, it pours out: every allied character gains 1 Unction', () => {
       const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot']] });
       a.use(A1, 'taunt.anointment', B1).end();
-      a.use(B1, 'shot', A1).end();
-      expect(a.has(A1, 'chrism')).toBe(true);
+      expect(unctionOn(a, [A1, A2])).toBe(0);
+      a.pass(3);
+      expect(minions(a, 'holy_spring')).toHaveLength(0);
+      expect([a.stacks(A1, 'unction'), a.stacks(A2, 'unction')]).toEqual([1, 1]);
     });
 
-    it('that Chrism ends at the end of the user’s next turn', () => {
-      const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot']] });
-      a.use(A1, 'taunt.anointment', B1).end();
-      a.use(B1, 'shot', A1).end();
-      a.end(); // the user's next turn
-      expect(a.has(A1, 'chrism')).toBe(false);
-    });
-
-    it('after the Taunt is over, damage from them gives no Chrism', () => {
-      const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot']] });
-      a.use(A1, 'taunt.anointment', B1).end().pass(4);
-      a.use(B1, 'shot', A1).end();
-      expect(a.has(A1, 'chrism')).toBe(false);
-    });
-
-    it('damage from another enemy gives no Chrism', () => {
+    it('when it\'s destroyed, it pours out at once, and the Taunt is over', () => {
       const a = arena({ p0: [['taunt.anointment'], ['shot']], p1: [['shot'], ['shot']] });
       a.use(A1, 'taunt.anointment', B1).end();
-      a.use(B2, 'shot', A1).end();
-      expect(a.has(A1, 'chrism')).toBe(false);
+      const spring = minions(a, 'holy_spring')[0]!;
+      a.use(B1, 'shot', spring.id).use(B2, 'shot', spring.id).end();
+      expect(minions(a, 'holy_spring')).toHaveLength(0);
+      expect([a.stacks(A1, 'unction'), a.stacks(A2, 'unction')]).toEqual([1, 1]);
+      a.pass(1).use(B1, 'shot', A2).end();
+      expect(a.hp(A2)).toBe(85);
     });
   });
 

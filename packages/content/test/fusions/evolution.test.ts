@@ -73,70 +73,67 @@ describe('Evolution: Evolve', () => {
 
 describe('Evolution skills', () => {
   // ---------------------------------------------------------------- Strike
-  it('Mutant Fang I: 20 damage and 1 Toxin', () => {
+  it('Mutant Fang I: 20 Piercing damage (Armor ignored), no Toxin', () => {
     const a = arena({ p0: [['strike.evolution']], p1: [['shot']] });
-    a.use(A1, 'strike.evolution', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([75, 1]); // 20 + 5 tick
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'strike.evolution', B1).end();
+    expect([a.hp(B1), a.has(B1, 'toxin')]).toEqual([80, false]);
     expect(a.has(A1, 'might')).toBe(false); // unlike base Strike, no Might
   });
 
-  it('Mutant Fang II: still 1 Toxin, and the Toxin also ticks once now', () => {
+  it('Mutant Fang II: replaces I with 10 damage and 2 Toxin', () => {
     const a = arena({ p0: [['strike.evolution']], p1: [['shot']], hp: 200 });
-    a.use(A1, 'strike.evolution', B1).end().pass(1); // I: 200 → 175, 1 Toxin
-    const before = a.hp(B1);
+    a.use(A1, 'strike.evolution', B1).end().pass(1); // I: 200 → 180
     a.use(A1, 'strike.evolution', B1).end();
-    // 20 damage, Toxin 1 → 2, ticks once now (10), then the end-of-turn tick (10).
+    // 10 damage, 2 Toxin, then the end-of-turn tick (10).
     expect(a.stacks(B1, 'toxin')).toBe(2);
-    expect(before - a.hp(B1)).toBe(20 + 10 + 10);
+    expect(a.hp(B1)).toBe(180 - 10 - 10);
   });
 
-  it('Mutant Fang III: 25 damage and two ticks now, then it returns to Stage I', () => {
+  it('Mutant Fang III: 10 damage and their Toxin ticks twice now (no new Toxin), then it returns to Stage I', () => {
     const a = arena({ p0: [['strike.evolution']], p1: [['shot']], hp: 500 });
     a.use(A1, 'strike.evolution', B1).end().pass(1);
-    a.use(A1, 'strike.evolution', B1).end().pass(1);
+    a.use(A1, 'strike.evolution', B1).end().pass(1); // 2 Toxin now
     const before = a.hp(B1);
     a.use(A1, 'strike.evolution', B1).end();
-    // Toxin 2 → 3; 25 damage, two ticks now (2 × 15), end-of-turn tick (15).
-    expect(a.stacks(B1, 'toxin')).toBe(3);
-    expect(before - a.hp(B1)).toBe(25 + 30 + 15);
+    // 10 damage, two ticks now (2 × 10), then the end-of-turn tick (10).
+    expect(a.stacks(B1, 'toxin')).toBe(2);
+    expect(before - a.hp(B1)).toBe(10 + 20 + 10);
     a.pass(1);
     const again = a.hp(B1);
-    a.use(A1, 'strike.evolution', B1).end();
-    // Back at Stage I: 20 damage, Toxin 3 → 4, only the end-of-turn tick (20).
-    expect(a.stacks(B1, 'toxin')).toBe(4);
-    expect(again - a.hp(B1)).toBe(20 + 20);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'strike.evolution', B1).end();
+    // Back at Stage I: 20 Piercing (Armor ignored), plus the end-of-turn tick (10).
+    expect(again - a.hp(B1)).toBe(20 + 10);
   });
 
   // ---------------------------------------------------------------- Smash
-  it("Primal Stomp I: 25 to the target, 1 Toxin to each of the target's allies, none to the target", () => {
-    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 3, source: A1 });
+  it('Primal Stomp: 20 to the target, who gains 2 Toxin; each ally takes 5 per Toxin the target has (10)', () => {
+    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
     a.use(A1, 'smash.evolution', B1).end();
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([3, 1, 1]);
-    expect(a.hp(B1)).toBe(100 - 25 - 15);
+    // 20, then the 2 Toxin tick at the end of the turn (10).
+    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.hp(B2), a.hp(B3)]).toEqual([170, 2, 190, 190]);
+    expect([a.has(B2, 'toxin'), a.has(B3, 'toxin')]).toEqual([false, false]);
   });
 
-  it("Primal Stomp II: the allies gain as much Toxin as the target has, at least 1", () => {
-    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    evolveTo(a, A1, 'smash.evolution', 2, B1);
-    a.give(B1, 'toxin', { stacks: 3, source: A1 });
-    a.use(A1, 'smash.evolution', B1).end();
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([3, 3, 3]);
-
-    const b = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(b, A1, 'smash.evolution', 2, B1);
-    b.use(A1, 'smash.evolution', B1).end(); // target has no Toxin: allies still gain 1
-    expect(b.stacks(B2, 'toxin')).toBe(1);
+  it('Primal Stomp: Toxin the target already had splashes too', () => {
+    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
+    a.give(B1, 'toxin', { stacks: 1, source: A1 }).use(A1, 'smash.evolution', B1).end();
+    expect([a.stacks(B1, 'toxin'), a.hp(B2), a.hp(B3)]).toEqual([3, 185, 185]);
   });
 
-  it("Primal Stomp III: the target takes 5 more per Toxin on their allies, counted after the spread", () => {
-    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    evolveTo(a, A1, 'smash.evolution', 3, B1);
-    a.give(B2, 'toxin', { stacks: 2, source: A1 });
+  it('Primal Stomp: the splash is at most 25', () => {
+    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot']], hp: 200 });
+    a.give(B1, 'toxin', { stacks: 6, source: A1 }).use(A1, 'smash.evolution', B1).end();
+    expect(a.hp(B2)).toBe(175);
+  });
+
+  it("Primal Stomp: an Immune target gains no Toxin, so nothing splashes; the stomp doesn't Evolve", () => {
+    const a = arena({ p0: [['smash.evolution']], p1: [['shot'], ['shot']], hp: 200 });
+    a.give(B1, 'immune').use(A1, 'smash.evolution', B1).end();
+    expect([a.hp(B1), a.has(B1, 'toxin'), a.hp(B2)]).toEqual([180, false, 200]);
+    ready(a, A1, 'smash.evolution');
+    a.state.effects = a.state.effects.filter((e) => e.bearer !== B1);
     a.use(A1, 'smash.evolution', B1).end();
-    // Allies gain 1 each (target has none): B2 3, B3 1 → 4 Toxin on the allies → +20.
-    expect([a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([3, 1]);
-    expect(a.hp(B1)).toBe(100 - 25 - 20);
+    expect([a.stacks(B1, 'toxin'), a.hp(B2)]).toEqual([2, 190]); // the same stomp on a later use
   });
 
   // ---------------------------------------------------------------- Charge
@@ -198,40 +195,43 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Rage
-  it('Apex Predator I: all Might in the battle, the user’s included, becomes the same Weakness for 3 turns', () => {
-    const a = arena({ p0: [['rage.evolution'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'might', { stacks: 2 }).give(A2, 'might').give(B1, 'might', { stacks: 3 });
+  it('Apex Predator: no Immune or Might; each enemy the user hits is marked as Prey for 2 turns', () => {
+    const a = arena({ p0: [['rage.evolution', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'rage.evolution').end();
-    expect([a.has(A1, 'might'), a.has(A2, 'might'), a.has(B1, 'might')]).toEqual([false, false, false]);
-    expect([a.stacks(A1, 'weakness'), a.stacks(A2, 'weakness'), a.stacks(B1, 'weakness')]).toEqual([2, 1, 3]);
-    expect(a.has(A1, 'immune')).toBe(false);
-    a.pass(4);
-    expect(a.stacks(B1, 'weakness')).toBe(3);
-    a.pass(1);
-    expect(a.has(B1, 'weakness')).toBe(false);
-  });
-
-  it('Apex Predator II: the user’s own Might is spared and they gain Immune for 2 turns', () => {
-    const a = arena({ p0: [['rage.evolution'], ['shot']], p1: [['shot']] });
-    evolveTo(a, A1, 'rage.evolution', 2);
-    a.give(A1, 'might', { stacks: 2 }).give(A2, 'might').give(B1, 'might');
-    a.use(A1, 'rage.evolution').end();
-    expect([a.stacks(A1, 'might'), a.has(A1, 'weakness'), a.stacks(A2, 'weakness'), a.stacks(B1, 'weakness')]).toEqual([2, false, 1, 1]);
-    expect(a.has(A1, 'immune')).toBe(true);
+    expect([a.has(A1, 'immune'), a.has(A1, 'might')]).toEqual([false, false]);
+    expect(isPrey(a, B1)).toBe(false);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect([isPrey(a, B1), isPrey(a, B2)]).toEqual([true, false]);
+    expect(a.hp(B1)).toBe(85); // the hit that marks them gets no bonus
     a.pass(2);
-    expect(a.has(A1, 'immune')).toBe(true);
+    expect(isPrey(a, B1)).toBe(true);
     a.pass(1);
-    expect(a.has(A1, 'immune')).toBe(false);
+    expect(isPrey(a, B1)).toBe(false); // the mark lasted 2 turns
   });
 
-  it('Apex Predator III: the user also gains 1 Might per stack converted, for 3 turns', () => {
-    const a = arena({ p0: [['rage.evolution'], ['shot']], p1: [['shot']] });
-    evolveTo(a, A1, 'rage.evolution', 3);
-    a.give(A1, 'might', { stacks: 2 }).give(A2, 'might').give(B1, 'might', { stacks: 2 });
+  it("Apex Predator: the user's hits deal 10 more to Prey", () => {
+    const a = arena({ p0: [['rage.evolution', 'shot']], p1: [['shot'], ['shot']], hp: 200 });
     a.use(A1, 'rage.evolution').end();
-    expect(a.stacks(A1, 'might')).toBe(2 + 3); // own 2 spared, +3 for the converted stacks
-    a.pass(6);
-    expect(a.stacks(A1, 'might')).toBe(2); // the gained Might expired, the spared Might stays
+    a.pass(1).use(A1, 'shot', B1).end().pass(1); // marks B1
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(200 - 15 - 25);
+    a.pass(1).use(A1, 'shot', B2).end(); // B2 wasn't marked yet
+    expect(a.hp(B2)).toBe(185);
+  });
+
+  it('Apex Predator: an enemy who is already Prey takes the bonus at once', () => {
+    const a = arena({ p0: [['rage.evolution', 'shot']], p1: [['shot']], hp: 200 });
+    a.give(B1, 'prey').use(A1, 'rage.evolution').end();
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(175);
+  });
+
+  it('Apex Predator: ends after 3 turns; no more marks or bonus', () => {
+    const a = arena({ p0: [['rage.evolution', 'shot']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'rage.evolution').end().pass(5);
+    expect(a.has(A1, 'apex_predator')).toBe(false);
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), isPrey(a, B1)]).toEqual([185, false]);
   });
 
   // ---------------------------------------------------------------- Shot
@@ -254,120 +254,135 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Snipe
-  it('Barbed Quill I: 25 Affliction on the following turn (through Shield), hidden target', () => {
+  it('Barbed Quill: lodges on the following turn with no hit of its own; nothing on the target before then', () => {
     const a = arena({ p0: [['snipe.evolution']], p1: [['shot']] });
-    a.give(B1, 'shield', { value: 50 }).use(A1, 'snipe.evolution', B1).end();
-    expect(a.hp(B1)).toBe(100);
+    a.use(A1, 'snipe.evolution', B1).end();
+    expect([a.hp(B1), a.has(B1, 'barbed_quill_barb')]).toEqual([100, false]);
     a.pass(1);
-    expect(a.hp(B1)).toBe(75);
+    expect([a.hp(B1), a.has(B1, 'barbed_quill_barb')]).toEqual([100, true]);
   });
 
-  it('Barbed Quill: Uncounterable (a Riposte on the target doesn’t stop it)', () => {
+  it("Barbed Quill: at the end of each of the user's turns it works deeper, 10, then 15, then 20 Affliction (through Shield), then it's gone", () => {
+    const a = arena({ p0: [['snipe.evolution']], p1: [['shot']], hp: 200 });
+    a.give(B1, 'shield', { value: 100 }).use(A1, 'snipe.evolution', B1).end().pass(1);
+    a.pass(1);
+    expect(a.hp(B1)).toBe(190);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(175);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(155);
+    a.pass(1);
+    expect(a.has(B1, 'barbed_quill_barb')).toBe(false);
+    a.pass(1);
+    expect(a.hp(B1)).toBe(155);
+  });
+
+  it('Barbed Quill: a second quill is a barb of its own: it starts again at 10, and no barb ever goes past 20', () => {
+    const a = arena({ p0: [['snipe.evolution']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'snipe.evolution', B1).end().pass(5); // the first barb: 10, then 15
+    expect(a.hp(B1)).toBe(175);
+    a.use(A1, 'snipe.evolution', B1).end(); // the first barb's last 20, as a second quill is aimed
+    expect(a.hp(B1)).toBe(155);
+    a.pass(2); // the second barb: 10
+    expect(a.hp(B1)).toBe(145);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(130);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(110);
+    a.pass(2);
+    expect([a.hp(B1), a.has(B1, 'barbed_quill_barb')]).toEqual([110, false]);
+  });
+
+  it('Barbed Quill: two barbs in at once each work at their own depth', () => {
+    const a = arena({ p0: [['snipe.evolution'], ['snipe.evolution']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'snipe.evolution', B1).end().pass(1).pass(2); // A1's barb: 10
+    a.use(A2, 'snipe.evolution', B1).end(); // A1's barb: 15
+    expect(a.hp(B1)).toBe(175);
+    a.pass(2); // A1's barb 20, A2's barb 10
+    expect([a.hp(B1), a.effects(B1).filter((e) => e.inline?.id === 'barbed_quill_barb').length]).toEqual([145, 2]);
+  });
+
+  it("Barbed Quill: Uncounterable (a Riposte on the target doesn't stop it)", () => {
     const a = arena({ p0: [['snipe.evolution']], p1: [['riposte']] });
     a.pass(1).use(B1, 'riposte').end();
     a.use(A1, 'snipe.evolution', B1).end().pass(1);
-    expect([a.hp(A1), a.hp(B1)]).toEqual([100, 75]);
+    expect([a.hp(A1), a.has(B1, 'barbed_quill_barb')]).toEqual([100, true]);
   });
 
-  it('Barbed Quill II: against Prey it lands at once (and only once)', () => {
-    const a = arena({ p0: [['snipe.evolution']], p1: [['shot']] });
-    evolveTo(a, A1, 'snipe.evolution', 2, B1);
-    a.give(B1, 'prey').use(A1, 'snipe.evolution', B1).end();
-    expect(a.hp(B1)).toBe(75);
+  it('Barbed Quill: a pulled barb (cleansed) stops working; Stunning the user before it lands stops it', () => {
+    const a = arena({ p0: [['snipe.evolution']], p1: [['shot']], hp: 200 });
+    a.use(A1, 'snipe.evolution', B1).end().pass(1);
+    a.pass(1); // 10
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && e.inline?.id === 'barbed_quill_barb'));
     a.pass(2);
-    expect(a.hp(B1)).toBe(75);
-  });
+    expect(a.hp(B1)).toBe(190);
 
-  it('Barbed Quill III: also hits every other Prey enemy, not non-Prey ones', () => {
-    const a = arena({ p0: [['snipe.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    evolveTo(a, A1, 'snipe.evolution', 3, B1);
-    a.give(B1, 'prey').give(B2, 'prey').use(A1, 'snipe.evolution', B1).end().pass(2);
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 75, 100]);
+    const b = arena({ p0: [['snipe.evolution']], p1: [['stun']] });
+    b.use(A1, 'snipe.evolution', B1).end().use(B1, 'stun', A1).end();
+    expect(b.has(B1, 'barbed_quill_barb')).toBe(false);
   });
 
   // ---------------------------------------------------------------- Trap
-  it('Nesting Pit I: every Strategic skill the target uses gives them 1 Toxin; non-Strategic ones don’t', () => {
+  it('Nesting Pit: invisible; each Strategic skill the target uses hatches a 15-HP Larva for the user, for 2 turns', () => {
     const a = arena({ p0: [['trap.evolution']], p1: [['heal', 'curse', 'shot'], ['curse']], hp: 200 });
     a.use(A1, 'trap.evolution', B1).end();
     expect(visibleTo(a, 1, B1)).toBe(0);
     a.use(B1, 'heal', B1).use(B2, 'curse', A1).end();
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin')]).toEqual([1, 0]);
-    a.pass(1).use(B1, 'curse', A1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(2);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(2);
+    expect(living(a, 'larva').map((u) => [u.owner, u.hp])).toEqual([[0, 15]]); // only the target's skill counts
+    a.pass(1).use(B1, 'shot', A1).end(); // non-Strategic: nothing hatches
+    expect(living(a, 'larva').length).toBe(1);
+    a.pass(2); // the Larva's 2 turns are up
+    expect(living(a, 'larva').length).toBe(0);
   });
 
-  it('Nesting Pit I: lasts 3 turns, with no payoff when it ends', () => {
-    const a = arena({ p0: [['trap.evolution']], p1: [['heal', 'curse']], hp: 200 });
+  it('Nesting Pit: lasts 3 turns; if nothing hatched, the target gains 2 Toxin when it ends', () => {
+    const a = arena({ p0: [['trap.evolution']], p1: [['shot']], hp: 200 });
     a.use(A1, 'trap.evolution', B1).end().pass(4);
-    const hp = a.hp(B1);
-    a.pass(1); // end of turn 6: the Pit ends
-    expect(a.hp(B1)).toBe(hp);
-    expect(a.has(B1, 'stun')).toBe(false);
-    a.pass(1).use(B1, 'curse', A1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(0);
+    expect(a.has(B1, 'toxin')).toBe(false);
+    a.pass(1); // the end of the third enemy turn
+    expect(a.stacks(B1, 'toxin')).toBe(2);
   });
 
-  it('Nesting Pit II: when it ends, 10 Affliction per trigger', () => {
-    const a = arena({ p0: [['trap.evolution']], p1: [['heal', 'curse']], hp: 300 });
-    evolveTo(a, A1, 'trap.evolution', 2, B1);
-    a.use(A1, 'trap.evolution', B1).end();
-    a.use(B1, 'heal', B1).end().pass(1).use(B1, 'curse', A1).end().pass(1);
-    const hp = a.hp(B1);
-    a.pass(1); // B1's turn ends (no Toxin tick on B's turn): the Pit ends
-    expect(hp - a.hp(B1)).toBe(20);
-  });
-
-  it('Nesting Pit III: if it never triggered, the target is Stunned for 1 turn when it ends', () => {
-    const a = arena({ p0: [['trap.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'trap.evolution', 3, B1);
-    a.use(A1, 'trap.evolution', B1).end().pass(5);
-    expect(a.has(B1, 'stun')).toBe(true);
-    a.pass(1);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
-    a.end().pass(1);
-    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
-  });
-
-  it('Nesting Pit III: no Stun if it triggered', () => {
+  it('Nesting Pit: no Toxin if a Larva hatched, and nothing hatches after it ends', () => {
     const a = arena({ p0: [['trap.evolution']], p1: [['heal']], hp: 300 });
-    evolveTo(a, A1, 'trap.evolution', 3, B1);
     a.use(A1, 'trap.evolution', B1).end();
     a.use(B1, 'heal', B1).end().pass(4);
-    expect(a.has(B1, 'stun')).toBe(false);
+    expect(a.has(B1, 'toxin')).toBe(false);
+    a.pass(1).use(B1, 'heal', B1).end();
+    expect(minions(a, 'larva').length).toBe(1);
   });
 
   // ---------------------------------------------------------------- Maneuver
-  it('Slough Off I: Invulnerable for 1 turn and 1 Focus; Unstunnable; Toxin stays', () => {
+  it('Slough Off: Invulnerable for 1 turn; usable while Stunned', () => {
     const a = arena({ p0: [['maneuver.evolution']], p1: [['shot']] });
-    a.give(A1, 'stun').give(A1, 'toxin', { stacks: 2, source: B1 });
-    a.pass(0).use(A1, 'maneuver.evolution').end();
-    expect([a.has(A1, 'invulnerable'), a.stacks(A1, 'focus'), a.stacks(A1, 'toxin')]).toEqual([true, 1, 2]);
+    a.give(A1, 'stun');
+    a.use(A1, 'maneuver.evolution').end();
+    expect(a.has(A1, 'invulnerable')).toBe(true);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
     a.end();
     expect(a.has(A1, 'invulnerable')).toBe(false);
   });
 
-  it('Slough Off II: the user’s Toxin moves onto the last enemy who damaged them; other Debuffs stay', () => {
+  it('Slough Off: sheds every Debuff; the last enemy who damaged the user gains 1 Toxin per stack shed', () => {
     const a = arena({ p0: [['maneuver.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'maneuver.evolution', 2);
     a.end().use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // B2 hit last
-    a.give(A1, 'toxin', { stacks: 3, source: B1 }).give(A1, 'weakness');
+    a.give(A1, 'weakness').give(A1, 'vulnerable');
     a.use(A1, 'maneuver.evolution').end();
-    expect([a.has(A1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B1, 'toxin')]).toEqual([false, 3, 0]);
-    expect(a.stacks(A1, 'weakness')).toBe(1);
+    expect([a.has(A1, 'weakness'), a.has(A1, 'vulnerable')]).toEqual([false, false]);
+    expect([a.stacks(B2, 'toxin'), a.stacks(B1, 'toxin')]).toEqual([2, 0]);
+    expect([a.has(B2, 'weakness'), a.has(B2, 'vulnerable')]).toEqual([false, false]); // shed, not moved
   });
 
-  it('Slough Off III: all their Debuffs move to the last enemy who damaged them', () => {
-    const a = arena({ p0: [['maneuver.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'maneuver.evolution', 3);
-    a.end().use(B2, 'shot', A1).end();
-    a.give(A1, 'toxin', { stacks: 2, source: B1 }).give(A1, 'weakness').give(A1, 'vulnerable', { stacks: 2 });
+  it('Slough Off: at most 3 Toxin, and at least 1 with nothing to shed', () => {
+    const a = arena({ p0: [['maneuver.evolution']], p1: [['shot']] });
+    a.end().use(B1, 'shot', A1).end();
+    a.give(A1, 'toxin', { stacks: 4, source: B1 }).give(A1, 'weakness');
     a.use(A1, 'maneuver.evolution').end();
-    expect([a.has(A1, 'toxin'), a.has(A1, 'weakness'), a.has(A1, 'vulnerable')]).toEqual([false, false, false]);
-    expect([a.stacks(B2, 'toxin'), a.stacks(B2, 'weakness'), a.stacks(B2, 'vulnerable')]).toEqual([2, 1, 2]);
-    expect(a.has(B1, 'weakness')).toBe(false);
+    expect([a.has(A1, 'toxin'), a.stacks(B1, 'toxin')]).toEqual([false, 3]);
+
+    const b = arena({ p0: [['maneuver.evolution']], p1: [['shot']] });
+    b.end().use(B1, 'shot', A1).end().use(A1, 'maneuver.evolution').end();
+    expect(b.stacks(B1, 'toxin')).toBe(1);
   });
 
   // ---------------------------------------------------------------- Companion
@@ -518,49 +533,45 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Channel
-  it('Plague Strain: 5 Affliction to all enemies each user turn for up to 6 turns, then stops', () => {
+  it('Plague Strain I (first tick): every enemy gains 1 Toxin, no damage', () => {
     const a = arena({ p0: [['channel.evolution']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'immune').give(B2, 'immune'); // keep Toxin out of the count
     a.use(A1, 'channel.evolution').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 95]);
-    a.pass(10); // 5 more user turns
-    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 70]);
-    a.pass(4);
-    expect(a.hp(B1)).toBe(70);
+    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin')]).toEqual([1, 1]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
-  it('Plague Strain I: 1 Toxin to one random enemy per tick', () => {
-    const a = arena({ p0: [['channel.evolution']], p1: [['shot'], ['shot'], ['shot']], seed: 7 });
+  it('Plague Strain II then III: 10 Affliction to all enemies, then 1 Weakness for 1 turn to each with Toxin', () => {
+    const a = arena({ p0: [['channel.evolution']], p1: [['shot'], ['shot']] });
     a.use(A1, 'channel.evolution').end();
-    expect(a.stacks(B1, 'toxin') + a.stacks(B2, 'toxin') + a.stacks(B3, 'toxin')).toBe(1);
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B2 && e.defId === 'toxin'));
+    a.pass(1).end(); // second tick (B1's Toxin ticks 5 too)
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 90]);
+    expect([a.has(B1, 'weakness'), a.has(B2, 'weakness')]).toEqual([false, false]);
+    a.pass(1).end(); // third tick: no damage
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 90]);
+    expect([a.stacks(B1, 'weakness'), a.has(B2, 'weakness')]).toEqual([1, false]);
+    a.pass(1);
+    expect(a.has(B1, 'weakness')).toBe(false);
+  });
+
+  it('Plague Strain: after III it goes back to Stage I, ticks 6 times in all, then stops', () => {
+    const a = arena({ p0: [['channel.evolution']], p1: [['shot']] });
+    a.give(B1, 'immune'); // only the damage counts
+    a.use(A1, 'channel.evolution').end().pass(11); // six ticks: I, II, III, I, II, III
+    expect(a.hp(B1)).toBe(80);
+    a.pass(4);
+    expect(a.hp(B1)).toBe(80);
+
+    const b = arena({ p0: [['channel.evolution']], p1: [['shot']] });
+    b.use(A1, 'channel.evolution').end().pass(5).end(); // fourth tick: Stage I again
+    expect(b.stacks(B1, 'toxin')).toBe(2);
   });
 
   it('Plague Strain: using another skill ends the channel', () => {
     const a = arena({ p0: [['channel.evolution', 'riposte']], p1: [['shot']] });
     a.give(B1, 'immune').use(A1, 'channel.evolution').end().pass(1);
     a.use(A1, 'riposte').end().pass(3);
-    expect(a.hp(B1)).toBe(95);
-  });
-
-  it('Plague Strain II (second tick): the Toxin goes to a non-Prey enemy', () => {
-    const a = arena({ p0: [['channel.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 300 });
-    a.use(A1, 'channel.evolution').end().pass(1);
-    a.give(B1, 'prey').give(B2, 'prey');
-    const before = [B1, B2, B3].map((b) => a.stacks(b, 'toxin'));
-    a.end(); // second tick
-    expect([B1, B2, B3].map((b) => a.stacks(b, 'toxin'))).toEqual([before[0], before[1], before[2]! + 1]);
-  });
-
-  it('Plague Strain III (third tick on): Prey enemies also gain 1 Weakness, others don’t', () => {
-    const a = arena({ p0: [['channel.evolution']], p1: [['shot'], ['shot'], ['shot']], hp: 300 });
-    a.give(B3, 'immune');
-    a.use(A1, 'channel.evolution').end().pass(1);
-    a.give(B1, 'prey');
-    a.end().pass(1); // second tick: no Weakness yet
-    expect(a.has(B1, 'weakness')).toBe(false);
-    a.end(); // third tick
-    expect(a.stacks(B1, 'weakness')).toBe(1);
-    expect(a.has(B2, 'weakness') && !isPrey(a, B2)).toBe(false);
+    expect(a.hp(B1)).toBe(100);
   });
 
   // ---------------------------------------------------------------- Stab
@@ -593,27 +604,15 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Ravage
-  it('Envenomed Rend I: 25 Piercing, Bypassing Invulnerable; Prey targets gain 2 Toxin, others none', () => {
-    const a = arena({ p0: [['ravage.evolution']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'invulnerable').give(B1, 'prey').use(A1, 'ravage.evolution', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([100 - 25 - 10, 2]);
-    ready(a, A1, 'ravage.evolution').use(A1, 'ravage.evolution', B2).end();
-    expect([a.hp(B2), a.has(B2, 'toxin')]).toEqual([75, false]);
-  });
-
-  it("Envenomed Rend II: a Stunned target's Toxin doubles instead of +2", () => {
-    const a = arena({ p0: [['ravage.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'ravage.evolution', 2, B1);
-    a.give(B1, 'stun').give(B1, 'toxin', { stacks: 3, source: A1 }); // 3 Toxin: Prey too
+  it('Envenomed Rend: tears out up to 2 Toxin, then 20 Piercing + 10 per Toxin torn, Bypassing Invulnerable', () => {
+    const a = arena({ p0: [['ravage.evolution']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'invulnerable').give(B1, 'armor', { stacks: 2 }).give(B1, 'toxin', { stacks: 3, source: B2 });
     a.use(A1, 'ravage.evolution', B1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(6);
-  });
-
-  it("Envenomed Rend III: every target's Toxin doubles, Stunned or not", () => {
-    const a = arena({ p0: [['ravage.evolution']], p1: [['shot']] });
-    evolveTo(a, A1, 'ravage.evolution', 3, B1);
-    a.give(B1, 'toxin', { stacks: 1, source: A1 }).use(A1, 'ravage.evolution', B1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(2);
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([100 - 40, 1]);
+    ready(a, A1, 'ravage.evolution').give(B2, 'toxin', { stacks: 1, source: B3 }).use(A1, 'ravage.evolution', B2).end();
+    expect([a.hp(B2), a.has(B2, 'toxin')]).toEqual([70, false]);
+    ready(a, A1, 'ravage.evolution').use(A1, 'ravage.evolution', B3).end();
+    expect(a.hp(B3)).toBe(80);
   });
 
   // ---------------------------------------------------------------- Mislead
@@ -652,42 +651,25 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Stun
-  it('Paralytic Bite I: Stuns for 1 turn', () => {
+  it('Paralytic Bite: 2 Toxin now; the target still acts on their next turn, then is Stunned for 1 turn', () => {
     const a = arena({ p0: [['stun.evolution']], p1: [['shot']] });
     a.use(A1, 'stun.evolution', B1).end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
-    a.pass(2);
-    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
-  });
-
-  it('Paralytic Bite I: Stuns Prey for 2 turns', () => {
-    const a = arena({ p0: [['stun.evolution']], p1: [['shot']] });
-    a.give(B1, 'prey').use(A1, 'stun.evolution', B1).end().pass(2);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
-    a.pass(2);
-    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
-  });
-
-  it('Paralytic Bite I: no Prey while Stunned yet; II: the target counts as Prey while Stunned', () => {
-    const a = arena({ p0: [['stun.evolution']], p1: [['shot']] });
-    a.use(A1, 'stun.evolution', B1).end();
-    expect(isPrey(a, B1)).toBe(false);
-    evolveTo(a, A1, 'stun.evolution', 2, B1);
-    a.use(A1, 'stun.evolution', B1).end();
-    expect(isPrey(a, B1)).toBe(true);
+    expect([a.stacks(B1, 'toxin'), a.has(B1, 'stun')]).toEqual([2, false]);
+    a.use(B1, 'shot', A1).end(); // their next turn: still free to act
+    expect(a.hp(A1)).toBe(85);
+    expect(a.has(B1, 'stun')).toBe(true);
     a.pass(1);
-    expect([a.has(B1, 'stun'), isPrey(a, B1)]).toEqual([false, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
+    a.end().pass(1);
+    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
   });
 
-  it('Paralytic Bite III: when the Stun ends, a random Prey ally of theirs is Stunned for 1 turn', () => {
-    const a = arena({ p0: [['stun.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    evolveTo(a, A1, 'stun.evolution', 3, B1);
-    a.give(B2, 'prey');
-    a.use(A1, 'stun.evolution', B1).end().pass(1);
-    expect([a.has(B1, 'stun'), a.has(B2, 'stun'), a.has(B3, 'stun')]).toEqual([false, true, false]);
-    a.pass(1);
-    expect(a.reject(() => a.use(B2, 'shot', A1))).toBeTruthy();
-    expect(() => a.use(B1, 'shot', A1)).not.toThrow();
+  it('Paralytic Bite: no Stun if their Toxin is gone by then', () => {
+    const a = arena({ p0: [['stun.evolution']], p1: [['shot']] });
+    a.use(A1, 'stun.evolution', B1).end();
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && e.defId === 'toxin'));
+    a.end();
+    expect(a.has(B1, 'stun')).toBe(false);
   });
 
   // ---------------------------------------------------------------- Dance
@@ -788,153 +770,116 @@ describe('Evolution skills', () => {
   });
 
   // ---------------------------------------------------------------- Smite
-  it('Stalking Mark I: 15 damage; for 1 turn, each ally hit on the target gives 1 Vulnerable (no Toxin)', () => {
-    const a = arena({ p0: [['smite.evolution'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).use(A3, 'shot', B2).end();
-    expect(a.hp(B1)).toBe(70);
-    expect([a.stacks(B1, 'vulnerable'), a.has(B1, 'toxin'), a.has(B2, 'vulnerable')]).toEqual([1, false, false]);
-    a.pass(1);
-    const v = a.stacks(B1, 'vulnerable');
-    a.use(A2, 'shot', B1).end(); // the mark is gone: no new Vulnerable
-    expect(a.stacks(B1, 'vulnerable')).toBe(v);
-  });
-
-  it('Stalking Mark: evolves when it triggers, not when used', () => {
-    const a = arena({ p0: [['smite.evolution'], ['shot']], p1: [['shot']], hp: 500 });
-    a.use(A1, 'smite.evolution', B1).end(); // used, never triggered
-    ready(a, A1, 'smite.evolution');
-    a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).end(); // still Stage I
+  it('Stalking Mark: 15 damage; with no further hits, 1 Toxin when the 2-turn mark ends', () => {
+    const a = arena({ p0: [['smite.evolution']], p1: [['shot']] });
+    a.use(A1, 'smite.evolution', B1).end();
+    expect(a.hp(B1)).toBe(85);
+    a.pass(2);
     expect(a.has(B1, 'toxin')).toBe(false);
-    ready(a, A1, 'smite.evolution');
-    a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).end(); // triggered once before: Stage II
+    a.pass(1); // the end of the second enemy turn
     expect(a.stacks(B1, 'toxin')).toBe(1);
   });
 
-  it('Stalking Mark III: the mark lasts 2 turns', () => {
-    const a = arena({ p0: [['smite.evolution'], ['shot']], p1: [['shot']], hp: 500 });
-    for (let i = 0; i < 2; i++) {
-      ready(a, A1, 'smite.evolution');
-      a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).end();
-    }
-    ready(a, A1, 'smite.evolution');
-    a.state.effects = a.state.effects.filter((e) => e.bearer !== B1 || e.defId.startsWith('smite') === false && e.defId !== 'vulnerable' && e.defId !== 'toxin');
-    a.use(A1, 'smite.evolution', B1).end().pass(1);
-    a.use(A2, 'shot', B1).end(); // the following own turn: still marked
-    expect(a.stacks(B1, 'vulnerable')).toBe(1);
+  it('Stalking Mark: each hit from the user’s side grows it, for 1 Toxin per growth when it ends', () => {
+    const a = arena({ p0: [['smite.evolution'], ['shot'], ['shot']], p1: [['shot'], ['shot']], hp: 300 });
+    a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).use(A3, 'shot', B2).end();
+    a.pass(3);
+    expect([a.stacks(B1, 'toxin'), a.has(B2, 'toxin')]).toEqual([1, false]);
+  });
+
+  it('Stalking Mark: at most 4 Toxin', () => {
+    const a = arena({ p0: [['smite.evolution', 'shot'], ['shot'], ['shot']], p1: [['shot']], hp: 300 });
+    a.use(A1, 'smite.evolution', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end().pass(1);
+    a.use(A1, 'shot', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end().pass(1); // 5 growths
+    expect(a.stacks(B1, 'toxin')).toBe(4);
   });
 
   // ---------------------------------------------------------------- Prayer
-  it('Symbiotic Song I: all allies gain 2 Renew, all enemies 1 Toxin', () => {
+  it('Symbiotic Song: all enemies gain 1 Toxin; the allies gain no Renew', () => {
     const a = arena({ p0: [['prayer.evolution'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'prayer.evolution').end();
-    expect([a.stacks(A1, 'renew'), a.stacks(A2, 'renew')]).toEqual([1, 1]); // 2, then ticked once
     expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin')]).toEqual([1, 1]);
+    expect([a.has(A1, 'renew'), a.has(A2, 'renew')]).toEqual([false, false]);
   });
 
-  it('Symbiotic Song II: for 2 turns, each enemy Toxin tick heals a random ally 5', () => {
+  it('Symbiotic Song: for 2 turns, each enemy Toxin tick heals a random ally 10', () => {
     const total = (a: Arena) => a.hp(A1) + a.hp(A2);
-    const base = arena({ p0: [['prayer.evolution'], ['shot']], p1: [['shot'], ['shot']] });
-    base.setHp(A1, 50).setHp(A2, 50).use(A1, 'prayer.evolution').end();
-    expect(total(base)).toBe(100 + 20); // Stage I: Renew only
-
     const a = arena({ p0: [['prayer.evolution'], ['shot']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'prayer.evolution', 2);
     a.setHp(A1, 50).setHp(A2, 50).use(A1, 'prayer.evolution').end();
-    expect(total(a)).toBe(100 + 20 + 10); // + two Toxin ticks
-  });
-
-  it("Symbiotic Song III: first, the allies' Toxin moves onto random enemies", () => {
-    const a = arena({ p0: [['prayer.evolution'], ['shot']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'prayer.evolution', 3);
-    a.give(A2, 'toxin', { stacks: 2, source: B1 }).use(A1, 'prayer.evolution').end();
-    expect(a.has(A2, 'toxin')).toBe(false);
-    expect(a.stacks(B1, 'toxin') + a.stacks(B2, 'toxin')).toBe(2 + 2);
+    expect(total(a)).toBe(100 + 20); // two enemy ticks
+    a.pass(1).end();
+    expect(total(a)).toBe(100 + 40);
+    a.pass(1).end(); // it has ended: the Toxin still ticks, but heals no one
+    expect(total(a)).toBe(100 + 40);
+    expect(a.hp(B1)).toBe(100 - 15);
   });
 
   // ---------------------------------------------------------------- Cleave
-  it('Thrashing Tail I: 15 to all enemies; hitting Prey resets its cooldown', () => {
-    const a = arena({ p0: [['cleave.evolution']], p1: [['shot'], ['shot']] });
+  it('Thrashing Tail: 4 lashes of 10 at random enemies; each enemy lashed more than once gains 1 Toxin', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const a = arena({ p0: [['cleave.evolution']], p1: [['shot'], ['shot'], ['shot']], seed });
+      a.use(A1, 'cleave.evolution').end();
+      let lashes = 0;
+      for (const b of [B1, B2, B3]) {
+        const toxin = a.stacks(b, 'toxin');
+        const hits = (100 - a.hp(b) - 5 * toxin) / 10; // the Toxin ticks once at the end of the turn
+        lashes += hits;
+        expect(toxin).toBe(hits >= 2 ? 1 : 0);
+        expect(a.has(b, 'thrashing_tail')).toBe(false);
+      }
+      expect(lashes).toBe(4);
+    }
+  });
+
+  it('Thrashing Tail: a lone enemy takes all 4 lashes', () => {
+    const a = arena({ p0: [['cleave.evolution']], p1: [['shot']] });
     a.use(A1, 'cleave.evolution').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 85]);
-    expect(a.cooldown(A1, 'cleave.evolution')).toBeGreaterThan(0);
-    const b = arena({ p0: [['cleave.evolution']], p1: [['shot'], ['shot']] });
-    b.give(B2, 'prey').use(A1, 'cleave.evolution').end();
-    expect(b.cooldown(A1, 'cleave.evolution')).toBe(0);
-  });
-
-  it('Thrashing Tail II: if it hits no Prey, an enemy with Toxin becomes Prey for 1 turn', () => {
-    const a = arena({ p0: [['cleave.evolution']], p1: [['shot'], ['shot'], ['shot']] });
-    evolveTo(a, A1, 'cleave.evolution', 2);
-    a.give(B2, 'toxin', { source: A1 }).use(A1, 'cleave.evolution').end();
-    expect([isPrey(a, B1), isPrey(a, B2), isPrey(a, B3)]).toEqual([false, true, false]);
-    a.pass(1);
-    expect(isPrey(a, B2)).toBe(false);
-  });
-
-  it('Thrashing Tail III: Prey take 10 more', () => {
-    const a = arena({ p0: [['cleave.evolution']], p1: [['shot'], ['shot']] });
-    evolveTo(a, A1, 'cleave.evolution', 3);
-    a.give(B1, 'prey').use(A1, 'cleave.evolution').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([100 - 40 - 5, 1]);
   });
 
   // ---------------------------------------------------------------- Shout
-  it('Festering Howl: all enemies Intimidated for 2 turns', () => {
+  it('Festering Howl: the user gains 1 Toxin; all enemies are Intimidated for 1 turn per Toxin the user has', () => {
     const a = arena({ p0: [['shout.evolution']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shout.evolution').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated'), a.has(A1, 'intimidated')]).toEqual([true, true, false]);
-    a.pass(3);
+    expect([a.stacks(A1, 'toxin'), a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([1, true, true]);
+    a.pass(1);
+    expect(a.has(B1, 'intimidated')).toBe(false);
+
+    const b = arena({ p0: [['shout.evolution']], p1: [['shot']] });
+    b.give(A1, 'toxin', { stacks: 1, source: B1 }).use(A1, 'shout.evolution').end().pass(2); // 2 Toxin: 2 turns
+    expect(b.has(B1, 'intimidated')).toBe(true);
+    b.pass(1);
+    expect(b.has(B1, 'intimidated')).toBe(false);
+  });
+
+  it('Festering Howl: at most 3 turns', () => {
+    const a = arena({ p0: [['shout.evolution']], p1: [['shot']] });
+    a.give(A1, 'toxin', { stacks: 5, source: B1 }).use(A1, 'shout.evolution').end().pass(4);
+    expect(a.has(B1, 'intimidated')).toBe(true);
+    a.pass(1);
     expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  it("Festering Howl: meanwhile their Toxin can't be removed; afterwards it can", () => {
-    const a = arena({ p0: [['shout.evolution'], ['consume.evolution']], p1: [['shot']], hp: 200 });
-    a.give(B1, 'toxin', { stacks: 3, source: A1 });
-    a.use(A1, 'shout.evolution').use(A2, 'consume.evolution', B1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(6); // Cull the Weak's 3 land, but none can be removed
-    a.pass(4);
-    ready(a, A2, 'consume.evolution').use(A2, 'consume.evolution', B1).end();
-    expect(a.has(B1, 'toxin')).toBe(false);
-  });
-
-  it("Festering Howl: their Toxin can't be moved (Slough Off II)", () => {
-    const a = arena({ p0: [['shout.evolution', 'shot']], p1: [['maneuver.evolution']] });
-    a.use(A1, 'shot', B1).end(); // A1 is the last enemy who damaged B1
-    a.use(B1, 'maneuver.evolution').end(); // B1's Slough Off is now at Stage II
-    for (let i = 0; i < 2; i++) a.pass(2);
-    a.give(B1, 'toxin', { stacks: 2, source: A1 }).use(A1, 'shout.evolution').end();
-    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && e.defId === 'toxin') || e.stacks === 2);
-    a.use(B1, 'maneuver.evolution').end();
-    expect([a.stacks(B1, 'toxin'), a.has(A1, 'toxin')]).toEqual([2, false]);
-  });
-
   // ---------------------------------------------------------------- Withstand
-  it('Exoskeleton: 15 Shield and 1 Armor for 2 turns', () => {
+  it('Exoskeleton: 10 Shield for 3 turns, +10 at the start of each of the user’s turns', () => {
     const a = arena({ p0: [['withstand.evolution']], p1: [['shot']] });
+    const shell = () => a.effects(A1).find((e) => e.defId === 'exoskeleton')?.value ?? 0;
     a.use(A1, 'withstand.evolution').end();
-    expect([shieldOn(a, A1), a.stacks(A1, 'armor')]).toEqual([15, 1]);
-    a.pass(3);
-    expect([shieldOn(a, A1), a.has(A1, 'armor')]).toEqual([0, false]);
+    expect(shell()).toBe(10);
+    a.pass(1);
+    expect(shell()).toBe(20);
+    a.pass(2);
+    expect(shell()).toBe(30);
+    a.pass(2); // the end of the third enemy turn
+    expect(shell()).toBe(0);
   });
 
-  it('Exoskeleton: each Weakness on the attacker lowers their damage by 10 instead of 5', () => {
-    const eff = (a: Arena) => a.hp(A1) + shieldOn(a, A1);
-    const plain = arena({ p0: [['withstand.evolution']], p1: [['bolt']] });
-    plain.setHp(A1, 50).use(A1, 'withstand.evolution').end();
-    plain.use(B1, 'bolt', A1).end();
-    expect(eff(plain)).toBe(65 - (25 - 5)); // no Weakness: just Armor
-
-    const a = arena({ p0: [['withstand.evolution']], p1: [['bolt']] });
-    a.setHp(A1, 50).give(B1, 'weakness').use(A1, 'withstand.evolution').end();
-    a.use(B1, 'bolt', A1).end();
-    expect(eff(a)).toBe(65 - (25 - 10 - 5));
-  });
-
-  it('Exoskeleton: after it ends, Weakness is back to 5', () => {
-    const a = arena({ p0: [['withstand.evolution']], p1: [['bolt']] });
-    a.give(B1, 'weakness').use(A1, 'withstand.evolution').end().pass(4);
-    a.use(B1, 'bolt', A1).end();
-    expect(a.hp(A1)).toBe(80);
+  it('Exoskeleton: absorbs hits, and what is left keeps growing', () => {
+    const a = arena({ p0: [['withstand.evolution']], p1: [['shot']] });
+    const shell = () => a.effects(A1).find((e) => e.defId === 'exoskeleton')?.value ?? 0;
+    a.use(A1, 'withstand.evolution').end().pass(1).end(); // 20 Shield
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), shell()]).toEqual([100, 15]);
   });
 
   // ---------------------------------------------------------------- Taunt
@@ -989,7 +934,7 @@ describe('Evolution skills', () => {
 describe('Evolution costs and cooldowns (kit table)', () => {
   const kit: [string, string, number][] = [
     ['strike', 'W', 0], ['smash', 'Sr', 2], ['charge', 'S', 1], ['riposte', 'W', 2], ['rage', 'S', 3],
-    ['shot', 'r', 1], ['snipe', 'Ar', 1], ['trap', 'W', 2], ['maneuver', 'W', 2], ['companion', 'I', 1],
+    ['shot', 'r', 1], ['snipe', 'Ar', 2], ['trap', 'W', 2], ['maneuver', 'W', 2], ['companion', 'I', 1],
     ['bolt', 'I', 1], ['blast', 'II', 3], ['consume', 'W', 2], ['summon', 'W', 2], ['channel', 'Wrr', 5],
     ['stab', 'r', 0], ['ravage', 'Ar', 1], ['mislead', 'W', 2], ['stun', 'W', 3], ['dance', 'AA', 4],
     ['heal', 'W', 1], ['bless', 'W', 2], ['curse', 'r', 2], ['smite', 'Wr', 1], ['prayer', 'Wr', 2],

@@ -15,3 +15,30 @@ engulfed:
     - on: turnEnd
       do:
         - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
+
+# Gel Coat (Clinging Sweep): stacks = hops left. It Splits off like an Ooze on a direct hit that leaves
+# the bearer with 10+ HP, hopping to a random ally of theirs (non-direct, so a hop never splits it again).
+gel_coat:
+  name: Gel Coat
+  kind: Debuff
+  element: Slime
+  stacking: unique
+  description: >-
+    The next direct hit that leaves the bearer with 10 or more HP Splits it off: it hops to a random ally
+    of theirs, dealing them 15 damage and coating them (it hops at most twice).
+  triggers:
+    - on: damaged
+      when: { direct: true }
+      do:
+        - op: if
+          cond: { hpAbove: { unit: bearer, value: 9 } }
+          then:
+            - op: forEach
+              in: randomBearerAlly
+              do:
+                - { op: damage, to: it, amount: 15, direct: false }
+                - op: if
+                  cond: { compare: { value: { effectStacks: true }, atLeast: 2 } }
+                  then:
+                    - { op: apply, to: it, effect: gel_coat, stacks: { sum: [{ effectStacks: true }, -1] }, duration: { enemyTurns: 2 } }
+            - { op: removeSelf }

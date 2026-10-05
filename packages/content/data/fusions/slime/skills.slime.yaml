@@ -146,22 +146,30 @@ rage.slime:
 shot.slime:
   archetype: Shot
   element: Slime
-  name: Mud Ball
+  name: Feeding Glob
   description: >-
-    Deals 15 damage to target enemy and 1 Confusion for 2 turns. At 3 Confusion, the mud sets: they lose
-    it all and are Stunned for 1 turn.
+    Deals 10 damage to target enemy. The splash feeds a random allied Ooze: it gains 10 max HP (up to 40) and
+    heals 10. If the user has no Ooze, a 10 HP one forms instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { compare: { value: { totalStacks: { in: primary, effect: confusion } }, atLeast: 3 } }
+      cond: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [ooze] } } } }, atLeast: 1 } }
       then:
-        - { op: removeEffect, from: primary, effect: confusion }
-        - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
+        - op: forEach
+          in: { randomAlly: 1, where: { minion: { unit: it, types: [ooze] } } }
+          do:
+            # Max HP grows only up to 40.
+            - op: if
+              cond: { compare: { value: { sum: [{ hp: it }, { missingHp: it }] }, atMost: 30 } }
+              then: [{ op: addMaxHp, to: it, amount: 10 }]
+            - { op: heal, to: it, amount: 10, raw: true }
+      else:
+        - { op: set, var: ooze_hp, value: 10 }
+        - { op: macro, id: make_ooze }
 
 snipe.slime:
   archetype: Snipe
@@ -400,26 +408,31 @@ channel.slime:
 stab.slime:
   archetype: Stab
   element: Slime
-  name: Grit Shiv
+  name: Oozing Cut
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The grit of every allied Boulder
-    gets in their eyes: 1 Confusion for 1 turn per Boulder (max 3).
+    Deals 10 damage to target enemy, and a glob of slime clings to the wound: for 2 turns, they take 5
+    Affliction damage at the end of each of the user's turns. A new cut refreshes the glob instead of adding one.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: removeEffect, from: primary, effect: oozing_cut }
     - op: apply
       to: primary
-      effect: confusion
-      duration: { enemyTurns: 1 }
-      stacks:
-        if: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 3 } }
-        then: 3
-        else: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }
+      duration: { enemyTurns: 2 }
+      effect:
+        id: oozing_cut
+        name: Oozing Cut
+        kind: Debuff
+        element: Slime
+        stacking: unique
+        description: 5 Affliction damage at the end of each of the applier's turns.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 5, type: Affliction, direct: false }
 
 ravage.slime:
   archetype: Ravage
@@ -641,51 +654,50 @@ prayer.slime:
 cleave.slime:
   archetype: Cleave
   element: Slime
-  name: Mudguard Sweep
+  name: Clinging Sweep
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. Until the user's next turn, their Armor
-    also reduces Piercing damage.
+    Deals 20 damage to target enemy and coats them in gel for 2 turns. Like an Ooze, the gel Splits off the
+    first time a direct hit, this blow included, leaves them with 10 or more HP: it hops to a random ally of
+    theirs, dealing them 15 damage and coating them for 2 turns. It hops at most twice.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
-    - op: apply
-      to: actor
-      duration: { raw: 2 }
-      effect:
-        id: mudguard
-        name: Mudguard
-        kind: Buff
-        element: Slime
-        description: The bearer's Armor also reduces Piercing damage.
-        modifiers:
-          - { mod: damageTaken, amount: 0, when: { types: [Piercing] }, value: { mul: [-5, { stacks: { unit: actor, effect: armor } }] } }
+    # Stacks = hops left. Coated before the blow, so the sweep's own hit can split it.
+    - { op: apply, to: primary, effect: gel_coat, stacks: 2, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 20 }
 
 shout.slime:
   archetype: Shout
   element: Slime
   name: Quagmire
-  description: All enemies are Intimidated for 2 turns. For as long, each of their skills costs 1 more random energy.
-  cost: I
-  cooldown: 3
+  description: >-
+    All enemies sink into the mire: for 1 turn, their non-Strategic skills are Stunned. Damage pulls an enemy
+    free.
+  cost: Ir
+  cooldown: 4
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
     - op: apply
       to: targets
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
         id: quagmire
-        name: Quagmire
+        name: Mired
         kind: Debuff
         element: Slime
-        description: Each of the bearer's skills costs 1 more random energy.
+        stacking: unique
+        # It is a non-Strategic Stun (Swiftness ignores it, and it counts as Stunned).
+        countsAs: [stun_ns]
+        description: Non-Strategic skills Stunned; ends when the bearer takes damage.
         modifiers:
-          - { mod: costGeneric, amount: 1 }
+          - { mod: cannotUseSkills, classes: [NonStrategic] }
+        triggers:
+          - on: damaged
+            do:
+              - { op: removeSelf }
 
 withstand.slime:
   archetype: Withstand

@@ -26,7 +26,7 @@ describe('Dimension: cost and cooldown match the kit table', () => {
     strike: ['S', 1], smash: ['Sr', 2], charge: ['S', 3], riposte: ['A', 3], rage: ['AA', 4],
     shot: ['r', 0], snipe: ['Ar', 2], trap: ['r', 2], maneuver: ['r', 3], companion: ['A', 1],
     bolt: ['Ar', 1], blast: ['Irr', 2], consume: ['r', 2], summon: ['I', 1], channel: ['Ar', 3],
-    stab: ['r', 0], ravage: ['Ar', 1], mislead: ['A', 2], stun: ['A', 2], dance: ['A', 3],
+    stab: ['r', 0], ravage: ['Ar', 1], mislead: ['A', 2], stun: ['A', 3], dance: ['A', 3],
     heal: ['r', 1], bless: ['r', 2], curse: ['A', 2], smite: ['A', 1], prayer: ['Wrr', 2],
     cleave: ['S', 1], shout: ['Ar', 3], withstand: ['A', 3], taunt: ['r', 4], titan: ['AW', 4],
   };
@@ -134,15 +134,15 @@ describe('Banished', () => {
 
 describe('Entangled', () => {
   it('an effect applied to one member lands once on each other member; damage does not spread', () => {
-    const a = arena({ p0: [['bolt.dimension'], ['curse']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.dimension', B1).use(A2, 'curse', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 100]);
+    const a = arena({ p0: [['shot.dimension'], ['curse']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.dimension', B1).use(A2, 'curse', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 100]);
     expect([a.stacks(B1, 'confusion'), a.stacks(B2, 'confusion')]).toEqual([1, 1]);
   });
 
   it('links units on the same side only: the user\'s side is unaffected', () => {
-    const a = arena({ p0: [['bolt.dimension'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.dimension', B1).end();
+    const a = arena({ p0: [['shot.dimension'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.dimension', B1).end();
     expect([entangled(a, A1), entangled(a, A2), entangled(a, B1), entangled(a, B2)]).toEqual([false, false, true, true]);
   });
 
@@ -160,9 +160,9 @@ describe('Entangled', () => {
     expect([a.stacks(B1, 'confusion'), a.stacks(B2, 'confusion')]).toEqual([1, 1]);
   });
 
-  it('a link of 2 turns (Dark Matter) is gone by the user\'s third turn', () => {
-    const a = arena({ p0: [['bolt.dimension'], ['curse']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.dimension', B1).end().pass(1);
+  it('a link of 2 turns (Echo Shard) is gone by the user\'s third turn', () => {
+    const a = arena({ p0: [['shot.dimension'], ['curse']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.dimension', B1).end().pass(1);
     expect(entangled(a, B1)).toBe(true); // turn 3
     a.pass(2);
     expect([entangled(a, B1), entangled(a, B2)]).toEqual([false, false]); // turn 5
@@ -354,15 +354,14 @@ describe('Dimension skills', () => {
     expect([a.hp(B1), a.hp(partner), a.hp(other)]).toEqual([80, 90, 100]);
   });
 
-  it('Dark Matter: Entangled with a random ally for 2 turns, 20 damage and Blinded for 2 turns (both are)', () => {
+  it('Dark Matter: 30 damage, and the user is Blinded through their next turn', () => {
     const a = arena({ p0: [['bolt.dimension']], p1: [['shot'], ['shot']] });
     a.use(A1, 'bolt.dimension', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 100]);
-    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([true, true]);
-    a.pass(2);
-    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([true, true]); // turn 4: the 2nd enemy turn
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'blinded'), a.has(B1, 'blinded')]).toEqual([70, 100, true, false]);
     a.pass(1);
-    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([false, false]);
+    expect(a.has(A1, 'blinded')).toBe(true); // still on for the user's next turn
+    a.pass(1);
+    expect(a.has(A1, 'blinded')).toBe(false);
   });
 
   it('Singularity: 25 to all enemies, then the one with the most HP is Banished', () => {
@@ -460,19 +459,28 @@ describe('Dimension skills', () => {
     expect(a.hp(B1)).toBe(100 - 10 - 10);
   });
 
-  it('Unwatched Knife: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.dimension'], ['stab.dimension']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 61).setHp(B2, 60);
-    a.use(A1, 'stab.dimension', B1).use(A2, 'stab.dimension', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([51, 40]);
+  it('Unwatched Knife: 10 damage, even at low HP, and a cut left in the target', () => {
+    const a = arena({ p0: [['stab.dimension']], p1: [['shot']] });
+    a.setHp(B1, 50).use(A1, 'stab.dimension', B1).end();
+    expect([a.hp(B1), a.has(B1, 'open_cut')]).toEqual([40, true]);
   });
 
-  it('Unwatched Knife: knifing an Isolated target gives Stealth; otherwise none', () => {
-    const a = arena({ p0: [['stab.dimension'], ['stab.dimension']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'isolated', { duration: 5 });
-    a.use(A1, 'stab.dimension', B1).use(A2, 'stab.dimension', B2).end();
-    expect([a.has(A1, 'stealth'), a.has(A2, 'stealth')]).toEqual([true, false]);
+  it('Unwatched Knife: knifing a different enemy next turn opens the old cut for 10 more', () => {
+    const a = arena({ p0: [['stab.dimension']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stab.dimension', B1).end().pass(1).use(A1, 'stab.dimension', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'open_cut'), a.has(B2, 'open_cut')]).toEqual([80, 90, false, true]);
   });
+
+  it('Unwatched Knife: the same enemy again is just 10; a cut lasts until the end of the user\'s next turn', () => {
+    const a = arena({ p0: [['stab.dimension']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stab.dimension', B1).end().pass(1).use(A1, 'stab.dimension', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    a.pass(3);
+    expect(a.has(B1, 'open_cut')).toBe(false);
+    a.use(A1, 'stab.dimension', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 90]);
+  });
+
 
   it('Rend Space: 25 Piercing; Blind and Isolation on the target last 2 turns longer', () => {
     const a = arena({ p0: [['ravage.dimension']], p1: [['shot'], ['shot']] });
@@ -507,24 +515,27 @@ describe('Dimension skills', () => {
     expect([a.hp(A1), entangled(a, B1)]).toEqual([85, false]);
   });
 
-  it('Phase Lock: 10 damage and Asleep (can\'t act)', () => {
+  it('Phase Lock: only the target is Banished, until the end of their next turn', () => {
+    const a = arena({ p0: [['stun.dimension']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'stun.dimension', B1).end();
+    expect([B1, B2, B3].map((u) => banished(a, u))).toEqual([true, false, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).not.toBe('');
+    a.end();
+    expect(banished(a, B1)).toBe(false);
+  });
+
+  it('Phase Lock: when they return, they\'re Blinded for 1 turn', () => {
     const a = arena({ p0: [['stun.dimension']], p1: [['shot']] });
     a.use(A1, 'stun.dimension', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([90, true]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    expect(a.has(B1, 'blinded')).toBe(false);
+    a.end();
+    expect(a.has(B1, 'blinded')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(true); // through their next turn
+    a.pass(1);
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
 
-  it('Phase Lock: if damage wakes them, they\'re Banished instead', () => {
-    const a = arena({ p0: [['stun.dimension', 'shot']], p1: [['shot']] });
-    a.use(A1, 'stun.dimension', B1).end().pass(1).use(A1, 'shot', B1).end();
-    expect([a.has(B1, 'sleep'), banished(a, B1)]).toEqual([false, true]);
-  });
-
-  it('Phase Lock: Sleep from other sources still just wakes normally', () => {
-    const a = arena({ p0: [['shot']], p1: [['shot']] });
-    a.give(B1, 'sleep', { source: A1 }).use(A1, 'shot', B1).end();
-    expect([a.has(B1, 'sleep'), banished(a, B1)]).toEqual([false, false]);
-  });
 
   it('Unfold: the user is Banished; when they return they gain Stealth, Ghosted and 1 Focus for 2 turns', () => {
     const a = arena({ p0: [['dance.dimension']], p1: [['shot']] });
@@ -545,20 +556,27 @@ describe('Dimension skills', () => {
     expect([banished(a, A2), a.hp(A2), a.has(A2, 'confusion'), a.has(A2, 'weakness'), a.has(A2, 'might')]).toEqual([false, 80, false, false, true]);
   });
 
-  it('Twin Veil: target ally and a random other ally are Entangled for 2 turns; the target gains Stealth (so the partner does too)', () => {
+  it('Out of Phase: target ally gains 2 Might for 2 turns', () => {
     const a = arena({ p0: [['bless.dimension'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bless.dimension', A2).end();
-    expect([entangled(a, A1), entangled(a, A2), a.has(A2, 'stealth'), a.has(A1, 'stealth')]).toEqual([true, true, true, true]);
+    a.use(A1, 'bless.dimension', A2).end().pass(1).use(A2, 'shot', B1).end();
+    expect([a.stacks(A2, 'might'), a.hp(B1)]).toEqual([2, 100 - 25]);
+    a.pass(3);
+    expect(a.has(A2, 'might')).toBe(false);
   });
 
-  it('Twin Veil: exactly one other ally is linked; enemies are not', () => {
-    const a = arena({ p0: [['bless.dimension'], ['shot'], ['shot']], p1: [['shot']] });
+  it('Out of Phase: meanwhile the ally is Isolated — their own side can\'t target them', () => {
+    const a = arena({ p0: [['bless.dimension'], ['shot'], ['heal']], p1: [['shot']] });
     a.use(A1, 'bless.dimension', A2).end();
-    expect([entangled(a, A2), a.has(A2, 'stealth'), entangled(a, B1)]).toEqual([true, true, false]);
-    expect([A1, A3].filter((u) => entangled(a, u))).toHaveLength(1);
-    a.pass(4);
-    expect(entangled(a, A2)).toBe(false); // 2 turns
+    expect([a.has(A2, 'isolated'), a.has(A2, 'stealth')]).toEqual([true, false]);
+    a.use(B1, 'shot', A2).end(); // enemies still can
+    expect(a.hp(A2)).toBe(85);
+    expect(a.reject(() => a.use(A3, 'heal', A2))).toBe('bad_target');
+    a.pass(1);
+    expect(a.has(A2, 'isolated')).toBe(true); // through the enemy's 2nd turn
+    a.pass(1);
+    expect(a.has(A2, 'isolated')).toBe(false);
   });
+
 
   it('Tangled Fates: target and a random ally Entangled for 3 turns; each skill either uses gives both 1 Confusion', () => {
     const a = arena({ p0: [['curse.dimension']], p1: [['shot'], ['shot']] });
@@ -626,19 +644,21 @@ describe('Dimension skills', () => {
     expect([A1, A2, A3].map((u) => a.stacks(u, 'might'))).toEqual([1, 1, 1]);
   });
 
-  it('Shear: 10 to all enemies, repeated at the start of the user\'s next turn if still Stealthed; Stealthy', () => {
-    const a = arena({ p0: [['cleave.dimension']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'stealth', { duration: 3 }).use(A1, 'cleave.dimension').end();
-    expect([a.hp(B1), a.hp(B2), a.has(A1, 'stealth')]).toEqual([90, 90, true]);
-    a.end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 80]);
+  it('Shear: 20 to the target; the first of their allies to use a skill before the user\'s next turn takes 15', () => {
+    const a = arena({ p0: [['cleave.dimension']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'cleave.dimension', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.has(B2, 'shear'), a.has(B3, 'shear')]).toEqual([80, 100, 100, true, true]);
+    a.use(B3, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(B2), a.hp(B3)]).toEqual([100, 85]);
+    expect([a.has(B2, 'shear'), a.has(B3, 'shear')]).toEqual([false, false]);
   });
 
-  it('Shear: no repeat when the user isn\'t Stealthed', () => {
+  it('Shear: the target acting doesn\'t take it; if no ally of theirs acts, it falls on no one', () => {
     const a = arena({ p0: [['cleave.dimension']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.dimension').end().pass(2);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]);
+    a.use(A1, 'cleave.dimension', B1).end().use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B2, 'shear')]).toEqual([80, 100, false]);
   });
+
 
   it('Dislocation: all enemies Entangled together for 2 turns, then Blinded for 1 turn', () => {
     const a = arena({ p0: [['shout.dimension']], p1: [['shot'], ['shot'], ['shot']] });

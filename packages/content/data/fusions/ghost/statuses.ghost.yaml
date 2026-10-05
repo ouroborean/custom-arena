@@ -49,9 +49,26 @@ spirit_mark:
   stacking: unique
   description: Wherever the Haunt drifts, its new bearer is Horrified for 1 turn.
 
+# Beckoning Spirit: a Taunt toward its applier that drifts to a random ally of the bearer at the end
+# of each of the applier's turns after the one it was sent (counter `beckon_turn` on the applier).
 beckoner:
-  name: Beckoning
-  kind: Buff
+  name: Beckoning Spirit
+  kind: Debuff
   element: Ghost
   stacking: unique
-  description: The Taunted enemy's Normal damage can't hurt the bearer.
+  countsAs: [taunt]
+  description: >-
+    Taunted by the one who sent it. At the end of each of their later turns, it drifts to a random ally
+    of the bearer.
+  modifiers:
+    - { mod: forceTarget }
+  triggers:
+    - on: turnEnd
+      do:
+        - op: if
+          cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counter: beckon_turn }] }] }, atLeast: 1 } }
+          then:
+            - op: forEach
+              in: { randomEnemy: 1, exclude: bearer, where: { kind: { unit: it, is: character } } }
+              do:
+                - { op: moveEffects, from: bearer, to: it, effects: [beckoner] }

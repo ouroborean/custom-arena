@@ -18,4 +18,4 @@ haunt_drift:
           - op: if
             cond: { has: { unit: bearer, effect: spirit_mark } }
             then: [{ op: apply, to: it, effect: horrified, duration: { enemyTurns: 1 } }]
-          - { op: moveEffects, from: bearer, to: it, effects: [haunt, breath_haunt, restless_haunt, spirit_mark] }
+          - { op: moveEffects, from: bearer, to: it, effects: [haunt, breath_haunt, spirit_mark] }

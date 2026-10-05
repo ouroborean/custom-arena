@@ -36,32 +36,15 @@ smash.alchemy:
   element: Alchemy
   name: Kiln Crash
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. For 2 turns, Scorched on any of them also
-    halves their Shield, at the end of each of the user's turns.
+    Deals 25 damage to target enemy. The kiln's heat washes over their allies instead of hurting them:
+    each gains Catalyst.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect: &kiln
-        id: kiln_crash
-        name: Kiln Crash
-        kind: Debuff
-        element: Alchemy
-        description: While Scorched, the bearer's Shield is halved at the end of each of the applier's turns.
-        triggers:
-          - on: turnEnd
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: scorched } }
-                then:
-                  - { op: scaleShields, on: bearer, factor: 0.5 }
-    - { op: apply, to: primaryAllies, duration: { enemyTurns: 2 }, effect: *kiln }
+    - { op: apply, to: primaryAllies, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
 
 charge.alchemy:
   archetype: Charge
@@ -90,8 +73,9 @@ riposte.alchemy:
   element: Alchemy
   name: Reactive Flask
   description: >-
-    For 1 turn, counters any Harmful skill used on the user: its user is Ignited, and the user's
-    Debuffs are Transmuted into Renew. Invisible.
+    For 1 turn, the first Harmful skill used on the user shatters the flask: it's countered, and its
+    user is splashed: their Might, Armor, Focus and Renew are Transmuted, and they gain Catalyst.
+    Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -106,14 +90,15 @@ riposte.alchemy:
         kind: Buff
         element: Alchemy
         visibility: hidden
-        description: Counters Harmful skills used on the bearer, Ignites their users, and Transmutes the bearer's Debuffs.
+        description: Counters the first Harmful skill used on the bearer; its user's Buffs are Transmuted and they gain Catalyst.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
+            consume: true
             do:
-              - { op: apply, to: eventSource, effect: ignite }
-              - { op: transmute, on: bearer, kind: Debuff }
+              - { op: transmute, on: eventSource, effects: [might, armor, focus, renew] }
+              - { op: apply, to: eventSource, effect: catalyst_debuff, duration: { enemyTurns: 2 } }
 
 rage.alchemy:
   archetype: Rage
@@ -366,49 +351,65 @@ channel.alchemy:
   element: Alchemy
   name: Slow Distillation
   description: >-
-    For up to 4 turns, at the end of each of the user's turns, deals 5 damage to all enemies and gives
-    all allies 1 Renew. When it runs its course, allies' Renew boils off as 5 Affliction damage per
-    stack to random enemies. Channeled.
+    For up to 3 turns, the brew concentrates at the end of each of the user's turns. When it ends,
+    run its course or broken early (using another skill breaks it), it's released all at once: 10
+    damage to every enemy and 5 healing to every ally per turn it brewed. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
   target: allEnemies
   ops:
+    - { op: setCounter, name: distilled_turns, value: 0 }
     - op: apply
       to: actor
-      duration: { enemyTurns: 4 }
+      effect:
+        id: distillation_release
+        name: Distillation
+        kind: Neutral
+        element: Alchemy
+        stacking: unique
+        description: When the Slow Distillation ends, it's released on both teams.
+        triggers:
+          - on: ownEffectEnded
+            when: { effects: [slow_distillation] }
+            do:
+              - { op: damage, to: allEnemies, amount: { mul: [10, { counter: distilled_turns }] } }
+              - { op: heal, to: allAllies, amount: { mul: [5, { counter: distilled_turns }] } }
+              - { op: removeSelf }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
       effect:
         id: slow_distillation
         name: Slow Distillation
         kind: Neutral
         element: Alchemy
         interruptible: true
-        description: Each turn, 5 damage to all enemies and 1 Renew to all allies; at the end, the Renew boils off.
+        description: Concentrates each turn; released on both teams when it ends.
         triggers:
           - on: turnEnd
             do:
-              - { op: damage, to: allEnemies, amount: 5 }
-              - { op: apply, to: allAllies, effect: renew }
-        onExpire:
-          - op: repeat
-            times: { totalStacks: { in: allAllies, effect: renew } }
-            do:
-              - { op: damage, to: { randomEnemy: 1 }, amount: 5, type: Affliction }
-          - { op: removeEffect, from: allAllies, effect: renew }
+              - { op: setCounter, name: distilled_turns, value: { sum: [{ counter: distilled_turns }, 1] } }
 
 stab.alchemy:
   archetype: Stab
   element: Alchemy
   name: Probing Lancet
-  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. It can't be countered or reflected.
+  description: >-
+    Deals 10 damage to target enemy. If they have more Buffs than Debuffs, the lancet Transmutes one of
+    their Buffs (one with no recipe is removed); if not, it finds a weak spot: 10 more damage.
   cost: r
   cooldown: 0
-  tags: [Harmful, NonStrategic, Uncounterable]
+  tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - op: if
+      cond: { compare: { value: { sum: [{ kindCount: { unit: primary, kind: Buff } }, { mul: [-1, { kindCount: { unit: primary, kind: Debuff } }] }] }, atLeast: 1 } }
+      then:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: transmute, on: primary, kind: Buff, count: 1, removeUnmatched: true }
+      else:
+        - { op: damage, to: primary, amount: 20 }
 
 ravage.alchemy:
   archetype: Ravage
@@ -626,21 +627,22 @@ cleave.alchemy:
   element: Alchemy
   name: Splash Potion
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. If the target has Catalyst, it
-    splashes: both hits are doubled.
-  cost: S
+    Deals 20 damage to target enemy, who is Weakened for 1 turn. The potion splashes onto every other
+    enemy: 5 damage for each Debuff on the target (up to 15).
+  cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: if
-      cond: { has: { unit: primary, effect: catalyst } }
-      then:
-        - { op: damage, to: primary, amount: 25 }
-        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 30 }
-      else:
-        - { op: damage, to: primary, amount: 25 }
-        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: weakness, duration: { enemyTurns: 1 } }
+    - op: set
+      var: splash
+      value:
+        if: { compare: { value: { kindCount: { unit: primary, kind: Debuff } }, atLeast: 3 } }
+        then: 15
+        else: { mul: [5, { kindCount: { unit: primary, kind: Debuff } }] }
+    - { op: damage, to: { filter: allEnemies, exclude: primary, where: { not: { isPrimary: it } } }, amount: { var: splash } }
 
 shout.alchemy:
   archetype: Shout

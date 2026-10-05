@@ -69,8 +69,7 @@ describe('Winter keyword: Snowbound', () => {
     const a = arena({ p0: [['stab.winter'], ['curse.winter']], p1: [['charge']] });
     a.use(A1, 'stab.winter', B1).end().end();
     expect(a.hp(B1)).toBe(90); // has a Charge skill: not Immobile
-    a.use(A2, 'curse.winter', B1).end().end();
-    a.use(A1, 'stab.winter', B1).end();
+    a.use(A2, 'curse.winter', B1).use(A1, 'stab.winter', B1).end();
     expect(a.hp(B1)).toBe(70);
   });
 
@@ -121,21 +120,37 @@ describe('Winter skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
-  it('Ice Skate: free; the user begins Rushing, and their next damaging skill Snowbinds its targets for 1 turn', () => {
-    const a = arena({ p0: [['charge.winter', 'shot']], p1: [['shot']] });
+  it('Ice Skate: the user gains 2 Swiftness for 2 turns', () => {
+    const a = arena({ p0: [['charge.winter']], p1: [['shot']] });
     a.use(A1, 'charge.winter').end();
-    expect(a.has(A1, 'rushing')).toBe(true);
-    a.end().use(A1, 'shot', B1).end();
-    expect(a.has(B1, 'snowbound')).toBe(true);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(2);
-    a.pass(1).use(A1, 'shot', B1).end();
-    expect(a.has(B1, 'snowbound')).toBe(false); // only the next one
+    expect([a.stacks(A1, 'swiftness'), appliedDur(a, A1, 'swiftness'), a.has(A1, 'rushing')]).toEqual([2, 4, false]);
   });
 
-  it('Ice Skate: a Helpful skill doesn’t use up the Snowbind', () => {
-    const a = arena({ p0: [['charge.winter', 'heal', 'shot']], p1: [['shot']] });
-    a.use(A1, 'charge.winter').end().end().use(A1, 'heal', A1).end().end().use(A1, 'shot', B1).end();
-    expect(a.has(B1, 'snowbound')).toBe(true);
+  it('Ice Skate: the next Harmful skill spends the Swiftness for 5 more damage per stack and Snowbinds what it damages for 1 turn', () => {
+    const a = arena({ p0: [['charge.winter', 'blast']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.winter').end().end();
+    a.use(A1, 'blast').end(); // base Blast: 35 to all, +10 each
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'swiftness')]).toEqual([55, 55, false]);
+    expect([a.has(B1, 'snowbound'), a.has(B2, 'snowbound'), appliedDur(a, B1, 'snowbound')]).toEqual([true, true, 2]);
+  });
+
+  it('Ice Skate: a Stun the Swiftness stopped leaves fewer stacks to spend; only the next Harmful skill', () => {
+    const a = arena({ p0: [['charge.winter', 'shot']], p1: [['stun']] });
+    a.use(A1, 'charge.winter').end();
+    a.use(B1, 'stun', A1).end(); // 1 Swiftness stops it; base Stun's 15 still lands
+    expect(a.stacks(A1, 'swiftness')).toBe(1);
+    a.use(A1, 'shot', B1).end(); // base Shot 15, +5
+    expect([a.hp(B1), a.has(B1, 'snowbound'), a.has(A1, 'swiftness'), a.has(A1, 'ice_skate')]).toEqual([80, true, false, false]);
+    a.end();
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(65);
+  });
+
+  it('Ice Skate: Helpful skills don’t end the skate', () => {
+    const a = arena({ p0: [['charge.winter', 'heal']], p1: [['shot']] });
+    a.use(A1, 'charge.winter').end().end();
+    a.use(A1, 'heal', A1).end();
+    expect([a.has(A1, 'ice_skate'), a.stacks(A1, 'swiftness')]).toEqual([true, 2]);
   });
 
   it('Shatterguard: Invisible; counters the first Harmful skill; each Frost debuff on its user ends for 15 Piercing', () => {
@@ -188,12 +203,32 @@ describe('Winter skills', () => {
     expect(a.hp(B1)).toBe(80);
   });
 
-  it('Whiteout: every enemy is Snowbound until it lands; then 30 Piercing to the enemy team', () => {
-    const a = arena({ p0: [['snipe.winter']], p1: [['shot'], ['shot']] });
+  it('Whiteout: lands on the following turn: 60 Piercing split among the enemies who aren’t Immobile', () => {
+    const a = arena({ p0: [['snipe.winter']], p1: [['charge'], ['charge'], ['shot']] });
     a.give(B1, 'armor', { stacks: 3 }).use(A1, 'snipe.winter').end();
-    expect([a.hp(B1), a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([100, true, true]);
-    a.end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([70, 70, false, false]);
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([100, 100, 100]);
+    a.end(); // B1 and B2 have a Charge (moving); p1c2 is Immobile
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([70, 70, 100]);
+  });
+
+  it('Whiteout: a lone moving enemy takes it all; Snowbound ones count as Immobile', () => {
+    const a = arena({ p0: [['snipe.winter']], p1: [['charge'], ['charge'], ['shot']] });
+    a.use(A1, 'snipe.winter').end();
+    a.give(B2, 'snowbound', { source: A1 }).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([40, 100, 100]);
+  });
+
+  it('Whiteout: if every enemy is Immobile, it’s split among all of them', () => {
+    const a = arena({ p0: [['snipe.winter']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'snipe.winter').end().end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([80, 80, 80]);
+  });
+
+  it('Whiteout: Channeled: Stunning the user before it lands stops it', () => {
+    const a = arena({ p0: [['snipe.winter']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'snipe.winter').end();
+    a.use(B1, 'stun', A1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
   });
 
   it('Snare of Frost: Invisible', () => {
@@ -221,20 +256,31 @@ describe('Winter skills', () => {
     expect([a.hp(A1), a.hp(B1), a.has(B1, 'snowbound')]).toEqual([85, 100, false]);
   });
 
-  it('Powder Leap: the user Leaps; the last enemy who damaged them is Snowbound for 1 turn', () => {
+  it('Powder Leap: the first enemy Harmful skill on the user: they Leap before it lands, and that enemy is Snowbound for 1 turn', () => {
     const a = arena({ p0: [['maneuver.winter']], p1: [['shot'], ['shot']] });
-    a.pass(1).use(B1, 'shot', A1).end().end();
-    a.use(B2, 'shot', A1).end();
     a.use(A1, 'maneuver.winter').end();
-    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([true, true]);
-    expect([a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([false, true]);
-    expect(appliedDur(a, B2, 'snowbound')).toBe(2);
+    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([false, false]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([100, true, true]);
+    expect([a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([true, false]);
+    expect(appliedDur(a, B1, 'snowbound')).toBe(3); // applied on the enemy's turn
   });
 
-  it('Powder Leap: nobody is Snowbound if no enemy has damaged the user', () => {
-    const a = arena({ p0: [['maneuver.winter']], p1: [['shot']] });
-    a.use(A1, 'maneuver.winter').end();
-    expect([a.has(A1, 'leaping'), a.has(B1, 'snowbound')]).toEqual([true, false]);
+  it('Powder Leap: only the first time; the spring is spent for every enemy', () => {
+    const a = arena({ p0: [['maneuver.winter']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'maneuver.winter').end().use(B1, 'shot', A1).end();
+    expect([a.has(B1, 'powder_leap'), a.has(B2, 'powder_leap')]).toEqual([false, false]);
+  });
+
+  it('Powder Leap: skills on the user’s allies don’t set it off; it lasts 2 turns', () => {
+    const a = arena({ p0: [['maneuver.winter'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'maneuver.winter').end().use(B1, 'shot', A2).end();
+    expect([a.hp(A2), a.has(A1, 'leaping'), a.has(B1, 'snowbound')]).toEqual([85, false, false]);
+    a.end().use(B1, 'shot', A1).end(); // their 2nd turn: still ready
+    expect([a.hp(A1), a.has(A1, 'leaping')]).toEqual([100, true]);
+    const b = arena({ p0: [['maneuver.winter']], p1: [['shot']] });
+    b.use(A1, 'maneuver.winter').end().pass(4).use(B1, 'shot', A1).end();
+    expect([b.hp(A1), b.has(A1, 'leaping')]).toEqual([85, false]);
   });
 
   it('Great Yeti: a permanent 80 HP Yeti; Yeti Maul (free) deals 30', () => {
@@ -265,20 +311,17 @@ describe('Winter skills', () => {
     expect(minions(a, 'great_yeti')).toHaveLength(0);
   });
 
-  it('Frostwind Bolt: 20; a mobile target is Snowbound for 2 turns', () => {
-    const a = arena({ p0: [['bolt.winter']], p1: [['charge', 'shot']] });
-    a.use(A1, 'bolt.winter', B1).end();
-    expect([a.hp(B1), a.has(B1, 'snowbound'), a.has(B1, 'stun_ns')]).toEqual([80, true, false]);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(4);
+  it('Frostwind Bolt: 20 to the target; the gust carries on to a random other enemy: 10, Snowbound for 1 turn', () => {
+    const a = arena({ p0: [['bolt.winter']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'swiftness').use(A1, 'bolt.winter', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'snowbound'), a.has(B2, 'snowbound'), a.has(B2, 'swiftness')]).toEqual([80, 90, false, true, false]);
+    expect(appliedDur(a, B2, 'snowbound')).toBe(2);
   });
 
-  it('Frostwind Bolt: an Immobile target has their non-Strategic skills stunned for 1 turn instead', () => {
-    const a = arena({ p0: [['bolt.winter']], p1: [['shot', 'curse']] });
+  it('Frostwind Bolt: the gust finds Immobile enemies too', () => {
+    const a = arena({ p0: [['bolt.winter']], p1: [['charge'], ['shot']] });
     a.use(A1, 'bolt.winter', B1).end();
-    expect([a.hp(B1), a.has(B1, 'snowbound')]).toEqual([80, false]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(true);
+    expect([a.hp(B2), a.has(B2, 'snowbound')]).toEqual([90, true]);
   });
 
   it('Polar Gale: 20 to all enemies; without Rushing or Leaping, no Snowbound', () => {
@@ -301,65 +344,66 @@ describe('Winter skills', () => {
     expect(appliedDur(a, B2, 'snowbound')).toBe(4);
   });
 
-  it('Steal Warmth: 5 damage, Snowbound for 1 turn; the user heals 10 and gains each mobility buff stripped', () => {
+  it('Steal Warmth: 5 damage; the user’s Frost debuffs (Snowbound included) move to the target; heals 10 + 10 per debuff', () => {
     const a = arena({ p0: [['consume.winter']], p1: [['shot']] });
-    a.setHp(A1, 50).give(B1, 'swiftness').give(B1, 'rushing');
+    a.setHp(A1, 50).give(A1, 'chilled', { source: B1 }).give(A1, 'snowbound', { source: B1 }).give(A1, 'armor');
     a.use(A1, 'consume.winter', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'snowbound')]).toEqual([95, 60, true]);
-    expect([a.has(A1, 'swiftness'), a.has(A1, 'rushing'), a.has(A1, 'leaping')]).toEqual([true, true, false]);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(2);
+    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 80]);
+    expect([a.has(A1, 'chilled'), a.has(A1, 'snowbound'), a.has(A1, 'armor')]).toEqual([false, false, true]);
+    expect([a.has(B1, 'chilled'), a.has(B1, 'snowbound')]).toEqual([true, true]);
   });
 
-  it('Steal Warmth: nothing to strip, nothing gained', () => {
+  it('Steal Warmth: with no chill to pass, the user just heals 10', () => {
     const a = arena({ p0: [['consume.winter']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'consume.winter', B1).end();
-    expect([a.hp(A1), a.has(A1, 'swiftness'), a.has(A1, 'rushing')]).toEqual([60, false, false]);
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'snowbound')]).toEqual([95, 60, false]);
   });
 
-  it('Snow Sprites: 2 Sprites (10 HP) for 3 turns; Flurry deals 5 Piercing', () => {
-    const a = arena({ p0: [['summon.winter']], p1: [['shot']] });
+  it('Snow Sprites: a Snow Sprite (20 HP) for 3 turns; Flurry (free) deals 5 Piercing to all enemies', () => {
+    const a = arena({ p0: [['summon.winter']], p1: [['shot'], ['shot']] });
     a.use(A1, 'summon.winter').end();
     const s = minions(a, 'snow_sprite');
-    expect(s.map((u) => u.hp)).toEqual([10, 10]);
+    expect(s.map((u) => u.hp)).toEqual([20]);
     a.end();
-    a.give(B1, 'armor', { stacks: 3 }).use(s[0]!.id, 'snow_sprite_flurry', B1).end();
-    expect([a.hp(B1), a.has(B1, 'snowbound')]).toEqual([95, false]);
+    a.give(B1, 'armor', { stacks: 3 }).use(s[0]!.id, 'snow_sprite_flurry').end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'snowbound')]).toEqual([95, 95, false]);
+    expect(content.skills.snow_sprite_flurry?.cost).toEqual({ S: 0, A: 0, I: 0, W: 0, r: 0 });
+  });
+
+  it('Snow Sprites: when its time runs out, it melts: every enemy is Snowbound for 1 turn', () => {
+    const a = arena({ p0: [['summon.winter']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'summon.winter').end();
     a.pass(4);
-    expect(minions(a, 'snow_sprite')).toHaveLength(0);
+    expect([minions(a, 'snow_sprite').length, a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([1, false, false]);
+    a.end();
+    expect([minions(a, 'snow_sprite').length, a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([0, true, true]);
   });
 
-  it('Snow Sprites: a target hit by two Flurries in one turn is Snowbound for 1 turn', () => {
-    const a = arena({ p0: [['summon.winter']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.winter').end().end();
-    const [s1, s2] = minions(a, 'snow_sprite');
-    a.use(s1!.id, 'snow_sprite_flurry', B1).use(s2!.id, 'snow_sprite_flurry', B1).end();
-    expect([a.hp(B1), a.has(B1, 'snowbound')]).toEqual([90, true]);
+  it('Snow Sprites: destroying it melts it too', () => {
+    const a = arena({ p0: [['summon.winter']], p1: [['smash'], ['shot']] });
+    a.use(A1, 'summon.winter').end();
+    a.use(B1, 'smash', minions(a, 'snow_sprite')[0]!.id).end(); // 25 damage
+    expect([minions(a, 'snow_sprite').length, a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([0, true, true]);
   });
 
-  it('Snow Sprites: hits on two different targets don’t Snowbind', () => {
-    const a = arena({ p0: [['summon.winter']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.winter').end().end();
-    const [s1, s2] = minions(a, 'snow_sprite');
-    a.use(s1!.id, 'snow_sprite_flurry', B1).use(s2!.id, 'snow_sprite_flurry', B2).end();
-    expect([a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([false, false]);
-  });
-
-  it('Long Winter: 10 to all enemies at the end of the user’s turns for up to 2 turns; a random one is Snowbound', () => {
-    const a = arena({ p0: [['channel.winter']], p1: [['shot']] });
-    a.use(A1, 'channel.winter').end();
-    expect([a.hp(B1), a.has(B1, 'snowbound')]).toEqual([90, true]);
-    a.pass(2);
-    expect(a.hp(B1)).toBe(80);
-    a.pass(2);
-    expect(a.hp(B1)).toBe(80);
-  });
-
-  it('Long Winter: while it lasts, enemies’ Frost debuffs don’t wear off', () => {
+  it('Long Winter: at the end of the user’s turns, 5, then 10, then 15 to all enemies; the third wave Snowbinds them for 2 turns', () => {
     const a = arena({ p0: [['channel.winter']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'chilled', { source: A1, duration: 1 }).use(A1, 'channel.winter').end();
-    expect(a.has(B2, 'chilled')).toBe(true);
+    a.use(A1, 'channel.winter').end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'snowbound')]).toEqual([95, 95, false]);
     a.pass(2);
-    expect(a.has(B2, 'chilled')).toBe(true);
+    expect([a.hp(B1), a.has(B1, 'snowbound')]).toEqual([85, false]);
+    a.pass(2);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'snowbound'), a.has(B2, 'snowbound')]).toEqual([70, 70, true, true]);
+    expect(appliedDur(a, B1, 'snowbound')).toBe(4);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(70); // up to 3 turns
+  });
+
+  it('Long Winter: Channeled: using another skill ends it', () => {
+    const a = arena({ p0: [['channel.winter', 'shot']], p1: [['shot']] });
+    a.use(A1, 'channel.winter').end().end();
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(80); // 5, then the Shot's 15; no 10-damage wave
   });
 
   it('Icicle Knife: 10, or 20 against an Immobile target', () => {
@@ -382,37 +426,73 @@ describe('Winter skills', () => {
     expect([appliedDur(a, A1, 'frostbitten'), appliedDur(a, A1, 'frostborn')]).toEqual([2, 4]);
   });
 
-  it('Updraft Feint: Invisible; counters the target’s Harmful skill and the user Leaps', () => {
-    const a = arena({ p0: [['mislead.winter']], p1: [['shot']] });
+  it('Snatching Gale: Invisible; the target’s Harmful skill is countered, and the gale holds it', () => {
+    const a = arena({ p0: [['mislead.winter', 'shot']], p1: [['shot']] });
     a.use(A1, 'mislead.winter', B1).end();
-    expect([hidden(a, B1, 1), a.has(A1, 'leaping')]).toEqual([true, false]);
+    expect(hidden(a, B1, 1)).toBe(true);
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([100, true, true]);
+    expect([a.hp(A1), a.hp(B1), a.has(A1, 'snatched_skill')]).toEqual([100, 100, true]);
   });
 
-  it('Updraft Feint: Helpful skills go through, and the user doesn’t Leap', () => {
-    const a = arena({ p0: [['mislead.winter']], p1: [['heal']] });
+  it('Snatching Gale: the user’s next Harmful skill unleashes it too, as their own, on that skill’s first target', () => {
+    const a = arena({ p0: [['mislead.winter', 'shot']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'mislead.winter', B1).end();
+    a.use(B1, 'stun', A1).end();
+    expect([a.hp(A1), a.has(A1, 'stun')]).toEqual([100, false]);
+    a.use(A1, 'shot', B2).end(); // Shot's 15, then the snatched Stun's 15 and Stun, on B2
+    expect([a.hp(B2), a.has(B2, 'stun'), a.hp(B1), a.has(A1, 'snatched_skill')]).toEqual([70, true, 100, false]);
+  });
+
+  it('Snatching Gale: a snatched area skill hits the user’s enemies', () => {
+    const a = arena({ p0: [['mislead.winter', 'shot'], ['shot']], p1: [['blast'], ['shot']] });
+    a.use(A1, 'mislead.winter', B1).end();
+    a.use(B1, 'blast').end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([100, 100]);
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([50, 65, 100]);
+  });
+
+  it('Snatching Gale: held only until the end of the user’s next turn; unused by then, it’s lost', () => {
+    const a = arena({ p0: [['mislead.winter', 'shot']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'mislead.winter', B1).end();
+    a.use(B1, 'stun', A1).end();
+    a.pass(1); // the user's next turn, without a Harmful skill
+    expect(a.has(A1, 'snatched_skill')).toBe(false);
+    a.pass(1).use(A1, 'shot', B2).end();
+    expect([a.hp(B2), a.has(B2, 'stun')]).toEqual([85, false]);
+  });
+
+  it('Snatching Gale: only the first Harmful skill within 1 turn; Helpful skills don’t set it off', () => {
+    const a = arena({ p0: [['mislead.winter']], p1: [['heal', 'shot']] });
     a.setHp(B1, 50).use(A1, 'mislead.winter', B1).end().use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.has(A1, 'leaping')]).toEqual([75, false]);
+    expect([a.hp(B1), a.has(A1, 'snatched_skill')]).toEqual([75, false]);
+    a.pass(1).use(B1, 'shot', A1).end(); // turn 4: over
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Squall: 15 damage and a 1-turn Stun', () => {
+  it('Squall: 15 damage and Snowbound for 2 turns; still Snowbound at the end of their next turn, they’re Stunned for 1 turn', () => {
     const a = arena({ p0: [['stun.winter']], p1: [['shot']] });
     a.use(A1, 'stun.winter', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([85, true]);
-    expect(appliedDur(a, B1, 'stun')).toBe(2);
+    expect([a.hp(B1), a.has(B1, 'snowbound'), a.has(B1, 'stun'), appliedDur(a, B1, 'snowbound')]).toEqual([85, true, false, 4]);
+    a.use(B1, 'shot', A1).end(); // they still act this turn
+    expect([a.hp(A1), a.has(B1, 'stun')]).toEqual([85, true]);
+    a.end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().end().end();
+    expect(a.has(B1, 'stun')).toBe(false);
   });
 
-  it('Squall: Swiftness can’t stop it; the target loses all Swiftness and it lasts 1 turn longer per stack', () => {
+  it('Squall: shaking off the Snowbound first means no Stun', () => {
+    const a = arena({ p0: [['stun.winter']], p1: [['rage.wind']] });
+    a.use(A1, 'stun.winter', B1).end();
+    a.use(B1, 'rage.wind').end(); // Chainbreaker: removes their Debuffs
+    expect([a.has(B1, 'snowbound'), a.has(B1, 'stun')]).toEqual([false, false]);
+  });
+
+  it('Squall: the Snowbound strips Swiftness, so it can’t stop the Stun', () => {
     const a = arena({ p0: [['stun.winter']], p1: [['shot']] });
-    a.give(B1, 'swiftness', { stacks: 2 }).use(A1, 'stun.winter', B1).end();
+    a.give(B1, 'swiftness', { stacks: 2 }).use(A1, 'stun.winter', B1).end().end();
     expect([a.has(B1, 'stun'), a.has(B1, 'swiftness')]).toEqual([true, false]);
-    a.end().end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // 2nd turn
-    a.end().end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // 3rd turn
-    a.end().end();
-    a.use(B1, 'shot', A1).end();
   });
 
   it('Snow Dance: 1 Might, 2 Swiftness and Rushing for 3 turns', () => {
@@ -476,27 +556,46 @@ describe('Winter skills', () => {
     expect(a.has(B1, 'chilled')).toBe(false);
   });
 
-  it('Snowbind: Snowbound for 2 turns, and 1 Weakness per mobility buff stripped', () => {
+  it('Snowbind: Snowbound for 1 turn; a target who uses no skill shakes it off', () => {
     const a = arena({ p0: [['curse.winter']], p1: [['shot']] });
-    a.give(B1, 'swiftness').give(B1, 'leaping').use(A1, 'curse.winter', B1).end();
-    expect([a.has(B1, 'snowbound'), a.stacks(B1, 'weakness')]).toEqual([true, 2]);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(4);
-    const b = arena({ p0: [['curse.winter']], p1: [['shot']] });
-    b.use(A1, 'curse.winter', B1).end();
-    expect(b.has(B1, 'weakness')).toBe(false);
+    a.use(A1, 'curse.winter', B1).end();
+    expect([a.has(B1, 'snowbound'), appliedDur(a, B1, 'snowbound')]).toEqual([true, 2]);
+    a.end();
+    expect(a.has(B1, 'snowbound')).toBe(false);
   });
 
-  it('Frostfeather: 20 damage; for 1 turn, allies who damage the target gain 1 Swiftness', () => {
+  it('Snowbind: each skill they use while it lasts adds 1 turn to it', () => {
+    const a = arena({ p0: [['curse.winter']], p1: [['shot']] });
+    a.use(A1, 'curse.winter', B1).end();
+    a.use(B1, 'shot', A1).end();
+    a.end();
+    expect(a.has(B1, 'snowbound')).toBe(true); // into their next turn
+    a.end();
+    expect(a.has(B1, 'snowbound')).toBe(false);
+  });
+
+  it('Snowbind: up to 3 times', () => {
+    const a = arena({ p0: [['curse.winter']], p1: [['shot']] });
+    a.use(A1, 'curse.winter', B1).end();
+    for (let i = 0; i < 3; i++) a.use(B1, 'shot', A1).end().end(); // three extensions
+    expect(a.has(B1, 'snowbound')).toBe(true);
+    a.use(B1, 'shot', A1).end(); // a fourth adds nothing
+    expect(a.has(B1, 'snowbound')).toBe(false);
+  });
+
+  it('Frostfeather: 20 damage; a single further hit doesn’t set the frost', () => {
     const a = arena({ p0: [['smite.winter'], ['shot'], ['shot']], p1: [['shot']] });
     a.use(A1, 'smite.winter', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.stacks(A2, 'swiftness'), a.has(A3, 'swiftness'), a.has(B1, 'snowbound')]).toEqual([65, 1, false, false]);
+    expect([a.hp(B1), a.has(B1, 'frostbitten')]).toEqual([65, false]);
   });
 
-  it('Frostfeather: once two allies have, the target is Snowbound for 2 turns', () => {
+  it('Frostfeather: the second time the user’s side damages them again, 10 Piercing and Frostbitten for 1 turn (not a Stun)', () => {
     const a = arena({ p0: [['smite.winter'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'smite.winter', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.stacks(A3, 'swiftness'), a.has(B1, 'snowbound')]).toEqual([1, true]);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(4);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'smite.winter', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'frostbitten'), a.has(B1, 'stun')]).toEqual([100 - 10 - 5 - 5 - 10, true, false]);
+    expect(appliedDur(a, B1, 'frostbitten')).toBe(2);
+    a.use(B1, 'shot', A1).end(); // Shot isn't Strategic: they still act
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Snowed In: all allies heal 30 and gain 15 Shield for 1 turn; then every unit, the user included, is Snowbound', () => {
@@ -511,17 +610,18 @@ describe('Winter skills', () => {
     expect(a.has(A1, 'snowbound')).toBe(false);
   });
 
-  it('Winter’s Descent: 25 to the target and 15 to another enemy; no Frostbite unless the user is Leaping', () => {
-    const a = arena({ p0: [['cleave.winter']], p1: [['shot'], ['shot']] });
+  it('Winter’s Descent: 25 to the target; each other Immobile enemy takes 10; each one still moving takes 5 and is Snowbound for 1 turn', () => {
+    const a = arena({ p0: [['cleave.winter']], p1: [['charge'], ['charge'], ['shot']] });
     a.use(A1, 'cleave.winter', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([75, 85, false, false]);
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([75, 95, 90]);
+    expect([a.has(B1, 'snowbound'), a.has(B2, 'snowbound'), a.has('p1c2', 'snowbound')]).toEqual([false, true, false]);
+    expect(appliedDur(a, B2, 'snowbound')).toBe(2);
   });
 
-  it('Winter’s Descent: while Leaping, both are Frostbitten for 1 turn', () => {
-    const a = arena({ p0: [['cleave.winter']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'leaping').use(A1, 'cleave.winter', B1).end();
-    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([true, true]);
-    expect(appliedDur(a, B2, 'frostbitten')).toBe(2);
+  it('Winter’s Descent: a Snowbound enemy counts as Immobile', () => {
+    const a = arena({ p0: [['cleave.winter']], p1: [['shot'], ['charge']] });
+    a.give(B2, 'snowbound', { source: A1 }).use(A1, 'cleave.winter', B1).end();
+    expect(a.hp(B2)).toBe(90);
   });
 
   it('Howling Winds: mobile enemies are Snowbound for 2 turns; Immobile ones are Intimidated instead', () => {
@@ -553,20 +653,26 @@ describe('Winter skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Call of the Cold: Taunted for 2 turns; each Harmful skill they use on the user Snowbinds them for 1 turn', () => {
+  it('Call of the Cold: Snowbound for 1 turn, and Taunted by the user while Snowbound', () => {
     const a = arena({ p0: [['taunt.winter'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.winter', B1).end();
-    expect(a.has(B1, 'taunt')).toBe(true);
+    expect([a.has(B1, 'snowbound'), appliedDur(a, B1, 'snowbound')]).toEqual([true, 2]);
     expect(() => a.use(B1, 'shot', A2)).toThrow();
-    a.use(B1, 'shot', A1).end();
-    expect(a.has(B1, 'snowbound')).toBe(true);
-    expect(appliedDur(a, B1, 'snowbound')).toBe(3);
+    a.end().end(); // the Snowbound has worn off: so has the Taunt
+    expect(a.has(B1, 'snowbound')).toBe(false);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
   });
 
-  it('Call of the Cold: Helpful skills don’t Snowbind', () => {
-    const a = arena({ p0: [['taunt.winter']], p1: [['heal']] });
-    a.use(A1, 'taunt.winter', B1).end().use(B1, 'heal', B1).end();
-    expect(a.has(B1, 'snowbound')).toBe(false);
+  it('Call of the Cold: the Taunt lasts as long as the Snowbound does, up to 3 turns', () => {
+    const a = arena({ p0: [['taunt.winter'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'taunt.winter', B1).end();
+    a.give(B1, 'snowbound', { source: A1 }); // kept Snowbound by other means
+    a.end().end();
+    expect(() => a.use(B1, 'shot', A2)).toThrow(); // 2nd turn
+    a.end().end().end().end();
+    a.use(B1, 'shot', A2).end(); // after 3 turns, free again
+    expect(a.hp(A2)).toBe(85);
   });
 
   it('Dead of Winter: 2 Armor and Immune for 3 turns', () => {
@@ -593,7 +699,7 @@ describe('Winter costs and cooldowns match the kit table', () => {
   const table: Record<string, [string, number]> = {
     'strike.winter': ['S', 0],
     'smash.winter': ['Ar', 2],
-    'charge.winter': ['nc', 1],
+    'charge.winter': ['r', 1],
     'riposte.winter': ['r', 2],
     'rage.winter': ['I', 4],
     'shot.winter': ['r', 0],
@@ -601,14 +707,14 @@ describe('Winter costs and cooldowns match the kit table', () => {
     'trap.winter': ['A', 3],
     'maneuver.winter': ['r', 3],
     'companion.winter': ['I', 1],
-    'bolt.winter': ['I', 1],
+    'bolt.winter': ['Ir', 1],
     'blast.winter': ['Ar', 2],
     'consume.winter': ['r', 2],
     'summon.winter': ['r', 3],
     'channel.winter': ['II', 3],
     'stab.winter': ['r', 0],
     'ravage.winter': ['A', 1],
-    'mislead.winter': ['I', 2],
+    'mislead.winter': ['Ir', 2],
     'stun.winter': ['A', 2],
     'dance.winter': ['AA', 5],
     'heal.winter': ['A', 1],

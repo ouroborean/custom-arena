@@ -190,7 +190,7 @@ describe('Vengeance skills', () => {
     expect(a.has(B1, 'sanctify')).toBe(false);
   });
 
-  it('Spear of the Fallen: 40 on the following turn', () => {
+  it('Spear of Reprisal: 40 on the following turn', () => {
     const a = arena({ p0: [['snipe.vengeance']], p1: [['shot']] });
     a.use(A1, 'snipe.vengeance', B1).end();
     expect(a.hp(B1)).toBe(100);
@@ -198,16 +198,31 @@ describe('Vengeance skills', () => {
     expect(a.hp(B1)).toBe(60);
   });
 
-  it('Spear of the Fallen: if an ally dies first, it strikes at once for 80 Piercing', () => {
+  it('Spear of Reprisal: if the target hits one of the user’s allies first, it strikes at once as 60 Piercing, and only then', () => {
     const a = arena({ p0: [['snipe.vengeance'], ['shot']], p1: [['shot'], ['shot']] });
     a.give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'snipe.vengeance', B1).end();
-    a.setHp(A2, 10).use(B2, 'shot', A2).end();
-    expect([a.unit(A2).alive, a.hp(B1)]).toEqual([false, 20]);
+    a.use(B1, 'shot', A2).end();
+    expect([a.hp(A2), a.hp(B1)]).toEqual([85, 40]); // no 40 on top at the turn's end
   });
 
-  it('Spear of the Fallen: Channeled with a hidden target', () => {
+  it('Spear of Reprisal: the user counts as an ally', () => {
+    const a = arena({ p0: [['snipe.vengeance']], p1: [['shot']] });
+    a.use(A1, 'snipe.vengeance', B1).end().use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(40);
+  });
+
+  it('Spear of Reprisal: another enemy’s hit doesn’t set it off', () => {
+    const a = arena({ p0: [['snipe.vengeance'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.vengeance', B1).end().use(B2, 'shot', A2).end();
+    expect(a.hp(B1)).toBe(60);
+  });
+
+  it('Spear of Reprisal: Channeled with a hidden target; a Stun on the user stops it', () => {
     expect(content.skills['snipe.vengeance']!.tags).toEqual(expect.arrayContaining(['Channeled', 'HiddenTarget']));
+    const a = arena({ p0: [['snipe.vengeance'], ['shot']], p1: [['stun.poison', 'shot']] });
+    a.use(A1, 'snipe.vengeance', B1).end().use(B1, 'stun.poison', A1).end(); // a Stun that deals no damage
+    expect(a.hp(B1)).toBe(100);
   });
 
   it('Warrant: the target\'s first Harmful skill gives every ally of the user a Vow before it lands', () => {
@@ -339,19 +354,23 @@ describe('Vengeance skills', () => {
     expect([a.hp(B1), a.hp(B2), a.has(A1, 'wrath')]).toEqual([80, 80, false]);
   });
 
-  it('Grounded Point: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.vengeance']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.vengeance', B1).end().pass(1).use(A1, 'stab.vengeance', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Point of Reckoning: 10 damage; a target left above 60 HP gives no Wrath', () => {
+    const a = arena({ p0: [['stab.vengeance']], p1: [['shot']] });
+    a.setHp(B1, 71).use(A1, 'stab.vengeance', B1).end();
+    expect([a.hp(B1), a.has(A1, 'wrath')]).toEqual([61, false]);
   });
 
-  it('Grounded Point: with full Charge, it is restored to full after being spent next turn', () => {
+  it('Point of Reckoning: left at or below 60 HP, the user gains 1 Wrath at the end of the turn', () => {
     const a = arena({ p0: [['stab.vengeance']], p1: [['shot']] });
-    a.give(A1, 'charged', { stacks: 3 }).use(A1, 'stab.vengeance', B1).end().end().end();
-    expect(a.stacks(A1, 'charged')).toBe(3);
-    const b = arena({ p0: [['stab.vengeance']], p1: [['shot']] });
-    b.give(A1, 'charged', { stacks: 2 }).use(A1, 'stab.vengeance', B1).end().end();
-    expect(b.stacks(A1, 'charged')).toBe(2);
+    a.setHp(B1, 70).use(A1, 'stab.vengeance', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'wrath')]).toEqual([60, 1]);
+  });
+
+  it('Point of Reckoning: the next one spends that Wrath (10 more, 1 Charge) and banks another', () => {
+    const a = arena({ p0: [['stab.vengeance']], p1: [['shot']] });
+    a.setHp(B1, 70).use(A1, 'stab.vengeance', B1).end().end();
+    a.use(A1, 'stab.vengeance', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'charged'), a.stacks(A1, 'wrath')]).toEqual([40, 1, 1]);
   });
 
   it('Clemency: 45 Piercing; if the target uses no Harmful skill on their next turn, they heal 25', () => {
@@ -454,10 +473,24 @@ describe('Vengeance skills', () => {
     expect(a.has(B1, 'confusion')).toBe(false);
   });
 
-  it('Karmic Spark: 20 and Sanctified; an ally at full HP who damages them gains 1 Wrath instead of healing', () => {
-    const a = arena({ p0: [['smite.vengeance'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A3, 50).use(A1, 'smite.vengeance', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(B1), a.stacks(A2, 'wrath'), a.hp(A2), a.hp(A3), a.has(A3, 'wrath')]).toEqual([50, 1, 100, 65, false]);
+  it('Karmic Spark: 20 damage, and the target is Sapped once', () => {
+    const a = arena({ p0: [['smite.vengeance']], p1: [['shot']] });
+    a.use(A1, 'smite.vengeance', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'sapped'), a.has(B1, 'sanctify')]).toEqual([80, 1, false]);
+  });
+
+  it('Karmic Spark: for 2 turns, each time they hit one of the user’s allies, they’re Sapped again', () => {
+    const a = arena({ p0: [['smite.vengeance'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.vengeance', B1).end().use(B1, 'shot', A2).end();
+    expect(a.stacks(B1, 'sapped')).toBe(2);
+    a.end().use(B1, 'shot', A1).end(); // their second turn: the third Sap
+    expect(a.stacks(B1, 'sapped')).toBe(3);
+  });
+
+  it('Karmic Spark: after 2 turns, hits don’t Sap', () => {
+    const a = arena({ p0: [['smite.vengeance'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.vengeance', B1).end().pass(4).use(B1, 'shot', A2).end();
+    expect([a.stacks(B1, 'sapped'), a.has(B1, 'karmic_spark')]).toEqual([1, false]);
   });
 
   it('Gathering Oath: all allies heal 20 and gain 10 Shield for 1 turn; every ally\'s Charge moves to the user', () => {

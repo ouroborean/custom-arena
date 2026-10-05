@@ -4,7 +4,7 @@
 // just before the user's next turn.
 
 import { describe, expect, it } from 'vitest';
-import { effectDefinition, parseCost } from '@arena/engine';
+import { effectDefinition, parseCost, viewFor } from '@arena/engine';
 import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
@@ -80,20 +80,38 @@ describe('Thunder skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([60, 85, 85]);
   });
 
-  it('Sonic Boom: 15 and 1 Focus; the next skill that hits the target Deafens them for 2 turns', () => {
-    const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['shot']] });
+  it("Sonic Boom: 10, and the target is Deafened until the end of the user's next turn", () => {
+    const a = arena({ p0: [['charge.thunder']], p1: [['shot']] });
     a.use(A1, 'charge.thunder', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'focus')]).toEqual([85, 1]);
-    a.end().use(A1, 'shot', B1).end();
-    expect([a.hp(B1), a.has(B1, 'deafened'), a.has(A1, 'focus')]).toEqual([70, true, false]);
+    expect([a.hp(B1), a.has(B1, 'deafened')]).toEqual([90, true]); // the boom doesn't land on Sonic Boom itself
+    a.end();
+    expect(a.has(B1, 'deafened')).toBe(true);
+    a.end();
+    expect(a.has(B1, 'deafened')).toBe(false);
   });
 
-  it("Sonic Boom: the Deafen lands first, so the target's counter can't fire", () => {
-    const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['riposte']] });
+  it('Sonic Boom: when the user next uses a skill, every Deafened enemy takes 10', () => {
+    const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'charge.thunder', B1).end();
-    a.use(B1, 'riposte').end();
-    a.use(A1, 'shot', B1).end(); // the Riposte is Deafened, so the Shot lands
-    expect([a.hp(B1), a.hp(A1), a.has(B1, 'deafened')]).toEqual([70, 100, true]);
+    a.give(B2, 'deafened', { source: A1, duration: 10 }).end();
+    a.use(A1, 'shot', B3).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 90, 85]);
+  });
+
+  it('Sonic Boom: only the next skill brings the boom', () => {
+    const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['shot']] });
+    a.use(A1, 'charge.thunder', B1).end().end();
+    a.use(A1, 'shot', B1).end().end();
+    expect(a.hp(B1)).toBe(65);
+    a.give(B1, 'deafened', { source: A1, duration: 10 }).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(50);
+  });
+
+  it('Sonic Boom: if the user uses no skill by the end of their next turn, the boom is lost', () => {
+    const a = arena({ p0: [['charge.thunder', 'shot']], p1: [['shot']] });
+    a.use(A1, 'charge.thunder', B1).end().pass(3);
+    a.give(B1, 'deafened', { source: A1, duration: 10 }).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(75);
   });
 
   it('Answering Peal: counters the first Harmful skill; its user is Deafened for 2 turns and Sapped', () => {
@@ -183,20 +201,21 @@ describe('Thunder skills', () => {
     expect([a.has(B1, 'deafened'), a.has(B2, 'deafened')]).toEqual([true, true]);
   });
 
-  it('Thundercrack: 25 and a Mark; the hit that spends the Mark Resounds, whoever it\'s from', () => {
-    const a = arena({ p0: [['bolt.thunder'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.thunder', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 25 - 15 - 10);
-    expect(echoes(a, B1)).toHaveLength(1);
+  it('Thundercrack: 15 and Resound, and the echo lands at once', () => {
+    const a = arena({ p0: [['bolt.thunder']], p1: [['shot']] });
+    a.use(A1, 'bolt.thunder', B1).end();
+    expect([a.hp(B1), echoes(a, B1).length, a.stacks(A1, 'charged')]).toEqual([75, 0, 1]);
     a.end();
-    expect(a.stacks(A2, 'charged')).toBe(1); // the echo is A2's
-    expect(a.hp(B1)).toBeLessThan(50);
+    expect(a.hp(B1)).toBe(75);
   });
 
-  it('Thundercrack: an unspent Mark doesn\'t Resound', () => {
-    const a = arena({ p0: [['bolt.thunder']], p1: [['shot']] });
-    a.use(A1, 'bolt.thunder', B1).end().end();
-    expect([a.hp(B1), a.stacks(A1, 'charged')]).toEqual([75, 0]);
+  it('Thundercrack: every Echo on the enemy side lands at once, whoever owns it', () => {
+    const a = arena({ p0: [['bolt.thunder'], ['strike.thunder']], p1: [['shot'], ['shot']] });
+    a.use(A2, 'strike.thunder', B2).use(A1, 'bolt.thunder', B1).end();
+    expect([a.hp(B2), echoes(a, B2).length, a.stacks(A2, 'charged')]).toEqual([65, 0, 2]); // both of Clap's echoes
+    expect([a.hp(B1), a.stacks(A1, 'charged')]).toEqual([75, 1]);
+    a.pass(4);
+    expect(a.hp(B2)).toBe(65);
   });
 
   it('Skyquake: 20 to all, Resound; spends all Charge, and the echo repeats once more per Charge', () => {
@@ -287,28 +306,42 @@ describe('Thunder skills', () => {
     expect([lastGain(a, 1), a.stacks(B1, 'sapped')]).toEqual([2, 2]);
   });
 
-  it('Hush: counters the target\'s Harmful skill; they and their allies are Deafened for 1 turn', () => {
-    const a = arena({ p0: [['mislead.thunder']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'mislead.thunder', B1).end().use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(B1, 'deafened'), a.has(B2, 'deafened')]).toEqual([100, true, true]);
+  it('Hush: Invisible; the target is Deafened for 1 turn, and nothing is countered that turn', () => {
+    const a = arena({ p0: [['mislead.thunder']], p1: [['shot']] });
+    a.use(A1, 'mislead.thunder', B1).end();
+    expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false);
+    expect(a.has(B1, 'deafened')).toBe(true);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'deafened')]).toEqual([85, false]);
   });
 
-  it('Hush: nothing happens if the target uses no Harmful skill', () => {
-    const a = arena({ p0: [['mislead.thunder']], p1: [['heal'], ['shot']] });
-    a.use(A1, 'mislead.thunder', B1).end().setHp(B1, 50).use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.has(B1, 'deafened')]).toEqual([75, false]);
+  it('Hush: when that turn is over, the hush falls: their Harmful skill is countered, and the user gains 1 Charge', () => {
+    const a = arena({ p0: [['mislead.thunder']], p1: [['shot', 'heal']] });
+    a.use(A1, 'mislead.thunder', B1).end().pass(2);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'charged')]).toEqual([100, 1]);
   });
 
-  it('Concussion: 15 and Stun; the echo also stuns their Strategic skills for 1 turn', () => {
+  it('Hush: only Harmful skills are countered, and the hush lasts 1 turn', () => {
+    const a = arena({ p0: [['mislead.thunder']], p1: [['shot', 'heal']] });
+    a.use(A1, 'mislead.thunder', B1).end().pass(2);
+    a.setHp(B1, 50).use(B1, 'heal', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'charged')]).toEqual([75, 0]);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it("Concussion: 15 and their Strategic skills are stunned for 1 turn; when the echo lands, they're fully Stunned", () => {
     const a = arena({ p0: [['stun.thunder']], p1: [['shot', 'heal']] });
     a.use(A1, 'stun.thunder', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([85, true]);
-    a.end();
-    expect([a.hp(B1), a.has(B1, 'stun_s')]).toEqual([75, true]);
-    a.end();
+    expect([a.hp(B1), a.has(B1, 'stun_s'), a.has(B1, 'stun')]).toEqual([85, true, false]);
     expect(a.reject(() => a.use(B1, 'heal', B1))).toBe('cannot_act');
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(85);
+    expect([a.hp(A1), a.hp(B1), a.has(B1, 'stun'), a.stacks(A1, 'charged')]).toEqual([85, 75, true, 1]);
+    a.end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end();
+    expect(a.has(B1, 'stun')).toBe(false);
   });
 
   it('Deafening Cadence: 2 Swiftness and 1 Focus; each enemy the user damages is Deafened for 1 turn', () => {
@@ -395,31 +428,49 @@ describe('Thunder skills', () => {
     expect(a.has(B1, 'deafened')).toBe(false);
   });
 
-  it('Thunder Cage: 25 Shield for 2 turns; each attacker takes half of what it absorbed back', () => {
-    const a = arena({ p0: [['withstand.thunder']], p1: [['stab'], ['shot']] });
+  it('Thunder Cage: for 1 turn, direct hits on the user deal half damage', () => {
+    const a = arena({ p0: [['withstand.thunder']], p1: [['strike', 'shot'], ['strike']] });
     a.use(A1, 'withstand.thunder').end();
-    a.use(B1, 'stab', A1).end().end();
-    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([100, 95, 100]);
+    a.use(B1, 'strike', A1).use(B2, 'strike', A1).end();
+    expect(a.hp(A1)).toBe(80);
+    a.end().use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(60); // full damage again (15 + Strike's Might)
   });
 
-  it("Thunder Cage: the echo lands at the start of the user's next turn", () => {
-    const a = arena({ p0: [['withstand.thunder']], p1: [['stab'], ['shot']] });
+  it('Thunder Cage: each hit Resounds back on its dealer for half of what it dealt, as their turn ends, for 1 Charge', () => {
+    const a = arena({ p0: [['withstand.thunder']], p1: [['strike'], ['smash']] });
     a.use(A1, 'withstand.thunder').end();
-    a.use(B1, 'stab', A1).end();
-    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([100, 95, 100]);
+    a.use(B1, 'strike', A1).use(B2, 'smash', A1).end();
+    expect(a.hp(A1)).toBe(77); // 10 + 13 (25 halved, rounded)
+    expect([a.hp(B1), a.hp(B2), a.stacks(A1, 'charged')]).toEqual([95, 90, 2]); // 5 and 10 (6.5 rounded up to 5)
   });
 
-  it('Challenge Peal: Taunt for 2 turns; every other enemy is Deafened for as long', () => {
-    const a = arena({ p0: [['taunt.thunder']], p1: [['shot'], ['shot'], ['shot']] });
+  it('Challenge Peal: Taunts the target until they damage the user, for up to 3 turns', () => {
+    const a = arena({ p0: [['taunt.thunder'], ['shot']], p1: [['heal']] });
     a.use(A1, 'taunt.thunder', B1).end();
-    expect([a.has(B1, 'taunt'), a.has(B1, 'deafened'), a.has(B2, 'deafened'), a.has(B3, 'deafened')]).toEqual([
-      true,
-      false,
-      true,
-      true,
-    ]);
     a.pass(4);
-    expect([a.has(B1, 'taunt'), a.has(B2, 'deafened')]).toEqual([false, false]);
+    expect(a.has(B1, 'taunt')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'taunt')).toBe(false);
+  });
+
+  it('Challenge Peal: that hit ends the Taunt and echoes back on them for half as their turn ends, for 1 Charge', () => {
+    const a = arena({ p0: [['taunt.thunder'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.thunder', B1).end();
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'taunt')]).toEqual([85, false]);
+    expect([a.hp(B1), a.stacks(A1, 'charged')]).toEqual([90, 1]); // the echo landed as their turn ended
+    a.pass(1).use(B1, 'shot', A2).end(); // free again
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it("Challenge Peal: ending it leaves a Taunt from anyone else in place", () => {
+    const a = arena({ p0: [['taunt.thunder'], ['taunt'], ['shot']], p1: [['shot']] });
+    a.use(A2, 'taunt', B1).use(A1, 'taunt.thunder', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.effects(B1).filter((e) => e.defId === 'taunt').map((e) => e.source)).toEqual([A2]);
+    expect(a.reject(() => a.pass(1).use(B1, 'shot', A1))).toBe('bad_target');
   });
 
   it('Stormspire: 2 Armor and Immune; enemy skills that would hit several allies hit only the user', () => {

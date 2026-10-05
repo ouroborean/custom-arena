@@ -52,7 +52,7 @@ describe('Vigilante: costs and cooldowns match the kit table', () => {
     ['mislead.vigilante', 'A', 2],
     ['stun.vigilante', 'A', 2],
     ['dance.vigilante', 'A', 1],
-    ['heal.vigilante', 'r', 1],
+    ['heal.vigilante', 'W', 1],
     ['bless.vigilante', 'r', 2],
     ['curse.vigilante', 'A', 2],
     ['smite.vigilante', 'W', 1],
@@ -82,9 +82,8 @@ describe('Vigilante: costs and cooldowns match the kit table', () => {
   });
 
   it('tags: Invisible, Stealthy, Channeled and hidden-target skills', () => {
-    for (const id of ['riposte.vigilante', 'trap.vigilante', 'mislead.vigilante', 'bless.vigilante'])
+    for (const id of ['riposte.vigilante', 'trap.vigilante', 'stab.vigilante', 'mislead.vigilante', 'bless.vigilante'])
       expect(content.skills[id]!.tags).toContain('Invisible');
-    expect(content.skills['charge.vigilante']!.tags).toContain('Stealthy');
     expect(content.skills['snipe.vigilante']!.tags).toEqual(expect.arrayContaining(['Channeled', 'HiddenTarget']));
     expect(content.skills['channel.vigilante']!.tags).toContain('Channeled');
   });
@@ -101,7 +100,7 @@ describe('Vigilante: Exposed', () => {
   it('Vigilante skills deal 10 more to the bearer', () => {
     const a = arena({ p0: [['smite.vigilante'], ['smite.vigilante']], p1: [['shot'], ['shot']] });
     a.give(B1, 'exposed', { source: A1 }).use(A1, 'smite.vigilante', B1).use(A2, 'smite.vigilante', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 80]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
   });
 
   it('non-Vigilante skills get no bonus', () => {
@@ -157,40 +156,62 @@ describe('Vigilante skills', () => {
     expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 75, 100]);
   });
 
-  it('Pursuit: Stealthy; 15 and Exposed for 2 turns', () => {
+  it("Pursuit: not Stealthed, 15 and the user gains Stealth (the target isn't Exposed)", () => {
+    const a = arena({ p0: [['charge.vigilante']], p1: [['shot']] });
+    a.use(A1, 'charge.vigilante', B1).end();
+    expect([a.hp(B1), a.has(B1, 'exposed'), a.has(A1, 'stealth')]).toEqual([85, false, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+  });
+
+  it('Pursuit: from Stealth, the target is Exposed for 2 turns first (25 in all), and the Stealth is spent', () => {
     const a = arena({ p0: [['charge.vigilante']], p1: [['shot']] });
     a.give(A1, 'stealth').use(A1, 'charge.vigilante', B1).end();
-    expect([a.hp(B1), a.has(B1, 'exposed'), a.has(A1, 'stealth')]).toEqual([85, true, true]);
+    expect([a.hp(B1), a.has(B1, 'exposed'), a.has(A1, 'stealth')]).toEqual([75, true, false]);
     a.pass(2);
     expect(a.has(B1, 'exposed')).toBe(true);
     a.pass(1);
     expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  it("Pursuit: the user's next skill is Stealthy too, but only the next", () => {
-    const a = arena({ p0: [['dance.vigilante', 'charge.vigilante', 'shot']], p1: [['shot']] });
-    a.use(A1, 'dance.vigilante').end().pass(1);
-    a.use(A1, 'charge.vigilante', B1).end().pass(1);
-    expect(a.has(A1, 'stealth')).toBe(true); // Pursuit itself is Stealthy
-    a.use(A1, 'shot', B1).end().pass(1);
+  it('Pursuit: the Stealth it gives sets up the next ambush (kept by Stealthy skills meanwhile)', () => {
+    const a = arena({ p0: [['charge.vigilante', 'charge.shadow', 'shot.shadow']], p1: [['shot']] });
+    a.use(A1, 'charge.vigilante', B1).end().pass(1); // 85, Stealthed
+    a.use(A1, 'charge.shadow', B1).end().pass(1); // Long Shadow is Stealthy, and so is the next skill
+    a.use(A1, 'shot.shadow', B1).end().pass(1);
     expect(a.has(A1, 'stealth')).toBe(true);
-    a.use(A1, 'shot', B1).end();
-    expect(a.has(A1, 'stealth')).toBe(false);
+    const before = a.hp(B1);
+    a.use(A1, 'charge.vigilante', B1).end();
+    expect([before - a.hp(B1), a.has(B1, 'exposed')]).toEqual([25, true]);
   });
 
-  it('Pursuit: is Stealthy itself (keeps the user\'s Stealth)', () => {
-    const a = arena({ p0: [['dance.vigilante', 'charge.vigilante']], p1: [['shot']] });
-    a.use(A1, 'dance.vigilante').end().pass(1).use(A1, 'charge.vigilante', B1).end();
-    expect(a.has(A1, 'stealth')).toBe(true);
-  });
-
-  it('Caught Red-Handed: Invisible; counters the first Harmful skill on each ally and Exposes its user', () => {
+  it("Caught Red-Handed: Invisible; the first Harmful skill an enemy uses on one of the user's allies is countered, and its user is Exposed for 2 turns", () => {
     const a = arena({ p0: [['riposte.vigilante'], ['shot'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'riposte.vigilante').end();
-    expect(sees(a, 1, A1) || sees(a, 1, A2) || sees(a, 1, A3)).toBe(false);
-    a.use(B1, 'shot', A2).use(B2, 'shot', A3).use(B3, 'shot', A2).end();
-    expect([a.hp(A2), a.hp(A3)]).toEqual([85, 100]); // B1 and B2 countered; B3 was A2's second
-    expect([a.has(B1, 'exposed'), a.has(B2, 'exposed'), a.has(B3, 'exposed')]).toEqual([true, true, false]);
+    expect([sees(a, 1, A2), sees(a, 1, A3)]).toEqual([false, false]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A3).end();
+    expect([a.hp(A2), a.hp(A3)]).toEqual([100, 85]); // only the first one
+    expect([a.has(B1, 'exposed'), a.has(B2, 'exposed')]).toEqual([true, false]);
+    a.pass(3);
+    expect(a.has(B1, 'exposed')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'exposed')).toBe(false);
+  });
+
+  it("Caught Red-Handed: the user keeps watch instead of covering themselves", () => {
+    const a = arena({ p0: [['riposte.vigilante'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'riposte.vigilante').end().use(B1, 'shot', A1).use(B2, 'shot', A2).end();
+    expect([a.hp(A1), a.hp(A2)]).toEqual([85, 100]);
+    expect([a.has(B1, 'exposed'), a.has(B2, 'exposed')]).toEqual([false, true]);
+    // Alone, there's no one to watch over.
+    const b = arena({ p0: [['riposte.vigilante']], p1: [['shot']] });
+    b.use(A1, 'riposte.vigilante').end().use(B1, 'shot', A1).end();
+    expect(b.hp(A1)).toBe(85);
+  });
+
+  it('Caught Red-Handed: a skill aimed at the whole side is countered too', () => {
+    const a = arena({ p0: [['riposte.vigilante'], ['shot'], ['shot']], p1: [['blast'], ['shot'], ['shot']] });
+    a.use(A1, 'riposte.vigilante').end().use(B1, 'blast').end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3), a.has(B1, 'exposed')]).toEqual([100, 100, 100, true]);
   });
 
   it('Caught Red-Handed: lasts 1 turn', () => {
@@ -199,28 +220,33 @@ describe('Vigilante skills', () => {
     expect([a.hp(A2), a.has(B1, 'exposed')]).toEqual([85, false]);
   });
 
-  it('The Hunt Begins: 1 Might and 1 Swiftness for 3 turns', () => {
+  it('The Hunt Begins: 1 Might for 3 turns', () => {
     const a = arena({ p0: [['rage.vigilante']], p1: [['shot']] });
     a.use(A1, 'rage.vigilante').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([1, 1]);
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([1, 0]);
     a.pass(4);
     expect(a.stacks(A1, 'might')).toBe(1);
     a.pass(1);
     expect(a.stacks(A1, 'might')).toBe(0);
   });
 
-  it('The Hunt Begins: skills are Stealthy while any enemy is Exposed (ruling)', () => {
-    const a = arena({ p0: [['rage.vigilante', 'dance.vigilante', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
-    a.give(B2, 'exposed', { source: A1 }).use(A1, 'shot', B1).end();
-    expect(a.has(A1, 'stealth')).toBe(true);
+  it('The Hunt Begins: each enemy the user damages is Exposed for 2 turns', () => {
+    const a = arena({ p0: [['rage.vigilante', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.vigilante').end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.has(B1, 'exposed'), a.has(B2, 'exposed')]).toEqual([true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'exposed')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  it("The Hunt Begins: with no enemy Exposed, skills aren't Stealthy", () => {
-    const a = arena({ p0: [['rage.vigilante', 'dance.vigilante', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
+  it('The Hunt Begins: 5 more to Exposed enemies, so the second hit on the quarry pays off', () => {
+    const a = arena({ p0: [['rage.vigilante', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.vigilante').end().pass(1);
+    a.use(A1, 'shot', B1).end().pass(1);
+    expect(a.hp(B1)).toBe(100 - 20); // Shot 15 + Might 5; not Exposed yet
     a.use(A1, 'shot', B1).end();
-    expect(a.has(A1, 'stealth')).toBe(false);
+    expect(a.hp(B1)).toBe(80 - 25); // now Exposed: 5 more
   });
 
   it('Searchlight: 10 to a random enemy, Stealthed ones included; a Stealthed one is Exposed', () => {
@@ -350,21 +376,24 @@ describe('Vigilante skills', () => {
     expect([a.unit(h.id).alive, a.has(B2, 'exposed')]).toEqual([false, false]);
   });
 
-  it('Deputize: 20 and Marked 1 turn; the ally who spends the Mark is Anointed until the end of their next turn', () => {
+  it("Cover Fire: 20, and the user's other ally with the least HP gains Stealth if they haven't acted yet", () => {
     const a = arena({ p0: [['bolt.vigilante'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.vigilante', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 20 - 25 - 15); // the Mark adds 10 to the first follow-up only
-    expect([a.has(A1, 'anointed'), a.has(A2, 'anointed'), a.has(A3, 'anointed')]).toEqual([false, true, false]);
-    a.pass(1);
-    expect(a.has(A2, 'anointed')).toBe(true);
-    a.pass(1);
-    expect(a.has(A2, 'anointed')).toBe(false);
+    a.setHp(A1, 10).setHp(A2, 80).setHp(A3, 50).use(A1, 'bolt.vigilante', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    expect([a.has(A1, 'stealth'), a.has(A2, 'stealth'), a.has(A3, 'stealth')]).toEqual([false, false, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A3))).toBe('bad_target');
   });
 
-  it('Deputize: an unspent Mark Anoints no one', () => {
-    const a = arena({ p0: [['bolt.vigilante'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.vigilante', B1).end().pass(1);
-    expect([a.has(B1, 'mark'), a.has(A1, 'anointed'), a.has(A2, 'anointed')]).toEqual([false, false, false]);
+  it('Cover Fire: an ally who already acted this turn gets no Stealth', () => {
+    const a = arena({ p0: [['bolt.vigilante'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 80).setHp(A3, 50).use(A3, 'shot', B1).use(A1, 'bolt.vigilante', B1).end();
+    expect([a.hp(B1), a.has(A2, 'stealth'), a.has(A3, 'stealth')]).toEqual([65, false, false]);
+  });
+
+  it('Cover Fire: an ally who acts after it loses the Stealth at once', () => {
+    const a = arena({ p0: [['bolt.vigilante'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 80).setHp(A3, 50).use(A1, 'bolt.vigilante', B1).use(A3, 'shot', B1).end();
+    expect(a.has(A3, 'stealth')).toBe(false);
   });
 
   it('Floodlight: 25 to all; Stealthed and Invulnerable enemies are Exposed first and take 10 more', () => {
@@ -378,13 +407,17 @@ describe('Vigilante skills', () => {
     expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  it("Interrogation: 5, healing the user; the target's Invisible effects are revealed and end", () => {
-    const a = arena({ p0: [['consume.vigilante'], ['shot']], p1: [['mislead']] });
-    a.pass(1).use(B1, 'mislead', A2).end();
-    a.setHp(A1, 50).use(A1, 'consume.vigilante', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(A1)).toBe(55); // simplified: no extra healing per effect
-    expect(a.hp(B1)).toBe(80); // A2's Shot wasn't countered
-    expect(a.effects(A2).some((e) => e.source === B1)).toBe(false);
+  it('Shakedown: 5, and the user takes a random Buff of theirs (and no heal)', () => {
+    const a = arena({ p0: [['consume.vigilante']], p1: [['shot']] });
+    a.give(B1, 'might').setHp(A1, 50).use(A1, 'consume.vigilante', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 50]);
+    expect([a.has(B1, 'might'), a.has(A1, 'might')]).toEqual([false, true]);
+  });
+
+  it('Shakedown: with no Buff to take, the user heals 15 instead', () => {
+    const a = arena({ p0: [['consume.vigilante']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.vigilante', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([95, 65]);
   });
 
   it('Informant: 15 HP for 3 turns; whoever damages it is Exposed for 2 turns', () => {
@@ -443,23 +476,25 @@ describe('Vigilante skills', () => {
     expect(a.hp(B1)).toBe(b1);
   });
 
-  it('Quiet Verdict: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.vigilante'], ['stab.vigilante']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 61).setHp(B2, 60).use(A1, 'stab.vigilante', B1).use(A2, 'stab.vigilante', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([51, 40]);
+  it("Quiet Verdict: Invisible; 10 damage at the end of the user's next turn", () => {
+    const a = arena({ p0: [['stab.vigilante']], p1: [['shot']] });
+    a.use(A1, 'stab.vigilante', B1).end();
+    expect(sees(a, 1, B1, A1)).toBe(false);
+    a.pass(1);
+    expect(a.hp(B1)).toBe(100);
+    a.end();
+    expect(a.hp(B1)).toBe(90);
   });
 
-  it("Quiet Verdict: used from Stealth, the target's Condemned triggers at once (and the Stealth still ends: ruling)", () => {
+  it("Quiet Verdict: 25 if they're at or below 60 HP when it lands (checked then, not when used)", () => {
     const a = arena({ p0: [['stab.vigilante']], p1: [['shot']] });
-    a.give(A1, 'stealth').give(B1, 'condemned', { source: A1 }).use(A1, 'stab.vigilante', B1).end();
-    expect([a.has(B1, 'condemned'), condemnDebuffs(a, B1)]).toEqual([false, 1]);
-    expect(a.has(A1, 'stealth')).toBe(false);
-  });
-
-  it('Quiet Verdict: not from Stealth, the Condemned stays', () => {
-    const a = arena({ p0: [['stab.vigilante']], p1: [['shot']] });
-    a.give(B1, 'condemned', { source: A1 }).use(A1, 'stab.vigilante', B1).end();
-    expect([a.has(B1, 'condemned'), condemnDebuffs(a, B1)]).toEqual([true, 0]);
+    a.use(A1, 'stab.vigilante', B1).end().pass(1);
+    a.setHp(B1, 60).end(); // B1 dropped to 60 meanwhile
+    expect(a.hp(B1)).toBe(35);
+    const b = arena({ p0: [['stab.vigilante']], p1: [['shot']] });
+    b.setHp(B1, 50).use(A1, 'stab.vigilante', B1).end().pass(1);
+    b.setHp(B1, 70).end(); // healed above 60 by then
+    expect(b.hp(B1)).toBe(60);
   });
 
   it('Take Down: 25 Piercing', () => {
@@ -540,21 +575,24 @@ describe('Vigilante skills', () => {
     expect(a.hp(B1)).toBe(70);
   });
 
-  it('Safe House: the ally heals 20 and gains Stealth; still Stealthed after their next turn → 15 more', () => {
-    const a = arena({ p0: [['heal.vigilante'], ['shot']], p1: [['shot']] });
+  it('Witness Statement: the last enemy to damage the ally takes 10, and the ally heals 10 plus the damage dealt', () => {
+    const a = arena({ p0: [['heal.vigilante'], ['shot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B2, 'shot', A2).use(B1, 'shot', A2).end(); // B1 hit A2 last
     a.setHp(A2, 50).use(A1, 'heal.vigilante', A2).end();
-    expect([a.hp(A2), a.has(A2, 'stealth')]).toEqual([70, true]);
-    a.pass(1);
-    expect(a.hp(A2)).toBe(70);
-    a.pass(1);
-    expect(a.hp(A2)).toBe(85);
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([90, 100, 70]);
   });
 
-  it('Safe House: breaking Stealth on that turn forfeits the extra 15', () => {
+  it("Witness Statement: only the ally's own last attacker pays, not someone else's", () => {
+    const a = arena({ p0: [['heal.vigilante'], ['shot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A2).use(B2, 'shot', A1).end(); // B2 last hit A1, not A2
+    a.setHp(A2, 50).use(A1, 'heal.vigilante', A2).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([90, 100, 70]);
+  });
+
+  it('Witness Statement: if no enemy has damaged the ally, they heal 15 instead', () => {
     const a = arena({ p0: [['heal.vigilante'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'heal.vigilante', A2).end().pass(1);
-    a.use(A2, 'shot', B1).end();
-    expect([a.has(A2, 'stealth'), a.hp(A2)]).toEqual([false, 70]);
+    a.setHp(A2, 50).use(A1, 'heal.vigilante', A2).end();
+    expect([a.hp(A2), a.hp(B1)]).toEqual([65, 100]);
   });
 
   it('Watcher in the Dark: Invisible; the first damage taken gives 25 Shield and 2 Might, once', () => {
@@ -586,28 +624,28 @@ describe('Vigilante skills', () => {
     expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  it('Full Sentence: 20 and Sanctify 1 turn', () => {
+  it('Full Sentence: 15', () => {
     const a = arena({ p0: [['smite.vigilante']], p1: [['shot']] });
     a.use(A1, 'smite.vigilante', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sanctify')]).toEqual([80, true]);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
+    expect([a.hp(B1), a.has(B1, 'full_sentence')]).toEqual([85, true]);
   });
 
-  it('Full Sentence: the next Condemned trigger gives all three Debuffs; only the next', () => {
-    const a = arena({ p0: [['smite.vigilante']], p1: [['shot']] });
-    a.give(B1, 'condemned', { source: A1 }).use(A1, 'smite.vigilante', B1).end();
-    a.use(B1, 'shot', A1).end();
-    expect(['weakness', 'vulnerable', 'confusion'].map((k) => a.stacks(B1, k))).toEqual([1, 1, 1]);
-    a.give(B1, 'condemned', { source: A1 }).pass(1).use(B1, 'shot', A1).end();
-    // One more random Debuff; the first Confusion ended when they used this skill: 3 + 1 - 1.
-    expect(condemnDebuffs(a, B1)).toBe(3);
+  it('Full Sentence: after each Harmful skill they use, each of its targets heals 10', () => {
+    const a = arena({ p0: [['smite.vigilante'], ['shot'], ['shot']], p1: [['blast', 'heal']] });
+    a.use(A1, 'smite.vigilante', B1).end();
+    a.use(B1, 'blast').end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([75, 75, 75]);
   });
 
-  it('Full Sentence: without it, Condemned gives one', () => {
-    const a = arena({ p0: [['smite']], p1: [['shot']] });
-    a.give(B1, 'condemned', { source: A1 }).use(A1, 'smite', B1).end().use(B1, 'shot', A1).end();
-    expect(condemnDebuffs(a, B1)).toBe(1);
+  it('Full Sentence: Helpful skills owe nothing, and it lasts 2 turns', () => {
+    const a = arena({ p0: [['smite.vigilante']], p1: [['shot', 'heal'], ['shot']] });
+    a.use(A1, 'smite.vigilante', B1).end();
+    a.setHp(B1, 50).setHp(A1, 50).use(B1, 'heal', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([75, 50]);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(45);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(30);
   });
 
   it('Dawn Vigil: all allies heal 20 and gain 10 Shield; Anointed allies spend it to cleanse all Debuffs', () => {
@@ -621,39 +659,49 @@ describe('Vigilante skills', () => {
     expect([a.has(A3, 'weakness')]).toEqual([true]);
   });
 
-  it('Sweep the Streets: 25 to the target and 15 to a random other enemy', () => {
+  it('Sweep the Streets: 20, and 15 to each other Exposed enemy (25 with the Exposed bonus)', () => {
     const a = arena({ p0: [['cleave.vigilante']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'cleave.vigilante', B1).end();
-    expect(a.hp(B1)).toBe(75);
-    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85].sort());
+    a.give(B2, 'exposed', { source: A1 }).give(B3, 'exposed', { source: A1 }).use(A1, 'cleave.vigilante', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 75, 75]);
   });
 
-  it("Sweep the Streets: for 2 turns, either one's Condemned trigger also Blinds them for 1 turn", () => {
-    const a = arena({ p0: [['cleave.vigilante']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'condemned', { source: A1 }).give(B2, 'condemned', { source: A1 });
-    a.use(A1, 'cleave.vigilante', B1).end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([true, true]);
+  it('Sweep the Streets: with no other enemy Exposed, a random other takes 15 and is Exposed for 1 turn', () => {
+    for (let seed = 1; seed <= 4; seed++) {
+      const a = arena({ p0: [['cleave.vigilante']], p1: [['shot'], ['shot'], ['shot']], seed });
+      a.give(B1, 'exposed', { source: A1 }).use(A1, 'cleave.vigilante', B1).end(); // the target's own Exposed doesn't count
+      expect(a.hp(B1)).toBe(70);
+      const hit = [B2, B3].filter((b) => a.hp(b) === 85);
+      expect(hit).toHaveLength(1);
+      expect(a.has(hit[0]!, 'exposed')).toBe(true);
+      expect([B2, B3].filter((b) => a.hp(b) === 100)).toHaveLength(1);
+      a.pass(1);
+      expect(a.has(hit[0]!, 'exposed')).toBe(false);
+    }
   });
 
-  it("Sweep the Streets: an enemy it didn't hit isn't Blinded by their Condemned", () => {
-    const a = arena({ p0: [['cleave.vigilante']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'cleave.vigilante', B1).end();
-    const missed = [B2, B3].find((b) => a.hp(b) === 100)!;
-    a.give(missed, 'condemned', { source: A1 }).use(missed, 'shot', A1).end();
-    expect([a.has(missed, 'condemned'), a.has(missed, 'blinded')]).toEqual([false, false]);
+  it('Hue and Cry: all enemies, Stealthed ones included, are Exposed for 1 turn', () => {
+    const a = arena({ p0: [['shout.vigilante']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'stealth').use(A1, 'shout.vigilante').end();
+    expect([B1, B2, B3].map((b) => a.has(b, 'exposed'))).toEqual([true, true, true]);
+    expect(a.has(B2, 'stealth')).toBe(false);
+    a.pass(1);
+    expect(a.has(B1, 'exposed')).toBe(false);
   });
 
-  it('Hue and Cry: all enemies Intimidated 2 turns; each Harmful skill they use Exposes them for 1 turn', () => {
-    const a = arena({ p0: [['shout.vigilante']], p1: [['shot'], ['heal']] });
+  it('Hue and Cry: for 2 turns, the first Harmful skill each enemy uses Condemns them once it resolves', () => {
+    const a = arena({ p0: [['shout.vigilante']], p1: [['shot'], ['shot', 'heal']] });
     a.use(A1, 'shout.vigilante').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
     a.use(B1, 'shot', A1).use(B2, 'heal', B2).end();
-    expect([a.has(B1, 'exposed'), a.has(B2, 'exposed')]).toEqual([true, false]);
-    a.pass(1);
-    expect(a.has(B2, 'intimidated')).toBe(true);
-    a.pass(1);
-    expect(a.has(B2, 'intimidated')).toBe(false);
+    expect([a.has(B1, 'condemned'), condemnDebuffs(a, B1), a.has(B2, 'condemned')]).toEqual([true, 0, false]);
+    a.pass(1).use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.has(B1, 'condemned'), condemnDebuffs(a, B1)]).toEqual([false, 1]); // its next skill set it off
+    expect([a.has(B2, 'condemned'), a.has(B2, 'hue_and_cry')]).toEqual([true, false]); // only the first
+  });
+
+  it('Hue and Cry: after 2 turns, no more Condemns', () => {
+    const a = arena({ p0: [['shout.vigilante']], p1: [['shot']] });
+    a.use(A1, 'shout.vigilante').end().pass(4).use(B1, 'shot', A1).end();
+    expect([a.has(B1, 'condemned'), a.has(B1, 'hue_and_cry')]).toEqual([false, false]);
   });
 
   it('Reinforced Trenchcoat: 25 Shield for 1 turn', () => {
@@ -697,38 +745,35 @@ describe('Vigilante skills', () => {
     expect([a.has(B1, 'taunt'), a.has(B1, 'exposed'), a.has(A1, 'stealth')]).toEqual([false, true, true]);
   });
 
-  it('Nightwarden: 3 Armor and Immune for 3 turns', () => {
+  it('Nightwarden: 2 Armor for 3 turns (no Immune)', () => {
     const a = arena({ p0: [['titan.vigilante']], p1: [['shot']] });
     a.use(A1, 'titan.vigilante').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([3, true]);
+    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([2, false]);
     a.pass(4);
-    expect(a.has(A1, 'immune')).toBe(true);
+    expect(a.stacks(A1, 'armor')).toBe(2);
     a.pass(1);
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, false]);
+    expect(a.stacks(A1, 'armor')).toBe(0);
   });
 
-  it('Nightwarden: each time the Stealth ends meanwhile, Anointed until the end of their next turn', () => {
-    const a = arena({ p0: [['titan.vigilante', 'dance.vigilante', 'shot']], p1: [['shot']] });
-    a.use(A1, 'titan.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
-    expect(a.has(A1, 'anointed')).toBe(false);
-    a.use(A1, 'shot', B1).end();
-    expect([a.has(A1, 'stealth'), a.has(A1, 'anointed')]).toEqual([false, true]);
+  it("Nightwarden: each enemy who damages the user is Exposed for 1 turn, and Exposed enemies can't target them", () => {
+    const a = arena({ p0: [['titan.vigilante'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'titan.vigilante').end();
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'exposed')]).toEqual([95, true]);
     a.pass(1);
-    expect(a.has(A1, 'anointed')).toBe(true);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B1, 'shot', A2).end(); // other targets are fine
+    expect(a.hp(A2)).toBe(85);
+    a.pass(1); // the Exposed has run out
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(90);
   });
 
-  it("Nightwarden: the Anointed ends with the user's next turn", () => {
-    const a = arena({ p0: [['titan.vigilante', 'dance.vigilante', 'shot']], p1: [['shot']] });
-    a.use(A1, 'titan.vigilante').end().pass(1).use(A1, 'dance.vigilante').end().pass(1);
-    a.use(A1, 'shot', B1).end().pass(2);
-    expect(a.has(A1, 'anointed')).toBe(false);
-  });
-
-  it('Nightwarden: after it ends, losing Stealth gives nothing', () => {
-    const a = arena({ p0: [['titan.vigilante', 'dance.vigilante', 'shot']], p1: [['shot']] });
-    a.use(A1, 'titan.vigilante').end().pass(5).use(A1, 'dance.vigilante').end().pass(1);
-    a.use(A1, 'shot', B1).end();
-    expect([a.has(A1, 'stealth'), a.has(A1, 'anointed')]).toEqual([false, false]);
+  it("Nightwarden: an enemy Exposed by anything can't damage the user", () => {
+    const a = arena({ p0: [['titan.vigilante']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.vigilante').end();
+    a.give(B2, 'exposed', { source: A1 });
+    expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('bad_target');
   });
 
 });

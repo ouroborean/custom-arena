@@ -164,10 +164,11 @@ shot.vengeance:
 snipe.vengeance:
   archetype: Snipe
   element: Vengeance
-  name: Spear of the Fallen
+  name: Spear of Reprisal
   description: >-
-    On the following turn, deals 40 damage to target enemy. If an ally of the user dies before then, it
-    strikes at once instead, as 80 Piercing damage. The target of this skill is invisible. Channeled.
+    On the following turn, deals 40 damage to target enemy. If they hit one of the user's allies before
+    then, it strikes at once instead, as 60 Piercing damage. The target of this skill is invisible.
+    Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -179,24 +180,33 @@ snipe.vengeance:
       duration: { enemyTurns: 1 }
       effect:
         id: spear_of_the_fallen
-        name: Spear of the Fallen (aiming)
+        name: Spear of Reprisal (aiming)
         kind: Neutral
         element: Vengeance
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; a fallen ally makes it strike at once, doubled.
-        triggers:
-          - on: signal
-            signal: died
-            when: { side: enemy }
-            do:
-              - op: if
-                cond: { not: { isEnemy: eventTarget } }
-                then:
-                  - { op: removeSelf }
-                  - { op: damage, to: effectTargets, amount: 80, type: Piercing }
+        description: Strikes its target at the end of the following turn; if they hit one of the user's allies first, it strikes at once.
         onExpire:
           - { op: damage, to: effectTargets, amount: 40 }
+    # The target's watch, gone with the aim: their first hit on the user's side brings the Spear down.
+    - op: apply
+      to: primary
+      linkTo: spear_of_the_fallen
+      duration: { enemyTurns: 1 }
+      effect:
+        id: spear_of_reprisal
+        name: Spear of Reprisal
+        kind: Neutral
+        element: Vengeance
+        visibility: hidden
+        description: If the bearer hits one of the Spear's wielder's allies, it strikes them at once.
+        triggers:
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
+            consume: true
+            do:
+              - { op: removeEffect, from: actor, effect: spear_of_the_fallen }
+              - { op: damage, to: bearer, amount: 60, type: Piercing }
 
 trap.vengeance:
   archetype: Trap
@@ -379,32 +389,31 @@ channel.vengeance:
 stab.vengeance:
   archetype: Stab
   element: Vengeance
-  name: Grounded Point
+  name: Point of Reckoning
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If the user's Charge is full, it's
-    restored to full again once it's spent next turn.
+    Deals 10 damage to target enemy. If that leaves them at or below 60 HP, the user gains 1 Wrath at the
+    end of the turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { compare: { value: { stacks: { unit: actor, effect: charged } }, atLeast: 3 } }
+      cond: { hpAtMost: { unit: primary, value: 60 } }
       then:
+        # Banked until the turn ends, so this hit's own Wrath spending doesn't take it too.
         - op: apply
           to: actor
-          duration: { raw: 3 }
+          duration: { thisTurn: true }
           effect:
-            id: grounded_point
-            name: Grounded Point
-            kind: Buff
+            id: point_of_reckoning
+            name: Point of Reckoning
+            kind: Neutral
             element: Vengeance
-            description: When this ends, the bearer's Charge fills to 3 again.
+            description: At the end of the turn, the bearer gains 1 Wrath.
             onExpire:
-              - { op: apply, to: bearer, effect: charged, stacks: 3 }
+              - { op: apply, to: bearer, effect: wrath }
 
 ravage.vengeance:
   archetype: Ravage
@@ -616,32 +625,29 @@ smite.vengeance:
   element: Vengeance
   name: Karmic Spark
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn; an ally at full HP who damages them gains 1
-    Wrath instead of healing.
+    Deals 20 damage to target enemy, who is Sapped once. For 2 turns, each time they hit one of the user's
+    allies, they're Sapped again.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: sapped }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: karmic_spark
-        name: Sanctify
+        name: Karmic Spark
         kind: Debuff
         element: Vengeance
-        countsAs: [sanctify]
-        description: When the bearer takes direct damage, the damager heals 15, or gains 1 Wrath if at full HP.
+        description: Each time the bearer hits one of the applier's allies, they're Sapped.
         triggers:
-          - on: damaged
-            when: { direct: true }
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
             do:
-              - op: if
-                cond: { compare: { value: { missingHp: eventSource }, atMost: 0 } }
-                then: [{ op: apply, to: eventSource, effect: wrath }]
-                else: [{ op: heal, to: eventSource, amount: 15 }]
+              - { op: apply, to: bearer, effect: sapped }
 
 prayer.vengeance:
   archetype: Prayer

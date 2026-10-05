@@ -9,8 +9,10 @@ import { arena, content, type Arena, type ArenaOptions } from '../harness.js';
 
 const A1 = 'p0c0';
 const A2 = 'p0c1';
+const A3 = 'p0c2';
 const B1 = 'p1c0';
 const B2 = 'p1c1';
+const B3 = 'p1c2';
 
 const NEW = 0;
 const WAXING = 1;
@@ -108,37 +110,54 @@ describe('Moon skills', () => {
     expect([a.hp(B1), a.hp(A1)]).toEqual([80, 60]);
   });
 
-  it('Quickening Quake: 25 / 15, then every allied Seedling uses Channel Earth for free', () => {
-    const a = moon({ p0: [['smash.moon', 'summon.earth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.earth').end().pass(1);
+  it('Moonfall: at the New Moon, 15 to the target and 10 to their allies; the cycle then advances as usual', () => {
+    const a = moon({ p0: [['smash.moon'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'smash.moon', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([2, 2]);
+    expect([a.hp(B1), a.hp(B2), a.hp(A2)]).toEqual([85, 90, 100]);
+    expect(phase(a)).toBe(WAXING);
   });
 
-  it('Quickening Quake: no Seedlings, no Channel Earth', () => {
+  it('Moonfall: 5 more to each per phase since the New Moon (Waning: 30 and 25)', () => {
+    const hit = (p: number) => {
+      const a = moon({ p0: [['smash.moon']], p1: [['shot'], ['shot']] });
+      setPhase(a, p).use(A1, 'smash.moon', B1).end();
+      return [100 - a.hp(B1), 100 - a.hp(B2)];
+    };
+    expect([hit(WAXING), hit(FULL), hit(WANING)]).toEqual([
+      [20, 15],
+      [25, 20],
+      [30, 25],
+    ]);
+  });
+
+  it('Moonfall: then the Lunar Cycle falls back to New Moon (so it advances to Waxing, not onward)', () => {
     const a = moon({ p0: [['smash.moon']], p1: [['shot']] });
-    a.use(A1, 'smash.moon', B1).end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([0, 0]);
+    setPhase(a, FULL).use(A1, 'smash.moon', B1);
+    a.end();
+    expect(phase(a)).toBe(WAXING); // Full → New, then the end-of-turn advance
+    const b = moon({ p0: [['smash.moon']], p1: [['shot']] });
+    setPhase(b, WANING).use(A1, 'smash.moon', B1).end();
+    expect(phase(b)).toBe(WAXING); // the New Moon it fell to is spent at once
   });
 
-  it('Prowl: 15 and 1 Focus for the next skill (outside New Moon)', () => {
-    const a = moon({ p0: [['charge.moon', 'blast.moon']], p1: [['shot']] });
-    setPhase(a, WAXING).use(A1, 'charge.moon', B1).end();
-    expect([a.hp(B1), a.has(A1, 'focus'), a.has(A1, 'stealth')]).toEqual([85, true, false]);
-    a.pass(1).use(A1, 'blast.moon');
-    expect(a.state.players[0].queue[0]?.cost.r).toBe(1);
-  });
-
-  it('Prowl: at New Moon, Stealth instead of Focus', () => {
+  it('Prowl: 10 damage, and the user gains Stealth', () => {
     const a = moon({ p0: [['charge.moon']], p1: [['shot']] });
-    a.use(A1, 'charge.moon', B1).end();
-    expect([a.has(A1, 'focus'), a.has(A1, 'stealth')]).toEqual([false, true]);
+    setPhase(a, FULL).use(A1, 'charge.moon', B1).end();
+    expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([90, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  it('Prowl: Stealthy, so it keeps an existing Stealth', () => {
+  it('Prowl: the Lunar Cycle holds this turn instead of advancing, then moves on as usual', () => {
     const a = moon({ p0: [['charge.moon']], p1: [['shot']] });
-    setPhase(a, FULL).give(A1, 'stealth', { duration: 4 }).use(A1, 'charge.moon', B1).end();
+    setPhase(a, FULL).use(A1, 'charge.moon', B1).end();
+    expect(phase(a)).toBe(FULL);
+    a.pass(2);
+    expect(phase(a)).toBe(WANING);
+  });
+
+  it('Prowl: Stealthy, so an existing Stealth is kept', () => {
+    const a = moon({ p0: [['charge.moon']], p1: [['shot']] });
+    a.give(A1, 'stealth', { duration: 4 }).use(A1, 'charge.moon', B1).end();
     expect(a.has(A1, 'stealth')).toBe(true);
   });
 
@@ -156,34 +175,55 @@ describe('Moon skills', () => {
     expect(a.hp(A1)).toBe(100);
   });
 
-  it('Turn Beast: 1 Might and 1 Swiftness outside the Full Moon', () => {
+  it('Turn Beast: the cycle leaps to the Full Moon at once, and it rises (a Lunar Wolf howls)', () => {
+    const a = moon({ p0: [['rage.moon', 'companion.moon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'companion.moon').end().pass(1); // Waxing
+    const w = minions(a, 0, 'lunar_wolf')[0]!;
+    a.setHp(w.id, 10).use(A1, 'rage.moon');
+    a.end();
+    expect(a.hp(w.id)).toBe(30);
+    expect([B1, B2].filter((u) => a.effects(u).some((e) => e.defId === 'taunt' && e.source === w.id)).length).toBe(1);
+  });
+
+  it('Turn Beast: the Full Moon holds for 3 turns (this one and the user\'s next two), then the cycle moves on', () => {
+    const a = moon({ p0: [['rage.moon']], p1: [['shot']] });
+    a.use(A1, 'rage.moon').end(); // New → Full, held
+    expect(phase(a)).toBe(FULL);
+    a.pass(1);
+    a.end(); // the user's next turn: still Full, held again
+    expect(phase(a)).toBe(FULL);
+    a.pass(1);
+    a.end(); // the third: Full during it, advancing at its end
+    expect(phase(a)).toBe(WANING);
+  });
+
+  it('Turn Beast: already at the Full Moon, it doesn\'t rise again (no howl), it only holds', () => {
+    const a = moon({ p0: [['rage.moon', 'companion.moon']], p1: [['shot']] });
+    a.use(A1, 'companion.moon').end().pass(1);
+    const w = minions(a, 0, 'lunar_wolf')[0]!;
+    setPhase(a, FULL).setHp(w.id, 10).use(A1, 'rage.moon').end();
+    expect([a.hp(w.id), phase(a)]).toEqual([10, FULL]);
+  });
+
+  it('Turn Beast: for 3 turns, direct hits deal 10 more and heal the user for half the damage dealt', () => {
     const a = moon({ p0: [['rage.moon', 'shot']], p1: [['shot']] });
-    a.use(A1, 'rage.moon').end().pass(1);
-    expect([a.has(A1, 'swiftness'), a.has(A1, 'immune')]).toEqual([true, false]);
-    a.use(A1, 'shot', B1).end(); // Waxing
-    expect(a.hp(B1)).toBe(80);
-  });
-
-  it('Turn Beast: during the Full Moon, 3 Might and Immune', () => {
-    const a = moon({ p0: [['rage.moon', 'shot']], p1: [['shot', 'curse']] });
-    a.use(A1, 'rage.moon').end().pass(2); // game turn 4: the Full Moon rose at the end of turn 3
-    a.use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(false);
-    a.use(A1, 'shot', B1).end(); // game turn 5: still Full
-    expect(a.hp(B1)).toBe(70);
-  });
-
-  it('Turn Beast: no Immune outside the Full Moon', () => {
-    const a = moon({ p0: [['rage.moon', 'shot']], p1: [['shot', 'curse']] });
-    a.use(A1, 'rage.moon').end().use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(true);
-  });
-
-  it('Turn Beast: lasts 4 turns', () => {
-    const a = moon({ p0: [['rage.moon', 'shot']], p1: [['shot']] });
-    a.use(A1, 'rage.moon').end().pass(7);
+    a.setHp(A1, 50).use(A1, 'rage.moon').end().pass(1);
     a.use(A1, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(85);
+    expect([a.hp(B1), a.hp(A1)]).toEqual([75, 62]);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([50, 74]);
+    a.pass(1).use(A1, 'shot', B1).end(); // over: a plain 15, no heal
+    expect([a.hp(B1), a.hp(A1)]).toEqual([35, 74]);
+  });
+
+  it('Turn Beast: for as long, the user\'s Strategic skills are Stunned', () => {
+    const a = moon({ p0: [['rage.moon', 'shot', 'withstand']], p1: [['shot']] });
+    a.use(A1, 'rage.moon').end().pass(1);
+    expect(a.reject(() => a.use(A1, 'withstand'))).toBe('cannot_act');
+    a.use(A1, 'shot', B1).end().pass(1); // non-Strategic skills still work
+    expect(a.reject(() => a.use(A1, 'withstand'))).toBe('cannot_act');
+    a.pass(2).use(A1, 'withstand').end();
+    expect(a.has(A1, 'shield')).toBe(true);
   });
 
   it('Moonshard: 10 Piercing', () => {
@@ -202,31 +242,32 @@ describe('Moon skills', () => {
     expect(a.hp(B1)).toBe(75); // once
   });
 
-  it("Hunter's Moon: 40 on the following turn", () => {
-    const a = moon({ p0: [['snipe.moon']], p1: [['shot']] });
-    a.use(A1, 'snipe.moon', B1).end(); // lands while Waxing
+  it("Hunter's Moon: on the following turn, 30 to the stalked enemy", () => {
+    const a = moon({ p0: [['snipe.moon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.moon', B1).end();
     expect(a.hp(B1)).toBe(100);
     a.end();
-    expect(a.hp(B1)).toBe(60);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'hunted')]).toEqual([70, 100, false]);
   });
 
-  it("Hunter's Moon: Bypasses Invulnerable", () => {
+  it("Hunter's Moon: 10 more for each hit the user's allies land on them before it lands", () => {
+    const a = moon({ p0: [['snipe.moon'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.moon', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end().end();
+    expect(a.hp(B1)).toBe(100 - 15 - 15 - 50);
+  });
+
+  it("Hunter's Moon: at most 60", () => {
     const a = moon({ p0: [['snipe.moon']], p1: [['shot']] });
     a.use(A1, 'snipe.moon', B1).end();
-    a.give(B1, 'invulnerable', { duration: 2 }).end();
-    expect(a.hp(B1)).toBe(60);
-  });
-
-  it("Hunter's Moon: landing in the Full Moon, 20 more", () => {
-    const a = moon({ p0: [['snipe.moon']], p1: [['shot']] });
-    a.pass(2).use(A1, 'snipe.moon', B1).end().end();
+    a.effects(B1).find((e) => e.inline?.id === 'hunted')!.stacks = 7; // six hits
+    a.end();
     expect(a.hp(B1)).toBe(40);
   });
 
-  it("Hunter's Moon: landing in the Waning moon, the user heals half", () => {
-    const a = moon({ p0: [['snipe.moon']], p1: [['shot']] });
-    a.pass(4).setHp(A1, 50).use(A1, 'snipe.moon', B1).end().end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([60, 70]);
+  it("Hunter's Moon: Channeled; a Stun on the user before it lands stops the shot", () => {
+    const a = moon({ p0: [['snipe.moon']], p1: [['stun']] });
+    a.use(A1, 'snipe.moon', B1).end().use(B1, 'stun', A1).end();
+    expect(a.hp(B1)).toBe(100);
   });
 
   it('Dreaming Stones: hidden; their first Harmful skill puts them to Sleep and Isolates them for 1 turn', () => {
@@ -306,25 +347,28 @@ describe('Moon skills', () => {
     expect([a.hp(w.id), a.has(B1, 'taunt')]).toEqual([10, false]);
   });
 
-  it('Silver Bolt: 20 and Blinded for 2 turns', () => {
+  it('Moonless Bolt: 15 damage, and Blinded for 4 turns at the New Moon', () => {
     const a = moon({ p0: [['bolt.moon']], p1: [['shot']] });
     a.use(A1, 'bolt.moon', B1).end();
-    expect([a.hp(B1), a.has(B1, 'blinded')]).toEqual([80, true]);
-    a.pass(3);
+    expect([a.hp(B1), a.has(B1, 'blinded')]).toEqual([85, true]);
+    a.pass(6);
+    expect(a.has(B1, 'blinded')).toBe(true); // through their 4th turn
+    a.pass(1);
     expect(a.has(B1, 'blinded')).toBe(false);
   });
 
-  it('Silver Bolt: Full Moon ends their Stealth, and they can\'t regain it for 3 turns', () => {
-    const a = moon({ p0: [['bolt.moon']], p1: [['shot', 'bless.shadow']] });
-    setPhase(a, FULL).use(A1, 'bolt.moon', B1).end(); // a Stealthed target can't be picked, so check the lockout
-    a.use(B1, 'bless.shadow', B1).end();
-    expect(a.has(B1, 'stealth')).toBe(false);
-  });
-
-  it('Silver Bolt: outside the Full Moon, no Stealth lockout', () => {
-    const a = moon({ p0: [['bolt.moon']], p1: [['shot', 'bless.shadow']] });
-    setPhase(a, WAXING).use(A1, 'bolt.moon', B1).end().use(B1, 'bless.shadow', B1).end();
-    expect(a.has(B1, 'stealth')).toBe(true);
+  it('Moonless Bolt: the brighter the moon, the shorter: 3 turns Waxing, 2 Full, 1 Waning', () => {
+    const lasts = (p: number) => {
+      const a = moon({ p0: [['bolt.moon']], p1: [['shot']] });
+      setPhase(a, p).use(A1, 'bolt.moon', B1).end();
+      let n = 0;
+      while (a.has(B1, 'blinded')) {
+        a.pass(1);
+        n += 1;
+      }
+      return n; // turns ended after its own: 2N − 1 for N turns
+    };
+    expect([lasts(NEW), lasts(WAXING), lasts(FULL), lasts(WANING)]).toEqual([7, 5, 3, 1]);
   });
 
   it('Moonburst: 25 to all enemies', () => {
@@ -430,58 +474,63 @@ describe('Moon skills', () => {
     expect(a.has(B1, 'isolated')).toBe(false);
   });
 
-  it('Feral Maw: 20 Piercing, doubled from Stealth; it ends Stealth outside the Full Moon', () => {
-    const a = moon({ p0: [['ravage.moon']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.moon', B1).end();
-    expect(a.hp(B1)).toBe(80);
-    a.pass(5).give(A1, 'stealth', { duration: 4 }).use(A1, 'ravage.moon', B2).end(); // Waning
-    expect([a.hp(B2), a.has(A1, 'stealth')]).toEqual([60, false]);
-  });
-
-  it("Feral Maw: at the Full Moon it doesn't end the user's Stealth", () => {
+  it('Feral Maw: 35 Piercing damage (Armor doesn\'t reduce it)', () => {
     const a = moon({ p0: [['ravage.moon']], p1: [['shot']] });
-    a.pass(4); // game turn 5: Full Moon
-    expect(phase(a)).toBe(FULL);
-    a.give(A1, 'stealth', { duration: 4 }).use(A1, 'ravage.moon', B1).end();
-    expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([60, true]);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.moon', B1).end();
+    expect(a.hp(B1)).toBe(65);
   });
 
-  it('False Moonlight: hidden; a Harmful skill is countered, the user gets a Boulder and they are Isolated 3 turns', () => {
-    const a = moon({ p0: [['mislead.moon']], p1: [['shot'], ['heal']] });
+  it('Feral Maw: the frenzy Blinds the user through their next turn', () => {
+    const a = moon({ p0: [['ravage.moon']], p1: [['shot']] });
+    a.use(A1, 'ravage.moon', B1).end();
+    expect(a.has(A1, 'blinded')).toBe(true);
+    a.pass(1);
+    expect(a.has(A1, 'blinded')).toBe(true); // still, on their next turn
+    a.end();
+    expect(a.has(A1, 'blinded')).toBe(false);
+  });
+
+  it('False Moonlight: hidden; a Harmful skill is countered, and every enemy is Blinded for 1 turn', () => {
+    const a = moon({ p0: [['mislead.moon']], p1: [['shot'], ['shot']] });
     a.use(A1, 'mislead.moon', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1 && e.source === A1)).toBe(false);
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), minions(a, 0, 'boulder').length, a.has(B1, 'isolated')]).toEqual([100, 1, true]);
-    a.pass(5);
-    expect(a.has(B1, 'isolated')).toBe(true); // through their 3rd turn after this one
+    expect([a.hp(A1), a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([100, true, true]);
     a.pass(1);
-    expect(a.has(B1, 'isolated')).toBe(false);
+    expect(a.has(B2, 'blinded')).toBe(true); // through their next turn
+    a.pass(1);
+    expect(a.has(B2, 'blinded')).toBe(false);
   });
 
   it('False Moonlight: a Helpful skill passes, and it lasts 1 turn', () => {
     const a = moon({ p0: [['mislead.moon']], p1: [['shot', 'heal']] });
     a.use(A1, 'mislead.moon', B1).end().use(B1, 'heal', B1).end().pass(1).use(B1, 'shot', A1).end();
-    expect([a.hp(A1), minions(a, 0, 'boulder').length]).toEqual([85, 0]);
+    expect([a.hp(A1), a.has(B1, 'blinded')]).toEqual([85, false]);
   });
 
-  it('Lunacy: 10 and Asleep for 1 turn', () => {
+  it('Lunacy: 10 to the target, then they and a random ally of theirs are Asleep for 1 turn', () => {
+    const a = moon({ p0: [['stun.moon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.moon', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'sleep'), a.has(B2, 'sleep')]).toEqual([90, 100, true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    expect(a.reject(() => a.use(B2, 'shot', A1))).toBe('cannot_act');
+    a.pass(2).use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(70);
+  });
+
+  it('Lunacy: damage that wakes either one wakes both', () => {
+    const a = moon({ p0: [['stun.moon'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.moon', B1).use(A2, 'shot', B2).end();
+    expect([a.has(B1, 'sleep'), a.has(B2, 'sleep')]).toEqual([false, false]);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(70);
+  });
+
+  it('Lunacy: with no ally to share it, the target sleeps alone', () => {
     const a = moon({ p0: [['stun.moon']], p1: [['shot']] });
     a.use(A1, 'stun.moon', B1).end();
     expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([90, true]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.pass(2).use(B1, 'shot', A1).end();
-  });
-
-  it('Lunacy: at the Full Moon, Asleep for 2 turns', () => {
-    const a = moon({ p0: [['stun.moon']], p1: [['shot']] });
-    setPhase(a, FULL).use(A1, 'stun.moon', B1).end().pass(2);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-  });
-
-  it('Lunacy: damage still wakes them', () => {
-    const a = moon({ p0: [['stun.moon'], ['shot']], p1: [['shot']] });
-    setPhase(a, FULL).use(A1, 'stun.moon', B1).end().pass(1).use(A2, 'shot', B1).end();
-    expect(a.has(B1, 'sleep')).toBe(false);
   });
 
   it('Dance of Phases: 1 Swiftness and the phase\'s gift (New: Stealth)', () => {
@@ -533,21 +582,25 @@ describe('Moon skills', () => {
     expect([a.unit(A2).alive, a.hp(A2)]).toEqual([true, 1]);
   });
 
-  it('Moonveil: Stealth; 1 permanent Armor at the end of each of their turns while Stealthed', () => {
+  it('Moonveil: the ally is Asleep and Invulnerable through their next turn', () => {
     const a = moon({ p0: [['bless.moon'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bless.moon', A2).end();
-    expect([a.has(A2, 'stealth'), a.stacks(A2, 'armor')]).toEqual([true, 1]); // end of their turn 1
-    a.pass(2);
-    expect(a.stacks(A2, 'armor')).toBe(2); // end of their turn 2, still Stealthed
+    expect([a.has(A2, 'sleep'), a.has(A2, 'invulnerable')]).toEqual([true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.end();
+    expect(a.reject(() => a.use(A2, 'shot', B1))).toBe('cannot_act');
+    a.end();
+    expect([a.has(A2, 'sleep'), a.has(A2, 'invulnerable')]).toEqual([false, false]);
   });
 
-  it('Moonveil: once no longer Stealthed, no more Armor; what was gained stays', () => {
+  it('Moonveil: when they wake, 2 Might for 2 turns and 3 Renew', () => {
     const a = moon({ p0: [['bless.moon'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bless.moon', A2).end().pass(1);
-    a.use(A2, 'shot', B1).end(); // breaks Stealth
-    expect(a.has(A2, 'stealth')).toBe(false);
+    a.use(A1, 'bless.moon', A2).end().pass(2);
+    expect([a.stacks(A2, 'might'), a.stacks(A2, 'renew')]).toEqual([2, 3]);
+    a.pass(1).use(A2, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(75);
     a.pass(4);
-    expect(a.stacks(A2, 'armor')).toBe(1);
+    expect(a.stacks(A2, 'might')).toBe(0);
   });
 
   it('Tidal Lock: non-Strategic skills Stunned on their 1st and 3rd turns, Strategic on their 2nd', () => {
@@ -590,33 +643,39 @@ describe('Moon skills', () => {
     ]);
   });
 
-  it('Crescent Lull: 25 and 15 to a random other enemy', () => {
-    const a = moon({ p0: [['cleave.moon']], p1: [['shot'], ['shot']] });
+  it('Shattered Crescent: 10 to the target, and a Moonshard lodges in each other enemy', () => {
+    const a = moon({ p0: [['cleave.moon']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.moon', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([90, 100, 100]);
+    expect([B1, B2, B3].map((u) => a.has(u, 'moonshard'))).toEqual([false, true, true]);
   });
 
-  it('Crescent Lull: a Sleeper hit stays Asleep, and sleeps 1 turn longer', () => {
+  it('Shattered Crescent: each shard deals 15 at the start of the next Full Moon, once', () => {
     const a = moon({ p0: [['cleave.moon']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'sleep', { source: A1, duration: 2 }).use(A1, 'cleave.moon', B1).end();
-    expect(a.has(B1, 'sleep')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'sleep')).toBe(true); // would have ended at the end of turn 2
-    a.pass(2);
-    expect(a.has(B1, 'sleep')).toBe(false);
+    a.use(A1, 'cleave.moon', B1).end().pass(1); // New → Waxing
+    expect(a.hp(B2)).toBe(100);
+    a.end(); // Waxing → Full
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 85]);
+    a.pass(8);
+    expect(a.hp(B2)).toBe(85);
   });
 
-  it('Howl at the Moon: all enemies Intimidated for 2 turns; no minion attacks outside the Full Moon', () => {
-    const a = moon({ p0: [['shout.moon', 'summon.earth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'shout.moon').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated'), a.hp(B1) + a.hp(B2)]).toEqual([true, true, 200]);
+  it('Shattered Crescent: from the Full Moon, the shards wait the whole cycle for the next one', () => {
+    const a = moon({ p0: [['cleave.moon']], p1: [['shot'], ['shot']] });
+    setPhase(a, FULL).use(A1, 'cleave.moon', B1).end().pass(5); // Waning, New, Waxing
+    expect([phase(a), a.hp(B2)]).toEqual([WAXING, 100]);
+    a.end();
+    expect([phase(a), a.hp(B2)]).toEqual([FULL, 85]);
   });
 
-  it('Howl at the Moon: Full Moon, every allied minion also attacks a random enemy for 10', () => {
-    const a = moon({ p0: [['shout.moon', 'summon.earth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'summon.earth').end().pass(1);
-    setPhase(a, FULL).use(A1, 'shout.moon').end();
-    expect(a.hp(B1) + a.hp(B2)).toBe(180);
+  it('Howl at the Moon: the user heals 20, and every enemy is Taunted by them for 1 turn', () => {
+    const a = moon({ p0: [['shout.moon'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).use(A1, 'shout.moon').end();
+    expect(a.hp(A1)).toBe(70);
+    expect([B1, B2].map((u) => a.effects(u).some((e) => e.defId === 'taunt' && e.source === A1))).toEqual([true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.end();
+    expect([a.has(B1, 'taunt'), a.has(B2, 'taunt'), a.has(B1, 'intimidated')]).toEqual([false, false, false]);
   });
 
   it('Cairn Ward: 25 Shield for 1 turn; what\'s left becomes a Boulder with that much HP', () => {
@@ -648,19 +707,31 @@ describe('Moon skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
   });
 
-  it('Face of the Moon: 3 Armor and Immune; the cycle holds at its phase for 3 turns', () => {
-    const a = moon({ p0: [['titan.moon']], p1: [['strike', 'curse']] });
-    a.pass(4).use(A1, 'titan.moon').end(); // Full Moon
-    expect(phase(a)).toBe(FULL);
-    a.use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(95);
+  it('Face of the Moon: each enemy who hits the user is Blinded for 2 turns', () => {
+    const a = moon({ p0: [['titan.moon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.moon').end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([85, true, false]);
     a.pass(2);
-    expect(phase(a)).toBe(FULL);
-    a.pass(1).use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(false);
-    a.pass(1); // game turn 11: the hold is over at the end of it… cycle resumes
+    expect(a.has(B1, 'blinded')).toBe(true);
     a.pass(2);
-    expect(phase(a)).not.toBe(FULL);
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
+
+  it('Face of the Moon: while Blinded, they deal the user 10 less damage', () => {
+    const a = moon({ p0: [['titan.moon']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.moon').end().use(B1, 'shot', A1).end().pass(1);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // B1 Blinded: 5; B2's first hit: 15
+    expect([a.hp(A1), a.has(B2, 'blinded')]).toEqual([65, true]);
+  });
+
+  it('Face of the Moon: lasts 3 turns', () => {
+    const a = moon({ p0: [['titan.moon']], p1: [['shot']] });
+    a.use(A1, 'titan.moon').end().pass(4).use(B1, 'shot', A1).end(); // the third enemy turn: still on
+    expect(a.has(B1, 'blinded')).toBe(true);
+    const b = moon({ p0: [['titan.moon']], p1: [['shot']] });
+    b.use(A1, 'titan.moon').end().pass(6).use(B1, 'shot', A1).end();
+    expect(b.has(B1, 'blinded')).toBe(false);
+  });
+
 });
 

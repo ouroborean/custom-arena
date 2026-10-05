@@ -102,13 +102,17 @@ describe('Blight skills', () => {
     expect([withered(a, B1), a.stacks(A1, 'soul_fragment')]).toEqual([3, 1]);
   });
 
-  it("Plaguecrusher: 40; allies with Toxin gain 1 Withered, the rest gain 1 Toxin", () => {
+  it('Plaguecrusher: 30; the target gains 1 Withered, and each of their allies takes 5 per Withered it has', () => {
     const a = arena({ p0: [['smash.blight']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B2, 'toxin', { source: B1 });
     a.use(A1, 'smash.blight', B1).end();
-    expect([a.hp(B1), withered(a, B1), a.has(B1, 'toxin')]).toEqual([60, 0, false]);
-    expect([withered(a, B2), a.stacks(B2, 'toxin')]).toEqual([1, 2]); // its Toxin then Festers at the turn's end
-    expect([withered(a, B3), a.stacks(B3, 'toxin')]).toEqual([0, 1]);
+    expect([a.hp(B1), withered(a, B1), a.hp(B2), a.hp(B3)]).toEqual([70, 1, 95, 95]);
+  });
+
+  it("Plaguecrusher: the splash grows with the target's Withered", () => {
+    const a = arena({ p0: [['smash.blight']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'withered', { stacks: 2, source: A1 });
+    a.use(A1, 'smash.blight', B1).end();
+    expect([withered(a, B1), a.hp(B2), a.hp(B3), withered(a, B2)]).toEqual([3, 85, 85, 0]);
   });
 
   it('Dread Lunge: 15; the next skill treats the target as Horrified', () => {
@@ -142,36 +146,44 @@ describe('Blight skills', () => {
     expect([a.has(A1, 'might'), a.has(A1, 'immortal'), withered(a, A1)]).toEqual([false, false, 3]);
   });
 
-  it('Dread Spittle: 15 and 1 Toxin; for 2 turns no Buffs while they have 2+ Toxin', () => {
-    const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
-    a.give(B1, 'toxin', { stacks: 1, source: B1 });
+  it('Bitter Bile: 10, and the user drains a Soul Fragment and gains 1 Toxin', () => {
+    const a = arena({ p0: [['shot.blight']], p1: [['shot']] });
     a.use(A1, 'shot.blight', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.has(B1, 'horrified')]).toEqual([80, 2, false]); // 15 + its Toxin's tick
-    a.use(B1, 'bless', B1).end();
-    expect(a.has(B1, 'might')).toBe(false);
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(A1, 'toxin')]).toEqual([90, 1, 1]);
+    expect(a.hp(A1)).toBe(95); // the user's own Toxin ticks at the end of their turn
   });
 
-  it('Dread Spittle: with only its own 1 Toxin, Buffs land', () => {
-    const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
-    a.use(A1, 'shot.blight', B1).end().use(B1, 'bless', B1).end();
-    expect([a.stacks(B1, 'toxin'), a.has(B1, 'might')]).toEqual([1, true]);
-  });
-
-  it('Dread Spittle: its own second use brings them to 2 Toxin, and the Buffs stop', () => {
-    const a = arena({ p0: [['shot.blight']], p1: [['bless']] });
+  it('Bitter Bile: the next use hits harder with the Fragment, and the Toxin builds', () => {
+    const a = arena({ p0: [['shot.blight']], p1: [['shot']] });
     a.use(A1, 'shot.blight', B1).end().pass(3);
-    a.use(A1, 'shot.blight', B1).end().use(B1, 'bless', B1).end();
-    expect([a.stacks(B1, 'toxin'), a.has(B1, 'might')]).toEqual([2, false]);
+    a.use(A1, 'shot.blight', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(A1, 'toxin')]).toEqual([75, 2, 2]);
+    expect(a.hp(A1)).toBe(100 - 5 - 5 - 10);
   });
 
-  it('Rotspear: on the following turn, 25 Affliction +10 per Withered', () => {
-    const a = arena({ p0: [['snipe.blight'], ['curse.blight']], p1: [['shot']] });
+  it('Bitter Bile: with 3 Soul Fragments, it drains no more (the Toxin still comes)', () => {
+    const a = arena({ p0: [['shot.blight']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'shot.blight', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(A1, 'toxin')]).toEqual([75, 3, 1]);
+  });
+
+  it('Rotspear: on the following turn, 20 Affliction', () => {
+    const a = arena({ p0: [['snipe.blight']], p1: [['shot']] });
     a.give(B1, 'shield', { value: 50 });
-    a.use(A2, 'curse.blight', B1).use(A1, 'snipe.blight', B1).end();
-    expect(a.hp(B1)).toBe(95);
+    a.use(A1, 'snipe.blight', B1).end();
+    expect(a.hp(B1)).toBe(100);
     a.end();
-    expect(a.hp(B1)).toBe(60); // 95 max − 35 Affliction through the Shield
-    expect(content.skills['snipe.blight']!.tags).toContain('Uncounterable');
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([80, 0]); // Affliction goes through the Shield
+  });
+
+  it("Rotspear: all the user's Toxin rides the spear onto the target", () => {
+    const a = arena({ p0: [['snipe.blight']], p1: [['shot']] });
+    a.give(A1, 'toxin', { stacks: 3, source: A1 }).use(A1, 'snipe.blight', B1).end();
+    expect([a.hp(A1), a.stacks(A1, 'toxin')]).toEqual([85, 3]); // still the user's this turn
+    a.end();
+    expect([a.hp(B1), a.stacks(A1, 'toxin'), a.stacks(B1, 'toxin')]).toEqual([80, 0, 3]);
+    a.end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 65]); // it ticks on the target now, still as the user's Toxin
   });
 
   it('Rotten Remedy: the first heal is undone and gives 1 Withered per 10 it would have healed', () => {
@@ -288,10 +300,18 @@ describe('Blight skills', () => {
     expect(a.hp(B3)).toBe(60); // 2 + 2 Withered enemies = 4 ticks
   });
 
-  it('Rusted Knife: 10 and 1 Withered above 60 HP; 20 and no Withered at or below 60', () => {
-    const a = arena({ p0: [['stab.blight']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.blight', B1).end().pass(1).use(A1, 'stab.blight', B2).end();
-    expect([a.hp(B1), withered(a, B1), a.hp(B2), withered(a, B2)]).toEqual([90, 1, 40, 0]);
+  it('Rusted Knife: 15 Piercing; with no Soul Fragment, nothing more', () => {
+    const a = arena({ p0: [['stab.blight']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'stab.blight', B1).end();
+    expect([a.hp(B1), withered(a, B1)]).toEqual([85, 0]);
+  });
+
+  it('Rusted Knife: then the user spends a Soul Fragment, and the target gains 2 Withered', () => {
+    const a = arena({ p0: [['stab.blight']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'stab.blight', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), withered(a, B1), a.unit(B1).maxHp]).toEqual([75, 1, 2, 90]); // both Fragments added to the hit
+    a.pass(1).use(A1, 'stab.blight', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), withered(a, B1)]).toEqual([55, 0, 4]);
   });
 
   it('Flay: 30 Piercing; each Buff is torn off and becomes 1 Withered', () => {
