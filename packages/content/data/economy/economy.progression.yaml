@@ -1,0 +1,49 @@
+# Player levels and loot boxes (docs/equipment.md §4.1). Matches pay experience on top of their
+# usual rewards; the experience bar has a bubble at 25, 50, 75 and 100%, and reaching one pays its
+# loot box. The player opens boxes from Home.
+#
+# Gear tiers count components: tier 1 is a single component (a Shard, Skill or Sigil), tier 2 a piece
+# with 2 components already forged together, tier 3 a piece with 3.
+
+progression:
+  # Experience per match kind and outcome. Like gold, a loss only pays when it was played out (not a
+  # surrender, forfeit or AFK), and nothing pays below `minTurns`. Private matches pay none.
+  xp:
+    casual: { minTurns: 8, win: 100, loss: 40, draw: 50 }
+    ranked: { minTurns: 8, win: 120, loss: 50, draw: 60 }
+    practice: { minTurns: 8, win: 60, loss: 25, draw: 30 }
+    arcade: { minTurns: 8, win: 80, loss: 30, draw: 30 }
+    story: { win: 80, loss: 25, draw: 25 }
+    tutorial: { win: 60, loss: 20, draw: 20 }
+  # Experience from level L to L+1: base + step × (L − 1), at most max.
+  levels: { base: 400, step: 100, max: 1200 }
+  # The bubbles on the bar, by percent of the level.
+  milestones:
+    - { at: 25, box: uncommon }
+    - { at: 50, box: rare }
+    - { at: 75, box: uncommon }
+    - { at: 100, box: epic }
+  # Components for gear rolls come from this drop table.
+  table: standard
+
+# Each box holds `count` rolls. A roll lands in a band by `bands` weight: `gold` (the lowest, an amount
+# in the `gold` range), `gear` (tier 1 or 2 by `gear` weight) or `prize` (a tier-3 piece).
+lootBoxes:
+  uncommon:
+    name: Uncommon Loot Box
+    count: 3
+    bands: { gold: 60, gear: 37, prize: 3 }
+    gold: { min: 20, max: 50 }
+    gear: { "1": 85, "2": 15 }
+  rare:
+    name: Rare Loot Box
+    count: 3
+    bands: { gold: 40, gear: 52, prize: 8 }
+    gold: { min: 40, max: 90 }
+    gear: { "1": 60, "2": 40 }
+  epic:
+    name: Epic Loot Box
+    count: 3
+    bands: { gold: 15, gear: 60, prize: 25 }
+    gold: { min: 80, max: 160 }
+    gear: { "1": 30, "2": 70 }

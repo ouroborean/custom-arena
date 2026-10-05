@@ -1,7 +1,7 @@
 // Story mode and achievements (docs/single-player.md). Attempts are issued here, played in the
 // browser, and verified by replay when they're submitted.
 
-import { chapterOf, encounterConfig, storyStatus, type Reward } from '@arena/meta';
+import { chapterOf, encounterConfig, matchXp, storyStatus, type Reward } from '@arena/meta';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import type { Db } from '../db/client.js';
 import { achievementProgress, spAttempts, storyChapters, storyProgress } from '../db/schema.js';
 import { grant, inTransaction, sumRewards, walletOf } from '../economy.js';
+import { awardXp } from '../progression.js';
 import { attemptBot, engineVersion, matchFact, recordAchievements, verifyMatch, type AchievementUnlock } from '../singleplayer.js';
 import { activeTeamSpecs, characterJson, rollForUser } from './roster.js';
 import type { GrantSpec } from '@arena/engine';
@@ -121,7 +122,11 @@ export function storyRoutes(ctx: AppContext) {
             }
           }
         }
-        return { reward: sumRewards(rewards), chapterDone, characters };
+        const reward = sumRewards(rewards);
+        const kind = ctx.content.chapters[chapterId]?.tutorial ? 'tutorial' : 'story';
+        const gain = await awardXp(db, ctx.content, userId, matchXp(ctx.content, { kind, outcome: result.outcome, endReason: result.endReason, turns: result.turns }));
+        if (gain) reward.xp = gain;
+        return { reward, chapterDone, characters };
       });
 
       const achievements: AchievementUnlock[] = await recordAchievements(

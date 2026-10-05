@@ -1,9 +1,9 @@
 # Sun minions.
 
-# Rolling Sunstone: a Boulder that Explodes when destroyed or launched.
+# Rolling Sunstone: a Boulder that Explodes when destroyed, launched or when it crashes.
 sunstone:
   name: Sunstone
-  hp: 45
+  hp: 20
   tags: [boulder]
   onDeath:
     - { op: macro, id: explode }

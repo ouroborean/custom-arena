@@ -31,11 +31,11 @@ function parseCost(s: string): Cost {
 
 const kit: [string, string, number][] = [
   ['strike', 'S', 1], ['smash', 'Sr', 2], ['charge', 'S', 3], ['riposte', 'A', 3], ['rage', 'SI', 4],
-  ['shot', 'r', 0], ['snipe', 'Ar', 2], ['trap', 'r', 2], ['maneuver', 'r', 3], ['companion', 'I', 1],
+  ['shot', 'r', 0], ['snipe', 'Ar', 2], ['trap', 'r', 2], ['maneuver', 'r', 4], ['companion', 'I', 1],
   ['bolt', 'Ar', 1], ['blast', 'Irr', 2], ['consume', 'r', 2], ['summon', 'I', 1], ['channel', 'Sr', 3],
-  ['stab', 'r', 0], ['ravage', 'Ar', 1], ['mislead', 'S', 2], ['stun', 'A', 2], ['dance', 'AA', 4],
-  ['heal', 'r', 1], ['bless', 'r', 2], ['curse', 'A', 2], ['smite', 'W', 1], ['prayer', 'Wrr', 2],
-  ['cleave', 'S', 1], ['shout', 'Sr', 3], ['withstand', 'A', 3], ['taunt', 'r', 2], ['titan', 'IW', 4],
+  ['stab', 'r', 0], ['ravage', 'Ar', 1], ['mislead', 'S', 2], ['stun', 'A', 3], ['dance', 'AA', 4],
+  ['heal', 'W', 1], ['bless', 'r', 2], ['curse', 'A', 2], ['smite', 'W', 1], ['prayer', 'Wrr', 2],
+  ['cleave', 'S', 1], ['shout', 'Sr', 3], ['withstand', 'A', 3], ['taunt', 'r', 3], ['titan', 'IW', 4],
 ];
 
 describe('Ion kit table', () => {
@@ -46,7 +46,7 @@ describe('Ion kit table', () => {
     expect(s.element).toBe('Ion');
   });
 
-  it('tags: Dark Current, Blind Spot, Dark Hum and Scramble are Stealthy; Null Guard and Signal Jam are Invisible', () => {
+  it('tags: Dark Current, Go Dark, Dark Hum and Scramble are Stealthy; Null Guard and Signal Jam are Invisible', () => {
     for (const id of ['charge.ion', 'maneuver.ion', 'channel.ion', 'shadow_drone_scramble']) expect(content.skills[id]!.tags).toContain('Stealthy');
     for (const id of ['riposte.ion', 'mislead.ion']) expect(content.skills[id]!.tags).toContain('Invisible');
     expect(content.skills['snipe.ion']!.tags).toEqual(expect.arrayContaining(['Channeled', 'HiddenTarget']));
@@ -194,13 +194,25 @@ describe('Ion skills', () => {
     expect([a.hp(B1) <= 85, a.has(B1, 'blackout')]).toEqual([true, true]);
   });
 
-  it('Blind Spot: Ghosted and Invulnerable for 1 turn', () => {
+  it('Go Dark: the user becomes Invulnerable for 2 turns', () => {
     const a = arena({ p0: [['maneuver.ion']], p1: [['shot']] });
     a.use(A1, 'maneuver.ion').end();
-    expect([a.has(A1, 'ghosted'), a.has(A1, 'invulnerable')]).toEqual([true, true]);
+    expect([a.has(A1, 'invulnerable'), a.has(A1, 'ghosted')]).toEqual([true, false]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
     a.pass(2);
-    expect([a.has(A1, 'ghosted'), a.has(A1, 'invulnerable')]).toEqual([false, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.pass(2).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Go Dark: meanwhile the user can\'t use Harmful skills; Helpful ones are fine', () => {
+    const a = arena({ p0: [['maneuver.ion', 'shot', 'heal']], p1: [['shot']] });
+    a.use(A1, 'maneuver.ion').end().pass(1);
+    expect(a.reject(() => a.use(A1, 'shot', B1))).toBeTruthy();
+    a.setHp(A1, 50).use(A1, 'heal', A1).end();
+    expect(a.hp(A1)).toBe(75);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(85);
   });
 
   it('Shadow Drone: a permanent, Stealthed 20 HP minion; Scramble Suppresses for 1 turn and keeps Stealth', () => {
@@ -306,17 +318,19 @@ describe('Ion skills', () => {
     expect(a.hp(B1)).toBe(70);
   });
 
-  it('Circuit Breaker: 10, or 20 at or below 60 HP', () => {
+  it('Circuit Breaker: 10 damage, even at or below 60 HP', () => {
     const a = arena({ p0: [['stab.ion']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.ion', B1).end().pass(1).use(A1, 'stab.ion', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+    a.setHp(B2, 60).use(A1, 'stab.ion', B2).end();
+    expect(a.hp(B2)).toBe(50);
   });
 
-  it('Circuit Breaker: against a Suppressed target, one of their Buffs also ends; not otherwise', () => {
+  it('Circuit Breaker: one of the target\'s Buffs ends at random, and then the user gains 1 Charge', () => {
     const a = arena({ p0: [['stab.ion']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'might').give(B1, 'suppressed', { source: A1 }).give(B2, 'might');
-    a.use(A1, 'stab.ion', B1).end().pass(1).use(A1, 'stab.ion', B2).end();
-    expect([a.has(B1, 'might'), a.has(B2, 'might')]).toEqual([false, true]);
+    a.give(B1, 'might');
+    a.use(A1, 'stab.ion', B1).end();
+    expect([a.has(B1, 'might'), a.stacks(A1, 'charged')]).toEqual([false, 1]);
+    a.pass(1).use(A1, 'stab.ion', B2).end(); // no Buff to end: no Charge
+    expect(a.stacks(A1, 'charged')).toBe(1);
   });
 
   it('Arc Ambush: 25 Piercing; against an awake target, no Sap', () => {
@@ -345,13 +359,25 @@ describe('Ion skills', () => {
     expect(a.hp(B1)).toBe(75);
   });
 
-  it('Shutdown: Asleep for 2 turns, and Suppressed with Blackout until they wake', () => {
-    const a = arena({ p0: [['stun.ion'], ['shot']], p1: [['shot']] });
+  it('Shutdown: the target is Stunned and Suppressed for 2 turns', () => {
+    const a = arena({ p0: [['stun.ion']], p1: [['shot']] });
     a.use(A1, 'stun.ion', B1).end();
-    expect([a.has(B1, 'sleep'), a.has(B1, 'suppressed'), a.has(B1, 'blackout')]).toEqual([true, true, true]);
+    expect([a.has(B1, 'stun'), a.has(B1, 'suppressed'), a.has(B1, 'sleep')]).toEqual([true, true, false]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.end().use(A2, 'shot', B1).end();
-    expect([a.has(B1, 'sleep'), a.has(B1, 'suppressed'), a.has(B1, 'blackout')]).toEqual([false, false, false]);
+    a.pass(2);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.pass(2);
+    expect([a.has(B1, 'stun'), a.has(B1, 'suppressed')]).toEqual([false, false]);
+  });
+
+  it('Shutdown: the user powers down: no skills on their next turn, and Swiftness doesn\'t help (it isn\'t a Stun)', () => {
+    const a = arena({ p0: [['stun.ion', 'shot']], p1: [['shot']] });
+    a.give(A1, 'swiftness', { stacks: 2 });
+    a.use(A1, 'stun.ion', B1).end().pass(1);
+    expect(a.reject(() => a.use(A1, 'shot', B1))).toBe('cannot_act');
+    expect([a.stacks(A1, 'swiftness'), a.has(A1, 'stun')]).toEqual([2, false]);
+    a.pass(2).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(85);
   });
 
   it('Ghost in the Machine: 2 Swiftness; a random enemy with Buffs is Suppressed for 2 turns and the user copies their Buffs', () => {
@@ -367,38 +393,51 @@ describe('Ion skills', () => {
     expect([a.has(B1, 'suppressed'), a.has(B2, 'suppressed')]).toEqual([false, false]);
   });
 
-  it('Sleep Mode: the ally heals 15 and falls Asleep for 2 turns, healing 15 and gaining 1 Charge each turn start', () => {
+  it('Hard Reboot: nothing at once; when the ally comes back online at the end of the enemy\'s next turn, they heal 30', () => {
     const a = arena({ p0: [['heal.ion'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 40).use(A1, 'heal.ion', A2).end();
-    expect([a.hp(A2), a.has(A2, 'sleep')]).toEqual([55, true]);
-    a.end();
-    expect([a.hp(A2), a.stacks(A2, 'charged')]).toEqual([70, 1]);
+    expect([a.hp(A2), a.has(A2, 'hard_reboot')]).toEqual([40, true]);
+    a.pass(1);
+    expect([a.hp(A2), a.has(A2, 'hard_reboot')]).toEqual([70, false]);
+  });
+
+  it('Hard Reboot: costs W, cooldown 1', () => {
+    expect([content.skills['heal.ion']?.cost, content.skills['heal.ion']?.cooldown]).toEqual([parseCost('W'), 1]);
+  });
+
+  it('Hard Reboot: meanwhile the ally\'s Debuffs have no effect and don\'t tick', () => {
+    const a = arena({ p0: [['heal.ion'], ['shot']], p1: [['shot']] });
+    a.give(A2, 'ignite', { source: B1 }).give(A2, 'vulnerable', { source: B1, stacks: 2, duration: 10 });
+    a.setHp(A2, 50).use(A1, 'heal.ion', A2).end().use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(50 - 15 + 30); // no Vulnerable bonus, no Ignite tick; then back online
+    a.pass(1).use(B1, 'shot', A2).end(); // turn 4: everything is back on
+    expect(a.hp(A2)).toBeLessThan(65 - 25);
+  });
+
+  it('Hard Reboot: no cleanse — a Stun the ally carries still stops them on their own turn', () => {
+    const a = arena({ p0: [['heal.ion'], ['shot']], p1: [['shot']] });
+    a.give(A2, 'stun', { source: B1, duration: 10 }).use(A1, 'heal.ion', A2).end().pass(1);
     expect(a.reject(() => a.use(A2, 'shot', B1))).toBe('cannot_act');
   });
 
-  it('Sleep Mode: taking damage wakes them and the turn-start healing stops', () => {
+  it('Hard Reboot: meanwhile the ally\'s Buffs have no effect either', () => {
     const a = arena({ p0: [['heal.ion'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 40).use(A1, 'heal.ion', A2).end().use(B1, 'shot', A2).end();
-    expect([a.has(A2, 'sleep'), a.hp(A2), a.has(A2, 'charged')]).toEqual([false, 40, false]);
+    a.give(A2, 'armor', { stacks: 2 }).setHp(A2, 50);
+    a.use(A1, 'heal.ion', A2).end().use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(50 - 15 + 30); // Armor switched off
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(65 - 5); // the Armor is back
   });
 
-  it('Cloaking Field: the ally gains Stealth', () => {
-    const a = arena({ p0: [['bless.ion'], ['heal', 'shot']], p1: [['shot']] });
-    a.use(A1, 'bless.ion', A2).end();
-    expect(a.has(A2, 'stealth')).toBe(true);
-    expect(a.reject(() => a.use(B1, 'shot', A2))).toBeTruthy();
-  });
-
-  it('Cloaking Field: for 2 turns, the ally\'s Helpful skills don\'t break the Stealth', () => {
-    const a = arena({ p0: [['bless.ion'], ['heal', 'shot']], p1: [['shot']] });
-    a.use(A1, 'bless.ion', A2).end().pass(1).use(A2, 'heal', A2).end();
-    expect(a.has(A2, 'stealth')).toBe(true);
-  });
-
-  it('Cloaking Field: a Harmful skill still breaks it', () => {
-    const a = arena({ p0: [['bless.ion'], ['heal', 'shot']], p1: [['shot']] });
-    a.use(A1, 'bless.ion', A2).end().pass(1).use(A2, 'shot', B1).end();
-    expect(a.has(A2, 'stealth')).toBe(false);
+  it('Dead Zone: for 2 turns, each enemy who uses a skill on the ally is Suppressed for 1 turn, and the ally gains 1 Charge', () => {
+    const a = arena({ p0: [['bless.ion'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'bless.ion', A2).end().use(B1, 'shot', A2).use(B2, 'shot', A1).end();
+    expect([a.has(B1, 'suppressed'), a.has(B2, 'suppressed'), a.stacks(A2, 'charged'), a.has(A2, 'stealth')]).toEqual([true, false, 1, false]);
+    a.pass(2);
+    expect(a.has(B1, 'suppressed')).toBe(false);
+    a.pass(1).use(B2, 'shot', A2).end();
+    expect(a.has(B2, 'suppressed')).toBe(false); // turn 6: over
+    expect(a.stacks(A2, 'charged')).toBe(1);
   });
 
   it('Signal Loss: Confused for 2 turns, and their skills can\'t target their own allies', () => {
@@ -453,25 +492,52 @@ describe('Ion skills', () => {
   });
 
   it('Faraday Cage: 25 Shield for 1 turn; while it holds, Sapped gained becomes Charge', () => {
-    const a = arena({ p0: [['withstand.ion']], p1: [['bolt.storm']] });
-    a.use(A1, 'withstand.ion').end().use(B1, 'bolt.storm', A1).end();
+    const a = arena({ p0: [['withstand.ion']], p1: [['bolt.lightning']] });
+    a.use(A1, 'withstand.ion').end().use(B1, 'bolt.lightning', A1).end();
     expect([a.hp(A1), a.has(A1, 'sapped'), a.stacks(A1, 'charged')]).toEqual([100, false, 1]);
   });
 
   it('Faraday Cage: once the Shield is gone, Sapped lands normally', () => {
-    const a = arena({ p0: [['withstand.ion']], p1: [['bolt.storm']] });
-    a.use(A1, 'withstand.ion').end().end().end().use(B1, 'bolt.storm', A1).end();
+    const a = arena({ p0: [['withstand.ion']], p1: [['bolt.lightning']] });
+    a.use(A1, 'withstand.ion').end().end().end().use(B1, 'bolt.lightning', A1).end();
     expect(a.stacks(A1, 'sapped')).toBe(1);
   });
 
-  it('Decoy Signal: a 10 HP Signal Ghost; the target is Taunted by it for 2 turns', () => {
-    const a = arena({ p0: [['taunt.ion']], p1: [['shot']] });
+  it('Open Channel: the target is Taunted by the user, up to 3 turns while the user uses no Harmful skill', () => {
+    const a = arena({ p0: [['taunt.ion'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.ion', B1).end();
-    const g = minions(a, 'signal_ghost')[0]!;
-    expect(g.hp).toBe(10);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTruthy();
-    a.use(B1, 'shot', g.id).end();
-    expect([a.unit(g.id).alive, a.has(B1, 'blackout')]).toEqual([false, true]);
+    expect(a.effects(B1).find((e) => e.defId === 'taunt')?.source).toBe(A1);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.pass(4);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target'); // turn 6: still on
+    a.pass(2).use(B1, 'shot', A2).end(); // turn 8: over
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Open Channel: the user\'s next Harmful skill ends the Taunt; a Helpful one doesn\'t', () => {
+    const a = arena({ p0: [['taunt.ion', 'heal', 'shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'taunt.ion', B1).end().pass(1).use(A1, 'heal', A2).end();
+    expect(a.has(B1, 'taunt')).toBe(true);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect([a.has(B1, 'taunt'), a.has(A1, 'open_channel')]).toEqual([false, false]);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Open Channel: only this Taunt ends with it; a Taunt from someone else stays', () => {
+    const a = arena({ p0: [['taunt.ion', 'shot'], ['taunt']], p1: [['shot']] });
+    a.use(A1, 'taunt.ion', B1).end().pass(1).use(A2, 'taunt', B1).use(A1, 'shot', B1).end();
+    expect(a.effects(B1).filter((e) => e.defId === 'taunt').map((e) => e.source)).toEqual([A2]);
+  });
+
+  it('Open Channel: each time the Taunted enemy damages the user, the user gains 1 Charge', () => {
+    const a = arena({ p0: [['taunt.ion'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.ion', B1).end().use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.stacks(A1, 'charged')).toBe(1); // B2 isn't on the channel
+  });
+
+  it('Open Channel: costs r, cooldown 3', () => {
+    expect([content.skills['taunt.ion']?.cost, content.skills['taunt.ion']?.cooldown]).toEqual([parseCost('r'), 3]);
   });
 
   it('Null Colossus: 3 Armor for 3 turns; every other unit\'s Buffs are Suppressed, allies included', () => {

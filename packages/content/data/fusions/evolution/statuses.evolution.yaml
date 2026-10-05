@@ -23,6 +23,19 @@ hormesis:
   stacking: unique
   description: Toxin on the bearer heals them for its damage instead of harming them.
 
+# Exoskeleton (Withstand): a Shield that grows 10 at the start of each of its bearer's turns.
+exoskeleton:
+  name: Exoskeleton
+  kind: Buff
+  element: Evolution
+  stacking: unique
+  shield: true
+  description: A Shield that gains 10 at the start of each of the bearer's turns.
+  triggers:
+    - on: turnStart
+      do:
+        - { op: growShield, to: bearer, effect: exoskeleton, amount: 10 }
+
 parasite_host:
   name: Parasite Host
   kind: Debuff

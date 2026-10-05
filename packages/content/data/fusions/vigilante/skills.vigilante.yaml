@@ -37,41 +37,37 @@ charge.vigilante:
   element: Vigilante
   name: Pursuit
   description: >-
-    Deals 15 damage to target enemy, who is Exposed for 2 turns; the user's next skill is Stealthy too. Stealthy.
+    Deals 15 damage to target enemy. If the user is Stealthed, the target is Exposed for 2 turns first, so this deals
+    10 more; if not, the user gains Stealth.
   cost: S
   cooldown: 2
-  tags: [Harmful, NonStrategic, Stealthy]
+  tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: exposed, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      until: { skillUsed: {} }
-      duration: { enemyTurns: 2 }
-      effect:
-        id: pursuit
-        name: Pursuit
-        kind: Buff
-        element: Vigilante
-        description: The bearer's next skill is Stealthy.
-        modifiers:
-          - { mod: skillTags, add: [Stealthy] }
+    # From Stealth: the ambush reveals the target (and, not being Stealthy, ends the user's Stealth).
+    - op: if
+      cond: { has: { unit: actor, effect: stealth } }
+      then:
+        - { op: apply, to: primary, effect: exposed, duration: { enemyTurns: 2 } }
+        - { op: damage, to: primary, amount: 15 }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: actor, effect: stealth, duration: { enemyTurns: 2 } }
 
 riposte.vigilante:
   archetype: Riposte
   element: Vigilante
   name: Caught Red-Handed
   description: >-
-    For 1 turn, counters the first Harmful skill used on each ally of the user; its user is Exposed for 2 turns.
-    Invisible.
+    For 1 turn, the user keeps watch over their allies instead of themselves: the first Harmful skill an
+    enemy uses on any of them is countered, and its user is Exposed for 2 turns. Invisible.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
   target: self
   ops:
     - op: apply
-      to: allAllies
+      to: { filter: allAllies, where: { not: { isActor: it } } }
       duration: { enemyTurns: 1 }
       effect:
         id: caught_red_handed
@@ -79,28 +75,28 @@ riposte.vigilante:
         kind: Buff
         element: Vigilante
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and Exposes its user.
+        description: The first Harmful skill an enemy uses on the bearer (or on another ally the same watcher covers) is countered, and its user is Exposed for 2 turns.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
-            consume: true
             do:
               - { op: apply, to: eventSource, effect: exposed, duration: { enemyTurns: 2 } }
+              - { op: removeEffect, from: allAllies, effect: caught_red_handed }
 
 rage.vigilante:
   archetype: Rage
   element: Vigilante
   name: The Hunt Begins
   description: >-
-    For 3 turns, the user gains 1 Might and 1 Swiftness, and their skills are Stealthy while any enemy is Exposed.
+    For 3 turns, the user gains 1 Might, each enemy they damage is Exposed for 2 turns, and they deal 5 more to Exposed
+    enemies.
   cost: WA
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
     - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -109,9 +105,14 @@ rage.vigilante:
         name: The Hunt Begins
         kind: Buff
         element: Vigilante
-        description: While any enemy is Exposed, the bearer's skills are Stealthy.
+        description: The bearer deals 5 more to Exposed enemies, and each enemy they damage is Exposed for 2 turns.
         modifiers:
-          - { mod: skillTags, add: [Stealthy], if: { any: { in: allEnemies, cond: { has: { unit: it, effect: exposed } } } } }
+          - { mod: damageDealt, amount: 5, when: { direct: true }, target: { has: { unit: it, effect: exposed } } }
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - { op: apply, to: eventTarget, effect: exposed, duration: { enemyTurns: 2 } }
 
 shot.vigilante:
   archetype: Shot
@@ -267,32 +268,21 @@ companion.vigilante:
 bolt.vigilante:
   archetype: Bolt
   element: Vigilante
-  name: Deputize
+  name: Cover Fire
   description: >-
-    Deals 20 damage to target enemy, who is Marked for 1 turn. The ally who spends the Mark is Anointed until the end
-    of their next turn.
+    Deals 20 damage to target enemy. The user's other ally with the least HP gains Stealth if they haven't acted yet
+    this turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: deputize
-        name: Deputize
-        kind: Debuff
-        element: Vigilante
-        description: The ally who spends the bearer's Mark is Anointed.
-        triggers:
-          - on: damaged
-            when: { direct: true, fromSide: ally }
-            consume: true
-            do:
-              - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
+    # Only an ally who holds still is covered: one who acts afterwards loses the Stealth at once.
+    - op: if
+      cond: { not: { actedThisTurn: weakestOtherAlly } }
+      then:
+        - { op: apply, to: weakestOtherAlly, effect: stealth, duration: { enemyTurns: 2 } }
 
 blast.vigilante:
   archetype: Blast
@@ -318,18 +308,20 @@ blast.vigilante:
 consume.vigilante:
   archetype: Consume
   element: Vigilante
-  name: Interrogation
+  name: Shakedown
   description: >-
-    Deals 5 damage to target enemy, healing the user for the damage dealt. The Invisible effects they own are
-    revealed and end.
+    Deals 5 damage to target enemy and takes a random Buff of theirs for the user. If they have none, the user heals
+    15 instead.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 5 }
-    - { op: heal, to: actor, amount: { lastDamage: true } }
-    - { op: reveal, by: primary, end: true }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then: [{ op: stealRandom, from: primary, to: actor, kind: Buff }]
+      else: [{ op: heal, to: actor, amount: 15 }]
 
 summon.vigilante:
   archetype: Summon
@@ -387,25 +379,27 @@ stab.vigilante:
   element: Vigilante
   name: Quiet Verdict
   description: >-
-    Deals 10 damage to target enemy, or 20 at or below 60 HP. Used from Stealth, it makes their Condemned trigger at
-    once.
+    At the end of the user's next turn, target enemy takes 10 damage, or 25 if they're at or below 60 HP by then.
+    Invisible.
   cost: r
   cooldown: 0
-  tags: [Harmful, NonStrategic]
+  tags: [Harmful, NonStrategic, Invisible]
   target: enemy
   ops:
-    - op: damage
+    - op: apply
       to: primary
-      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
-    - op: if
-      cond: { and: [{ has: { unit: actor, effect: stealth } }, { has: { unit: primary, effect: condemned } }] }
-      then:
-        - { op: removeEffect, from: primary, effect: condemned }
-        - op: random
-          options:
-            - [{ op: apply, to: primary, effect: weakness }]
-            - [{ op: apply, to: primary, effect: vulnerable }]
-            - [{ op: apply, to: primary, effect: confusion }]
+      duration: { ownTurns: 1 }
+      effect:
+        id: quiet_verdict
+        name: Quiet Verdict
+        kind: Debuff
+        element: Vigilante
+        visibility: hidden
+        description: At the end of the applier's next turn, the bearer takes 10 damage, or 25 at or below 60 HP.
+        onExpire:
+          - op: damage
+            to: bearer
+            amount: { if: { hpAtMost: { unit: bearer, value: 60 } }, then: 25, else: 10 }
 
 ravage.vigilante:
   archetype: Ravage
@@ -506,30 +500,23 @@ dance.vigilante:
 heal.vigilante:
   archetype: Heal
   element: Vigilante
-  name: Safe House
+  name: Witness Statement
   description: >-
-    Target ally heals 20 and gains Stealth. If they're still Stealthed at the end of their next turn, they heal 15
-    more.
-  cost: r
+    The last enemy to damage target ally takes 10 damage, and the ally heals 10 plus the damage dealt. If no enemy has
+    damaged them, they heal 15 instead.
+  cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: heal, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      duration: { ownTurns: 1 }
-      effect:
-        id: safe_house
-        name: Safe House
-        kind: Buff
-        element: Vigilante
-        description: Still Stealthed when this runs out, the bearer heals 15.
-        onExpire:
-          - op: if
-            cond: { has: { unit: bearer, effect: stealth } }
-            then: [{ op: heal, to: bearer, amount: 15 }]
+    - op: if
+      cond: { compare: { value: { countOf: primaryLastAttacker }, atLeast: 1 } }
+      then:
+        # Indirect (the skill is Strategic), so Exposed doesn't add to it.
+        - { op: damage, to: primaryLastAttacker, amount: 10, direct: false }
+        - { op: heal, to: primary, amount: { sum: [10, { lastDamage: true }] } }
+      else:
+        - { op: heal, to: primary, amount: 15 }
 
 bless.vigilante:
   archetype: Bless
@@ -592,41 +579,29 @@ smite.vigilante:
   element: Vigilante
   name: Full Sentence
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 1 turn. The next time their Condemned triggers, within 3
-    turns, it gives all three of its Debuffs.
+    Deals 15 damage to target enemy. For 2 turns, they owe restitution: after each Harmful skill they use, each of its
+    targets heals 10.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 15 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 3 }
+      duration: { enemyTurns: 2 }
       effect:
         id: full_sentence
         name: Full Sentence
         kind: Debuff
         element: Vigilante
-        description: The bearer's next Condemned gives Weakness, Vulnerable and Confusion together.
+        description: After each Harmful skill the bearer uses, each of its targets heals 10.
         triggers:
+          # After it resolves (a countered skill owes nothing).
           - on: skillResolved
+            when: { harmful: true }
             do:
-              - op: if
-                cond: { check: { cond: condemn_fired, unit: bearer } }
-                then:
-                  # Condemned already gave one of the three; the other two follow.
-                  - op: if
-                    cond: { not: { has: { unit: bearer, effect: weakness } } }
-                    then: [{ op: apply, to: bearer, effect: weakness }]
-                  - op: if
-                    cond: { not: { has: { unit: bearer, effect: vulnerable } } }
-                    then: [{ op: apply, to: bearer, effect: vulnerable }]
-                  - op: if
-                    cond: { not: { has: { unit: bearer, effect: confusion } } }
-                    then: [{ op: apply, to: bearer, effect: confusion }]
-                  - { op: removeSelf }
+              - { op: heal, to: eventTargets, amount: 10 }
 
 prayer.vigilante:
   archetype: Prayer
@@ -652,48 +627,55 @@ cleave.vigilante:
   element: Vigilante
   name: Sweep the Streets
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. For 2 turns, each time either one's Condemned
-    triggers, they're also Blinded for 1 turn.
+    Deals 20 damage to target enemy and 15 to each other Exposed enemy. If no other enemy is Exposed, a random other
+    enemy takes the 15 instead and is Exposed for 1 turn.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: swept, duration: { enemyTurns: 2 } }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 15 }
-        - { op: apply, to: it, effect: swept, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { any: { in: allEnemies, cond: { and: [{ has: { unit: it, effect: exposed } }, { not: { isPrimary: it } }] } } }
+      then:
+        - { op: damage, to: { filter: allEnemies, where: { has: { unit: it, effect: exposed } }, exclude: primary }, amount: 15 }
+      else:
+        - op: forEach
+          in: { randomEnemy: 1, exclude: primary }
+          do:
+            - { op: damage, to: it, amount: 15 }
+            - { op: apply, to: it, effect: exposed, duration: { enemyTurns: 1 } }
 
 shout.vigilante:
   archetype: Shout
   element: Vigilante
   name: Hue and Cry
   description: >-
-    All enemies are Intimidated for 2 turns. Meanwhile, each time one uses a Harmful skill, they're Exposed for 1
-    turn.
+    All enemies, Stealthed ones included, are Exposed for 1 turn. For 2 turns, the first Harmful skill each of them
+    uses Condemns them once it resolves.
   cost: Wr
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    # The hue and cry finds Stealthed enemies too, not just the skill's targets.
+    - { op: apply, to: { filter: allUnits, where: { isEnemy: it } }, effect: exposed, duration: { enemyTurns: 1 } }
     - op: apply
-      to: targets
+      to: { filter: allUnits, where: { isEnemy: it } }
       duration: { enemyTurns: 2 }
       effect:
         id: hue_and_cry
         name: Hue and Cry
         kind: Debuff
         element: Vigilante
-        description: Each Harmful skill the bearer uses Exposes them for 1 turn.
+        description: The first Harmful skill the bearer uses Condemns them once it resolves.
         triggers:
-          - on: skillUsed
+          # Condemned after the skill, so it waits for their next one.
+          - on: skillResolved
             when: { harmful: true }
+            consume: true
             do:
-              - { op: apply, to: bearer, effect: exposed, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: condemned }
 
 withstand.vigilante:
   archetype: Withstand
@@ -766,15 +748,14 @@ titan.vigilante:
   element: Vigilante
   name: Nightwarden
   description: >-
-    For 3 turns, the user gains 3 Armor and Immune. Each time their Stealth ends meanwhile, they're Anointed until the
-    end of their next turn.
+    For 3 turns, the user gains 2 Armor, each enemy who damages them is Exposed for 1 turn, and Exposed enemies can't
+    target or damage them.
   cost: AW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -783,14 +764,14 @@ titan.vigilante:
         name: Nightwarden
         kind: Buff
         element: Vigilante
-        description: Each time the bearer's own Stealth ends, they're Anointed until the end of their next turn.
+        description: Each enemy who damages the bearer is Exposed for 1 turn; Exposed enemies can't target or damage the bearer.
+        modifiers:
+          - { mod: invulnerableTo, sourceHas: [exposed] }
         triggers:
-          - on: ownEffectEnded
-            when: { effects: [stealth] }
+          - on: damaged
+            when: { byEnemy: true }
             do:
-              - op: if
-                cond: { eventTargetIs: bearer }
-                then: [{ op: apply, to: bearer, effect: anointed, duration: { ownTurns: 1 } }]
+              - { op: apply, to: eventSource, effect: exposed, duration: { enemyTurns: 1 } }
 
 # Minion skills.
 

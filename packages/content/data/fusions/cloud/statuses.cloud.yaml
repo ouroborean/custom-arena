@@ -24,6 +24,16 @@ drifting_hit:
   onExpire:
     - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
 
+# Gathering Clouds: grows while the channel lasts, then breaks for all of it.
+gathering_storm:
+  name: Gathering Storm
+  kind: Debuff
+  element: Cloud
+  stacking: unique
+  description: Grows while its Gathering Clouds channel lasts; when it runs out, the bearer takes its value as damage.
+  onExpire:
+    - { op: damage, to: bearer, amount: { effectValue: true }, direct: false }
+
 idle_updraft:
   name: Idle Updraft
   kind: Buff

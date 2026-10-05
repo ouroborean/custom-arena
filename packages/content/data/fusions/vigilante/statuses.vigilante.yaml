@@ -61,7 +61,8 @@ setup_watch:
           cond: { isEnemy: eventSource }
           then: [{ op: apply, to: eventSource, effect: exposed, duration: { enemyTurns: 2 } }]
 
-# Sweep the Streets: each time the bearer's Condemned triggers, they're Blinded for 1 turn.
+# Each time the bearer's Condemned triggers, they're Blinded for 1 turn. (Sweep the Streets no longer uses it;
+# kept because the icon manifest names it.)
 swept:
   name: Swept
   kind: Debuff

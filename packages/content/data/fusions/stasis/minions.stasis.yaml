@@ -7,21 +7,23 @@ ice_spider:
 
 cryo_sprite:
   name: Cryo Sprite
-  hp: 15
-  onSummon:
-    - { op: setCounter, name: cryo, value: 0 }
+  hp: 20
   passives:
     - id: cryo_sprite_watch
       name: Cryo Sprite
       kind: Neutral
       element: Stasis
-      description: At the end of its owner's third turn, every enemy with Toxin is Suspended for 1 turn.
+      description: At the end of its owner's turn, the enemy with the least HP gains 1 Toxin, or is Suspended for 1 turn instead if they're Prey.
       triggers:
         - on: turnEnd
           do:
-            - { op: setCounter, name: cryo, value: { sum: [{ counter: cryo }, 1] } }
-            - op: if
-              cond: { compare: { value: { counter: cryo }, atLeast: 3 } }
-              then:
-                - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: toxin } } }, effect: suspended, duration: { enemyTurns: 1 } }
-  skills: [cryo_sprite_rime_sting]
+            - op: forEach
+              in: weakestEnemy
+              do:
+                - op: if
+                  cond: { check: { cond: prey, unit: it } }
+                  then:
+                    - { op: apply, to: it, effect: suspended, duration: { enemyTurns: 1 } }
+                  else:
+                    - { op: apply, to: it, effect: toxin }
+  skills: []

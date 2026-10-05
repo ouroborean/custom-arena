@@ -11,14 +11,23 @@ ninja_flurry:
     - on: skillResolved
       when: { harmful: true }
       do:
-        # Every enemy the skill hit directly, splash included.
-        - op: damage
-          to:
-            filter: allEnemies
-            where: { compare: { value: { sum: [{ counterOf: { unit: it, name: hit_in_use } }, { mul: [-1, { useSeq: true }] }] }, atLeast: 0, atMost: 0 } }
-          amount: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }] }
-          type: Piercing
-          direct: false
+        # Blur: this Flurry counts every Clone twice.
+        - { op: set, var: flurry, value: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [shadow_clone] } } } }, { sum: [1, { count: { effects: [blur], in: bearer } }] }] } }
+        - op: if
+          # Shadow Whirl: its Flurry hits every enemy, not just the one it cut.
+          cond: { eventSkill: { archetypes: [Cleave], elements: [Ninja] } }
+          then:
+            - { op: damage, to: allEnemies, amount: { var: flurry }, type: Piercing, direct: false }
+          else:
+            # Every enemy the skill hit directly, splash included.
+            - op: damage
+              to:
+                filter: allEnemies
+                where: { compare: { value: { sum: [{ counterOf: { unit: it, name: hit_in_use } }, { mul: [-1, { useSeq: true }] }] }, atLeast: 0, atMost: 0 } }
+              amount: { var: flurry }
+              type: Piercing
+              direct: false
+        - { op: removeEffect, from: bearer, effect: blur }
 
 # Substitution: carried by the Ninja, sourced from (and bound to) a Clone, which takes the hit.
 substitution:

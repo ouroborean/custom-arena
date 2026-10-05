@@ -24,20 +24,16 @@ smash.blight:
   element: Blight
   name: Plaguecrusher
   description: >-
-    Deals 40 damage to target enemy. Each of their allies who has Toxin gains 1 Withered; the rest gain 1 Toxin.
+    Deals 30 damage to target enemy, who gains 1 Withered. Each of their allies takes 5 damage per Withered the target
+    has.
   cost: SS
   cooldown: 3
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 40 }
-    - op: forEach
-      in: primaryAllies
-      do:
-        - op: if
-          cond: { has: { unit: it, effect: toxin } }
-          then: [{ op: apply, to: it, effect: withered }]
-          else: [{ op: apply, to: it, effect: toxin }]
+    - { op: damage, to: primary, amount: 30 }
+    - { op: apply, to: primary, effect: withered }
+    - { op: damage, to: primaryAllies, amount: { mul: [5, { stacks: { unit: primary, effect: withered } }] } }
 
 charge.blight:
   archetype: Charge
@@ -110,39 +106,32 @@ rage.blight:
 shot.blight:
   archetype: Shot
   element: Blight
-  name: Dread Spittle
+  name: Bitter Bile
   description: >-
-    Deals 15 damage to target enemy, who gains 1 Toxin. For 2 turns, they can't gain Buffs (as if Horrified)
-    whenever they have 2 or more Toxin.
+    Deals 10 damage to target enemy and, if the user has fewer than 3 Soul Fragments, drains one from them. The user
+    gains 1 Toxin.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: toxin }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: dread_spittle
-        name: Dread Spittle
-        kind: Debuff
-        element: Blight
-        description: With 2 or more Toxin, the bearer can't gain Buffs.
-        modifiers:
-          - { mod: immuneTo, kind: Buff, if: { compare: { value: { stacks: { unit: bearer, effect: toxin } }, atLeast: 2 } } }
+    - { op: damage, to: primary, amount: 10 }
+    - op: if
+      cond: { not: { compare: { value: { stacks: { unit: actor, effect: soul_fragment } }, atLeast: 3 } } }
+      then:
+        - { op: apply, to: actor, effect: soul_fragment }
+    - { op: apply, to: actor, effect: toxin }
 
 snipe.blight:
   archetype: Snipe
   element: Blight
   name: Rotspear
   description: >-
-    On the following turn, target enemy takes 25 Affliction damage, +10 per Withered they have. The target of this
-    skill is invisible. Channeled. Uncounterable.
+    On the following turn, target enemy takes 20 Affliction damage, and all the user's Toxin rides the spear: it moves
+    onto them. The target of this skill is invisible. Channeled.
   cost: Ar
   cooldown: 1
-  tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
+  tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
   target: enemy
   ops:
     - op: apply
@@ -156,12 +145,11 @@ snipe.blight:
         element: Blight
         visibility: hiddenTarget
         interruptible: true
-        description: When this runs out, its target takes 25 Affliction, +10 per Withered.
+        description: When this runs out, its target takes 20 Affliction, and the bearer's Toxin moves onto them.
         onExpire:
-          - op: damage
-            to: effectTargets
-            type: Affliction
-            amount: { sum: [25, { mul: [10, { stacks: { unit: effectTargets, effect: withered } }] }] }
+          - { op: damage, to: effectTargets, type: Affliction, amount: 20 }
+          # The Toxin keeps its applier, so it still ticks at the end of that unit's turns.
+          - { op: moveEffects, from: actor, to: effectTargets, effects: [toxin] }
 
 trap.blight:
   archetype: Trap
@@ -357,19 +345,19 @@ stab.blight:
   element: Blight
   name: Rusted Knife
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Above 60 HP, they also gain 1 Withered.
+    Deals 15 Piercing damage to target enemy. Then, if the user has a Soul Fragment, they spend one to rust the wound:
+    the target gains 2 Withered.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
+    - { op: damage, to: primary, amount: 15, type: Piercing }
     - op: if
-      cond: { hpAtMost: { unit: primary, value: 60 } }
+      cond: { has: { unit: actor, effect: soul_fragment } }
       then:
-        - { op: damage, to: primary, amount: 20 }
-      else:
-        - { op: damage, to: primary, amount: 10 }
-        - { op: apply, to: primary, effect: withered }
+        - { op: removeStacks, from: actor, effect: soul_fragment, amount: 1 }
+        - { op: apply, to: primary, effect: withered, stacks: 2 }
 
 ravage.blight:
   archetype: Ravage

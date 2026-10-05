@@ -145,15 +145,28 @@ describe('Sun skills', () => {
     expect(a.has(B1, 'scorched')).toBe(false);
   });
 
-  it('Rolling Sunstone: 10 damage and a 45 HP Sunstone (a Boulder)', () => {
+  it('Rolling Sunstone: 10 damage and a 20 HP Sunstone (a Boulder)', () => {
     const a = arena({ p0: [['charge.sun']], p1: [['shot']] });
     a.use(A1, 'charge.sun', B1).end();
     const st = minions(a, 0, 'sunstone')[0]!;
-    expect([a.hp(B1), st.hp, st.maxHp]).toEqual([90, 45, 45]);
+    expect([a.hp(B1), st.hp, st.maxHp]).toEqual([90, 20, 20]);
     expect(content.minions.sunstone!.tags).toContain('boulder');
   });
 
-  it('Rolling Sunstone: the Sunstone Explodes (10 to every enemy) when destroyed', () => {
+  it('Rolling Sunstone: at the start of the user\'s next turn it crashes into the target for its HP, then Explodes', () => {
+    const a = arena({ p0: [['charge.sun'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.sun', B1).end().pass(1);
+    expect(minions(a, 0, 'sunstone')).toHaveLength(0);
+    expect([a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2)]).toEqual([90 - 20 - 10, 90, 100, 100]);
+  });
+
+  it('Rolling Sunstone: a damaged Sunstone crashes for what\'s left of it', () => {
+    const a = arena({ p0: [['charge.sun']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.sun', B1).end().use(B2, 'shot', minions(a, 0, 'sunstone')[0]!.id).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90 - 5 - 10, 90]);
+  });
+
+  it('Rolling Sunstone: destroyed first, it Explodes (10 to every enemy) and never crashes', () => {
     const a = arena({ p0: [['charge.sun'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.sun', B1).end();
     const st = minions(a, 0, 'sunstone')[0]!;
@@ -161,19 +174,6 @@ describe('Sun skills', () => {
     a.use(B1, 'shot', st.id).end();
     expect(a.unit(st.id).alive).toBe(false);
     expect([a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2)]).toEqual([80, 90, 100, 100]);
-  });
-
-  it('Rolling Sunstone: the Sunstone Explodes when launched', () => {
-    const a = arena({ p0: [['charge.sun', 'shot.earth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'charge.sun', B1).end().pass(1);
-    const st = minions(a, 0, 'sunstone')[0]!;
-    a.setHp(st.id, 20);
-    const before = a.hp(B1) + a.hp(B2);
-    a.use(A1, 'shot.earth', st.id).end();
-    expect(a.unit(st.id).alive).toBe(false);
-    // 20 from the launch to a random enemy, plus a 10 Explosion to each enemy.
-    expect(before - a.hp(B1) - a.hp(B2)).toBe(20 + 10 + 10);
-    expect(Math.min(a.hp(B1), a.hp(B2))).toBeLessThan(Math.max(a.hp(B1), a.hp(B2)));
   });
 
   it('Sunspot: counters the first Harmful skill on the user; its user takes 15 Affliction per Corona', () => {
@@ -515,31 +515,20 @@ describe('Sun skills', () => {
     expect(corona(a, A1)).toBe(1);
   });
 
-  it('Tinder Spike: 10 damage, or 20 at or below 60 HP', () => {
+  it('Tinder Spike: 15 damage and the target is Ignited (no bonus at low HP)', () => {
     const a = arena({ p0: [['stab.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'stab.sun', B1).end();
-    expect(a.hp(B1)).toBe(85); // 10, then the new Ignite's tick
-    const b = arena({ p0: [['stab.sun']], p1: [['shot'], ['shot']] });
-    b.setHp(B2, 60);
-    b.use(A1, 'stab.sun', B2).end();
-    expect(b.hp(B2)).toBe(35); // 20 + the tick
+    a.setHp(B2, 60).use(A1, 'stab.sun', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([80, true]); // 15, then the new Ignite's tick
+    a.pass(1).use(A1, 'stab.sun', B2).end();
+    expect(a.hp(B2)).toBe(40);
   });
 
-  it('Tinder Spike: a target that isn\'t Ignited becomes Ignited', () => {
+  it('Tinder Spike: the user is Ignited too', () => {
     const a = arena({ p0: [['stab.sun']], p1: [['shot']] });
     a.use(A1, 'stab.sun', B1).end();
-    expect(a.has(B1, 'ignite')).toBe(true);
-  });
-
-  it('Tinder Spike: on an Ignited target, the Ignite burns once now', () => {
-    const a = arena({ p0: [['stab.sun']], p1: [['shot']] });
-    a.give(B1, 'ignite', { source: A1 });
-    a.use(A1, 'stab.sun', B1).end();
-    expect(a.hp(B1)).toBe(80); // 10 + 5 (burns now) + 5 (its normal tick)
-    const b = arena({ p0: [['stab.sun']], p1: [['shot']] });
-    b.use(A1, 'stab.sun', B1).end().pass(1); // lights its own Ignite
-    b.use(A1, 'stab.sun', B1).end();
-    expect(b.hp(B1)).toBe(65); // 85, then 10 + 5 + 5
+    expect([a.has(A1, 'ignite'), a.hp(A1)]).toEqual([true, 95]);
+    a.pass(2);
+    expect(a.hp(A1)).toBe(90);
   });
 
   it('Upwelling Magma: 20 Piercing (Armor doesn\'t reduce it) right after dealing direct damage', () => {
@@ -744,27 +733,20 @@ describe('Sun skills', () => {
     expect([corona(b, A1), corona(b, A2)]).toEqual([1, 1]);
   });
 
-  it('Stubble Burn: 20 to the target and 15 to another enemy, and the target is Ignited', () => {
+  it('Stubble Burn: 15 to the target and 15 to another enemy; the healthier of the two takes 10 more and is Ignited', () => {
     const a = arena({ p0: [['cleave.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.sun', B1).end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, false]);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]); // 20 + the Ignite's tick; 15
+    a.setHp(B1, 50).use(A1, 'cleave.sun', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([35, false]);
+    expect([a.hp(B2), a.has(B2, 'ignite')]).toEqual([100 - 15 - 10 - 5, true]); // + the new Ignite's tick
   });
 
-  it('Stubble Burn: if the target was already Ignited, the fire spreads to the other enemy', () => {
-    const a = arena({ p0: [['cleave.sun'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'ignite', { source: A2 });
-    a.use(A1, 'cleave.sun', B1).end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([true, true]);
-    expect(a.hp(B2)).toBe(80); // 15 + its new Ignite's tick
-  });
-
-  it('Stubble Burn: its own Ignite makes the next use spread', () => {
+  it('Stubble Burn: the target, if it\'s the healthier (or level)', () => {
     const a = arena({ p0: [['cleave.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.sun', B1).end().pass(3);
-    expect(a.has(B2, 'ignite')).toBe(false);
-    a.use(A1, 'cleave.sun', B1).end();
-    expect(a.has(B2, 'ignite')).toBe(true);
+    a.setHp(B2, 50).use(A1, 'cleave.sun', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite'), a.hp(B2), a.has(B2, 'ignite')]).toEqual([70, true, 35, false]);
+    const b = arena({ p0: [['cleave.sun']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'cleave.sun', B1).end();
+    expect([b.has(B1, 'ignite'), b.has(B2, 'ignite')]).toEqual([true, false]);
   });
 
   it('Dawn Chorus: all enemies are Intimidated for 2 turns', () => {
@@ -778,9 +760,9 @@ describe('Sun skills', () => {
   });
 
   it('Dawn Chorus: every allied minion gains 1 Corona and it ticks once now', () => {
-    const a = arena({ p0: [['shout.sun', 'charge.sun']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'charge.sun', B1).end().pass(1);
-    const st = minions(a, 0, 'sunstone')[0]!;
+    const a = arena({ p0: [['shout.sun', 'charge.earth']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1);
+    const st = minions(a, 0, 'boulder')[0]!;
     const b2 = a.hp(B2);
     a.use(A1, 'shout.sun').end();
     expect(corona(a, st.id)).toBe(1);

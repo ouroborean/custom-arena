@@ -10,14 +10,3 @@ charmed:
     friend or foe.
   modifiers:
     - { mod: charmed }
-
-# Bewildering Petals: random picks only among the bearer's own allies.
-bewildered:
-  name: Charmed
-  kind: Debuff
-  element: Faerie
-  stacking: unique
-  countsAs: [charmed]
-  description: The bearer's single-target skills land on a random ally of their own.
-  modifiers:
-    - { mod: charmed, own: true }

@@ -14,21 +14,26 @@ mist_heron:
         - { mod: fogged }
   skills: [mist_heron_spear_beak]
 
-will_o_mist:
-  name: Will-o'-Mist
-  hp: 10
-  # While any stands, every ally has Fog.
-  onSummon:
-    - op: apply
-      to: allAllies
-      bindTo: actor
-      effect:
-        id: will_o_mist_fog
-        name: Fog
-        kind: Buff
-        element: Mist
-        countsAs: [fog]
-        description: Fog while the Will-o'-Mist stands.
-        modifiers:
-          - { mod: fogged }
-  skills: [will_o_mist_pale_touch]
+mist_double:
+  name: Mist Double
+  hp: 20
+  # The decoy for Mist Double (summon.mist): the user's effect sends it the first enemy single-target
+  # Harmful skill. It can't lose HP; the first enemy Harmful skill that strikes it bursts it.
+  passives:
+    - id: mist_double_burst
+      name: Mist Double
+      kind: Neutral
+      element: Mist
+      description: Can't be hurt. The first enemy Harmful skill that strikes it bursts it, and that skill's user takes 10 damage.
+      modifiers:
+        - { mod: damageTaken, amount: 0, mul: 0 }
+      triggers:
+        - on: skillTargeted
+          when: { harmful: true, side: enemy }
+          do:
+            - { op: damage, to: eventSource, amount: 10 }
+            - { op: kill, to: bearer }
+  # Fades or bursts: back into mist around its summoner.
+  onDeath:
+    - { op: apply, to: summoner, effect: fog, duration: { enemyTurns: 1 } }
+  skills: []

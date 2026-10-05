@@ -64,14 +64,14 @@ describe('Life: Flourish', () => {
 
 describe('Life: Bloom (Grove Tender)', () => {
   it('a Life character\'s Seedling is still a Seedling after the creator\'s first turn after appearing', () => {
-    const a = arena({ p0: [['summon.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end().pass(2); // turns 1..3 ended
+    const a = arena({ p0: [['summon.earth']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').end().pass(2); // turns 1..3 ended
     expect([minions(a, 0, 'seedling').length, minions(a, 0, 'treant').length]).toEqual([2, 0]);
   });
 
   it('at the end of the creator\'s second turn after appearing it becomes a Treant: 40 max HP, full, Treant Slam, still a Seedling', () => {
-    const a = arena({ p0: [['summon.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end();
+    const a = arena({ p0: [['summon.earth']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').end();
     const seedling = minions(a, 0, 'seedling')[0]!;
     a.unit(seedling.id).hp = 5;
     a.pass(4); // turns 2..5 ended
@@ -85,8 +85,8 @@ describe('Life: Bloom (Grove Tender)', () => {
   });
 
   it('Treants still count as Seedlings: Channel Growth grows them', () => {
-    const a = arena({ p0: [['summon.life', 'shout.life'], ['heal.earth']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end().pass(1).use(A1, 'shout.life').end().pass(1);
+    const a = arena({ p0: [['summon.earth', 'shout.life'], ['heal.earth']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'shout.life').end().pass(1);
     expect(minions(a, 0, 'treant')).toHaveLength(2);
     a.use(A2, 'heal.earth', A2).end();
     expect(minions(a, 0, 'treant').map((t) => t.maxHp)).toEqual([50, 50]);
@@ -118,16 +118,16 @@ describe('Life: Bloom (Grove Tender)', () => {
   });
 
   it('Treant Slam (no cost): 15 damage to target enemy', () => {
-    const a = arena({ p0: [['summon.life', 'shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end().pass(1).use(A1, 'shout.life').end().pass(1);
+    const a = arena({ p0: [['summon.earth', 'shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'shout.life').end().pass(1);
     const t = minions(a, 0, 'treant')[0]!;
     a.use(t.id, 'treant_slam', B1).end();
     expect(a.hp(B1)).toBe(85);
   });
 
   it('a Treant keeps Channel Earth: its creator gains 1 Might and 1 Armor', () => {
-    const a = arena({ p0: [['summon.life', 'shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end().pass(1).use(A1, 'shout.life').end().pass(1);
+    const a = arena({ p0: [['summon.earth', 'shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').end().pass(1).use(A1, 'shout.life').end().pass(1);
     const t = minions(a, 0, 'treant')[0]!;
     a.use(t.id, 'seedling_channel_earth').end();
     expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([1, 1]);
@@ -156,8 +156,8 @@ describe('Life skills', () => {
   });
 
   it('Groundswell: 30 to the target; every other unit on both sides, minions included, heals 15 with Flourish', () => {
-    const a = arena({ p0: [['smash.life'], ['summon.life']], p1: [['shot'], ['shot']] });
-    a.use(A2, 'summon.life').end().pass(1);
+    const a = arena({ p0: [['smash.life'], ['summon.earth']], p1: [['shot'], ['shot']] });
+    a.use(A2, 'summon.earth').end().pass(1);
     const s = minions(a, 0, 'seedling')[0]!;
     a.setHp(B2, 50).use(A1, 'smash.life', B1).end();
     expect(a.hp(B1)).toBeLessThanOrEqual(85);
@@ -182,90 +182,140 @@ describe('Life skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Thornwall: Invisible; counters the first Harmful skill on the user with 15 Piercing, and only the first', () => {
+  it('Thornwall: Invisible; counters the first Harmful skill on the user, and only the first', () => {
     const a = arena({ p0: [['riposte.life']], p1: [['shot'], ['shot']] });
     a.use(A1, 'riposte.life').end();
     expect(a.has(A1, 'thornwall')).toBe(true);
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1 && e.inline?.id === 'thornwall')).toBe(false);
-    a.give(B1, 'armor', { stacks: 2 }).use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([85, 100, 85]);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([100, 100, 85]);
   });
 
-  it('Thornwall: also covers the user\'s minions', () => {
-    const a = arena({ p0: [['riposte.life', 'summon.life']], p1: [['shot']] });
-    a.use(A1, 'summon.life').end().pass(1).use(A1, 'riposte.life').end();
-    const s = minions(a, 0, 'seedling')[0]!;
-    a.use(B1, 'shot', s.id).end();
-    expect([a.hp(B1), a.unit(s.id).hp]).toEqual([85, 15]);
+  it('Thornwall: a Seedling sprouts, and the countered enemy is Taunted by it for 1 turn', () => {
+    const a = arena({ p0: [['riposte.life']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'riposte.life').end();
+    a.use(B1, 'shot', A1).end();
+    const s = minions(a, 0, 'seedling');
+    expect(s).toHaveLength(1);
+    expect([a.has(B1, 'taunt'), a.has(B2, 'taunt')]).toEqual([true, false]);
+    a.pass(1);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B1, 'shot', s[0]!.id).use(B2, 'shot', A1).end();
+    expect([a.unit(s[0]!.id).hp, a.hp(A1), a.has(B1, 'taunt')]).toEqual([0, 85, false]);
   });
 
   it('Thornwall: lasts 1 turn only', () => {
     const a = arena({ p0: [['riposte.life']], p1: [['shot']] });
     a.use(A1, 'riposte.life').end().pass(2).use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100]);
+    expect([a.hp(A1), minions(a, 0).length]).toEqual([85, 0]);
   });
 
   it('Thornwall: does not counter Helpful skills', () => {
     const a = arena({ p0: [['riposte.life'], ['heal']], p1: [['shot']] });
     a.setHp(A1, 50).use(A1, 'riposte.life').use(A2, 'heal', A1).end();
-    expect(a.hp(A1)).toBe(75);
+    expect([a.hp(A1), minions(a, 0).length]).toEqual([75, 0]);
   });
 
-  it('Wild Growth: 2 Seedlings and Immune for 3 turns', () => {
+  it("Wild Growth: a Seedling at once, then another at the start of each of the user's turns for 3 turns", () => {
     const a = arena({ p0: [['rage.life']], p1: [['curse']] });
     a.use(A1, 'rage.life').end();
-    expect([minions(a, 0, 'seedling').length, a.has(A1, 'immune')]).toEqual([2, true]);
+    // (Seedlings Bloom into Treants along the way; Treants still count as Seedlings.)
+    expect(minions(a, 0).length).toBe(1);
+    a.end();
+    expect(minions(a, 0).length).toBe(2);
+    a.pass(2);
+    expect(minions(a, 0).length).toBe(3);
+    a.pass(2);
+    expect([minions(a, 0).length, a.has(A1, 'wild_growth_surge')]).toEqual([3, false]);
+  });
+
+  it('Wild Growth: it gives no Immune', () => {
+    const a = arena({ p0: [['rage.life']], p1: [['curse']] });
+    a.use(A1, 'rage.life').end();
     a.use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(false);
-    a.pass(5); // turns 3..7
-    expect(a.has(A1, 'immune')).toBe(false);
+    expect([a.has(A1, 'immune'), a.has(A1, 'confusion')]).toEqual([false, true]);
   });
 
-  it('Wild Growth: each allied Seedling that Blooms during it gives 1 Might for good', () => {
-    const a = arena({ p0: [['rage.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'rage.life').end().pass(4); // both Bloom at the end of turn 5
-    expect([minions(a, 0, 'treant').length, a.stacks(A1, 'might')]).toEqual([2, 2]);
-    a.pass(6);
-    expect(a.stacks(A1, 'might')).toBe(2);
+  it('Wild Growth: the user deals 5 more direct damage for each allied Seedling, up to 20 more', () => {
+    const a = arena({ p0: [['rage.life', 'shot'], ['summon.earth']], p1: [['shot']] });
+    a.use(A1, 'rage.life').end().pass(1);
+    a.use(A1, 'shot', B1).end(); // 2 Seedlings
+    expect(a.hp(B1)).toBe(75);
+    a.pass(1).use(A2, 'summon.earth').use(A1, 'shot', B1).end(); // 3 of its own + 2 from Earth: capped
+    expect(a.hp(B1)).toBe(75 - 15 - 20);
   });
 
-  it('Wild Growth: a Seedling that Blooms after it has ended gives no Might', () => {
-    const a = arena({ p0: [['rage.life', 'summon.life']], p1: [['shot']] , passives: { p0c0: GROVE } });
-    a.use(A1, 'rage.life').end().pass(5); // turn 7 is A's
-    a.use(A1, 'summon.life').end().pass(4); // Bloom at end of turn 11
-    expect(minions(a, 0, 'treant')).toHaveLength(4);
-    expect(a.stacks(A1, 'might')).toBe(2);
-  });
-
-  it('Treefall: 15 damage to target enemy', () => {
+  it('Ripening Seed: 5 damage to target enemy, and a seed planted in them for 3 turns', () => {
     const a = arena({ p0: [['shot.life']], p1: [['shot']] });
     a.use(A1, 'shot.life', B1).end();
-    expect(a.hp(B1)).toBe(85);
+    expect([a.hp(B1), a.has(B1, 'ripening_seed')]).toEqual([95, true]);
+    a.pass(4);
+    expect(a.has(B1, 'ripening_seed')).toBe(true);
+    a.pass(1); // the end of their third turn
+    expect(a.has(B1, 'ripening_seed')).toBe(false);
   });
 
-  it('Treefall: can\'t target an unbloomed Seedling or an allied character', () => {
-    const a = arena({ p0: [['shot.life', 'summon.life'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'summon.life').end().pass(1);
-    const s = minions(a, 0, 'seedling')[0]!;
-    expect(a.reject(() => a.use(A1, 'shot.life', s.id))).toBe('bad_target');
+  it("Ripening Seed: it ripens at the end of each of the user's turns, to 10 and then to 25", () => {
+    const a = arena({ p0: [['shot.life']], p1: [['shot']] });
+    a.use(A1, 'shot.life', B1).end();
+    expect(a.stacks(B1, 'ripening_seed')).toBe(2); // 10
+    a.end();
+    expect(a.stacks(B1, 'ripening_seed')).toBe(2); // not on the enemy's turn
+    a.end();
+    expect(a.stacks(B1, 'ripening_seed')).toBe(3); // 25
+    a.pass(2);
+    expect(a.stacks(B1, 'ripening_seed')).toBe(3); // no riper than that
+  });
+
+  it('Ripening Seed: using it on them again harvests the seed first: it bursts for its ripeness, and the user heals half of what it dealt', () => {
+    const a = arena({ p0: [['shot.life']], p1: [['shot']] });
+    a.setHp(A1, 60).use(A1, 'shot.life', B1).end().pass(1);
+    a.use(A1, 'shot.life', B1).end(); // ripe at 10: 10 + 5
+    expect([a.hp(B1), a.hp(A1)]).toEqual([80, 65]);
+    expect(a.stacks(B1, 'ripening_seed')).toBe(2); // a new seed, ripened once already
+    const b = arena({ p0: [['shot.life']], p1: [['shot']] });
+    b.setHp(A1, 60).use(A1, 'shot.life', B1).end().pass(3);
+    b.use(A1, 'shot.life', B1).end(); // ripe at 25: 25 + 5
+    expect([b.hp(B1), b.hp(A1)]).toEqual([65, 72]);
+    const c = arena({ p0: [['shot.life']], p1: [['shot']] });
+    c.give(B1, 'armor', { stacks: 2 }).setHp(A1, 60).use(A1, 'shot.life', B1).end().pass(3);
+    c.use(A1, 'shot.life', B1).end(); // the burst deals 15 through the Armor: 7 back
+    expect(c.hp(A1)).toBe(67);
+  });
+
+  it('Ripening Seed: the harvest can Flourish', () => {
+    const a = arena({ p0: [['shot.life']], p1: [['shot']] });
+    a.use(A1, 'shot.life', B1).end().pass(3).use(A1, 'shot.life', B1).end();
+    expect([a.hp(A1), maxHp(a, A1)]).toEqual([112, 112]);
+  });
+
+  it('Ripening Seed: with no seed to harvest (cleansed, or gone), it only deals 5 and plants one', () => {
+    const a = arena({ p0: [['shot.life']], p1: [['shot']] });
+    a.setHp(A1, 60).use(A1, 'shot.life', B1).end().pass(5);
+    a.use(A1, 'shot.life', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'ripening_seed')]).toEqual([90, 60, true]);
+  });
+
+  it('Ripening Seed: the user tends one seed at a time: planting one withers their seed in another enemy, with no burst', () => {
+    const a = arena({ p0: [['shot.life']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 60).use(A1, 'shot.life', B1).end().pass(3); // B1's seed is ripe at 25
+    a.use(A1, 'shot.life', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([95, 95, 60]); // no burst, no heal
+    expect([a.has(B1, 'ripening_seed'), a.has(B2, 'ripening_seed')]).toEqual([false, true]);
+    a.pass(1).use(A1, 'shot.life', B1).end(); // back to B1: nothing to harvest, and B2's withers
+    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([90, 95, 60]);
+    expect([a.has(B1, 'ripening_seed'), a.has(B2, 'ripening_seed')]).toEqual([true, false]);
+  });
+
+  it("Ripening Seed: another character's seed in another enemy doesn't wither", () => {
+    const a = arena({ p0: [['shot.life'], ['shot.life']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shot.life', B1).use(A2, 'shot.life', B2).end();
+    expect([a.has(B1, 'ripening_seed'), a.has(B2, 'ripening_seed')]).toEqual([true, true]);
+  });
+
+  it('Ripening Seed: it only targets enemies', () => {
+    const a = arena({ p0: [['shot.life'], ['shot']], p1: [['shot']] });
     expect(a.reject(() => a.use(A1, 'shot.life', A2))).toBe('bad_target');
-  });
-
-  it('Treefall: an allied Treant is flung at a random enemy for its HP and lands as a fresh Seedling that can Bloom again', () => {
-    const a = arena({ p0: [['shot.life', 'summon.life', 'shout.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end().pass(1).use(A1, 'shout.life').end().pass(1);
-    const t = minions(a, 0, 'treant')[0]!;
-    a.unit(t.id).hp = 30;
-    a.use(A1, 'shot.life', t.id).end();
-    expect(a.hp(B1)).toBe(70);
-    expect(minions(a, 0, 'treant')).toHaveLength(1);
-    const seedlings = minions(a, 0, 'seedling');
-    expect(seedlings).toHaveLength(1);
-    expect([seedlings[0]!.hp, seedlings[0]!.maxHp]).toEqual([15, 15]);
-    a.pass(2);
-    expect(minions(a, 0, 'seedling')).toHaveLength(1); // one creator turn: not yet
-    a.pass(2);
-    expect(minions(a, 0, 'treant')).toHaveLength(2); // Blooms again
   });
 
   it('Heartwood Spear: Channel Growth at the end of each of the user\'s turns, then 50 damage in 2 turns', () => {
@@ -390,29 +440,20 @@ describe('Life skills', () => {
     expect(a.hp(B1)).toBe(80);
   });
 
-  it('Bedrock Thorn: 25 damage and a Boulder', () => {
+  it('Growing Thorn: 15 damage, then at the end of each of the user\'s turns for 2 turns, 10 more and the user heals 5', () => {
     const a = arena({ p0: [['bolt.life']], p1: [['shot']] });
-    a.use(A1, 'bolt.life', B1).end();
-    expect([a.hp(B1), minions(a, 0, 'boulder').length]).toEqual([75, 1]);
+    a.setHp(A1, 80).use(A1, 'bolt.life', B1).end();
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'growing_thorn')]).toEqual([75, 85, true]);
+    a.pass(2);
+    expect([a.hp(B1), a.hp(A1)]).toEqual([65, 90]);
+    a.pass(2);
+    expect([a.hp(B1), a.hp(A1), a.has(B1, 'growing_thorn')]).toEqual([65, 90, false]);
   });
 
-  it('Bedrock Thorn: for 3 turns, each time an allied Boulder takes damage, Channel Growth', () => {
-    const a = arena({ p0: [['bolt.life'], ['summon.earth']], p1: [['shot'], ['shot']] });
-    a.use(A2, 'summon.earth').end().pass(1).use(A1, 'bolt.life', B1).end();
-    const s = minions(a, 0, 'seedling')[0]!;
-    const b = minions(a, 0, 'boulder')[0]!;
-    a.use(B1, 'shot', b.id).use(B2, 'shot', b.id).end();
-    expect(a.unit(s.id).maxHp).toBe(35); // twice
-    a.pass(5).use(B1, 'shot', b.id).end(); // turn 10: long over
-    expect(a.unit(s.id).maxHp).toBe(35);
-  });
-
-  it('Bedrock Thorn: damage to a non-Boulder ally doesn\'t trigger it', () => {
-    const a = arena({ p0: [['bolt.life'], ['summon.life']], p1: [['shot']] });
-    a.use(A2, 'summon.life').end().pass(1).use(A1, 'bolt.life', B1).end();
-    const s = minions(a, 0, 'seedling')[0]!;
-    a.use(B1, 'shot', A1).end();
-    expect(a.unit(s.id).maxHp).toBe(15);
+  it('Growing Thorn: the user\'s heal can Flourish', () => {
+    const a = arena({ p0: [['bolt.life']], p1: [['shot']] });
+    a.use(A1, 'bolt.life', B1).end().pass(2);
+    expect([a.hp(A1), maxHp(a, A1)]).toEqual([110, 110]);
   });
 
   it('Verdant Wave: 25 to all enemies; a Seedling for each enemy left below 50 HP', () => {
@@ -471,41 +512,25 @@ describe('Life skills', () => {
     expect([a.hp(A2), minions(a, 0, 'seedling').length]).toEqual([60, 3]); // A2's two stay, plus a new one
   });
 
-  it('Twin Saplings: 2 Seedlings with 15 HP and Channel Earth', () => {
-    const a = arena({ p0: [['summon.life']], p1: [['shot']] });
+  it('Dryad: summons a 20 HP Dryad for 3 turns; it is not a Seedling', () => {
+    const a = arena({ p0: [['summon.life']], p1: [['shot']], passives: { p0c0: GROVE } });
     a.use(A1, 'summon.life').end();
-    const s = minions(a, 0, 'seedling');
-    expect(s.map((x) => x.hp)).toEqual([15, 15]);
-    a.pass(1).use(s[0]!.id, 'seedling_channel_earth').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'armor')]).toEqual([1, 1]);
+    const d = minions(a, 0, 'dryad');
+    expect([d.length, d[0]!.hp, minions(a, 0, 'seedling').length]).toEqual([1, 20, 0]);
+    a.pass(4);
+    expect([a.unit(d[0]!.id).alive, minions(a, 0, 'treant').length]).toEqual([true, 0]);
+    a.pass(1);
+    expect(a.unit(d[0]!.id).alive).toBe(false);
   });
 
-  it('Twin Saplings: if one dies before Blooming, the other Blooms at once', () => {
-    const a = arena({ p0: [['summon.life']], p1: [['strike']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').end();
-    const [s1, s2] = minions(a, 0, 'seedling');
-    a.use(B1, 'strike', s1!.id).end();
-    expect(a.unit(s1!.id).alive).toBe(false);
-    expect(a.unit(s2!.id).defId).toBe('treant');
-    expect([a.unit(s2!.id).hp, a.unit(s2!.id).maxHp]).toEqual([40, 40]);
-  });
-
-  it('Twin Saplings: only one unbloomed Seedling Blooms per death (§21.7: any of the user\'s Seedlings dying in the window)', () => {
-    const a = arena({ p0: [['summon.life', 'charge.life']], p1: [['strike']], passives: { p0c0: GROVE } });
-    a.use(A1, 'charge.life', B1).end().pass(1).use(A1, 'summon.life').end();
-    const lone = minions(a, 0, 'seedling')[0]!; // from Sapling Charge (created first)
-    a.use(B1, 'strike', lone.id).end();
-    expect(a.unit(lone.id).alive).toBe(false);
-    expect([minions(a, 0, 'seedling').length, minions(a, 0, 'treant').length]).toEqual([1, 1]);
-  });
-
-  it('Twin Saplings: once the window is over, a death Blooms nothing', () => {
-    const a = arena({ p0: [['summon.life'], ['summon.earth']], p1: [['strike']] });
-    a.use(A1, 'summon.life').use(A2, 'summon.earth').end().pass(4); // twins Bloomed at turn 5
-    expect(minions(a, 0, 'treant')).toHaveLength(2);
-    const other = minions(a, 0, 'seedling')[0]!; // A2's (no Bloom of its own)
-    a.use(B1, 'strike', other.id).end().pass(2);
-    expect([minions(a, 0, 'seedling').length, minions(a, 0, 'treant').length]).toEqual([1, 2]);
+  it('Dryad / Mend: target ally heals 15, which can Flourish', () => {
+    const a = arena({ p0: [['summon.life'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'summon.life').end().pass(1);
+    const d = minions(a, 0, 'dryad')[0]!.id;
+    a.setHp(A2, 50).use(d, 'dryad_mend', A2).end();
+    expect(a.hp(A2)).toBe(65);
+    a.setHp(A2, 95).pass(1).use(d, 'dryad_mend', A2).end();
+    expect([a.hp(A2), maxHp(a, A2), a.hp(B1)]).toEqual([110, 110, 100]);
   });
 
   it('Tend the Grove: with no minion the user creates a Seedling; then every allied minion heals 15 at their turn ends, which can Flourish', () => {
@@ -546,9 +571,9 @@ describe('Life skills', () => {
   });
 
   it('Splinter Spike: a Boulder is not a Seedling', () => {
-    const a = arena({ p0: [['stab.life', 'bolt.life']], p1: [['shot']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'stab.life', B1).end();
-    expect([a.hp(B1), minions(a, 0, 'boulder').length, minions(a, 0, 'seedling').length]).toEqual([65, 1, 1]);
+    const a = arena({ p0: [['stab.life', 'charge.earth']], p1: [['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'stab.life', B1).end();
+    expect([a.hp(B1), minions(a, 0, 'boulder').length, minions(a, 0, 'seedling').length]).toEqual([80, 1, 1]);
   });
 
   it('Taproot: 25 Piercing damage; no max HP moves from a target that isn\'t Stunned', () => {
@@ -571,8 +596,8 @@ describe('Life skills', () => {
   });
 
   it('Living Screen: Invisible; the target\'s Harmful skill lands on the user\'s minions instead', () => {
-    const a = arena({ p0: [['mislead.life', 'bolt.life']], p1: [['shot']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'mislead.life', B1).end();
+    const a = arena({ p0: [['mislead.life', 'charge.earth']], p1: [['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'mislead.life', B1).end();
     expect(viewFor(content, a.state, 1).effects.some((e) => e.source === A1 && e.bearer === B1)).toBe(false);
     const b = minions(a, 0, 'boulder')[0]!;
     a.use(B1, 'shot', A1).end();
@@ -598,11 +623,10 @@ describe('Life skills', () => {
     expect([a.hp(A1), minions(a, 0).length]).toEqual([85, 0]);
   });
 
-  it('Overgrow: a 2-turn Stun and 25 Shield on the target', () => {
+  it('Overgrow: 10 damage; a Seedling sprouts and the target is Stunned for 2 turns', () => {
     const a = arena({ p0: [['stun.life']], p1: [['shot']] });
     a.use(A1, 'stun.life', B1).end();
-    expect(a.has(B1, 'stun')).toBe(true);
-    expect(a.effects(B1).reduce((n, e) => n + (e.defId === 'shield' || e.inline?.id === 'overgrow' ? e.value : 0), 0)).toBe(25);
+    expect([a.hp(B1), a.has(B1, 'stun'), minions(a, 0, 'seedling').length]).toEqual([90, true, 1]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTypeOf('string');
     a.pass(2);
     expect(a.has(B1, 'stun')).toBe(true);
@@ -610,18 +634,12 @@ describe('Life skills', () => {
     expect(a.has(B1, 'stun')).toBe(false);
   });
 
-  it('Overgrow: when the Stun ends, the user heals whatever Shield is left, which can Flourish', () => {
-    const a = arena({ p0: [['stun.life'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'stun.life', B1).end().pass(1).use(A2, 'shot', B1).end(); // 15 of the 25 absorbed
-    expect(a.hp(B1)).toBe(100);
-    a.pass(1); // turn 4 ends: Stun over
-    expect([a.hp(A1), maxHp(a, A1)]).toEqual([110, 110]);
-  });
-
-  it('Overgrow: a fully broken Shield heals nothing', () => {
-    const a = arena({ p0: [['stun.life'], ['strike']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'stun.life', B1).use(A2, 'strike', B1).end().pass(1).use(A2, 'strike', B1).end().pass(1);
-    expect(a.hp(A1)).toBe(50);
+  it('Overgrow: the Stun ends as soon as that Seedling dies', () => {
+    const a = arena({ p0: [['stun.life']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.life', B1).end();
+    const s = minions(a, 0, 'seedling')[0]!.id;
+    a.use(B2, 'shot', s).end();
+    expect([a.unit(s).alive, a.has(B1, 'stun')]).toEqual([false, false]);
   });
 
   it('Evergreen: at the start of the user\'s turn they heal 10, which can Flourish, and gain Swiftness above their starting max HP', () => {
@@ -690,8 +708,8 @@ describe('Life skills', () => {
   });
 
   it('Tangleweed: the target can\'t target the user\'s minions, but other enemies can', () => {
-    const a = arena({ p0: [['curse.life', 'bolt.life']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'curse.life', B1).end();
+    const a = arena({ p0: [['curse.life', 'charge.earth']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'curse.life', B1).end();
     const b = minions(a, 0, 'boulder')[0]!;
     expect(a.reject(() => a.use(B1, 'shot', b.id))).toBe('bad_target');
     a.use(B1, 'shot', A1).use(B2, 'shot', b.id).end();
@@ -699,8 +717,8 @@ describe('Life skills', () => {
   });
 
   it('Tangleweed: area skills still hit the minions (simplified)', () => {
-    const a = arena({ p0: [['curse.life', 'bolt.life']], p1: [['blast']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'curse.life', B1).end();
+    const a = arena({ p0: [['curse.life', 'charge.earth']], p1: [['blast']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'curse.life', B1).end();
     const b = minions(a, 0, 'boulder')[0]!;
     a.use(B1, 'blast').end();
     expect(a.unit(b.id).hp).toBe(10);
@@ -729,8 +747,8 @@ describe('Life skills', () => {
   });
 
   it('Common Root: minions share the damage too', () => {
-    const a = arena({ p0: [['prayer.life', 'bolt.life'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'prayer.life').end();
+    const a = arena({ p0: [['prayer.life', 'charge.earth'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'prayer.life').end();
     const b = minions(a, 0, 'boulder')[0]!;
     a.use(B1, 'shot', A1).end(); // 15 split three ways
     expect([a.hp(A1), a.hp(A2), a.unit(b.id).hp]).toEqual([95, 95, 40]);
@@ -757,8 +775,8 @@ describe('Life skills', () => {
   });
 
   it('Call of the Grove: every allied Seedling Blooms now, and every allied minion heals to full', () => {
-    const a = arena({ p0: [['shout.life', 'summon.life'], ['bolt.life']], p1: [['shot']], passives: { p0c0: GROVE } });
-    a.use(A1, 'summon.life').use(A2, 'bolt.life', B1).end().pass(1);
+    const a = arena({ p0: [['shout.life', 'summon.earth'], ['charge.earth']], p1: [['shot']], passives: { p0c0: GROVE } });
+    a.use(A1, 'summon.earth').use(A2, 'charge.earth', B1).end().pass(1);
     const b = minions(a, 0, 'boulder')[0]!;
     a.unit(b.id).hp = 10;
     a.use(A1, 'shout.life').end();
@@ -800,20 +818,26 @@ describe('Life skills', () => {
     expect([minions(a, 1, 'seedling').length, minions(a, 1, 'treant').length]).toEqual([2, 0]);
   });
 
-  it('Barkskin: 25 Shield for 1 turn; no Armor without Flourished HP', () => {
+  it('Barkskin: 20 Shield for 2 turns; when it ends, what is left heals the user, which can Flourish', () => {
     const a = arena({ p0: [['withstand.life']], p1: [['shot']] });
     a.use(A1, 'withstand.life').end().use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.stacks(A1, 'armor')]).toEqual([100, 0]);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(85); // the Shield is gone
+    expect(a.hp(A1)).toBe(100); // 5 Shield left
+    a.pass(1);
+    expect(a.has(A1, 'barkskin')).toBe(true);
+    a.pass(1);
+    expect([a.has(A1, 'barkskin'), a.hp(A1), maxHp(a, A1)]).toEqual([false, 105, 105]);
   });
 
-  it('Barkskin: with Flourished HP the user also gains 2 Armor for 2 turns', () => {
-    const a = arena({ p0: [['withstand.life'], ['heal.life']], p1: [['shot']] });
-    a.use(A2, 'heal.life', A1).end().pass(1).use(A1, 'withstand.life').end();
-    expect(a.stacks(A1, 'armor')).toBe(2);
-    a.pass(4);
-    expect(a.stacks(A1, 'armor')).toBe(0);
+  it('Barkskin: untouched, it heals the full 20', () => {
+    const a = arena({ p0: [['withstand.life']], p1: [['shot']] });
+    a.setHp(A1, 70).use(A1, 'withstand.life').end().pass(3);
+    expect([a.hp(A1), maxHp(a, A1)]).toEqual([90, 100]);
+  });
+
+  it('Barkskin: a broken Shield heals nothing', () => {
+    const a = arena({ p0: [['withstand.life']], p1: [['smash']] });
+    a.use(A1, 'withstand.life').end().use(B1, 'smash', A1).end().pass(2);
+    expect([a.hp(A1), maxHp(a, A1)]).toEqual([95, 100]);
   });
 
   it('Warden Oak: with no minion the user Taunts the target for 2 turns', () => {
@@ -833,8 +857,8 @@ describe('Life skills', () => {
   });
 
   it('Warden Oak: one of the user\'s minions does the Taunting when they have one', () => {
-    const a = arena({ p0: [['taunt.life', 'bolt.life'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.life', B1).end().pass(1).use(A1, 'taunt.life', B1).end();
+    const a = arena({ p0: [['taunt.life', 'charge.earth'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'charge.earth', B1).end().pass(1).use(A1, 'taunt.life', B1).end();
     const b = minions(a, 0, 'boulder')[0]!;
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBeTypeOf('string');
     a.use(B1, 'shot', b.id).end();
@@ -843,8 +867,8 @@ describe('Life skills', () => {
 
   it('Warden Oak: allied Seedlings that survive it Bloom when it ends, ahead of their own timer', () => {
     // The Seedlings' own Bloom is due at the end of turn 5; the Taunt ends at the end of turn 4.
-    const a = arena({ p0: [['taunt.life'], ['summon.life']], p1: [['shot']] });
-    a.use(A2, 'summon.life').use(A1, 'taunt.life', B1).end().pass(2); // turns 2, 3
+    const a = arena({ p0: [['taunt.life'], ['summon.earth']], p1: [['shot']] });
+    a.use(A2, 'summon.earth').use(A1, 'taunt.life', B1).end().pass(2); // turns 2, 3
     expect(minions(a, 0, 'treant')).toHaveLength(0);
     a.pass(1); // turn 4 ends: the Taunt ends
     expect([minions(a, 0, 'seedling').length, minions(a, 0, 'treant').length]).toEqual([0, 2]);
@@ -913,6 +937,7 @@ describe('Life costs and cooldowns (Fusion Spec Kits table)', () => {
     ['titan.life', 'WW', 4],
     ['treant_slam', 'nc', 0],
     ['acorn_crush', 'r', 0],
+    ['dryad_mend', 'nc', 0],
   ];
   const parse = (s: string) => {
     const c = { S: 0, A: 0, I: 0, W: 0, r: 0 };

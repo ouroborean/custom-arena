@@ -36,7 +36,7 @@ describe('Mirror: cost, cooldown and tags', () => {
     ['stab.mirror', 'r', 0],
     ['ravage.mirror', 'Ar', 1],
     ['mislead.mirror', 'I', 2],
-    ['stun.mirror', 'A', 2],
+    ['stun.mirror', 'A', 3],
     ['dance.mirror', 'A', 3],
     ['heal.mirror', 'r', 1],
     ['bless.mirror', 'r', 2],
@@ -46,7 +46,7 @@ describe('Mirror: cost, cooldown and tags', () => {
     ['cleave.mirror', 'Sr', 1],
     ['shout.mirror', 'Sr', 3],
     ['withstand.mirror', 'A', 3],
-    ['taunt.mirror', 'r', 2],
+    ['taunt.mirror', 'r', 3],
     ['titan.mirror', 'IW', 4],
     // Minion skills, from the Companion / Summon rows.
     ['doppelganger_mimicry', 'r', 0],
@@ -76,19 +76,20 @@ describe('Mirror: cost, cooldown and tags', () => {
 
 describe('Mirror: Reflect and Mimic keywords', () => {
   it('Reflect: the reflected skill applies its effects to its own user, not the reflector', () => {
-    // Splintered Pane is a plain Reflect on the user.
-    const a = arena({ p0: [['smash.mirror']], p1: [['stun']] });
-    a.use(A1, 'smash.mirror', B1).end();
+    // Hall of Mirrors Reflects every Harmful skill aimed at the user while it channels.
+    const a = arena({ p0: [['channel.mirror']], p1: [['stun']] });
+    a.use(A1, 'channel.mirror').end();
     a.use(B1, 'stun', A1).end();
     expect([a.hp(A1), a.has(A1, 'stun')]).toEqual([100, false]);
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([75 - 15, true]);
+    // 10 from the channel's first tick, then the reflected Stun's 15.
+    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([75, true]);
   });
 
   it("Reflect: Flow ignores it (Water's Flow ignores counters and reflects)", () => {
-    const a = arena({ p0: [['smash.mirror']], p1: [['shot']] });
-    a.use(A1, 'smash.mirror', B1).end();
+    const a = arena({ p0: [['channel.mirror']], p1: [['shot']] });
+    a.use(A1, 'channel.mirror').end();
     a.give(B1, 'flow').use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 75]);
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 90]);
   });
 
   it('Mimic: the copy is cast by the user as its user (a copied Strike gives the Mirror user the Might)', () => {
@@ -145,24 +146,25 @@ describe('Mirror skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([85, 80]);
   });
 
-  it('Splintered Pane: 25 to the target and 15 to their allies', () => {
+  it('Shattered Likeness: 25 to the target; each ally of theirs with more HP then takes half the difference', () => {
     const a = arena({ p0: [['smash.mirror']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'smash.mirror', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([75, 85, 85]);
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([75, 88, 88]); // 25 more: 12 each
+    const b = arena({ p0: [['smash.mirror']], p1: [['shot'], ['shot'], ['shot']] });
+    b.setHp(B1, 60).setHp('p1c2', 45).use(A1, 'smash.mirror', B1).end();
+    expect([b.hp(B1), b.hp(B2), b.hp('p1c2')]).toEqual([35, 80, 40]); // 65 more: 20 at most; 10 more: 5
   });
 
-  it('Splintered Pane: only the first Harmful skill aimed at the user is Reflected; allies are not covered', () => {
-    const a = arena({ p0: [['smash.mirror'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
-    a.use(A1, 'smash.mirror', B1).end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).use('p1c2', 'shot', A2).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2)]).toEqual([75 - 15, 85, 85, 85]);
+  it('Shattered Likeness: allies with no more HP than the target take nothing', () => {
+    const a = arena({ p0: [['smash.mirror']], p1: [['shot'], ['shot'], ['shot']] });
+    a.setHp(B2, 50).setHp('p1c2', 75).use(A1, 'smash.mirror', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2')]).toEqual([75, 50, 75]);
   });
 
-  it("Splintered Pane: the Reflect is gone by the user's next turn", () => {
-    const a = arena({ p0: [['smash.mirror']], p1: [['shot']] });
-    a.use(A1, 'smash.mirror', B1).end().pass(2);
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 75]);
+  it('Shattered Likeness: a target it fells counts as 0 HP', () => {
+    const a = arena({ p0: [['smash.mirror']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 20).use(A1, 'smash.mirror', B1).end();
+    expect([a.unit(B1).alive, a.hp(B2)]).toEqual([false, 80]);
   });
 
   it('Stillwater Step: 15 damage, and it is Stealthy (keeps the Stealth)', () => {
@@ -330,24 +332,32 @@ describe('Mirror skills', () => {
     expect(a.hp(B1)).toBe(75);
   });
 
-  it('Through the Glass: the user is Invulnerable for 1 turn', () => {
-    const a = arena({ p0: [['maneuver.mirror'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'maneuver.mirror').end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+  it("Through the Glass: when the turn ends, the user's HP returns to what it was when they used it", () => {
+    const a = arena({ p0: [['maneuver.mirror']], p1: [['shot'], ['smash']] });
+    a.setHp(A1, 80).use(A1, 'maneuver.mirror').end();
+    a.use(B1, 'shot', A1).use(B2, 'smash', A1).end();
+    expect([a.hp(A1), a.has(A1, 'through_the_glass')]).toEqual([80, false]);
   });
 
-  it('Through the Glass: the first Harmful skill aimed at an ally is Reflected, the second is not', () => {
-    const a = arena({ p0: [['maneuver.mirror'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+  it('Through the Glass: the user is not Invulnerable: they can still be targeted, hit and Stunned', () => {
+    const a = arena({ p0: [['maneuver.mirror']], p1: [['stun']] });
     a.use(A1, 'maneuver.mirror').end();
-    a.use(B1, 'shot', A2).use(B2, 'shot', A3).end();
-    expect([a.hp(A2), a.hp(B1), a.hp(A3), a.hp(B2)]).toEqual([100, 85, 85, 100]);
+    a.use(B1, 'stun', A1).end();
+    expect([a.hp(A1), a.has(A1, 'stun')]).toEqual([100, true]);
   });
 
-  it('Through the Glass: it ends after 1 turn', () => {
-    const a = arena({ p0: [['maneuver.mirror'], ['shot']], p1: [['shot']] });
+  it('Through the Glass: it only ever restores lost HP; if the user is higher by then, nothing changes', () => {
+    const a = arena({ p0: [['maneuver.mirror'], ['heal']], p1: [['shot']] });
+    a.setHp(A1, 60).use(A1, 'maneuver.mirror').use(A2, 'heal', A1).end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(60 + 25 - 15);
+  });
+
+  it('Through the Glass: it lasts 1 turn; later hits stay', () => {
+    const a = arena({ p0: [['maneuver.mirror']], p1: [['shot']] });
     a.use(A1, 'maneuver.mirror').end().pass(2);
-    a.use(B1, 'shot', A2).end();
-    expect([a.hp(A2), a.hp(B1)]).toEqual([85, 100]);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Doppelganger: summons a permanent 30 HP Doppelganger', () => {
@@ -369,26 +379,24 @@ describe('Mirror skills', () => {
     expect(a.hp(B1) + a.hp(B2)).toBe(200 - 40 - 40);
   });
 
-  it('Glintbolt: 25 damage and a Mark for 1 turn', () => {
-    const a = arena({ p0: [['bolt.mirror']], p1: [['shot']] });
+  it('Glintbolt: 15 damage, and with no one having damaged the user, the 15 flash hits the target too', () => {
+    const a = arena({ p0: [['bolt.mirror']], p1: [['shot'], ['shot']] });
     a.use(A1, 'bolt.mirror', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([75, true]);
-    a.pass(2);
-    expect(a.has(B1, 'mark')).toBe(false);
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'mark')]).toEqual([70, 100, false]);
   });
 
-  it("Glintbolt: when the Mark is spent, allies' cooldowns drop by 1", () => {
-    const run = (spend: boolean) => {
-      const a = arena({ p0: [['bolt.mirror'], ['shot'], ['smash']], p1: [['shot'], ['shot']] });
-      a.use(A3, 'smash', B2).end().pass(1);
-      a.use(A1, 'bolt.mirror', B1);
-      if (spend) a.use(A2, 'shot', B1);
-      a.end();
-      return [a.hp(B1), a.cooldown(A3, 'smash')];
-    };
-    // Smash put B1 at 85, Glintbolt at 60; the Shot spends the Mark for +10.
-    expect(run(false)).toEqual([60, 1]);
-    expect(run(true)).toEqual([60 - 25, 0]);
+  it('Glintbolt: the flash hits whoever last damaged the user for 15', () => {
+    const a = arena({ p0: [['bolt.mirror']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    a.use(A1, 'bolt.mirror', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 85]);
+  });
+
+  it('Glintbolt: if the target is the last to have damaged the user, both land on them', () => {
+    const a = arena({ p0: [['bolt.mirror']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B2, 'shot', A1).end();
+    a.use(A1, 'bolt.mirror', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 70]);
   });
 
   it('Dark Tide: 20 to all enemies, then the user Mimics the last skill a random enemy used', () => {
@@ -444,12 +452,12 @@ describe('Mirror skills', () => {
     expect(a.unit(s.id).alive).toBe(false);
   });
 
-  it('Mirror Shade / Glass Shard: 10 damage to target enemy', () => {
+  it('Mirror Shade / Glass Shard: 5 damage to target enemy, who gains 1 Confusion', () => {
     const a = arena({ p0: [['summon.mirror']], p1: [['shot']] });
     a.use(A1, 'summon.mirror').end().pass(1);
     const s = minionsOf(a, 'mirror_shade')[0]!.id;
-    a.use(s, 'glass_shard' in content.skills ? 'glass_shard' : 'mirror_shade_glass_shard', B1).end();
-    expect(a.hp(B1)).toBe(90);
+    a.use(s, 'mirror_shade_glass_shard', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'confusion')]).toEqual([95, 1]);
   });
 
   it('Mirror Shade: when killed, the killing skill is turned back on its user', () => {
@@ -495,19 +503,19 @@ describe('Mirror skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([85, 75]);
   });
 
-  it('Glass Shiv: 10 damage, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.mirror']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.mirror', B1).end().pass(1);
-    a.use(A1, 'stab.mirror', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
+  it('Glass Shiv: 20 damage to a target with less HP than the user', () => {
+    const a = arena({ p0: [['stab.mirror']], p1: [['shot']] });
+    a.setHp(B1, 90).use(A1, 'stab.mirror', B1).end();
+    expect([a.hp(B1), a.has(B1, 'confusion')]).toEqual([70, false]);
   });
 
-  it('Glass Shiv: Confusion shatters — it ends, and they take 10 Affliction per stack', () => {
+  it('Glass Shiv: otherwise 10 damage and 1 Confusion (equal HP is not less)', () => {
     const a = arena({ p0: [['stab.mirror']], p1: [['shot']] });
-    a.give(B1, 'confusion', { stacks: 2, source: A1 }).give(B1, 'armor', { stacks: 2 });
     a.use(A1, 'stab.mirror', B1).end();
-    // 10 − 10 Armor = 0 from the stab; 20 Affliction ignores Armor.
-    expect([a.hp(B1), a.has(B1, 'confusion')]).toEqual([80, false]);
+    expect([a.hp(B1), a.stacks(B1, 'confusion')]).toEqual([90, 1]);
+    const b = arena({ p0: [['stab.mirror']], p1: [['shot']] });
+    b.setHp(A1, 40).setHp(B1, 50).use(A1, 'stab.mirror', B1).end();
+    expect([b.hp(B1), b.stacks(B1, 'confusion')]).toEqual([40, 1]);
   });
 
   it('Foiled Ambush: 25 Piercing (ignores Armor)', () => {
@@ -524,57 +532,72 @@ describe('Mirror skills', () => {
     expect([a.hp(B1), b.hp(B1)]).toEqual([50, 50]);
   });
 
-  it("Stolen Shape: the target's Harmful skill is countered", () => {
-    const a = arena({ p0: [['mislead.mirror']], p1: [['smash']] });
-    a.use(A1, 'mislead.mirror', B1).end();
-    a.use(B1, 'smash', A1).end();
-    expect(a.hp(A1)).toBe(100);
-  });
-
-  it("Stolen Shape: the target's Harmful skill is countered and the user Mimics it", () => {
-    const a = arena({ p0: [['mislead.mirror']], p1: [['smash']] });
-    a.use(A1, 'mislead.mirror', B1).end();
-    a.use(B1, 'smash', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([100, 75]);
-  });
-
-  it('Stolen Shape: Helpful skills are not countered, and it lasts 1 turn', () => {
-    const a = arena({ p0: [['mislead.mirror']], p1: [['heal', 'shot']] });
-    a.setHp(B1, 50).use(A1, 'mislead.mirror', B1).end();
-    a.use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([75, 100]);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 75]);
-  });
-
-  it('Stolen Shape: other enemies are not affected', () => {
+  it('Mirror Feint: the first Harmful skill another enemy aims at the user is countered and turned onto target enemy', () => {
     const a = arena({ p0: [['mislead.mirror']], p1: [['shot'], ['shot']] });
     a.use(A1, 'mislead.mirror', B1).end();
     a.use(B2, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B2)]).toEqual([85, 100]);
+    expect([a.hp(A1), a.hp(B2), a.hp(B1)]).toEqual([100, 100, 85]);
   });
 
-  it('Hypnotic Ripple: 10 damage and Asleep for 2 turns', () => {
-    const a = arena({ p0: [['stun.mirror']], p1: [['shot']] });
-    a.use(A1, 'stun.mirror', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([90, true]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.pass(2);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.pass(2);
-    expect(a.has(B1, 'sleep')).toBe(false);
+  it("Mirror Feint: target enemy's own Harmful skill at the user is turned onto them too", () => {
+    const a = arena({ p0: [['mislead.mirror']], p1: [['smash'], ['shot']] });
+    a.use(A1, 'mislead.mirror', B1).end();
+    a.use(B1, 'smash', A1).end();
+    // The Smash lands on B1 (25), its splash on B1's allies (15).
+    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([100, 75, 85]);
   });
 
-  it('Hypnotic Ripple: when the Sleep is broken early, a random ally of the sleeper falls Asleep', () => {
-    const a = arena({ p0: [['stun.mirror'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'stun.mirror', B1).use(A2, 'shot', B1).end();
-    expect([a.has(B1, 'sleep'), a.has(B2, 'sleep')]).toEqual([false, true]);
+  it('Mirror Feint: only the first one; the next lands on the user', () => {
+    const a = arena({ p0: [['mislead.mirror']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'mislead.mirror', B1).end();
+    a.use(B2, 'shot', A1).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1), a.hp(B2)]).toEqual([85, 85, 100]);
   });
 
-  it('Hypnotic Ripple: a Sleep that runs its course does not spread', () => {
+  it("Mirror Feint: Harmful skills aimed at the user's allies are not caught", () => {
+    const a = arena({ p0: [['mislead.mirror'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'mislead.mirror', B1).end();
+    a.use(B1, 'shot', A2).end();
+    expect([a.hp(A2), a.hp(B1)]).toEqual([85, 100]);
+  });
+
+  it('Mirror Feint: it lasts 1 turn and is Invisible', () => {
+    const a = arena({ p0: [['mislead.mirror']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'mislead.mirror', B1).end().pass(2);
+    a.use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100]);
+    expect(content.skills['mislead.mirror']!.tags).toContain('Invisible');
+  });
+
+  it('Hypnotic Reflection: 15 damage, and the target is Stunned for 2 turns', () => {
     const a = arena({ p0: [['stun.mirror']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'stun.mirror', B1).end().pass(4);
-    expect([a.has(B1, 'sleep'), a.has(B2, 'sleep')]).toEqual([false, false]);
+    a.use(A1, 'stun.mirror', B1).end();
+    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([85, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().pass(1);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().pass(1);
+    expect(a.has(B1, 'stun')).toBe(false);
+  });
+
+  it('Hypnotic Reflection: the Stun ends as soon as the user takes damage', () => {
+    const a = arena({ p0: [['stun.mirror']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.mirror', B1).end();
+    a.use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'stun')]).toEqual([85, false]);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(70);
+  });
+
+  it("Hypnotic Reflection: damage to the user's allies doesn't free them, and other Stuns on them stay", () => {
+    const a = arena({ p0: [['stun.mirror'], ['shot']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'stun', { source: A2, duration: 6 }).use(A1, 'stun.mirror', B1).end();
+    a.use(B2, 'shot', A2).end();
+    expect(a.has(A1, 'hypnotic_reflection')).toBe(true);
+    a.pass(1).use(B2, 'shot', A1).end();
+    // The reflection broke, but the other Stun holds.
+    expect(a.has(A1, 'hypnotic_reflection')).toBe(false);
+    expect(a.has(B1, 'stun')).toBe(true);
   });
 
   it("Dance of Reflections: 1 Swiftness at the start of each of the user's turns for 3 turns", () => {
@@ -642,28 +665,33 @@ describe('Mirror skills', () => {
     expect(a.hp(B1)).toBe(75);
   });
 
-  it('Silvered Veil: target ally gains Stealth and Flow; Flow ignores counters', () => {
-    const a = arena({ p0: [['bless.mirror'], ['shot']], p1: [['riposte']] });
+  it('Silvered Veil: each enemy who uses a Harmful skill on target ally is Blinded for 2 turns; the skill still lands', () => {
+    const a = arena({ p0: [['bless.mirror'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'bless.mirror', A2).end();
-    expect([a.has(A2, 'stealth'), a.has(A2, 'flow')]).toEqual([true, true]);
-    a.use(B1, 'riposte').end();
-    a.use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([85, 100]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(70);
+    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded'), a.has('p1c2', 'blinded')]).toEqual([true, true, false]);
+    a.pass(2);
+    expect(a.has(B1, 'blinded')).toBe(true);
+    a.pass(2);
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
 
-  it("Silvered Veil: while Flow lasts, the ally's skills are Stealthy and keep the Stealth", () => {
+  it("Silvered Veil: skills aimed at the user's other allies don't Blind", () => {
     const a = arena({ p0: [['bless.mirror'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bless.mirror', A2).end().pass(1);
-    a.use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.has(A2, 'stealth')]).toEqual([85, true]);
+    a.use(A1, 'bless.mirror', A2).end();
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(B1, 'blinded')]).toEqual([85, false]);
   });
 
-  it('Silvered Veil: Flow lasts 2 turns; after it, skills break Stealth again', () => {
+  it('Silvered Veil: it lasts 3 turns', () => {
     const a = arena({ p0: [['bless.mirror'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bless.mirror', A2).end().pass(3);
-    expect(a.has(A2, 'flow')).toBe(false);
-    a.give(A2, 'stealth').use(A2, 'shot', B1).end();
-    expect(a.has(A2, 'stealth')).toBe(false);
+    a.use(A1, 'bless.mirror', A2).end().pass(4);
+    expect(a.has(A2, 'silvered_veil')).toBe(true);
+    a.pass(2);
+    expect(a.has(A2, 'silvered_veil')).toBe(false);
+    a.use(B1, 'shot', A2).end();
+    expect(a.has(B1, 'blinded')).toBe(false);
   });
 
   it('Maddening Glass: Blinded for 2 turns and 1 Confusion', () => {
@@ -774,64 +802,51 @@ describe('Mirror skills', () => {
     expect(a.hp(A1)).toBe(35);
   });
 
-  it('Silvered Guard: 25 Shield for 2 turns', () => {
+  it('Silvered Guard: 20 Shield for 2 turns, and each enemy hit on it is mirrored back for what it absorbed', () => {
     const a = arena({ p0: [['withstand.mirror']], p1: [['shot']] });
     a.use(A1, 'withstand.mirror').end();
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(100);
-    a.pass(3);
-    a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(85);
+    expect([a.hp(A1), a.hp(B1)]).toEqual([100, 85]);
+    a.pass(1).use(B1, 'shot', A1).end();
+    // 5 Shield left: it absorbs 5 (mirrored), the other 10 lands.
+    expect([a.hp(A1), a.hp(B1)]).toEqual([90, 80]);
   });
 
-  it('Silvered Guard: an enemy who breaks it has their skill Mimicked back', () => {
-    const a = arena({ p0: [['withstand.mirror']], p1: [['blast'], ['shot']] });
-    a.use(A1, 'withstand.mirror').end();
-    a.use(B1, 'blast').end();
-    expect(a.hp(A1)).toBe(90);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([65, 65]);
-  });
-
-  it('Silvered Guard: the Mimic copies the breaking skill, not the breaker\'s earlier one', () => {
-    const a = arena({ p0: [['withstand.mirror']], p1: [['blast', 'shot'], ['shot']] });
-    a.use(A1, 'withstand.mirror').end();
-    a.use(B1, 'shot', A1).end().pass(1);
-    a.use(B1, 'blast').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([65, 65]);
-  });
-
-  it('Silvered Guard: a hit that does not break it is not Mimicked', () => {
+  it('Silvered Guard: it lasts 2 turns', () => {
     const a = arena({ p0: [['withstand.mirror']], p1: [['shot']] });
-    a.use(A1, 'withstand.mirror').end();
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([100, 100]);
-  });
-
-  it('Mocking Reflection: creates a 5 HP Reflection and Taunts the target to it for 1 turn', () => {
-    const a = arena({ p0: [['taunt.mirror']], p1: [['shot']] });
-    a.use(A1, 'taunt.mirror', B1).end();
-    const r = minionsOf(a, 'mirror_reflection');
-    expect(r.length).toBe(1);
-    expect(r[0]!.hp).toBe(5);
-    expect(a.has(B1, 'taunt')).toBe(true);
+    a.use(A1, 'withstand.mirror').end().pass(2);
+    expect(a.has(A1, 'silvered_guard')).toBe(true);
     a.pass(2);
-    expect(a.has(B1, 'taunt')).toBe(false);
+    expect(a.has(A1, 'silvered_guard')).toBe(false);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100]);
   });
 
-  it("Mocking Reflection: the Taunted enemy's Harmful skill is Mimicked back at them", () => {
-    const a = arena({ p0: [['taunt.mirror']], p1: [['shot']] });
+  it('Face in the Glass: the target and the user are Taunted by each other for 2 turns', () => {
+    const a = arena({ p0: [['taunt.mirror', 'shot'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.mirror', B1).end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-    const r = minionsOf(a, 'mirror_reflection')[0]!.id;
-    a.use(B1, 'shot', r).end();
-    expect([a.hp(A1), a.unit(r).alive, a.hp(B1)]).toEqual([100, false, 85]);
+    expect([a.has(B1, 'taunt'), a.has(A1, 'taunt')]).toEqual([true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A1).end();
+    expect(a.reject(() => a.use(A1, 'shot', B2))).toBe('bad_target');
+    a.end();
+    expect([a.has(B1, 'taunt'), a.has(A1, 'taunt')]).toEqual([true, true]);
+    a.end();
+    expect([a.has(B1, 'taunt'), a.has(A1, 'taunt')]).toEqual([false, false]);
   });
 
-  it('Mocking Reflection: Helpful skills are not Mimicked, and other enemies are not involved', () => {
-    const a = arena({ p0: [['taunt.mirror']], p1: [['heal'], ['shot']] });
-    a.setHp(B1, 50).use(A1, 'taunt.mirror', B1).end();
-    a.use(B1, 'heal', B1).use(B2, 'shot', A1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([75, 100, 85]);
+  it("Face in the Glass: each hit the enemy lands on the user deals them half as much", () => {
+    const a = arena({ p0: [['taunt.mirror']], p1: [['strike']] });
+    a.use(A1, 'taunt.mirror', B1).end();
+    a.use(B1, 'strike', A1).end();
+    expect([a.hp(A1), a.hp(B1)]).toEqual([80, 90]);
+  });
+
+  it('Face in the Glass: only hits on the user are mirrored, not on their allies', () => {
+    const a = arena({ p0: [['taunt.mirror'], ['shot']], p1: [['blast']] });
+    a.use(A1, 'taunt.mirror', B1).end();
+    a.use(B1, 'blast').end();
+    expect([a.hp(A1), a.hp(A2), a.hp(B1)]).toEqual([65, 65, 100 - 17]);
   });
 
   it("Mirror of the Faceless: 2 Armor and copies of the target's Buffs, and it opens by Mimicking their last skill", () => {

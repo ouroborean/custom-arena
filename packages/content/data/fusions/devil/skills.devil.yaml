@@ -57,8 +57,8 @@ riposte.devil:
   element: Devil
   name: Devil's Due
   description: >-
-    For 1 turn, counters any Harmful skill used on the user; each countered user gains Hellfire for 1
-    turn, and the user gains 1 Soul Fragment per counter. Invisible.
+    For 1 turn, counters any Harmful skill used on the user, and its user pays up: a random Buff of
+    theirs goes to the user, or, if they have none, they take 15 Affliction damage. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -73,14 +73,18 @@ riposte.devil:
         kind: Buff
         element: Devil
         visibility: hidden
-        description: Counters Harmful skills used on the bearer; each gives its user Hellfire and the bearer a Soul Fragment.
+        description: Counters Harmful skills used on the bearer; each one's user hands over a random Buff, or takes 15 Affliction.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
             do:
-              - { op: apply, to: eventSource, effect: hellfire, duration: { enemyTurns: 1 } }
-              - { op: apply, to: bearer, effect: soul_fragment }
+              - op: if
+                cond: { hasKind: { unit: eventSource, kind: Buff } }
+                then:
+                  - { op: stealRandom, from: eventSource, to: bearer, kind: Buff }
+                else:
+                  - { op: damage, to: eventSource, amount: 15, type: Affliction, direct: false }
 
 rage.devil:
   archetype: Rage
@@ -207,17 +211,28 @@ trap.devil:
 maneuver.devil:
   archetype: Maneuver
   element: Devil
-  name: Loophole
+  name: Put It on My Tab
   description: >-
-    The user becomes Invulnerable for 1 turn, and each ally at or below 30 HP becomes Immortal for as
-    long. Invisible.
+    For 1 turn, each hit on the user goes on their tab instead: a Contract whose price, at the end of
+    their next turn, is half that damage as Affliction. Invisible.
   cost: I
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - { op: apply, to: { filter: allAllies, where: { hpAtMost: { unit: it, value: 30 } } }, effect: immortal, duration: { enemyTurns: 1 } }
+    # Neutral, so Hellfire on the user can't stop it. Each held hit becomes its own devils_tab
+    # Contract (statuses.devil.yaml), due at the end of the user's next turn.
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: on_my_tab
+        name: Put It on My Tab
+        kind: Neutral
+        element: Devil
+        description: Each hit on the bearer is held as a Contract; its price is half of it, as Affliction.
+        modifiers:
+          - { mod: deferHits, status: devils_tab, reduceBy: 0, delay: 2 }
 
 companion.devil:
   archetype: Companion
@@ -237,34 +252,33 @@ companion.devil:
 bolt.devil:
   archetype: Bolt
   element: Devil
-  name: Hellbolt
+  name: Borrowed Fire
   description: >-
-    Deals 20 damage to target enemy, who gains Hellfire for 2 turns. While it lasts, each Helpful skill
-    used on them (whose Buffs it blocks) gives the user 1 Soul Fragment.
+    Deals 35 damage to target enemy on credit: the user takes a Contract (2 turns) whose price is 15
+    Affliction damage, waived if that enemy has died by then.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: hellfire, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 35 }
+    # Neutral, so a Horrified user can't dodge the bill.
     - op: apply
-      to: primary
+      to: actor
+      remember: primary
       duration: { enemyTurns: 2 }
       effect:
-        id: hellbolt
-        name: Hellbolt
-        kind: Debuff
+        id: borrowed_fire
+        name: Borrowed Fire
+        kind: Neutral
         element: Devil
-        description: While Hellfired, each Helpful skill used on the bearer gives the applier a Soul Fragment.
-        triggers:
-          - on: skillTargeted
-            when: { harmful: false }
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: hellfire } }
-                then:
-                  - { op: apply, to: actor, effect: soul_fragment }
+        countsAs: [contract]
+        description: "Price when it expires: 15 Affliction damage, waived if the enemy it hit has died."
+        onExpire:
+          - op: if
+            cond: { any: { in: effectTargets, cond: { hpAbove: { unit: it, value: 0 } } } }
+            then:
+              - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
 
 blast.devil:
   archetype: Blast
@@ -296,35 +310,32 @@ consume.devil:
   element: Devil
   name: Collect
   description: >-
-    Deals 5 damage to target enemy, and the user gains 1 Soul Fragment. If they hold a Contract, it
-    ends now and its price is collected, and the user gains 1 more; if not, they're put in debt: a
-    Contract (2 turns) whose price is 15 Affliction damage.
+    Deals 5 damage to target enemy and puts them in debt to the user: a Contract (2 turns) whose price
+    is 20 Affliction damage, and the user heals as much as it deals.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 5 }
-    - { op: apply, to: actor, effect: soul_fragment }
-    - op: if
-      cond: { has: { unit: primary, effect: contract } }
-      then:
-        - { op: expire, on: primary, effect: contract }
-        - { op: apply, to: actor, effect: soul_fragment }
-      else:
-        # Forced on an enemy, so Neutral (Horrified doesn't stop it), like Fine Print.
-        - op: apply
-          to: primary
-          duration: { enemyTurns: 2 }
-          effect:
-            id: collect_debt
-            name: Debt
-            kind: Neutral
-            element: Devil
-            countsAs: [contract]
-            description: "Price when it expires: 15 Affliction damage."
-            onExpire:
-              - { op: damage, to: bearer, amount: 15, type: Affliction, direct: false }
+    # Forced on an enemy, so Neutral (Horrified doesn't stop it), like Fine Print.
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: collect_debt
+        name: Debt
+        kind: Neutral
+        element: Devil
+        countsAs: [contract]
+        description: "Price when it expires: 20 Affliction damage, and the Devil who lent it heals as much."
+        onExpire:
+          # What it deals: no more than the HP they had left.
+          - { op: set, var: had, value: { hp: bearer } }
+          - { op: damage, to: bearer, amount: 20, type: Affliction, direct: false }
+          - op: heal
+            to: actor
+            amount: { if: { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: had }] }] }, atLeast: 1 } }, then: { var: had }, else: { lastDamage: true } }
 
 summon.devil:
   archetype: Summon
@@ -345,62 +356,51 @@ channel.devil:
   element: Devil
   name: Soulburn
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, target enemy takes 10 damage and gains
-    Hellfire for 1 turn, and the user heals 15 (the hit and the burn). Channeled.
+    For up to 3 turns, target enemy has Hellfire, and at the end of each of the user's turns it burns
+    them for 10 more Affliction damage. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
   target: enemy
   ops:
+    # 5 ticks: it runs out right after its third burn, at the end of the user's third turn. The
+    # Hellfire is linked to it, so breaking the channel puts the fire out.
     - op: apply
       to: actor
       remember: primary
-      duration: { enemyTurns: 3 }
+      duration: { raw: 5 }
       effect:
         id: soulburn
         name: Soulburn
         kind: Neutral
         element: Devil
         interruptible: true
-        description: Each turn, burns the target and heals the bearer.
+        description: Holds Hellfire on the target and burns them for 10 more Affliction each turn.
         triggers:
           - on: turnEnd
             do:
-              - { op: damage, to: effectTargets, amount: 10 }
-              - { op: apply, to: effectTargets, effect: hellfire, duration: { enemyTurns: 1 } }
-              - { op: heal, to: bearer, amount: 15 }
+              - { op: damage, to: effectTargets, amount: 10, type: Affliction }
+    - { op: apply, to: primary, effect: hellfire, duration: { raw: 5 }, linkTo: soulburn }
 
 stab.devil:
   archetype: Stab
   element: Devil
-  name: Toasting Fork
+  name: Pitchfork
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. For 2 turns, the user heals 5
-    at the end of each of their turns while the target is Ignited, whoever lit it.
+    Deals 10 damage to target enemy and burns away a random Buff of theirs; if they have none, it deals
+    20 instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: toasting_fork
-        name: Toasting Fork
-        kind: Debuff
-        element: Devil
-        description: While the bearer is Ignited, the applier heals 5 at the end of each of their turns.
-        triggers:
-          - on: turnEnd
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: ignite } }
-                then:
-                  - { op: heal, to: actor, amount: 5 }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: removeRandom, from: primary, kind: Buff }
+      else:
+        - { op: damage, to: primary, amount: 20 }
 
 ravage.devil:
   archetype: Ravage
@@ -466,19 +466,52 @@ mislead.devil:
 stun.devil:
   archetype: Stun
   element: Devil
-  name: Binding Clause
+  name: Hellbound
   description: >-
-    Deals 10 damage to target enemy, who is Stunned for 1 turn, or 2 turns if they hold a Contract.
+    Deals 10 damage to target enemy, who gains Hellfire for 1 turn. For 3 turns, they're Stunned
+    while they have Hellfire, but never on two of their turns in a row.
   cost: AS
   cooldown: 3
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10 }
+    - { op: apply, to: primary, effect: hellfire, duration: { enemyTurns: 1 } }
+    # Its own stun (not `stun`), on only while the Hellfire lasts. At the start of each of the
+    # bearer's turns it decides whether this turn can be Hellbound: never right after one that was.
+    - { op: setCounter, name: hellbound_now, value: 1, on: primary }
+    - { op: setCounter, name: hellbound_rest, value: 0, on: primary }
     - op: apply
       to: primary
-      effect: stun
-      duration: { enemyTurns: { if: { has: { unit: primary, effect: contract } }, then: 2, else: 1 } }
+      duration: { enemyTurns: 3 }
+      effect:
+        id: hellbound
+        name: Hellbound
+        kind: Debuff
+        element: Devil
+        description: Stunned while the bearer has Hellfire, but never on two of their turns in a row.
+        modifiers:
+          - mod: cannotUseSkills
+            if:
+              and:
+                - { has: { unit: bearer, effect: hellfire } }
+                - { compare: { value: { counterOf: { unit: bearer, name: hellbound_now } }, atLeast: 1 } }
+        triggers:
+          - on: turnStart
+            do:
+              - op: if
+                cond: { compare: { value: { counterOf: { unit: bearer, name: hellbound_rest } }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, name: hellbound_now, value: 0, on: bearer }
+                  - { op: setCounter, name: hellbound_rest, value: 0, on: bearer }
+                else:
+                  - op: if
+                    cond: { has: { unit: bearer, effect: hellfire } }
+                    then:
+                      - { op: setCounter, name: hellbound_now, value: 1, on: bearer }
+                      - { op: setCounter, name: hellbound_rest, value: 1, on: bearer }
+                    else:
+                      - { op: setCounter, name: hellbound_now, value: 0, on: bearer }
 
 dance.devil:
   archetype: Dance
@@ -658,47 +691,96 @@ prayer.devil:
 cleave.devil:
   archetype: Cleave
   element: Devil
-  name: Pyre Swing
-  description: Deals 25 damage to target enemy and 15 to a random other enemy. Any enemy it kills Explodes.
+  name: Co-signed Debt
+  description: >-
+    Deals 20 damage to target enemy, and a random other enemy co-signs for them: a Contract (2 turns) whose
+    price is half of all the damage the target takes until it's due (this hit included), as Affliction damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: before, value: { hp: primary } }
-    - { op: damage, to: primary, amount: 25 }
-    - op: if
-      cond: { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
-      then:
-        - { op: macro, id: explode }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: set, var: first_cut, value: { lastDamage: true } }
     - op: forEach
       in: { randomEnemy: 1, exclude: primary }
       do:
-        - { op: set, var: before, value: { hp: it } }
-        - { op: damage, to: it, amount: 15 }
-        - op: if
-          cond: { compare: { value: { sum: [{ lastDamage: true }, { mul: [-1, { var: before }] }] }, atLeast: 0 } }
-          then:
-            - { op: macro, id: explode }
+        # The debt is a counter on the co-signer; a second co-signing adds to one still open.
+        - op: setCounter
+          name: cosign_debt
+          on: it
+          value:
+            sum:
+              - { var: first_cut }
+              - if: { has: { unit: it, effect: cosigned_debt } }
+                then: { counterOf: { unit: it, name: cosign_debt } }
+                else: 0
+        # Forced on an enemy, so Neutral (Horrified doesn't stop it), like Collect.
+        - op: apply
+          to: it
+          duration: { enemyTurns: 2 }
+          effect:
+            id: cosigned_debt
+            name: Co-signed Debt
+            kind: Neutral
+            element: Devil
+            stacking: unique
+            countsAs: [contract]
+            description: "Price when it expires: half of the damage the debtor took meanwhile (rounded down to 5), as Affliction damage."
+            onExpire:
+              - op: damage
+                to: bearer
+                amount: { mul: [5, { div: [{ counterOf: { unit: bearer, name: cosign_debt } }, 10] }] }
+                type: Affliction
+                direct: false
+              - { op: setCounter, name: cosign_debt, on: bearer, value: 0 }
+        - op: apply
+          to: primary
+          remember: it
+          duration: { enemyTurns: 2 }
+          effect:
+            id: cosigned_debtor
+            name: Debtor
+            kind: Neutral
+            element: Devil
+            stacking: independent
+            description: All the damage the bearer takes is added to their co-signer's debt.
+            triggers:
+              - on: damaged
+                do:
+                  - op: setCounter
+                    name: cosign_debt
+                    on: effectTargets
+                    value: { sum: [{ counterOf: { unit: effectTargets, name: cosign_debt } }, { eventAmount: true }] }
 
 shout.devil:
   archetype: Shout
   element: Devil
-  name: Infernal Shriek
+  name: Infernal Toll
   description: >-
-    All enemies are Intimidated for 2 turns; those with Hellfire are Intimidated twice, and the user
-    gains 1 Soul Fragment for each.
+    For 2 turns, all enemies pay a toll on their skills: each skill one of them uses deals them 5
+    Affliction damage per energy it cost.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - op: forEach
-      in: { filter: targets, where: { has: { unit: it, effect: hellfire } } }
-      do:
-        - { op: apply, to: it, effect: intimidated, duration: { enemyTurns: 2 } }
-        - { op: apply, to: actor, effect: soul_fragment }
+    - op: apply
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: infernal_toll
+        name: Infernal Toll
+        kind: Debuff
+        element: Devil
+        description: Each skill the bearer uses deals them 5 Affliction damage per energy it cost.
+        triggers:
+          - on: skillUsed
+            do:
+              - op: if
+                cond: { compare: { value: { skillCost: true }, atLeast: 1 } }
+                then:
+                  - { op: damage, to: bearer, amount: { mul: [5, { skillCost: true }] }, type: Affliction, direct: false }
 
 withstand.devil:
   archetype: Withstand
@@ -732,44 +814,50 @@ taunt.devil:
   element: Devil
   name: Dare the Damned
   description: >-
-    Target enemy is Taunted by the user for 2 turns, and the user is Immortal until their next turn.
-    Each hit that Immortal stops from killing them causes an Explosion.
+    Target enemy is Taunted by the user for up to 3 turns, until they've paid their way out by dealing
+    the user 30 damage in all.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - { op: apply, to: actor, effect: immortal, duration: { raw: 2 } }
+    - { op: setCounter, name: dare_paid, value: 0, on: primary }
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 } }
+    # Neutral, so Horrified can't keep the dare off the user. The tally is kept on the payer.
     - op: apply
       to: actor
-      duration: { raw: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: dare_the_damned
         name: Dare the Damned
-        kind: Buff
+        kind: Neutral
         element: Devil
-        description: Each hit that leaves the bearer at Immortal's floor causes an Explosion.
+        description: An enemy the bearer Taunted stays Taunted until they've dealt the bearer 30 damage.
         triggers:
           - on: damaged
+            when: { byEnemy: true }
             do:
               - op: if
-                cond: { hpAtMost: { unit: bearer, value: 5 } }
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
                 then:
-                  - { op: macro, id: explode }
+                  - { op: setCounter, name: dare_paid, on: eventSource, value: { sum: [{ counterOf: { unit: eventSource, name: dare_paid } }, { eventAmount: true }] } }
+                  - op: if
+                    cond: { compare: { value: { counterOf: { unit: eventSource, name: dare_paid } }, atLeast: 30 } }
+                    then:
+                      - { op: removeEffect, from: eventSource, effect: taunt }
 
 titan.devil:
   archetype: Titan
   element: Devil
   name: Archfiend
-  description: For 3 turns, the user gains 2 Armor and Immune, and enemies who damage them gain Hellfire for 1 turn.
+  description: For 3 turns, the user gains Immune and Lifesteal, and each enemy they damage gains Hellfire for 1 turn.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: lifesteal, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -778,12 +866,12 @@ titan.devil:
         name: Archfiend
         kind: Buff
         element: Devil
-        description: Enemies who damage the bearer gain Hellfire for 1 turn.
+        description: Each enemy the bearer damages directly gains Hellfire for 1 turn.
         triggers:
-          - on: damaged
-            when: { byEnemy: true }
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
             do:
-              - { op: apply, to: eventSource, effect: hellfire, duration: { enemyTurns: 1 } }
+              - { op: apply, to: eventTarget, effect: hellfire, duration: { enemyTurns: 1 } }
 
 # Minion skills.
 

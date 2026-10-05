@@ -190,23 +190,6 @@ describe('Mechanic skills', () => {
     expect(a.hp(B1)).toBe(90);
   });
 
-  it('Jetpack: the user Leaps (Invulnerable and Leaping)', () => {
-    const a = arena({ p0: [['maneuver.mechanic']], p1: [['shot']] });
-    a.use(A1, 'maneuver.mechanic').end();
-    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([true, true]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-  });
-
-  it('Jetpack: the damaging skill that ends the Leap also causes an Explosion', () => {
-    const a = arena({ p0: [['maneuver.mechanic', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'maneuver.mechanic').end();
-    expect([a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([true, true]);
-    a.end().use(A1, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(A1, 'leaping')]).toEqual([100 - 20 - 10, 90, false]);
-    a.pass(1).use(A1, 'shot', B1).end();
-    expect(a.hp(B2)).toBe(90); // once
-  });
-
   it('Clockwork Hound: 30 HP Contraption, permanent; 10 to a random enemy each turn; Upgrades itself every other turn', () => {
     const a = arena({ p0: [['companion.mechanic']], p1: [['shot']], hp: 1000 });
     a.use(A1, 'companion.mechanic').end();
@@ -278,38 +261,6 @@ describe('Mechanic skills', () => {
     expect(lvl(a, turrets(a)[0]!.id)).toBe(2); // 3 turns only
   });
 
-  it('Drill Bit: no cost, usable while Stunned; 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.mechanic'], ['stab.mechanic']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'stun', { source: B1 }).setHp(B2, 60);
-    a.use(A1, 'stab.mechanic', B1).use(A2, 'stab.mechanic', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
-    expect(Object.values(content.skills['stab.mechanic']!.cost ?? {}).reduce((n, v) => n + Number(v), 0)).toBe(0);
-  });
-
-  it('Chainsaw: 25 Piercing to a character', () => {
-    const a = arena({ p0: [['ravage.mechanic']], p1: [['shot']] });
-    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'ravage.mechanic', B1).end();
-    expect([a.hp(B1), turrets(a).length]).toEqual([75, 0]);
-  });
-
-  it('Chainsaw: doubled against minions; destroying one builds a Turret', () => {
-    const a = arena({ p0: [['ravage.mechanic']], p1: [['companion'], ['shot']] });
-    a.pass(1).use(B1, 'companion').end();
-    const wolf = mins(a, 'wolf', 1)[0]!;
-    a.use(A1, 'ravage.mechanic', wolf.id).end();
-    expect([a.unit(wolf.id).alive, turrets(a).length]).toEqual([false, 1]);
-  });
-
-  it('Chainsaw: a minion that survives gives no Turret', () => {
-    const a = arena({ p0: [['ravage.mechanic']], p1: [['companion'], ['shot']] });
-    a.pass(1).use(B1, 'companion').end();
-    const m = mins(a, 'wolf', 1)[0]!;
-    a.setHp(m.id, 200);
-    a.unit(m.id).maxHp = 200;
-    a.use(A1, 'ravage.mechanic', m.id).end();
-    expect([a.hp(m.id), turrets(a).length]).toEqual([150, 0]);
-  });
-
   it('Dummy Bomb: a Harmful skill is countered and a 15 HP Dummy is built', () => {
     const a = arena({ p0: [['mislead.mechanic'], ['shot']], p1: [['shot']] });
     a.use(A1, 'mislead.mechanic', B1).end();
@@ -341,21 +292,6 @@ describe('Mechanic skills', () => {
     const a = arena({ p0: [['stun.mechanic']], p1: [['charge']] });
     a.use(A1, 'stun.mechanic', B1).end().use(B1, 'charge', A1).end();
     expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([100, false]);
-  });
-
-  it('Autogyro: 1 Might, Ghosted and Rushing; each turn still Rushing, every allied minion is Upgraded', () => {
-    const a = arena({ p0: [['dance.mechanic'], ['summon.mechanic']], p1: [['shot']] });
-    a.use(A2, 'summon.mechanic').use(A1, 'dance.mechanic').end();
-    expect([a.stacks(A1, 'might'), a.has(A1, 'ghosted'), a.has(A1, 'rushing')]).toEqual([1, true, true]);
-    expect(turrets(a).map((t) => lvl(a, t.id))).toEqual([1, 1]);
-  });
-
-  it('Autogyro: once Rushing has ended, no more Upgrades', () => {
-    const a = arena({ p0: [['dance.mechanic'], ['summon.mechanic']], p1: [['shot']] });
-    a.use(A2, 'summon.mechanic').use(A1, 'dance.mechanic').end().pass(2); // A1 idles: Rushing ends
-    expect(a.has(A1, 'rushing')).toBe(false);
-    a.pass(2);
-    expect(turrets(a).map((t) => lvl(a, t.id))).toEqual([1, 1]);
   });
 
   it('Repair Kit: heals a character 20', () => {
@@ -489,20 +425,96 @@ describe('Mechanic skills', () => {
     expect(a.state.players[1].queue).toHaveLength(1);
   });
 
-  it('Mech Suit: 20 Shield and Immune, then Leaps; can be Upgraded and ignores Stuns', () => {
-    const a = arena({ p0: [['titan.mechanic'], ['shout.mechanic']], p1: [['stun'], ['curse']] });
-    a.use(A1, 'titan.mechanic').use(A2, 'shout.mechanic').end();
-    expect([shieldOf(a, A1), a.has(A1, 'immune'), a.has(A1, 'leaping'), a.has(A1, 'invulnerable')]).toEqual([
-      20,
-      true,
-      true,
-      true,
-    ]);
-    expect([lvl(a, A1), a.unit(A1).maxHp]).toEqual([1, 110]);
-    a.pass(2).use(B1, 'stun', A1).end(); // the Leap's Invulnerable is over
-    expect([a.has(A1, 'stun'), a.hp(A1)]).toEqual([false, 100]); // the Shield takes the 15
-    a.pass(5);
-    expect(a.has(A1, 'immune')).toBe(false);
+});
+
+describe('Mechanic skills: evolutions', () => {
+  it("Jetpack: Invulnerable for 2 turns, but the user can't use skills on their next turn", () => {
+    const a = arena({ p0: [['maneuver.mechanic', 'shot']], p1: [['shot']] });
+    a.use(A1, 'maneuver.mechanic').end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.end(); // turn 3
+    expect(a.reject(() => a.use(A1, 'shot', B1))).toBe('cannot_act');
+    a.end(); // turn 4: still Invulnerable
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.end(); // turn 5
+    a.use(A1, 'shot', B1);
+  });
+
+  it('Jetpack: when the flight ends, the user comes down with an Explosion', () => {
+    const a = arena({ p0: [['maneuver.mechanic']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'maneuver.mechanic').end().pass(2);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
+    a.end(); // the end of turn 4: it lands
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'invulnerable')]).toEqual([90, 90, false]);
+  });
+
+  it('Drill Bit: no cost, usable while Stunned; 10 damage, 5 more for each earlier Drill Bit in them', () => {
+    const a = arena({ p0: [['stab.mechanic'], ['stab.mechanic']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'stun', { source: B1 });
+    a.use(A1, 'stab.mechanic', B1).use(A2, 'stab.mechanic', B1).end();
+    expect(a.hp(B1)).toBe(100 - 10 - 15);
+    expect(Object.values(content.skills['stab.mechanic']!.cost ?? {}).reduce((n, v) => n + Number(v), 0)).toBe(0);
+    a.pass(3).use(A1, 'stab.mechanic', B2).end();
+    expect(a.hp(B2)).toBe(90); // the hole is in B1, not B2
+  });
+
+  it('Drill Bit: up to 10 more', () => {
+    const a = arena({ p0: [['stab.mechanic'], ['stab.mechanic'], ['stab.mechanic']], p1: [['shot']], hp: 300 });
+    a.use(A1, 'stab.mechanic', B1).use(A2, 'stab.mechanic', B1).use(A3, 'stab.mechanic', B1).end();
+    expect(a.hp(B1)).toBe(300 - 10 - 15 - 20);
+    a.pass(3).use(A1, 'stab.mechanic', B1).use(A2, 'stab.mechanic', B1).use(A3, 'stab.mechanic', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'drill_hole')]).toEqual([255 - 20 - 20 - 20, 2]);
+  });
+
+  it("Chainsaw: Piercing damage equal to a third of the target's current HP, at most 25", () => {
+    const a = arena({ p0: [['ravage.mechanic']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'ravage.mechanic', B1).end();
+    expect([a.hp(B1), a.has(B1, 'chainsaw')]).toEqual([75, false]); // a third of 100 is 33: 25, Armor or not
+    const b = arena({ p0: [['ravage.mechanic']], p1: [['shot']] });
+    b.setHp(B1, 60).use(A1, 'ravage.mechanic', B1).end();
+    expect(b.hp(B1)).toBe(40);
+    const c = arena({ p0: [['ravage.mechanic']], p1: [['shot']] });
+    c.setHp(B1, 50).use(A1, 'ravage.mechanic', B1).end();
+    expect(c.hp(B1)).toBe(34); // 16, rounded down
+  });
+
+  it('Chainsaw: at least 10', () => {
+    const a = arena({ p0: [['ravage.mechanic']], p1: [['shot']] });
+    a.setHp(B1, 24).use(A1, 'ravage.mechanic', B1).end();
+    expect(a.hp(B1)).toBe(14);
+  });
+
+  it("Overclock: 1 Might for 3 turns; at the end of each of the user's turns, cooldowns tick 1 extra and the engine burns them 5", () => {
+    const a = arena({ p0: [['dance.mechanic']], p1: [['shot']] });
+    a.use(A1, 'dance.mechanic').end();
+    expect([a.stacks(A1, 'might'), a.hp(A1), a.cooldown(A1, 'dance.mechanic')]).toEqual([1, 95, 4]); // 6 − 2
+    a.pass(4); // turns 3 and 5 tick twice too
+    expect([a.hp(A1), a.cooldown(A1, 'dance.mechanic')]).toEqual([85, 0]);
+    a.pass(2);
+    expect([a.stacks(A1, 'might'), a.hp(A1), a.has(A1, 'overclock')]).toEqual([0, 85, false]);
+  });
+
+  it('Mech Suit: Immune, and Upgraded at once (the user counts as a Contraption); ignores Stuns', () => {
+    const a = arena({ p0: [['titan.mechanic']], p1: [['stun'], ['curse']] });
+    a.use(A1, 'titan.mechanic').end();
+    expect([a.has(A1, 'immune'), lvl(a, A1), a.unit(A1).maxHp, a.hp(A1)]).toEqual([true, 1, 110, 110]);
+    a.use(B1, 'stun', A1).use(B2, 'curse', A1).end();
+    expect([a.has(A1, 'stun'), a.has(A1, 'confusion')]).toEqual([false, false]);
+    expect([lvl(a, A1), a.unit(A1).maxHp, a.hp(A1)]).toEqual([2, 120, 105]); // 15 taken, then Upgraded as turn 3 starts
+  });
+
+  it("Mech Suit: the user can't be healed in the suit", () => {
+    const a = arena({ p0: [['titan.mechanic'], ['heal']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'titan.mechanic').use(A2, 'heal', A1).end();
+    expect(a.hp(A1)).toBe(60); // only the Upgrade's 10
+  });
+
+  it('Mech Suit: Upgraded at the start of each turn up to level 3; when the suit comes off, so do its Upgrades', () => {
+    const a = arena({ p0: [['titan.mechanic']], p1: [['shot']] });
+    a.use(A1, 'titan.mechanic').end().pass(3); // turn 5 has started
+    expect([lvl(a, A1), a.unit(A1).maxHp, a.hp(A1)]).toEqual([3, 130, 130]);
+    a.pass(2); // the suit comes off as turn 6 ends
+    expect([lvl(a, A1), a.unit(A1).maxHp, a.hp(A1), a.has(A1, 'mech_suit')]).toEqual([0, 100, 100, false]);
   });
 });
 

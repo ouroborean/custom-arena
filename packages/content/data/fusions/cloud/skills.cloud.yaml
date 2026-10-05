@@ -267,26 +267,16 @@ blast.cloud:
   element: Cloud
   name: Cloudburst
   description: >-
-    Deals 30 damage to all enemies. It doesn't end the user's Leaping, and if they weren't Leaping,
-    they Leap once it resolves.
+    Deals 20 damage to all enemies, and the rain keeps falling: 10 more Drifts onto each of them at the
+    start of each of the user's next 2 turns.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: allEnemies
   ops:
-    - { op: set, var: wasLeaping, value: { if: { has: { unit: actor, effect: leaping } }, then: 1, else: 0 } }
-    - { op: damage, to: targets, amount: 30 }
-    # A fresh Leaping doesn't count this skill's hit, so it outlives the resolution.
-    - op: if
-      cond: { compare: { value: { var: wasLeaping }, atLeast: 1 } }
-      then:
-        - op: if
-          cond: { not: { has: { unit: actor, effect: aloft } } }
-          then:
-            - { op: removeEffect, from: actor, effect: leaping }
-            - { op: apply, to: actor, effect: leaping, duration: { ownTurns: 1 } }
-      else:
-        - { op: forEach, in: actor, do: [{ op: macro, id: leap }] }
+    - { op: damage, to: targets, amount: 20 }
+    - { op: apply, to: targets, value: 10, duration: { raw: 2 }, effect: drifting_hit }
+    - { op: apply, to: targets, value: 10, duration: { raw: 4 }, effect: drifting_hit }
 
 consume.cloud:
   archetype: Consume
@@ -352,28 +342,31 @@ channel.cloud:
   element: Cloud
   name: Gathering Clouds
   description: >-
-    For 3 turns, deals 10 damage to all enemies at the end of each of the user's turns. While it
-    lasts, every ally is Aloft. Channeled.
+    A storm gathers over every enemy. For up to 3 turns, at the end of each of the user's turns, it
+    grows by 15. At the end of the user's third turn, it breaks: each enemy takes all of theirs.
+    Channeled.
   cost: AI
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
   target: allEnemies
   ops:
+    # 5 ticks: both end right after the third growth, at the end of the user's third turn. Breaking
+    # the channel stops the growth; the storms still break on time.
+    - { op: apply, to: targets, value: 0, duration: { raw: 5 }, effect: gathering_storm }
     - op: apply
       to: actor
-      duration: { enemyTurns: 3 }
+      duration: { raw: 5 }
       effect:
         id: gathering_clouds
         name: Gathering Clouds
         kind: Neutral
         element: Cloud
         interruptible: true
-        description: Deals 10 damage to all enemies at the end of each of the user's turns.
+        description: At the end of each of the user's turns, the storm over every enemy grows by 15.
         triggers:
           - on: turnEnd
             do:
-              - { op: damage, to: allEnemies, amount: 10 }
-    - { op: apply, to: allAllies, effect: aloft, linkTo: gathering_clouds, duration: { enemyTurns: 3 } }
+              - { op: growShield, to: { filter: allEnemies, where: { has: { unit: it, effect: gathering_storm } } }, effect: gathering_storm, amount: 15 }
 
 stab.cloud:
   archetype: Stab
@@ -393,16 +386,33 @@ stab.cloud:
 ravage.cloud:
   archetype: Ravage
   element: Cloud
-  name: Downdraft
-  description: Deals 25 Piercing damage to target enemy. If the user is Aloft, they end it to deal 20 more.
-  cost: A
+  name: Downburst
+  description: >-
+    A downburst hangs over target enemy for 2 turns. The first time they use a Harmful skill, it crashes
+    down on them: 35 Piercing damage. If they never do, it falls as it ends, for 20.
+  cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: set, var: dive, value: { if: { has: { unit: actor, effect: aloft } }, then: 20, else: 0 } }
-    - { op: removeEffect, from: actor, effect: aloft }
-    - { op: damage, to: primary, amount: { sum: [25, { var: dive }] }, type: Piercing }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: downburst
+        name: Downburst
+        kind: Debuff
+        element: Cloud
+        stacking: unique
+        description: The first Harmful skill the bearer uses brings it down on them for 35 Piercing damage; if none does, it falls for 20 as it ends.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            consume: true
+            do:
+              - { op: damage, to: bearer, amount: 35, type: Piercing }
+        onExpire:
+          - { op: damage, to: bearer, amount: 20, type: Piercing }
 
 mislead.cloud:
   archetype: Mislead
@@ -438,15 +448,18 @@ stun.cloud:
   archetype: Stun
   element: Cloud
   name: Sleet Squall
-  description: Deals 15 damage to target enemy and Stuns them for 1 turn. The user is Aloft for as long as the target stays Stunned.
+  description: >-
+    Drift. When it lands, deals 10 damage to target enemy and each of their allies, and whichever enemy
+    has the most HP is Stunned for 1 turn.
   cost: r
   cooldown: 2
-  tags: [Harmful, NonStrategic]
+  tags: [Harmful, NonStrategic, Drift]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
-    - { op: apply, to: actor, effect: aloft, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: damage, to: primaryAllies, amount: 10 }
+    # The ordinary Stun: Swiftness and Stun immunities stop it as usual.
+    - { op: apply, to: strongestEnemy, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.cloud:
   archetype: Dance

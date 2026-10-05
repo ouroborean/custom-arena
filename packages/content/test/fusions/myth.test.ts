@@ -194,35 +194,36 @@ describe('Myth skills', () => {
     expect([a.has(A1, 'mythic'), a.stacks(A1, 'legend')]).toEqual([true, 0]);
   });
 
-  it('Hurl the Stone: 15 to an enemy', () => {
+  it('Hurl the Stone: 15 to an enemy, plus 5 per Legend the user has (the Saga one for this use included)', () => {
     const a = arena({ p0: [['shot.myth']], p1: [['shot']] });
     a.use(A1, 'shot.myth', B1).end();
+    expect([a.stacks(A1, 'legend'), a.hp(B1)]).toEqual([1, 80]);
+    a.pass(1).use(A1, 'shot.myth', B1).end();
+    expect([a.stacks(A1, 'legend'), a.hp(B1)]).toEqual([2, 80 - 25]);
+  });
+
+  it('Hurl the Stone: while Mythic (no Legend), just 15', () => {
+    const a = arena({ p0: [['shot.myth']], p1: [['shot']] });
+    a.give(A1, 'mythic').use(A1, 'shot.myth', B1).end();
     expect(a.hp(B1)).toBe(85);
   });
 
-  it('Hurl the Stone: an allied Boulder is hurled at a random enemy for its remaining HP; other allies are illegal', () => {
+  it('Hurl the Stone: an allied Boulder shatters into 1 Legend per 15 HP it had; other allies are illegal', () => {
     const a = arena({ p0: [['shot.myth'], ['charge.earth']], p1: [['shot']] });
     a.use(A2, 'charge.earth', B1).end().pass(1); // B1 at 90
     const boulder = minions(a, 0, 'boulder')[0]!;
     expect(a.reject(() => a.use(A1, 'shot.myth', A2))).toBe('bad_target');
-    a.setHp(boulder.id, 30).use(A1, 'shot.myth', boulder.id).end();
-    expect([a.hp(B1), a.unit(boulder.id).alive]).toEqual([60, false]);
+    a.setHp(boulder.id, 29).use(A1, 'shot.myth', boulder.id).end();
+    // The Saga's Legend for the use, then 1 for the 29-HP Boulder; nothing is thrown.
+    expect([a.unit(boulder.id).alive, a.stacks(A1, 'legend'), a.hp(B1)]).toEqual([false, 2, 90]);
   });
 
-  it('Hurl the Stone: without Mythic, targeting an enemy minion is just a 15 hit on it', () => {
-    const a = arena({ p0: [['shot.myth']], p1: [['charge.earth']] });
-    a.pass(1).use(B1, 'charge.earth', A1).end();
-    const boulder = minions(a, 1, 'boulder')[0]!;
+  it('Hurl the Stone: a full Boulder gives the most, 3 Legend: the user becomes Mythic', () => {
+    const a = arena({ p0: [['shot.myth'], ['charge.earth']], p1: [['shot']] });
+    a.use(A2, 'charge.earth', B1).end().pass(1);
+    const boulder = minions(a, 0, 'boulder')[0]!;
     a.use(A1, 'shot.myth', boulder.id).end();
-    expect([a.unit(boulder.id).hp, a.hp(B1)]).toEqual([30, 100]);
-  });
-
-  it('Hurl the Stone: Mythic hurls an enemy minion at a random enemy for its remaining HP', () => {
-    const a = arena({ p0: [['shot.myth']], p1: [['charge.earth']] });
-    a.pass(1).use(B1, 'charge.earth', A1).end();
-    const boulder = minions(a, 1, 'boulder')[0]!;
-    a.setHp(boulder.id, 25).give(A1, 'mythic').use(A1, 'shot.myth', boulder.id).end();
-    expect([a.unit(boulder.id).alive, a.hp(B1)]).toEqual([false, 75]);
+    expect([a.unit(boulder.id).alive, a.has(A1, 'mythic')]).toEqual([false, true]);
   });
 
   it("Giant's Spear: hidden target; grows each of the user's turns and lands at 60 Piercing", () => {
@@ -643,15 +644,55 @@ describe('Myth skills', () => {
     expect([a.has(A1, 'mythic'), a.unit(A2).maxHp]).toEqual([false, 100]);
   });
 
-  it('Jotun Sweep: 20 to the target, 10 to a random other enemy who is Frostbitten for 1 turn', () => {
-    const a = arena({ p0: [['cleave.myth']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.myth', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([80, 90, false, true]);
+  it("Jotun Sweep: 25 to the target; this use's own Legend (1) sweeps 1 random other enemy for 10; no Frostbite", () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const a = arena({ seed, p0: [['cleave.myth']], p1: [['shot'], ['shot'], ['shot']], passives: SAGA });
+      a.use(A1, 'cleave.myth', B1).end();
+      expect([a.hp(B1), a.stacks(A1, 'legend')]).toEqual([75, 1]);
+      expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 90]);
+      expect([B1, B2, B3].some((b) => a.has(b, 'frostbitten'))).toBe(false);
+    }
+  });
+
+  it('Jotun Sweep: with 2 Legend it sweeps 2 other enemies, each only once', () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const a = arena({ seed, p0: [['cleave.myth']], p1: [['shot'], ['shot'], ['shot']], passives: SAGA });
+      a.give(A1, 'legend').use(A1, 'cleave.myth', B1).end();
+      expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 90, 90]);
+    }
+  });
+
+  it('Jotun Sweep: Mythic sweeps every other enemy for 10 and Frostbites them for 1 turn (not the target)', () => {
+    const a = arena({ p0: [['cleave.myth']], p1: [['shot'], ['shot'], ['shot']], passives: SAGA });
+    a.give(A1, 'mythic').use(A1, 'cleave.myth', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 90, 90]);
+    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten'), a.has(B3, 'frostbitten')]).toEqual([false, true, true]);
     a.pass(1);
     expect(a.has(B2, 'frostbitten')).toBe(false);
   });
 
-  it('Horn of the North: all enemies Intimidated for 2 turns', () => {
+  it('Jotun Sweep: reaching 3 Legend with this use makes the user Mythic first, so it sweeps everyone', () => {
+    const a = arena({ p0: [['cleave.myth']], p1: [['shot'], ['shot'], ['shot']], passives: SAGA });
+    a.give(A1, 'legend', { stacks: 2 }).use(A1, 'cleave.myth', B1).end();
+    expect([a.has(A1, 'mythic'), a.hp(B2), a.hp(B3), a.has(B2, 'frostbitten')]).toEqual([true, 90, 90, true]);
+  });
+
+  it('Jotun Sweep: with no other enemy, the sweep finds no one', () => {
+    const a = arena({ p0: [['cleave.myth']], p1: [['shot']], passives: SAGA });
+    a.give(A1, 'legend').use(A1, 'cleave.myth', B1).end();
+    expect(a.hp(B1)).toBe(75);
+  });
+
+  it('Horn of the North: each enemy has one skill that is cooling down set back 2 turns; ready skills are untouched', () => {
+    const a = arena({ p0: [['shout.myth']], p1: [['bolt', 'shot'], ['shot']] });
+    a.end().use(B1, 'bolt', A1).end();
+    const cd = a.cooldown(B1, 'bolt');
+    expect(cd).toBeGreaterThan(0);
+    a.use(A1, 'shout.myth').end();
+    expect([a.cooldown(B1, 'bolt'), a.cooldown(B1, 'shot'), a.has(B1, 'intimidated')]).toEqual([cd + 2, 0, false]);
+  });
+
+  it('Horn of the North: an enemy with nothing cooling down is Intimidated for 2 turns instead', () => {
     const a = arena({ p0: [['shout.myth']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shout.myth').end();
     expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated'), a.has(B1, 'frostbitten')]).toEqual([true, true, false]);
@@ -661,64 +702,89 @@ describe('Myth skills', () => {
     expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  it('Horn of the North: +1 turn per allied Boulder, up to 4 turns', () => {
-    const one = arena({ p0: [['shout.myth'], ['charge.earth']], p1: [['shot']] });
-    one.use(A2, 'charge.earth', B1).use(A1, 'shout.myth').end();
-    expect(dur(one, B1, 'intimidated')).toBe(2 * 3 - 1);
-    const many = arena({ p0: [['shout.myth', 'rage.myth'], ['charge.earth'], ['charge.earth']], p1: [['shot'], ['shot']], hp: 200 });
-    many.use(A1, 'rage.myth').use(A2, 'charge.earth', B1).use('p0c2', 'charge.earth', B1).end().pass(1);
-    expect(minions(many, 0, 'boulder').length).toBe(3);
-    many.use(A1, 'shout.myth').end();
-    expect(dur(many, B2, 'intimidated')).toBe(2 * 4 - 1);
-  });
-
-  it('Horn of the North: Mythic also Frostbites them for as long', () => {
-    const a = arena({ p0: [['shout.myth']], p1: [['shot'], ['shot']] });
+  it('Horn of the North: while the user is Mythic, 3 turns', () => {
+    const a = arena({ p0: [['shout.myth']], p1: [['bolt']] });
+    a.end().use(B1, 'bolt', A1).end();
+    const cd = a.cooldown(B1, 'bolt');
     a.give(A1, 'mythic').use(A1, 'shout.myth').end();
-    expect([a.has(B1, 'frostbitten'), a.has(B2, 'frostbitten')]).toEqual([true, true]);
-    expect(dur(a, B1, 'frostbitten')).toBe(dur(a, B1, 'intimidated'));
+    expect(a.cooldown(B1, 'bolt')).toBe(cd + 3);
   });
 
-  it('Frozen Rampart: 30 Shield for 2 turns', () => {
-    const a = arena({ p0: [['withstand.myth']], p1: [['shot']] });
+  it('Frozen Rampart: no Shield; creates an allied 25-HP Boulder, and each direct hit is split between the user and it', () => {
+    const a = arena({ p0: [['withstand.myth']], p1: [['strike']] });
     a.use(A1, 'withstand.myth').end();
-    a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(100);
-    a.pass(2);
-    expect(a.has(A1, 'shield')).toBe(false);
+    const boulder = minions(a, 0, 'boulder')[0]!;
+    expect([boulder.hp, boulder.maxHp, a.effects(A1).some((e) => e.defId === 'shield' || e.inline?.shield)]).toEqual([25, 25, false]);
+    a.use(B1, 'strike', A1).end();
+    expect([a.hp(A1), a.unit(boulder.id).hp]).toEqual([90, 15]);
   });
 
-  it('Frozen Rampart: doubles a Shield the user already has instead', () => {
+  it('Frozen Rampart: a big hit can\'t be soaked whole — the user always takes their half', () => {
+    const a = arena({ p0: [['withstand.myth']], p1: [['strike']] });
+    a.use(A1, 'withstand.myth').end();
+    a.give(B1, 'might', { stacks: 8 }).use(B1, 'strike', A1).end(); // 60
+    expect([a.hp(A1), minions(a, 0, 'boulder').length]).toEqual([70, 0]);
+  });
+
+  it('Frozen Rampart: once no allied minion is left, hits land in full', () => {
+    const a = arena({ p0: [['withstand.myth']], p1: [['strike'], ['strike']] });
+    a.use(A1, 'withstand.myth').end();
+    minions(a, 0, 'boulder')[0]!.hp = 1;
+    a.use(B1, 'strike', A1).use(B2, 'strike', A1).end();
+    expect([minions(a, 0, 'boulder').length, a.hp(A1)]).toEqual([0, 100 - 10 - 20]);
+  });
+
+  it('Frozen Rampart: only direct hits are split; damage over time isn\'t', () => {
     const a = arena({ p0: [['withstand.myth']], p1: [['shot']] });
-    a.give(A1, 'shield', { value: 20 }).use(A1, 'withstand.myth').end();
-    expect(a.effects(A1).filter((e) => e.defId === 'shield').reduce((n, e) => n + e.value, 0)).toBe(40);
+    a.give(A1, 'ignite', { source: B1 }).use(A1, 'withstand.myth').end().pass(1);
+    expect([a.hp(A1) < 100, minions(a, 0, 'boulder')[0]?.hp]).toEqual([true, 25]);
   });
 
-  it('Old Feud: a permanent Taunt; each time they damage the user, 1 Legend', () => {
-    const a = arena({ p0: [['taunt.myth'], ['shot']], p1: [['shot'], ['shot']], passives: SAGA });
-    a.use(A1, 'taunt.myth', B1).end();
+  it('Frozen Rampart: any allied minion can take the other half', () => {
+    const a = arena({ p0: [['withstand.myth', 'companion.myth']], p1: [['strike']] });
+    a.use(A1, 'companion.myth').end().pass(1);
+    for (const u of minions(a, 0)) u.hp = 1000;
+    a.pass(2).use(A1, 'withstand.myth').end();
+    for (const u of minions(a, 0)) u.hp = 1000;
+    a.use(B1, 'strike', A1).end();
+    expect([a.hp(A1), minions(a, 0).filter((u) => u.hp === 990).length]).toEqual([90, 1]);
+  });
+
+  it("Frozen Rampart: it lasts until the user's next turn; the Boulder stays", () => {
+    const a = arena({ p0: [['withstand.myth']], p1: [['shot']] });
+    a.use(A1, 'withstand.myth').end().pass(1);
+    expect(a.has(A1, 'frozen_rampart')).toBe(false);
+    a.end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), minions(a, 0, 'boulder')[0]?.hp]).toEqual([85, 25]);
+  });
+
+  it('Old Feud: the target is Taunted until the user becomes Mythic; then the feud is settled for 25 damage', () => {
+    const a = arena({ p0: [['taunt.myth', 'stab.myth'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.myth', B1).end(); // 1 Legend
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect(a.stacks(A1, 'legend')).toBe(2); // the skill, then B1's hit (not B2's)
-    a.pass(9);
+    a.end().use(A1, 'stab.myth', B2).end(); // 2 Legend
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.end().use(A1, 'stab.myth', B2).end(); // 3 Legend: Mythic
+    expect([a.has(A1, 'mythic'), a.hp(B1), a.has(B1, 'taunt')]).toEqual([true, 75, false]);
+    expect(() => a.use(B1, 'shot', A2)).not.toThrow();
   });
 
-  it('Old Feud: only one feud at a time; a new one ends the Legend from the old one (its Taunt stays, per ruling)', () => {
-    const a = arena({ p0: [['taunt.myth']], p1: [['shot'], ['shot']], passives: SAGA });
-    a.use(A1, 'taunt.myth', B1).end().pass(7).use(A1, 'taunt.myth', B2).end(); // 2 Legend from the two uses
-    expect(a.stacks(A1, 'legend')).toBe(2);
-    a.use(B1, 'shot', A1).end().pass(1);
-    expect(a.stacks(A1, 'legend')).toBe(2); // the old feud no longer pays
-    a.use(B2, 'shot', A1).end();
-    expect(a.has(A1, 'mythic')).toBe(true); // the new one does: 3 Legend
+  it('Old Feud: without Mythic it ends after 4 turns, with no damage', () => {
+    const a = arena({ p0: [['taunt.myth'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'taunt.myth', B1).end().pass(6);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.end().pass(1);
+    expect(() => a.use(B1, 'shot', A2)).not.toThrow();
+    expect(a.hp(B1)).toBe(100);
   });
 
-  it('Old Feud: Mythic, the user deals 10 more to them (and only them)', () => {
-    const a = arena({ p0: [['taunt.myth', 'shot']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'mythic').use(A1, 'taunt.myth', B1).end().pass(1);
-    a.use(A1, 'shot', B1).end().pass(1).use(A1, 'shot', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
+  it('Old Feud: if the user is already Mythic, it is a plain 2-turn Taunt', () => {
+    const a = arena({ p0: [['taunt.myth'], ['shot']], p1: [['shot']] });
+    a.give(A1, 'mythic').use(A1, 'taunt.myth', B1).end().pass(2);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    expect(a.has(A1, 'old_feud_oath')).toBe(false);
+    a.end().pass(1);
+    expect(() => a.use(B1, 'shot', A2)).not.toThrow();
   });
 
   it('Awakened Giant: Mythic now (with its max HP) and Immune for as long', () => {

@@ -22,5 +22,8 @@ great_yeti:
 
 snow_sprite:
   name: Snow Sprite
-  hp: 10
+  hp: 20
+  # When it melts (killed, or its time runs out), every enemy is Snowbound for 1 turn.
+  onDeath:
+    - { op: apply, to: allEnemies, effect: snowbound, duration: { enemyTurns: 1 } }
   skills: [snow_sprite_flurry]

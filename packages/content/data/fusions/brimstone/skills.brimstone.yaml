@@ -162,8 +162,8 @@ snipe.brimstone:
   element: Brimstone
   name: Pitch Javelin
   description: >-
-    On the following turn, deals 25 Affliction damage to target enemy, who gains 2 Sulfur, and their
-    next Eruption is doubled. The target of this skill is invisible. Channeled, Uncounterable.
+    On the following turn, the burning javelin lands: target enemy gains 2 Sulfur, then their Sulfur
+    Erupts. The target of this skill is invisible. Channeled, Uncounterable.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
@@ -180,26 +180,18 @@ snipe.brimstone:
         element: Brimstone
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn unless interrupted.
+        description: Lands at the end of the following turn unless interrupted, Erupting its target.
         onExpire:
-          - { op: damage, to: effectTargets, amount: 25, type: Affliction }
           - { op: apply, to: effectTargets, effect: sulfur, stacks: 2 }
-          - op: apply
-            to: effectTargets
-            effect:
-              id: pitch_javelin_mark
-              name: Pitch-Soaked
-              kind: Debuff
-              element: Brimstone
-              description: The bearer's next Eruption is doubled.
+          - { op: forEach, in: effectTargets, do: [{ op: macro, id: erupt }] }
 
 trap.brimstone:
   archetype: Trap
   element: Brimstone
   name: Brimstone Pit
   description: >-
-    For 3 turns, each time target enemy uses a Strategic skill, they gain 1 Sulfur. The first damaging
-    skill they use makes it all Erupt. Invisible.
+    For 3 turns, the first time target enemy uses a Helpful skill, every unit it targets gains 2 Sulfur,
+    and it all Erupts. Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -214,17 +206,14 @@ trap.brimstone:
         kind: Debuff
         element: Brimstone
         visibility: hidden
-        description: Strategic skills give the bearer Sulfur; their first damaging skill makes it Erupt.
+        description: The bearer's first Helpful skill gives each of its targets 2 Sulfur and makes it Erupt.
         triggers:
           - on: skillUsed
-            when: { strategic: true }
-            do:
-              - { op: apply, to: bearer, effect: sulfur }
-          - on: skillUsed
-            when: { strategic: false }
+            when: { harmful: false }
             consume: true
             do:
-              - { op: forEach, in: bearer, do: [{ op: macro, id: erupt }] }
+              - { op: apply, to: eventTargets, effect: sulfur, stacks: 2 }
+              - { op: forEach, in: eventTargets, do: [{ op: macro, id: erupt }] }
 
 maneuver.brimstone:
   archetype: Maneuver
@@ -302,22 +291,29 @@ consume.brimstone:
   element: Brimstone
   name: Consumed by Fire
   description: >-
-    Target enemy gains 2 Sulfur, then their Sulfur Erupts. Then, if they're below 15 HP (30 for
-    minions), they're executed.
+    Target enemy is Ignited by a hungry flame for 2 turns: it burns for 10 instead of 5, and the user heals
+    for every burn.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: sulfur, stacks: 2 }
-    - { op: forEach, in: primary, do: [{ op: macro, id: erupt }] }
-    - op: if
-      cond:
-        or:
-          - { and: [{ kind: { unit: primary, is: character } }, { hpAtMost: { unit: primary, value: 14 } }] }
-          - { and: [{ kind: { unit: primary, is: minion } }, { hpAtMost: { unit: primary, value: 29 } }] }
-      then:
-        - { op: kill, to: primary }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: consumed_by_fire
+        name: Ignite (Consumed by Fire)
+        kind: Debuff
+        element: Brimstone
+        countsAs: [ignite]
+        description: An Ignite that burns for 10 Affliction at the end of the applier's turn and heals the applier as much.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: damage, to: bearer, amount: 10, type: Affliction }
+              - { op: heal, to: actor, amount: { lastDamage: true } }
+              - { op: macro, id: burn_aftermath }
 
 summon.brimstone:
   archetype: Summon
@@ -383,22 +379,17 @@ stab.brimstone:
   archetype: Stab
   element: Brimstone
   name: Strike the Match
-  description: >-
-    Deals 5 Piercing damage to target enemy and Ignites them. If they have Sulfur for this Ignite to
-    set off, the user gains 1 random energy; if not, they gain 1 Sulfur for it.
+  description: Deals 10 damage to target enemy. If that leaves them at or below 40 HP, the user Explodes.
   cost: r
-  cooldown: 0
+  cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5, type: Piercing }
-    - { op: apply, to: primary, effect: ignite }
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { has: { unit: primary, effect: sulfur } }
+      cond: { hpAtMost: { unit: primary, value: 40 } }
       then:
-        - { op: gainEnergy, amount: 1 }
-      else:
-        - { op: apply, to: primary, effect: sulfur }
+        - { op: macro, id: explode }
 
 ravage.brimstone:
   archetype: Ravage
@@ -473,16 +464,29 @@ dance.brimstone:
   element: Brimstone
   name: Sulfur Dance
   description: >-
-    The user gains Immune for 1 turn, a random enemy gains 1 Sulfur, and the user Explodes; every
-    enemy with Sulfur Erupts.
+    For 3 turns, at the end of each of the user's turns, a random enemy gains 1 Sulfur and the user gains
+    1 Swiftness until the dance ends. When it ends, the user Explodes.
   cost: S
-  cooldown: 1
+  cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 1 } }
-    - { op: apply, to: { randomEnemy: 1 }, effect: sulfur }
-    - { op: macro, id: explode }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: sulfur_dance
+        name: Sulfur Dance
+        kind: Buff
+        element: Brimstone
+        description: Each turn, 1 Sulfur to a random enemy and 1 Swiftness; the user Explodes when it ends.
+        triggers:
+          - on: turnEnd
+            do:
+              - { op: apply, to: { randomEnemy: 1 }, effect: sulfur }
+              - { op: apply, to: bearer, effect: swiftness, linkTo: sulfur_dance }
+        onExpire:
+          - { op: macro, id: explode }
 
 heal.brimstone:
   archetype: Heal
@@ -719,14 +723,13 @@ titan.brimstone:
   element: Brimstone
   name: Pit Lord
   description: >-
-    For 3 turns, the user gains 3 Armor and Immune, and each enemy who uses a Harmful skill on them
-    gains 1 Sulfur.
+    For 3 turns, the user gains Immune, and every hit on them burns its dealer: each enemy who deals them
+    direct damage gains 1 Sulfur and is Ignited.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
@@ -736,9 +739,10 @@ titan.brimstone:
         name: Pit Lord
         kind: Buff
         element: Brimstone
-        description: Each enemy who uses a Harmful skill on the bearer gains 1 Sulfur.
+        description: Each enemy who deals the bearer direct damage gains 1 Sulfur and is Ignited.
         triggers:
-          - on: skillTargeted
-            when: { harmful: true, side: enemy }
+          - on: damaged
+            when: { direct: true, byEnemy: true }
             do:
               - { op: apply, to: eventSource, effect: sulfur }
+              - { op: apply, to: eventSource, effect: ignite }

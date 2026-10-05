@@ -25,10 +25,10 @@ const doubles = (a: Arena) => a.use(A1, 'summon.ninja').end().pass(1);
 
 describe('Ninja keywords', () => {
   it('Shadow Clone: a 5 HP minion, at most 3', () => {
-    const a = arena({ p0: [['summon.ninja', 'charge.ninja']], p1: [['withstand']] });
+    const a = arena({ p0: [['summon.ninja', 'dance.ninja']], p1: [['withstand']] });
     doubles(a);
     expect(clones(a).map((c) => c.hp)).toEqual([5, 5, 5]);
-    a.use(A1, 'charge.ninja').end();
+    a.use(A1, 'dance.ninja').end();
     expect(clones(a)).toHaveLength(3);
   });
 
@@ -133,10 +133,18 @@ describe('Ninja skills', () => {
     expect([a.hp(B1), clones(a).length]).toEqual([100 - 20 - 30, 0]);
   });
 
-  it('Blur: the user begins Rushing and creates a Clone', () => {
+  it('Blur: the user creates a Clone and is blurred (Helpful: no Flurry, no Rushing)', () => {
     const a = arena({ p0: [['charge.ninja']], p1: [['withstand']] });
     a.use(A1, 'charge.ninja').end();
-    expect([a.has(A1, 'rushing'), clones(a).length]).toEqual([true, 1]);
+    expect([clones(a).length, a.has(A1, 'blur'), a.has(A1, 'rushing'), a.hp(B1)]).toEqual([1, true, false, 100]);
+  });
+
+  it('Blur: the user\'s next Harmful skill Flurries twice; the one after, once again', () => {
+    const a = arena({ p0: [['charge.ninja', 'shot']], p1: [['withstand'], ['withstand']] });
+    a.use(A1, 'charge.ninja').end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.has(A1, 'blur')]).toEqual([100 - 15 - 10, false]); // 1 Clone, counted twice
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(75 - 15 - 5);
   });
 
   it('Log Trick: invisible; counters the first Harmful skill, makes a Clone, and every Clone strikes for 10 Piercing', () => {
@@ -325,66 +333,87 @@ describe('Ninja skills', () => {
     expect([a.hp(B1), clones(a).length]).toEqual([65, 2]); // 2 turns only
   });
 
-  it('Second Draw: 10, or 20 at or below 60 HP', () => {
+  it('Second Draw: 5 damage, and a new Clone slips into the target\'s blind spot', () => {
     const a = arena({ p0: [['stab.ninja']], p1: [['withstand'], ['withstand']] });
-    a.setHp(B2, 60).use(A1, 'stab.ninja', B1).end().pass(1);
-    expect(a.hp(B1)).toBe(90);
-    a.use(A1, 'stab.ninja', B2).end();
-    expect(a.hp(B2)).toBe(40);
+    a.use(A1, 'stab.ninja', B1).end();
+    expect([a.hp(B1), clones(a).length]).toEqual([100 - 5 - 5, 1]); // the new Clone is there for the Flurry
   });
 
-  it('Second Draw: still Rushing at the start of the next turn, it strikes the same enemy again for 10', () => {
+  it('Second Draw: still standing at the start of the user\'s next turn, the Clone stabs them for 15 and is destroyed', () => {
     const a = arena({ p0: [['stab.ninja']], p1: [['withstand'], ['withstand']] });
-    a.give(A1, 'rushing').use(A1, 'stab.ninja', B1).end();
-    expect(a.hp(B1)).toBe(90);
+    a.use(A1, 'stab.ninja', B1).end().pass(1);
+    expect([a.hp(B1), a.hp(B2), clones(a).length]).toEqual([90 - 15, 100, 0]);
+  });
+
+  it('Second Draw: a Clone destroyed first never stabs', () => {
+    const a = arena({ p0: [['stab.ninja']], p1: [['shot'], ['withstand']] });
+    a.use(A1, 'stab.ninja', B1).end().use(B1, 'shot', clones(a)[0]!.id).end();
+    expect([a.hp(B1), clones(a).length]).toEqual([90, 0]);
+  });
+
+  it('Second Draw: at 3 Clones, one of them goes instead', () => {
+    const a = arena({ p0: [['summon.ninja', 'stab.ninja']], p1: [['withstand'], ['withstand']] });
+    doubles(a);
+    a.use(A1, 'stab.ninja', B1).end();
+    expect([a.hp(B1), clones(a).length]).toEqual([100 - 5 - 15, 3]);
     a.pass(1);
-    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 100]);
+    expect([a.hp(B1), clones(a).length]).toEqual([80 - 15, 2]);
   });
 
-  it('Second Draw: no longer Rushing, no second strike', () => {
-    const a = arena({ p0: [['stab.ninja']], p1: [['curse.wind']] });
-    a.give(A1, 'rushing').use(A1, 'stab.ninja', B1).end().use(B1, 'curse.wind', A1).end();
-    expect([a.has(A1, 'rushing'), a.hp(B1)]).toEqual([false, 90]);
-  });
-
-  it('Quickdraw: 25 Piercing; no Stealth if the user wasn\'t Leaping', () => {
-    const a = arena({ p0: [['ravage.ninja']], p1: [['withstand']] });
+  it('Quickdraw: nothing at once; the first skill the target uses draws a 30 Piercing cut first', () => {
+    const a = arena({ p0: [['ravage.ninja']], p1: [['shot'], ['shot']] });
     a.give(B1, 'armor', { stacks: 3 }).use(A1, 'ravage.ninja', B1).end();
-    expect([a.hp(B1), a.has(A1, 'stealth')]).toEqual([75, false]);
+    expect(a.hp(B1)).toBe(100);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([70, 85]);
+    a.pass(1).use(B1, 'shot', A1).end(); // only the first
+    expect(a.hp(B1)).toBe(70);
   });
 
-  it('Quickdraw: Leaping, +5 and the user lands in Stealth', () => {
-    const a = arena({ p0: [['ravage.ninja']], p1: [['withstand']] });
-    a.give(A1, 'leaping').use(A1, 'ravage.ninja', B1).end();
-    expect([a.hp(B1), a.has(A1, 'stealth'), a.has(A1, 'leaping')]).toEqual([70, true, false]);
+  it('Quickdraw: the cut lands before the skill takes effect', () => {
+    const a = arena({ p0: [['ravage.ninja']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 30).use(A1, 'ravage.ninja', B1).end().use(B1, 'shot', A1).end();
+    expect([a.unit(B1).alive, a.hp(A1)]).toEqual([false, 100]);
   });
 
-  it('Feint: invisible; counters the target\'s Harmful skill and fills the user up to 3 Clones', () => {
-    const a = arena({ p0: [['mislead.ninja', 'strike.ninja'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'strike.ninja', B1).end().pass(1).use(A1, 'mislead.ninja', B1).end();
+  it('Quickdraw: if the target uses no skill, the cut lands as the turn ends, for 20', () => {
+    const a = arena({ p0: [['ravage.ninja']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'ravage.ninja', B1).end().use(B2, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(80);
+  });
+
+  it('Feint: invisible; counters the target\'s Harmful skill and the user Leaps', () => {
+    const a = arena({ p0: [['mislead.ninja'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'mislead.ninja', B1).end();
     expect([seen(a, 0, B1, 'feint'), seen(a, 1, B1, 'feint')]).toEqual([true, false]);
     a.use(B1, 'shot', A2).end();
-    expect([a.hp(A2), clones(a).length]).toEqual([100, 3]);
+    expect([a.hp(A2), a.has(A1, 'leaping'), a.has(A1, 'invulnerable'), a.has(A1, 'mark')]).toEqual([100, true, true, false]);
   });
 
-  it('Feint: Helpful skills aren\'t countered and give no Clones', () => {
+  it('Feint: Helpful skills aren\'t countered; unbitten, the user is Marked for 1 turn', () => {
     const a = arena({ p0: [['mislead.ninja']], p1: [['withstand']] });
     a.use(A1, 'mislead.ninja', B1).end().use(B1, 'withstand').end();
-    expect([a.has(B1, 'shield'), clones(a).length]).toEqual([true, 0]);
+    expect([a.has(B1, 'shield'), a.has(A1, 'leaping'), a.has(A1, 'mark')]).toEqual([true, false, true]);
+    a.pass(2);
+    expect(a.has(A1, 'mark')).toBe(false);
   });
 
-  it('Pressure Point: 10 and Stunned for 1 turn', () => {
-    const a = arena({ p0: [['stun.ninja']], p1: [['shot', 'charge.wind']] });
+  it('Pressure Point: 10 damage; the target isn\'t Stunned yet', () => {
+    const a = arena({ p0: [['stun.ninja']], p1: [['shot']] });
     a.use(A1, 'stun.ninja', B1).end();
-    expect([a.hp(B1), a.has(B1, 'stun'), a.cooldown(B1, 'charge.wind')]).toEqual([90, true, 0]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([90, false]);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
-  it('Pressure Point: ends Rushing or Leaping, and pushes their mobility skills 1 turn further onto cooldown', () => {
-    const a = arena({ p0: [['stun.ninja']], p1: [['shot', 'charge.wind', 'maneuver', 'dance']] });
-    a.give(B1, 'rushing').give(B1, 'leaping').use(A1, 'stun.ninja', B1).end();
-    expect([a.has(B1, 'rushing'), a.has(B1, 'leaping')]).toEqual([false, false]);
-    expect([a.cooldown(B1, 'charge.wind'), a.cooldown(B1, 'maneuver'), a.cooldown(B1, 'dance'), a.cooldown(B1, 'shot')]).toEqual([1, 1, 1, 0]);
+  it('Pressure Point: at the end of their next turn it seizes: they\'re Stunned for 1 turn', () => {
+    const a = arena({ p0: [['stun.ninja']], p1: [['shot']] });
+    a.use(A1, 'stun.ninja', B1).end().pass(1);
+    expect(a.has(B1, 'stun')).toBe(true);
+    a.pass(1);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.pass(2).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Shadow Dance: Stealth, 2 Clones and 1 Might', () => {
@@ -435,14 +464,24 @@ describe('Ninja skills', () => {
     expect([a.hp(A2), clones(a).length]).toEqual([100, 0]);
   });
 
-  it('Blinding Dust: Blinded for 2 turns and 1 Confusion', () => {
-    const a = arena({ p0: [['curse.ninja']], p1: [['shot']] });
+  it('Haunting Shadows: the user creates a Clone; each skill the target uses draws a Flurry on them, Helpful or not', () => {
+    const a = arena({ p0: [['curse.ninja']], p1: [['withstand', 'shot'], ['withstand']] });
     a.use(A1, 'curse.ninja', B1).end();
-    expect([a.has(B1, 'blinded'), a.stacks(B1, 'confusion')]).toEqual([true, 1]);
-    a.pass(2);
-    expect(a.has(B1, 'blinded')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'blinded')).toBe(false);
+    expect([clones(a).length, a.hp(B1)]).toEqual([1, 100]);
+    a.use(B1, 'withstand').use(B2, 'withstand').end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 100]); // only the haunted one
+    a.pass(1).use(B1, 'shot', A1).end(); // the Clone takes the shot, but haunts them as it's used
+    expect([a.hp(B1), clones(a).length]).toEqual([90, 0]);
+  });
+
+  it('Haunting Shadows: 5 Piercing per Clone the user has; it lasts 2 turns', () => {
+    const a = arena({ p0: [['curse.ninja', 'summon.ninja']], p1: [['shot']] });
+    doubles(a);
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'curse.ninja', B1).end(); // still 3 Clones
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(85); // Piercing
+    a.pass(3).use(B1, 'shot', A1).end(); // turn 8: over
+    expect(a.hp(B1)).toBe(85);
   });
 
   it('Shadow Mark: 20; each ally who damages the target this turn gives the user a Clone', () => {
@@ -470,18 +509,18 @@ describe('Ninja skills', () => {
     expect([a.hp(A2), a.has(A2, 'stealth'), a.has(A1, 'stealth')]).toEqual([85, true, false]);
   });
 
-  it('Shadow Whirl: Stealthy; creates a Clone if none, then 20 / 15, and each Clone adds 10 to another enemy', () => {
-    const a = arena({ p0: [['cleave.ninja']], p1: [['withstand'], ['withstand']] });
+  it('Shadow Whirl: Stealthy; the user creates a Clone, then 10 to the target and a Flurry on every enemy', () => {
+    const a = arena({ p0: [['cleave.ninja']], p1: [['withstand'], ['withstand'], ['withstand']] });
     a.use(A1, 'cleave.ninja', B1).end();
-    expect(clones(a)).toHaveLength(1);
-    expect(200 - a.hp(B1) - a.hp(B2)).toBeGreaterThanOrEqual(20 + 15 + 10 + 5);
+    expect([a.hp(B1), a.hp(B2), a.hp('p1c2'), clones(a).length]).toEqual([85, 95, 95, 1]);
     expect(content.skills['cleave.ninja']!.tags).toContain('Stealthy');
   });
 
-  it('Shadow Whirl: both enemies it hits are Flurried', () => {
-    const a = arena({ p0: [['cleave.ninja']], p1: [['withstand'], ['withstand']] });
+  it('Shadow Whirl: the spread Flurry counts every Clone', () => {
+    const a = arena({ p0: [['summon.ninja', 'cleave.ninja']], p1: [['withstand'], ['withstand']] });
+    doubles(a);
     a.use(A1, 'cleave.ninja', B1).end();
-    expect(200 - a.hp(B1) - a.hp(B2)).toBe(20 + 15 + 10 + 5 + 5); // 1 Clone: +5 on each enemy hit
+    expect([a.hp(B1), a.hp(B2), clones(a).length]).toEqual([100 - 10 - 15, 85, 3]);
   });
 
   it('Shadow Whirl: being Stealthy, it keeps the user\'s Stealth', () => {
@@ -503,56 +542,82 @@ describe('Ninja skills', () => {
     expect(a.has(clones(a)[0]!.id, 'stealth')).toBe(false);
   });
 
-  it('Shadow Guard: 20 Shield for 1 turn and a Clone', () => {
-    const a = arena({ p0: [['withstand.ninja']], p1: [['blast']] });
-    a.use(A1, 'withstand.ninja').end();
-    expect([find(a, A1, 'shield')?.value ?? a.effects(A1).find((e) => e.value === 20)?.value, clones(a).length]).toEqual([20, 1]);
-    a.use(B1, 'blast').end(); // 35 to all: 20 absorbed
-    expect(a.hp(A1)).toBe(85);
+  it('Shadow Guard: the user creates a Clone, then each of their Clones gains 20 Shield for 1 turn; the user gains none', () => {
+    const a = arena({ p0: [['withstand.ninja', 'summon.ninja']], p1: [['shot']] });
+    const shieldOf = (id: string) => a.effects(id).filter((e) => e.defId === 'shield').reduce((n, e) => n + e.value, 0);
+    a.use(A1, 'summon.ninja').end().pass(1).use(A1, 'withstand.ninja').end(); // already 3: no new one
+    expect([clones(a).map((c) => shieldOf(c.id)), shieldOf(A1)]).toEqual([[20, 20, 20], 0]);
   });
 
-  it('Mocking Shadows: a Clone, and the target is Taunted by the user for 2 turns', () => {
+  it('Shadow Guard: a shielded Clone outlasts the hit it Substitutes for; the Shield is gone after 1 turn', () => {
+    const a = arena({ p0: [['withstand.ninja']], p1: [['shot']] });
+    a.use(A1, 'withstand.ninja').end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), clones(a).length]).toEqual([100, 1]);
+    a.pass(1).use(B1, 'shot', A1).end(); // turn 4: a bare 5 HP Clone again
+    expect([a.hp(A1), clones(a).length]).toEqual([100, 0]);
+  });
+
+  it('Mocking Shadows: with no Clones, the target is Taunted by the user for 1 turn', () => {
     const a = arena({ p0: [['taunt.ninja'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.ninja', B1).end();
-    expect([clones(a).length, find(a, B1, 'taunt')?.source]).toEqual([1, A1]);
+    expect(find(a, B1, 'taunt')?.source).toBe(A1);
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.pass(2).use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
   });
 
-  it('Mocking Shadows: each skill the Taunted enemy uses draws 5 Piercing per Clone', () => {
-    const a = arena({ p0: [['taunt.ninja', 'summon.ninja']], p1: [['withstand']] });
+  it('Mocking Shadows: every Clone on the user\'s side is destroyed, each adding 1 turn, up to 3 turns', () => {
+    const a = arena({ p0: [['taunt.ninja', 'summon.ninja'], ['shot']], p1: [['shot']] });
     doubles(a);
-    a.use(A1, 'taunt.ninja', B1).end(); // 3 Clones (max)
-    a.give(B1, 'armor', { stacks: 3 }).use(B1, 'withstand').end();
-    expect(a.hp(B1)).toBe(85);
-  });
-
-  it('Shadow Master: 2 Armor and Immune for 3 turns', () => {
-    const a = arena({ p0: [['titan.ninja']], p1: [['curse']] });
-    a.use(A1, 'titan.ninja').end().use(B1, 'curse', A1).end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), a.has(A1, 'confusion')]).toEqual([2, true, false]);
-    a.pass(5);
-    expect(a.has(A1, 'immune')).toBe(false);
-  });
-
-  it('Shadow Master: a Clone at the start of each of the user\'s turns', () => {
-    const a = arena({ p0: [['titan.ninja']], p1: [['withstand']] });
-    a.use(A1, 'titan.ninja').end();
+    a.use(A1, 'taunt.ninja', B1).end();
     expect(clones(a)).toHaveLength(0);
-    a.pass(1);
-    expect(clones(a)).toHaveLength(1);
+    a.pass(4); // turn 8
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.pass(2).use(B1, 'shot', A2).end(); // turn 10: over
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Mocking Shadows: one Clone gives 2 turns', () => {
+    const a = arena({ p0: [['taunt.ninja', 'strike.ninja'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'strike.ninja', B1).end().pass(1).use(A1, 'taunt.ninja', B1).end(); // turn 3
     a.pass(2);
-    expect(clones(a)).toHaveLength(2);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target'); // turn 6
+    a.pass(2).use(B1, 'shot', A2).end(); // turn 8: over
+    expect(a.hp(A2)).toBe(85);
+  });
+
+  it('Shadow Master: Clones until the user has 2, and Immune for 3 turns', () => {
+    const a = arena({ p0: [['titan.ninja']], p1: [['curse']] });
+    a.use(A1, 'titan.ninja').end().pass(1);
+    expect([clones(a).length, a.has(A1, 'immune'), a.stacks(A1, 'armor')]).toEqual([2, true, 0]);
+    a.pass(4);
+    expect(a.has(A1, 'immune')).toBe(false);
+    const b = arena({ p0: [['titan.ninja', 'summon.ninja']], p1: [['curse']] });
+    doubles(b);
+    b.use(A1, 'titan.ninja').end();
+    expect(clones(b)).toHaveLength(3);
+  });
+
+  it('Shadow Master: while the user\'s side has a Clone, enemies can\'t target them', () => {
+    const a = arena({ p0: [['titan.ninja']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'titan.ninja').end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    const [c1, c2] = clones(a);
+    a.use(B1, 'shot', c1!.id).use(B2, 'shot', c2!.id).end();
+    expect(clones(a)).toHaveLength(0);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 });
 
 describe('Ninja costs and cooldowns (kit table)', () => {
   const kit: Record<string, [string, number]> = {
-    strike: ['S', 0], smash: ['Ar', 2], charge: ['nc', 1], riposte: ['A', 3], rage: ['SS', 4],
+    strike: ['S', 0], smash: ['Ar', 2], charge: ['r', 1], riposte: ['A', 3], rage: ['SS', 4],
     shot: ['r', 0], snipe: ['Arr', 2], trap: ['A', 3], maneuver: ['r', 3], companion: ['I', 1],
     bolt: ['Ar', 1], blast: ['Irr', 2], consume: ['r', 2], summon: ['r', 3], channel: ['AI', 3],
-    stab: ['r', 0], ravage: ['A', 1], mislead: ['A', 2], stun: ['A', 2], dance: ['A', 2],
+    stab: ['r', 0], ravage: ['Ar', 1], mislead: ['A', 2], stun: ['A', 2], dance: ['A', 2],
     heal: ['A', 1], bless: ['r', 2], curse: ['A', 2], smite: ['W', 1], prayer: ['Wrr', 2],
-    cleave: ['S', 1], shout: ['A', 3], withstand: ['A', 1], taunt: ['r', 2], titan: ['AW', 4],
+    cleave: ['Sr', 1], shout: ['A', 3], withstand: ['A', 2], taunt: ['r', 3], titan: ['AW', 4],
   };
   const parse = (s: string) => {
     const c = { S: 0, A: 0, I: 0, W: 0, r: 0 };

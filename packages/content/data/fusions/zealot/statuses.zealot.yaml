@@ -51,7 +51,7 @@ take_the_blow:
   modifiers:
     - { mod: warded }
 
-# Unholy Unction's Shield.
+# A Shield grown by heals. (Zealous Unction, which made it, no longer does; kept because the icon manifest names it.)
 unction_shield:
   name: Unction
   kind: Buff

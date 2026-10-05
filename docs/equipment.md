@@ -337,9 +337,53 @@ Anti-farming rules:
 - **Salvage:** an unequipped piece pays gold for each component: Skill 10, Shard 5, Sigil 30.
 - **Equipped pieces:** forging, splitting and salvage refuse them, returning 409.
 
+### 4.1 Player levels and loot boxes (2026-10-05)
+Numbers live in `economy.progression.yaml`, rules in `@arena/meta` (`progression.ts`), storage in
+`player_progress` and `loot_boxes` (migration 0013).
+
+- **Experience:** every finished match pays experience along with its other rewards, under the same
+  rules (no forfeited losses, nothing below 8 turns, private matches pay none). It's added in the
+  transaction that pays the match, so at most once.
+
+  | | Win | Loss | Draw |
+  |---|---|---|---|
+  | Casual | 100 | 40 | 50 |
+  | Ranked | 120 | 50 | 60 |
+  | Practice | 60 | 25 | 30 |
+  | Arcade | 80 | 30 | 30 |
+  | Story | 80 | 25 | 25 |
+  | Tutorial | 60 | 20 | 20 |
+
+- **Levels:** level L takes 400 + 100 × (L − 1) experience, at most 1200 (400, 500, … 1200).
+- **The bar:** it has a bubble at **25%** (uncommon box), **50%** (rare), **75%** (uncommon) and
+  **100%** (epic, the level-up). Reaching a bubble stores its box; one big gain pays every bubble it
+  crosses, across levels.
+- **Loot boxes:** the player opens them from Home. Each holds **3 rolls**, shown lowest first, and
+  each roll lands in a band:
+  - **Gold** (the lowest): an amount in the box's range.
+  - **Gear:** tier 1 or tier 2, weighted by the box's quality.
+  - **Prize:** a tier-3 piece.
+
+  A gear **tier is its component count**: tier 1 is a single component from the `standard` table;
+  tiers 2 and 3 are pieces already forged from 2 or 3 components. A forged piece always starts from a
+  Skill, so it grants one, followed by the table's draws. It's a legal piece, named as if forged in
+  that order.
+
+  | Box | Gold / Gear / Prize | Gold | Gear tier 1 / 2 |
+  |---|---|---|---|
+  | Uncommon | 60 / 37 / 3 | 20–50 | 85 / 15 |
+  | Rare | 40 / 52 / 8 | 40–90 | 60 / 40 |
+  | Epic | 15 / 60 / 25 | 80–160 | 30 / 70 |
+
+- **Box rewards** don't count toward the daily drop cap. Opening a box is a conditional update, so it
+  pays once; gear goes into the inventory with source `lootbox:<box>`.
+
 ### API
 | Method | Path | |
 |---|---|---|
+| GET | `/api/progress` | `{ level, xp, needed, total, boxes }`: the bar and unopened boxes |
+| POST | `/api/loot-boxes/:id/open` | → `{ box, rolls, wallet, progress }`; 404 for someone else's box, 409 once opened |
+| POST | `/api/dev/xp` | `{ xp }`: development only, like `/api/dev/grant` |
 | GET | `/api/wallet` | Balances (also returned by `/api/inventory`, rolls, forging, splitting and salvage) |
 | POST | `/api/characters/roll` | Costs the roll price |
 | POST | `/api/forge` | `{ base, addition }` (instance ids) → `{ item, wallet }`, the new piece |

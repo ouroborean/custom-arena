@@ -213,27 +213,43 @@ describe('Current skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([60, 100]);
   });
 
-  it('Live Wire: the first Harmful skill the target uses hits them and every Soaked enemy for 15 and Saps each', () => {
+  it('Live Wire: the first Harmful skill the target uses Soaks every enemy for 2 turns, then deals each 10', () => {
     const a = arena({ p0: [['trap.current']], p1: three(), passives: COND });
-    soak(a, B2);
     const seen = seenByB(a, B1);
     a.use(A1, 'trap.current', B1).end();
     expect(seenByB(a, B1)).toBe(seen); // Invisible
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([85, 85, 100]);
-    expect([a.stacks(B1, 'sapped'), a.stacks(B2, 'sapped'), a.stacks(B3, 'sapped')]).toEqual([1, 1, 0]);
+    a.use(B1, 'shot', A1).end(); // turn 2
+    expect(a.hp(A1)).toBe(85); // a trap, not a counter
+    expect([B1, B2, B3].map((b) => [a.hp(b), a.has(b, 'soaked')])).toEqual([[90, true], [90, true], [90, true]]);
+    a.pass(3); // through turn 5
+    expect(a.has(B2, 'soaked')).toBe(true);
+    a.pass(1); // the enemy's second turn after it springs
+    expect([B1, B2, B3].some((b) => a.has(b, 'soaked'))).toBe(false);
   });
 
-  it('Live Wire: fires only once, and not on Helpful skills', () => {
-    const a = arena({ p0: [['trap.current']], p1: [['shot', 'heal'], ['shot'], ['shot']], passives: COND });
+  it('Live Wire: the 10 is indirect, so it doesn\'t conduct; it springs only once', () => {
+    const a = arena({ p0: [['trap.current']], p1: three(), passives: COND });
+    a.use(A1, 'trap.current', B1).end().use(B1, 'shot', A1).end().pass(1).use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([90, 90, 90]);
+  });
+
+  it('Live Wire: an ally\'s Harmful skill doesn\'t spring it, nor does a Helpful one; it waits 2 turns', () => {
+    const a = arena({ p0: [['trap.current']], p1: [['shot', 'heal'], ['shot']], passives: COND });
     a.use(A1, 'trap.current', B1).end();
-    a.use(B1, 'heal', B2).end();
-    expect(a.hp(B1)).toBe(100);
-    a.pass(1).use(B1, 'shot', A1).end();
-    const after = a.hp(B1);
-    expect(after).toBeLessThan(100);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(after);
+    a.use(B1, 'heal', B2).use(B2, 'shot', A1).end(); // turn 2
+    expect([a.hp(B1), a.has(B1, 'soaked'), a.has(B2, 'soaked')]).toEqual([100, false, false]);
+    a.pass(1).use(B1, 'shot', A1).end(); // turn 4: still armed
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]);
+    const b = arena({ p0: [['trap.current']], p1: [['shot'], ['shot']], passives: COND });
+    b.use(A1, 'trap.current', B1).end().pass(4).use(B1, 'shot', A1).end(); // turn 6: gone
+    expect([b.hp(B1), b.hp(B2)]).toEqual([100, 100]);
+  });
+
+  it('Live Wire: the flood sets up the team: a Current hit on any of them now conducts to the rest', () => {
+    const a = arena({ p0: [['trap.current'], ['strike.current']], p1: three(), passives: COND });
+    a.use(A1, 'trap.current', B1).end().use(B1, 'shot', A1).end();
+    a.use(A2, 'strike.current', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([65, 65, 65]); // 25 (20 + 5 Soaked), conducted
   });
 
   it('Submerge: Invulnerable for 1 turn and 1 Charge; when it ends, each Soaked enemy takes 10 per Charge spent', () => {
@@ -429,19 +445,40 @@ describe('Current skills', () => {
     expect(a.has(A1, 'confusion')).toBe(true);
   });
 
-  it('River of Lightning: Stormborn and 1 Swiftness for 4 turns', () => {
+  it('Eelskin Waltz: 1 Swiftness for 3 turns', () => {
     const a = arena({ p0: [['dance.current']], p1: three(), passives: COND });
     a.use(A1, 'dance.current').end();
-    expect([a.has(A1, 'stormborn'), a.stacks(A1, 'swiftness')]).toEqual([true, 1]);
-    a.pass(8);
-    expect([a.has(A1, 'stormborn'), a.stacks(A1, 'swiftness')]).toEqual([false, 0]);
+    expect(a.stacks(A1, 'swiftness')).toBe(1);
+    a.pass(4);
+    expect(a.stacks(A1, 'swiftness')).toBe(1);
+    a.pass(1);
+    expect(a.stacks(A1, 'swiftness')).toBe(0);
   });
 
-  it('River of Lightning: each Charge the user gains brings 2 Renew', () => {
-    const a = arena({ p0: [['dance.current']], p1: three(), passives: COND });
+  it("Eelskin Waltz: Soaked enemies can't target or damage the user; others can", () => {
+    const a = arena({ p0: [['dance.current'], ['shot']], p1: [['shot', 'blast'], ['shot']], passives: COND });
+    a.give(B1, 'soaked', { source: A2 }).use(A1, 'dance.current').end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B1, 'blast').use(B2, 'shot', A1).end(); // the Soaked enemy's area hit passes the user by
+    expect([a.hp(A1), a.hp(A2)]).toEqual([85, 65]);
+  });
+
+  it('Eelskin Waltz: each enemy who damages the user is Soaked for 2 turns, so they can\'t hit them again', () => {
+    const a = arena({ p0: [['dance.current']], p1: [['shot'], ['shot']], passives: COND });
     a.use(A1, 'dance.current').end();
-    a.use(B1, 'shot', A1).end(); // Stormborn: +1 Charge on being hit
-    expect([a.stacks(A1, 'charged'), a.stacks(A1, 'renew')]).toEqual([1, 2]);
+    a.use(B1, 'shot', A1).end(); // turn 2
+    expect([a.hp(A1), a.has(B1, 'soaked'), a.has(B2, 'soaked')]).toEqual([85, true, false]);
+    a.pass(1); // turn 4
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.end().pass(1); // turn 6: the Soak lasts through it
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+  });
+
+  it('Eelskin Waltz: ends after 3 turns', () => {
+    const a = arena({ p0: [['dance.current']], p1: [['shot']], passives: COND });
+    a.give(B1, 'soaked', { source: A1 }).use(A1, 'dance.current').end().pass(6);
+    a.use(B1, 'shot', A1).end(); // turn 8
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Still Spring: heals 20 and 2 Renew, which ticks for 10 on each of the 2 turns', () => {
@@ -553,26 +590,26 @@ describe('Current skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([25, 40]);
   });
 
-  it('Arc Lash: 25 to the target and 15 (+5) to another Soaked enemy; both are Soaked', () => {
-    const a = arena({ p0: [['cleave.current']], p1: three(), passives: COND });
-    soak(a, B3).use(A1, 'cleave.current', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([75, 100, 80]);
-    expect([a.has(B1, 'soaked'), a.has(B3, 'soaked')]).toEqual([true, true]);
-  });
-
-  it('Arc Lash: with no other Soaked enemy, the 15 goes to a random other enemy', () => {
+  it('Arc Lash: the target is wired to a random other enemy, then takes 25, which arcs 10 to the other', () => {
     const a = arena({ p0: [['cleave.current']], p1: three(), passives: COND });
     a.use(A1, 'cleave.current', B1).end();
-    expect(a.hp(B1)).toBe(75);
-    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85]);
-  });
-
-  it('Arc Lash: its Soak lasts 1 turn', () => {
-    const a = arena({ p0: [['cleave.current']], p1: [['shot']], passives: COND });
-    a.use(A1, 'cleave.current', B1).end();
-    expect(a.has(B1, 'soaked')).toBe(true);
-    a.pass(1);
+    expect(a.hp(B1)).toBe(75); // the 10 doesn't arc back
+    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 90]);
     expect(a.has(B1, 'soaked')).toBe(false);
+  });
+
+  it('Arc Lash: until the end of the turn, each direct hit on either one deals 10 to the other', () => {
+    const a = arena({ p0: [['cleave.current'], ['shot'], ['shot']], p1: [['shot'], ['shot']], passives: COND });
+    a.use(A1, 'cleave.current', B1).use(A2, 'shot', B2).use(A3, 'shot', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([75 - 10 - 15, 90 - 15 - 10]);
+    a.end().use(A2, 'shot', B1).end(); // turn 3: the wire is gone
+    expect([a.hp(B1), a.hp(B2)]).toEqual([35, 65]);
+  });
+
+  it("Arc Lash: Soaked, the target's 25 (+5) still conducts as usual, and the arc rides on top", () => {
+    const a = arena({ p0: [['cleave.current']], p1: [['shot'], ['shot']], passives: COND });
+    soak(a, B1, B2).use(A1, 'cleave.current', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([70, 60]); // 30, and 30 conducted + 10 arced
   });
 
   it('Sounding Call: all enemies Soaked and Intimidated for 1 turn per Sapped (at least 1)', () => {
@@ -624,7 +661,7 @@ describe('Current skills', () => {
 describe('Current cost and cooldown (kit table)', () => {
   const table: Record<string, [string, number]> = {
     strike: ['I', 0], smash: ['Sr', 2], charge: ['r', 2], riposte: ['r', 3], rage: ['SS', 4],
-    shot: ['r', 0], snipe: ['Ir', 2], trap: ['r', 2], maneuver: ['I', 3], companion: ['A', 1],
+    shot: ['r', 0], snipe: ['Ir', 2], trap: ['A', 3], maneuver: ['I', 3], companion: ['A', 1],
     bolt: ['I', 1], blast: ['II', 2], consume: ['r', 2], summon: ['S', 1], channel: ['rr', 3],
     stab: ['r', 0], ravage: ['Ir', 1], mislead: ['A', 2], stun: ['S', 2], dance: ['Ar', 5],
     heal: ['I', 1], bless: ['r', 2], curse: ['r', 2], smite: ['W', 1], prayer: ['Wrr', 2],

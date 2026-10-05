@@ -201,15 +201,27 @@ trap.ion:
 maneuver.ion:
   archetype: Maneuver
   element: Ion
-  name: Blind Spot
-  description: The user becomes Ghosted and Invulnerable for 1 turn. Stealthy.
+  name: Go Dark
+  description: >-
+    The user goes dark: they become Invulnerable for 2 turns, but can't use Harmful skills for as long.
+    Stealthy.
   cost: r
-  cooldown: 3
+  cooldown: 4
   tags: [Helpful, Strategic, Stealthy]
   target: self
   ops:
-    - { op: apply, to: actor, effect: ghosted, duration: { enemyTurns: 1 } }
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: go_dark
+        name: Gone Dark
+        kind: Neutral
+        element: Ion
+        description: Can't use Harmful skills.
+        modifiers:
+          - { mod: cannotUseSkills, harmful: true }
 
 companion.ion:
   archetype: Companion
@@ -335,19 +347,19 @@ stab.ion:
   element: Ion
   name: Circuit Breaker
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Suppressed, one of their
-    Buffs also ends.
+    Deals 10 damage to target enemy and trips one of their Buffs at random: it ends. If one did, the user
+    gains 1 Charge.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: damage, to: primary, amount: 10 }
     - op: if
-      cond: { has: { unit: primary, effect: suppressed } }
-      then: [{ op: removeRandom, from: primary, kind: Buff }]
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then:
+        - { op: removeRandom, from: primary, kind: Buff }
+        - { op: apply, to: actor, effect: charged }
 
 ravage.ion:
   archetype: Ravage
@@ -403,32 +415,27 @@ stun.ion:
   element: Ion
   name: Shutdown
   description: >-
-    Target enemy falls Asleep for 2 turns; until they wake, they're also Suppressed and have Blackout.
+    The user pulls the plug on target enemy and on themself: the target is Stunned for 2 turns and
+    Suppressed for as long, and the user powers down: they can't use skills on their next turn.
   cost: A
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
     - { op: apply, to: primary, effect: suppressed, duration: { enemyTurns: 2 } }
-    - { op: set, var: blackout, value: 2 }
-    - { op: forEach, in: primary, do: [{ op: macro, id: blackout }] }
+    # Not a Stun: Swiftness can't shrug it off.
     - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
+      to: actor
+      duration: { ownTurns: 1 }
       effect:
-        id: shutdown
-        name: Shutdown
-        kind: Debuff
+        id: powered_down
+        name: Powered Down
+        kind: Neutral
         element: Ion
-        description: When the bearer wakes, the Suppression and Blackout end.
-        triggers:
-          - on: damaged
-            when: { wakes: true }
-            consume: true
-            do:
-              - { op: removeEffect, from: bearer, effect: suppressed }
-              - { op: removeEffect, from: bearer, effect: blackout }
+        description: Can't use skills.
+        modifiers:
+          - { mod: cannotUseSkills, evenUnstunnable: true }
 
 dance.ion:
   archetype: Dance
@@ -452,57 +459,59 @@ dance.ion:
 heal.ion:
   archetype: Heal
   element: Ion
-  name: Sleep Mode
+  name: Hard Reboot
   description: >-
-    Target ally heals 15 and falls Asleep for 2 turns; at the start of each of their turns while Asleep, they
-    heal 15 and gain 1 Charge.
-  cost: r
+    Target ally reboots: until the end of the enemy's next turn, all their effects, Buffs and Debuffs alike,
+    are Suppressed. When they come back online, they heal 30.
+  cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: heal, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    # Offline through the enemy's turn only: by the ally's own next turn everything is back on, so a Stun
+    # they carry still stops them (no cleanse).
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 1 }
       effect:
-        id: sleep_mode
-        name: Sleep Mode
-        kind: Buff
+        id: hard_reboot
+        name: Rebooting
+        kind: Neutral
         element: Ion
-        description: While Asleep, heals 15 and gains 1 Charge at the start of each turn.
-        triggers:
-          - on: turnStart
-            do:
-              - op: if
-                cond: { has: { unit: bearer, effect: sleep } }
-                then:
-                  - { op: heal, to: bearer, amount: 15 }
-                  - { op: apply, to: bearer, effect: charged }
+        description: The bearer's Buffs and Debuffs have no effect and Debuffs don't tick; when it runs out, they heal 30.
+        modifiers:
+          - { mod: suppressBuffs }
+          - { mod: suppressDebuffs }
+        onExpire:
+          - { op: heal, to: bearer, amount: 30 }
 
 bless.ion:
   archetype: Bless
   element: Ion
-  name: Cloaking Field
-  description: Target ally gains Stealth. For 2 turns, Helpful skills they use don't break it.
+  name: Dead Zone
+  description: >-
+    For 2 turns, target ally is a dead zone: each enemy who uses a skill on them is Suppressed for 1 turn,
+    and the ally gains 1 Charge.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
       effect:
-        id: cloaking_field
-        name: Cloaking Field
+        id: dead_zone
+        name: Dead Zone
         kind: Buff
         element: Ion
-        description: The bearer's Helpful skills are Stealthy.
-        modifiers:
-          - { mod: skillTags, add: [Stealthy], skillsWith: [Helpful] }
+        description: Each enemy who uses a skill on the bearer is Suppressed for 1 turn, and the bearer gains 1 Charge.
+        triggers:
+          - on: skillTargeted
+            when: { side: enemy }
+            do:
+              - { op: apply, to: eventSource, effect: suppressed, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: charged }
 
 curse.ion:
   archetype: Curse
@@ -653,17 +662,47 @@ withstand.ion:
 taunt.ion:
   archetype: Taunt
   element: Ion
-  name: Decoy Signal
+  name: Open Channel
   description: >-
-    Creates a Signal Ghost (10 HP); target enemy is Taunted by it for 2 turns. If they destroy it, they have
-    Blackout for 2 turns.
+    The user goes quiet on every channel but one: target enemy is Taunted by them until the user next uses a
+    Harmful skill, for up to 3 turns. Each time that enemy damages the user meanwhile, the user gains 1 Charge.
   cost: r
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: summon, minion: signal_ghost }
-    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
+    # The user holds the channel; the Taunt and the Charge feed end with it (only this Taunt: a Taunt from
+    # anyone else stays).
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: open_channel
+        name: Open Channel
+        kind: Neutral
+        element: Ion
+        description: The bearer's Taunt holds until they use a Harmful skill.
+        triggers:
+          - on: skillUsed
+            when: { harmful: true }
+            do: [{ op: removeSelf }]
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 }, linkTo: open_channel }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      linkTo: open_channel
+      effect:
+        id: open_channel_feed
+        name: Open Channel
+        kind: Debuff
+        element: Ion
+        description: Each time the bearer damages the one who opened the channel, that unit gains 1 Charge.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isActor: eventTarget }
+                then: [{ op: apply, to: actor, effect: charged }]
 
 titan.ion:
   archetype: Titan

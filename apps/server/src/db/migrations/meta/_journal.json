@@ -92,6 +92,13 @@
       "when": 1790972543161,
       "tag": "0012_no_rarity",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791233734081,
+      "tag": "0013_progression",
+      "breakpoints": true
     }
   ]
 }

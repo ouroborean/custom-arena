@@ -131,12 +131,27 @@ describe('Battery skills', () => {
     expect([a.stacks(A1, 'cell'), a.stacks(B1, 'toxin')]).toEqual([1, 2]);
   });
 
-  it('Toxic Circuit: 25 to the target and 10 to each ally, and each of them gains 1 Toxin', () => {
-    const a = arena({ p0: [['smash.battery'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+
+  it('Toxic Circuit: 20 to the target; the next skill they use shorts out: 20 to each of their allies, Corroded for 2 turns', () => {
+    const a = arena({ p0: [['smash.battery']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'smash.battery', B1).end();
-    expect([a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([90 - 5, 90 - 5, 100]); // Toxin ticks at the end of the applier's turn
-    expect(a.hp(B1)).toBe(70);
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.stacks(B3, 'toxin')]).toEqual([1, 1, 1]);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 100, 100]); // nothing else until they act
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A1)]).toEqual([80, 80, 80, 85]);
+    expect([a.has(B1, 'corroded'), a.has(B2, 'corroded'), a.has(B3, 'corroded')]).toEqual([false, true, true]);
+    a.pass(3); // to the end of turn 5
+    expect(a.has(B2, 'corroded')).toBe(true);
+    a.pass(1);
+    expect(a.has(B2, 'corroded')).toBe(false);
+  });
+
+  it('Toxic Circuit: only their next skill shorts out, and only within 1 turn', () => {
+    const a = arena({ p0: [['smash.battery']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.battery', B1).end().use(B1, 'shot', A1).end().pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(B2)).toBe(80); // the second skill doesn't
+    const b = arena({ p0: [['smash.battery']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'smash.battery', B1).end().pass(2).use(B1, 'shot', A1).end(); // turn 4: the overload has passed
+    expect(b.hp(B2)).toBe(100);
   });
 
   it('Jump Start: 15; the player gains 2 random energy now and generates 2 less next turn', () => {
@@ -307,33 +322,24 @@ describe('Battery skills', () => {
     expect([a.hp(B1), a.has(A1, 'sapped')]).toEqual([85, false]);
   });
 
-  it('Flatline: 5 damage; at or below 15 HP, the target is executed even with no Cells', () => {
-    const a = arena({ p0: [['consume.battery']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 20).use(A1, 'consume.battery', B1).end();
-    expect([a.unit(B1).alive, a.stacks(A1, 'cell')]).toEqual([false, 0]);
-  });
 
-  it('Flatline: each Cell adds 5 HP to the threshold, and the Discharge spends them', () => {
-    const a = arena({ p0: [['consume.battery']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 40).use(A1, 'consume.battery', B1).end(); // 35 ≤ 15 + 20
-    expect([a.unit(B1).alive, a.stacks(A1, 'cell')]).toEqual([false, 0]);
-  });
-
-  it('Flatline: above the threshold, the user stores 1 Cell instead', () => {
+  it('Leech Line: the target gains 2 Toxin; for 2 turns, at the end of the user\'s turns, the user heals 5 per Toxin on them and gains 1 Charge', () => {
     const a = arena({ p0: [['consume.battery']], p1: [['shot']] });
-    a.give(A1, 'cell', { stacks: 4 }).setHp(B1, 41).use(A1, 'consume.battery', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'cell')]).toEqual([36, 5]);
-    const b = arena({ p0: [['consume.battery']], p1: [['shot']] });
-    b.setHp(B1, 21).use(A1, 'consume.battery', B1).end();
-    expect([b.hp(B1), b.stacks(A1, 'cell')]).toEqual([16, 1]);
+    a.setHp(A1, 50).use(A1, 'consume.battery', B1).end();
+    expect([a.stacks(B1, 'toxin'), a.hp(B1), a.hp(A1), a.stacks(A1, 'charged')]).toEqual([2, 90, 60, 1]);
+    a.pass(1);
+    expect([a.hp(A1), a.stacks(A1, 'charged')]).toEqual([60, 1]); // not on the enemy's turn
+    a.pass(1);
+    expect([a.hp(A1), a.stacks(A1, 'charged')]).toEqual([70, 2]);
+    a.pass(2); // turn 5: over
+    expect([a.hp(A1), a.stacks(A1, 'charged'), a.has(B1, 'leech_line')]).toEqual([70, 2, false]);
   });
 
-  it('Flatline: minions use 10 HP per Cell', () => {
-    const a = arena({ p0: [['consume.battery']], p1: [['companion.battery'], ['shot']] });
-    a.end().use(B1, 'companion.battery').end();
-    const beetle = minions(a, 'bombardier_beetle')[0]!;
-    a.give(A1, 'cell', { stacks: 1 }).use(A1, 'consume.battery', beetle.id).end(); // 30 − 5 = 25 ≤ 15 + 10
-    expect(a.unit(beetle.id).alive).toBe(false);
+  it('Leech Line: every Toxin on the target counts, not just its own', () => {
+    const a = arena({ p0: [['consume.battery']], p1: [['shot']] });
+    a.give(B1, 'toxin', { stacks: 3 });
+    a.setHp(A1, 50).use(A1, 'consume.battery', B1).end();
+    expect(a.hp(A1)).toBe(75);
   });
 
   it('Voltaic Wasps: a 15 HP swarm for 3 turns', () => {
@@ -586,19 +592,28 @@ describe('Battery skills', () => {
     expect(a.hp(B1)).toBe(80);
   });
 
-  it('Living Battery: 2 Armor, Immune and Stormborn for 3 turns', () => {
+  it('Living Battery: Immune for 3 turns, storing 1 Cell at the end of each of the user\'s turns', () => {
     const a = arena({ p0: [['titan.battery']], p1: [['shot'], ['curse']] });
     a.use(A1, 'titan.battery').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'stormborn')]).toEqual([2, true]);
-    a.use(B1, 'shot', A1).use(B2, 'curse', A1).end();
-    expect([a.hp(A1), a.has(A1, 'confusion')]).toEqual([95, false]);
+    expect([a.stacks(A1, 'cell'), a.has(A1, 'stormborn'), a.stacks(A1, 'armor')]).toEqual([1, false, 0]);
+    a.use(B2, 'curse', A1).end();
+    expect(a.has(A1, 'confusion')).toBe(false);
+    a.pass(1);
+    expect(a.stacks(A1, 'cell')).toBe(2);
+    a.pass(2);
+    expect([a.stacks(A1, 'cell'), a.has(A1, 'immune')]).toEqual([3, true]);
+    a.pass(3);
+    expect([a.stacks(A1, 'cell'), a.has(A1, 'immune')]).toEqual([3, false]);
   });
 
-  it('Living Battery: when it ends, Discharge: 10 to all enemies per Cell', () => {
+  it('Living Battery: meanwhile each Cell the user holds counts as 1 Armor', () => {
     const a = arena({ p0: [['titan.battery']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'titan.battery').end().pass(4);
-    a.state.effects = a.state.effects.filter((e) => !(e.bearer === A1 && e.defId === 'cell'));
-    a.give(A1, 'cell', { stacks: 2 }).pass(1);
-    expect([a.has(A1, 'stormborn'), a.hp(B1), a.hp(B2), a.stacks(A1, 'cell')]).toEqual([false, 80, 80, 0]);
+    a.use(A1, 'titan.battery').end().use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(90); // 1 Cell: 15 − 5
+    const b = arena({ p0: [['titan.battery']], p1: [['shot'], ['shot']] });
+    b.give(A1, 'cell', { stacks: 2 }).use(A1, 'titan.battery').end().use(B1, 'shot', A1).end();
+    expect(b.hp(A1)).toBe(100); // 3 Cells: 15 − 15
+    b.pass(5).use(B1, 'shot', A1).end(); // over: Cells are just Cells again
+    expect(b.hp(A1)).toBe(85);
   });
 });

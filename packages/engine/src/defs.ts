@@ -755,7 +755,7 @@ export type SkillTag =
   | 'FreeAction'
   /** Blood: random costs are paid with 10 HP each. */
   | 'BloodPrice'
-  /** Holy: a Condemned user isn't punished for using it; it purges the Condemnation instead (Anointed Ascent). */
+  /** A Condemned user isn't punished for using it; it purges the Condemnation instead (no skill uses it since 2026-10-05). */
   | 'Purifying';
 
 export interface SkillDef {
@@ -891,6 +891,35 @@ export interface EconomyDef {
   salvage: Partial<Record<ItemType, CurrencyAmounts>>;
   /** Arcade mode's ladder (docs/single-player.md §Arcade); absent, the mode is off. */
   arcade?: ArcadeDef;
+  /** Player levels (docs/equipment.md §4.1); absent, matches pay no experience. */
+  progression?: ProgressionDef;
+  /** Loot boxes by id (uncommon, rare, epic, …). */
+  lootBoxes?: Record<string, LootBoxDef>;
+}
+
+/** Player levels: experience per match, the level curve and the bar's loot-box bubbles. */
+export interface ProgressionDef {
+  /** Experience per match kind (casual, ranked, practice, arcade, story, tutorial). */
+  xp: Record<string, { minTurns: number; win: number; loss: number; draw: number }>;
+  /** Experience from level L to L+1: base + step × (L − 1), at most max. */
+  levels: { base: number; step: number; max: number };
+  /** The bar's bubbles: at a percent of the level (1–100), the loot box paid. */
+  milestones: { at: number; box: string }[];
+  /** The drop table loot-box gear is built from. */
+  table: string;
+}
+
+/**
+ * A loot box: `count` rolls, each landing in a band by weight. `gold` pays an amount in its range;
+ * `gear` a tier-1 or tier-2 piece (a component, or 2 forged together) by the `gear` weights; `prize`
+ * a tier-3 piece (3 components).
+ */
+export interface LootBoxDef {
+  name: string;
+  count: number;
+  bands: { gold: number; gear: number; prize: number };
+  gold: { min: number; max: number };
+  gear: { '1': number; '2': number };
 }
 
 /**

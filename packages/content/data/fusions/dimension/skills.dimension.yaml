@@ -232,16 +232,15 @@ bolt.dimension:
   element: Dimension
   name: Dark Matter
   description: >-
-    Target enemy is Entangled with a random ally for 2 turns, then takes 20 damage and is Blinded for
-    2 turns (so both are).
+    Deals 30 damage to target enemy, but the dark matter swallows the light around the user too: they're
+    Blinded for 1 turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: entangle, to: primary, with: { randomEnemy: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: blinded, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 30 }
+    - { op: apply, to: actor, effect: blinded, duration: { ownTurns: 1 } }
 
 blast.dimension:
   archetype: Blast
@@ -319,20 +318,27 @@ stab.dimension:
   element: Dimension
   name: Unwatched Knife
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Knifing an Isolated target,
-    alone and unwatched, gives the user Stealth.
+    Deals 10 damage to target enemy and leaves a cut in them until the end of the user's next turn. If the
+    user knifes a different enemy meanwhile, the old cut opens through the fold: its bearer takes 10 too.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - op: damage
+      to: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: open_cut, mine: true } } }
+      amount: 10
+    - { op: removeEffect, from: allEnemies, effect: open_cut }
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
       to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - op: if
-      cond: { has: { unit: primary, effect: isolated } }
-      then:
-        - { op: forEach, in: actor, do: [{ op: macro, id: gain_stealth }] }
+      duration: { ownTurns: 1 }
+      effect:
+        id: open_cut
+        name: Open Cut
+        kind: Debuff
+        element: Dimension
+        description: If the applier knifes a different enemy with Unwatched Knife, this cut opens for 10 damage.
 
 ravage.dimension:
   archetype: Ravage
@@ -382,32 +388,29 @@ stun.dimension:
   archetype: Stun
   element: Dimension
   name: Phase Lock
-  description: Deals 10 damage to target enemy, and they fall Asleep. If damage wakes them, they're Banished instead.
+  description: >-
+    Target enemy is Banished. When they return, they're out of phase with the world: Blinded for 1 turn.
   cost: A
-  cooldown: 2
-  tags: [Harmful, NonStrategic]
+  cooldown: 3
+  tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10 }
-    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: interrupt, to: primary }
+    - { op: apply, to: primary, effect: banished, duration: { raw: 2 } }
+    # The payoff is an onExpire on a companion that stays live while they're Banished (like Safe Harbor).
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { raw: 2 }
       effect:
         id: phase_lock
         name: Phase Lock
         kind: Debuff
         element: Dimension
-        description: If damage wakes the bearer, they're Banished instead.
-        triggers:
-          - on: damaged
-            when: { wakes: true }
-            do:
-              - op: if
-                cond: { not: { has: { unit: bearer, effect: sleep } } }
-                then:
-                  - { op: apply, to: bearer, effect: banished, duration: { raw: 2 } }
-                  - { op: removeSelf }
+        description: When the bearer returns from being Banished, they're Blinded for 1 turn.
+        modifiers:
+          - { mod: banished }
+        onExpire:
+          - { op: apply, to: bearer, effect: blinded, duration: { enemyTurns: 1 } }
 
 dance.dimension:
   archetype: Dance
@@ -470,15 +473,17 @@ heal.dimension:
 bless.dimension:
   archetype: Bless
   element: Dimension
-  name: Twin Veil
-  description: Target ally and a random other ally are Entangled for 2 turns; then target ally gains Stealth.
+  name: Out of Phase
+  description: >-
+    Target ally gains 2 Might for 2 turns, but they're out of phase with their own side meanwhile:
+    Isolated.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: entangle, to: primary, with: { randomAlly: 1, exclude: primary }, effect: entangled, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: might, stacks: 2, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: isolated, duration: { enemyTurns: 2 } }
 
 curse.dimension:
   archetype: Curse
@@ -549,27 +554,30 @@ cleave.dimension:
   archetype: Cleave
   element: Dimension
   name: Shear
-  description: Deals 10 damage to all enemies, repeated at the start of the user's next turn if they're still Stealthed. Stealthy.
+  description: >-
+    Deals 20 damage to target enemy. The other half of the cut hangs in the fold: the first of their allies
+    to use a skill before the user's next turn takes 15.
   cost: S
   cooldown: 1
-  tags: [Harmful, NonStrategic, Stealthy]
-  target: allEnemies
+  tags: [Harmful, NonStrategic]
+  target: enemy
   ops:
-    - { op: damage, to: targets, amount: 10 }
+    - { op: damage, to: primary, amount: 20 }
     - op: apply
-      to: actor
-      duration: { raw: 2 }
+      to: primaryAllies
+      duration: { enemyTurns: 1 }
       effect:
         id: shear
         name: Shear
-        kind: Neutral
+        kind: Debuff
         element: Dimension
-        description: Cuts again at the start of the user's next turn if they're still Stealthed.
-        onExpire:
-          - op: if
-            cond: { has: { unit: bearer, effect: stealth } }
-            then:
-              - { op: damage, to: allEnemies, amount: 10 }
+        description: The first of the cut enemy's allies to use a skill takes 15; then the hanging half is gone.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: damage, to: bearer, amount: 15 }
+              - { op: removeEffect, from: bearerAllies, effect: shear }
+              - { op: removeSelf }
 
 shout.dimension:
   archetype: Shout

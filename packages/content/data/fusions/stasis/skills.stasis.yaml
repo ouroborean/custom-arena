@@ -59,28 +59,29 @@ charge.stasis:
   element: Stasis
   name: Freezing Lunge
   description: >-
-    Deals 10 damage to target enemy. Through the user's next turn, every enemy is Prey, and the user's
-    next skill Suspends its targets for 1 turn.
+    Deals 10 damage to target enemy, who gains 1 Toxin. The user's next Harmful skill makes its
+    targets' Toxin deal its damage at once, doubled.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 10 }
-    - { op: apply, to: allEnemies, effect: prey, duration: { raw: 3 } }
+    - { op: apply, to: primary, effect: toxin }
     - op: apply
       to: actor
-      until: { skillUsed: {} }
+      until: { skillUsed: { harmful: true } }
       effect:
         id: freezing_lunge
         name: Freezing Lunge
         kind: Buff
         element: Stasis
-        description: The bearer's next skill Suspends its targets for 1 turn.
+        description: The bearer's next Harmful skill makes its targets' Toxin deal its damage at once, doubled.
         triggers:
           - on: skillUsed
+            when: { harmful: true }
             do:
-              - { op: forEach, in: eventTargets, do: [{ op: macro, id: suspend }] }
+              - { op: forEach, in: eventTargets, do: [{ op: macro, id: thaw }] }
 
 riposte.stasis:
   archetype: Riposte
@@ -306,8 +307,8 @@ summon.stasis:
   element: Stasis
   name: Cryo Sprite
   description: >-
-    Summons a Cryo Sprite (15 HP) for 3 turns. Rime Sting (W): 5 Piercing damage and 1 Toxin. If it lasts
-    all 3 turns, every enemy with Toxin is Suspended for 1 turn.
+    Summons a Cryo Sprite (20 HP) for 3 turns. At the end of each of the user's turns, it gives the enemy
+    with the least HP 1 Toxin, or Suspends them for 1 turn instead if they're Prey.
   cost: I
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -374,50 +375,69 @@ stab.stasis:
   element: Stasis
   name: Icebite
   description: >-
-    Deals 5 Piercing damage to target enemy. If they're Prey, the user's player gains 1 random energy,
-    they're Suspended for 1 turn, and any Prey mark on them ends; otherwise they gain 1 Toxin and are
-    Prey through the user's next turn.
+    Deals 5 Piercing damage to target enemy, who gains 1 Toxin. The cold builds while it's held: 5 more
+    for each turn the user went without using Icebite (max 15 more).
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 5, type: Piercing }
-    - op: if
-      cond: { check: { cond: prey, unit: primary } }
-      then:
-        - { op: gainEnergy, amount: 1 }
-        - { op: apply, to: primary, effect: suspended, duration: { enemyTurns: 1 } }
-        - { op: removeEffect, from: primary, effect: prey }
-      else:
-        - { op: apply, to: primary, effect: toxin }
-        - { op: apply, to: primary, effect: prey, duration: { raw: 3 } }
+    # Turns count both sides, so the user's own turns since their last use (or the battle's start) are
+    # (turn - last + 1) / 2, less the one they use it on.
+    - op: set
+      var: held
+      value: { sum: [{ div: [{ sum: [{ turn: true }, { mul: [-1, { counter: icebite_turn }] }, 1] }, 2] }, -1] }
+    - op: damage
+      to: primary
+      type: Piercing
+      amount:
+        sum:
+          - 5
+          - mul:
+              - 5
+              - if: { compare: { value: { var: held }, atLeast: 3 } }
+                then: 3
+                else: { if: { compare: { value: { var: held }, atLeast: 0 } }, then: { var: held }, else: 0 }
+    - { op: apply, to: primary, effect: toxin }
+    - { op: setCounter, name: icebite_turn, value: { turn: true } }
 
 ravage.stasis:
   archetype: Ravage
   element: Stasis
   name: Cryo Rend
   description: >-
-    Deals 25 Piercing damage to target enemy, +15 if they're Stunned. A Stunned target is also Suspended
-    for 1 turn, so the Stun can't wear off.
+    Deals 20 Piercing damage to target enemy, who is Suspended for 1 turn. When they Thaw, the wound
+    reopens: 20 Piercing damage again.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, type: Piercing, amount: { if: { stunned: it }, then: 40, else: 25 } }
-    - op: if
-      cond: { stunned: primary }
-      then:
-        - { op: apply, to: primary, effect: suspended, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 20, type: Piercing }
+    # Its own Suspension (counts as Suspended), so an early Thaw reopens the wound early too.
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: cryo_rend
+        name: Cryo Rend
+        kind: Debuff
+        element: Stasis
+        countsAs: [suspended]
+        description: Suspended. When the bearer Thaws, the wound reopens for 20 Piercing damage.
+        modifiers:
+          - { mod: suspendEffects }
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
+          - { op: damage, to: bearer, amount: 20, type: Piercing }
 
 mislead.stasis:
   archetype: Mislead
   element: Stasis
-  name: Cold Shelter
+  name: Lingering Frost
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user is Frostborn for 2
-    turns. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the cold sets in: every Debuff
+    on them, Stuns aside, lasts 2 turns longer. Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -427,76 +447,79 @@ mislead.stasis:
       to: primary
       duration: { enemyTurns: 1 }
       effect:
-        id: cold_shelter
-        name: Cold Shelter
+        id: lingering_frost
+        name: Lingering Frost
         kind: Debuff
         element: Stasis
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and the applier becomes Frostborn.
+        description: The bearer's next Harmful skill is countered, and every Debuff on them, Stuns aside, lasts 2 turns longer.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: apply, to: actor, effect: frostborn, duration: { enemyTurns: 2 } }
+              - { op: extendEffects, on: bearer, kind: Debuff, except: [lingering_frost, stun, stun_ns, sleep, frozen_sleep], by: 4 }
 
 stun.stasis:
   archetype: Stun
   element: Stasis
   name: Hold
   description: >-
-    Target enemy is Stunned for 1 turn, or 2 if they're Prey. When the Stun ends, their Toxin deals its
-    damage at once, doubled.
+    Target enemy gains 2 Toxin and is Suspended for 1 turn. When they Thaw, they're Stunned for 1 turn.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - op: set
-      var: hold
-      value: { if: { check: { cond: prey, unit: primary } }, then: 2, else: 1 }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: { var: hold } } }
+    - { op: apply, to: primary, effect: toxin, stacks: 2 }
+    # Its own Suspension (counts as Suspended): the Stun lands as it Thaws, whenever that is.
     - op: apply
       to: primary
-      duration: { enemyTurns: { var: hold } }
+      duration: { enemyTurns: 1 }
       effect:
         id: hold
         name: Hold
         kind: Debuff
         element: Stasis
-        description: When this ends, the bearer's Toxin deals its damage at once, doubled.
+        countsAs: [suspended]
+        description: Suspended. When the bearer Thaws, they're Stunned for 1 turn.
+        modifiers:
+          - { mod: suspendEffects }
         onExpire:
           - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
+          - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.stasis:
   archetype: Dance
   element: Stasis
-  name: Serpent's Measure
+  name: Frozen Waltz
   description: >-
-    For 3 turns, the user gains 1 Might, 1 Swiftness and 1 Focus. Each enemy with Toxin at the end of the
-    user's turns counts as Prey until their next turn.
+    For 3 turns, the user is Suspended, so their Buffs hold. At the end of each of their turns meanwhile,
+    they gain 1 Might and 1 Swiftness; these pile up while the Suspension holds them, then last 1 turn
+    more.
   cost: AI
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: focus, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: suspended_ally, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
-        id: serpents_measure
-        name: Serpent's Measure
+        id: frozen_waltz
+        name: Frozen Waltz
         kind: Buff
         element: Stasis
-        description: Each enemy with Toxin at the end of the bearer's turns counts as Prey until their next turn.
+        description: At the end of each of the bearer's turns, they gain 1 Might and 1 Swiftness.
+        modifiers:
+          - { mod: suspendEffects }
         triggers:
           - on: turnEnd
             do:
-              - { op: apply, to: { filter: allEnemies, where: { has: { unit: it, effect: toxin } } }, effect: prey, duration: { raw: 2 } }
+              - { op: apply, to: bearer, effect: might, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: swiftness, duration: { enemyTurns: 1 } }
 
 heal.stasis:
   archetype: Heal
@@ -558,15 +581,47 @@ smite.stasis:
   archetype: Smite
   element: Stasis
   name: Frozen Quarry
-  description: Deals 20 damage to target enemy, who is Chilled and Prey for 2 turns.
+  description: >-
+    Deals 15 damage to target enemy, who is Suspended for 1 turn. The ice keeps every hit the user's side
+    lands on them meanwhile: when they Thaw, half of it all lands again as Affliction (max 30).
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: chilled, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: prey, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: setCounter, name: frozen_quarry, on: primary, value: 0 }
+    # Its own Suspension (counts as Suspended), so the echo lands with its Thaw, early or not.
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frozen_quarry
+        name: Frozen Quarry
+        kind: Debuff
+        element: Stasis
+        countsAs: [suspended]
+        description: Suspended. Each hit an enemy of theirs lands on the bearer is kept; when they Thaw, half of it lands again (max 30).
+        modifiers:
+          - { mod: suspendEffects }
+        triggers:
+          - on: damaged
+            when: { byEnemy: true, direct: true }
+            do:
+              - op: setCounter
+                name: frozen_quarry
+                on: bearer
+                value: { sum: [{ counterOf: { unit: bearer, name: frozen_quarry } }, { eventAmount: true }] }
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
+          - op: damage
+            to: bearer
+            type: Affliction
+            direct: false
+            amount:
+              if: { compare: { value: { counterOf: { unit: bearer, name: frozen_quarry } }, atLeast: 60 } }
+              then: 30
+              else: { div: [{ counterOf: { unit: bearer, name: frozen_quarry } }, 2] }
 
 prayer.stasis:
   archetype: Prayer
@@ -618,25 +673,24 @@ cleave.stasis:
 shout.stasis:
   archetype: Shout
   element: Stasis
-  name: Crack the Ice
+  name: Hoarfrost Hush
   description: >-
-    All enemies gain 1 Toxin. Then every Suspended enemy Thaws now, and the rest are Suspended for 1
-    turn.
-  cost: r
-  cooldown: 1
+    All enemies are Chilled for 4 turns and Suspended for 1, so the Chill holds. Any who were already
+    Chilled gain 1 Toxin first.
+  cost: Ir
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: toxin }
     - op: forEach
       in: targets
       do:
         - op: if
-          cond: { has: { unit: it, effect: suspended } }
+          cond: { has: { unit: it, effect: chilled } }
           then:
-            - { op: expire, on: it, effect: suspended }
-          else:
-            - { op: apply, to: it, effect: suspended, duration: { enemyTurns: 1 } }
+            - { op: apply, to: it, effect: toxin }
+        - { op: apply, to: it, effect: chilled, duration: { enemyTurns: 4 } }
+        - { op: apply, to: it, effect: suspended, duration: { enemyTurns: 1 } }
 
 withstand.stasis:
   archetype: Withstand
@@ -675,28 +729,34 @@ withstand.stasis:
 taunt.stasis:
   archetype: Taunt
   element: Stasis
-  name: Glacial Glare
+  name: Cold Grudge
   description: >-
-    Target enemy is Taunted and Frostbitten by the user for 2 turns. Meanwhile, their Frostbitten stops
-    all their Strategic skills, not just Harmful ones.
+    For 2 turns, target enemy is Taunted by the user, and each time they damage the user, they gain 1
+    Toxin. Then their Toxin deals its damage at once, doubled.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
     - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: frostbitten, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 2 }
       effect:
-        id: glacial_glare
-        name: Glacial Glare
+        id: cold_grudge
+        name: Cold Grudge
         kind: Debuff
         element: Stasis
-        description: While Frostbitten, the bearer can't use any Strategic skill.
-        modifiers:
-          - { mod: cannotUseSkills, classes: [Strategic], if: { has: { unit: actor, effect: frostbitten } } }
+        description: Each time the bearer damages the one who Taunted them, they gain 1 Toxin; when this ends, their Toxin deals its damage at once, doubled.
+        triggers:
+          - on: dealtDamage
+            do:
+              - op: if
+                cond: { isEventTarget: actor }
+                then:
+                  - { op: apply, to: bearer, effect: toxin }
+        onExpire:
+          - { op: forEach, in: bearer, do: [{ op: macro, id: thaw }] }
 
 titan.stasis:
   archetype: Titan
@@ -754,16 +814,3 @@ ice_spider_frozen_fang:
       else:
         - { op: damage, to: primary, amount: 5, type: Piercing }
         - { op: apply, to: primary, effect: toxin }
-
-cryo_sprite_rime_sting:
-  archetype: Minion
-  element: Stasis
-  name: Rime Sting
-  description: Deals 5 Piercing damage to target enemy and gives them 1 Toxin.
-  cost: W
-  cooldown: 0
-  tags: [Harmful, NonStrategic]
-  target: enemy
-  ops:
-    - { op: damage, to: primary, amount: 5, type: Piercing }
-    - { op: apply, to: primary, effect: toxin }

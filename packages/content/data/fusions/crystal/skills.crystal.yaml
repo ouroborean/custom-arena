@@ -40,29 +40,16 @@ charge.crystal:
   element: Crystal
   name: Shard Rush
   description: >-
-    Deals 15 damage to target enemy, and the user gains 1 Focus for their next skill. Any Frost
-    debuff that skill applies lasts 1 turn longer.
+    Deals 15 damage and 1 Brittle to target enemy, and the user rushes on in crystal: they have Diamond
+    until they next use a skill.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
-    - op: apply
-      to: actor
-      until: { skillUsed: {} }
-      effect:
-        id: shard_rush
-        name: Shard Rush
-        kind: Buff
-        element: Crystal
-        description: Frost debuffs the bearer's next skill applies last 1 turn longer.
-        triggers:
-          - on: effectApplied
-            when: { effects: [frostbitten, chilled, numb, brittle] }
-            do:
-              - { op: eventEffect, extendBy: 2 }
+    - { op: apply, to: primary, effect: brittle }
+    - { op: apply, to: actor, effect: diamond, until: { skillUsed: {} } }
 
 riposte.crystal:
   archetype: Riposte
@@ -138,8 +125,9 @@ snipe.crystal:
   element: Crystal
   name: Crystal Lance
   description: >-
-    On the following turn, deals 40 Piercing damage to target enemy, plus 10 per Brittle stack on
-    them. The target of this skill is invisible. Channeled.
+    On the following turn, the lance splinters over target enemy: 3 shards strike them in turn, each
+    dealing 5 Piercing damage and then leaving 1 Brittle. The target of this skill is invisible.
+    Channeled.
   cost: AIr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -156,12 +144,13 @@ snipe.crystal:
         element: Crystal
         visibility: hiddenTarget
         interruptible: true
-        description: Fires at the end of the following turn unless interrupted.
+        description: At the end of the following turn unless interrupted, 3 shards of 5 Piercing damage, each leaving 1 Brittle.
         onExpire:
-          - op: damage
-            to: effectTargets
-            type: Piercing
-            amount: { sum: [40, { mul: [10, { stacks: { unit: it, effect: brittle } }] }] }
+          - op: repeat
+            times: 3
+            do:
+              - { op: damage, to: effectTargets, type: Piercing, amount: 5 }
+              - { op: apply, to: effectTargets, effect: brittle }
 
 trap.crystal:
   archetype: Trap
@@ -198,39 +187,39 @@ maneuver.crystal:
   element: Crystal
   name: Crystal Cocoon
   description: >-
-    The user becomes Invulnerable for 1 turn and their Debuffs end. When it ends, they gain Diamond
-    for 1 turn per Debuff removed.
+    The user hardens into crystal: Diamond for 2 turns, and each enemy hit it caps gives the attacker 1
+    Brittle.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: set, var: removed, value: { kindCount: { unit: actor, kind: Debuff } } }
-    - { op: removeKind, from: actor, kind: Debuff }
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - op: if
-      cond: { compare: { value: { var: removed }, atLeast: 1 } }
-      then:
-        - op: apply
-          to: actor
-          duration: { enemyTurns: 1 }
-          value: { var: removed }
-          effect:
-            id: crystal_cocoon
-            name: Crystal Cocoon
-            kind: Buff
-            element: Crystal
-            description: When this ends, the bearer gains Diamond for 1 turn per Debuff the cocoon removed.
-            onExpire:
-              - { op: apply, to: bearer, effect: diamond, duration: { enemyTurns: { effectValue: true } } }
+    - { op: apply, to: actor, effect: diamond, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 2 }
+      effect:
+        id: crystal_cocoon
+        name: Crystal Cocoon
+        kind: Buff
+        element: Crystal
+        description: Each enemy hit the bearer's Diamond caps gives the attacker 1 Brittle.
+        triggers:
+          - on: damaged
+            when: { byEnemy: true }
+            do:
+              - op: if
+                cond: { compare: { value: { counterOf: { unit: bearer, name: hit_capped } }, atLeast: 1 } }
+                then:
+                  - { op: apply, to: eventSource, effect: brittle }
 
 companion.crystal:
   archetype: Companion
   element: Crystal
   name: Crystal Golem
   description: >-
-    Summons a Crystal Golem (40 HP) permanently. At the start of each of your turns, the ally with
-    the least HP gains Diamond for 1 turn. Shard Slam (S): 15 damage and 1 Brittle.
+    Summons a Crystal Golem (40 HP) permanently. Shard Burst (S): 10 damage and 1 Brittle to every
+    enemy.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -242,28 +231,22 @@ bolt.crystal:
   archetype: Bolt
   element: Crystal
   name: Quartz Spike
-  description: Deals 20 damage to target enemy and Marks them for 1 turn. When the Mark is spent, they also gain 2 Brittle.
+  description: >-
+    Deals 20 damage to target enemy, and one of their Buffs crystallizes: it ends, and they gain 2
+    Brittle. If they have no Buffs, they gain 1 Brittle.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: quartz_spike
-        name: Quartz Spike
-        kind: Neutral
-        element: Crystal
-        description: When a Mark the bearer applied is spent, its target gains 2 Brittle.
-        triggers:
-          - on: ownEffectEnded
-            when: { effects: [mark], reason: [consumed] }
-            do:
-              - { op: apply, to: eventTarget, effect: brittle, stacks: 2 }
+    - op: if
+      cond: { hasKind: { unit: primary, kind: Buff } }
+      then:
+        - { op: removeRandom, from: primary, kind: Buff }
+        - { op: apply, to: primary, effect: brittle, stacks: 2 }
+      else:
+        - { op: apply, to: primary, effect: brittle }
 
 blast.crystal:
   archetype: Blast
@@ -400,25 +383,24 @@ stab.crystal:
 ravage.crystal:
   archetype: Ravage
   element: Crystal
-  name: Shatterpoint
-  description: Deals 25 Piercing damage to target enemy. If they have 2 or more Brittle, it Shatters them now.
+  name: Breaking Point
+  description: >-
+    Deals 40 Piercing damage to target enemy, but the force of it cracks the user too: they gain 1 Brittle.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25, type: Piercing }
-    - op: forEach
-      in: { filter: primary, where: { compare: { value: { stacks: { unit: it, effect: brittle } }, atLeast: 2 } } }
-      do: [{ op: macro, id: shatter_it }]
+    - { op: damage, to: primary, amount: 40, type: Piercing }
+    - { op: apply, to: actor, effect: brittle }
 
 mislead.crystal:
   archetype: Mislead
   element: Crystal
-  name: Price of Frost
+  name: Frozen Gambit
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered. For 2 turns after it
-    triggers, every Chilled enemy's skills cost 1 more. Invisible.
+    For 2 turns, the first Harmful skill target enemy uses that costs 2 or more energy is countered, and
+    they gain 1 Brittle for each energy it cost. Invisible.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -426,31 +408,21 @@ mislead.crystal:
   ops:
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
-        id: price_of_frost
-        name: Price of Frost
+        id: frozen_gambit
+        name: Frozen Gambit
         kind: Debuff
         element: Crystal
         visibility: hidden
-        description: Harmful skills used by the bearer are countered, and Chilled enemies pay more for 2 turns.
+        description: The bearer's first Harmful skill costing 2 or more is countered, and they gain 1 Brittle per energy it cost.
         triggers:
           - on: skillUsed
-            when: { harmful: true }
+            when: { harmful: true, costAtLeast: 2 }
             intercept: counter
             consume: true
             do:
-              - op: apply
-                to: allEnemies
-                duration: { enemyTurns: 2 }
-                effect:
-                  id: price_of_frost_toll
-                  name: Frost Toll
-                  kind: Debuff
-                  element: Crystal
-                  description: While Chilled, the bearer's skills cost 1 more.
-                  modifiers:
-                    - { mod: costGeneric, amount: 1, if: { has: { unit: actor, effect: chilled } } }
+              - { op: apply, to: bearer, effect: brittle, stacks: { skillCost: true } }
 
 stun.crystal:
   archetype: Stun
@@ -621,21 +593,20 @@ cleave.crystal:
   element: Crystal
   name: Seeking Shards
   description: >-
-    Deals 25 damage to target enemy and 15 to a second enemy, a Frostbitten one if there is any. A
-    Frostbitten enemy hit this way is also Numb for 2 turns.
+    Deals 20 damage and 1 Brittle to target enemy, then their Brittle shards off: all of it moves to a
+    random other enemy, who takes 10 damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - op: if
-      cond: { any: { in: { filter: allEnemies, exclude: primary, where: { has: { unit: it, effect: frostbitten } } }, cond: { has: { unit: it, effect: frostbitten } } } }
-      then:
-        - { op: damage, to: { randomEnemy: 1, exclude: primary, where: { has: { unit: it, effect: frostbitten } } }, amount: 15 }
-        - { op: apply, to: lastDamaged, effect: numb, duration: { enemyTurns: 2 } }
-      else:
-        - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
+    - { op: damage, to: primary, amount: 20 }
+    - { op: apply, to: primary, effect: brittle }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: moveEffects, from: primary, to: it, effects: [brittle] }
+        - { op: damage, to: it, amount: 10 }
 
 shout.crystal:
   archetype: Shout
@@ -691,39 +662,17 @@ withstand.crystal:
 taunt.crystal:
   archetype: Taunt
   element: Crystal
-  name: Flawless Challenge
+  name: Crystal Effigy
   description: >-
-    Taunts target enemy for 2 turns, and the user has Diamond against their hits for as long. Each
-    hit it caps extends the Taunt by 1 turn.
+    Raises a Crystal Effigy (30 HP, always has Diamond) for 2 turns; target enemy is Taunted by it for as
+    long. Each enemy hit on it gives the attacker 1 Brittle.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 2 }
-      effect:
-        id: flawless_challenge
-        name: Flawless Challenge
-        kind: Buff
-        element: Crystal
-        description: Diamond. Each capped hit from an enemy the bearer Taunted extends that Taunt (and this) by 1 turn.
-        modifiers:
-          - { mod: maxHpLossPerHit, amount: 15 }
-        triggers:
-          - on: damaged
-            when: { byEnemy: true }
-            do:
-              - op: if
-                cond:
-                  and:
-                    - { compare: { value: { counterOf: { unit: bearer, name: hit_capped } }, atLeast: 1 } }
-                    - { has: { unit: eventSource, effect: taunt, mine: true } }
-                then:
-                  - { op: extendEffects, on: eventSource, effects: [taunt], by: 2 }
-                  - { op: extendSelf, by: 2 }
+    - { op: summon, minion: crystal_effigy, duration: { enemyTurns: 2 } }
+    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 2 } }
 
 titan.crystal:
   archetype: Titan
@@ -756,15 +705,15 @@ titan.crystal:
 golem_shard_slam:
   archetype: Minion
   element: Crystal
-  name: Shard Slam
-  description: Deals 15 damage and 1 Brittle to target enemy.
+  name: Shard Burst
+  description: Deals 10 damage and 1 Brittle to every enemy.
   cost: S
   cooldown: 0
   tags: [Harmful, NonStrategic]
-  target: enemy
+  target: allEnemies
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: brittle }
+    - { op: damage, to: targets, amount: 10 }
+    - { op: apply, to: targets, effect: brittle }
 
 sentinel_glint:
   archetype: Minion

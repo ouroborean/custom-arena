@@ -1,7 +1,7 @@
 // Account, roster and inventory state (the out-of-battle "meta" game), backed by the API server.
 
 import { create } from 'zustand';
-import { api, ApiError, type Character, type InventoryItem, type User, type Wallet } from './api.js';
+import { api, ApiError, type Character, type InventoryItem, type LootRoll, type Progress, type User, type Wallet } from './api.js';
 import { content } from './content.js';
 import { online } from './match/online.js';
 
@@ -15,6 +15,8 @@ interface MetaState {
   team: string[];
   inventory: InventoryItem[];
   wallet: Wallet;
+  /** Level, experience bar and unopened loot boxes (null until loaded). */
+  progress: Progress | null;
   /** Set when the server runs different content than this client build. */
   contentMismatch: string | null;
   busy: boolean;
@@ -34,6 +36,8 @@ interface MetaState {
   /** Splits a forged (unequipped) instance into its components. */
   split(id: string): Promise<InventoryItem[] | null>;
   salvage(id: string): Promise<void>;
+  /** Opens a loot box; its gold and gear are paid at once. Null if it failed. */
+  openLootBox(id: string): Promise<{ box: string; rolls: LootRoll[] } | null>;
   clearError(): void;
 }
 
@@ -61,6 +65,7 @@ export const useMeta = create<MetaState>((set, get) => {
     team: [],
     inventory: [],
     wallet: {},
+    progress: null,
     contentMismatch: null,
     busy: false,
     error: null,
@@ -100,13 +105,14 @@ export const useMeta = create<MetaState>((set, get) => {
     async signOut() {
       online.disconnect();
       await act(() => api.logout());
-      set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [], wallet: {} });
+      set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [], wallet: {}, progress: null });
     },
 
     async refresh() {
       await act(async () => {
-        const [chars, team, inv] = await Promise.all([api.characters(), api.activeTeam(), api.inventory()]);
+        const [chars, team, inv, progress] = await Promise.all([api.characters(), api.activeTeam(), api.inventory(), api.progress()]);
         set({
+          progress,
           characters: chars.characters,
           maxRoster: chars.maxRoster,
           team: team.team?.characterIds ?? [],
@@ -163,6 +169,17 @@ export const useMeta = create<MetaState>((set, get) => {
     async salvage(id) {
       const r = await act(() => api.salvage(id));
       if (r) set({ inventory: get().inventory.filter((i) => i.id !== id), wallet: r.wallet });
+    },
+
+    async openLootBox(id) {
+      const r = await act(async () => {
+        const opened = await api.openLootBox(id);
+        // Its gear went straight into the inventory.
+        const inv = await api.inventory();
+        set({ wallet: opened.wallet, progress: opened.progress, inventory: inv.items });
+        return opened;
+      });
+      return r && { box: r.box, rolls: r.rolls };
     },
 
     clearError() {

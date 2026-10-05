@@ -3,7 +3,6 @@
 // Units: A1..A3 = p0c0..p0c2 (player 1, odd turns), B1..B3 = p1c0..p1c2 (player 2, even turns).
 
 import { describe, expect, it } from 'vitest';
-import { evaluateNamedCondition } from '@arena/engine';
 import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
@@ -20,7 +19,6 @@ function is(a: Arena, id: string, key: string): boolean {
   });
 }
 const charmed = (a: Arena, id: string) => is(a, id, 'charmed');
-const prey = (a: Arena, id: string) => evaluateNamedCondition(content, a.state, 'prey', id);
 
 /** Queues a skill if the engine allows it; returns false when the queue is rejected. */
 function tryUse(a: Arena, actor: string, skill: string, target?: string): boolean {
@@ -76,22 +74,29 @@ describe('Faerie keyword: Charmed', () => {
 
 // ---------------------------------------------------------------------------------------------
 describe('Faerie skills', () => {
-  it('Thorned Kiss: 20 damage and 1 Toxin; no Charm if that doesn\'t make them Prey', () => {
+  it('Thorned Kiss: 20 damage, the target is Charmed for their next skill, and the user gains 1 Toxin', () => {
     const a = arena({ p0: [['strike.faerie']], p1: [['shot']] });
     a.use(A1, 'strike.faerie', B1).end();
-    expect(a.stacks(B1, 'toxin')).toBe(1);
-    expect(a.hp(B1)).toBe(75); // 20 + the Toxin tick (5) at the end of the applier's turn
-    expect(charmed(a, B1)).toBe(false);
+    expect([a.hp(B1), charmed(a, B1), a.has(B1, 'toxin')]).toEqual([80, true, false]);
+    expect([a.stacks(A1, 'toxin'), a.hp(A1)]).toEqual([1, 95]); // the thorn ticks at the end of the user's turn
   });
 
-  it('Thorned Kiss: if the Toxin makes them Prey, they\'re Charmed for 1 turn', () => {
-    const a = arena({ p0: [['strike.faerie']], p1: [['shot']] });
-    a.give(B1, 'confusion', { stacks: 2, source: A1 }); // 2 stacks: not Prey yet
-    expect(prey(a, B1)).toBe(false);
-    a.use(A1, 'strike.faerie', B1).end();
-    expect([prey(a, B1), charmed(a, B1)]).toEqual([true, true]);
-    a.pass(1); // the enemy's turn passes
+  it('Thorned Kiss: the Charm ends once they use a skill, or after 1 turn', () => {
+    const a = arena({ p0: [['strike.faerie']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'strike.faerie', B1).end().use(B1, 'shot', A1).end();
     expect(charmed(a, B1)).toBe(false);
+
+    const b = arena({ p0: [['strike.faerie']], p1: [['shot']] });
+    b.use(A1, 'strike.faerie', B1).end().pass(1);
+    expect(charmed(b, B1)).toBe(false);
+  });
+
+  it("Thorned Kiss: cooldown 1, so it can't Charm the same enemy every turn", () => {
+    const a = arena({ p0: [['strike.faerie']], p1: [['shot']] });
+    a.use(A1, 'strike.faerie', B1).end().pass(1);
+    expect(tryUse(a, A1, 'strike.faerie', B1)).toBe(false);
+    a.pass(2);
+    expect(tryUse(a, A1, 'strike.faerie', B1)).toBe(true);
   });
 
   it('Fairy Ring: 20 to the target and 10 to their allies', () => {
@@ -137,29 +142,34 @@ describe('Faerie skills', () => {
     expect(a.hp(A1)).toBe(85);
   });
 
-  it('Wild Hunt: for 3 turns, Immune and 1 Might', () => {
-    const a = arena({ p0: [['rage.faerie', 'shot']], p1: [['curse']] });
+  it('Wild Hunt: no Immune, Rushing or Might; when the user hits an enemy, a random other enemy takes 10 and gains 1 Toxin', () => {
+    const a = arena({ p0: [['rage.faerie', 'shot']], p1: [['curse'], ['shot']] });
     a.use(A1, 'rage.faerie').end();
-    expect([a.has(A1, 'immune'), a.stacks(A1, 'might')]).toEqual([true, 1]);
+    expect([a.has(A1, 'immune'), a.has(A1, 'rushing'), a.has(A1, 'might')]).toEqual([false, false, false]);
     a.use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(false);
+    expect(a.has(A1, 'confusion')).toBe(true);
     a.use(A1, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(80); // 15 + 5 Might
-    a.pass(4);
-    expect([a.has(A1, 'immune'), a.stacks(A1, 'might')]).toEqual([false, 0]);
+    // B1 takes the shot only; the Hunt rides on into B2 (the only other enemy).
+    expect([a.hp(B1), a.has(B1, 'toxin'), a.stacks(B2, 'toxin'), a.hp(B2)]).toEqual([85, false, 1, 100 - 10 - 5]);
   });
 
-  it('Wild Hunt: an enemy hit while Leaping is marked Prey for 2 turns; hits without a Leap mark nothing', () => {
-    const a = arena({ p0: [['rage.faerie', 'shot']], p1: [['shot'], ['shot']] });
+  it('Wild Hunt: once per turn, even when one skill hits several enemies', () => {
+    const a = arena({ p0: [['rage.faerie', 'blast']], p1: [['shot'], ['shot'], ['shot']], hp: 200 });
     a.use(A1, 'rage.faerie').end().pass(1);
-    a.use(A1, 'shot', B2).end(); // not Leaping
-    expect(prey(a, B2)).toBe(false);
-    a.pass(1).give(A1, 'leaping').use(A1, 'shot', B1).end();
-    expect([prey(a, B1), prey(a, B2)]).toEqual([true, false]);
-    a.pass(2); // into the enemy's 2nd turn
-    expect(prey(a, B1)).toBe(true);
-    a.pass(1);
-    expect(prey(a, B1)).toBe(false);
+    a.use(A1, 'blast').end();
+    const toxin = [B1, B2, B3].map((b) => a.stacks(b, 'toxin'));
+    expect(toxin.reduce((x, y) => x + y, 0)).toBe(1);
+  });
+
+  it('Wild Hunt: rides again on a later turn, and lasts 3 turns', () => {
+    const a = arena({ p0: [['rage.faerie', 'shot']], p1: [['shot'], ['shot']], hp: 200 });
+    a.use(A1, 'rage.faerie').end().pass(1);
+    a.use(A1, 'shot', B1).end().pass(1);
+    a.use(A1, 'shot', B1).end();
+    expect(a.stacks(B2, 'toxin')).toBe(2);
+    a.pass(3); // the Hunt has gone
+    a.use(A1, 'shot', B1).end();
+    expect(a.stacks(B2, 'toxin')).toBe(2);
   });
 
   it('Pixie Dust: 10 damage and 1 Confusion', () => {
@@ -275,22 +285,21 @@ describe('Faerie skills', () => {
     expect(a.reject(() => a.use(B1, 'shot', pixie!.id))).toBe('bad_target');
   });
 
-  it('Wisp Bolt: 20 damage and Marked for 1 turn', () => {
-    const a = arena({ p0: [['bolt.faerie'], ['shot']], p1: [['shot']] });
+  it('Wisp Bolt: 20 damage, no Mark', () => {
+    const a = arena({ p0: [['bolt.faerie']], p1: [['shot']] });
     a.use(A1, 'bolt.faerie', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([80, true]);
+    expect([a.hp(B1), a.has(B1, 'mark')]).toEqual([80, false]);
   });
 
-  it('Wisp Bolt: while it lasts, each turn the user starts Rushing, an ally gains 1 Swiftness and 1 Focus', () => {
-    const a = arena({ p0: [['bolt.faerie', 'shot'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'rushing').use(A1, 'bolt.faerie', B1).end().pass(1);
-    expect([a.stacks(A2, 'swiftness'), a.stacks(A2, 'focus')]).toEqual([1, 1]);
-  });
-
-  it('Wisp Bolt: no gift for allies when the user isn\'t Rushing', () => {
-    const a = arena({ p0: [['bolt.faerie', 'shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.faerie', B1).end().pass(1);
-    expect([a.stacks(A2, 'swiftness'), a.stacks(A2, 'focus')]).toEqual([0, 0]);
+  it('Wisp Bolt: for 2 turns, each skill the target uses deals them 10 Affliction; then it stops', () => {
+    const a = arena({ p0: [['bolt.faerie']], p1: [['shot', 'heal'], ['shot']] });
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'bolt.faerie', B1).end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100 - 5 - 10, 100]); // Armor cuts the bolt, not the wisp
+    a.pass(1).setHp(B1, 50).use(B1, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(50 + 25 - 10);
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(65);
   });
 
   it('Dust Storm: 15 to all enemies; each is Charmed until their next skill', () => {
@@ -483,23 +492,23 @@ describe('Faerie skills', () => {
     expect([a.hp(B1), a.stacks(B1, 'toxin'), charmed(a, B1)]).toEqual([70, 2, true]);
   });
 
-  it('Fairy Wings: 2 Swiftness; a Stun it shrugs off Charms its source for 1 turn', () => {
+  it('Fairy Wings: each Stun that would land on the ally Charms them for 1 turn instead, again and again', () => {
     const a = arena({ p0: [['shot'], ['bless.faerie']], p1: [['stun'], ['stun']] });
     a.use(A2, 'bless.faerie', A1).end();
-    expect(a.stacks(A1, 'swiftness')).toBe(2);
+    expect(a.has(A1, 'swiftness')).toBe(false);
     a.use(B1, 'stun', A1).end();
-    expect([a.has(A1, 'stun'), a.stacks(A1, 'swiftness'), charmed(a, B1), charmed(a, B2)]).toEqual([
-      false,
-      1,
-      true,
-      false,
-    ]);
+    expect([a.has(A1, 'stun'), charmed(a, A1), a.hp(A1)]).toEqual([false, true, 85]);
+    a.pass(1);
+    expect(charmed(a, A1)).toBe(true); // through their own next turn
+    a.use(B2, 'stun', A1).end();
+    expect([a.has(A1, 'stun'), charmed(a, A1)]).toEqual([false, true]);
   });
 
-  it('Fairy Wings: plain Swiftness (without the blessing) shrugs off a Stun but Charms no one', () => {
-    const a = arena({ p0: [['shot']], p1: [['stun']] });
-    a.give(A1, 'swiftness').pass(1).use(B1, 'stun', A1).end();
-    expect([a.has(A1, 'stun'), charmed(a, B1)]).toEqual([false, false]);
+  it('Fairy Wings: lasts 3 turns; afterwards Stuns land again', () => {
+    const a = arena({ p0: [['shot'], ['bless.faerie']], p1: [['stun']] });
+    a.use(A2, 'bless.faerie', A1).end().pass(6);
+    a.use(B1, 'stun', A1).end();
+    expect([a.has(A1, 'stun'), charmed(a, A1)]).toEqual([true, false]);
   });
 
   it('Enthrall: Charmed for 2 turns', () => {
@@ -560,39 +569,43 @@ describe('Faerie skills', () => {
     expect(a.stacks(B1, 'toxin') + a.stacks(B2, 'toxin')).toBe(3);
   });
 
-  it('Bewildering Petals: 20 to the target and 15 to one random other enemy', () => {
-    for (let seed = 1; seed <= 10; seed++) {
-      const a = arena({ seed, p0: [['cleave.faerie']], p1: [['shot'], ['shot'], ['shot']] });
-      a.use(A1, 'cleave.faerie', B1).end();
-      expect(a.hp(B1)).toBe(80);
-      expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85]);
-    }
+  it('Glamoured Feint: target enemy is Charmed for their next skill and spared; each other enemy takes 20', () => {
+    const a = arena({ p0: [['cleave.faerie'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'cleave.faerie', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A1), a.hp(A2)]).toEqual([100, 80, 80, 100, 100]);
+    expect([a.has(B1, 'charmed'), a.has(B2, 'charmed')]).toEqual([true, false]);
+    a.use(B1, 'shot', A1).end(); // the Charm goes with their next skill
+    expect(a.has(B1, 'charmed')).toBe(false);
   });
 
-  it('Bewildering Petals: the target is Charmed for 1 turn, and their picks land only on their own allies', () => {
-    for (let seed = 1; seed <= 10; seed++) {
-      const a = arena({ seed, p0: [['cleave.faerie']], p1: [['shot'], ['shot']] });
-      a.use(A1, 'cleave.faerie', B1).end();
-      expect(charmed(a, B1)).toBe(true);
-      a.use(B1, 'shot', A1).end();
-      expect([a.hp(A1), a.hp(B2)]).toEqual([100, 70]); // 15 from the cleave, 15 from B1's shot
-    }
+  it('Glamoured Feint: the Charm lasts 1 turn if they use no skill', () => {
+    const a = arena({ p0: [['cleave.faerie']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.faerie', B1).end().pass(1);
+    expect(a.has(B1, 'charmed')).toBe(false);
   });
 
-  it('Fae Laughter: all enemies are Intimidated for 2 turns', () => {
-    const a = arena({ p0: [['shout.faerie']], p1: [['shot'], ['bolt']] });
+  it('Glamoured Feint: with no other enemy to cut, the target takes the 20', () => {
+    const a = arena({ p0: [['cleave.faerie']], p1: [['shot']] });
+    a.use(A1, 'cleave.faerie', B1).end();
+    expect([a.hp(B1), a.has(B1, 'charmed')]).toEqual([80, true]);
+  });
+
+  it("Fae Laughter: at the end of the user's turn, each enemy whose ally used a skill gains 1 Confusion", () => {
+    const a = arena({ p0: [['shout.faerie']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'shout.faerie').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    a.use(B2, 'bolt', A1).end();
-    expect(a.cooldown(B2, 'bolt')).toBe(2); // CD 1 → 1 + 1 Intimidated, after this turn's tick
-  });
-
-  it('Fae Laughter: all enemies are Charmed until the first of them resolves a skill', () => {
-    const a = arena({ p0: [['shout.faerie']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'shout.faerie').end();
-    expect([charmed(a, B1), charmed(a, B2)]).toEqual([true, true]);
+    expect([B1, B2, B3].map((b) => a.stacks(b, 'confusion'))).toEqual([0, 0, 0]);
     a.use(B1, 'shot', A1).end();
-    expect([charmed(a, B1), charmed(a, B2)]).toEqual([false, false]);
+    expect([B1, B2, B3].map((b) => a.stacks(b, 'confusion'))).toEqual([0, 0, 0]);
+    a.end(); // the user's turn ends: B1's allies caught the laughter
+    expect([B1, B2, B3].map((b) => a.stacks(b, 'confusion'))).toEqual([0, 1, 1]);
+  });
+
+  it('Fae Laughter: it lasts 2 turns, so only one round of Confusion comes', () => {
+    const a = arena({ p0: [['shout.faerie']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'shout.faerie').end().use(B1, 'shot', A1).end().end();
+    expect([B1, B2, B3].map((b) => a.stacks(b, 'confusion'))).toEqual([0, 1, 1]);
+    a.use(B2, 'shot', A1).use(B3, 'shot', A1).end().end(); // the laughter has run out
+    expect([B1, B2, B3].map((b) => a.stacks(b, 'confusion'))).toEqual([0, 0, 0]);
   });
 
   it('Gossamer Veil: when it\'s broken, an enemy who hit it earlier is Charmed; one who never hit it isn\'t', () => {
@@ -652,29 +665,32 @@ describe('Faerie skills', () => {
     expect(a.hp(B2)).toBe(85);
   });
 
-  it('Faerie Queen: 3 turns of 2 Armor and Immune', () => {
+  it('Faerie Queen: Immune for 3 turns; a Sprite joins her now and at the start of each of her turns, each for 2 turns', () => {
     const a = arena({ p0: [['titan.faerie']], p1: [['shot'], ['curse']] });
+    const sprites = () => minions(a, 'sprite').filter((s) => s.alive);
     a.use(A1, 'titan.faerie').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([2, true]);
+    expect([a.has(A1, 'immune'), a.has(A1, 'armor'), sprites().map((s) => [s.owner, s.hp])]).toEqual([true, false, [[0, 10]]]);
     a.use(B2, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(false);
-    a.pass(4);
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune')]).toEqual([0, false]);
+    expect([a.has(A1, 'confusion'), sprites().length]).toEqual([false, 2]);
+    a.pass(2);
+    expect(sprites().length).toBe(2); // the first one's 2 turns are up
+    a.pass(2);
+    expect([a.has(A1, 'immune'), sprites().length]).toEqual([false, 1]); // no new Sprite once it ends
   });
 
-  it('Faerie Queen: an enemy who aims a single-target skill at the user is Charmed afterwards; AoE users aren\'t', () => {
-    const a = arena({ p0: [['titan.faerie']], p1: [['shot'], ['blast']] });
-    a.use(A1, 'titan.faerie').end();
-    a.use(B1, 'shot', A1).use(B2, 'blast').end();
-    expect(a.hp(A1)).toBe(100 - 5 - 25); // Armor 2 = −10 on each hit
-    expect([charmed(a, B1), charmed(a, B2)]).toEqual([true, false]);
+  it('Faerie Queen: she takes 5 less damage for each allied Sprite', () => {
+    const a = arena({ p0: [['titan.faerie']], p1: [['shot']] });
+    a.use(A1, 'titan.faerie').end().use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(90); // 1 Sprite
+    a.pass(1).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85); // 2 Sprites
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe('Faerie costs and cooldowns (kit table)', () => {
   const kit: [string, string, number][] = [
-    ['strike', 'S', 0],
+    ['strike', 'S', 1],
     ['smash', 'Ar', 2],
     ['charge', 'S', 1],
     ['riposte', 'r', 3],

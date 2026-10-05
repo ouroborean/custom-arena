@@ -1,23 +1,21 @@
 # Brimstone actions, run on `it`.
 
-# Erupt: 10 Affliction per Sulfur to `it` (doubled once by Pitch Javelin) and 5 per stack to each of
-# its allies; the Sulfur becomes as much Toxin. `erupted` holds the damage meant for `it`.
+# Erupt: 10 Affliction per Sulfur to `it` and 5 per stack to each of its allies; the Sulfur becomes as
+# much Toxin. `erupted` holds the damage meant for `it`.
 erupt:
   - { op: set, var: sulfur, value: { stacks: { unit: it, effect: sulfur } } }
-  - { op: set, var: pitch, value: { if: { has: { unit: it, effect: pitch_javelin_mark } }, then: 2, else: 1 } }
-  - { op: set, var: erupted, value: { mul: [10, { var: sulfur }, { var: pitch }] } }
+  - { op: set, var: erupted, value: { mul: [10, { var: sulfur }] } }
   - op: if
     cond: { compare: { value: { var: sulfur }, atLeast: 1 } }
     then:
       - { op: removeEffect, from: it, effect: sulfur }
-      - { op: removeEffect, from: it, effect: pitch_javelin_mark }
       - { op: damage, to: it, amount: { var: erupted }, type: Affliction, direct: false }
       - op: if
         cond: { isEnemy: it }
         then:
-          - { op: damage, to: { filter: allEnemies, exclude: it, where: { kind: { unit: it, is: character } } }, amount: { mul: [5, { var: sulfur }, { var: pitch }] }, type: Affliction, direct: false }
+          - { op: damage, to: { filter: allEnemies, exclude: it, where: { kind: { unit: it, is: character } } }, amount: { mul: [5, { var: sulfur }] }, type: Affliction, direct: false }
         else:
-          - { op: damage, to: { filter: allAllies, exclude: it, where: { kind: { unit: it, is: character } } }, amount: { mul: [5, { var: sulfur }, { var: pitch }] }, type: Affliction, direct: false }
+          - { op: damage, to: { filter: allAllies, exclude: it, where: { kind: { unit: it, is: character } } }, amount: { mul: [5, { var: sulfur }] }, type: Affliction, direct: false }
       - { op: apply, to: it, effect: toxin, stacks: { var: sulfur } }
       - { op: signal, name: eruption }
 

@@ -18,10 +18,6 @@ nomad_trek:
   stacking: unique
   description: Tracks this character's Trek.
   triggers:
-    - on: damaged
-      when: { byEnemy: true }
-      do:
-        - { op: setCounter, name: hit_turn, on: bearer, value: { turn: true } }
     - on: turnEnd
       do:
         - op: if
@@ -39,9 +35,7 @@ nomad_trek:
                   then:
                     - { op: forEach, in: bearer, do: [{ op: macro, id: gain_trek }] }
                   else:
-                    - op: if
-                      cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: knife_turn } }] }] }, atLeast: 1 } }
-                      then: [{ op: forEach, in: bearer, do: [{ op: macro, id: reset_trek }] }]
+                    - { op: forEach, in: bearer, do: [{ op: macro, id: reset_trek }] }
                 - { op: setCounter, name: trek_prev_slot, on: bearer, value: { counterOf: { unit: bearer, name: lastSlot } } }
                 - { op: setCounter, name: trek_started, on: bearer, value: 1 }
               else:
@@ -78,3 +72,28 @@ mirage_lull:
       do:
         - { op: apply, to: bearer, effect: mirage, duration: { raw: 4 } }
         - { op: removeSelf }
+
+# Rolling Dune (Withstand): a Shield that grows as its bearer's Trek rises.
+rolling_dune:
+  name: Rolling Dune
+  kind: Buff
+  element: Nomad
+  shield: true
+  description: A Shield that grows by 10 each time the bearer's Trek rises.
+  triggers:
+    - on: signal
+      signal: trek_rose
+      when: { side: ally }
+      do:
+        - op: if
+          cond: { isActor: eventSource }
+          then: [{ op: growShield, to: bearer, effect: rolling_dune, amount: 10 }]
+
+# Haboob (Snipe): marks the enemy the last gust hit, so the next gust wanders to someone else.
+haboob_trail:
+  name: Haboob
+  kind: Neutral
+  element: Nomad
+  stacking: unique
+  visibility: hidden
+  description: The haboob's last gust hit the bearer; the next one goes elsewhere.

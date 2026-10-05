@@ -143,8 +143,8 @@ shot.myth:
   element: Myth
   name: Hurl the Stone
   description: >-
-    Deals 15 damage to target enemy. Can instead target an allied Boulder to hurl it at a random enemy
-    for its remaining HP. Mythic: it can hurl an enemy minion the same way.
+    Deals 15 damage to target enemy, plus 5 per Legend the user has. Can instead target an allied
+    Boulder to shatter it into legend: the user gains 1 Legend per 15 HP it had (at most 3).
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -154,16 +154,20 @@ shot.myth:
     - op: if
       cond: { isEnemy: primary }
       then:
-        - op: if
-          cond: { and: [{ has: { unit: actor, effect: mythic } }, { kind: { unit: primary, is: minion } }] }
-          then:
-            - { op: set, var: thrown, value: { hp: primary } }
-            - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: { var: thrown } }
-            - { op: kill, to: primary }
-          else:
-            - { op: damage, to: primary, amount: 15 }
+        - { op: damage, to: primary, amount: { sum: [15, { mul: [5, { stacks: { unit: actor, effect: legend } }] }] } }
       else:
-        - { op: forEach, in: primary, do: [{ op: macro, id: launch_boulder }] }
+        - op: set
+          var: tales
+          value:
+            if: { compare: { value: { hp: primary }, atLeast: 45 } }
+            then: 3
+            else: { div: [{ hp: primary }, 15] }
+        # It crumbles by itself (not a kill, so no Saga Legend for it).
+        - { op: damage, to: primary, from: primary, amount: { hp: primary }, type: Affliction, raw: true }
+        - op: repeat
+          times: { var: tales }
+          do:
+            - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
 
 snipe.myth:
   archetype: Snipe
@@ -687,99 +691,159 @@ cleave.myth:
   element: Myth
   name: Jotun Sweep
   description: >-
-    Deals 20 damage to target enemy, and 10 to a random other enemy, who is Frostbitten for 1 turn.
+    Deals 25 damage to target enemy. The sweep widens with the saga: 1 random other enemy per Legend
+    the user has takes 10. Mythic: every other enemy takes 10 and is Frostbitten for 1 turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 10 }
-        - { op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }
+    # Saga's Legend for this use comes first, so the sweep always reaches at least 1 more enemy.
+    - { op: damage, to: primary, amount: 25 }
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - op: forEach
+          in: { filter: allEnemies, exclude: primary, where: { not: { isPrimary: it } } }
+          do:
+            - { op: damage, to: it, amount: 10 }
+            - { op: apply, to: it, effect: frostbitten, duration: { enemyTurns: 1 } }
+      else:
+        # Each Legend reaches a different enemy (a quiet mark keeps it from hitting one twice).
+        - op: repeat
+          times: { stacks: { unit: actor, effect: legend } }
+          do:
+            - op: forEach
+              in: { randomEnemy: 1, exclude: primary, where: { not: { has: { unit: it, effect: jotun_swept } } } }
+              do:
+                - { op: damage, to: it, amount: 10 }
+                - op: apply
+                  to: it
+                  quiet: true
+                  effect:
+                    id: jotun_swept
+                    name: Jotun Sweep
+                    kind: Neutral
+                    element: Myth
+                    description: Already reached by this sweep.
+        - { op: removeEffect, from: allEnemies, effect: jotun_swept }
 
 shout.myth:
   archetype: Shout
   element: Myth
   name: Horn of the North
   description: >-
-    All enemies are Intimidated for 2 turns, +1 per allied Boulder (up to 4). Mythic: they're also
-    Frostbitten for as long.
+    For each enemy, a random skill of theirs that's cooling down is set back 2 turns (3 while the user
+    is Mythic). An enemy with nothing cooling down is Intimidated for 2 turns instead.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - op: set
-      var: horn
-      value:
-        if: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }, atLeast: 2 } }
-        then: 4
-        else: { sum: [2, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [boulder] } } } }] }
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: { var: horn } } }
-    - op: if
-      cond: { has: { unit: actor, effect: mythic } }
-      then:
-        - { op: apply, to: targets, effect: frostbitten, duration: { enemyTurns: { var: horn } } }
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { compare: { value: { skillsOnCooldown: it }, atLeast: 1 } }
+          then:
+            - op: adjustCooldowns
+              to: it
+              random: true
+              by: { if: { has: { unit: actor, effect: mythic } }, then: 3, else: 2 }
+          else:
+            - { op: apply, to: it, effect: intimidated, duration: { enemyTurns: 2 } }
 
 withstand.myth:
   archetype: Withstand
   element: Myth
   name: Frozen Rampart
-  description: The user gains 30 Shield for 2 turns, or doubles the Shield they have.
+  description: >-
+    The user raises a rampart: they create a Boulder (25 HP), and until their next turn, while they have an
+    allied minion, each direct hit on them is split: they take half, and a random allied minion takes the
+    other half.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - op: if
-      cond: { hasShield: actor }
-      then:
-        - { op: scaleShields, on: actor, factor: 2 }
-      else:
-        - { op: apply, to: actor, effect: shield, value: 30, duration: { enemyTurns: 2 } }
+    # No Shield: the stone shares the hits, and whatever is left of it stays on the field. The user always
+    # takes their half, so no minion can soak a hit whole.
+    - { op: summon, minion: boulder }
+    - { op: addMaxHp, to: lastSummoned, amount: -20 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: frozen_rampart
+        name: Frozen Rampart
+        kind: Buff
+        element: Myth
+        description: While the bearer has an allied minion, direct hits on them are halved, and a random allied minion takes the other half.
+        modifiers:
+          - mod: damageTaken
+            amount: 0
+            mul: 0.5
+            when: { direct: true }
+            if: { any: { in: allAllies, cond: { kind: { unit: it, is: minion } } } }
+        triggers:
+          - on: damaged
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { compare: { value: { eventAmount: true }, atLeast: 1 } }
+                then:
+                  - op: damage
+                    to: { randomAlly: 1, where: { kind: { unit: it, is: minion } } }
+                    amount: { eventAmount: true }
+                    raw: true
 
 taunt.myth:
   archetype: Taunt
   element: Myth
   name: Old Feud
   description: >-
-    Permanently Taunts one enemy (only one at a time). Each time they damage the user, the user gains 1
-    Legend. Mythic: the user deals 10 more to them.
+    Target enemy is Taunted until the user next becomes Mythic (at most 4 turns); if that ends it, the
+    feud is settled and they take 25 damage. If the user is already Mythic, the Taunt lasts 2 turns.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: removeEffect, from: allEnemies, effect: old_feud }
-    - { op: apply, to: primary, effect: taunt }
-    - op: apply
-      to: primary
-      effect:
-        id: old_feud
-        name: Old Feud
-        kind: Debuff
-        element: Myth
-        description: Each time the bearer damages the applier, the applier gains 1 Legend.
-        triggers:
-          - on: dealtDamage
-            do:
-              - op: if
-                cond: { isActor: eventTarget }
-                then:
-                  - { op: forEach, in: actor, do: [{ op: macro, id: gain_legend }] }
-    - op: apply
-      to: actor
-      effect:
-        id: old_feud_grudge
-        name: Old Feud
-        kind: Buff
-        element: Myth
-        description: While Mythic, the bearer deals 10 more to their old foe.
-        modifiers:
-          - { mod: damageDealt, amount: 10, target: { has: { unit: it, effect: old_feud } }, if: { has: { unit: actor, effect: mythic } } }
+    - op: if
+      cond: { has: { unit: actor, effect: mythic } }
+      then:
+        - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+      else:
+        - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 4 } }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 4 }
+          effect:
+            id: old_feud
+            name: Old Feud
+            kind: Debuff
+            element: Myth
+            description: Taunted until the applier becomes Mythic; then they take 25 damage.
+        - op: apply
+          to: actor
+          duration: { enemyTurns: 4 }
+          effect:
+            id: old_feud_oath
+            name: Old Feud
+            kind: Neutral
+            element: Myth
+            description: When the bearer becomes Mythic, their feud is settled; the foe's Taunt ends and they take 25 damage.
+            triggers:
+              - on: effectGained
+                when: { effects: [mythic] }
+                do:
+                  - op: forEach
+                    in: { filter: allEnemies, where: { has: { unit: it, effect: old_feud, mine: true } } }
+                    do:
+                      - { op: removeEffect, from: it, effect: taunt }
+                      - { op: removeEffect, from: it, effect: old_feud }
+                      - { op: damage, to: it, amount: 25 }
+                  - { op: removeSelf }
 
 titan.myth:
   archetype: Titan

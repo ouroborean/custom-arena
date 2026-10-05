@@ -19,27 +19,32 @@ smash.curse:
   element: Curse
   name: Crushing Malediction
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. Each Hex on the target is copied, for 2 turns, to a
-    random ally of theirs.
+    Deals 35 damage to target enemy, who gains Hex of Pain for 2 turns. While it lasts, the pain is shared: each
+    time it hurts them, their allies take 10 Affliction damage too.
   cost: SS
   cooldown: 3
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - op: if
-          cond: { has: { unit: primary, effect: hex_pain } }
-          then: [{ op: apply, to: it, effect: hex_pain, duration: { enemyTurns: 2 } }]
-        - op: if
-          cond: { has: { unit: primary, effect: hex_silence } }
-          then: [{ op: apply, to: it, effect: hex_silence, duration: { enemyTurns: 2 } }]
-        - op: if
-          cond: { has: { unit: primary, effect: hex_ruin } }
-          then: [{ op: apply, to: it, effect: hex_ruin, duration: { enemyTurns: 2 } }]
+    - { op: damage, to: primary, amount: 35 }
+    - { op: apply, to: primary, effect: hex_pain, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: crushing_malediction
+        name: Crushing Malediction
+        kind: Debuff
+        element: Curse
+        description: Each time the bearer's Hex of Pain hurts them, their allies take 10 Affliction damage too.
+        triggers:
+          # Hex of Pain fires on the same event; this one only echoes it while the bearer still has it.
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: hex_pain } }
+                then: [{ op: damage, to: bearerAllies, amount: 10, type: Affliction, direct: false }]
 
 charge.curse:
   archetype: Charge
@@ -244,32 +249,18 @@ trap.curse:
 maneuver.curse:
   archetype: Maneuver
   element: Curse
-  name: Familiar's Cover
-  description: >-
-    The user becomes Invulnerable for 1 turn. For 2 turns, their Lifesteal also heals them for damage their minions
-    deal.
+  name: Wretched Haven
+  description: The user becomes Invulnerable for 2 turns, but bears all three Hexes for 3 turns.
   cost: r
-  cooldown: 3
+  cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: { filter: allAllies, where: { kind: { unit: it, is: minion } } }
-      duration: { enemyTurns: 2 }
-      effect:
-        id: familiars_cover
-        name: Familiar's Cover
-        kind: Buff
-        element: Curse
-        description: Damage the bearer deals heals the applier, if they have Lifesteal.
-        triggers:
-          - on: dealtDamage
-            when: { direct: true }
-            do:
-              - op: if
-                cond: { has: { unit: actor, effect: lifesteal } }
-                then: [{ op: heal, to: actor, amount: { eventAmount: true } }]
+    # Invulnerable first, so Hex of Ruin doesn't punish the user for it.
+    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: hex_pain, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: hex_silence, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: hex_ruin, duration: { enemyTurns: 3 } }
 
 companion.curse:
   archetype: Companion
@@ -405,19 +396,20 @@ stab.curse:
   element: Curse
   name: Cursed Dagger
   description: >-
-    Deals 10 damage to target enemy, or 20 at or below 60 HP. If they're Hexed, they also gain a random Hex for 2
-    turns.
+    Deals 15 damage to target enemy. If the user is Hexed, one of their Hexes, chosen at random, passes into the
+    wound: it moves onto the target, and the hit deals 25 instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: primary, value: 60 } }, then: 20, else: 10 }
     - op: if
-      cond: { check: { cond: hexed, unit: primary } }
-      then: [{ op: forEach, in: primary, do: [{ op: macro, id: random_hex }] }]
+      cond: { check: { cond: hexed, unit: actor } }
+      then:
+        - { op: macro, id: curse_pass_hex }
+        - { op: damage, to: primary, amount: 25 }
+      else:
+        - { op: damage, to: primary, amount: 15 }
 
 ravage.curse:
   archetype: Ravage
@@ -620,34 +612,57 @@ prayer.curse:
 cleave.curse:
   archetype: Cleave
   element: Curse
-  name: Spreading Dread
+  name: Grudging Cut
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. The target is Horrified for 2 turns, and the
-    dread spreads: the other one is Horrified for 1 turn.
-  cost: S
+    Deals 20 damage to target enemy. Then the grudge falls on whichever other enemy has the most HP: they
+    take Affliction damage equal to half the HP they have over the target (at least 5, at most 25).
+  cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: horrified, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 20 }
+    # Find the most HP among the others, then the grudge falls on the first one who has it.
+    - { op: set, var: most, value: 0 }
     - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
+      in: { filter: allEnemies, where: { not: { isPrimary: it } } }
       do:
-        - { op: damage, to: it, amount: 15 }
-        - { op: apply, to: it, effect: horrified, duration: { enemyTurns: 1 } }
+        - op: if
+          cond: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { var: most }] }] }, atLeast: 1 } }
+          then: [{ op: set, var: most, value: { hp: it } }]
+    - { op: set, var: struck, value: false }
+    - op: forEach
+      in: { filter: allEnemies, where: { not: { isPrimary: it } } }
+      do:
+        - op: if
+          cond:
+            and:
+              - { not: { varTrue: struck } }
+              - { compare: { value: { sum: [{ hp: it }, { mul: [-1, { var: most }] }] }, atLeast: 0 } }
+          then:
+            - { op: set, var: envy, value: { div: [{ sum: [{ hp: it }, { mul: [-1, { hp: primary }] }] }, 2] } }
+            - op: damage
+              to: it
+              type: Affliction
+              amount:
+                if: { compare: { value: { var: envy }, atLeast: 25 } }
+                then: 25
+                else: { if: { compare: { value: { var: envy }, atMost: 5 } }, then: 5, else: { var: envy } }
+            - { op: set, var: struck, value: true }
 
 shout.curse:
   archetype: Shout
   element: Curse
   name: Ill Wind
-  description: All enemies are Intimidated for 2 turns, and their Hexes can't be removed meanwhile.
+  description: >-
+    All enemies gain Hex of Silence for 2 turns. The first Strategic skill each of them uses meanwhile leaves them
+    Intimidated for 2 turns.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: targets, effect: hex_silence, duration: { enemyTurns: 2 } }
     - op: apply
       to: targets
       duration: { enemyTurns: 2 }
@@ -656,9 +671,13 @@ shout.curse:
         name: Ill Wind
         kind: Debuff
         element: Curse
-        description: The bearer's Hexes can't be removed.
-        modifiers:
-          - { mod: protectEffects, effects: [hex_pain, hex_silence, hex_ruin] }
+        description: The first Strategic skill the bearer uses leaves them Intimidated for 2 turns.
+        triggers:
+          - on: skillUsed
+            when: { strategic: true }
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: intimidated, duration: { enemyTurns: 2 } }
 
 withstand.curse:
   archetype: Withstand
@@ -704,45 +723,30 @@ withstand.curse:
 taunt.curse:
   archetype: Taunt
   element: Curse
-  name: Poppet
-  description: >-
-    Creates a Poppet (10 HP) bound to target enemy: they're Taunted by it for 1 turn, and damage it takes is dealt
-    to them as Affliction.
+  name: Geas
+  description: Target enemy gains a random Hex for 2 turns. Then every Hexed enemy is Taunted by the user for 1 turn.
   cost: r
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: summon, minion: poppet }
-    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: lastSummoned
-      remember: primary
-      effect:
-        id: poppet_bond
-        name: Poppet
-        kind: Neutral
-        element: Curse
-        description: Damage the Poppet takes is dealt to its target as Affliction.
-        triggers:
-          - on: damaged
-            do:
-              - { op: damage, to: effectTargets, amount: { eventAmount: true }, type: Affliction, direct: false }
+    - { op: forEach, in: primary, do: [{ op: macro, id: random_hex }] }
+    - { op: apply, to: { filter: allEnemies, where: { check: { cond: hexed, unit: it } } }, effect: taunt, duration: { enemyTurns: 1 } }
 
 titan.curse:
   archetype: Titan
   element: Curse
   name: The Accursed
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune, and at the end of each of their turns, every Hex on enemies
-    deals its bearer 5 Affliction.
+    For 3 turns, the user gains Immune, and every enemy gains a random Hex for 2 turns. Meanwhile, each time an
+    enemy hits the user, they take 10 Affliction damage per Hex they bear.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: forEach, in: allEnemies, do: [{ op: macro, id: random_hex }] }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -751,18 +755,16 @@ titan.curse:
         name: The Accursed
         kind: Buff
         element: Curse
-        description: At the end of each of the bearer's turns, every Hex on enemies deals its bearer 5 Affliction.
+        description: Each enemy who hits the bearer takes 10 Affliction per Hex they bear.
         triggers:
-          - on: turnEnd
+          - on: damaged
+            when: { byEnemy: true, direct: true }
             do:
-              - op: forEach
-                in: { filter: allEnemies, where: { check: { cond: hexed, unit: it } } }
-                do:
-                  - op: damage
-                    to: it
-                    type: Affliction
-                    direct: false
-                    amount: { mul: [5, { sum: [{ count: { effects: [hex_pain], in: it } }, { count: { effects: [hex_silence], in: it } }, { count: { effects: [hex_ruin], in: it } }] }] }
+              - op: damage
+                to: eventSource
+                amount: { mul: [10, { count: { effects: [hex_pain, hex_silence, hex_ruin], in: eventSource } }] }
+                type: Affliction
+                direct: false
 
 # Minion skills.
 

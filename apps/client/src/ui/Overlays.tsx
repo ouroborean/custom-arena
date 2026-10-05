@@ -1,5 +1,5 @@
 import { pieceDisplayName } from '@arena/engine';
-import { formatAmounts } from '@arena/meta';
+import { formatAmounts, type XpGain } from '@arena/meta';
 import { content } from '../content.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
 import { useT, type MessageKey } from '../i18n/index.js';
@@ -94,6 +94,7 @@ export function GameOverOverlay() {
           </p>
         )}
         {reward && <Earned currency={reward.currency} items={reward.items} />}
+        {reward?.xp && <XpEarned xp={reward.xp} />}
         {(story || practice || arcade) && <StoryVerdict />}
         <div className="actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
           {record && kind !== 'replay' && (
@@ -132,6 +133,23 @@ function Earned({ currency, items }: { currency: Record<string, number>; items: 
   );
 }
 
+/** "+60 XP · level 3 (40%)", then any level-up and the loot boxes it earned. */
+function XpEarned({ xp }: { xp: XpGain }) {
+  const t = useT();
+  const at = Math.floor((100 * xp.after.xp) / xp.after.needed);
+  return (
+    <>
+      <p className="reward xp-earned">{t('over.xp', { xp: xp.gained, level: xp.after.level, at })}</p>
+      {xp.levelsGained > 0 && <p className="reward">{t('over.levelUp', { level: xp.after.level })}</p>}
+      {xp.boxes.map((box, i) => (
+        <p key={`${box}${i}`} className={`reward lootbox-earned box-${box}`}>
+          {t('over.lootBox', { box: content.economy.lootBoxes?.[box]?.name ?? box })}
+        </p>
+      ))}
+    </>
+  );
+}
+
 /** What the server made of a finished story attempt (it replays the match before paying out). */
 /** After an arcade stage: on to the next stage, or a new run (once the server has recorded the result). */
 function ArcadeNext({ onClick }: { onClick: () => void }) {
@@ -163,7 +181,8 @@ function StoryVerdict() {
   return (
     <div className="story-verdict">
       {earned && <Earned currency={r.reward.currency} items={r.reward.items} />}
-      {!earned && <p className="muted">{t('over.recorded', { outcome: r.outcome })}</p>}
+      {!earned && !r.reward.xp && <p className="muted">{t('over.recorded', { outcome: r.outcome })}</p>}
+      {r.reward.xp && <XpEarned xp={r.reward.xp} />}
       {r.arcade && (
         <p className="reward">
           {r.arcade.ladderComplete

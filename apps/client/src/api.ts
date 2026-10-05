@@ -2,7 +2,7 @@
 // development) so the httpOnly session cookie rides along automatically.
 
 import type { CharacterSpec, MatchConfig, MatchRecord, PlayerId } from '@arena/engine';
-import type { CharacterSkill, Loadout, ResolvedLoadout } from '@arena/meta';
+import type { CharacterSkill, LevelState, Loadout, LootRoll, ResolvedLoadout, XpGain } from '@arena/meta';
 
 export interface User {
   id: string;
@@ -33,11 +33,28 @@ export interface InventoryItem {
 /** Balances by currency id (content economy). */
 export type Wallet = Record<string, number>;
 
-/** What a match paid (docs/equipment.md §3). */
+/** What a match paid (docs/equipment.md §3), with its experience (§4.1). */
 export interface Reward {
   currency: Record<string, number>;
   items: string[];
+  xp?: XpGain;
 }
+
+/** An unopened loot box: its kind, and the level and bubble that paid it. */
+export interface LootBox {
+  id: string;
+  box: string;
+  level: number;
+  at: number;
+  createdAt: string;
+}
+
+/** The player's level, progress into it and unopened loot boxes. */
+export interface Progress extends LevelState {
+  boxes: LootBox[];
+}
+
+export type { LootRoll, XpGain };
 
 export interface EncounterStatus {
   id: string;
@@ -181,6 +198,8 @@ export const api = {
   teamSpecs: () => call<{ specs: CharacterSpec[] }>('GET', '/teams/active/specs'),
 
   inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
+  progress: () => call<Progress>('GET', '/progress'),
+  openLootBox: (id: string) => call<{ box: string; rolls: LootRoll[]; wallet: Wallet; progress: Progress }>('POST', `/loot-boxes/${id}/open`),
   forge: (base: string, addition: string) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/forge', { base, addition }),
   split: (id: string) => call<{ items: InventoryItem[]; wallet: Wallet }>('POST', `/inventory/${id}/split`),
   salvage: (id: string) => call<{ paid: Record<string, number>; wallet: Wallet }>('POST', `/inventory/${id}/salvage`),

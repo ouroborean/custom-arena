@@ -30,3 +30,15 @@ deepen_dusk:
           - { op: macro, id: midnight }
         else:
           - { op: removeStacks, from: it, effect: dusk, amount: 1 }
+
+# Crescent Cleave on `it`: 15 damage, +5 per turn of Dusk left and the Dusk ends; with none, Dusk 4.
+crescent_cut:
+  - op: if
+    cond: { has: { unit: it, effect: dusk } }
+    then:
+      - { op: damage, to: it, amount: { sum: [15, { mul: [5, { stacks: { unit: it, effect: dusk } }] }] } }
+      - { op: removeEffect, from: it, effect: dusk }
+    else:
+      - { op: damage, to: it, amount: 15 }
+      - { op: set, var: dusk, value: 4 }
+      - { op: macro, id: dusk }

@@ -36,31 +36,27 @@ strike.mirror:
 smash.mirror:
   archetype: Smash
   element: Mirror
-  name: Splintered Pane
+  name: Shattered Likeness
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. Until the user's next turn, the first Harmful
-    skill aimed at the user is Reflected.
+    Deals 25 damage to target enemy, and the shattered glass shows their allies the same wounds: each ally
+    of theirs with more HP than them then takes half the difference as damage (max 20).
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
-    - op: apply
-      to: actor
-      duration: { raw: 2 }
-      effect:
-        id: splintered_pane
-        name: Splintered Pane
-        kind: Buff
-        element: Mirror
-        description: Reflects the first Harmful skill aimed at the bearer.
-        triggers:
-          - on: skillTargeted
-            when: { harmful: true }
-            intercept: reflect
-            consume: true
+    # Measured after the hit (a fallen target counts as 0 HP).
+    - op: forEach
+      in: primaryAllies
+      do:
+        - { op: set, var: gap, value: { sum: [{ hp: it }, { mul: [-1, { hp: primary }] }] } }
+        - op: if
+          cond: { compare: { value: { var: gap }, atLeast: 2 } }
+          then:
+            - op: damage
+              to: it
+              amount: { if: { compare: { value: { var: gap }, atLeast: 40 } }, then: 20, else: { div: [{ var: gap }, 2] } }
 
 charge.mirror:
   archetype: Charge
@@ -236,30 +232,28 @@ maneuver.mirror:
   element: Mirror
   name: Through the Glass
   description: >-
-    The user becomes Invulnerable for 1 turn, watching from the glass: the first Harmful skill aimed at an
-    ally in that time is Reflected.
+    The user leaves their reflection in the glass for 1 turn. When it ends, they step back into it: if
+    their HP is lower than when they used this, it returns to what it was.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
+    - { op: setCounter, name: through_the_glass, value: { hp: actor } }
     - op: apply
-      to: { filter: allAllies, where: { not: { isActor: it } } }
+      to: actor
       duration: { enemyTurns: 1 }
       effect:
         id: through_the_glass
         name: Through the Glass
         kind: Buff
         element: Mirror
-        visibility: hidden
-        description: Reflects the first Harmful skill aimed at the bearer (or any other watched ally).
-        triggers:
-          - on: skillTargeted
-            when: { harmful: true }
-            intercept: reflect
-            do:
-              - { op: removeEffect, from: allAllies, effect: through_the_glass }
+        description: When this ends, the bearer's HP returns to what it was when it began, if it's lower.
+        onExpire:
+          - op: if
+            cond: { compare: { value: { sum: [{ counter: through_the_glass }, { mul: [-1, { hp: bearer }] }] }, atLeast: 1 } }
+            then:
+              - { op: heal, to: bearer, amount: { sum: [{ counter: through_the_glass }, { mul: [-1, { hp: bearer }] }] }, raw: true }
 
 companion.mirror:
   archetype: Companion
@@ -280,30 +274,20 @@ bolt.mirror:
   element: Mirror
   name: Glintbolt
   description: >-
-    Deals 25 damage to target enemy and Marks them for 1 turn. When the Mark is spent, every ally's other
-    cooldowns drop by 1.
+    Deals 15 damage to target enemy, then the glint flashes back at whoever last damaged the user: they take
+    15 damage. If no one has, the target takes it instead.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: actor
-      duration: { raw: 3 }
-      effect:
-        id: glintbolt
-        name: Glintbolt
-        kind: Neutral
-        element: Mirror
-        description: When the Mark is spent, every ally's cooldowns drop by 1.
-        triggers:
-          - on: ownEffectEnded
-            when: { effects: [mark], reason: [consumed, removed] }
-            consume: true
-            do:
-              - { op: adjustCooldowns, to: allAllies, by: -1 }
+    - { op: damage, to: primary, amount: 15 }
+    - op: if
+      cond: { compare: { value: { countOf: lastAttacker }, atLeast: 1 } }
+      then:
+        - { op: damage, to: lastAttacker, amount: 15 }
+      else:
+        - { op: damage, to: primary, amount: 15 }
 
 blast.mirror:
   archetype: Blast
@@ -350,8 +334,8 @@ summon.mirror:
   element: Mirror
   name: Mirror Shade
   description: >-
-    Summons a Mirror Shade (20 HP) for 3 turns. Glass Shard (nc): 10 damage to target enemy. When it's
-    killed, the skill that killed it is turned back on its user.
+    Summons a Mirror Shade (20 HP) for 3 turns. Glass Shard (nc): 5 damage to target enemy, who gains 1
+    Confusion. When it's killed, the skill that killed it is turned back on its user.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -394,19 +378,20 @@ stab.mirror:
   element: Mirror
   name: Glass Shiv
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Any Confusion on them shatters: it
-    ends, and they take 10 Affliction damage per stack.
+    Deals 20 damage to target enemy if they have less HP than the user. If not, it deals 10, and they gain 1
+    Confusion.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
-    - { op: set, var: shards, value: { totalStacks: { in: primary, effect: confusion } } }
-    - { op: removeEffect, from: primary, effect: confusion }
-    - { op: damage, to: primary, amount: { mul: [10, { var: shards }] }, type: Affliction, direct: false }
+    - op: if
+      cond: { compare: { value: { sum: [{ hp: primary }, { mul: [-1, { hp: actor }] }] }, atMost: -1 } }
+      then:
+        - { op: damage, to: primary, amount: 20 }
+      else:
+        - { op: damage, to: primary, amount: 10 }
+        - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }
 
 ravage.mirror:
   archetype: Ravage
@@ -426,60 +411,61 @@ ravage.mirror:
 mislead.mirror:
   archetype: Mislead
   element: Mirror
-  name: Stolen Shape
-  description: For 1 turn, if target enemy uses a Harmful skill, it's countered and the user Mimics it. Invisible.
+  name: Mirror Feint
+  description: >-
+    For 1 turn, target enemy wears the user's reflection: the first Harmful skill an enemy aims at the user
+    is countered and turned onto target enemy instead, even if it's their own. Invisible.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
     - op: apply
-      to: primary
+      to: actor
+      remember: primary
       duration: { enemyTurns: 1 }
       effect:
-        id: stolen_shape
-        name: Stolen Shape
-        kind: Debuff
+        id: mirror_feint
+        name: Mirror Feint
+        kind: Buff
         element: Mirror
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and the applier Mimics it at them.
+        description: The first Harmful skill an enemy aims at the bearer is countered and recast on the remembered enemy.
         triggers:
-          - on: skillUsed
+          - on: skillTargeted
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: castSkill, eventSkill: true, on: bearer }
+              - { op: castSkill, eventSkill: true, on: effectTargets }
 
 stun.mirror:
   archetype: Stun
   element: Mirror
-  name: Hypnotic Ripple
+  name: Hypnotic Reflection
   description: >-
-    Deals 10 damage to target enemy, who falls Asleep for 2 turns. When they wake, the ripple spreads: a
-    random ally of theirs falls Asleep.
+    Deals 15 damage to target enemy and traps them in the user's reflection: they're Stunned for 2 turns,
+    or until the user takes damage.
   cost: A
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10 }
-    - { op: apply, to: primary, effect: sleep, duration: { enemyTurns: 2 } }
+    - { op: damage, to: primary, amount: 15 }
     - op: apply
       to: actor
       duration: { enemyTurns: 2 }
       effect:
-        id: hypnotic_ripple
-        name: Hypnotic Ripple
+        id: hypnotic_reflection
+        name: Hypnotic Reflection
         kind: Neutral
         element: Mirror
-        description: When the Sleep is broken, a random ally of its bearer falls Asleep.
+        description: The enemy trapped in the bearer's reflection is Stunned until this ends; it ends when the bearer takes damage.
         triggers:
-          - on: ownEffectEnded
-            when: { effects: [sleep], reason: [consumed, removed] }
-            consume: true
+          - on: damaged
             do:
-              - { op: apply, to: { randomEnemy: 1, exclude: eventTarget }, effect: sleep, duration: { enemyTurns: 2 } }
+              - { op: removeSelf }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 }, linkTo: hypnotic_reflection }
 
 dance.mirror:
   archetype: Dance
@@ -546,25 +532,28 @@ bless.mirror:
   archetype: Bless
   element: Mirror
   name: Silvered Veil
-  description: Target ally gains Stealth, and Flow for 2 turns; while they have Flow, their skills are Stealthy.
+  description: >-
+    For 3 turns, target ally is silvered: each enemy who uses a Harmful skill on them is dazzled by the glare
+    and Blinded for 2 turns.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: stealth, duration: { enemyTurns: 2 } }
-    - { op: apply, to: primary, effect: flow, duration: { enemyTurns: 2 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: silvered_veil
         name: Silvered Veil
         kind: Buff
         element: Mirror
-        description: While the bearer has Flow, their skills are Stealthy.
-        modifiers:
-          - { mod: skillTags, add: [Stealthy], if: { has: { unit: actor, effect: flow } } }
+        description: Each enemy who uses a Harmful skill on the bearer is Blinded for 2 turns.
+        triggers:
+          - on: skillTargeted
+            when: { harmful: true, side: enemy }
+            do:
+              - { op: apply, to: eventSource, effect: blinded, duration: { enemyTurns: 2 } }
 
 curse.mirror:
   archetype: Curse
@@ -693,8 +682,8 @@ withstand.mirror:
   element: Mirror
   name: Silvered Guard
   description: >-
-    The user gains 25 Shield for 2 turns. If an enemy breaks it, the user Mimics the last skill of whoever
-    hit them last.
+    The user gains 20 Shield for 2 turns that mirrors every blow: each enemy who damages it takes as much
+    damage as it absorbed.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -702,7 +691,7 @@ withstand.mirror:
   ops:
     - op: apply
       to: actor
-      value: 25
+      value: 20
       duration: { enemyTurns: 2 }
       effect:
         id: silvered_guard
@@ -710,51 +699,46 @@ withstand.mirror:
         kind: Buff
         element: Mirror
         shield: true
-        description: A Shield; whoever breaks it has their skill Mimicked back.
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 2 }
-      effect:
-        id: silvered_guard_watch
-        name: Silvered Guard
-        kind: Neutral
-        element: Mirror
-        description: When the Silvered Guard breaks, the bearer Mimics the breaker's last skill.
+        description: A Shield; each enemy who damages it takes as much damage as it absorbed.
         triggers:
-          - on: ownEffectEnded
-            when: { effects: [silvered_guard], reason: [depleted] }
-            consume: true
+          - on: shieldDamaged
             do:
-              - { op: castSkill, lastUsedBy: lastAttacker, on: lastAttacker }
+              - op: if
+                cond: { isEnemy: eventSource }
+                then:
+                  - { op: damage, to: eventSource, amount: { eventAmount: true }, direct: false }
 
 taunt.mirror:
   archetype: Taunt
   element: Mirror
-  name: Mocking Reflection
+  name: Face in the Glass
   description: >-
-    Creates a Reflection (5 HP); target enemy is Taunted by it for 1 turn. When they use a Harmful skill
-    meanwhile, the user Mimics it back at them.
+    For 2 turns, target enemy and the user face each other in the glass: each is Taunted by the other, and
+    each hit the enemy lands on the user is mirrored back, dealing them half as much.
   cost: r
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: summon, minion: mirror_reflection }
-    - { op: apply, to: primary, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    - { op: apply, to: actor, effect: taunt, from: primary, duration: { raw: 4 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
-        id: mocking_reflection
-        name: Mocking Reflection
+        id: face_in_the_glass
+        name: Face in the Glass
         kind: Debuff
         element: Mirror
-        description: Each Harmful skill the bearer uses is Mimicked back at them.
+        description: Each hit the bearer lands on the applier deals the bearer half as much.
         triggers:
-          - on: skillResolved
-            when: { harmful: true }
+          - on: dealtDamage
+            when: { direct: true }
             do:
-              - { op: castSkill, eventSkill: true, on: bearer }
+              - op: if
+                cond: { isActor: eventTarget }
+                then:
+                  - { op: damage, to: bearer, amount: { div: [{ eventAmount: true }, 2] }, direct: false }
 
 titan.mirror:
   archetype: Titan
@@ -790,10 +774,11 @@ mirror_shade_glass_shard:
   archetype: Minion
   element: Mirror
   name: Glass Shard
-  description: Deals 10 damage to target enemy.
+  description: Deals 5 damage to target enemy, who gains 1 Confusion.
   cost: nc
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 10 }
+    - { op: damage, to: primary, amount: 5 }
+    - { op: apply, to: primary, effect: confusion, duration: { enemyTurns: 2 } }

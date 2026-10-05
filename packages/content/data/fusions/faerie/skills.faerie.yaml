@@ -5,17 +5,17 @@ strike.faerie:
   archetype: Strike
   element: Faerie
   name: Thorned Kiss
-  description: Deals 20 damage to target enemy, who gains 1 Toxin. If that makes them Prey, they're Charmed for 1 turn.
+  description: >-
+    Deals 20 damage to target enemy, who is Charmed for their next skill (within 1 turn). The thorn
+    pricks back: the user gains 1 Toxin.
   cost: S
-  cooldown: 0
+  cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: toxin }
-    - op: if
-      cond: { check: { cond: prey, unit: primary } }
-      then: [{ op: apply, to: primary, effect: charmed, duration: { enemyTurns: 1 } }]
+    - { op: apply, to: primary, effect: charmed, until: { skillUsed: {} }, duration: { enemyTurns: 1 } }
+    - { op: apply, to: actor, effect: toxin }
 
 smash.faerie:
   archetype: Smash
@@ -104,15 +104,13 @@ rage.faerie:
   element: Faerie
   name: Wild Hunt
   description: >-
-    For 3 turns, the user is Immune and gains 1 Might. Whenever they hit an enemy while Leaping, that enemy is
-    marked as Prey for 2 turns.
+    For 3 turns, the Wild Hunt rides behind the user. Once per turn, when they deal direct damage to
+    an enemy, the Hunt rides on into a random other enemy: 10 damage and 1 Toxin.
   cost: W
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -121,14 +119,21 @@ rage.faerie:
         name: Wild Hunt
         kind: Buff
         element: Faerie
-        description: Enemies hit while Leaping are marked as Prey.
+        description: Once per turn, when the bearer deals direct damage to an enemy, a random other enemy takes 10 damage and gains 1 Toxin.
         triggers:
           - on: dealtDamage
             when: { direct: true, byEnemy: true }
             do:
+              # Once per turn: the turn it last rode is stamped first, so its own hit can't set it off again.
               - op: if
-                cond: { has: { unit: bearer, effect: leaping } }
-                then: [{ op: apply, to: eventTarget, effect: prey, duration: { enemyTurns: 2 } }]
+                cond: { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: wild_hunt_turn } }] }] }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, name: wild_hunt_turn, on: bearer, value: { turn: true } }
+                  - op: forEach
+                    in: { randomEnemy: 1, exclude: eventTarget }
+                    do:
+                      - { op: damage, to: it, amount: 10, direct: true }
+                      - { op: apply, to: it, effect: toxin }
 
 shot.faerie:
   archetype: Shot
@@ -262,35 +267,27 @@ bolt.faerie:
   element: Faerie
   name: Wisp Bolt
   description: >-
-    Deals 20 damage to target enemy, who is Marked for 1 turn. For 2 turns, whenever the user starts a turn
-    Rushing, a random ally gains 1 Swiftness and 1 Focus too.
+    Deals 20 damage to target enemy. For 2 turns, a wisp follows them: each skill they use deals them
+    10 Affliction damage.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
     - op: apply
-      to: actor
+      to: primary
       duration: { enemyTurns: 2 }
       effect:
         id: wisp_bolt
         name: Wisp Bolt
-        kind: Buff
+        kind: Debuff
         element: Faerie
-        description: Each turn the bearer starts Rushing, a random ally gains Swiftness and Focus.
+        description: Each skill the bearer uses deals them 10 Affliction damage.
         triggers:
-          - on: turnStart
+          - on: skillUsed
             do:
-              - op: if
-                cond: { has: { unit: bearer, effect: rushing } }
-                then:
-                  - op: forEach
-                    in: { randomAlly: 1, exclude: bearer, where: { kind: { unit: it, is: character } } }
-                    do:
-                      - { op: apply, to: it, effect: swiftness, duration: { enemyTurns: 1 } }
-                      - { op: apply, to: it, effect: focus, until: { skillUsed: {} } }
+              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
 
 blast.faerie:
   archetype: Blast
@@ -504,27 +501,35 @@ bless.faerie:
   element: Faerie
   name: Fairy Wings
   description: >-
-    Target ally gains 2 Swiftness. For 3 turns, each Stun their Swiftness shrugs off Charms its source for 1
-    turn.
+    For 3 turns, target ally floats free of Stuns: each Stun that would land on them Charms them for 1
+    turn instead.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: swiftness, stacks: 2, duration: { enemyTurns: 3 } }
     - op: apply
       to: primary
       duration: { enemyTurns: 3 }
+      # Two stacks so a negation never uses it up: each one it makes gives the stack back.
+      stacks: 2
       effect:
         id: fairy_wings
         name: Fairy Wings
         kind: Buff
         element: Faerie
-        description: Each Stun the bearer's Swiftness shrugs off Charms its source.
+        stacking: merge
+        description: Each Stun that would land on the bearer Charms them for 1 turn instead.
+        modifiers:
+          - { mod: negateNext, effect: stun }
+          - { mod: negateNext, effect: stun_ns }
+          - { mod: negateNext, effect: stun_s }
         triggers:
           - on: incomingNegated
+            when: { effects: [stun, stun_ns, stun_s] }
             do:
-              - { op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }
+              - { op: apply, to: bearer, effect: charmed, duration: { enemyTurns: 1 } }
+              - { op: addStacksSelf, amount: 1 }
 
 curse.faerie:
   archetype: Curse
@@ -603,32 +608,35 @@ prayer.faerie:
 cleave.faerie:
   archetype: Cleave
   element: Faerie
-  name: Bewildering Petals
+  name: Glamoured Feint
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy. The target is Charmed for 1 turn, and
-    meanwhile their random picks can land only on their own allies.
+    A feint: target enemy is Charmed for their next skill (within 1 turn), while the real cut sweeps past
+    them: each other enemy takes 20 damage. With no other enemy to cut, target enemy takes the 20 instead.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
-    - { op: apply, to: primary, effect: bewildered, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: charmed, until: { skillUsed: {} }, duration: { enemyTurns: 1 } }
+    - op: if
+      cond: { compare: { value: { countOf: primaryAllies }, atLeast: 1 } }
+      then:
+        - { op: damage, to: primaryAllies, amount: 20 }
+      else:
+        - { op: damage, to: primary, amount: 20 }
 
 shout.faerie:
   archetype: Shout
   element: Faerie
   name: Fae Laughter
   description: >-
-    All enemies are Intimidated for 2 turns; the first of them to use a single-target skill is Charmed for it,
-    so it picks at random.
+    For 2 turns, laughter is catching among the enemies: at the end of each of the user's turns,
+    each enemy whose ally used a skill since the user's last turn gains 1 Confusion.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
     - op: apply
       to: targets
       duration: { enemyTurns: 2 }
@@ -637,14 +645,27 @@ shout.faerie:
         name: Fae Laughter
         kind: Debuff
         element: Faerie
-        countsAs: [charmed]
-        description: Charmed for the first skill any of them uses.
-        modifiers:
-          - { mod: charmed }
+        description: Each skill the bearer uses sets their allies giggling; giggling enemies gain 1 Confusion at the end of the applier's turn.
         triggers:
-          - on: skillResolved
+          - on: skillUsed
             do:
-              - { op: removeEffect, from: allEnemies, effect: fae_laughter }
+              - op: apply
+                to: bearerAllies
+                quiet: true
+                effect:
+                  id: fae_giggles
+                  name: Giggling
+                  kind: Neutral
+                  element: Faerie
+                  stacking: unique
+                  description: Gains 1 Confusion at the end of the laughing fae's turn.
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { has: { unit: bearer, effect: fae_giggles } }
+                then:
+                  - { op: removeEffect, from: bearer, effect: fae_giggles }
+                  - { op: apply, to: bearer, effect: confusion, duration: { enemyTurns: 1 } }
 
 withstand.faerie:
   archetype: Withstand
@@ -697,15 +718,15 @@ titan.faerie:
   element: Faerie
   name: Faerie Queen
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune; each enemy who uses a single-target skill on them is Charmed
-    for 1 turn afterwards.
+    For 3 turns, the user is Immune and holds court: a Sprite (10 HP) joins her now and at the start
+    of each of her turns, for 2 turns each, and she takes 5 less damage for each allied Sprite.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: summon, minion: sprite, duration: { enemyTurns: 2 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -714,14 +735,15 @@ titan.faerie:
         name: Faerie Queen
         kind: Buff
         element: Faerie
-        description: Enemies who target the bearer with a single-target skill are Charmed.
+        description: A Sprite joins the bearer at the start of each of her turns; she takes 5 less damage per allied Sprite.
+        modifiers:
+          - mod: damageTaken
+            amount: -5
+            value: { mul: [-5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [sprite] } } } }] }
         triggers:
-          - on: skillTargeted
-            when: { side: enemy }
+          - on: turnStart
             do:
-              - op: if
-                cond: { eventSkill: { single: true } }
-                then: [{ op: apply, to: eventSource, effect: charmed, duration: { enemyTurns: 1 } }]
+              - { op: summon, minion: sprite, duration: { enemyTurns: 2 } }
 
 # Minion skills.
 

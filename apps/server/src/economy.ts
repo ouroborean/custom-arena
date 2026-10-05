@@ -2,11 +2,12 @@
 // Spending is a conditional UPDATE, so a balance can never go negative, even under races.
 
 import { seedRng, type ContentBundle, type CurrencyAmounts, type GrantSpec, type PlayerId } from '@arena/engine';
-import { formatAmounts, matchReward, startingWallet, type Outcome, type Reward, type Wallet } from '@arena/meta';
+import { formatAmounts, matchReward, matchXp, startingWallet, type Outcome, type Reward, type Wallet } from '@arena/meta';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { HttpError } from './app.js';
 import type { Db } from './db/client.js';
 import { currencies, itemInstances, matchRewards, spAttempts } from './db/schema.js';
+import { awardXp } from './progression.js';
 
 /** Runs `fn` in a transaction. The handle has the same query API as Db. */
 export function inTransaction<T>(db: Db, fn: (tx: Db) => Promise<T>): Promise<T> {
@@ -119,7 +120,8 @@ export async function grantMatchRewards(
       { kind: m.kind, outcome, endReason: m.endReason, turns: m.turns, dropsToday: await dropsToday(db, userId, new Date()) },
       seedRng(seed()),
     );
-    if (reward.items.length === 0 && Object.values(reward.currency).every((n) => n === 0)) continue;
+    const xp = matchXp(content, { kind: m.kind, outcome, endReason: m.endReason, turns: m.turns });
+    if (reward.items.length === 0 && Object.values(reward.currency).every((n) => n === 0) && xp === 0) continue;
     const granted = await inTransaction(db, async (tx) => {
       const ins = await tx
         .insert(matchRewards)
@@ -129,6 +131,8 @@ export async function grantMatchRewards(
       if (ins.length === 0) return false;
       await credit(tx, content, userId, reward.currency);
       if (reward.items.length) await tx.insert(itemInstances).values(reward.items.map((itemId) => ({ userId, itemId, source: 'reward' })));
+      const gain = await awardXp(tx, content, userId, xp);
+      if (gain) reward.xp = gain;
       return true;
     });
     if (granted) out[p] = reward;

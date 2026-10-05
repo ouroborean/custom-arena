@@ -28,8 +28,6 @@ tended_wick:
 
 effigy:
   name: Effigy
-  hp: 10
-  # If it's destroyed, its creator's Rite completes at once.
-  onDeath:
-    - { op: signal, name: rite_complete }
+  hp: 30
+  # Raised from the user's own HP (the Taunt skill); burns away for healing when the Taunt ends.
   skills: []

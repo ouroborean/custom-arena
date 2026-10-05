@@ -305,34 +305,30 @@ bolt.ocean:
   element: Ocean
   name: Brine Bolt
   description: >-
-    Deals 25 damage to target enemy and Marks them for 1 turn. Whoever spends the Mark gains 2
-    Renew and Brimming for 2 turns.
+    Crest: deals 25 damage to target enemy, plus 5 for each stack of Renew on the user's side (up to 15
+    more). Trough: deals 15 damage, and every ally gains 2 Renew.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 1 }
-      effect:
-        id: brine_bolt
-        name: Brine Bolt
-        kind: Debuff
-        element: Ocean
-        description: Whoever spends the bearer's Mark gains 2 Renew and Brimming for 2 turns.
-        triggers:
-          - on: damaged
-            when: { direct: true, byEnemy: true }
-            do:
-              - op: if
-                cond: { not: { has: { unit: bearer, effect: mark } } }
-                then:
-                  - { op: apply, to: eventSource, effect: renew, stacks: 2 }
-                  - { op: apply, to: eventSource, effect: brimming, duration: { enemyTurns: 2 } }
-                  - { op: removeSelf }
+    - op: if
+      cond: { crest: true }
+      then:
+        - op: set
+          var: tide
+          value: { mul: [5, { totalStacks: { in: allAllies, effect: renew } }] }
+        - op: damage
+          to: primary
+          amount:
+            sum:
+              - 25
+              - if: { compare: { value: { var: tide }, atLeast: 15 } }
+                then: 15
+                else: { var: tide }
+      else:
+        - { op: damage, to: primary, amount: 15 }
+        - { op: apply, to: allAllies, effect: renew, stacks: 2 }
 
 blast.ocean:
   archetype: Blast
@@ -562,29 +558,36 @@ dance.ocean:
   element: Ocean
   name: Swell of the Deep
   description: >-
-    For 4 turns, the user gains Flow, Brimming and 1 Swiftness, and 2 Renew at the start of each of
-    their turns. Each time Brimming gives them Shield, they gain 1 Might for 1 turn.
+    For 4 turns, the user is Brimming and slips through the current: once per turn, the first Debuff an
+    enemy gives them washes straight off, and they gain 2 Renew for it.
   cost: Ar
   cooldown: 5
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: flow, duration: { enemyTurns: 4 } }
     - { op: apply, to: actor, effect: brimming, duration: { enemyTurns: 4 } }
-    - { op: apply, to: actor, effect: swiftness, duration: { enemyTurns: 4 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 4 }
       effect:
-        id: swell_of_the_deep
+        id: riding_the_swell
         name: Swell of the Deep
         kind: Buff
         element: Ocean
-        description: 2 Renew at the start of each of the bearer's turns; each Brimming Shield gain gives 1 Might for 1 turn.
+        description: Once per turn, the first Debuff an enemy gives the bearer is removed, and they gain 2 Renew.
         triggers:
-          - on: turnStart
+          - on: effectGained
+            when: { kind: Debuff }
             do:
-              - { op: apply, to: bearer, effect: renew, stacks: 2 }
+              - op: if
+                cond:
+                  and:
+                    - { isEnemy: eventSource }
+                    - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: bearer, name: swell_wash } }] }] }, atLeast: 1 } }
+                then:
+                  - { op: setCounter, on: bearer, name: swell_wash, value: { turn: true } }
+                  - { op: eventEffect, remove: true }
+                  - { op: apply, to: bearer, effect: renew, stacks: 2 }
 
 heal.ocean:
   archetype: Heal
@@ -605,27 +608,32 @@ heal.ocean:
 bless.ocean:
   archetype: Bless
   element: Ocean
-  name: Sea Legs
-  description: Target ally gains Flow for 3 turns; each time their Flow ignores a counter or reflect, they heal 15.
+  name: Swell and Break
+  description: >-
+    Crest: target ally gains Brimming for 3 turns and 15 Brimming Shield. Trough: target ally's Brimming
+    Shield breaks over them: it ends, and they gain 1 Might for 3 turns, plus 1 for every 10 Shield it
+    held (up to 3 Might).
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
   target: ally
   ops:
-    - { op: apply, to: primary, effect: flow, duration: { enemyTurns: 3 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 3 }
-      effect:
-        id: sea_legs
-        name: Sea Legs
-        kind: Buff
-        element: Ocean
-        description: Each time the bearer's Flow ignores a counter or reflect, they heal 15.
-        triggers:
-          - on: counterIgnored
-            do:
-              - { op: heal, to: bearer, amount: 15 }
+    - op: if
+      cond: { crest: true }
+      then:
+        - { op: apply, to: primary, effect: brimming, duration: { enemyTurns: 3 } }
+        - { op: growShield, to: primary, effect: brimming_shield, amount: 15, max: 30 }
+      else:
+        - { op: set, var: held, value: { effectValueOf: { unit: primary, effect: brimming_shield } } }
+        - { op: removeEffect, from: primary, effect: brimming_shield }
+        - op: apply
+          to: primary
+          effect: might
+          duration: { enemyTurns: 3 }
+          stacks:
+            if: { compare: { value: { var: held }, atLeast: 20 } }
+            then: 3
+            else: { sum: [1, { div: [{ var: held }, 10] }] }
 
 curse.ocean:
   archetype: Curse

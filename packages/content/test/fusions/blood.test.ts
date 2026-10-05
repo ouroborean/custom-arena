@@ -216,29 +216,39 @@ describe('Blood skills', () => {
     expect([a.hp(B1), a.stacks(B1, 'hemorrhage'), a.hp(B2), a.stacks(B2, 'hemorrhage')]).toEqual([70, 2, 85, 2]);
   });
 
-  it('Quickened Pulse: 15 damage and 1 Focus for the next skill', () => {
-    const a = arena({ p0: [['charge.blood', 'shot']], p1: [['shot']] });
+  it('Quickened Pulse: 10 damage, and the target gains 1 Hemorrhage; nothing more on the turn it\'s used', () => {
+    const a = arena({ p0: [['charge.blood']], p1: [['shot']] });
     a.use(A1, 'charge.blood', B1).end();
-    expect([a.hp(B1), a.has(A1, 'focus')]).toEqual([85, true]);
-    a.pass(1).use(A1, 'shot', B1);
-    expect(a.state.players[0].queue[0]!.cost.r).toBe(0);
-    a.end();
-    expect(a.has(A1, 'focus')).toBe(false);
+    // Only the usual tick at the end of the user's turn: 5, then 2 stacks.
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage'), a.has(A1, 'quickened_pulse')]).toEqual([85, 2, true]);
   });
 
-  it('Quickened Pulse: until the end of the user\'s next turn, every 10 HP healed gives 1 Renew (any healing)', () => {
-    const a = arena({ p0: [['charge.blood'], ['heal']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'charge.blood', B1).end().pass(1);
-    a.use(A2, 'heal', A1).end();
-    // Healed 25 → 2 Renew. The Renew tick (+10) is healing too, so it gives 1 more before losing 1.
-    expect([a.hp(A1), a.stacks(A1, 'renew')]).toEqual([85, 2]);
+  it('Quickened Pulse: when the user\'s next skill resolves, every bleeding enemy\'s Hemorrhage ticks once more and grows', () => {
+    const a = arena({ p0: [['charge.blood', 'shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'hemorrhage', { source: A1 }).use(A1, 'charge.blood', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([85, 95, 100]);
+    a.pass(1).use(A1, 'shot', B1).end();
+    // B1: 15 from Shot, an extra tick of 10 (→ 3 stacks), then the usual tick of 15 (→ 4).
+    // B2: an extra tick of 10 (→ 3), then the usual 15 (→ 4). B3 isn't bleeding.
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage'), a.hp(B2), a.stacks(B2, 'hemorrhage'), a.hp(B3)]).toEqual([45, 4, 70, 4, 100]);
+    expect(a.has(A1, 'quickened_pulse')).toBe(false);
   });
 
-  it('Quickened Pulse: healing after the user\'s next turn gives no Renew', () => {
-    const a = arena({ p0: [['charge.blood'], ['heal']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'charge.blood', B1).end().pass(3);
-    a.use(A2, 'heal', A1).end();
-    expect([a.hp(A1), a.has(A1, 'renew')]).toEqual([75, false]);
+  it('Quickened Pulse: only the next skill — the one after it doesn\'t quicken anything', () => {
+    const a = arena({ p0: [['charge.blood', 'shot', 'stab']], p1: [['shot']] });
+    a.use(A1, 'charge.blood', B1).end().pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([45, 4]);
+    a.pass(1).use(A1, 'stab', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([45 - 20 - 20, 5]); // Stab, then only the usual tick
+  });
+
+  it('Quickened Pulse: a pulse on no bleeding enemy does nothing', () => {
+    const a = arena({ p0: [['charge.blood', 'shot']], p1: [['heal'], ['shot']] });
+    a.use(A1, 'charge.blood', B1).end().use(B1, 'heal', B1).end();
+    expect(a.has(B1, 'hemorrhage')).toBe(false);
+    const before = a.hp(B1);
+    a.use(A1, 'shot', B2).end();
+    expect([a.hp(B1), a.hp(B2), a.has(A1, 'quickened_pulse')]).toEqual([before, 85, false]);
   });
 
   it('Blood Spite: invisible; counters the first Harmful skill, attacker gains 1 Hemorrhage per 20 HP missing', () => {
@@ -347,19 +357,44 @@ describe('Blood skills', () => {
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1)).toBe(false);
   });
 
-  it('Pale Step: Immortal for 1 turn; drains a fragment from each enemy who damages the user', () => {
-    const a = arena({ p0: [['maneuver.blood']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B1, 'soul_fragment').setHp(A1, 30).use(A1, 'maneuver.blood').end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    // B1's fragment gives it +5: 20 + 15 = 35 against 30 HP → Immortal floor 5.
-    expect([a.hp(A1), a.unit(A1).alive, a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([5, true, 2, 0]);
-    expect(a.stacks(B3, 'soul_fragment')).toBe(0);
+  it('Pale Step: the enemy who last damaged the user gains 1 Hemorrhage, and for 1 turn enemies with Hemorrhage can\'t target them', () => {
+    const a = arena({ p0: [['maneuver.blood']], p1: [['shot'], ['shot']] });
+    a.end().use(B1, 'shot', A1).end();
+    a.use(A1, 'maneuver.blood').end();
+    expect([a.has(B1, 'hemorrhage'), a.has(B2, 'hemorrhage')]).toEqual([true, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B2, 'shot', A1).end(); // a clean enemy still can
+    expect(a.hp(A1)).toBe(70);
   });
 
-  it('Pale Step: no damage, no fragments; gone after 1 turn', () => {
+  it('Pale Step: if no enemy has damaged the user yet, a random enemy gains 1 Hemorrhage', () => {
+    const a = arena({ p0: [['maneuver.blood']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'maneuver.blood').end();
+    expect([B1, B2, B3].filter((id) => a.has(id, 'hemorrhage'))).toHaveLength(1);
+  });
+
+  it('Pale Step: their ticking damage can\'t reach the user either', () => {
     const a = arena({ p0: [['maneuver.blood']], p1: [['shot']] });
-    a.use(A1, 'maneuver.blood').end().end();
-    expect([a.stacks(A1, 'soul_fragment'), a.has(A1, 'immortal')]).toEqual([0, false]);
+    a.give(B1, 'hemorrhage', { source: A1 }).give(A1, 'ignite', { source: B1 }).use(A1, 'maneuver.blood').end().end();
+    expect(a.hp(A1)).toBe(100);
+  });
+
+  it('Pale Step: each enemy who damages the user gains 1 Hemorrhage', () => {
+    const a = arena({ p0: [['maneuver.blood']], p1: [['shot'], ['shot'], ['shot']] });
+    a.end().use(B3, 'shot', A1).end(); // B3 is the one who bleeds from the start
+    a.use(A1, 'maneuver.blood').end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    // Each now bleeds (ticking at the end of the user's turn): 5, then 2 stacks.
+    expect([a.hp(A1), a.has(B1, 'hemorrhage'), a.has(B2, 'hemorrhage')]).toEqual([55, true, true]);
+    a.end();
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([95, 2]);
+  });
+
+  it('Pale Step: gone after 1 turn', () => {
+    const a = arena({ p0: [['maneuver.blood']], p1: [['shot']] });
+    a.use(A1, 'maneuver.blood').end().pass(2);
+    a.give(B1, 'hemorrhage', { source: A1 }).use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Bloodbound Familiar: permanent; a hit on it doesn\'t kill it and hurts the user instead', () => {
@@ -488,17 +523,17 @@ describe('Blood skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([65, 45]);
   });
 
-  it('Bloodletter\'s Knife: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.blood'], ['stab.blood']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 61).setHp(B2, 60).use(A1, 'stab.blood', B1).use(A2, 'stab.blood', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([51, 40]);
+  it('Bloodletter\'s Knife: 10 damage; a target missing under 30 HP after it doesn\'t bleed', () => {
+    const a = arena({ p0: [['stab.blood']], p1: [['shot']] });
+    a.setHp(B1, 81).use(A1, 'stab.blood', B1).end();
+    expect([a.hp(B1), a.has(B1, 'hemorrhage')]).toEqual([71, false]);
   });
 
-  it('Bloodletter\'s Knife: the user\'s Renew heals once now without losing a stack', () => {
-    const a = arena({ p0: [['stab.blood']], p1: [['shot']] });
-    a.give(A1, 'renew', { stacks: 2, source: A1 }).setHp(A1, 50).use(A1, 'stab.blood', B1).end();
-    // +10 now (still 2 stacks), then the normal tick: +10 and down to 1.
-    expect([a.hp(A1), a.stacks(A1, 'renew')]).toEqual([70, 1]);
+  it('Bloodletter\'s Knife: then 1 Hemorrhage for every 30 HP the target is missing', () => {
+    const a = arena({ p0: [['stab.blood'], ['stab.blood']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 70).setHp(B2, 41).use(A1, 'stab.blood', B1).use(A2, 'stab.blood', B2).end();
+    // B1: 60 HP, 40 missing → 1 (ticks 5, grows to 2). B2: 31 HP, 69 missing → 2 (ticks 10, grows to 3).
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage'), a.hp(B2), a.stacks(B2, 'hemorrhage')]).toEqual([55, 2, 21, 3]);
   });
 
   it('Arterial Strike: 30 Piercing (ignores Armor) and 2 Hemorrhage', () => {
@@ -521,34 +556,39 @@ describe('Blood skills', () => {
     expect([a.has(B1, 'hemorrhage'), a.has(B2, 'hemorrhage')]).toEqual([false, false]);
   });
 
-  it('Red Herring: invisible; counters a Harmful skill and the user pays its cost again, 10 HP per energy', () => {
+  it('Red Herring: invisible; target enemy gains 1 Hemorrhage, and their next Harmful skill is countered', () => {
     const a = arena({ p0: [['mislead.blood']], p1: [['smash']] });
     a.use(A1, 'mislead.blood', B1).end();
-    expect(a.hp(A1)).toBe(90);
+    expect(a.hp(A1)).toBe(90); // Blood Price
     expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === B1)).toBe(false);
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([95, 2]);
     a.use(B1, 'smash', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([90, 80]);
+    expect(a.hp(A1)).toBe(90);
   });
 
-  it('Red Herring: a countered 1-energy Shot costs its user 10 HP', () => {
-    const a = arena({ p0: [['mislead.blood']], p1: [['shot']] });
-    a.use(A1, 'mislead.blood', B1).end();
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([90, 90]);
+  it('Red Herring: only one counter in all — the first Harmful skill used by any bleeding enemy; a clean one isn\'t watched', () => {
+    const a = arena({ p0: [['mislead.blood']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'hemorrhage', { source: A1 }).use(A1, 'mislead.blood', B1).end();
+    a.use(B2, 'shot', A1).use(B1, 'shot', A1).use(B3, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(90 - 15 - 15); // B2's shot is countered; B1's and B3's land
+    const b = arena({ p0: [['mislead.blood']], p1: [['shot'], ['shot']] });
+    b.give(B2, 'hemorrhage', { source: A1 }).use(A1, 'mislead.blood', B1).end();
+    b.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(b.hp(A1)).toBe(90 - 15); // now B1's is the one countered
   });
 
-  it('Red Herring: Helpful skills aren\'t countered or charged', () => {
+  it('Red Herring: Helpful skills aren\'t countered', () => {
     const a = arena({ p0: [['mislead.blood']], p1: [['heal']] });
     a.setHp(B1, 50).use(A1, 'mislead.blood', B1).end();
     a.use(B1, 'heal', B1).end();
-    expect(a.hp(B1)).toBe(75);
+    expect([a.hp(B1), a.has(B1, 'hemorrhage')]).toEqual([45 + 25, false]);
   });
 
   it('Red Herring: lasts only 1 turn', () => {
     const a = arena({ p0: [['mislead.blood']], p1: [['shot']] });
     a.use(A1, 'mislead.blood', B1).end().pass(2);
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.hp(B1)]).toEqual([75, 100]);
+    expect(a.hp(A1)).toBe(75);
   });
 
   it('Swoon: 15 damage and Stunned', () => {
@@ -604,18 +644,22 @@ describe('Blood skills', () => {
     expect(a.has(A1, 'swiftness')).toBe(false);
   });
 
-  it('Restitution: the ally heals 20 and their most recent attacker loses 20 (raw)', () => {
-    const a = arena({ p0: [['heal.blood'], ['shot']], p1: [['shot'], ['shot']] });
-    a.pass(1).use(B1, 'shot', A2).use(B2, 'shot', A2).end();
-    a.give(B2, 'shield', { value: 50 }).give(B2, 'armor', { stacks: 3 });
+  it('Bloodletting: up to 2 of target ally\'s Debuffs are removed, and they heal 15 plus 10 per Debuff removed', () => {
+    const a = arena({ p0: [['heal.blood'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).give(A2, 'weakness', { source: B1 }).give(A2, 'intimidated', { source: B1 }).give(A2, 'vulnerable', { source: B1 });
     a.use(A1, 'heal.blood', A2).end();
-    expect([a.hp(A2), a.hp(B1), a.hp(B2)]).toEqual([90, 100, 80]);
+    const left = ['weakness', 'intimidated', 'vulnerable'].filter((d) => a.has(A2, d));
+    expect([a.hp(A2), left.length]).toEqual([75, 1]);
   });
 
-  it('Restitution: with no attacker, just the heal', () => {
+  it('Bloodletting: one Debuff removed heals 25; none heals 15', () => {
     const a = arena({ p0: [['heal.blood'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'heal.blood', A2).end();
-    expect([a.hp(A2), a.hp(B1)]).toEqual([70, 100]);
+    a.setHp(A2, 40).give(A2, 'weakness', { source: B1 });
+    a.use(A1, 'heal.blood', A2).end();
+    expect([a.hp(A2), a.has(A2, 'weakness')]).toEqual([65, false]);
+    const b = arena({ p0: [['heal.blood'], ['shot']], p1: [['shot']] });
+    b.setHp(A2, 40).use(A1, 'heal.blood', A2).end();
+    expect(b.hp(A2)).toBe(55);
   });
 
   it('Blood Doping: 2 Might and 2 Swiftness for 2 turns', () => {
@@ -701,79 +745,105 @@ describe('Blood skills', () => {
     expect(a.hp(A2)).toBe(100);
   });
 
-  it('Leeching Sweep: 25 to the target and 15 to exactly one other enemy', () => {
+  it('Crimson Spray: 20 damage; with no Hemorrhage on the target, a random other enemy still takes 10', () => {
     const a = arena({ p0: [['cleave.blood']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'cleave.blood', B1).end();
-    expect(a.hp(B1)).toBe(75);
-    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 85]);
+    expect(a.hp(B1)).toBe(80);
+    expect([a.hp(B2), a.hp(B3)].sort()).toEqual([100, 90]);
   });
 
-  it('Leeching Sweep: with Lifesteal, the user\'s ticking/Affliction damage heals them twice over', () => {
+  it('Crimson Spray: the target\'s Hemorrhage bursts onto a random other enemy — it ends, and that enemy takes 10 per stack', () => {
     const a = arena({ p0: [['cleave.blood']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'lifesteal').give(B1, 'hemorrhage', { stacks: 2, source: A1 }).setHp(A1, 30).use(A1, 'cleave.blood', B1).end();
-    // 40 stolen by the hits; the 10-damage Hemorrhage tick heals 10 (Lifesteal) + 10 (the Sweep).
-    expect(a.hp(A1)).toBe(90);
+    a.give(B1, 'hemorrhage', { stacks: 3, source: A1 }).use(A1, 'cleave.blood', B1).end();
+    expect([a.hp(B1), a.has(B1, 'hemorrhage'), a.hp(B2), a.has(B2, 'hemorrhage')]).toEqual([80, false, 70, false]);
+    const b = arena({ p0: [['cleave.blood']], p1: [['shot'], ['shot']] });
+    b.give(B1, 'hemorrhage', { stacks: 1, source: A1 }).use(A1, 'cleave.blood', B1).end();
+    expect([b.hp(B1), b.hp(B2)]).toEqual([80, 90]);
   });
 
-  it('Leeching Sweep: without Lifesteal, ticks don\'t heal', () => {
-    const a = arena({ p0: [['cleave.blood']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'hemorrhage', { stacks: 2, source: A1 }).setHp(A1, 30).use(A1, 'cleave.blood', B1).end();
-    expect(a.hp(A1)).toBe(30);
+  it('Bloodcurdle: all enemies gain 1 Hemorrhage', () => {
+    const a = arena({ p0: [['shout.blood']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.blood').end();
+    expect([a.has(B1, 'hemorrhage'), a.has(B2, 'hemorrhage'), a.has(B1, 'intimidated')]).toEqual([true, true, false]);
   });
 
-  it('Bloodcurdle: all enemies Intimidated; each who uses a Helpful skill gives the user a fragment', () => {
+  it('Bloodcurdle: for 2 turns, an enemy who\'s healed is also Intimidated for 2 turns', () => {
     const a = arena({ p0: [['shout.blood']], p1: [['heal'], ['shot']] });
     a.use(A1, 'shout.blood').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
     a.use(B1, 'heal', B1).use(B2, 'shot', A1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
-    expect(a.cooldown(B1, 'heal')).toBe(2); // CD 1 +1 Intimidated, after one tick
+    expect([a.has(B1, 'intimidated'), a.has(B1, 'hemorrhage'), a.has(B2, 'intimidated')]).toEqual([true, false, false]);
+    expect(a.cooldown(B1, 'heal')).toBe(1); // used before the Intimidation landed
+    a.pass(3);
+    expect(a.has(B1, 'intimidated')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  it('Bloodcurdle: ends after 2 turns', () => {
+  it('Bloodcurdle: healing after the 2 turns doesn\'t Intimidate', () => {
     const a = arena({ p0: [['shout.blood']], p1: [['heal']] });
     a.use(A1, 'shout.blood').end().pass(4);
     a.use(B1, 'heal', B1).end();
-    expect([a.has(B1, 'intimidated'), a.stacks(A1, 'soul_fragment')]).toEqual([false, 0]);
+    expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
-  it('Clotting Ward: 25 Shield; while it holds, Renew heals again at the start of the user\'s turn', () => {
+  it('Clotting Ward: for 1 turn, direct hits deal half damage; every 20 it stops clots into 1 Hemorrhage', () => {
+    const a = arena({ p0: [['withstand.blood']], p1: [['smash.devil'], ['smash.devil']] });
+    a.use(A1, 'withstand.blood').end();
+    a.use(B1, 'smash.devil', A1).use(B2, 'smash.devil', A1).end(); // 40 → 20 twice: 40 stopped
+    expect([a.hp(A1), a.stacks(A1, 'hemorrhage')]).toEqual([60, 2]);
+  });
+
+  it('Clotting Ward: what it stops adds up over the turn, so small hits clot too', () => {
+    const a = arena({ p0: [['withstand.blood']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'withstand.blood').end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end(); // 15 → 8 twice: 16 stopped, no clot yet
+    expect([a.hp(A1), a.has(A1, 'hemorrhage')]).toEqual([84, false]);
+    const b = arena({ p0: [['withstand.blood']], p1: [['shot'], ['shot'], ['shot']] });
+    b.use(A1, 'withstand.blood').end();
+    b.use(B1, 'shot', A1).use(B2, 'shot', A1).use(B3, 'shot', A1).end(); // 24 stopped
+    expect([b.hp(A1), b.stacks(A1, 'hemorrhage')]).toEqual([76, 1]);
+  });
+
+  it("Clotting Ward: the clot bleeds once at the end of the user's next turn, then closes: their Hemorrhage ends", () => {
+    const a = arena({ p0: [['withstand.blood'], ['shot']], p1: [['smash.devil']] });
+    a.use(A1, 'withstand.blood').end().use(B1, 'smash.devil', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'hemorrhage')]).toEqual([80, 1]);
+    a.end(); // the user's turn ends: it bleeds 5, then the clot closes
+    expect([a.hp(A1), a.has(A1, 'hemorrhage')]).toEqual([75, false]);
+    a.pass(4);
+    expect(a.hp(A1)).toBe(75);
+  });
+
+  it('Clotting Ward: it lasts 1 turn', () => {
     const a = arena({ p0: [['withstand.blood']], p1: [['shot']] });
-    a.give(A1, 'renew', { stacks: 2, source: A1 }).setHp(A1, 50).use(A1, 'withstand.blood').end();
-    expect(a.hp(A1)).toBe(60); // normal Renew tick
-    a.use(B1, 'shot', A1).end();
-    // Shield absorbed the shot; at the start of the user's turn Renew (1 stack) heals once more.
-    expect(a.hp(A1)).toBe(65);
+    a.use(A1, 'withstand.blood').end().pass(2).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(A1, 'hemorrhage')]).toEqual([85, false]);
   });
 
-  it('Clotting Ward: the Shield ends at the start of the user\'s next turn', () => {
-    const a = arena({ p0: [['withstand.blood']], p1: [['shot']] });
-    a.use(A1, 'withstand.blood').end().end();
-    expect(a.has(A1, 'clotting_ward')).toBe(false);
-  });
-
-  it('Clotting Ward: a broken Shield gives no extra Renew', () => {
-    const a = arena({ p0: [['withstand.blood']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'renew', { stacks: 2, source: A1 }).setHp(A1, 50).use(A1, 'withstand.blood').end();
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(55);
-  });
-
-  it('Bloodied Waters: Taunted; each skill aimed at the user gives 1 Confusion', () => {
+  it('Open Vein: the user gains 2 Hemorrhage, and target enemy is Taunted by them for 2 turns', () => {
     const a = arena({ p0: [['taunt.blood'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.blood', B1).end();
+    // The user's own Hemorrhage ticks: 10, then 3 stacks.
+    expect([a.hp(A1), a.stacks(A1, 'hemorrhage')]).toEqual([90, 3]);
     expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect([a.stacks(B1, 'confusion'), a.has(B2, 'confusion')]).toEqual([1, false]);
+    a.end().pass(1);
+    expect(a.has(B1, 'taunt')).toBe(true);
+    a.pass(1);
+    expect(a.has(B1, 'taunt')).toBe(false);
   });
 
-  it('Bloodied Waters: the Confusion lasts 2 turns', () => {
-    const a = arena({ p0: [['taunt.blood']], p1: [['shot']] });
-    a.use(A1, 'taunt.blood', B1).end();
-    a.use(B1, 'shot', A1).end().pass(3);
-    expect(a.has(B1, 'confusion')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'confusion')).toBe(false);
+  it('Open Vein: when the Taunted enemy damages the user, the user\'s Hemorrhage moves onto them', () => {
+    const a = arena({ p0: [['taunt.blood'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.blood', B1).end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.has(A1, 'hemorrhage'), a.stacks(B1, 'hemorrhage')]).toEqual([75, false, 3]);
+    a.end(); // now it bleeds them at the end of the user's turn
+    expect([a.hp(B1), a.stacks(B1, 'hemorrhage')]).toEqual([85, 4]);
+  });
+
+  it('Open Vein: an enemy the user didn\'t Taunt takes nothing', () => {
+    const a = arena({ p0: [['taunt.blood'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.blood', B1).end().use(B2, 'shot', A1).end();
+    expect([a.stacks(A1, 'hemorrhage'), a.has(B2, 'hemorrhage')]).toEqual([3, false]);
   });
 
   it('Crimson Colossus: 2 Armor and Immortal for 3 turns', () => {

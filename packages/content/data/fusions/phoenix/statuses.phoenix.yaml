@@ -24,8 +24,8 @@ ashes:
   element: Phoenix
   stacking: unique
   description: >-
-    Until the start of the bearer's next turn, they're Untargetable and can't lose HP. Then they rise
-    with 25 HP.
+    Until the start of the bearer's next turn, they're Untargetable and can't lose HP. Then they rise,
+    back up to 25 HP if they have less.
   modifiers:
     - { mod: untargetable, by: enemies, bypassable: false }
     - { mod: untargetable, by: allies, bypassable: false }

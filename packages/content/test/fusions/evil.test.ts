@@ -65,24 +65,24 @@ describe('Evil: Unhallowed', () => {
 
 describe('Evil: Soul Fragment drains and Tithe', () => {
   it('a drain takes a Fragment from the target and gives it to the user', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot']] });
-    a.give(B1, 'soul_fragment', { stacks: 2 }).use(A1, 'stab.evil', B1).end();
+    const a = arena({ p0: [['charge.evil']], p1: [['shot']] });
+    a.give(B1, 'soul_fragment', { stacks: 2 }).use(A1, 'charge.evil', B1).end();
     expect([a.stacks(B1, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([1, 1]);
   });
 
   it('a drain on a target with no Fragments still gives the user one', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot']] });
-    a.use(A1, 'stab.evil', B1).end();
+    const a = arena({ p0: [['charge.evil']], p1: [['shot']] });
+    a.use(A1, 'charge.evil', B1).end();
     expect([a.stacks(B1, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([0, 1]);
   });
 
   it('Tithe spends at most N Fragments and the skill still works with none', () => {
-    const a = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'bless.evil', A2).end();
-    expect([a.stacks(A1, 'soul_fragment'), a.stacks(A2, 'might')]).toEqual([1, 2]);
-    const b = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
-    b.use(A1, 'bless.evil', A2).end();
-    expect([b.has(A2, 'lifesteal'), b.stacks(A2, 'might')]).toEqual([true, 0]);
+    const a = arena({ p0: [['smite.evil']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'smite.evil', B1).end();
+    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
+    const b = arena({ p0: [['smite.evil']], p1: [['shot']] });
+    b.use(A1, 'smite.evil', B1).end();
+    expect(b.hp(B1)).toBe(80);
   });
 });
 
@@ -114,75 +114,41 @@ describe('Evil skills', () => {
   });
 
   // Smash
-  it('Soulgrinder: 40 to the target, Horrifies only their allies for 2 turns; no Fragments, no extra hits', () => {
+  it('Soulgrinder: 25 damage; at the end of the user’s turn, 10 Affliction to the target, 5 to each of their allies, and the user drains a Soul Fragment from the target', () => {
     const a = arena({ p0: [['smash.evil']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B1, 'soul_fragment').give(B2, 'armor', { stacks: 4 }).give(B2, 'shield', { value: 50 });
     a.use(A1, 'smash.evil', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([60, 100, 100]);
-    expect([a.has(B1, 'horrified'), a.has(B2, 'horrified'), a.has(B3, 'horrified')]).toEqual([false, true, true]);
-    a.pass(2); // turns 2–3
-    expect(a.has(B2, 'horrified')).toBe(true);
-    a.pass(1);
-    expect(a.has(B2, 'horrified')).toBe(false);
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([65, 95, 95]); // Affliction: through Shield and Armor
+    expect([a.stacks(B1, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([0, 1]);
   });
 
-  it('Soulgrinder: Tithe 2, each Fragment spent is 15 Affliction to a random ally of the target', () => {
-    const a = arena({ p0: [['smash.evil']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).give(B2, 'armor', { stacks: 4 }).give(B3, 'armor', { stacks: 4 });
-    a.give(B2, 'shield', { value: 50 }).give(B3, 'shield', { value: 50 });
-    a.use(A1, 'smash.evil', B1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(0);
-    expect(200 - a.hp(B2) - a.hp(B3)).toBe(30);
-    expect([a.hp(B2), a.hp(B3)].every((h) => (100 - h) % 15 === 0)).toBe(true);
-  });
-
-  it('Soulgrinder: Tithe 2 spends no more than 2 Fragments', () => {
+  it('Soulgrinder: it grinds for 2 turns, once more at the end of the user’s next turn, then stops', () => {
     const a = arena({ p0: [['smash.evil']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'smash.evil', B1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
-  });
-
-  it('Soulgrinder: the Tithe hits never land on the primary target', () => {
-    const a = arena({ p0: [['smash.evil']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'smash.evil', B1).end();
-    expect(a.hp(B2)).toBe(70);
-    expect(a.hp(B1)).toBe(50); // 40 + 2 Fragments' Might, nothing more
+    a.use(A1, 'smash.evil', B1).end().end().end();
+    expect([a.hp(B1), a.hp(B2), a.stacks(A1, 'soul_fragment')]).toEqual([55, 90, 2]);
+    a.pass(2);
+    expect([a.hp(B1), a.hp(B2), a.stacks(A1, 'soul_fragment'), a.has(B1, 'soulgrinder')]).toEqual([55, 90, 2, false]);
   });
 
   // Charge
-  it('Soul Hunt: 15 damage; the next Harmful skill (not Soul Hunt itself) drains a Fragment from its target', () => {
-    const a = arena({ p0: [['charge.evil', 'shot']], p1: [['shot']] });
+  it('Soul Hunt: 20 damage, and the user drains a Soul Fragment from the target', () => {
+    const a = arena({ p0: [['charge.evil']], p1: [['shot']] });
     a.give(B1, 'soul_fragment').use(A1, 'charge.evil', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([85, 0, 1]);
-    a.pass(1).use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([80, 1, 0]);
+  });
+
+  it('Soul Hunt: the first enemy to hit the user before their next turn drains a Fragment back', () => {
+    const a = arena({ p0: [['charge.evil']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'charge.evil', B1).end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment'), a.stacks(B2, 'soul_fragment')]).toEqual([0, 1, 0]);
+  });
+
+  it('Soul Hunt: unhit until their next turn, the user keeps it', () => {
+    const a = arena({ p0: [['charge.evil']], p1: [['shot']] });
+    a.use(A1, 'charge.evil', B1).end().end().end(); // the user's next turn has come and gone
+    a.use(B1, 'shot', A1).end();
     expect([a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([1, 0]);
-    a.pass(1).use(A1, 'shot', B1).end(); // only the one skill drains
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
-  });
-
-  it('Soul Hunt: a Helpful skill doesn\'t use up the drain', () => {
-    const a = arena({ p0: [['charge.evil', 'heal', 'shot']], p1: [['shot']] });
-    a.use(A1, 'charge.evil', B1).end().pass(1).use(A1, 'heal', A1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(0);
-    a.pass(1).use(A1, 'shot', B1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
-  });
-
-  it('Soul Hunt: Tithe 1 spends a Fragment and the next skill costs 1 less', () => {
-    const a = arena({ p0: [['charge.evil', 'shot']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'charge.evil', B1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
-    a.pass(1);
-    const before = energy0(a);
-    a.use(A1, 'shot', B1).end();
-    expect(before - energy0(a)).toBe(0);
-  });
-
-  it('Soul Hunt: without a Fragment the next skill costs full price', () => {
-    const a = arena({ p0: [['charge.evil', 'shot']], p1: [['shot']] });
-    a.use(A1, 'charge.evil', B1).end().pass(1);
-    const before = energy0(a);
-    a.use(A1, 'shot', B1).end();
-    expect(before - energy0(a)).toBe(1);
   });
 
   // Riposte
@@ -246,22 +212,22 @@ describe('Evil skills', () => {
   });
 
   // Shot
-  it('Bone Needle: 10 plus 5 per Fragment (on top of the Fragments\' own Might)', () => {
+  it('Bone Needle: with no Fragment to spend, 10 damage and the user drains a Soul Fragment from the target', () => {
     const a = arena({ p0: [['shot.evil']], p1: [['shot']] });
-    a.use(A1, 'shot.evil', B1).end();
-    expect(a.hp(B1)).toBe(90);
-    const b = arena({ p0: [['shot.evil']], p1: [['shot']] });
-    b.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'shot.evil', B1).end();
-    expect(b.hp(B1)).toBe(70);
+    a.give(B1, 'soul_fragment').use(A1, 'shot.evil', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([90, 1, 0]);
   });
 
-  it('Bone Needle: drains a Fragment only from an Unhallowed target', () => {
-    const a = arena({ p0: [['shot.evil']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'soul_fragment').give(B2, 'soul_fragment').give(B2, 'unhallowed', { source: A1 });
-    a.use(A1, 'shot.evil', B1).end();
-    expect([a.stacks(B1, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([1, 0]);
-    a.pass(3).use(A1, 'shot.evil', B2).end(); // cooldown 1
-    expect([a.stacks(B2, 'soul_fragment'), a.stacks(A1, 'soul_fragment')]).toEqual([0, 1]);
+  it('Bone Needle: with a Fragment to spend, the user hurls it: 25 Piercing, and no drain', () => {
+    const a = arena({ p0: [['shot.evil']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment', { stacks: 2 }).give(B1, 'armor', { stacks: 3 }).use(A1, 'shot.evil', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment')]).toEqual([70, 1]); // 25 + the Fragment left's Might
+  });
+
+  it('Bone Needle: the drained Fragment is the next Needle’s ammunition', () => {
+    const a = arena({ p0: [['shot.evil']], p1: [['shot']] });
+    a.use(A1, 'shot.evil', B1).end().pass(3).use(A1, 'shot.evil', B1).end(); // cooldown 1
+    expect([a.hp(B1), a.stacks(A1, 'soul_fragment')]).toEqual([65, 0]);
   });
 
   // Snipe
@@ -341,26 +307,19 @@ describe('Evil skills', () => {
   });
 
   // Maneuver
-  it('Deathless Step: the effect is invisible to the opponent', () => {
-    const a = arena({ p0: [['maneuver.evil']], p1: [['shot']] });
-    a.use(A1, 'maneuver.evil').end();
-    expect(p1Sees(a, A1)).toBe(false);
+  it('Deathless Step: the user gains a Soul Fragment; for 1 turn, each time they’d lose HP they lose a Fragment instead, then HP once none are left', () => {
+    const a = arena({ p0: [['maneuver.evil']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(A1, 'soul_fragment').use(A1, 'maneuver.evil').end();
+    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).use(B3, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'soul_fragment')]).toEqual([85, 0]); // two shots paid in Fragments, the third in HP
   });
 
-  it('Deathless Step: with no Fragment, Immortal for 1 turn', () => {
+  it('Deathless Step: it lasts 1 turn', () => {
     const a = arena({ p0: [['maneuver.evil']], p1: [['shot']] });
-    a.setHp(A1, 10).use(A1, 'maneuver.evil').end();
-    expect([a.has(A1, 'immortal'), a.has(A1, 'invulnerable')]).toEqual([true, false]);
+    a.use(A1, 'maneuver.evil').end().end().end();
     a.use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(5);
-    expect(a.has(A1, 'immortal')).toBe(false);
-  });
-
-  it('Deathless Step: Tithe 1 spends one Fragment for Invulnerable instead', () => {
-    const a = arena({ p0: [['maneuver.evil']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'maneuver.evil').end();
-    expect([a.stacks(A1, 'soul_fragment'), a.has(A1, 'invulnerable'), a.has(A1, 'immortal')]).toEqual([1, true, false]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    expect([a.hp(A1), a.stacks(A1, 'soul_fragment')]).toEqual([85, 1]);
   });
 
   // Companion
@@ -394,39 +353,43 @@ describe('Evil skills', () => {
   });
 
   // Bolt
-  it('Profane Bolt: 25 and Horrified for 2 turns against a target that isn\'t Unhallowed', () => {
-    const a = arena({ p0: [['bolt.evil']], p1: [['shot']] });
-    a.use(A1, 'bolt.evil', B1).end();
-    expect([a.hp(B1), a.has(B1, 'horrified')]).toEqual([75, true]);
-    a.pass(2);
-    expect(a.has(B1, 'horrified')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'horrified')).toBe(false);
+  it('Profane Bolt: 25 damage; for 2 turns, each Buff the target gains costs them 10 HP', () => {
+    const a = arena({ p0: [['bolt.evil']], p1: [['maneuver', 'dance']] });
+    a.give(B1, 'shield', { value: 50 }).use(A1, 'bolt.evil', B1).end();
+    expect([a.hp(B1), a.has(B1, 'profane_bolt')]).toEqual([100, true]); // the Shield took the hit
+    a.use(B1, 'maneuver').end(); // Invulnerable: one Buff, 10 HP through Shield and Invulnerable
+    expect([a.hp(B1), a.has(B1, 'invulnerable')]).toEqual([90, true]);
   });
 
-  it('Profane Bolt: against an Unhallowed target, a 15 heal that hurts instead, and no Horrify', () => {
-    const a = arena({ p0: [['bolt.evil']], p1: [['shot']] });
-    a.give(B1, 'unhallowed', { source: A1 }).use(A1, 'bolt.evil', B1).end();
-    expect([a.hp(B1), a.has(B1, 'horrified')]).toEqual([60, false]);
+  it('Profane Bolt: each Buff counts', () => {
+    const a = arena({ p0: [['bolt.evil']], p1: [['dance']] });
+    a.use(A1, 'bolt.evil', B1).end().use(B1, 'dance').end(); // Might, Swiftness and Focus
+    expect(a.hp(B1)).toBe(45);
+  });
+
+  it('Profane Bolt: after 2 turns, Buffs are free again', () => {
+    const a = arena({ p0: [['bolt.evil']], p1: [['maneuver']] });
+    a.use(A1, 'bolt.evil', B1).end().pass(4).use(B1, 'maneuver').end();
+    expect([a.hp(B1), a.has(B1, 'profane_bolt')]).toEqual([75, false]);
   });
 
   // Blast
-  it('Soulfire Nova: 25 to all enemies, plus 10 per Fragment (and their Might)', () => {
-    const a = arena({ p0: [['blast.evil']], p1: [['shot'], ['shot']] });
+  it('Soulfire Nova: 45 to all enemies, then the user and each of their allies are Unhallowed for 2 turns', () => {
+    const a = arena({ p0: [['blast.evil'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'blast.evil').end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 75]);
-    const b = arena({ p0: [['blast.evil']], p1: [['shot'], ['shot']] });
-    b.give(A1, 'soul_fragment').use(A1, 'blast.evil').end();
-    expect([b.hp(B1), b.hp(B2)]).toEqual([60, 60]);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([55, 55]);
+    expect([a.has(A1, 'unhallowed'), a.has(A2, 'unhallowed'), a.has(B1, 'unhallowed')]).toEqual([true, true, false]);
   });
 
-  it('Soulfire Nova: for 1 turn, healing the enemies receive also heals the user', () => {
-    const a = arena({ p0: [['blast.evil']], p1: [['shot'], ['heal']] });
-    a.setHp(A1, 50).use(A1, 'blast.evil').end();
-    a.use(B2, 'heal', B1).end(); // turn 2
-    expect([a.hp(B1), a.hp(A1)]).toEqual([100, 75]);
-    a.setHp(B1, 50).pass(3).use(B2, 'heal', B1).end(); // turn 6: over
-    expect([a.hp(B1), a.hp(A1)]).toEqual([75, 75]);
+  it('Soulfire Nova: meanwhile, healing on the user’s side hurts; after the 2 turns it heals again', () => {
+    const a = arena({ p0: [['blast.evil'], ['heal']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 60).use(A1, 'blast.evil').end().end();
+    a.use(A2, 'heal', A1).end();
+    expect(a.hp(A1)).toBe(35);
+    a.end();
+    expect(a.has(A1, 'unhallowed')).toBe(false);
+    a.pass(2).use(A2, 'heal', A1).end(); // Heal's cooldown
+    expect(a.hp(A1)).toBe(60);
   });
 
   // Consume
@@ -519,30 +482,20 @@ describe('Evil skills', () => {
   });
 
   // Stab
-  it('Heartpiercer: 15; drains a Fragment at 70+ HP, not below', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 69).use(A1, 'stab.evil', B2).end();
-    expect([a.hp(B2), a.stacks(A1, 'soul_fragment')]).toEqual([54, 0]);
-    a.pass(1).use(A1, 'stab.evil', B1).end();
-    expect([a.hp(B1), a.stacks(A1, 'soul_fragment')]).toEqual([85, 1]);
+  it('Heartpiercer: 15 damage; a target left above 30 HP isn’t Unhallowed', () => {
+    const a = arena({ p0: [['stab.evil']], p1: [['shot']] });
+    a.setHp(B1, 46).use(A1, 'stab.evil', B1).end();
+    expect([a.hp(B1), a.has(B1, 'unhallowed'), a.stacks(A1, 'soul_fragment')]).toEqual([31, false, 0]);
   });
 
-  it('Heartpiercer: Tithe 1 executes a target left below 20, spending the Fragment', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment').setHp(B1, 35).use(A1, 'stab.evil', B1).end(); // 20 → 15 left
-    expect([a.unit(B1).alive, a.stacks(A1, 'soul_fragment')]).toEqual([false, 0]);
-  });
-
-  it('Heartpiercer: no execute (and no Fragment spent) if the target stays at 20+', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'soul_fragment').setHp(B1, 40).use(A1, 'stab.evil', B1).end(); // 20 → 20 left
-    expect([a.hp(B1), a.stacks(A1, 'soul_fragment')]).toEqual([20, 1]);
-  });
-
-  it('Heartpiercer: without a Fragment, no execute', () => {
-    const a = arena({ p0: [['stab.evil']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 30).use(A1, 'stab.evil', B1).end();
-    expect([a.hp(B1), a.unit(B1).alive]).toEqual([15, true]);
+  it('Heartpiercer: left at or below 30 HP, they’re Unhallowed for 2 turns, so healing hurts them', () => {
+    const a = arena({ p0: [['stab.evil']], p1: [['shot'], ['heal']] });
+    a.setHp(B1, 45).use(A1, 'stab.evil', B1).end();
+    expect([a.hp(B1), a.has(B1, 'unhallowed')]).toEqual([30, true]);
+    a.use(B2, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(5);
+    a.pass(2);
+    expect(a.has(B1, 'unhallowed')).toBe(false); // 2 turns
   });
 
   // Ravage
@@ -589,31 +542,29 @@ describe('Evil skills', () => {
   });
 
   // Stun
-  it('Mutilate: Stunned for 1 turn and 1 permanent Vulnerable, with no Fragment needed', () => {
-    const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment').use(A1, 'stun.evil', B1).end();
-    expect([a.has(B1, 'stun'), a.stacks(B1, 'vulnerable'), a.stacks(A1, 'soul_fragment')]).toEqual([true, 1, 1]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.end();
-    expect(a.has(B1, 'stun')).toBe(false);
-    a.pass(10);
-    expect(a.stacks(B1, 'vulnerable')).toBe(1); // permanent
-  });
-
-  it('Mutilate: a Horrified target also gains 1 permanent Weakness', () => {
-    const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
-    a.give(B1, 'horrified', { source: A1 }).use(A1, 'stun.evil', B1).end().pass(10);
-    expect([a.stacks(B1, 'vulnerable'), a.stacks(B1, 'weakness')]).toEqual([1, 1]);
-  });
-
-  it('Mutilate: otherwise they are Horrified for 2 turns, and no Weakness', () => {
+  it('Cruel Mercy: Stunned for 2 turns', () => {
     const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
     a.use(A1, 'stun.evil', B1).end();
-    expect([a.has(B1, 'horrified'), a.has(B1, 'weakness')]).toEqual([true, false]);
-    a.pass(2);
-    expect(a.has(B1, 'horrified')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'horrified')).toBe(false);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().end();
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // their second turn
+    a.end().end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Cruel Mercy: Immortal for as long: nothing takes them below 5 HP, and then it ends', () => {
+    const a = arena({ p0: [['stun.evil'], ['smash']], p1: [['shot']] });
+    a.setHp(B1, 20).use(A1, 'stun.evil', B1).use(A2, 'smash', B1).end();
+    expect([a.hp(B1), a.unit(B1).alive, a.has(B1, 'immortal')]).toEqual([5, true, true]);
+    a.pass(4);
+    expect([a.has(B1, 'immortal'), a.has(B1, 'stun')]).toEqual([false, false]);
+  });
+
+  it('Cruel Mercy: Immortal is a Buff, so a Horrified target gets only the Stun', () => {
+    const a = arena({ p0: [['stun.evil']], p1: [['shot']] });
+    a.give(B1, 'horrified', { source: A1 }).use(A1, 'stun.evil', B1).end();
+    expect([a.has(B1, 'stun'), a.has(B1, 'immortal')]).toEqual([true, false]);
   });
 
   // Dance
@@ -678,20 +629,40 @@ describe('Evil skills', () => {
   });
 
   // Bless
-  it('Dark Gift: Lifesteal for 2 turns', () => {
+  it('Dark Gift: the user gives up 1 Soul Fragment and the ally gains 2; after 2 turns, one of them crumbles', () => {
     const a = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bless.evil', A2).use(A2, 'shot', B1).end();
-    expect(a.hp(A2)).toBe(65);
-    a.pass(3);
-    expect(a.has(A2, 'lifesteal')).toBe(false);
+    a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'bless.evil', A2).end();
+    expect([a.stacks(A1, 'soul_fragment'), a.stacks(A2, 'soul_fragment')]).toEqual([2, 2]);
+    a.pass(2); // through the user's next turn: still 2
+    expect(a.stacks(A2, 'soul_fragment')).toBe(2);
+    a.pass(1); // the end of the enemy's 2nd turn
+    expect(a.stacks(A2, 'soul_fragment')).toBe(1);
+    a.pass(10);
+    expect([a.stacks(A1, 'soul_fragment'), a.stacks(A2, 'soul_fragment')]).toEqual([2, 1]); // no Fragment minted
   });
 
-  it('Dark Gift: Tithe 2 gives 1 Might per Fragment spent, for 2 turns', () => {
+  it('Dark Gift: with none to give up, the user pays 15 HP instead, the ally gains 2, and both crumble after 2 turns', () => {
     const a = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment').use(A1, 'bless.evil', A2).end();
-    expect([a.stacks(A2, 'might'), a.stacks(A1, 'soul_fragment')]).toEqual([1, 0]);
+    a.give(A1, 'shield', { value: 50 }).use(A1, 'bless.evil', A2).end();
+    expect([a.hp(A1), a.stacks(A1, 'soul_fragment'), a.stacks(A2, 'soul_fragment')]).toEqual([85, 0, 2]);
+    a.use(B1, 'shot', A1).end().use(A2, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 25); // the 2 borrowed Fragments are worth +10 meanwhile
+    a.pass(1);
+    expect(a.stacks(A2, 'soul_fragment')).toBe(0);
+  });
+
+  it('Dark Gift: only the gift crumbles; the ally keeps the Fragments they already had', () => {
+    const a = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment').give(A2, 'soul_fragment', { stacks: 3 }).use(A1, 'bless.evil', A2).end();
+    expect(a.stacks(A2, 'soul_fragment')).toBe(5);
     a.pass(3);
-    expect(a.stacks(A2, 'might')).toBe(0);
+    expect(a.stacks(A2, 'soul_fragment')).toBe(4);
+  });
+
+  it('Dark Gift: the 15 HP can’t kill the user', () => {
+    const a = arena({ p0: [['bless.evil'], ['shot']], p1: [['shot']] });
+    a.setHp(A1, 10).use(A1, 'bless.evil', A2).end();
+    expect([a.hp(A1), a.stacks(A2, 'soul_fragment')]).toEqual([1, 2]);
   });
 
   // Curse
@@ -740,16 +711,38 @@ describe('Evil skills', () => {
   });
 
   // Cleave
-  it('Betrayal: 25 Piercing + 10 to the target, 10 to each of the user\'s allies, not the user', () => {
-    const a = arena({ p0: [['cleave.evil'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'cleave.evil', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([65, 100, 100, 90, 90]);
+  it("Spreading Agony: 20 to the target; their allies take 5 Affliction per 20 HP the target is now missing, at least 5 (Shield doesn't stop it)", () => {
+    const a = arena({ p0: [['cleave.evil'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.give(B2, 'shield', { value: 50 }).use(A1, 'cleave.evil', B1).end(); // missing 20
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([80, 95, 95]);
+    expect([a.hp(A1), a.hp(A2)]).toEqual([100, 100]); // the user's side is untouched
+    const b = arena({ p0: [['cleave.evil']], p1: [['shot'], ['shot'], ['shot']] });
+    b.setHp(B1, 70).use(A1, 'cleave.evil', B1).end(); // missing 50
+    expect([b.hp(B1), b.hp(B2), b.hp(B3)]).toEqual([50, 90, 90]);
+    const c = arena({ p0: [['cleave.evil']], p1: [['shot'], ['shot']] });
+    c.setHp(B1, 50).use(A1, 'cleave.evil', B1).end(); // missing 70
+    expect([c.hp(B1), c.hp(B2)]).toEqual([30, 85]);
   });
 
-  it('Betrayal: Tithe 1 spares the allies', () => {
-    const a = arena({ p0: [['cleave.evil'], ['shot'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'soul_fragment', { stacks: 2 }).use(A1, 'cleave.evil', B1).end();
-    expect([a.hp(A2), a.hp(A3), a.stacks(A1, 'soul_fragment')]).toEqual([100, 100, 1]);
+  it('Spreading Agony: at most 15 each, and a blow that kills still counts what the target is missing', () => {
+    const a = arena({ p0: [['cleave.evil']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 25).use(A1, 'cleave.evil', B1).end(); // missing 95
+    expect([a.hp(B1), a.hp(B2)]).toEqual([5, 85]);
+    const b = arena({ p0: [['cleave.evil']], p1: [['shot'], ['shot']] });
+    b.setHp(B1, 10).use(A1, 'cleave.evil', B1).end();
+    expect([b.unit(B1).alive, b.hp(B2)]).toEqual([false, 85]);
+  });
+
+  it('Spreading Agony: it counts the HP the blow actually took', () => {
+    const a = arena({ p0: [['cleave.evil']], p1: [['shot'], ['shot']] });
+    a.setHp(B1, 70).give(B1, 'armor', { stacks: 2 }).use(A1, 'cleave.evil', B1).end(); // 10 through: missing 40
+    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 90]);
+  });
+
+  it('Spreading Agony: with no other enemy, only the target is hit', () => {
+    const a = arena({ p0: [['cleave.evil']], p1: [['shot']] });
+    a.use(A1, 'cleave.evil', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([80, 100]);
   });
 
   // Shout
@@ -816,16 +809,23 @@ describe('Evil skills', () => {
   });
 
   it('Lord of Souls: the user can\'t spend Fragments (a Tithe gets none)', () => {
-    const a = arena({ p0: [['titan.evil', 'maneuver.evil']], p1: [['shot']] });
+    const a = arena({ p0: [['titan.evil', 'shot.evil']], p1: [['shot']] });
     a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'titan.evil').end().pass(1);
-    a.use(A1, 'maneuver.evil').end();
-    expect([a.stacks(A1, 'soul_fragment'), a.has(A1, 'invulnerable'), a.has(A1, 'immortal')]).toEqual([3, false, true]);
+    a.use(A1, 'shot.evil', B1).end(); // Bone Needle can't hurl one, so it drains instead
+    expect([a.stacks(A1, 'soul_fragment'), a.hp(B1)]).toEqual([4, 75]); // 10 + 3 Fragments' Might
+  });
+
+  it('Lord of Souls: Deathless Step can\'t pay with Fragments, so HP is lost', () => {
+    const a = arena({ p0: [['titan.evil', 'maneuver.evil']], p1: [['shot']] });
+    a.give(A1, 'soul_fragment').use(A1, 'titan.evil').end().pass(1);
+    a.use(A1, 'maneuver.evil').end().use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'soul_fragment')]).toEqual([90, 2]); // 15, less 1 Armor
   });
 
   it('Lord of Souls: enemies can\'t drain the user\'s Fragments either', () => {
-    const a = arena({ p0: [['titan.evil']], p1: [['stab.evil']] });
+    const a = arena({ p0: [['titan.evil']], p1: [['charge.evil']] });
     a.give(A1, 'soul_fragment', { stacks: 3 }).use(A1, 'titan.evil').end();
-    a.use(B1, 'stab.evil', A1).end();
+    a.use(B1, 'charge.evil', A1).end();
     expect(a.stacks(A1, 'soul_fragment')).toBe(3);
   });
 });
@@ -857,7 +857,7 @@ describe('Evil: costs and cooldowns match the kit table', () => {
     ['curse.evil', 'r', 2],
     ['smite.evil', 'Sr', 1],
     ['prayer.evil', 'Srr', 2],
-    ['cleave.evil', 'S', 1],
+    ['cleave.evil', 'Sr', 1],
     ['shout.evil', 'S', 3],
     ['withstand.evil', 'r', 3],
     ['taunt.evil', 'S', 3],

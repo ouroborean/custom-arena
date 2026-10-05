@@ -102,14 +102,13 @@ rage.ghost:
   element: Ghost
   name: Unfinished Business
   description: >-
-    For 3 turns, the user is Immortal, and each Debuff they would gain becomes 1 Might instead. Usable while
-    Stunned.
+    For 3 turns, the user gains 1 Might, and 1 more for each enemy who damages them (up to 3 more). When
+    it ends, each enemy who did is Haunted for 2 turns.
   cost: S
   cooldown: 4
-  tags: [Helpful, Strategic, UsableWhileStunned]
+  tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -118,13 +117,34 @@ rage.ghost:
         name: Unfinished Business
         kind: Buff
         element: Ghost
-        description: Each Debuff the bearer would gain becomes 1 Might.
+        description: Each enemy who damages the bearer gives them 1 Might (up to 3) and is Haunted when it ends.
         triggers:
-          - on: effectGained
-            when: { kind: Debuff }
+          - on: damaged
+            when: { direct: true, fromSide: enemy }
             do:
-              - { op: eventEffect, remove: true }
-              - { op: apply, to: bearer, effect: might, linkTo: unfinished_business }
+              - op: if
+                cond:
+                  and:
+                    - { not: { has: { unit: eventSource, effect: grudge, mine: true } } }
+                    - { compare: { value: { count: { effects: [grudge], in: allEnemies } }, atMost: 2 } }
+                then:
+                  - op: apply
+                    to: eventSource
+                    duration: { enemyTurns: 4 }
+                    effect:
+                      id: grudge
+                      name: Grudge
+                      kind: Neutral
+                      element: Ghost
+                      description: Haunted when the Unfinished Business that marked them ends.
+                  - { op: apply, to: bearer, effect: might, linkTo: unfinished_business }
+        onExpire:
+          - op: forEach
+            in: { filter: allEnemies, where: { has: { unit: it, effect: grudge, mine: true } } }
+            do:
+              - { op: apply, to: it, effect: haunt, duration: { enemyTurns: 2 } }
+              - { op: removeEffect, from: it, effect: grudge }
+    - { op: apply, to: actor, effect: might, linkTo: unfinished_business }
 
 shot.ghost:
   archetype: Shot
@@ -259,31 +279,34 @@ bolt.ghost:
   element: Ghost
   name: Reaping Bolt
   description: >-
-    Deals 20 damage to target enemy, who is Marked for 1 turn. When the Mark is spent, the user drains a Soul
-    Fragment from them.
+    Deals 20 damage to target enemy, who is Haunted for 1 turn. If that Haunt drifts off them, it carries
+    a piece of their soul back: the user drains a Soul Fragment from them.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: apply, to: primary, effect: haunt, duration: { enemyTurns: 1 } }
+    # Checked right after the Haunt's own tick and drift (it was applied first).
     - op: apply
       to: actor
-      duration: { raw: 3 }
+      remember: primary
+      duration: { raw: 1 }
       effect:
         id: reaping_bolt
         name: Reaping Bolt
         kind: Neutral
         element: Ghost
-        description: When the Mark is spent, the bearer drains a Soul Fragment.
+        description: If the Haunt drifted off its target this turn, the bearer drains a Soul Fragment from them.
         triggers:
-          - on: ownEffectEnded
-            when: { effects: [mark], reason: [consumed, removed] }
-            consume: true
+          - on: turnEnd
             do:
-              - { op: removeStacks, from: eventTarget, effect: soul_fragment, amount: 1 }
-              - { op: apply, to: bearer, effect: soul_fragment }
+              - op: if
+                cond: { not: { check: { cond: ghost_haunted, unit: effectTargets } } }
+                then:
+                  - { op: removeStacks, from: effectTargets, effect: soul_fragment, amount: 1 }
+                  - { op: apply, to: bearer, effect: soul_fragment }
 
 blast.ghost:
   archetype: Blast
@@ -354,8 +377,9 @@ channel.ghost:
   element: Ghost
   name: Restless Dead
   description: >-
-    For 2 turns, 10 damage to all enemies at the end of each of the user's turns. A random enemy is Haunted for 3
-    turns, and each time that Haunt drifts, the user gains a Soul Fragment. Channeled.
+    For up to 3 turns, at the end of each of the user's turns, a restless spirit wails through the enemy
+    team: 15 Affliction damage to a random enemy it hasn't struck yet (any, once it has struck them all),
+    who is Horrified for 1 turn. Channeled.
   cost: AS
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -363,51 +387,55 @@ channel.ghost:
   ops:
     - op: apply
       to: actor
-      duration: { enemyTurns: 2 }
+      duration: { enemyTurns: 3 }
       effect:
         id: restless_dead
         name: Restless Dead
         kind: Neutral
         element: Ghost
         interruptible: true
-        description: Each turn, 10 damage to all enemies.
+        description: Each turn, 15 Affliction and Horrified on an enemy the spirit hasn't struck yet.
         triggers:
           - on: turnEnd
             do:
-              - { op: damage, to: allEnemies, amount: 10 }
-    - op: apply
-      to: { randomEnemy: 1, where: { kind: { unit: it, is: character } } }
-      duration: { enemyTurns: 3 }
-      effect:
-        id: restless_haunt
-        name: Haunt
-        kind: Debuff
-        element: Ghost
-        countsAs: [haunt]
-        description: A Haunt that feeds the sender a Soul Fragment each time it drifts.
-        triggers:
-          - on: turnEnd
-            do:
-              - { op: damage, to: bearer, amount: 10, type: Affliction, direct: false }
-              # A Soul Fragment only when it actually drifts (an un-Haunted ally to go to).
               - op: if
-                cond: { any: { in: bearerAllies, cond: { and: [{ kind: { unit: it, is: character } }, { not: { check: { cond: ghost_haunted, unit: it } } }] } } }
-                then: [{ op: apply, to: actor, effect: soul_fragment }]
-              - { op: forEach, in: bearer, do: [{ op: macro, id: haunt_drift }] }
+                cond: { any: { in: allEnemies, cond: { not: { has: { unit: it, effect: restless_struck, mine: true } } } } }
+                then:
+                  - { op: set, var: fresh, value: true }
+              - op: forEach
+                in:
+                  randomEnemy: 1
+                  where: { or: [{ not: { varTrue: fresh } }, { not: { has: { unit: it, effect: restless_struck, mine: true } } }] }
+                do:
+                  - { op: damage, to: it, amount: 15, type: Affliction }
+                  - { op: apply, to: it, effect: horrified, duration: { enemyTurns: 1 } }
+                  - op: apply
+                    to: it
+                    duration: { enemyTurns: 3 }
+                    effect:
+                      id: restless_struck
+                      name: Struck by the Restless Dead
+                      kind: Neutral
+                      element: Ghost
+                      description: The restless spirit seeks out someone else first.
 
 stab.ghost:
   archetype: Stab
   element: Ghost
   name: Through the Veil
-  description: Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. Bypass.
+  description: >-
+    Deals 10 damage to target enemy, and the blade passes on through them: 10 damage to a random ally of
+    theirs.
   cost: r
   cooldown: 0
-  tags: [Harmful, NonStrategic, Bypass]
+  tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+    - { op: damage, to: primary, amount: 10 }
+    - op: forEach
+      in: { randomEnemy: 1, exclude: primary }
+      do:
+        - { op: damage, to: it, amount: 10 }
 
 ravage.ghost:
   archetype: Ravage
@@ -635,37 +663,53 @@ cleave.ghost:
   element: Ghost
   name: Phantom Sweep
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy; whichever of them has more HP is Isolated
-    for 1 turn.
+    Deals 20 damage to target enemy and leaves a phantom blade in them for 2 turns. At the end of each
+    of the user's turns, it drifts to a random ally of whoever carries it and cuts them for 15.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 20 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 15 }
-        - op: if
-          cond: { compare: { value: { sum: [{ hp: it }, { mul: [-1, { hp: primary }] }] }, atLeast: 1 } }
-          then: [{ op: apply, to: it, effect: isolated, duration: { enemyTurns: 1 } }]
-          else: [{ op: apply, to: primary, effect: isolated, duration: { enemyTurns: 1 } }]
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 2 }
+      effect:
+        id: phantom_blade
+        name: Phantom Blade
+        kind: Debuff
+        element: Ghost
+        description: >-
+          At the end of each of its sender's turns, it drifts to a random ally of the bearer and cuts them
+          for 15.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: forEach
+                in: { randomEnemy: 1, exclude: bearer, where: { kind: { unit: it, is: character } } }
+                do:
+                  - { op: moveEffects, from: bearer, to: it, effects: [phantom_blade] }
+                  - { op: damage, to: it, amount: 15 }
 
 shout.ghost:
   archetype: Shout
   element: Ghost
   name: Keening
   description: >-
-    All enemies are Intimidated for 2 turns. For as long, the user's side's Rushing doesn't end after a turn in
-    which they used no skill.
+    Every enemy is Haunted for 1 turn, so crowded with spirits that no Haunt can drift. Each one who was
+    already Haunted is also Intimidated for 2 turns.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - { op: apply, to: allAllies, effect: idle_updraft, duration: { enemyTurns: 2 } }
+    - op: forEach
+      in: targets
+      do:
+        - op: if
+          cond: { check: { cond: ghost_haunted, unit: it } }
+          then: [{ op: apply, to: it, effect: intimidated, duration: { enemyTurns: 2 } }]
+    - { op: apply, to: targets, effect: haunt, duration: { enemyTurns: 1 } }
 
 withstand.ghost:
   archetype: Withstand
@@ -708,40 +752,31 @@ taunt.ghost:
   archetype: Taunt
   element: Ghost
   name: Beckoning Spirit
-  description: Target enemy is Taunted by the user for 2 turns; while Taunted, their Normal damage can't hurt the user.
+  description: >-
+    For 3 turns, a beckoning spirit Taunts one enemy at a time toward the user: target enemy first, and at
+    the end of each of the user's later turns, it drifts to a random ally of theirs.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
-    - { op: apply, to: actor, effect: beckoner, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      duration: { enemyTurns: 2 }
-      effect:
-        id: beckoning_spirit
-        name: Beckoning Spirit
-        kind: Debuff
-        element: Ghost
-        description: While Taunted, the bearer's Normal damage can't hurt the spirit who beckoned.
-        modifiers:
-          - { mod: damageDealt, amount: 0, mul: 0, when: { types: [Normal] }, target: { has: { unit: it, effect: beckoner } }, if: { has: { unit: actor, effect: taunt } } }
+    - { op: setCounter, name: beckon_turn, value: { turn: true } }
+    - { op: apply, to: primary, effect: beckoner, duration: { enemyTurns: 3 } }
 
 titan.ghost:
   archetype: Titan
   element: Ghost
   name: Second Haunting
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune. The first time they would die meanwhile, they vanish instead
-    and return at the start of their next turn with 30 HP.
+    For 3 turns, the user is Spectral, but Piercing and Affliction damage hurt them 5 more. The first time
+    a hit would leave them at 1 HP or less meanwhile, they vanish instead and return at the start of their
+    next turn with 30 HP.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: spectral, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -750,8 +785,11 @@ titan.ghost:
         name: Second Haunting
         kind: Buff
         element: Ghost
-        description: The first time the bearer would die, they vanish and return next turn with 30 HP.
+        description: >-
+          Piercing and Affliction damage hurt the bearer 5 more; the first time a hit would leave them at
+          1 HP or less, they vanish and return next turn with 30 HP.
         modifiers:
+          - { mod: damageTaken, amount: 5, when: { types: [Piercing, Affliction] } }
           - { mod: hpFloor, amount: 1 }
         triggers:
           - on: damaged

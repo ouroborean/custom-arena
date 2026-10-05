@@ -153,21 +153,22 @@ describe('Reanimation skills', () => {
     expect(content.skills['riposte.reanimation']!.tags).toContain('Invisible');
   });
 
-  it('Soul Dynamo: Stormborn for 3 turns', () => {
+  it('Galvanic Overdrive: Galvanized for 3 turns; at the start of each of their turns, the user loses 10 HP for 2 Might (1 turn) and 1 Charge', () => {
     const a = arena({ p0: [['rage.reanimation']], p1: [['shot']] });
     a.use(A1, 'rage.reanimation').end();
-    expect(a.has(A1, 'stormborn')).toBe(true);
-    a.pass(6);
-    expect(a.has(A1, 'stormborn')).toBe(false);
+    expect([a.has(A1, 'galvanized'), a.hp(A1), a.has(A1, 'might')]).toEqual([true, 100, false]);
+    a.end(); // turn 3 begins
+    expect([a.hp(A1), a.stacks(A1, 'might'), a.stacks(A1, 'charged')]).toEqual([90, 2, 1]);
+    a.pass(2); // turn 5 begins: the first 2 Might ran out with turn 4, so it's 2 again, not 4
+    expect([a.hp(A1), a.stacks(A1, 'might'), a.stacks(A1, 'charged')]).toEqual([80, 2, 2]);
+    a.pass(2); // turn 7: over
+    expect([a.hp(A1), a.has(A1, 'galvanic_overdrive'), a.has(A1, 'galvanized'), a.stacks(A1, 'charged')]).toEqual([80, false, false, 2]);
   });
 
-  it('Soul Dynamo: Charge reaching 3 also gives a Soul Fragment; below 3 it doesn\'t', () => {
+  it('Galvanic Overdrive: the HP it burns can\'t kill a Galvanized user; they come back Reanimated', () => {
     const a = arena({ p0: [['rage.reanimation']], p1: [['shot']] });
-    a.give(A1, 'charged', { stacks: 1 }).use(A1, 'rage.reanimation').end();
-    a.use(B1, 'shot', A1).end();
-    expect([a.stacks(A1, 'charged'), a.has(A1, 'soul_fragment')]).toEqual([2, false]);
-    a.end().use(B1, 'shot', A1).end();
-    expect(a.stacks(A1, 'soul_fragment')).toBe(1);
+    a.setHp(A1, 10).use(A1, 'rage.reanimation').end().end().end();
+    expect([a.unit(A1).alive, a.has(A1, 'reanimated'), a.hp(A1)]).toEqual([true, true, 30]);
   });
 
   it('Bone Zap: 15 and Marked for 1 turn; when the Mark is spent, the user drains a Soul Fragment', () => {
@@ -362,15 +363,15 @@ describe('Reanimation skills', () => {
   });
 
   it('Nerve Shock: 15 and Stunned for 1 turn; while Stunned, each Sapped gained counts twice', () => {
-    const a = arena({ p0: [['stun.reanimation'], ['bolt.storm']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'stun.reanimation', B1).use(A2, 'bolt.storm', B1).end();
+    const a = arena({ p0: [['stun.reanimation'], ['bolt.lightning']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.reanimation', B1).use(A2, 'bolt.lightning', B1).end();
     expect([a.hp(B1), a.has(B1, 'stun'), a.stacks(B1, 'sapped')]).toEqual([65, true, 2]);
     expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
   });
 
   it('Nerve Shock: an un-Stunned enemy gains Sapped normally', () => {
-    const a = arena({ p0: [['stun.reanimation'], ['bolt.storm']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'stun.reanimation', B1).use(A2, 'bolt.storm', B2).end();
+    const a = arena({ p0: [['stun.reanimation'], ['bolt.lightning']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'stun.reanimation', B1).use(A2, 'bolt.lightning', B2).end();
     expect(a.stacks(B2, 'sapped')).toBe(1);
   });
 
@@ -408,16 +409,22 @@ describe('Reanimation skills', () => {
     expect(a.has(A2, 'galvanized')).toBe(false);
   });
 
-  it('Death Rattle: Horrified for 2 turns', () => {
+  it('Short Circuit: for 2 turns, each Buff the target would gain is lost, and they gain 1 Sapped instead', () => {
     const a = arena({ p0: [['curse.reanimation']], p1: [['rage']] });
     a.use(A1, 'curse.reanimation', B1).end().use(B1, 'rage').end();
-    expect([a.has(B1, 'horrified'), a.has(B1, 'might')]).toEqual([true, false]);
+    expect([a.has(B1, 'might'), a.has(B1, 'immune'), a.stacks(B1, 'sapped')]).toEqual([false, false, 2]);
   });
 
-  it('Death Rattle: if they die before it ends, every ally of the user gains 1 Soul Fragment', () => {
-    const a = arena({ p0: [['curse.reanimation'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 10).use(A1, 'curse.reanimation', B1).use(A2, 'shot', B1).end();
-    expect([a.unit(B1).alive, a.stacks(A1, 'soul_fragment'), a.stacks(A2, 'soul_fragment'), a.stacks(A3, 'soul_fragment')]).toEqual([false, 1, 1, 1]);
+  it('Short Circuit: Debuffs still land, and after 2 turns Buffs stick again', () => {
+    const a = arena({ p0: [['curse.reanimation'], ['curse']], p1: [['strike', 'rage']] });
+    a.use(A1, 'curse.reanimation', B1).use(A2, 'curse', B1).end();
+    expect(a.has(B1, 'confusion')).toBe(true);
+    a.pass(2);
+    expect(a.has(B1, 'short_circuit')).toBe(true);
+    a.end();
+    expect(a.has(B1, 'short_circuit')).toBe(false);
+    a.pass(1).use(B1, 'rage').end();
+    expect([a.stacks(B1, 'might'), a.has(B1, 'sapped')]).toEqual([2, false]);
   });
 
   it('Soul Spark: 20; for 1 turn allies who damage them gain 10 Shield, or 20 if Reanimated', () => {

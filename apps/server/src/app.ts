@@ -18,6 +18,7 @@ import { equipmentRoutes } from './routes/equipment.js';
 import { matchRoutes } from './routes/matches.js';
 import { rosterRoutes } from './routes/roster.js';
 import { arcadeRoutes } from './routes/arcade.js';
+import { progressRoutes } from './routes/progress.js';
 import { practiceRoutes } from './routes/practice.js';
 import { storyRoutes } from './routes/story.js';
 
@@ -137,6 +138,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(storyRoutes(ctx));
   await app.register(practiceRoutes(ctx));
   await app.register(arcadeRoutes(ctx));
+  await app.register(progressRoutes(ctx));
 
   // The match service (GDD §10.4): one WebSocket per signed-in user.
   const hub = new MatchHub(ctx, ctx.clock, (msg, err) => app.log.error({ err }, msg));

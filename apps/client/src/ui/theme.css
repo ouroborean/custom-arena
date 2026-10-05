@@ -20,6 +20,11 @@
   --hp-low: #e8112d;
   --shield: #1fc8ff;
 
+  /* loot-box quality (and gear tier: 1 plain, 2 rare, 3 epic) */
+  --q-uncommon: #19d15a;
+  --q-rare: #1e7bff;
+  --q-epic: #a53cff;
+
   --buff: #19d15a;
   --debuff: #e8112d;
   --neutral: #9494a2;
@@ -4356,4 +4361,256 @@ button.pool-skill:disabled {
 }
 .el-dimension {
   --el: var(--el-shadow);
+}
+
+/* ------------------------------------------------------------ experience bar & loot boxes */
+
+.xp-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.xp-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.xp-level .panel-title {
+  margin: 0;
+}
+
+.xp-level-n {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 6px;
+  background: var(--yellow);
+  color: var(--void);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+}
+
+.xp-track-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.xp-track {
+  position: relative;
+  height: 14px;
+  margin: 0 10px;
+  background: var(--ink-3);
+  border: 2px solid var(--line-2);
+}
+
+.xp-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--yellow);
+  transition: width 0.6s ease-out;
+}
+
+.xp-bubble {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  --q: var(--q-uncommon);
+}
+
+.xp-bubble.box-rare,
+.lootbox-dialog .box-rare {
+  --q: var(--q-rare);
+}
+
+.xp-bubble.box-epic,
+.lootbox-dialog .box-epic {
+  --q: var(--q-epic);
+}
+
+.lootbox-dialog .box-uncommon {
+  --q: var(--q-uncommon);
+}
+
+.xp-bubble-dot {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--ink);
+  border: 3px solid var(--q);
+  transform: rotate(45deg);
+}
+
+.xp-bubble.earned .xp-bubble-dot {
+  background: var(--q);
+  border-color: var(--text);
+}
+
+.xp-numbers {
+  font-size: 12px;
+  text-align: right;
+}
+
+.xp-panel > .btn {
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .xp-panel {
+    flex-wrap: wrap;
+  }
+  .xp-track-wrap {
+    flex-basis: 100%;
+    order: 3;
+  }
+}
+
+.lootbox-dialog {
+  align-items: stretch;
+  text-align: center;
+}
+
+.lootbox-closed,
+.lootbox-opened {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.lootbox-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--q);
+}
+
+.lootbox-crate {
+  width: 96px;
+  height: 72px;
+  background: var(--q);
+  border: 3px solid var(--text);
+  box-shadow: 6px 6px 0 #000;
+  position: relative;
+  animation: crate-idle 1.6s ease-in-out infinite;
+}
+
+.lootbox-crate::before {
+  content: '';
+  position: absolute;
+  inset: 22px -3px auto;
+  height: 10px;
+  background: var(--void);
+}
+
+@keyframes crate-idle {
+  50% {
+    transform: translateY(-4px) rotate(-2deg);
+  }
+}
+
+.lootbox-rolls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .lootbox-rolls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.loot-roll {
+  --t: var(--line-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 132px;
+  padding: 12px 8px;
+  background: var(--ink-2);
+  border: 2px solid var(--t);
+  border-top-width: 6px;
+  opacity: 0;
+  animation: roll-in 0.35s ease-out forwards;
+  overflow-wrap: anywhere;
+}
+
+.loot-roll.gold {
+  --t: var(--yellow);
+  color: var(--yellow);
+}
+
+.loot-roll.tier-2 {
+  --t: var(--q-rare);
+}
+
+.loot-roll.tier-3 {
+  --t: var(--q-epic);
+  background: color-mix(in srgb, var(--q-epic) 18%, var(--ink-2));
+}
+
+.loot-roll-tier {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t);
+}
+
+.loot-roll.tier-1 .loot-roll-tier {
+  color: var(--muted);
+}
+
+.loot-roll-coin {
+  width: 34px;
+  height: 34px;
+  background: var(--yellow);
+  border: 3px solid var(--text);
+  transform: rotate(45deg);
+}
+
+@keyframes roll-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loot-roll,
+  .lootbox-crate {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.lootbox-earned {
+  --q: var(--q-uncommon);
+  color: var(--q);
+}
+
+.lootbox-earned.box-rare {
+  --q: var(--q-rare);
+}
+
+.lootbox-earned.box-epic {
+  --q: var(--q-epic);
 }

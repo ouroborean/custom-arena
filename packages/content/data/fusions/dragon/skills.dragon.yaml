@@ -21,20 +21,20 @@ smash.dragon:
   element: Dragon
   name: Tail Sweep
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. Any of them who is channeling stops and
-    gains Dragonfire.
+    Deals 30 damage to target enemy. The tail then rakes their allies for treasure: each loses a
+    random Buff, and the user gains 1 Hoard for each Buff taken.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: damage, to: primaryAllies, amount: 15 }
+    # The splash is greed, not damage: their allies are robbed instead of hit.
+    - { op: damage, to: primary, amount: 30 }
     - op: forEach
-      in: { filter: allEnemies, where: { channeling: it } }
+      in: { filter: primaryAllies, where: { hasKind: { unit: it, kind: Buff } } }
       do:
-        - { op: interrupt, to: it }
-        - { op: macro, id: dragonfire_it }
+        - { op: removeRandom, from: it, kind: Buff }
+        - { op: apply, to: actor, effect: hoard }
 
 charge.dragon:
   archetype: Charge
@@ -348,19 +348,33 @@ stab.dragon:
   element: Dragon
   name: Fang
   description: >-
-    Deals 10 damage to target enemy, increased to 25 against targets at or below 60 health. They're
-    Ignited, or gain Dragonfire if they already were.
+    Deals 5 damage to target enemy and sinks a fang into them for 2 turns. If they already carry the
+    user's fang, it's torn out instead: 25 damage, and the user gains 1 Hoard.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    # Equipment (Scything Claw) listens for Stab bonuses.
-    - { op: if, cond: { hpAtMost: { unit: primary, value: 60 } }, then: [{ op: signal, name: stab_bonus }] }
-    - op: damage
-      to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 25, else: 10 }
-    - { op: forEach, in: primary, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
+    # Bite, then tear: every other use on the same target pays off.
+    - op: if
+      cond: { has: { unit: primary, effect: fang, mine: true } }
+      then:
+        - { op: removeEffect, from: primary, effect: fang }
+        # Equipment (Scything Claw) listens for Stab bonuses: the tear is this Stab's.
+        - { op: signal, name: stab_bonus }
+        - { op: damage, to: primary, amount: 25 }
+        - { op: apply, to: actor, effect: hoard }
+      else:
+        - { op: damage, to: primary, amount: 5 }
+        - op: apply
+          to: primary
+          duration: { enemyTurns: 2 }
+          effect:
+            id: fang
+            name: Fang
+            kind: Debuff
+            element: Dragon
+            description: The applier's next Fang on the bearer tears it out for 25 damage and 1 Hoard.
 
 ravage.dragon:
   archetype: Ravage
@@ -453,26 +467,32 @@ stun.dragon:
   element: Dragon
   name: Dragonfear
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 1 turn. At the end of their next turn, they
+    Target enemy freezes in terror: they fall Asleep for 2 turns, and whatever wakes them makes them
     Explode.
   cost: S
   cooldown: 2
-  tags: [Harmful, NonStrategic]
+  tags: [Harmful, Strategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 1 } }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: dragonfear
         name: Dragonfear
         kind: Debuff
         element: Dragon
-        description: When this ends, the bearer Explodes.
-        onExpire:
-          - { op: macro, id: explode }
+        countsAs: [sleep]
+        description: Asleep in terror; whatever wakes the bearer makes them Explode.
+        modifiers:
+          - { mod: cannotUseSkills }
+        triggers:
+          - on: damaged
+            when: { wakes: true }
+            do:
+              # Gone first, so the Explosion's own damage doesn't set it off again.
+              - { op: removeSelf }
+              - { op: macro, id: explode }
 
 dance.dragon:
   archetype: Dance
@@ -623,19 +643,48 @@ prayer.dragon:
 cleave.dragon:
   archetype: Cleave
   element: Dragon
-  name: Scything Wing
+  name: Wildfire Wing
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy. Each is Ignited, or gains
-    Dragonfire if they already were.
+    Deals 15 damage to target enemy and gives them Dragonfire, and the fire spreads: a random other enemy
+    is Ignited, or gains Dragonfire if they already were. At the end of the user's next turn, if the target
+    still has Dragonfire, it spreads once more.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: forEach, in: primary, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
-    - { op: damage, to: { randomEnemy: 1, exclude: primary }, amount: 15 }
-    - { op: forEach, in: lastDamaged, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
+    - { op: damage, to: primary, amount: 15 }
+    - { op: forEach, in: primary, do: [{ op: macro, id: dragonfire_it }] }
+    - { op: forEach, in: { randomEnemy: 1, exclude: primary }, do: [{ op: macro, id: ignite_or_dragonfire_it }] }
+    # Applied after the Dragonfire, so it ticks after that Dragonfire has burned. Stacks: 1 on the turn
+    # of use (that tick only primes it), 2 on the user's next turn, when it spreads.
+    - op: apply
+      to: primary
+      duration: { ownTurns: 1 }
+      effect:
+        id: wildfire_wing
+        name: Wildfire
+        kind: Debuff
+        element: Dragon
+        stacking: unique
+        maxStacks: 2
+        description: >-
+          At the end of the applier's next turn, if the bearer still has Dragonfire, a random other enemy is
+          Ignited, or gains Dragonfire if they already were.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atMost: 1 } }
+                then: [{ op: addStacksSelf, amount: 1 }]
+                else:
+                  - op: if
+                    cond: { has: { unit: bearer, effect: dragonfire } }
+                    then:
+                      - op: forEach
+                        in: { randomEnemy: 1, exclude: bearer }
+                        do:
+                          - { op: macro, id: ignite_or_dragonfire_it }
 
 shout.dragon:
   archetype: Shout
@@ -665,31 +714,21 @@ shout.dragon:
 withstand.dragon:
   archetype: Withstand
   element: Dragon
-  name: Smoldering Hide
+  name: Furnace Hide
   description: >-
-    The user gains 20 Shield and Flameborn for 2 turns, and Ignites every enemy who damages them
-    meanwhile.
+    A random enemy gains Dragonfire, and the user banks its heat in their scales for 2 turns: it doesn't
+    burn, and at the end of each of the user's turns, if that enemy still has it, the user gains 15
+    Shield for 1 turn. Then the banked fire goes out: they lose their Dragonfire and Ignite.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 20, duration: { enemyTurns: 2 } }
-    - { op: apply, to: actor, effect: flameborn, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 2 }
-      effect:
-        id: smoldering_hide
-        name: Smoldering Hide
-        kind: Buff
-        element: Dragon
-        description: Ignites every enemy who damages the bearer.
-        triggers:
-          - on: damaged
-            when: { byEnemy: true }
-            do:
-              - { op: apply, to: eventSource, effect: ignite }
+    - op: forEach
+      in: { randomEnemy: 1 }
+      do:
+        - { op: macro, id: dragonfire_it }
+        - { op: apply, to: it, effect: banked_fire, duration: { enemyTurns: 2 } }
 
 taunt.dragon:
   archetype: Taunt

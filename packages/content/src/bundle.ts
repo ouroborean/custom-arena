@@ -297,6 +297,22 @@ export function checkEconomy(b: ContentBundle): ContentIssue[] {
       else if (singles + s.doubles > s.skills) err(where, `${s.infusions} infusions don't fit on ${s.skills} skills (at most 2 per skill)`);
     });
   }
+  if (e.progression) {
+    const p = e.progression;
+    if (!e.dropTables[p.table]) err('progression.table', `unknown drop table "${p.table}"`);
+    if (p.levels.max < p.levels.base) err('progression.levels', 'max is below base');
+    const ats = p.milestones.map((m) => m.at);
+    if (ats.some((a, i) => i > 0 && a <= ats[i - 1]!)) err('progression.milestones', 'bubbles must rise in order');
+    p.milestones.forEach((m, i) => {
+      if (!e.lootBoxes?.[m.box]) err(`progression.milestones.${i}`, `unknown loot box "${m.box}"`);
+    });
+  }
+  for (const [id, box] of Object.entries(e.lootBoxes ?? {})) {
+    if (box.gold.max < box.gold.min) err(`lootBoxes.${id}.gold`, 'max is below min');
+    if (box.bands.gold + box.bands.gear + box.bands.prize === 0) err(`lootBoxes.${id}.bands`, 'all weights are 0');
+    if (box.bands.gear > 0 && box.gear['1'] + box.gear['2'] === 0) err(`lootBoxes.${id}.gear`, 'all weights are 0');
+    if (!e.currencies.gold) err(`lootBoxes.${id}`, 'gold rolls need a "gold" currency');
+  }
   return issues;
 }
 

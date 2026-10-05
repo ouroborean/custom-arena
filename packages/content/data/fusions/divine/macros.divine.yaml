@@ -82,49 +82,64 @@ intervention_ally_it:
           do:
             - { op: apply, to: eventSource, effect: condemned }
 
+# Awe: the Stun, then a Condemn when its time is up.
 awe_enemy_it:
-  - op: if
-    cond: { has: { unit: it, effect: condemned } }
-    then:
-      - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
-    else:
-      - { op: apply, to: it, effect: condemned }
+  - { op: apply, to: it, effect: stun, duration: { enemyTurns: 1 } }
+  - op: apply
+    to: it
+    duration: { enemyTurns: 1 }
+    effect:
+      id: awe
+      name: Awe
+      kind: Debuff
+      element: Divine
+      description: When this ends, the bearer is Condemned.
+      onExpire:
+        - { op: apply, to: bearer, effect: condemned }
 
 awe_ally_it:
   - { op: removeEffect, from: it, effect: stun }
   - { op: removeEffect, from: it, effect: stun_ns }
   - { op: removeEffect, from: it, effect: stun_s }
+  - { op: apply, to: it, effect: swiftness, duration: { enemyTurns: 2 } }
 
 consecrate_ally_it:
-  - { op: apply, to: it, effect: exalted, duration: { ownTurns: 1 } }
-  - { op: apply, to: it, effect: might, duration: { enemyTurns: 3 } }
-
-consecrate_enemy_it:
-  - { op: removeEffect, from: it, effect: anointed }
-  - { op: removeEffect, from: it, effect: exalted }
   - op: apply
     to: it
     duration: { enemyTurns: 2 }
     effect:
-      id: deconsecrated
-      name: Deconsecrated
+      id: consecrated
+      name: Consecrated
+      kind: Buff
+      element: Divine
+      description: Each enemy the bearer hits is Condemned.
+      triggers:
+        - on: dealtDamage
+          when: { byEnemy: true, direct: true }
+          do:
+            - { op: apply, to: eventTarget, effect: condemned }
+
+consecrate_enemy_it:
+  - op: apply
+    to: it
+    duration: { enemyTurns: 2 }
+    effect:
+      id: consecrated_ground
+      name: Consecrated
       kind: Debuff
       element: Divine
-      description: Can't gain Anointed or Exalted.
+      description: Each enemy who hits the bearer is Anointed until the end of their next turn.
       triggers:
-        - on: effectGained
-          effect: anointed
-          do: [{ op: removeEffect, from: bearer, effect: anointed }]
-        - on: effectGained
-          effect: exalted
-          do: [{ op: removeEffect, from: bearer, effect: exalted }]
+        - on: damaged
+          when: { byEnemy: true, direct: true }
+          do:
+            - { op: apply, to: eventSource, effect: anointed, duration: { ownTurns: 1 } }
 
+# Anathema: Debuffs change sides.
 anathema_enemy_it:
-  - { op: apply, to: it, effect: condemned, duration: { enemyTurns: 2 } }
-  - { op: apply, to: it, effect: sanctify, duration: { enemyTurns: 2 } }
+  - { op: moveEffects, from: weakestAlly, to: it, kind: Debuff }
+  - { op: apply, to: it, effect: condemned }
 
 anathema_ally_it:
-  - { op: removeEffect, from: it, effect: condemned }
-  - { op: removeEffect, from: it, effect: weakness }
-  - { op: removeEffect, from: it, effect: vulnerable }
-  - { op: removeEffect, from: it, effect: confusion }
+  - { op: moveEffects, from: it, to: strongestEnemy, kind: Debuff }
+  - { op: apply, to: strongestEnemy, effect: condemned }

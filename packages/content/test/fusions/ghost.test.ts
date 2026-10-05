@@ -126,24 +126,26 @@ describe('Ghost skills', () => {
     expect([a.hp(A1), a.hp(B1)]).toEqual([85, 100]);
   });
 
-  it('Unfinished Business: usable while Stunned; Immortal for 3 turns', () => {
-    const a = arena({ p0: [['rage.ghost']], p1: [['smash']] });
-    a.give(A1, 'stun', { source: B1, duration: 3 }).use(A1, 'rage.ghost').end();
-    expect(a.has(A1, 'immortal')).toBe(true);
-    a.setHp(A1, 10).use(B1, 'smash', A1).end();
-    expect([a.unit(A1).alive, a.hp(A1)]).toEqual([true, 5]);
+  it('Unfinished Business: 1 Might at once, and 1 more for each enemy who damages the user (once per enemy)', () => {
+    const a = arena({ p0: [['rage.ghost']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'rage.ghost').end();
+    expect(a.stacks(A1, 'might')).toBe(1);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.stacks(A1, 'might')).toBe(3);
+    a.end().use(B1, 'shot', A1).use('p1c2', 'shot', A1).end(); // B1 again: nothing; B3: +1 (3 more in all)
+    expect(a.stacks(A1, 'might')).toBe(4);
   });
 
-  it('Unfinished Business: each Debuff they would gain becomes 1 Might instead', () => {
-    const a = arena({ p0: [['rage.ghost']], p1: [['curse'], ['shout']] });
-    a.use(A1, 'rage.ghost').end().use(B1, 'curse', A1).use(B2, 'shout').end();
-    expect([a.has(A1, 'confusion'), a.has(A1, 'intimidated'), a.stacks(A1, 'might')]).toEqual([false, false, 2]);
+  it('Unfinished Business: when it ends after 3 turns, each enemy who damaged the user is Haunted for 2 turns', () => {
+    const a = arena({ p0: [['rage.ghost']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.ghost').end().use(B1, 'shot', A1).end().pass(3);
+    expect([haunted(a, B1), a.stacks(A1, 'might')]).toEqual([false, 2]);
+    a.pass(1); // the end of the 3rd turn
+    expect([haunted(a, B1), haunted(a, B2), a.has(A1, 'might')]).toEqual([true, false, false]);
   });
 
-  it('Unfinished Business: after 3 turns, Debuffs land again', () => {
-    const a = arena({ p0: [['rage.ghost']], p1: [['curse']] });
-    a.use(A1, 'rage.ghost').end().pass(6).use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(true);
+  it('Unfinished Business: no longer usable while Stunned', () => {
+    expect(content.skills['rage.ghost']!.tags).not.toContain('UsableWhileStunned');
   });
 
   it('Phantom Pain: 10; for 2 turns, direct damage to the target\'s allies deals them 5 Affliction too', () => {
@@ -229,15 +231,17 @@ describe('Ghost skills', () => {
     expect([a.hp(B1), haunted(a, B1)]).toEqual([80, true]); // 10 + the Haunt's tick
   });
 
-  it('Reaping Bolt: 20 and Marked; when the Mark is spent, the user gains a Soul Fragment', () => {
-    const a = arena({ p0: [['bolt.ghost'], ['shot']], p1: [['withstand']] });
+  it('Reaping Bolt: 20 and Haunted for 1 turn; when the Haunt drifts off them, the user drains a Soul Fragment from them', () => {
+    const a = arena({ p0: [['bolt.ghost']], p1: [['withstand'], ['withstand']] });
+    a.give(B1, 'soul_fragment', { stacks: 2 }).use(A1, 'bolt.ghost', B1).end();
+    expect([a.hp(B1), haunted(a, B1), haunted(a, B2)]).toEqual([70, false, true]); // 20 + the Haunt's tick
+    expect([a.stacks(A1, 'soul_fragment'), a.stacks(B1, 'soul_fragment')]).toEqual([1, 1]);
+  });
+
+  it('Reaping Bolt: a Haunt with nowhere to drift brings back nothing', () => {
+    const a = arena({ p0: [['bolt.ghost']], p1: [['withstand']] });
     a.use(A1, 'bolt.ghost', B1).end();
-    expect([a.hp(B1), a.has(B1, 'mark'), a.stacks(A1, 'soul_fragment')]).toEqual([80, true, 0]);
-    a.pass(1).use(A2, 'shot', B1).end(); // Mark expired after 1 turn: nothing
-    expect(a.stacks(A1, 'soul_fragment')).toBe(0);
-    const b = arena({ p0: [['bolt.ghost'], ['shot']], p1: [['withstand']] });
-    b.use(A1, 'bolt.ghost', B1).use(A2, 'shot', B1).end();
-    expect([b.hp(B1), b.stacks(A1, 'soul_fragment')]).toEqual([55, 1]);
+    expect([a.hp(B1), haunted(a, B1), a.stacks(A1, 'soul_fragment')]).toEqual([70, true, 0]);
   });
 
   it('Spirit Storm: 20 to all enemies with no deaths', () => {
@@ -295,43 +299,41 @@ describe('Ghost skills', () => {
     expect(a.hp(B1)).toBe(95);
   });
 
-  it('Restless Dead: 10 to all enemies at the end of each of the user\'s turns, for 2 turns', () => {
+  it('Restless Dead: for up to 3 turns, 15 Affliction and Horrified (1 turn) on an enemy the spirit hasn\'t struck yet', () => {
+    const a = arena({ p0: [['channel.ghost']], p1: [['withstand'], ['withstand'], ['withstand']] });
+    const all = [B1, B2, 'p1c2'];
+    const total = () => all.reduce((n, u) => n + a.hp(u), 0);
+    a.give(B1, 'shield', { value: 50 }).use(A1, 'channel.ghost').end();
+    expect([total(), all.filter((u) => a.has(u, 'horrified')).length]).toEqual([300 - 15, 1]);
+    a.pass(2);
+    expect(total()).toBe(300 - 30);
+    a.pass(2);
+    expect(all.map((u) => a.hp(u))).toEqual([85, 85, 85]); // each struck once, through Shield
+    a.pass(2);
+    expect(total()).toBe(300 - 45); // over after 3 turns
+  });
+
+  it('Restless Dead: once it has struck every enemy, it strikes any of them', () => {
     const a = arena({ p0: [['channel.ghost']], p1: [['withstand'], ['withstand']] });
-    a.use(A1, 'channel.ghost').end();
-    const [h1, h2] = [a.hp(B1), a.hp(B2)];
-    expect(h1 + h2).toBe(200 - 20 - 10); // 10 each, plus one Haunt tick
+    a.use(A1, 'channel.ghost').end().pass(2);
+    expect([a.hp(B1), a.hp(B2)]).toEqual([85, 85]);
     a.pass(2);
-    expect(a.hp(B1) + a.hp(B2)).toBe(h1 + h2 - 20 - 10);
-    a.pass(2);
-    expect(a.hp(B1) + a.hp(B2)).toBe(h1 + h2 - 30 - 10); // channel over (2 ticks); only the Haunt still ticks
+    expect(a.hp(B1) + a.hp(B2)).toBe(155);
   });
 
-  it('Restless Dead: a random enemy is Haunted; each drift gives the user a Soul Fragment', () => {
-    const a = arena({ p0: [['channel.ghost']], p1: [['withstand'], ['withstand']] });
-    a.use(A1, 'channel.ghost').end();
-    expect([haunted(a, B1) || haunted(a, B2), a.stacks(A1, 'soul_fragment')]).toEqual([true, 1]);
-    a.pass(2);
-    expect(a.stacks(A1, 'soul_fragment')).toBe(2);
+  it('Restless Dead: Channeled: using another skill ends it', () => {
+    const a = arena({ p0: [['channel.ghost', 'shot']], p1: [['withstand']] });
+    a.use(A1, 'channel.ghost').end().end().use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(70); // 15, then the Shot's 15; no second wave
   });
 
-  it('Restless Dead: no drift (single enemy), no Soul Fragment', () => {
-    const a = arena({ p0: [['channel.ghost']], p1: [['withstand']] });
-    a.use(A1, 'channel.ghost').end();
-    expect([haunted(a, B1), a.stacks(A1, 'soul_fragment')]).toEqual([true, 0]);
-  });
-
-  it('Through the Veil: 10, or 20 at or below 60 HP', () => {
+  it('Through the Veil: 10 to the target, and the blade passes through: 10 to a random ally of theirs', () => {
     const a = arena({ p0: [['stab.ghost']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60).use(A1, 'stab.ghost', B1).end().pass(1).use(A1, 'stab.ghost', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 40]);
-  });
-
-  it('Through the Veil: Bypasses Invulnerable, but not Stealth (simplified ruling)', () => {
-    const a = arena({ p0: [['stab.ghost']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'invulnerable', { duration: 2 }).use(A1, 'stab.ghost', B1).end();
-    expect(a.hp(B1)).toBe(90);
-    a.pass(1).give(B2, 'stealth', { duration: 2 });
-    expect(a.reject(() => a.use(A1, 'stab.ghost', B2))).toBe('bad_target');
+    a.setHp(B1, 50).use(A1, 'stab.ghost', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([40, 90]);
+    const b = arena({ p0: [['stab.ghost']], p1: [['shot']] });
+    b.use(A1, 'stab.ghost', B1).end();
+    expect(b.hp(B1)).toBe(90); // nobody behind them
   });
 
   it('Rend the Living: 30 Piercing', () => {
@@ -466,35 +468,43 @@ describe('Ghost skills', () => {
     expect([a.has(A2, 'taunt'), a.stacks(A2, 'swiftness'), a.has(A1, 'taunt')]).toEqual([false, 0, true]);
   });
 
-  it('Phantom Sweep: 20 and 15; whichever of the two has more HP is Isolated for 1 turn', () => {
+  it('Phantom Sweep: 20 to the target; at the end of the user\'s turn, the phantom blade drifts to a random ally of theirs and cuts them for 15', () => {
     const a = arena({ p0: [['cleave.ghost']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 50).use(A1, 'cleave.ghost', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'isolated'), a.has(B2, 'isolated')]).toEqual([80, 35, true, false]);
-    a.pass(2);
-    expect(a.has(B1, 'isolated')).toBe(false);
+    a.use(A1, 'cleave.ghost', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([80, 85]);
+    expect([!!find(a, B1, 'phantom_blade'), !!find(a, B2, 'phantom_blade')]).toEqual([false, true]);
   });
 
-  it('Phantom Sweep: the secondary target is Isolated when it has more HP', () => {
+  it('Phantom Sweep: it drifts again at the end of the user\'s next turn, then it\'s gone after 2 turns', () => {
     const a = arena({ p0: [['cleave.ghost']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 50).use(A1, 'cleave.ghost', B1).end();
-    expect([a.has(B1, 'isolated'), a.has(B2, 'isolated')]).toEqual([false, true]);
+    a.use(A1, 'cleave.ghost', B1).end().end();
+    a.end(); // the user's next turn ends: back to B1
+    expect([a.hp(B1), a.hp(B2), !!find(a, B1, 'phantom_blade')]).toEqual([65, 85, true]);
+    a.end().end();
+    expect([a.hp(B1), a.hp(B2), !!find(a, B1, 'phantom_blade'), !!find(a, B2, 'phantom_blade')]).toEqual([65, 85, false, false]);
   });
 
-  it('Keening: all enemies Intimidated for 2 turns', () => {
+  it('Phantom Sweep: with no ally to drift to, the blade stays and cuts no one', () => {
+    const a = arena({ p0: [['cleave.ghost']], p1: [['shot']] });
+    a.use(A1, 'cleave.ghost', B1).end();
+    expect([a.hp(B1), !!find(a, B1, 'phantom_blade')]).toEqual([80, true]);
+  });
+
+  it('Keening: every enemy is Haunted for 1 turn, so no Haunt can drift', () => {
     const a = arena({ p0: [['shout.ghost']], p1: [['shot'], ['shot']] });
     a.use(A1, 'shout.ghost').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    a.pass(4);
-    expect(a.has(B1, 'intimidated')).toBe(false);
+    expect([a.hp(B1), a.hp(B2), haunted(a, B1), haunted(a, B2)]).toEqual([90, 90, true, true]);
+    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([false, false]);
+    a.pass(2);
+    expect([haunted(a, B1), haunted(a, B2)]).toEqual([false, false]);
   });
 
-  it('Keening: meanwhile, the user\'s side keeps Rushing through a turn without a skill', () => {
-    const a = arena({ p0: [['shout.ghost'], ['charge.wind']], p1: [['shot']] });
-    a.use(A1, 'shout.ghost').use(A2, 'charge.wind').end().pass(2);
-    expect(a.has(A2, 'rushing')).toBe(true);
-    const b = arena({ p0: [['shout'], ['charge.wind']], p1: [['shot']] });
-    b.use(A1, 'shout').use(A2, 'charge.wind').end().pass(2);
-    expect(b.has(A2, 'rushing')).toBe(false);
+  it('Keening: each enemy who was already Haunted is also Intimidated for 2 turns', () => {
+    const a = arena({ p0: [['shout.ghost']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'haunt', { source: B1 }).use(A1, 'shout.ghost').end();
+    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, false]);
+    a.pass(4);
+    expect(a.has(B1, 'intimidated')).toBe(false);
   });
 
   it('Ectoplasmic Shield: 20 Shield for 1 turn', () => {
@@ -509,27 +519,45 @@ describe('Ghost skills', () => {
     expect([a.hp(A1), a.has(A1, 'spectral')]).toEqual([95, true]); // 5 through, then Spectral
   });
 
-  it('Beckoning Spirit: Taunts for 2 turns, and the Taunted enemy\'s Normal damage can\'t hurt the user', () => {
-    const a = arena({ p0: [['taunt.ghost'], ['shot']], p1: [['shot', 'ravage'], ['shot']] });
+  it('Beckoning Spirit: the target is Taunted by the user first', () => {
+    const a = arena({ p0: [['taunt.ghost'], ['shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'taunt.ghost', B1).end();
-    expect(find(a, B1, 'taunt')?.source).toBe(A1);
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(85); // only B2's shot hurt
-    a.pass(1).use(B1, 'ravage', A1).end();
-    expect(a.hp(A1)).toBe(60); // Piercing still hurts
+    expect(() => a.use(B1, 'shot', A2)).toThrow();
+    a.use(B2, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
   });
 
-  it('Second Haunting: 2 Armor and Immune for 3 turns', () => {
-    const a = arena({ p0: [['titan.ghost']], p1: [['curse']] });
-    a.use(A1, 'titan.ghost').end().use(B1, 'curse', A1).end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), a.has(A1, 'confusion')]).toEqual([2, true, false]);
-    a.pass(5);
-    expect(a.has(A1, 'immune')).toBe(false);
+  it('Beckoning Spirit: at the end of each of the user\'s later turns, it drifts to a random ally of theirs', () => {
+    const a = arena({ p0: [['taunt.ghost'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.ghost', B1).end().end();
+    a.end(); // the user's next turn ends: it drifts to B2
+    expect(() => a.use(B2, 'shot', A2)).toThrow();
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(85);
+    expect(find(a, B2, 'beckoner')?.source).toBe(A1);
   });
 
-  it('Second Haunting: the first time the user would die, they vanish and return at the start of their next turn with 30 HP', () => {
-    const a = arena({ p0: [['titan.ghost'], ['shot']], p1: [['smash'], ['shot']] });
-    a.use(A1, 'titan.ghost').end().setHp(A1, 10).use(B1, 'smash', A1).end();
+  it('Beckoning Spirit: lasts 3 turns', () => {
+    const a = arena({ p0: [['taunt.ghost'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.ghost', B1).end().pass(4);
+    expect([B1, B2].some((u) => a.has(u, 'beckoner'))).toBe(true); // the 3rd turn
+    a.pass(2);
+    expect([B1, B2].some((u) => a.has(u, 'beckoner'))).toBe(false);
+  });
+
+  it('Second Haunting: Spectral for 3 turns, but Piercing and Affliction hurt 5 more', () => {
+    const a = arena({ p0: [['titan.ghost']], p1: [['shot', 'ravage']] });
+    a.use(A1, 'titan.ghost').end().use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(100);
+    a.end().use(B1, 'ravage', A1).end();
+    expect(a.hp(A1)).toBe(70); // 25 + 5
+    a.pass(3);
+    expect(a.has(A1, 'spectral')).toBe(false);
+  });
+
+  it('Second Haunting: the first time a hit would kill the user, they vanish and return at the start of their next turn with 30 HP', () => {
+    const a = arena({ p0: [['titan.ghost'], ['shot']], p1: [['ravage'], ['shot']] });
+    a.use(A1, 'titan.ghost').end().setHp(A1, 10).use(B1, 'ravage', A1).end();
     expect(a.unit(A1).alive).toBe(true);
     a.end(); // the user's next turn: they return
     expect(a.hp(A1)).toBe(30);
@@ -537,9 +565,16 @@ describe('Ghost skills', () => {
     expect(a.hp(A1)).toBe(30);
   });
 
+  it('Second Haunting: a hit that would leave them at exactly 1 HP vanishes them too', () => {
+    const a = arena({ p0: [['titan.ghost'], ['shot']], p1: [['ravage'], ['shot']] });
+    a.use(A1, 'titan.ghost').end().setHp(A1, 31).use(B1, 'ravage', A1).end(); // 25 + 5 Piercing: 1 HP left
+    expect(a.log(a.last)).toContain('A1 gains Vanished');
+    expect(a.hp(A1)).toBe(30); // back at the start of the user's next turn
+  });
+
   it('Second Haunting: while vanished, later hits that turn do nothing', () => {
-    const a = arena({ p0: [['titan.ghost'], ['shot']], p1: [['smash'], ['shot']] });
-    a.use(A1, 'titan.ghost').end().setHp(A1, 10).use(B1, 'smash', A1).use(B2, 'shot', A1).end();
+    const a = arena({ p0: [['titan.ghost'], ['shot']], p1: [['ravage'], ['ravage']] });
+    a.use(A1, 'titan.ghost').end().setHp(A1, 10).use(B1, 'ravage', A1).use(B2, 'ravage', A1).end();
     expect(a.unit(A1).alive).toBe(true);
     a.pass(1);
     expect(a.hp(A1)).toBe(30);

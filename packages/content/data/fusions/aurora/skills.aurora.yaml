@@ -130,15 +130,14 @@ rage.aurora:
   element: Aurora
   name: Polar Storm
   description: >-
-    For 3 turns, the user gains Stormborn and 1 Might. Whenever their Charge reaches 3, every enemy is
-    Dazzled for 1 turn.
+    For 3 turns, each enemy the user damages directly is Dazzled for 2 turns, and the user deals 10
+    more direct damage to Dazzled enemies.
   cost: SS
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: stormborn, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: might, duration: { enemyTurns: 3 } }
+    # The bonus is checked as the hit lands, before that hit's own Dazzle.
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
@@ -147,15 +146,14 @@ rage.aurora:
         name: Polar Storm
         kind: Buff
         element: Aurora
-        description: Whenever the bearer's Charge reaches 3, every enemy is Dazzled for 1 turn.
+        description: Enemies the bearer damages directly are Dazzled for 2 turns; +10 direct damage to Dazzled enemies.
+        modifiers:
+          - { mod: damageDealt, amount: 10, when: { direct: true }, target: { has: { unit: it, effect: dazzled } } }
         triggers:
-          - on: effectGained
-            effect: charged
+          - on: dealtDamage
+            when: { byEnemy: true, direct: true }
             do:
-              - op: if
-                cond: { compare: { value: { stacks: { unit: bearer, effect: charged } }, atLeast: 3 } }
-                then:
-                  - { op: apply, to: allEnemies, effect: dazzled, duration: { enemyTurns: 1 } }
+              - { op: apply, to: eventTarget, effect: dazzled, duration: { enemyTurns: 2 } }
 
 shot.aurora:
   archetype: Shot
@@ -214,10 +212,10 @@ snipe.aurora:
 trap.aurora:
   archetype: Trap
   element: Aurora
-  name: Rime Snare
+  name: Snare of Lights
   description: >-
-    For 3 turns, the first time target enemy uses a skill, they take 15 Piercing damage and are Chilled
-    for 2 turns. Invisible.
+    For 3 turns, the first time target enemy uses a skill, the lights go off around their whole team:
+    they and each of their allies are Dazzled for 2 turns. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -227,18 +225,18 @@ trap.aurora:
       to: primary
       duration: { enemyTurns: 3 }
       effect:
-        id: rime_snare
-        name: Rime Snare
+        id: snare_of_lights
+        name: Snare of Lights
         kind: Debuff
         element: Aurora
         visibility: hidden
-        description: The first time the bearer uses a skill, they take 15 Piercing damage and are Chilled for 2 turns.
+        description: The first time the bearer uses a skill, their whole team is Dazzled for 2 turns.
         triggers:
           - on: skillUsed
             consume: true
             do:
-              - { op: damage, to: bearer, amount: 15, type: Piercing }
-              - { op: apply, to: bearer, effect: chilled, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearer, effect: dazzled, duration: { enemyTurns: 2 } }
+              - { op: apply, to: bearerAllies, effect: dazzled, duration: { enemyTurns: 2 } }
 
 maneuver.aurora:
   archetype: Maneuver
@@ -417,8 +415,8 @@ mislead.aurora:
   element: Aurora
   name: Ghost Lights
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they're Dazzled for 1 turn, +1
-    per energy it cost. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and its light drifts to the user's
+    side: their player gains 1 random energy for each energy it cost (up to 2). Invisible.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -433,29 +431,45 @@ mislead.aurora:
         kind: Debuff
         element: Aurora
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and they're Dazzled by its cost.
+        description: The bearer's next Harmful skill is countered, and its cost (up to 2) goes to the applier's player as random energy.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
             consume: true
             do:
-              - { op: apply, to: bearer, effect: dazzled, duration: { enemyTurns: { sum: [1, { skillCost: true }] } } }
+              - op: repeat
+                times: { if: { compare: { value: { skillCost: true }, atLeast: 2 } }, then: 2, else: { skillCost: true } }
+                do:
+                  - { op: gainEnergy, amount: 1 }
 
 stun.aurora:
   archetype: Stun
   element: Aurora
   name: Lightshow
   description: >-
-    Deals 15 damage to target enemy. For 2 turns, their non-Strategic skills (those that deal direct
-    damage) are stunned.
-  cost: AA
+    Deals 15 damage to target enemy. For 3 turns, the lights strobe: the next skill they use leaves
+    them Stunned for 1 turn afterward.
+  cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
     - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: primary, effect: stun_ns, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: lightshow
+        name: Lightshow
+        kind: Debuff
+        element: Aurora
+        description: The next skill the bearer uses leaves them Stunned for 1 turn afterward.
+        triggers:
+          - on: skillResolved
+            consume: true
+            do:
+              - { op: apply, to: bearer, effect: stun, duration: { enemyTurns: 1 } }
 
 dance.aurora:
   archetype: Dance
@@ -631,21 +645,27 @@ shout.aurora:
   element: Aurora
   name: Polar Static
   description: >-
-    All enemies are Intimidated for 2 turns. The user gains 1 Charge for each Frost debuff among them
-    (max 3).
+    All enemies are Chilled for 2 turns. Meanwhile, the static leaps between them: each skill one of
+    them uses gives a random ally of theirs 1 Confusion for 2 turns.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
+    - { op: apply, to: targets, effect: chilled, duration: { enemyTurns: 2 } }
     - op: apply
-      to: actor
-      effect: charged
-      stacks:
-        if: { compare: { value: { count: { effects: [frostbitten, chilled, numb, frostfire], in: targets } }, atLeast: 3 } }
-        then: 3
-        else: { count: { effects: [frostbitten, chilled, numb, frostfire], in: targets } }
+      to: targets
+      duration: { enemyTurns: 2 }
+      effect:
+        id: polar_static
+        name: Polar Static
+        kind: Debuff
+        element: Aurora
+        description: Each skill the bearer uses gives a random ally of theirs 1 Confusion for 2 turns.
+        triggers:
+          - on: skillUsed
+            do:
+              - { op: apply, to: { randomEnemy: 1, exclude: bearer, where: { kind: { unit: it, is: character } } }, effect: confusion, duration: { enemyTurns: 2 } }
 
 withstand.aurora:
   archetype: Withstand
@@ -674,36 +694,33 @@ taunt.aurora:
   archetype: Taunt
   element: Aurora
   name: Polar Beacon
-  description: Target enemy is Taunted by the user for 2 turns. While Taunted, each Sapped they gain counts as 2.
+  description: >-
+    Target enemy is Taunted by the user for 2 turns. Meanwhile, each time an enemy the user Taunted
+    damages them, the beacon flares: a random enemy who isn't Taunted is Taunted by the user for 1 turn.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
   target: enemy
   ops:
     - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 2 } }
+    # Neutral, so the beacon stays lit whatever the user's Buff state.
     - op: apply
-      to: primary
+      to: actor
       duration: { enemyTurns: 2 }
       effect:
         id: polar_beacon
         name: Polar Beacon
-        kind: Debuff
+        kind: Neutral
         element: Aurora
-        description: While Taunted, each Sapped the bearer gains counts as 2.
+        description: Each enemy the bearer Taunted who damages them Taunts a random un-Taunted enemy toward the bearer for 1 turn.
         triggers:
-          - on: effectGained
-            effect: sapped
+          - on: damaged
+            when: { byEnemy: true }
             do:
               - op: if
-                cond: { flag: doubling }
+                cond: { has: { unit: eventSource, effect: taunt, mine: true } }
                 then:
-                  - { op: setFlag, flag: doubling, value: false }
-                else:
-                  - op: if
-                    cond: { has: { unit: bearer, effect: taunt } }
-                    then:
-                      - { op: setFlag, flag: doubling }
-                      - { op: apply, to: bearer, effect: sapped }
+                  - { op: apply, to: { randomEnemy: 1, where: { not: { has: { unit: it, effect: taunt } } } }, effect: taunt, duration: { enemyTurns: 1 } }
 
 titan.aurora:
   archetype: Titan

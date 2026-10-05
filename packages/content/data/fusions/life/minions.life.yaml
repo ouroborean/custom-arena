@@ -21,3 +21,9 @@ acorn:
           do:
             - { op: addMaxHp, to: bearer, amount: 10 }
             - { op: heal, to: bearer, amount: 10 }
+
+# Dryad (the Summon): its Mend heals an ally, Flourishing.
+dryad:
+  name: Dryad
+  hp: 20
+  skills: [dryad_mend]

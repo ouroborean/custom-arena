@@ -169,25 +169,34 @@ describe('Aurora skills', () => {
     expect([a.hp(B1), a.has(B1, 'sapped')]).toEqual([75, false]);
   });
 
-  it('Polar Storm: Stormborn and 1 Might for 3 turns', () => {
-    const a = arena({ p0: [['rage.aurora']], p1: [['shot']] });
-    a.use(A1, 'rage.aurora').end();
-    expect([a.has(A1, 'stormborn'), a.stacks(A1, 'might')]).toEqual([true, 1]);
-    a.pass(5);
-    expect([a.has(A1, 'stormborn'), a.has(A1, 'might')]).toEqual([false, false]);
+  it('Polar Storm: for 3 turns, each enemy the user damages directly is Dazzled for 2 turns', () => {
+    const a = arena({ p0: [['rage.aurora', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.aurora').end().pass(1);
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'dazzled'), a.has(B2, 'dazzled')]).toEqual([85, true, false]); // no bonus on the hit that Dazzles
+    expect(appliedDur(a, B1, 'dazzled')).toBe(4);
   });
 
-  it('Polar Storm: when the user’s Charge reaches 3, every enemy is Dazzled for 1 turn', () => {
+  it('Polar Storm: the user deals 10 more direct damage to Dazzled enemies', () => {
     const a = arena({ p0: [['rage.aurora', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.aurora').end().end();
-    a.give(A1, 'charged', { stacks: 2 }).use(A1, 'shot', B1).end(); // Stormborn: +1 → 3
-    expect([a.has(B1, 'dazzled'), a.has(B2, 'dazzled')]).toEqual([true, true]);
+    a.give(B2, 'dazzled', { source: A1 });
+    a.use(A1, 'rage.aurora').end().pass(1);
+    a.use(A1, 'shot', B2).end();
+    expect(a.hp(B2)).toBe(75);
+    a.pass(1).use(A1, 'shot', B2).end();
+    expect(a.hp(B2)).toBe(50);
   });
 
-  it('Polar Storm: no Dazzle while Charge stays below 3', () => {
+  it('Polar Storm: after the 3 turns, hits neither Dazzle nor gain the bonus', () => {
     const a = arena({ p0: [['rage.aurora', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.aurora').end().end().use(A1, 'shot', B1).end();
-    expect([a.stacks(A1, 'charged'), a.has(B1, 'dazzled')]).toEqual([1, false]);
+    a.give(B2, 'dazzled', { source: A1 });
+    a.use(A1, 'rage.aurora').end().pass(5);
+    expect(a.has(A1, 'polar_storm')).toBe(false);
+    a.use(A1, 'shot', B2).end();
+    expect(a.hp(B2)).toBe(85);
+    const b = arena({ p0: [['rage.aurora', 'shot']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'rage.aurora').end().pass(5).use(A1, 'shot', B1).end();
+    expect([b.hp(B1), b.has(B1, 'dazzled')]).toEqual([85, false]);
   });
 
   it('Glimmer: 10 damage and Dazzled for 2 turns; 20 if they were already Dazzled', () => {
@@ -213,28 +222,27 @@ describe('Aurora skills', () => {
     expect([a.hp(B1), a.has(B1, 'sapped')]).toEqual([65, false]);
   });
 
-  it('Rime Snare: Invisible to the target’s player until it fires', () => {
+  it('Snare of Lights: Invisible to the target’s player until it fires', () => {
     const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
     a.use(A1, 'trap.aurora', B1).end();
     expect([a.hp(B1), hidden(a, B1, 1)]).toEqual([100, true]);
   });
 
-  it('Rime Snare: the first time the target uses a skill: 15 Piercing and Chilled for 2 turns', () => {
-    const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
+  it('Snare of Lights: the first time the target uses a skill, they and each of their allies are Dazzled for 2 turns', () => {
+    const a = arena({ p0: [['trap.aurora'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
     a.use(A1, 'trap.aurora', B1).end();
-    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([100, false]);
-    a.give(B1, 'armor', { stacks: 3 }).use(B1, 'shot', A1).end();
-    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([85, true]);
-    expect(appliedDur(a, B1, 'chilled')).toBe(5); // applied on the bearer's own turn
-    a.end().use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(85); // only the first time
+    expect(a.has(B2, 'dazzled')).toBe(false);
+    a.use(B1, 'shot', A1).end();
+    expect([a.has(B1, 'dazzled'), a.has(B2, 'dazzled'), a.has(B3, 'dazzled'), a.has(A2, 'dazzled')]).toEqual([true, true, true, false]);
+    expect([appliedDur(a, B1, 'dazzled'), appliedDur(a, B3, 'dazzled')]).toEqual([5, 5]); // applied on their own turn
+    expect([a.hp(B1), a.has(B1, 'snare_of_lights')]).toEqual([100, false]); // no damage; it's spent
   });
 
-  it('Rime Snare: doesn’t fire if the target doesn’t act, and runs out after 3 turns', () => {
-    const a = arena({ p0: [['trap.aurora']], p1: [['shot']] });
+  it('Snare of Lights: doesn’t fire if the target doesn’t act, and runs out after 3 turns', () => {
+    const a = arena({ p0: [['trap.aurora']], p1: [['shot'], ['shot']] });
     a.use(A1, 'trap.aurora', B1).end().pass(6);
     a.use(B1, 'shot', A1).end();
-    expect([a.hp(B1), a.has(B1, 'chilled')]).toEqual([100, false]);
+    expect([a.has(B1, 'dazzled'), a.has(B2, 'dazzled')]).toEqual([false, false]);
   });
 
   it('Vanishing Light: Invulnerable for 1 turn; Sapped turns into as much Charge', () => {
@@ -377,40 +385,60 @@ describe('Aurora skills', () => {
     expect(b.has(B1, 'sapped')).toBe(false);
   });
 
-  it('Ghost Lights: Invisible; counters a Harmful skill and Dazzles its user', () => {
+  it('Ghost Lights: Invisible; counters a Harmful skill', () => {
     const a = arena({ p0: [['mislead.aurora']], p1: [['smash']] });
     a.use(A1, 'mislead.aurora', B1).end();
     expect(hidden(a, B1, 1)).toBe(true);
     a.use(B1, 'smash', A1).end();
-    expect([a.hp(A1), a.has(B1, 'dazzled')]).toEqual([100, true]);
+    expect(a.hp(A1)).toBe(100);
   });
 
-  it('Ghost Lights: Dazzled 1 turn +1 per energy the countered skill cost', () => {
-    const a = arena({ p0: [['mislead.aurora']], p1: [['smash']] });
-    a.use(A1, 'mislead.aurora', B1).end().use(B1, 'smash', A1).end();
-    expect(appliedDur(a, B1, 'dazzled')).toBe(7);
-    const b = arena({ p0: [['mislead.aurora']], p1: [['shot']] });
-    b.use(A1, 'mislead.aurora', B1).end().use(B1, 'shot', A1).end(); // r: 2 turns
-    expect(appliedDur(b, B1, 'dazzled')).toBe(5);
+  it('Ghost Lights: the user’s player gains 1 random energy per energy the countered skill cost, up to 2', () => {
+    const run = (skill: string) => {
+      const a = arena({ p0: [['mislead.aurora']], p1: [[skill]], richEnergy: false });
+      setEnergy(a, 0, { I: 1 });
+      a.use(A1, 'mislead.aurora', B1).end();
+      setEnergy(a, 1, { S: 3, I: 3 });
+      a.use(B1, skill, A1).end(); // then the user's turn starts: +1 energy for their 1 character
+      const e = energy(a, 0);
+      return e.S + e.A + e.I + e.W - 1;
+    };
+    expect([run('shot'), run('smash'), run('blast.devil')]).toEqual([1, 2, 2]); // r, Sr, SIr
   });
 
   it('Ghost Lights: Helpful skills go through', () => {
     const a = arena({ p0: [['mislead.aurora']], p1: [['heal']] });
     a.setHp(B1, 50).use(A1, 'mislead.aurora', B1).end().use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.has(B1, 'dazzled')]).toEqual([75, false]);
+    expect(a.hp(B1)).toBe(75);
   });
 
-  it('Lightshow: 15 damage; for 2 turns their non-Strategic skills are stunned, Strategic ones aren’t', () => {
-    const a = arena({ p0: [['stun.aurora']], p1: [['shot', 'curse']] });
+  it('Lightshow: 15 damage; for 3 turns, the next skill the target uses leaves them Stunned for 1 turn afterward', () => {
+    const a = arena({ p0: [['stun.aurora']], p1: [['shot']] });
     a.use(A1, 'stun.aurora', B1).end();
     expect(a.hp(B1)).toBe(85);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.use(B1, 'curse', A1).end();
-    expect(a.has(A1, 'confusion')).toBe(true);
+    a.use(B1, 'shot', A1).end(); // it still lands
+    expect(a.hp(A1)).toBe(85);
     a.end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // second turn
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
     a.end().end();
+    a.use(B1, 'shot', A1).end().end(); // turn 6: the strobe is spent
     a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(55);
+  });
+
+  it('Lightshow: a skill used after the 3 turns doesn\'t Stun them', () => {
+    const a = arena({ p0: [['stun.aurora']], p1: [['shot']] });
+    a.use(A1, 'stun.aurora', B1).end().pass(6);
+    a.use(B1, 'shot', A1).end().end(); // turn 8
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(70);
+  });
+
+  it('Lightshow: a target who uses nothing isn’t Stunned', () => {
+    const a = arena({ p0: [['stun.aurora']], p1: [['shot']] });
+    a.use(A1, 'stun.aurora', B1).end().end().end();
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
   });
 
   it('Dance of Lights: Shimmer for 3 turns; each skill gives 1 Charge, every second also 1 Swiftness', () => {
@@ -505,18 +533,30 @@ describe('Aurora skills', () => {
     expect(appliedDur(a, B2, 'dazzled')).toBe(2);
   });
 
-  it('Polar Static: all enemies Intimidated for 2 turns; 1 Charge per Frost debuff among them (max 3)', () => {
+  it('Polar Static: all enemies are Chilled for 2 turns', () => {
     const a = arena({ p0: [['shout.aurora']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'chilled', { source: A1 }).give(B2, 'numb', { source: A1 });
     a.use(A1, 'shout.aurora').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated'), a.stacks(A1, 'charged')]).toEqual([true, true, 2]);
-    const b = arena({ p0: [['shout.aurora']], p1: [['shot'], ['shot']] });
-    for (const d of ['chilled', 'numb', 'frostbitten']) b.give(B1, d, { source: A1 }).give(B2, d, { source: A1 });
-    b.use(A1, 'shout.aurora').end();
-    expect(b.stacks(A1, 'charged')).toBe(3);
-    const c = arena({ p0: [['shout.aurora']], p1: [['shot']] });
-    c.use(A1, 'shout.aurora').end();
-    expect(c.has(A1, 'charged')).toBe(false);
+    expect([a.has(B1, 'chilled'), a.has(B2, 'chilled'), a.has(B1, 'confusion')]).toEqual([true, true, false]);
+    a.pass(3);
+    expect([a.has(B1, 'chilled'), a.has(B2, 'chilled')]).toEqual([false, false]);
+  });
+
+  it('Polar Static: meanwhile, each skill one of them uses gives a random ally of theirs 1 Confusion for 2 turns', () => {
+    const a = arena({ p0: [['shout.aurora']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.aurora').end();
+    a.use(B1, 'shot', A1).end();
+    expect([a.stacks(B1, 'confusion'), a.stacks(B2, 'confusion')]).toEqual([0, 1]);
+    a.pass(1).use(B2, 'shot', A1);
+    expect(a.state.players[1].queue[0]!.cost.r).toBe(2); // +1 Confusion
+    a.end();
+    expect([a.stacks(B1, 'confusion'), a.stacks(B2, 'confusion')]).toEqual([1, 0]); // B2's ended as they used it
+  });
+
+  it('Polar Static: after the 2 turns, skills pass on no Confusion', () => {
+    const a = arena({ p0: [['shout.aurora']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.aurora').end().pass(4);
+    a.use(B1, 'shot', A1).end();
+    expect(a.has(B2, 'confusion')).toBe(false);
   });
 
   it('Ice Cage: 25 Shield for 2 turns, with Shimmer while any of it remains', () => {
@@ -529,18 +569,28 @@ describe('Aurora skills', () => {
     expect([a.hp(A1), a.has(A1, 'shimmer')]).toEqual([85, false]);
   });
 
-  it('Polar Beacon: Taunted for 2 turns; meanwhile each Sapped they gain counts as 2', () => {
-    const a = arena({ p0: [['taunt.aurora'], ['ravage.aurora']], p1: [['shot']] });
-    a.give(A2, 'charged', { stacks: 1 });
-    a.use(A1, 'taunt.aurora', B1).use(A2, 'ravage.aurora', B1).end();
-    expect([a.has(B1, 'taunt'), a.stacks(B1, 'sapped')]).toEqual([true, 2]);
-    expect(() => a.use(B1, 'shot', A2)).toThrow();
+  it('Polar Beacon: target enemy is Taunted by the user for 2 turns', () => {
+    const a = arena({ p0: [['taunt.aurora'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'taunt.aurora', B1).end();
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.pass(3);
+    expect(a.has(B1, 'taunt')).toBe(false);
   });
 
-  it('Polar Beacon: un-Taunted enemies gain Sapped normally', () => {
-    const a = arena({ p0: [['ravage.aurora']], p1: [['shot']] });
-    a.give(A1, 'charged', { stacks: 1 }).use(A1, 'ravage.aurora', B1).end();
-    expect(a.stacks(B1, 'sapped')).toBe(1);
+  it('Polar Beacon: when an enemy the user Taunted damages them, a random un-Taunted enemy is Taunted by the user for 1 turn', () => {
+    const a = arena({ p0: [['taunt.aurora'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'taunt.aurora', B1).end().use(B1, 'shot', A1).end();
+    expect(a.has(B2, 'taunt')).toBe(true);
+    a.end();
+    expect(a.reject(() => a.use(B2, 'shot', A2))).toBe('bad_target');
+    a.end().end();
+    expect(a.has(B2, 'taunt')).toBe(false);
+  });
+
+  it('Polar Beacon: a hit from an enemy the user didn’t Taunt doesn’t flare it', () => {
+    const a = arena({ p0: [['taunt.aurora'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'taunt.aurora', B1).end().use(B2, 'shot', A1).end();
+    expect([a.has(B2, 'taunt'), a.has(B3, 'taunt')]).toEqual([false, false]);
   });
 
   it('Heavenlight Armor: Shimmer and Immune for 3 turns, 1 Armor per color among the player’s energies', () => {
@@ -582,7 +632,7 @@ describe('Aurora costs and cooldowns match the kit table', () => {
     'stab.aurora': ['r', 0],
     'ravage.aurora': ['Ir', 1],
     'mislead.aurora': ['I', 2],
-    'stun.aurora': ['AA', 2],
+    'stun.aurora': ['A', 2],
     'dance.aurora': ['SA', 5],
     'heal.aurora': ['I', 1],
     'bless.aurora': ['I', 1],

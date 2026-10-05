@@ -12,9 +12,8 @@ prey:
     - { and: [{ has: { unit: it, effect: delirium } }, { stackTotal: { unit: it, effects: [toxin, weakness, vulnerable, confusion], moreThan: 1 } }] }
     # Brimstone: Acrid Orb (while Marked) and Scent of Cinders (while Ignited or Scorched).
     - { and: [{ has: { unit: it, effect: acrid_orb } }, { has: { unit: it, effect: mark } }] }
-    # Serum: Pressurized Dose (while they have Dose) and Weak Constitution (any Weakness).
+    # Serum: Pressurized Dose (while they have Dose).
     - { and: [{ has: { unit: it, effect: pressurized } }, { has: { unit: it, effect: dose } }] }
-    - { and: [{ has: { unit: it, effect: weak_constitution } }, { has: { unit: it, effect: weakness } }] }
     # Battery: Low Battery counts Sapped toward it.
     - and:
         - { has: { unit: it, effect: low_battery } }

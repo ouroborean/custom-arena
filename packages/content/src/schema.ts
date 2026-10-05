@@ -616,6 +616,34 @@ export const economySchema = z.strictObject({
         .min(1),
     })
     .optional(),
+  progression: z
+    .strictObject({
+      xp: z.record(
+        z.string(),
+        z.strictObject({
+          minTurns: z.number().int().min(0).default(0),
+          win: z.number().int().min(0),
+          loss: z.number().int().min(0),
+          draw: z.number().int().min(0),
+        }),
+      ),
+      levels: z.strictObject({ base: z.number().int().min(1), step: z.number().int().min(0), max: z.number().int().min(1) }),
+      milestones: z.array(z.strictObject({ at: z.number().int().min(1).max(100), box: z.string() })).min(1),
+      table: z.string(),
+    })
+    .optional(),
+  lootBoxes: z
+    .record(
+      z.string(),
+      z.strictObject({
+        name: z.string().min(1),
+        count: z.number().int().min(1).max(10),
+        bands: z.strictObject({ gold: z.number().int().min(0), gear: z.number().int().min(0), prize: z.number().int().min(0) }),
+        gold: z.strictObject({ min: z.number().int().min(0), max: z.number().int().min(0) }),
+        gear: z.strictObject({ '1': z.number().int().min(0), '2': z.number().int().min(0) }),
+      }),
+    )
+    .optional(),
 });
 
 const grantSpec = z.strictObject({

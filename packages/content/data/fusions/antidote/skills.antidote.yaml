@@ -259,26 +259,30 @@ bolt.antidote:
   element: Antidote
   name: Neutralize
   description: >-
-    Deals 25 damage to target enemy and Marks them for 1 turn. Until the end of their next turn, their Buffs have
-    no effect.
-  cost: Ir
+    Deals 20 damage to target enemy. For 2 turns, the next Buff they would gain is stopped, and they can't
+    gain that Buff again for 3 turns.
+  cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: apply, to: primary, effect: mark, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 20 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: neutralized
         name: Neutralized
         kind: Debuff
         element: Antidote
-        description: The bearer's Buffs have no effect.
-        modifiers:
-          - { mod: suppressBuffs }
+        description: The next Buff the bearer would gain is stopped, and they're immune to it for 3 turns.
+        triggers:
+          - on: effectGained
+            when: { kind: Buff }
+            consume: true
+            do:
+              - { op: immunize, to: bearer, duration: { enemyTurns: 3 } }
+              - { op: eventEffect, remove: true }
 
 blast.antidote:
   archetype: Blast
@@ -555,15 +559,14 @@ smite.antidote:
   element: Antidote
   name: Theriac Brand
   description: >-
-    Deals 20 damage to target enemy and Sanctifies them for 1 turn. Their poison sweetens it: the Sanctify heals
-    5 more per Toxin on them.
+    Deals 15 damage to target enemy and brands them for 1 turn: each ally of the user who damages them Purges one
+    of their own Debuffs onto them, or becomes Inoculated if they have none.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 20 }
-    - { op: apply, to: primary, effect: sanctify, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 15 }
     - op: apply
       to: primary
       duration: { enemyTurns: 1 }
@@ -572,15 +575,25 @@ smite.antidote:
         name: Theriac Brand
         kind: Debuff
         element: Antidote
-        description: While Sanctified, each direct hit on the bearer heals the damager 5 more per Toxin on them.
+        description: >-
+          Each ally of the applier who damages the bearer Purges one of their Debuffs onto them, or is Inoculated if
+          they have none.
         triggers:
           - on: damaged
-            when: { direct: true }
+            when: { direct: true, fromSide: ally }
             do:
-              - op: if
-                cond: { and: [{ has: { unit: bearer, effect: sanctify } }, { has: { unit: bearer, effect: toxin } }] }
-                then:
-                  - { op: heal, to: eventSource, amount: { mul: [5, { stacks: { unit: bearer, effect: toxin } }] } }
+              - op: forEach
+                in: eventSource
+                do:
+                  - op: if
+                    cond: { hasKind: { unit: it, kind: Debuff } }
+                    then:
+                      - { op: set, var: purge_before, value: { kindCount: { unit: it, kind: Debuff, stacks: true } } }
+                      - { op: removeRandom, from: it, kind: Debuff }
+                      - { op: set, var: purged, value: { sum: [{ var: purge_before }, { mul: [-1, { kindCount: { unit: it, kind: Debuff, stacks: true } }] }] } }
+                      - { op: damage, to: bearer, amount: { mul: [10, { var: purged }] }, type: Affliction, direct: false }
+                    else:
+                      - { op: apply, to: it, effect: inoculated }
 
 prayer.antidote:
   archetype: Prayer

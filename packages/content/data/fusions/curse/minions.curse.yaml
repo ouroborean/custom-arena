@@ -11,8 +11,3 @@ hex_shade:
   name: Hex Shade
   hp: 15
   skills: [shade_whisper]
-
-poppet:
-  name: Poppet
-  hp: 10
-  skills: []

@@ -246,7 +246,7 @@ export const spAttempts = pgTable(
     turns: integer('turns'),
     commands: jsonb('commands').$type<{ player: number; cmd: Command }[]>(),
     /** Practice and arcade: what the finished attempt paid (its drops count toward the daily caps). */
-    reward: jsonb('reward').$type<{ currency: Record<string, number>; items: string[] }>(),
+    reward: jsonb('reward').$type<{ currency: Record<string, number>; items: string[]; xp?: unknown }>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
   },
@@ -298,4 +298,34 @@ export const seasonRewards = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
+);
+
+/** Player levels (docs/equipment.md §4.1): each account's total experience; the level is derived from it. */
+export const playerProgress = pgTable('player_progress', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  xp: integer('xp').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Loot boxes earned on the experience bar; rolled when the player opens one. */
+export const lootBoxes = pgTable(
+  'loot_boxes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Loot box id in content (uncommon, rare, epic). */
+    box: text('box').notNull(),
+    /** The level and bubble that paid it. */
+    level: integer('level').notNull(),
+    at: smallint('at').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** null until opened; then what it held (LootRoll[] from @arena/meta). */
+    openedAt: timestamp('opened_at', { withTimezone: true }),
+    contents: jsonb('contents').$type<unknown[]>(),
+  },
+  (t) => [index('loot_boxes_user_idx').on(t.userId)],
 );

@@ -8,23 +8,37 @@ strike.mist:
   element: Mist
   name: Veiled Strike
   description: >-
-    Deals 20 damage to target enemy, and the user gains Fog for 1 turn. If Fog redirected a skill away
-    from the user since their last turn, this deals 15 more.
+    Deals 15 damage to target enemy, and the user gains Fog for 1 turn. This Fog condenses on that enemy
+    instead of the user: when it ends, they take 15 damage, or 25 if it redirected a skill.
   cost: I
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
-      to: primary
-      amount:
-        if:
-          and:
-            - { compare: { value: { counterOf: { unit: actor, name: fog_redirect_turn } }, atLeast: 1 } }
-            - { compare: { value: { sum: [{ turn: true }, { mul: [-1, { counterOf: { unit: actor, name: fog_redirect_turn } }] }] }, atMost: 2 } }
-        then: 35
-        else: 20
-    - { op: apply, to: actor, effect: fog, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 15 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { enemyTurns: 1 }
+      effect:
+        id: veiled_strike
+        name: Fog
+        kind: Buff
+        element: Mist
+        countsAs: [fog]
+        description: Fog that condenses on the struck enemy instead of into Renew; 25 damage if it redirected a skill, else 15.
+        modifiers:
+          - { mod: fogged }
+        triggers:
+          - on: signal
+            signal: fog_redirect
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then: [{ op: setFlag, flag: redirected }]
+        onExpire:
+          - { op: damage, to: effectTargets, amount: { if: { flag: redirected }, then: 25, else: 15 } }
 
 smash.mist:
   archetype: Smash
@@ -48,16 +62,36 @@ charge.mist:
   element: Mist
   name: Mistwalk
   description: >-
-    Deals 15 damage to target enemy. The user gains 1 Focus, and their ally with the lowest HP gains Fog
-    for 1 turn.
-  cost: nc
-  cooldown: 1
+    Deals 10 damage to target enemy, and the user's afterimage lingers beside them in the mist until the end
+    of the user's next turn. The next time the user deals direct damage to another enemy with a skill, the
+    afterimage strikes too: target enemy takes as much (max 25).
+  cost: S
+  cooldown: 2
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - { op: apply, to: actor, effect: focus, until: { skillUsed: {} } }
-    - { op: apply, to: weakestAlly, effect: fog, duration: { enemyTurns: 1 } }
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
+      to: actor
+      remember: primary
+      duration: { ownTurns: 1 }
+      effect:
+        id: mistwalk
+        name: Afterimage
+        kind: Buff
+        element: Mist
+        description: The next direct hit the bearer's skills land on another enemy is echoed onto the enemy beside the afterimage (max 25).
+        triggers:
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
+            do:
+              - op: if
+                cond: { not: { eventTargetIs: effectTargets } }
+                then:
+                  - op: damage
+                    to: effectTargets
+                    amount: { if: { compare: { value: { eventAmount: true }, atLeast: 25 } }, then: 25, else: { eventAmount: true } }
+                  - { op: removeSelf }
 
 riposte.mist:
   archetype: Riposte
@@ -123,17 +157,18 @@ shot.mist:
   archetype: Shot
   element: Mist
   name: Dew Shot
-  description: Deals 15 damage to target enemy. The user gains Fog for 1 turn, or theirs lasts 1 turn longer.
+  description: >-
+    Fired blind into the fog, the shot lands on a random enemy instead: 20 damage, or 10 if that's target
+    enemy after all.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 15 }
-    - op: if
-      cond: { has: { unit: actor, effect: fog } }
-      then: [{ op: extendEffects, on: actor, effects: [fog], by: 2 }]
-      else: [{ op: apply, to: actor, effect: fog, duration: { enemyTurns: 1 } }]
+    - op: forEach
+      in: { randomEnemy: 1 }
+      do:
+        - { op: damage, to: it, amount: { if: { isPrimary: it }, then: 10, else: 20 } }
 
 snipe.mist:
   archetype: Snipe
@@ -202,14 +237,34 @@ maneuver.mist:
   archetype: Maneuver
   element: Mist
   name: Dissipate
-  description: The user becomes Invulnerable for 1 turn, and every ally gains Fog until the user's next turn.
+  description: >-
+    The user gains Fog for 1 turn. The first time it sends a skill elsewhere, they dissipate into the mist:
+    they become Invulnerable for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: invulnerable, duration: { enemyTurns: 1 } }
-    - { op: apply, to: allAllies, effect: fog, duration: { raw: 2 } }
+    - { op: apply, to: actor, effect: fog, duration: { enemyTurns: 1 } }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: dissipate
+        name: Dissipate
+        kind: Buff
+        element: Mist
+        description: The first skill the bearer's Fog redirects away from them makes them Invulnerable for 1 turn.
+        triggers:
+          - on: signal
+            signal: fog_redirect
+            when: { side: ally }
+            do:
+              - op: if
+                cond: { isActor: eventSource }
+                then:
+                  - { op: apply, to: bearer, effect: invulnerable, duration: { enemyTurns: 1 } }
+                  - { op: removeSelf }
 
 companion.mist:
   archetype: Companion
@@ -297,16 +352,31 @@ consume.mist:
 summon.mist:
   archetype: Summon
   element: Mist
-  name: Will-o'-Mists
+  name: Mist Double
   description: >-
-    Summons 2 Will-o'-Mists (10 HP) for 3 turns; while any stands, every ally has Fog (and the Mists can be
-    hit in their place). Pale Touch (nc): 5 Piercing damage.
-  cost: r
-  cooldown: 3
+    Summons a Mist Double of the user for 2 turns. The first enemy single-target Harmful skill aimed at the
+    user strikes the Double instead. The Double can't be hurt, but any enemy Harmful skill that strikes it
+    bursts it: it's destroyed, and that skill's user takes 10 damage. When it fades or bursts, it falls back
+    into mist around the user: they gain Fog for 1 turn.
+  cost: I
+  cooldown: 2
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: summon, minion: will_o_mist, count: 2, duration: { enemyTurns: 3 } }
+    - { op: summon, minion: mist_double, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      from: lastSummoned
+      bindTo: lastSummoned
+      duration: { enemyTurns: 2 }
+      effect:
+        id: mist_double_decoy
+        name: Mist Double
+        kind: Buff
+        element: Mist
+        description: The first enemy single-target Harmful skill aimed at the bearer strikes their Mist Double instead.
+        modifiers:
+          - { mod: warded }
 
 channel.mist:
   archetype: Channel
@@ -346,16 +416,33 @@ stab.mist:
   element: Mist
   name: Whisper Knife
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. It comes out of the fog from no
-    one: it can't be countered or reflected.
+    Deals 10 damage to target enemy, and the knife waits in the fog until the user's next turn: the first
+    time an ally of the user deals that enemy direct damage while they're at or below 60 HP, it strikes too,
+    for 15 more.
   cost: r
   cooldown: 0
-  tags: [Harmful, NonStrategic, Uncounterable]
+  tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - op: damage
+    - { op: damage, to: primary, amount: 10 }
+    - op: apply
       to: primary
-      amount: { if: { hpAtMost: { unit: it, value: 60 } }, then: 20, else: 10 }
+      duration: { enemyTurns: 1 }
+      effect:
+        id: whisper_knife
+        name: Whisper Knife
+        kind: Debuff
+        element: Mist
+        description: The first direct hit from the applier's side while the bearer is at or below 60 HP brings 15 more damage.
+        triggers:
+          - on: damaged
+            when: { direct: true, fromSide: ally }
+            do:
+              - op: if
+                cond: { hpAtMost: { unit: bearer, value: 60 } }
+                then:
+                  - { op: damage, to: bearer, amount: 15 }
+                  - { op: removeSelf }
 
 ravage.mist:
   archetype: Ravage
@@ -386,10 +473,10 @@ mislead.mist:
   element: Mist
   name: Lost in the Fog
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and each unit it targeted gains Fog
-    for 2 turns. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered. If it was aimed at a single unit, the
+    fog carries it onto a random one of their own allies instead (if they have any). Invisible.
   cost: I
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic, Invisible]
   target: enemy
   ops:
@@ -402,14 +489,16 @@ mislead.mist:
         kind: Debuff
         element: Mist
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and its targets gain Fog.
+        description: The bearer's next Harmful skill is countered; a single-target one lands on a random ally of theirs instead.
         triggers:
           - on: skillUsed
             when: { harmful: true }
             intercept: counter
-            consume: true
             do:
-              - { op: apply, to: eventTargets, effect: fog, duration: { enemyTurns: 2 } }
+              - op: if
+                cond: { eventSkill: { single: true } }
+                then:
+                  - { op: castSkill, eventSkill: true, on: randomBearerAlly }
 
 stun.mist:
   archetype: Stun
@@ -528,8 +617,8 @@ smite.mist:
   element: Mist
   name: Dewfall Ring
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn; it gives allies who damage them 3 Renew
-    instead of healing 15.
+    Deals 20 damage to target enemy. For 2 turns, whenever they deal direct damage to one of the user's
+    allies, that ally gains Fog for 1 turn.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -538,31 +627,32 @@ smite.mist:
     - { op: damage, to: primary, amount: 20 }
     - op: apply
       to: primary
-      duration: { enemyTurns: 1 }
+      duration: { enemyTurns: 2 }
       effect:
         id: dewfall_ring
-        name: Sanctify
+        name: Dewfall Ring
         kind: Debuff
         element: Mist
-        countsAs: [sanctify]
-        description: When the bearer takes direct damage, the damager gains 3 Renew.
+        description: Each of the applier's allies the bearer deals direct damage to gains Fog for 1 turn.
         triggers:
-          - on: damaged
-            when: { direct: true }
+          - on: dealtDamage
+            when: { direct: true, byEnemy: true }
             do:
-              - { op: apply, to: eventSource, effect: renew, stacks: 3 }
+              - { op: apply, to: eventTarget, effect: fog, duration: { enemyTurns: 1 } }
 
 prayer.mist:
   archetype: Prayer
   element: Mist
   name: Mercy of the Mist
-  description: All allies heal 20 and gain Fog for 1 turn; this Fog condenses into 3 Renew instead of 2.
+  description: >-
+    All allies heal 15 and gain Fog for 1 turn that doesn't condense into Renew. Instead, while it lasts,
+    each skill Fog redirects heals every ally 10.
   cost: Wrr
   cooldown: 2
   tags: [Helpful, Strategic]
   target: allAllies
   ops:
-    - { op: heal, to: targets, amount: 20 }
+    - { op: heal, to: targets, amount: 15 }
     - op: apply
       to: targets
       duration: { enemyTurns: 1 }
@@ -572,57 +662,66 @@ prayer.mist:
         kind: Buff
         element: Mist
         countsAs: [fog]
-        description: Fog that condenses into 3 Renew.
+        description: Fog that doesn't condense into Renew.
         modifiers:
           - { mod: fogged }
-        onExpire:
-          - { op: apply, to: bearer, effect: renew, stacks: 3 }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 1 }
+      effect:
+        id: mercy_of_the_mist_heal
+        name: Mercy of the Mist
+        kind: Buff
+        element: Mist
+        description: Each skill Fog redirects on the bearer's side heals every ally 10.
+        triggers:
+          - on: signal
+            signal: fog_redirect
+            when: { side: ally }
+            do:
+              - { op: heal, to: allAllies, amount: 10 }
 
 cleave.mist:
   archetype: Cleave
   element: Mist
-  name: Stolen Wind
+  name: Mistcutter
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. The user takes their mobility buffs.
+    Deals 20 damage to target enemy. If the user has Fog, it condenses into the blade instead of Renew: the
+    Fog ends, and every other enemy takes 15 damage. If they don't, the mist gathers: a random other enemy
+    takes 10 damage, and the user gains Fog until the end of their next 2 turns.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - op: forEach
-      in: { randomEnemy: 1, exclude: primary }
-      do:
-        - { op: damage, to: it, amount: 15 }
-        - { op: moveEffects, from: it, to: actor, effects: [swiftness, rushing, leaping] }
-    - { op: moveEffects, from: primary, to: actor, effects: [swiftness, rushing, leaping] }
+    - { op: damage, to: primary, amount: 20 }
+    - op: if
+      cond: { has: { unit: actor, effect: fog, exact: true } }
+      then:
+        # Removed, not expired: no Renew.
+        - { op: removeEffect, from: actor, effect: fog }
+        - { op: damage, to: { filter: allEnemies, where: { not: { isPrimary: it } } }, amount: 15 }
+      else:
+        - { op: forEach, in: { randomEnemy: 1, exclude: primary }, do: [{ op: damage, to: it, amount: 10 }] }
+        # Long enough to still be there when this is ready again (cooldown 1).
+        - { op: apply, to: actor, effect: fog, duration: { ownTurns: 2 } }
 
 shout.mist:
   archetype: Shout
   element: Mist
   name: Foghorn
   description: >-
-    All enemies are Intimidated for 2 turns. For 1 turn, Harmful skills they aim at the user are turned
-    back on their users.
+    The horn echoes through the fog: 3 times, a random enemy character is Intimidated for 2 turns (it can
+    be the same one).
   cost: I
-  cooldown: 2
+  cooldown: 3
   tags: [Harmful, Strategic]
   target: allEnemies
   ops:
-    - { op: apply, to: targets, effect: intimidated, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: actor
-      duration: { enemyTurns: 1 }
-      effect:
-        id: foghorn
-        name: Foghorn
-        kind: Buff
-        element: Mist
-        description: Harmful skills aimed at the bearer are reflected.
-        triggers:
-          - on: skillTargeted
-            when: { harmful: true }
-            intercept: reflect
+    - op: repeat
+      times: 3
+      do:
+        - { op: forEach, in: { randomEnemy: 1, where: { kind: { unit: it, is: character } } }, do: [{ op: apply, to: it, effect: intimidated, duration: { enemyTurns: 2 } }] }
 
 withstand.mist:
   archetype: Withstand
@@ -672,29 +771,36 @@ titan.mist:
   element: Mist
   name: Marid Form
   description: >-
-    For 3 turns, the user gains 2 Armor, Immune and Fog. When it ends, the Fog condenses into 6 Renew
-    instead of 2.
+    For 3 turns, the user gains Immune and Fog, and their attacks spill through the mist: each of their
+    skills that deals direct damage also deals 10 damage to a random enemy.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 3 } }
     - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
+    - { op: apply, to: actor, effect: fog, duration: { enemyTurns: 3 } }
     - op: apply
       to: actor
       duration: { enemyTurns: 3 }
       effect:
         id: marid_form
-        name: Fog
+        name: Marid Form
         kind: Buff
         element: Mist
-        countsAs: [fog]
-        description: Fog that condenses into 6 Renew.
-        modifiers:
-          - { mod: fogged }
-        onExpire:
-          - { op: apply, to: bearer, effect: renew, stacks: 6 }
+        description: Each of the bearer's skills that deals direct damage also deals 10 damage to a random enemy.
+        triggers:
+          - on: dealtDamage
+            when: { direct: true }
+            do:
+              - { op: setFlag, flag: hit }
+          - on: skillResolved
+            do:
+              - op: if
+                cond: { flag: hit }
+                then:
+                  - { op: setFlag, flag: hit, value: false }
+                  - { op: damage, to: { randomEnemy: 1 }, amount: 10 }
 
 # Minion skills.
 
@@ -709,15 +815,3 @@ mist_heron_spear_beak:
   target: enemy
   ops:
     - { op: damage, to: primary, amount: { if: { check: { cond: immobile, unit: it } }, then: 25, else: 15 } }
-
-will_o_mist_pale_touch:
-  archetype: Minion
-  element: Mist
-  name: Pale Touch
-  description: Deals 5 Piercing damage to target enemy.
-  cost: nc
-  cooldown: 0
-  tags: [Harmful, NonStrategic]
-  target: enemy
-  ops:
-    - { op: damage, to: primary, amount: 5, type: Piercing }

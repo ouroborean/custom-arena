@@ -15,8 +15,6 @@ const B3 = 'p1c2';
 
 type Arena = ReturnType<typeof arena>;
 
-const condemnDebuffs = (a: Arena, id: string) =>
-  a.stacks(id, 'weakness') + a.stacks(id, 'vulnerable') + a.stacks(id, 'confusion');
 
 const minion = (a: Arena, defId: string) => a.state.units.find((u) => u.defId === defId)!;
 
@@ -306,69 +304,78 @@ describe('Zealot skills', () => {
     expect([a.hp(B1), a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([85, 50, 0]);
   });
 
-  it("Martyr's Spear: 50 on the following turn, target hidden from the opponent", () => {
+  it("Martyr's Spear: 35 on the following turn if no enemy hits the user, target hidden from the opponent", () => {
     const a = arena({ p0: [['snipe.zealot']], p1: [['shot']] });
     a.use(A1, 'snipe.zealot', B1).end();
     expect(a.hp(B1)).toBe(100);
     expect(viewFor(content, a.state, 1).effects.find((e) => e.bearer === A1)?.targets ?? []).toEqual([]);
     a.end();
-    expect(a.hp(B1)).toBe(50);
+    expect(a.hp(B1)).toBe(65);
   });
 
-  it("Martyr's Spear: if the user dies first, it lands at once, doubled", () => {
-    const a = arena({ p0: [['snipe.zealot'], ['shot']], p1: [['shot'], ['shot']], hp: 200 });
-    a.setHp(A1, 10).use(A1, 'snipe.zealot', B1).end();
-    a.use(B2, 'shot', A1).end();
-    expect(a.unit(A1).alive).toBe(false);
-    expect(a.hp(B1)).toBe(100);
+  it("Martyr's Spear: +10 for each time an enemy damages the user meanwhile", () => {
+    const a = arena({ p0: [['snipe.zealot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'snipe.zealot', B1).end();
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(100 - 55);
   });
 
-  it('Inquisition: Invisible; Trap 15 on the next Harmful skill, and only once', () => {
-    const a = arena({ p0: [['trap.zealot']], p1: [['shot']] });
+  it("Martyr's Spear: the bonus stops at +30", () => {
+    const a = arena({ p0: [['snipe.zealot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'snipe.zealot', B1).end();
+    a.give(A1, 'mark', { source: B3 }); // its 10 is a fourth enemy hit
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).use(B3, 'shot', A1).end();
+    expect(a.hp(B1)).toBe(100 - 65);
+  });
+
+  it('Inquisition: Invisible; for 3 turns, each skill the target uses gives the user 1 Fervor', () => {
+    const a = arena({ p0: [['trap.zealot'], ['shot']], p1: [['heal', 'shot']] });
     a.use(A1, 'trap.zealot', B1).end();
     expect(hiddenFromOpponent(a, B1, 1)).toBe(true);
-    a.use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(85);
-    a.pass(1).use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(85);
+    a.use(B1, 'heal', B1).end();
+    expect(a.stacks(A1, 'fervor')).toBe(1);
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect(a.stacks(A1, 'fervor')).toBe(2);
   });
 
-  it('Inquisition: each skill a Condemned target uses Condemns them again', () => {
-    const a = arena({ p0: [['trap.zealot']], p1: [['shot', 'heal']] });
-    a.give(B1, 'condemned', { source: A1 }).use(A1, 'trap.zealot', B1).end();
-    a.use(B1, 'shot', A1).end();
-    expect([condemnDebuffs(a, B1), a.has(B1, 'condemned')]).toEqual([1, true]);
-    a.pass(1).use(B1, 'heal', B1).end(); // any skill, Helpful too
-    // A second Debuff landed; if the first was Confusion, this skill ended it.
-    expect(condemnDebuffs(a, B1)).toBeGreaterThanOrEqual(1);
-    expect(a.has(B1, 'condemned')).toBe(true);
+  it('Inquisition: when it ends, the target takes 5 for each skill they used', () => {
+    const a = arena({ p0: [['trap.zealot'], ['shot']], p1: [['heal', 'shot']] });
+    a.use(A1, 'trap.zealot', B1).end();
+    a.use(B1, 'heal', B1).end().pass(1).use(B1, 'shot', A2).end().pass(1);
+    expect(a.hp(B1)).toBe(100);
+    a.end(); // their third turn ends: the sentence
+    expect([a.hp(B1), a.has(B1, 'inquisition')]).toEqual([90, false]);
+    a.pass(1).use(B1, 'heal', B1).end();
+    expect(a.stacks(A1, 'fervor')).toBe(2); // over
   });
 
-  it('Inquisition: a target who isn\'t Condemned isn\'t Condemned by using a skill', () => {
+  it('Inquisition: no skills used, no Fervor and no damage', () => {
     const a = arena({ p0: [['trap.zealot']], p1: [['shot']] });
-    a.use(A1, 'trap.zealot', B1).end().use(B1, 'shot', A1).end();
-    expect(a.has(B1, 'condemned')).toBe(false);
+    a.use(A1, 'trap.zealot', B1).end().pass(6);
+    expect([a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([100, 0]);
   });
 
-  it('Hair Shirt: Invisible, so the opponent never sees the Immortal', () => {
+  it('Hair Shirt: Invisible', () => {
     const a = arena({ p0: [['maneuver.zealot']], p1: [['shot']] });
     a.use(A1, 'maneuver.zealot').end();
     expect(hiddenFromOpponent(a, A1, 1)).toBe(true);
   });
 
-  it('Hair Shirt: Immortal for 1 turn; brought to 5 HP → 3 Fervor', () => {
-    const a = arena({ p0: [['maneuver.zealot']], p1: [['shot']] });
-    a.setHp(A1, 10).use(A1, 'maneuver.zealot').end();
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.unit(A1).alive, a.stacks(A1, 'fervor')]).toEqual([5, true, 3]);
+  it('Hair Shirt: for 1 turn, half damage, and each enemy hit gives the user 2 Fervor (even with none)', () => {
+    const a = arena({ p0: [['maneuver.zealot']], p1: [['strike'], ['strike']] });
+    a.use(A1, 'maneuver.zealot').end();
+    a.use(B1, 'strike', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([90, 2]);
+    const b = arena({ p0: [['maneuver.zealot']], p1: [['strike'], ['strike']] });
+    b.use(A1, 'maneuver.zealot').end();
+    b.use(B1, 'strike', A1).use(B2, 'strike', A1).end();
+    expect([b.hp(A1), b.stacks(A1, 'fervor')]).toEqual([80, 4]);
   });
 
-  it('Hair Shirt: not brought to 5 → no Fervor; and the Immortality ends after 1 turn', () => {
-    const a = arena({ p0: [['maneuver.zealot']], p1: [['shot']] });
-    a.use(A1, 'maneuver.zealot').end().use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([85, 0]);
-    a.pass(1).setHp(A1, 10).use(B1, 'shot', A1).end();
-    expect(a.unit(A1).alive).toBe(false);
+  it('Hair Shirt: over after 1 turn', () => {
+    const a = arena({ p0: [['maneuver.zealot']], p1: [['strike']] });
+    a.use(A1, 'maneuver.zealot').end().pass(2).use(B1, 'strike', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([80, 0]);
   });
 
   it('Flagellant: permanent 40 HP minion with 1 Fervor', () => {
@@ -410,21 +417,18 @@ describe('Zealot skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([60, 60]);
   });
 
-  it('Heresy Bolt: 25 and Sanctify 1 turn; an ally who triggers it heals and drains a Soul Fragment', () => {
-    const a = arena({ p0: [['bolt.zealot'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bolt.zealot', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sanctify')]).toEqual([60, true]);
-    expect([a.hp(A2), a.stacks(A2, 'soul_fragment')]).toEqual([65, 1]);
-    expect(a.stacks(A1, 'soul_fragment')).toBe(0); // the Bolt itself doesn't trigger its own Sanctify
-    expect(a.stacks(A3, 'soul_fragment')).toBe(0);
+  it('Eye for an Eye: 20 to an enemy who wasn\'t the last to damage the user', () => {
+    const a = arena({ p0: [['bolt.zealot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B2, 'shot', A1).use(B1, 'shot', A1).end();
+    a.use(A1, 'bolt.zealot', B2).end();
+    expect([a.hp(B2), a.stacks(A1, 'fervor')]).toEqual([80, 0]);
   });
 
-  it('Heresy Bolt: the Sanctify lasts 1 turn', () => {
-    const a = arena({ p0: [['bolt.zealot'], ['shot']], p1: [['shot']] });
+  it('Eye for an Eye: 15 more against the last enemy to damage the user, who gains 1 Fervor', () => {
+    const a = arena({ p0: [['bolt.zealot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B2, 'shot', A1).use(B1, 'shot', A1).end();
     a.use(A1, 'bolt.zealot', B1).end();
-    expect(a.has(B1, 'sanctify')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
+    expect([a.hp(B1), a.stacks(A1, 'fervor')]).toEqual([65, 1]);
   });
 
   it('Harrowing Nova: 25 Piercing to all; a fragment per enemy dropped from above half to half or below', () => {
@@ -525,25 +529,27 @@ describe('Zealot skills', () => {
     expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([90, 1]);
   });
 
-  it('Votive Dagger: 10, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.zealot'], ['stab.zealot']], p1: [['shot'], ['shot']] });
-    a.setHp(B1, 70).setHp(B2, 60).use(A1, 'stab.zealot', B1).use(A2, 'stab.zealot', B2).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 40]);
-  });
-
-  it("Votive Dagger: a kill pays out the user's Fervor as a Martyr to their allies, and the user keeps it", () => {
-    const a = arena({ p0: [['stab.zealot'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'fervor', { stacks: 2 }).setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).setHp(B1, 25);
+  it('Atoning Blade: 15 damage; with no Debuff on the user, that\'s all', () => {
+    const a = arena({ p0: [['stab.zealot']], p1: [['shot']] });
     a.use(A1, 'stab.zealot', B1).end();
-    expect(a.unit(B1).alive).toBe(false);
-    expect([a.hp(A2), a.hp(A3), a.stacks(A2, 'might')]).toEqual([70, 70, 1]);
-    expect([a.hp(A1), a.stacks(A1, 'fervor')]).toEqual([50, 2]);
+    expect([a.hp(B1), a.effects(B1)]).toEqual([85, []]);
   });
 
-  it('Votive Dagger: no kill, no payout', () => {
-    const a = arena({ p0: [['stab.zealot'], ['shot']], p1: [['shot']] });
-    a.give(A1, 'fervor', { stacks: 2 }).setHp(A2, 50).use(A1, 'stab.zealot', B1).end();
-    expect(a.hp(A2)).toBe(50);
+  it('Atoning Blade: a random Debuff of the user\'s moves onto the target, with the time it had left', () => {
+    const moved = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const a = arena({ p0: [['stab.zealot']], p1: [['shot']], seed });
+      a.give(A1, 'vulnerable', { source: B1, duration: 5 }).give(A1, 'horrified', { source: B1, duration: 5 });
+      a.use(A1, 'stab.zealot', B1).end();
+      expect(a.hp(B1)).toBe(85);
+      const onB = ['vulnerable', 'horrified'].filter((k) => a.has(B1, k));
+      const onA = ['vulnerable', 'horrified'].filter((k) => a.has(A1, k));
+      expect(onB).toHaveLength(1);
+      expect(onA).toEqual(['vulnerable', 'horrified'].filter((k) => k !== onB[0]));
+      expect(a.effects(B1).find((e) => e.defId === onB[0])!.duration).toBe(4); // 5, less this turn's tick
+      moved.add(onB[0]!);
+    }
+    expect(moved.size).toBe(2);
   });
 
   it('Strip the Faithless: 30 Piercing', () => {
@@ -618,28 +624,22 @@ describe('Zealot skills', () => {
     expect([a.hp(A1), a.stacks(A1, 'fervor'), a.hp(A2)]).toEqual([85, 1, 70]);
   });
 
-  it('Unholy Unction: 1 Might and Lifesteal for 3 turns', () => {
+  it('Zealous Unction: the ally gains 1 Fervor and heals 5 per Fervor at the end of each of the user\'s turns', () => {
+    const a = arena({ p0: [['bless.zealot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A2, 50).use(A1, 'bless.zealot', A2).end();
+    expect([a.stacks(A2, 'fervor'), a.hp(A2)]).toEqual([1, 55]);
+    a.use(B1, 'shot', A2).use(B2, 'shot', A2).end(); // 25 HP, Fervor 3
+    expect([a.hp(A2), a.stacks(A2, 'fervor')]).toEqual([25, 3]);
+    a.end();
+    expect(a.hp(A2)).toBe(40);
+  });
+
+  it('Zealous Unction: lasts 3 turns', () => {
     const a = arena({ p0: [['bless.zealot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bless.zealot', A2).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2), a.stacks(A2, 'might')]).toEqual([80, 70, 1]);
-    a.pass(4);
-    expect([a.has(A2, 'lifesteal'), a.stacks(A2, 'might')]).toEqual([true, 1]);
-    a.pass(1);
-    expect([a.has(A2, 'lifesteal'), a.stacks(A2, 'might')]).toEqual([false, 0]);
-  });
-
-  it('Unholy Unction: a heal that tops them up to full HP gives 10 Shield', () => {
-    const a = arena({ p0: [['bless.zealot'], ['shot'], ['heal']], p1: [['shot']] });
-    a.setHp(A2, 90).use(A1, 'bless.zealot', A2).use(A3, 'heal', A2).end();
-    expect(a.hp(A2)).toBe(100);
-    expect(a.effects(A2).filter((e) => e.defId === 'unction_shield').reduce((n, e) => n + e.value, 0)).toBe(10);
-  });
-
-  it('Unholy Unction: a heal that finds them hurt gives no Shield', () => {
-    const a = arena({ p0: [['bless.zealot'], ['shot'], ['heal']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bless.zealot', A2).use(A3, 'heal', A2).end();
-    expect(a.hp(A2)).toBe(75);
-    expect(a.has(A2, 'unction_shield')).toBe(false);
+    a.setHp(A2, 50).use(A1, 'bless.zealot', A2).end().pass(4);
+    expect(a.hp(A2)).toBe(65);
+    a.pass(2);
+    expect(a.hp(A2)).toBe(65);
   });
 
   it('Communal Grace: Sanctified for 2 turns; each trigger heals every other ally of the damager 5', () => {
@@ -660,18 +660,12 @@ describe('Zealot skills', () => {
     expect([a.hp(A1), a.hp(A3)]).toEqual([50, 50]);
   });
 
-  it('Holy Hunger: 20 and Sanctify 2 turns; each ally who triggers it gains 1 Fervor', () => {
-    const a = arena({ p0: [['smite.zealot'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'smite.zealot', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(50);
-    expect([a.stacks(A1, 'fervor'), a.stacks(A2, 'fervor'), a.stacks(A3, 'fervor')]).toEqual([0, 1, 1]);
-    a.pass(1).use(A2, 'shot', B1).end();
-    expect(a.stacks(A2, 'fervor')).toBe(2);
-    expect(a.has(B1, 'sanctify')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
-    a.use(A3, 'shot', B1).end();
-    expect(a.stacks(A3, 'fervor')).toBe(1); // over with the Sanctify
+  it('Unguarded Wrath: 30, and the user is Sanctified for 1 turn: enemies who hit them heal 15', () => {
+    const a = arena({ p0: [['smite.zealot']], p1: [['shot']] });
+    a.use(A1, 'smite.zealot', B1).end();
+    expect([a.hp(B1), a.has(A1, 'sanctify')]).toEqual([70, true]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(B1), a.has(A1, 'sanctify')]).toEqual([85, 85, false]);
   });
 
   it('Fervent Chant: all allies heal 25', () => {
@@ -708,39 +702,37 @@ describe('Zealot skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([75, 100]);
   });
 
-  it('Sermon of Dread: all enemies Intimidated for 2 turns; Horrified ones are also Condemned', () => {
-    const a = arena({ p0: [['shout.zealot']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'horrified', { source: A1 }).use(A1, 'shout.zealot').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    expect([a.has(B1, 'condemned'), a.has(B2, 'condemned')]).toEqual([true, false]);
-    a.pass(2);
-    expect(a.has(B2, 'intimidated')).toBe(true);
-    a.pass(1);
-    expect(a.has(B2, 'intimidated')).toBe(false);
+  it('Sermon of Dread: for 2 turns, each Buff an enemy would gain is lost, and the user gains 1 Fervor for it', () => {
+    const a = arena({ p0: [['shout.zealot']], p1: [['bless'], ['withstand']] });
+    a.give(B2, 'armor').use(A1, 'shout.zealot').end();
+    a.use(B1, 'bless', B1).use(B2, 'withstand').end();
+    expect([a.has(B1, 'might'), a.has(B1, 'renew'), a.has(B2, 'shield')]).toEqual([false, false, false]);
+    expect(a.has(B2, 'armor')).toBe(true); // Buffs they already had stay
+    expect(a.stacks(A1, 'fervor')).toBe(3);
   });
 
-  it('Shield of Martyrs: 25 Shield for 1 turn', () => {
+  it('Sermon of Dread: over after 2 turns', () => {
+    const a = arena({ p0: [['shout.zealot']], p1: [['bless']] });
+    a.use(A1, 'shout.zealot').end().pass(4);
+    a.use(B1, 'bless', B1).end();
+    expect([a.has(B1, 'might'), a.stacks(A1, 'fervor')]).toEqual([true, 0]);
+  });
+
+  it('Hardened Faith: for 1 turn, after each enemy hit on the user, they gain 15 Shield for 1 turn', () => {
+    const shield = (a: Arena) => a.effects(A1).filter((e) => e.defId === 'shield').reduce((n, e) => n + e.value, 0);
     const a = arena({ p0: [['withstand.zealot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'withstand.zealot').end();
+    expect(shield(a)).toBe(0); // nothing up front
     a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(95); // 25 of the 30 absorbed
-    const b = arena({ p0: [['withstand.zealot']], p1: [['shot']] });
-    b.use(A1, 'withstand.zealot').end().pass(2).use(B1, 'shot', A1).end();
-    expect(b.hp(A1)).toBe(85); // gone after 1 turn
+    expect([a.hp(A1), shield(a)]).toEqual([85, 15]); // the first hit's Shield took the second hit
+    a.pass(1).use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(A1), shield(a)]).toEqual([70, 0]); // the last Shield held into their next turn; no new ones
   });
 
-  it('Shield of Martyrs: an ally dying meanwhile gives the user 2 Fervor on top of the Martyr payout', () => {
-    const a = arena({ p0: [['withstand.zealot'], ['shot']], p1: [['shot']] });
-    a.give(A2, 'fervor', { stacks: 2 }).setHp(A1, 50).setHp(A2, 5).use(A1, 'withstand.zealot').end();
-    a.use(B1, 'shot', A2).end();
-    expect(a.unit(A2).alive).toBe(false);
-    expect([a.hp(A1), a.stacks(A1, 'might'), a.stacks(A1, 'fervor')]).toEqual([70, 1, 2]);
-  });
-
-  it('Shield of Martyrs: no death, no Fervor', () => {
-    const a = arena({ p0: [['withstand.zealot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'withstand.zealot').end().use(B1, 'shot', A2).end();
-    expect(a.stacks(A1, 'fervor')).toBe(0);
+  it('Hardened Faith: over after 1 turn', () => {
+    const a = arena({ p0: [['withstand.zealot']], p1: [['shot']] });
+    a.use(A1, 'withstand.zealot').end().pass(2).use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.effects(A1).some((e) => e.defId === 'shield')]).toEqual([85, false]);
   });
 
   it('Strike Me Down: Taunts for 2 turns', () => {

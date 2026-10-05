@@ -10,7 +10,7 @@ martyr:
     cond: { compare: { value: { var: zeal }, atLeast: 2 } }
     then: [{ op: apply, to: bearerAllies, effect: might, stacks: { div: [{ var: zeal }, 2] } }]
 
-# Martyr payout for the actor's Fervor without dying (Votive Dagger, Living Saint): their other allies benefit.
+# Martyr payout for the actor's Fervor without dying (Living Saint): their other allies benefit.
 martyr_payout:
   - op: heal
     to: { filter: allAllies, where: { not: { isActor: it } } }

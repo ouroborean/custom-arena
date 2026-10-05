@@ -7,3 +7,57 @@ random_hex:
       - [{ op: apply, to: it, effect: hex_pain, duration: { enemyTurns: 2 } }]
       - [{ op: apply, to: it, effect: hex_silence, duration: { enemyTurns: 2 } }]
       - [{ op: apply, to: it, effect: hex_ruin, duration: { enemyTurns: 2 } }]
+
+# One of the actor's Hexes, chosen at random among those they have, moves onto `primary` (Cursed Dagger).
+# Each option tries the Hexes in a different order, so every Hex the actor has is equally likely.
+curse_pass_hex:
+  - op: random
+    options:
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_pain } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_silence } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_pain } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_ruin } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_silence } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_pain } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_silence } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_ruin } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_ruin } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_pain } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+      - - op: if
+          cond: { has: { unit: actor, effect: hex_ruin } }
+          then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_ruin] }]
+          else:
+            - op: if
+              cond: { has: { unit: actor, effect: hex_silence } }
+              then: [{ op: moveEffects, from: actor, to: primary, effects: [hex_silence] }]
+              else: [{ op: moveEffects, from: actor, to: primary, effects: [hex_pain] }]

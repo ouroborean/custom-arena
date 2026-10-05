@@ -226,12 +226,27 @@ describe('Ocean skills', () => {
     a.use(B1, 'heal', B1); // Strategic skills still work
   });
 
-  it('Brine Bolt: 25 and a Mark; whoever spends it gains 2 Renew and Brimming', () => {
-    const a = arena({ p0: [['bolt.ocean'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.ocean', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 25 - 15 - 10);
-    expect([a.has(A2, 'brimming'), a.has(A1, 'brimming')]).toEqual([true, false]);
-    expect(a.effects(A2).some((e) => e.defId === 'renew')).toBe(true);
+  it('Brine Bolt: Crest 25, plus 5 per stack of Renew on the user\'s side (up to 15 more); no Mark', () => {
+    const run = (stacks: [number, number]) => {
+      const a = arena({ p0: [['bolt.ocean'], ['shot']], p1: [['shot']] });
+      if (stacks[0]) a.give(A1, 'renew', { stacks: stacks[0], source: A1 });
+      if (stacks[1]) a.give(A2, 'renew', { stacks: stacks[1], source: A1 });
+      a.use(A1, 'bolt.ocean', B1).end();
+      return a;
+    };
+    expect(run([0, 0]).hp(B1)).toBe(75);
+    expect(run([1, 1]).hp(B1)).toBe(65);
+    expect(run([3, 2]).hp(B1)).toBe(60);
+    expect(run([0, 0]).has(B1, 'mark')).toBe(false);
+  });
+
+  it('Brine Bolt: Trough 15, and every ally gains 2 Renew', () => {
+    const a = arena({ p0: [['bolt.ocean'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bolt.ocean', B1).end().pass(3);
+    a.setHp(A2, 50).use(A1, 'bolt.ocean', B1).end();
+    expect(a.hp(B1)).toBe(100 - 25 - 15);
+    // Each ally's 2 Renew has ticked once at the end of the user's turn: 10 healed, 1 stack left.
+    expect([a.stacks(A1, 'renew'), a.stacks(A2, 'renew'), a.stacks(A3, 'renew'), a.hp(A2)]).toEqual([1, 1, 1, 60]);
   });
 
   it('Flood Tide: 20 to all; every ally gains Brimming and 1 Renew per enemy hit', () => {
@@ -370,18 +385,49 @@ describe('Ocean skills', () => {
     expect([a.has(B1, 'confusion'), a.stacks(B2, 'confusion')]).toEqual([false, 1]);
   });
 
-  it('Swell of the Deep: Flow, Brimming, Swiftness, and 2 Renew at the start of each of the user\'s turns', () => {
-    const a = arena({ p0: [['dance.ocean']], p1: [['shot']] });
+  it('Swell of the Deep: Brimming; the first Debuff an enemy gives the user washes off, and they gain 2 Renew', () => {
+    const a = arena({ p0: [['dance.ocean']], p1: [['curse']] });
     a.use(A1, 'dance.ocean').end();
-    expect([a.has(A1, 'flow'), a.has(A1, 'brimming'), a.stacks(A1, 'swiftness')]).toEqual([true, true, 1]);
-    a.pass(1);
-    expect(a.stacks(A1, 'renew')).toBeGreaterThanOrEqual(2);
+    expect([a.has(A1, 'brimming'), a.has(A1, 'flow'), a.has(A1, 'might')]).toEqual([true, false, false]);
+    a.use(B1, 'curse', A1).end();
+    expect([a.has(A1, 'confusion'), a.stacks(A1, 'renew')]).toEqual([false, 2]);
   });
 
-  it('Swell of the Deep: each time Brimming gives Shield, 1 Might for 1 turn', () => {
+  it('Swell of the Deep: a Stun washes off too, though the hit still lands', () => {
+    const a = arena({ p0: [['dance.ocean']], p1: [['stun']] });
+    a.use(A1, 'dance.ocean').end();
+    a.use(B1, 'stun', A1).end();
+    expect([a.hp(A1), a.has(A1, 'stun'), a.stacks(A1, 'renew')]).toEqual([85, false, 2]);
+  });
+
+  it('Swell of the Deep: only once per turn; the next turn it washes again', () => {
+    const a = arena({ p0: [['dance.ocean']], p1: [['curse'], ['stun']] });
+    a.use(A1, 'dance.ocean').end();
+    a.use(B1, 'curse', A1).use(B2, 'stun', A1).end();
+    expect([a.has(A1, 'confusion'), a.has(A1, 'stun'), a.stacks(A1, 'renew')]).toEqual([false, true, 2]);
+    a.pass(5).use(B1, 'curse', A1).end();
+    expect(a.has(A1, 'confusion')).toBe(false);
+  });
+
+  it('Swell of the Deep: a Stun that Swiftness stops never reaches it, so the wash is still there for the next Debuff', () => {
+    const a = arena({ p0: [['dance.ocean']], p1: [['stun'], ['curse']] });
+    a.use(A1, 'dance.ocean').end();
+    a.give(A1, 'swiftness', { duration: 2 }).use(B1, 'stun', A1).use(B2, 'curse', A1).end();
+    expect([a.has(A1, 'stun'), a.has(A1, 'confusion'), a.stacks(A1, 'renew')]).toEqual([false, false, 2]);
+  });
+
+  it('Swell of the Deep: Debuffs the user already had stay', () => {
     const a = arena({ p0: [['dance.ocean']], p1: [['shot']] });
-    a.use(A1, 'dance.ocean').end().pass(1).end(); // turn 3: 2 Renew at full HP overflows
-    expect([shield(a, A1) > 0, a.stacks(A1, 'might')]).toEqual([true, 1]);
+    a.give(A1, 'weakness', { source: B1, duration: 6 }).use(A1, 'dance.ocean').end();
+    expect(a.has(A1, 'weakness')).toBe(true);
+  });
+
+  it('Swell of the Deep: it ends after 4 turns', () => {
+    const a = arena({ p0: [['dance.ocean']], p1: [['curse']] });
+    a.use(A1, 'dance.ocean').end().pass(7);
+    expect([a.has(A1, 'riding_the_swell'), a.has(A1, 'brimming')]).toEqual([false, false]);
+    a.end().use(B1, 'curse', A1).end();
+    expect(a.has(A1, 'confusion')).toBe(true);
   });
 
   it('Tidepool: heals 30; overflow becomes 2 Renew per 10, and Brimming for 2 turns', () => {
@@ -394,11 +440,34 @@ describe('Ocean skills', () => {
     expect(shield(a, A2)).toBe(10);
   });
 
-  it('Sea Legs: Flow for 3 turns; each counter it ignores heals the ally 15', () => {
-    const a = arena({ p0: [['bless.ocean'], ['shot']], p1: [['riposte']] });
-    a.pass(1).use(B1, 'riposte').end();
-    a.setHp(A2, 50).use(A1, 'bless.ocean', A2).use(A2, 'shot', B1).end();
-    expect([a.has(A2, 'flow'), a.hp(B1), a.hp(A2)]).toEqual([true, 85, 65]);
+  it('Swell and Break: Crest gives target ally Brimming for 3 turns and 15 Brimming Shield', () => {
+    const a = arena({ p0: [['bless.ocean'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.ocean', A2).end();
+    expect([a.has(A2, 'brimming'), shield(a, A2)]).toEqual([true, 15]);
+    a.use(B1, 'shot', A2).end();
+    expect(a.hp(A2)).toBe(100);
+  });
+
+  it('Swell and Break: Trough breaks their Brimming Shield into 1 Might for 3 turns, plus 1 per 10 it held', () => {
+    const a = arena({ p0: [['bless.ocean'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.ocean', A2).end().pass(5);
+    a.use(A1, 'bless.ocean', A2).end();
+    expect([shield(a, A2), a.stacks(A2, 'might')]).toEqual([0, 2]);
+    a.pass(4);
+    expect(a.stacks(A2, 'might')).toBe(2);
+    a.pass(2);
+    expect(a.stacks(A2, 'might')).toBe(0);
+  });
+
+  it('Swell and Break: Trough with no Brimming Shield gives 1 Might; it never gives more than 3', () => {
+    const a = arena({ p0: [['bless.ocean'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bless.ocean', A2).end().pass(5);
+    a.use(A1, 'bless.ocean', A3).end();
+    expect(a.stacks(A3, 'might')).toBe(1);
+    const b = arena({ p0: [['bless.ocean'], ['shot']], p1: [['shot']] });
+    b.use(A1, 'bless.ocean', A1).end().pass(5);
+    b.give(A2, 'brimming_shield', { value: 30 }).use(A1, 'bless.ocean', A2).end();
+    expect([b.stacks(A2, 'might'), shield(b, A2)]).toEqual([3, 0]);
   });
 
   it('Brine Haze: Confused for 2 turns; each Renew an ally of the user gains adds 1 Confusion', () => {

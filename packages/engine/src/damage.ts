@@ -166,7 +166,7 @@ export function dealDamage(ctx: Ctx, a: DamageArgs): number {
     }
   }
   // Crystal's Diamond and Faceted Ward: caps on HP lost per hit and per turn.
-  target.counters['c:hit_capped'] = 0; // content can ask whether the last hit was capped (Flawless Challenge)
+  target.counters['c:hit_capped'] = 0; // content can ask whether the last hit was capped (Crystal's Diamond)
   for (const { spec, effect } of modsOn(ctx.s, ctx.c, target.id, 'maxHpLossPerHit')) {
     if (remaining <= spec.amount) continue;
     target.counters['c:hit_capped'] = 1;

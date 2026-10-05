@@ -69,15 +69,15 @@ riposte.life:
   element: Life
   name: Thornwall
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user or one of their minions, dealing
-    15 Piercing damage to its user. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user. A Seedling sprouts in its path, and its
+    user is Taunted by the Seedling for 1 turn. Invisible.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
   target: self
   ops:
     - op: apply
-      to: { filter: allAllies, where: { or: [{ isActor: it }, { kind: { unit: it, is: minion } }] } }
+      to: actor
       duration: { enemyTurns: 1 }
       effect:
         id: thornwall
@@ -85,53 +85,107 @@ riposte.life:
         kind: Buff
         element: Life
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer, dealing 15 Piercing damage to its user.
+        description: Counters the first Harmful skill used on the bearer; a Seedling sprouts and Taunts its user.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
             intercept: counter
+            consume: true
             do:
-              - { op: damage, to: eventSource, amount: 15, type: Piercing }
-              - { op: removeEffect, from: allAllies, effect: thornwall }
+              - { op: summon, minion: seedling }
+              - { op: apply, to: eventSource, effect: taunt, from: lastSummoned, duration: { enemyTurns: 1 } }
 
 rage.life:
   archetype: Rage
   element: Life
   name: Wild Growth
   description: >-
-    The user creates 2 Seedlings and is Immune for 3 turns. Each allied Seedling that Blooms during
-    it gives the user 1 Might for good.
+    The user creates a Seedling. For 3 turns, another sprouts for them at the start of each of their turns,
+    and they deal 5 more direct damage for each allied Seedling (up to 20 more).
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: summon, minion: seedling, count: 2 }
-    - { op: apply, to: actor, effect: immune, duration: { enemyTurns: 3 } }
-    - { op: apply, to: actor, effect: wild_growth, duration: { enemyTurns: 3 } }
+    - { op: summon, minion: seedling }
+    - op: apply
+      to: actor
+      duration: { enemyTurns: 3 }
+      effect:
+        id: wild_growth_surge
+        name: Wild Growth
+        kind: Buff
+        element: Life
+        description: A Seedling sprouts at the start of each of the bearer's turns; +5 direct damage per allied Seedling, up to 20.
+        modifiers:
+          - mod: damageDealt
+            amount: 0
+            when: { direct: true }
+            value:
+              if: { compare: { value: { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }, atLeast: 4 } }
+              then: 20
+              else: { mul: [5, { countOf: { filter: allAllies, where: { minion: { unit: it, types: [seedling] } } } }] }
+        triggers:
+          - on: turnStart
+            do:
+              - { op: summon, minion: seedling }
 
 shot.life:
   archetype: Shot
   element: Life
-  name: Treefall
+  name: Ripening Seed
   description: >-
-    Deals 15 damage to target enemy. Can instead target an allied Treant: it's flung at a random
-    enemy for damage equal to its HP, and lands as a fresh Seedling.
+    Deals 5 damage to target enemy and plants a seed in them for 3 turns. It ripens at the end of each of the
+    user's turns: to 10, then to 25. Using this on them again harvests it first: it bursts for that much
+    damage, and the user heals half of what it dealt, which can Flourish. The user tends one seed at a time:
+    planting one withers their seed in any other enemy, with no burst.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
-  target: any
-  targetFilter: { or: [{ isEnemy: it }, { minion: { unit: it, types: [treant], mine: true } }] }
+  target: enemy
   ops:
+    # The harvest: a seed of 2 stacks is worth 10, of 3 stacks 25 (a fresh one, nothing).
     - op: if
-      cond: { isEnemy: primary }
+      cond: { has: { unit: primary, effect: ripening_seed, mine: true } }
       then:
-        - { op: damage, to: primary, amount: 15 }
-      else:
-        - { op: set, var: thrown, value: { hp: primary } }
-        - { op: damage, to: { randomEnemy: 1 }, from: primary, amount: { var: thrown } }
-        - { op: transformMinion, to: primary, minion: seedling }
-        - { op: apply, to: primary, effect: bloom_timer, duration: { raw: 5 } }
+        - op: set
+          var: ripe
+          value:
+            if: { compare: { value: { stacks: { unit: primary, effect: ripening_seed } }, atLeast: 3 } }
+            then: 25
+            else: { if: { compare: { value: { stacks: { unit: primary, effect: ripening_seed } }, atLeast: 2 } }, then: 10, else: 0 }
+        - { op: removeEffect, from: primary, effect: ripening_seed }
+        - op: if
+          cond: { compare: { value: { var: ripe }, atLeast: 1 } }
+          then:
+            - { op: damage, to: primary, amount: { var: ripe } }
+            - op: forEach
+              in: actor
+              do:
+                - { op: heal, to: it, amount: { div: [{ lastDamage: true }, 2] } }
+                - { op: macro, id: flourish_it }
+    # One seed at a time: the user's seed elsewhere is removed, unharvested.
+    - op: forEach
+      in: { filter: allEnemies, where: { and: [{ has: { unit: it, effect: ripening_seed, mine: true } }, { not: { isPrimary: it } }] } }
+      do: [{ op: removeEffect, from: it, effect: ripening_seed }]
+    - { op: damage, to: primary, amount: 5 }
+    - op: apply
+      to: primary
+      duration: { enemyTurns: 3 }
+      effect:
+        id: ripening_seed
+        name: Ripening Seed
+        kind: Debuff
+        element: Life
+        stacking: unique
+        maxStacks: 3
+        description: Ripens at the end of each of the user's turns (10, then 25); the user's next Ripening Seed on the bearer harvests it, and on anyone else withers it.
+        triggers:
+          - on: turnEnd
+            do:
+              - op: if
+                cond: { compare: { value: { effectStacks: true }, atMost: 2 } }
+                then: [{ op: addStacksSelf, amount: 1 }]
 
 snipe.life:
   archetype: Snipe
@@ -243,34 +297,34 @@ companion.life:
 bolt.life:
   archetype: Bolt
   element: Life
-  name: Bedrock Thorn
+  name: Growing Thorn
   description: >-
-    Deals 25 damage to target enemy, and the user creates a Boulder. For 3 turns, each time an
-    allied Boulder takes damage, Channel Growth.
+    Deals 15 damage to target enemy and lodges a thorn in them for 2 turns: at the end of each of the
+    user's turns, it deals them 10 damage and the user heals 5, which can Flourish.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: damage, to: primary, amount: 25 }
-    - { op: summon, minion: boulder }
+    - { op: damage, to: primary, amount: 15 }
     - op: apply
-      to: actor
-      duration: { enemyTurns: 3 }
+      to: primary
+      duration: { enemyTurns: 2 }
       effect:
-        id: bedrock_thorn
-        name: Bedrock Thorn
-        kind: Buff
+        id: growing_thorn
+        name: Growing Thorn
+        kind: Debuff
         element: Life
-        description: Each time an allied Boulder takes damage, Channel Growth.
+        description: At the end of each of the applier's turns, 10 damage to the bearer, and the applier heals 5 (Flourishing).
         triggers:
-          - on: signal
-            signal: unitDamaged
+          - on: turnEnd
             do:
-              - op: if
-                cond: { minion: { unit: eventTarget, types: [boulder], mine: true } }
-                then:
-                  - { op: macro, id: channel_growth }
+              - { op: damage, to: bearer, amount: 10, direct: false }
+              - op: forEach
+                in: actor
+                do:
+                  - { op: heal, to: it, amount: 5 }
+                  - { op: macro, id: flourish_it }
 
 blast.life:
   archetype: Blast
@@ -322,36 +376,15 @@ consume.life:
 summon.life:
   archetype: Summon
   element: Life
-  name: Twin Saplings
+  name: Dryad
   description: >-
-    Creates 2 Seedlings (15 HP). Channel Earth (r): its creator gains 1 Might and 1 Armor. If one
-    dies before Blooming, the other Blooms at once.
+    Summons a Dryad (20 HP) for 3 turns. Mend (nc): target ally heals 15, which can Flourish.
   cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: summon, minion: seedling, count: 2 }
-    - op: apply
-      to: actor
-      duration: { raw: 5 }
-      effect:
-        id: twin_saplings
-        name: Twin Saplings
-        kind: Buff
-        element: Life
-        description: If one of the bearer's unbloomed Seedlings dies, another Blooms at once.
-        triggers:
-          - on: signal
-            signal: died
-            do:
-              - op: if
-                cond: { minion: { unit: eventTarget, types: [seedling], mine: true } }
-                then:
-                  - op: forEach
-                    in: { randomAlly: 1, where: { has: { unit: it, effect: bloom_timer } } }
-                    do: [{ op: macro, id: bloom_it }]
-                  - { op: removeSelf }
+    - { op: summon, minion: dryad, duration: { enemyTurns: 3 } }
 
 channel.life:
   archetype: Channel
@@ -496,31 +529,16 @@ stun.life:
   element: Life
   name: Overgrow
   description: >-
-    Target enemy is Stunned for 2 turns and gains 25 Shield. When the Stun ends, the user heals
-    whatever Shield is left, which can Flourish.
+    Deals 10 damage to target enemy and roots them: a Seedling sprouts for the user, and the target is
+    Stunned for 2 turns, or until that Seedling dies.
   cost: Ar
   cooldown: 3
-  tags: [Harmful, Strategic]
+  tags: [Harmful, NonStrategic]
   target: enemy
   ops:
-    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 } }
-    - op: apply
-      to: primary
-      value: 25
-      duration: { enemyTurns: 2 }
-      effect:
-        id: overgrow
-        name: Overgrowth
-        kind: Neutral
-        element: Life
-        shield: true
-        description: When this ends, whatever Shield is left heals the one who grew it.
-        onExpire:
-          - op: forEach
-            in: actor
-            do:
-              - { op: heal, to: it, amount: { effectValue: true } }
-              - { op: macro, id: flourish_it }
+    - { op: damage, to: primary, amount: 10 }
+    - { op: summon, minion: seedling }
+    - { op: apply, to: primary, effect: stun, duration: { enemyTurns: 2 }, bindTo: lastSummoned }
 
 dance.life:
   archetype: Dance
@@ -716,17 +734,31 @@ withstand.life:
   archetype: Withstand
   element: Life
   name: Barkskin
-  description: The user gains 25 Shield for 1 turn; if they have Flourished HP, they also gain 2 Armor for 2 turns.
+  description: >-
+    The user gains 20 Shield for 2 turns. When it ends, whatever is left heals the user, which can
+    Flourish.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
   target: self
   ops:
-    - { op: apply, to: actor, effect: shield, value: 25, duration: { enemyTurns: 1 } }
-    - op: if
-      cond: { compare: { value: { counter: flourish }, atLeast: 1 } }
-      then:
-        - { op: apply, to: actor, effect: armor, stacks: 2, duration: { enemyTurns: 2 } }
+    - op: apply
+      to: actor
+      value: 20
+      duration: { enemyTurns: 2 }
+      effect:
+        id: barkskin
+        name: Barkskin
+        kind: Buff
+        element: Life
+        shield: true
+        description: A Shield; when it ends, whatever is left heals the bearer (Flourishing).
+        onExpire:
+          - op: forEach
+            in: bearer
+            do:
+              - { op: heal, to: it, amount: { effectValue: true } }
+              - { op: macro, id: flourish_it }
 
 taunt.life:
   archetype: Taunt
@@ -809,3 +841,19 @@ acorn_crush:
   target: enemy
   ops:
     - { op: damage, to: primary, amount: { div: [{ hp: actor }, 2] } }
+
+dryad_mend:
+  archetype: Minion
+  element: Life
+  name: Mend
+  description: Target ally heals 15, which can Flourish.
+  cost: nc
+  cooldown: 0
+  tags: [Helpful, Strategic]
+  target: ally
+  ops:
+    - op: forEach
+      in: primary
+      do:
+        - { op: heal, to: it, amount: 15 }
+        - { op: macro, id: flourish_it }

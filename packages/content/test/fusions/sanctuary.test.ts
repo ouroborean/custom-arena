@@ -30,7 +30,7 @@ describe('Sanctuary: cost and cooldown match the design kit', () => {
   const kit: Record<string, [string, number]> = {
     strike: ['S', 0], smash: ['Sr', 2], charge: ['S', 2], riposte: ['W', 3], rage: ['AW', 4],
     shot: ['r', 1], snipe: ['Ar', 2], trap: ['W', 3], maneuver: ['r', 3], companion: ['I', 1],
-    bolt: ['I', 1], blast: ['IW', 2], consume: ['W', 2], summon: ['A', 1], channel: ['Ir', 3],
+    bolt: ['Ir', 1], blast: ['IW', 2], consume: ['W', 2], summon: ['A', 1], channel: ['Ir', 3],
     stab: ['A', 0], ravage: ['Wr', 2], mislead: ['W', 2], stun: ['Ar', 3], dance: ['AA', 4],
     heal: ['r', 1], bless: ['W', 2], curse: ['A', 2], smite: ['W', 1], prayer: ['Wrr', 4],
     cleave: ['S', 1], shout: ['A', 3], withstand: ['r', 3], taunt: ['W', 3], titan: ['WW', 4],
@@ -97,19 +97,21 @@ describe('Sanctum', () => {
   });
 
   it('it lasts 3 turns when no Wardstone stands', () => {
-    // Stone Rebuke + an ally's hit raise it on turn 1, with no Wardstone on the board.
+    // Stone Rebuke's Condemnation takes hold when B1 acts on turn 2, raising it then, with no Wardstone on the board.
     const a = arena({ p0: [['bolt.sanctuary'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.sanctuary', B1).use(A2, 'shot', B1).end();
+    a.use(A1, 'bolt.sanctuary', B1).end().use(B1, 'shot', A2).end();
     expect(sanctum(a)).toBe(1);
-    a.pass(4);
-    expect(sanctum(a)).toBe(1); // through the enemy's 3rd turn… still up at the end of turn 5
-    a.pass(2);
+    a.pass(5);
+    expect(sanctum(a)).toBe(1); // through the enemy's 3rd turn after it… still up at the end of turn 7
+    a.pass(1);
     expect(sanctum(a)).toBe(0);
   });
 
   it('while an allied Wardstone stands, it doesn\'t run out', () => {
     const a = arena({ p0: [['bolt.sanctuary'], ['shot'], ['taunt.sanctuary']], p1: [['shot']] });
-    a.use(A3, 'taunt.sanctuary', B1).use(A1, 'bolt.sanctuary', B1).use(A2, 'shot', B1).end();
+    a.use(A3, 'taunt.sanctuary', B1).use(A1, 'bolt.sanctuary', B1).end();
+    const w = minions(a, 0, 'wardstone')[0]!;
+    a.use(B1, 'shot', w.id).end();
     expect([sanctum(a), minions(a, 0, 'wardstone').length]).toEqual([1, 1]);
     a.pass(9);
     expect(sanctum(a)).toBe(1);
@@ -117,11 +119,11 @@ describe('Sanctum', () => {
 
   it('raising it again refreshes its 3 turns (and the level rises)', () => {
     const a = arena({ p0: [['bolt.sanctuary'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'bolt.sanctuary', B1).use(A2, 'shot', B1).end().pass(3);
-    a.use(A1, 'bolt.sanctuary', B1).use(A2, 'shot', B1).end();
+    a.use(A1, 'bolt.sanctuary', B1).end().use(B1, 'shot', A2).end().pass(2);
+    a.use(A1, 'bolt.sanctuary', B1).end().use(B1, 'shot', A2).end();
     expect(sanctum(a)).toBe(2);
-    a.pass(4);
-    expect(sanctum(a)).toBe(2); // the first raise alone would have ended after turn 6
+    a.pass(5);
+    expect(sanctum(a)).toBe(2); // the first raise alone would have ended after turn 8
     a.pass(1);
     expect(sanctum(a)).toBe(0);
   });
@@ -345,21 +347,24 @@ describe('Sanctuary skills', () => {
     a.use(B1, 'shot', A1).end();
   });
 
-  it('Stone Rebuke: 20 and Sanctify; only the first ally to damage them raises the Sanctum', () => {
-    const a = arena({ p0: [['bolt.sanctuary'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'bolt.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(B1), sanctum(a)]).toEqual([50, 1]);
-    expect(a.hp(A2)).toBeGreaterThanOrEqual(65); // Sanctify healed the damager 15
-  });
-
-  it('Stone Rebuke: the Sanctify lasts 1 turn', () => {
+  it('Stone Rebuke: 15 damage, and the target is Condemned; nothing more until they act', () => {
     const a = arena({ p0: [['bolt.sanctuary'], ['shot']], p1: [['shot']] });
     a.use(A1, 'bolt.sanctuary', B1).end();
-    expect(a.has(B1, 'sanctify')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
-    a.use(A2, 'shot', B1).end();
-    expect(sanctum(a)).toBe(0);
+    expect([a.hp(B1), a.has(B1, 'condemned'), sanctum(a)]).toEqual([85, true, 0]);
+  });
+
+  it('Stone Rebuke: when the Condemnation takes hold, they take 10 more and your Sanctum rises by 1, once', () => {
+    const a = arena({ p0: [['bolt.sanctuary'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'bolt.sanctuary', B1).end().use(B1, 'shot', A2).end();
+    expect([a.has(B1, 'condemned'), debuffCount(a, B1), a.hp(B1), sanctum(a)]).toEqual([false, 1, 75, 1]);
+    a.pass(1).use(B1, 'shot', A2).end();
+    expect([a.hp(B1), sanctum(a)]).toEqual([75, 1]);
+  });
+
+  it('Stone Rebuke: each Condemnation that takes hold raises it again, up to 3', () => {
+    const a = arena({ p0: [['bolt.sanctuary']], p1: [['shot']] });
+    for (let i = 0; i < 3; i++) a.use(A1, 'bolt.sanctuary', B1).end().use(B1, 'shot', A1).end().pass(2);
+    expect(sanctum(a)).toBe(3);
   });
 
   it('Tremor of Faith: 20 Piercing to all, +10 per Sanctum level; then the Sanctum drops by 1', () => {
@@ -605,25 +610,38 @@ describe('Sanctuary skills', () => {
     expect(a.has(B1, 'isolated')).toBe(false);
   });
 
-  it('Firstfruits Brand: 20 and Sanctify for 1 turn; each heal from it also gives the healed 5 max HP', () => {
+  it('Firstfruits Tithe: 15; the target loses 10 max HP and the ally with the lowest HP gains 10 max HP and heals 10, for the match', () => {
     const a = arena({ p0: [['smite.sanctuary'], ['shot'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'smite.sanctuary', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([50, 65]);
-    expect([a.unit(A1).maxHp, a.unit(A2).maxHp, a.unit(A3).maxHp]).toEqual([100, 105, 105]);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
+    a.setHp(A2, 50).use(A1, 'smite.sanctuary', B1).end();
+    expect([a.hp(B1), a.unit(B1).maxHp]).toEqual([85, 90]);
+    expect([a.unit(A1).maxHp, a.unit(A2).maxHp, a.unit(A3).maxHp, a.hp(A2)]).toEqual([100, 110, 100, 60]);
+    a.pass(8);
+    expect([a.unit(B1).maxHp, a.unit(A2).maxHp]).toEqual([90, 110]);
   });
 
-  it('Firstfruits Brand: the max HP lasts for the rest of the match', () => {
+  it('Firstfruits Tithe: the user counts as the ally with the lowest HP; a tithe can cut a full-HP target\'s HP', () => {
     const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'smite.sanctuary', B1).use(A2, 'shot', B1).end().pass(8);
-    expect(a.unit(A2).maxHp).toBe(105);
+    a.setHp(A1, 30).give(B1, 'shield', { value: 15 }).use(A1, 'smite.sanctuary', B1).end();
+    expect([a.unit(A1).maxHp, a.hp(A1), a.unit(A2).maxHp]).toEqual([110, 40, 100]);
+    expect([a.hp(B1), a.unit(B1).maxHp]).toEqual([90, 90]); // the Shield took the 15; the lost max HP capped them
   });
 
-  it('Firstfruits Brand: no heal, no growth', () => {
-    const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'smite.sanctuary', B1).end().pass(1).use(A2, 'shot', B1).end();
-    expect(a.unit(A2).maxHp).toBe(100);
+  it('Firstfruits Tithe: each enemy character can be tithed 3 times at most', () => {
+    const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['shot'], ['shot']] });
+    for (let i = 0; i < 4; i++) a.use(A1, 'smite.sanctuary', B1).end().pass(3);
+    expect([a.hp(B1), a.unit(B1).maxHp]).toEqual([40, 70]);
+    expect(a.unit(A1).maxHp + a.unit(A2).maxHp).toBe(230);
+    a.use(A1, 'smite.sanctuary', B2).end();
+    expect([a.unit(B2).maxHp, a.unit(A1).maxHp + a.unit(A2).maxHp]).toEqual([90, 240]);
+  });
+
+  it('Firstfruits Tithe: minions can\'t be tithed; the 15 still lands', () => {
+    const a = arena({ p0: [['smite.sanctuary'], ['shot']], p1: [['companion'], ['shot']] });
+    a.end().use(B1, 'companion').end();
+    const wolf = a.state.units.find((u) => u.owner === 1 && u.defId === 'wolf')!;
+    const max = wolf.maxHp;
+    a.setHp(A2, 50).use(A1, 'smite.sanctuary', wolf.id).end();
+    expect([a.unit(wolf.id).maxHp, a.hp(wolf.id), a.unit(A2).maxHp]).toEqual([max, max - 15, 100]);
   });
 
   it('Cornerstone Psalm: all allies gain 10 max HP and heal 15', () => {

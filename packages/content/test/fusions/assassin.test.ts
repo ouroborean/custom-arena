@@ -154,32 +154,6 @@ describe('Assassin skills', () => {
     a.use(B1, 'shot', A1);
   });
 
-  it('Open Contract: 1 Might, 1 Swiftness, and a random enemy gains your Death Mark; Stealthy', () => {
-    const a = arena({ p0: [['rage.assassin']], p1: [['shot'], ['shot']] });
-    a.give(A1, 'stealth', { duration: 4 }).use(A1, 'rage.assassin').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.has(A1, 'stealth')]).toEqual([1, 1, true]);
-    expect([B1, B2].filter((u) => marked(a, u))).toHaveLength(1);
-  });
-
-  it('Open Contract: each execution meanwhile gives 1 more Might and Swiftness for 2 turns', () => {
-    const a = arena({ p0: [['rage.assassin', 'stab.assassin']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'rage.assassin').end().pass(1);
-    const bearer = [B1, B2].find((u) => marked(a, u))!;
-    a.setHp(bearer, 40).use(A1, 'stab.assassin', bearer).end();
-    expect(alive(a, bearer)).toBe(false);
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([2, 2]);
-  });
-
-  it("Blowdart: 10 Piercing and 1 Toxin; for 2 turns their Toxin, Weakness and Vulnerable can't be removed", () => {
-    const a = arena({ p0: [['shot.assassin']], p1: [['maneuver.spore']] });
-    a.give(B1, 'weakness', { source: A1 }).give(B1, 'confusion', { source: A1 });
-    a.give(B1, 'armor', { stacks: 2 });
-    a.use(A1, 'shot.assassin', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([85, 1]); // 10 Piercing + the Toxin's first tick
-    a.use(B1, 'maneuver.spore').end(); // sheds Debuffs
-    expect([a.has(B1, 'toxin'), a.has(B1, 'weakness'), a.has(B1, 'confusion')]).toEqual([true, true, false]);
-  });
-
   it('The Long Shot: 40 on the following turn; an unmarked target gains your Death Mark', () => {
     const a = arena({ p0: [['snipe.assassin']], p1: [['shot']] });
     a.use(A1, 'snipe.assassin', B1).end();
@@ -310,40 +284,6 @@ describe('Assassin skills', () => {
     expect([marked(a, B1), marked(a, B2)]).toEqual([false, false]);
   });
 
-  it('Fulfill the Contract: 5 lifesteal; leaving them at or below 15 executes them, and the kill heals 30 more and grants Stealth', () => {
-    const a = arena({ p0: [['consume.assassin']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 40).setHp(B1, 20).use(A1, 'consume.assassin', B1).end();
-    expect(alive(a, B1)).toBe(false);
-    expect([a.hp(A1), a.has(A1, 'stealth')]).toEqual([75, true]);
-  });
-
-  it('Fulfill the Contract: above 15 after the hit, no execution', () => {
-    const a = arena({ p0: [['consume.assassin']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 40).setHp(B1, 21).use(A1, 'consume.assassin', B1).end();
-    expect([alive(a, B1), a.hp(B1), a.hp(A1), a.has(A1, 'stealth')]).toEqual([true, 16, 45, false]);
-  });
-
-  it('Fulfill the Contract: an execution through your Death Mark counts too', () => {
-    const a = arena({ p0: [['charge.assassin', 'consume.assassin']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'charge.assassin', B1).end().pass(1);
-    a.setHp(A1, 40).setHp(B1, 35).use(A1, 'consume.assassin', B1).end();
-    expect(alive(a, B1)).toBe(false);
-    expect(a.has(A1, 'stealth')).toBe(true);
-    expect(a.hp(A1)).toBeGreaterThanOrEqual(40 + 5 + 30);
-  });
-
-  it('Fulfill the Contract: it heals the damage actually dealt', () => {
-    const a = arena({ p0: [['consume.assassin']], p1: [['shot']] });
-    a.setHp(A1, 40).give(B1, 'armor', { stacks: 1 }).use(A1, 'consume.assassin', B1).end();
-    expect([a.hp(B1), a.hp(A1)]).toEqual([100, 40]);
-  });
-
-  it('Fulfill the Contract: without an execution, just the 5', () => {
-    const a = arena({ p0: [['consume.assassin']], p1: [['shot']] });
-    a.setHp(A1, 40).use(A1, 'consume.assassin', B1).end();
-    expect([a.hp(B1), a.hp(A1), a.has(A1, 'stealth')]).toEqual([95, 45, false]);
-  });
-
   it('Hired Blade: 20 HP for 3 turns; Shank deals 10 Affliction', () => {
     const a = arena({ p0: [['summon.assassin']], p1: [['shot']] });
     a.use(A1, 'summon.assassin').end().pass(1);
@@ -436,24 +376,6 @@ describe('Assassin skills', () => {
     expect([a.stacks(B1, 'toxin'), marked(a, B1)]).toEqual([2, false]);
   });
 
-  it('Knockout Poison: 10 and Asleep for 1 turn', () => {
-    const a = arena({ p0: [['stun.assassin']], p1: [['shot']] });
-    a.use(A1, 'stun.assassin', B1).end();
-    expect([a.hp(B1), a.has(B1, 'sleep')]).toEqual([90, true]);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
-    a.pass(2);
-    a.use(B1, 'shot', A1);
-  });
-
-  it('Knockout Poison: 2 turns with 4 or more Toxin', () => {
-    const one = arena({ p0: [['stun.assassin']], p1: [['shot']] });
-    one.give(B1, 'toxin', { stacks: 3, source: B1 }).use(A1, 'stun.assassin', B1).end();
-    const two = arena({ p0: [['stun.assassin']], p1: [['shot']] });
-    two.give(B1, 'toxin', { stacks: 4, source: B1 }).use(A1, 'stun.assassin', B1).end();
-    const d = (a: Arena) => a.effects(B1).find((e) => e.defId === 'sleep')!.duration!;
-    expect(d(two) - d(one)).toBe(2);
-  });
-
   it("Dance of Knives: 1 Swiftness and 1 Focus; each skill the user uses also hits your Death Mark's bearer for 5 Piercing", () => {
     const a = arena({ p0: [['dance.assassin', 'shot'], ['charge.assassin']], p1: [['shot'], ['shot']] });
     a.use(A2, 'charge.assassin', B2).use(A1, 'dance.assassin').end();
@@ -468,13 +390,6 @@ describe('Assassin skills', () => {
     const a = arena({ p0: [['dance.assassin', 'shot']], p1: [['shot'], ['shot']] });
     a.use(A1, 'dance.assassin').end().pass(1).use(A1, 'shot', B1).end();
     expect([a.hp(B1), a.hp(B2)]).toEqual([85, 100]);
-  });
-
-  it('Blood Debt: heals 25; the enemy who last damaged them gains your Death Mark', () => {
-    const a = arena({ p0: [['heal.assassin'], ['shot']], p1: [['shot'], ['shot']] });
-    a.end().use(B1, 'shot', A1).use(B2, 'shot', A2).end();
-    a.setHp(A2, 50).use(A1, 'heal.assassin', A2).end();
-    expect([a.hp(A2), marked(a, B1), marked(a, B2)]).toEqual([75, false, true]);
   });
 
   it('Subcontract: 1 Might; the ally\'s skills count as Assassin skills against your Death Mark', () => {
@@ -551,32 +466,6 @@ describe('Assassin skills', () => {
     expect(a.has(A1, 'stealth')).toBe(true);
   });
 
-  it('Pick the Target: all enemies Blinded for 2 turns; the Mark bearer is also Isolated', () => {
-    const a = arena({ p0: [['shout.assassin'], ['charge.assassin']], p1: [['shot'], ['shot']] });
-    a.use(A2, 'charge.assassin', B2).use(A1, 'shout.assassin').end();
-    expect([a.has(B1, 'blinded'), a.has(B2, 'blinded')]).toEqual([true, true]);
-    expect([a.has(B1, 'isolated'), a.has(B2, 'isolated')]).toEqual([false, true]);
-    a.pass(3);
-    expect([a.has(B1, 'blinded'), a.has(B2, 'isolated')]).toEqual([false, false]);
-  });
-
-  it('Pick the Target: with no Mark out, a random enemy is Isolated', () => {
-    const a = arena({ p0: [['shout.assassin']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'shout.assassin').end();
-    expect([B1, B2].filter((u) => a.has(u, 'isolated'))).toHaveLength(1);
-  });
-
-  it('Hidden Mail: 25 Shield for 1 turn; each enemy skill that hits it has its cooldown raised by 1', () => {
-    const base = arena({ p0: [['shot']], p1: [['smash']] });
-    base.end().use(B1, 'smash', A1).end();
-    const a = arena({ p0: [['withstand.assassin']], p1: [['smash']] });
-    a.use(A1, 'withstand.assassin').end();
-    expect(viewFor(content, a.state, 1).effects.some((e) => e.bearer === A1)).toBe(false);
-    a.use(B1, 'smash', A1).end();
-    expect(a.hp(A1)).toBe(100);
-    expect(a.cooldown(B1, 'smash')).toBe(base.cooldown(B1, 'smash') + 1);
-  });
-
   it('Whisper from the Dark: Taunted by the user for 1 turn even while Stealthed; Stealthy', () => {
     const a = arena({ p0: [['taunt.assassin'], ['shot']], p1: [['shot']] });
     a.give(A1, 'stealth', { duration: 4 }).use(A1, 'taunt.assassin', B1).end();
@@ -599,5 +488,129 @@ describe('Assassin skills', () => {
     expect([marked(a, B1), marked(a, B2), marked(a, B3)]).toEqual([true, true, true]);
     a.pass(5);
     expect([a.has(A1, 'armor'), marked(a, B1)]).toEqual([false, false]);
+  });
+});
+
+describe('Assassin skills: evolutions', () => {
+  it('Open Contract: a random enemy gains your Death Mark; 1 Might for 3 turns; Stealthy', () => {
+    const a = arena({ p0: [['rage.assassin']], p1: [['shot'], ['shot']] });
+    a.give(A1, 'stealth', { duration: 4 }).use(A1, 'rage.assassin').end();
+    expect([a.stacks(A1, 'might'), a.has(A1, 'stealth')]).toEqual([1, true]);
+    expect([B1, B2].filter((u) => marked(a, u))).toHaveLength(1);
+    a.pass(6);
+    expect(a.stacks(A1, 'might')).toBe(0);
+  });
+
+  it("Open Contract: at the end of each of the user's turns, the Mark's threshold rises by 5", () => {
+    const a = arena({ p0: [['rage.assassin']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.assassin').end();
+    const bearer = [B1, B2].find((u) => marked(a, u))!;
+    expect(threshold(a, bearer)).toBe(30);
+    a.pass(2);
+    expect(threshold(a, bearer)).toBe(35);
+    a.pass(2);
+    expect(threshold(a, bearer)).toBe(40);
+    a.pass(2);
+    expect(threshold(a, bearer)).toBe(40); // over
+  });
+
+  it("Open Contract: a Mark already out stays where it is, and the threshold stops at 40", () => {
+    const a = arena({ p0: [['rage.assassin']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'death_mark', { source: A1, value: 35 }).use(A1, 'rage.assassin').end();
+    expect([marked(a, B1), threshold(a, B2)]).toEqual([false, 40]);
+    a.pass(2);
+    expect(threshold(a, B2)).toBe(40);
+  });
+
+  it('Open Contract: once the Mark is executed, a new one goes on a random enemy at the end of the turn', () => {
+    const a = arena({ p0: [['rage.assassin', 'stab.assassin']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.assassin').end().pass(1);
+    const bearer = [B1, B2].find((u) => marked(a, u))!;
+    const other = bearer === B1 ? B2 : B1;
+    a.setHp(bearer, 30).use(A1, 'stab.assassin', bearer).end();
+    expect([alive(a, bearer), marked(a, other), threshold(a, other)]).toEqual([false, true, 30]);
+  });
+
+  it('Blowdart: 5 Piercing now; at the end of their next turn, the hidden dose deals 15 Affliction', () => {
+    const a = arena({ p0: [['shot.assassin']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'shot.assassin', B1).end();
+    expect(a.hp(B1)).toBe(95);
+    const seen = (p: 0 | 1) => viewFor(content, a.state, p).effects.filter((e) => e.bearer === B1).length;
+    expect(seen(0) - seen(1)).toBe(1); // the dose is hidden from them
+    a.end();
+    expect(a.hp(B1)).toBe(80);
+    a.pass(2);
+    expect(a.hp(B1)).toBe(80); // once
+  });
+
+  it('Bloodletting: 5 Piercing and 2 Toxin; for 2 turns the user heals 5 per Toxin on them at the end of their turns', () => {
+    const a = arena({ p0: [['consume.assassin']], p1: [['shot']] });
+    a.setHp(A1, 50).use(A1, 'consume.assassin', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.hp(A1)]).toEqual([100 - 5 - 10, 2, 60]);
+    a.give(B1, 'toxin', { source: A1 }).pass(2);
+    expect(a.hp(A1)).toBe(75); // 3 Toxin now
+    a.pass(2);
+    expect(a.hp(A1)).toBe(75); // over
+  });
+
+  it('Knockout Poison: 2 Toxin, then all their Toxin goes at once for 10 Affliction per stack, and they are Stunned for 1 turn', () => {
+    const a = arena({ p0: [['stun.assassin'], ['shot']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'stun.assassin', B1).end();
+    expect([a.hp(B1), a.has(B1, 'toxin'), a.has(B1, 'sleep')]).toEqual([80, false, false]); // Affliction: Armor doesn't help
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().pass(1);
+    a.use(B1, 'shot', A1); // turn 4: free again
+  });
+
+  it('Knockout Poison: Toxin already in them, from any side, joins the dose (at most 30)', () => {
+    const a = arena({ p0: [['stun.assassin']], p1: [['shot']] });
+    a.give(B1, 'toxin', { source: B1 });
+    a.use(A1, 'stun.assassin', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([70, 0]); // 3 stacks
+    const b = arena({ p0: [['stun.assassin']], p1: [['shot']] });
+    b.give(B1, 'toxin', { source: A1, stacks: 4 }).use(A1, 'stun.assassin', B1).end();
+    expect([b.hp(B1), b.stacks(B1, 'toxin')]).toEqual([70, 0]); // 6 stacks, capped: all of it still goes
+  });
+
+  it("Blood Debt: the ally heals 20; the next direct hit from the user's side on their last attacker heals them 20 more", () => {
+    const a = arena({ p0: [['heal.assassin'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A2).end();
+    a.setHp(A2, 40).use(A1, 'heal.assassin', A2).use(A2, 'shot', B2).use(A3, 'shot', B1).end();
+    expect(a.hp(A2)).toBe(80);
+    a.pass(1).use(A3, 'shot', B1).end();
+    expect(a.hp(A2)).toBe(80); // once
+  });
+
+  it('Blood Debt: the debt lapses after 2 turns', () => {
+    const a = arena({ p0: [['heal.assassin'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.pass(1).use(B1, 'shot', A2).end();
+    a.setHp(A2, 40).use(A1, 'heal.assassin', A2).end().pass(3);
+    a.use(A3, 'shot', B1).end();
+    expect(a.hp(A2)).toBe(60);
+  });
+
+  it('Pick the Target: all enemies are Isolated for 1 turn; the one with the least HP gains your Death Mark', () => {
+    const a = arena({ p0: [['shout.assassin'], ['charge.assassin']], p1: [['shot'], ['heal'], ['shot']] });
+    a.setHp(B3, 40).use(A2, 'charge.assassin', B1).use(A1, 'shout.assassin').end();
+    expect([B1, B2, B3].map((u) => a.has(u, 'isolated'))).toEqual([true, true, true]);
+    expect([B1, B2, B3].map((u) => marked(a, u))).toEqual([false, false, true]); // the Mark moves
+    expect(a.reject(() => a.use(B2, 'heal', B3))).toBe('bad_target');
+    a.end().pass(1);
+    a.use(B2, 'heal', B3); // turn 4: over
+  });
+
+  it('Hidden Mail: for 1 turn, direct hits on the user deal half damage; Invisible', () => {
+    const a = arena({ p0: [['withstand.assassin']], p1: [['strike'], ['strike'], ['shot']] });
+    expect(content.skills['withstand.assassin']!.tags).toContain('Invisible');
+    a.use(A1, 'withstand.assassin').end().use(B1, 'strike', A1).use(B2, 'strike', A1).end();
+    expect([a.hp(A1), a.has(A1, 'shield')]).toEqual([80, false]); // 10 + 10, no Shield involved
+    a.pass(1).use(B3, 'shot', A1).end(); // turn 4: over
+    expect([a.hp(A1), a.has(A1, 'hidden_mail')]).toEqual([65, false]);
+  });
+
+  it('Hidden Mail: the first enemy to hit the user gains your Death Mark', () => {
+    const a = arena({ p0: [['withstand.assassin']], p1: [['strike'], ['strike'], ['shot']] });
+    a.use(A1, 'withstand.assassin').end().use(B2, 'strike', A1).use(B1, 'strike', A1).end();
+    expect([marked(a, B1), marked(a, B2), marked(a, B3), threshold(a, B2)]).toEqual([false, true, false, 25]);
   });
 });

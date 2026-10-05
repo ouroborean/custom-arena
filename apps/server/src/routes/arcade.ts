@@ -7,7 +7,7 @@
 
 import { botFor } from '@arena/ai';
 import { seedRng, type Command, type MatchConfig } from '@arena/engine';
-import { arcadeDef, arcadeNextStage, arcadeReward, arcadeStage, arcadeTeam, singlePlayerBotSeed, singlePlayerFirst, storyStatus, type ArcadeLast, type Outcome } from '@arena/meta';
+import { arcadeDef, arcadeNextStage, arcadeReward, arcadeStage, arcadeTeam, matchXp, singlePlayerBotSeed, singlePlayerFirst, storyStatus, type ArcadeLast, type Outcome } from '@arena/meta';
 import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import type { Db } from '../db/client.js';
 import { itemInstances, spAttempts, storyProgress } from '../db/schema.js';
 import { credit, inTransaction, walletOf } from '../economy.js';
+import { awardXp } from '../progression.js';
 import { engineVersion, matchFact, recordAchievements, verifyMatch } from '../singleplayer.js';
 import { activeTeamSpecs } from './roster.js';
 
@@ -136,6 +137,8 @@ export function arcadeRoutes(ctx: AppContext) {
         if (claimed.length === 0) throw new HttpError(409, 'That stage was already submitted');
         await credit(db, ctx.content, userId, reward.currency);
         if (reward.items.length) await db.insert(itemInstances).values(reward.items.map((itemId) => ({ userId, itemId, source: 'reward' })));
+        const gain = await awardXp(db, ctx.content, userId, matchXp(ctx.content, { kind: 'arcade', outcome: result.outcome, endReason: result.endReason, turns: result.turns }));
+        if (gain) reward.xp = gain;
       });
 
       const achievements = await recordAchievements(ctx.db, ctx.content, userId, matchFact('arcade', result.outcome, result.turns, attempt.config.teams[SEAT]));

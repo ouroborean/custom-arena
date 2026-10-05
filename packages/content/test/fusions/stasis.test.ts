@@ -7,11 +7,12 @@
 // applier's turn; a `give` without a source makes the bearer its applier.
 
 import { describe, expect, it } from 'vitest';
-import { viewFor, type Energy, type GameEvent } from '@arena/engine';
+import { viewFor, type GameEvent } from '@arena/engine';
 import { arena, content, type Arena } from '../harness.js';
 
 const A1 = 'p0c0';
 const A2 = 'p0c1';
+const A3 = 'p0c2';
 const B1 = 'p1c0';
 const B2 = 'p1c1';
 const B3 = 'p1c2';
@@ -28,12 +29,6 @@ function appliedDur(a: Arena, bearer: string, defId: string): number | null | un
 }
 
 const suspended = (a: Arena, id: string) => a.has(id, 'suspended') || a.has(id, 'suspended_ally');
-
-function setEnergy(a: Arena, player: 0 | 1, e: Partial<Energy>): void {
-  a.state.players[player].energy = { S: 0, A: 0, I: 0, W: 0, ...e };
-}
-
-const total = (e: Energy) => e.S + e.A + e.I + e.W;
 
 function minion(a: Arena, defId: string) {
   return a.state.units.find((u) => u.defId === defId && u.alive);
@@ -114,22 +109,30 @@ describe('Stasis skills', () => {
     expect([a.hp(B1), a.hp(B2)]).toEqual([75, 100]);
   });
 
-  it('Freezing Lunge: 10 damage; through the user’s next turn every enemy is Prey', () => {
+  it('Freezing Lunge: 10 damage, and the target gains 1 Toxin', () => {
     const a = arena({ p0: [['charge.stasis']], p1: [['shot'], ['shot']] });
     a.use(A1, 'charge.stasis', B1).end();
-    expect([a.hp(B1), a.has(B1, 'prey'), a.has(B2, 'prey')]).toEqual([90, true, true]);
-    a.end().end();
-    expect(a.has(B2, 'prey')).toBe(false);
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([85, 1]); // 10, then the new stack ticks 5
   });
 
-  it('Freezing Lunge: the user’s next skill Suspends its targets for 1 turn (only the next)', () => {
-    const a = arena({ p0: [['charge.stasis', 'shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'charge.stasis', B1).end().end();
-    a.use(A1, 'shot', B2).end();
-    expect([a.has(B2, 'suspended'), a.has(B1, 'suspended')]).toEqual([true, false]);
-    expect(appliedDur(a, B2, 'suspended')).toBe(2);
-    a.end().use(A1, 'shot', B1).end();
-    expect(a.has(B1, 'suspended')).toBe(false);
+  it('Freezing Lunge: the user’s next Harmful skill makes its targets’ Toxin deal its damage at once, doubled (only the next)', () => {
+    const a = arena({ p0: [['charge.stasis', 'shot', 'blast']], p1: [['shot'], ['shot']] });
+    a.give(B2, 'toxin', { stacks: 2, source: B2 });
+    a.use(A1, 'charge.stasis', B1).end().end(); // B1: 90, then the new stack ticks 5
+    expect(a.hp(B1)).toBe(85);
+    a.use(A1, 'blast').end(); // 35 each; B1's 1 stack Thaws for 10 and ticks 5; B2's 2 (ticked 10 on B's turn) for 20
+    expect([a.hp(B1), a.hp(B2)]).toEqual([35, 35]);
+    a.end().use(A1, 'shot', B1).end(); // only the next: 15 and the tick
+    expect(a.hp(B1)).toBe(15);
+  });
+
+  it('Freezing Lunge: a Helpful skill doesn’t use it up', () => {
+    const a = arena({ p0: [['charge.stasis', 'heal', 'shot']], p1: [['shot']] });
+    a.use(A1, 'charge.stasis', B1).end().end(); // B1 85
+    a.use(A1, 'heal', A1).end().end(); // no Thaw; the stack ticks 5
+    expect(a.hp(B1)).toBe(80);
+    a.use(A1, 'shot', B1).end(); // 15 + 10 Thaw + 5 tick
+    expect(a.hp(B1)).toBe(50);
   });
 
   it('Freeze Frame: Invisible; counters every Harmful skill used on the user; each attacker gains 2 Toxin and is Suspended', () => {
@@ -296,34 +299,28 @@ describe('Stasis skills', () => {
     expect([a.stacks(B1, 'toxin'), a.hp(B1), a.hp(A1)]).toEqual([3, 65, 80]); // 30 Thaw, healed back; then the user's stack ticks 5
   });
 
-  it('Cryo Sprite: 15 HP for 3 turns; Rime Sting deals 5 Piercing and 1 Toxin', () => {
-    const a = arena({ p0: [['summon.stasis']], p1: [['shot']] });
-    a.use(A1, 'summon.stasis').end().end();
-    const cs = minion(a, 'cryo_sprite')!;
-    expect(cs.hp).toBe(15);
-    a.give(B1, 'armor', { stacks: 2 }).use(cs.id, 'cryo_sprite_rime_sting', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([90, 1]); // 5 Piercing, then the new Toxin ticks 5
+  it('Cryo Sprite: a 20 HP Sprite; at the end of the user’s turn, the enemy with the least HP gains 1 Toxin', () => {
+    const a = arena({ p0: [['summon.stasis']], p1: [['shot'], ['shot']] });
+    a.setHp(B2, 60).use(A1, 'summon.stasis').end();
+    expect(minion(a, 'cryo_sprite')?.hp).toBe(20);
+    expect([a.stacks(B2, 'toxin'), a.has(B1, 'toxin'), a.has(B2, 'suspended')]).toEqual([1, false, false]);
   });
 
-  it('Cryo Sprite: if it lasts all 3 turns, every enemy with Toxin is Suspended for 1 turn', () => {
+  it('Cryo Sprite: a Prey enemy with the least HP is Suspended for 1 turn instead', () => {
     const a = arena({ p0: [['summon.stasis']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 1, source: A1 });
-    a.use(A1, 'summon.stasis').end().end();
-    a.end().end();
-    expect(a.has(B1, 'suspended')).toBe(false);
+    a.setHp(B2, 15).use(A1, 'summon.stasis').end(); // below 20 HP: Prey
+    expect([a.has(B2, 'suspended'), a.has(B2, 'toxin')]).toEqual([true, false]);
     a.end();
-    expect([a.has(B1, 'suspended'), a.has(B2, 'suspended')]).toEqual([true, false]);
+    expect(a.has(B2, 'suspended')).toBe(false);
   });
 
-  it('Cryo Sprite: killed early, nothing happens', () => {
+  it('Cryo Sprite: it acts at the end of each of the user’s turns for 3 turns, then it’s gone', () => {
     const a = arena({ p0: [['summon.stasis']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 1, source: A1 });
-    a.use(A1, 'summon.stasis').end();
-    const cs = minion(a, 'cryo_sprite')!;
-    a.use(B1, 'shot', cs.id).end();
+    a.setHp(B2, 70).use(A1, 'summon.stasis').end().pass(5);
     expect(minion(a, 'cryo_sprite')).toBeUndefined();
-    a.pass(6);
-    expect(a.has(B1, 'suspended')).toBe(false);
+    expect(a.stacks(B2, 'toxin')).toBe(3);
+    a.pass(2);
+    expect(a.stacks(B2, 'toxin')).toBe(3);
   });
 
   it('Nine Winters: while it channels every enemy is Suspended (Toxin and durations held) and gains Toxin each turn', () => {
@@ -352,99 +349,127 @@ describe('Stasis skills', () => {
     expect(a.hp(B1)).toBe(90); // 1 Toxin, doubled
   });
 
-  it('Icebite: 5 Piercing; against Prey, +1 random energy for the user’s player and Suspended for 1 turn', () => {
-    const a = arena({ p0: [['stab.stasis']], p1: [['shot']], richEnergy: false });
-    setEnergy(a, 0, { S: 1 });
-    a.give(B1, 'prey', { source: A1 }).give(B1, 'armor', { stacks: 2 });
-    a.use(A1, 'stab.stasis', B1).end();
-    expect([a.hp(B1), a.has(B1, 'suspended'), total(a.state.players[0].energy)]).toEqual([95, true, 1]);
-  });
-
-  it('Icebite: against a target that isn’t Prey, they gain 1 Toxin and are Prey through the user’s next turn', () => {
-    const a = arena({ p0: [['stab.stasis']], p1: [['shot']], richEnergy: false });
-    setEnergy(a, 0, { S: 1 });
+  it('Icebite: 5 Piercing, and the target gains 1 Toxin; used again on the next turn, nothing has built up', () => {
+    const a = arena({ p0: [['stab.stasis']], p1: [['shot']] });
     a.give(B1, 'armor', { stacks: 2 }).use(A1, 'stab.stasis', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'toxin'), a.has(B1, 'prey'), a.has(B1, 'suspended'), total(a.state.players[0].energy)]).toEqual([90, 1, true, false, 0]); // 5 Piercing, then the new Toxin ticks 5
-    a.end();
-    expect(a.has(B1, 'prey')).toBe(true); // still Prey on the user's next turn
-    a.end();
-    expect(a.has(B1, 'prey')).toBe(false);
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([90, 1]); // Piercing: the Armor doesn't help; then the Toxin ticks 5
+    a.end().use(A1, 'stab.stasis', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'toxin')]).toEqual([75, 2]); // 5 again, then 2 stacks tick
   });
 
-  it('Icebite: the next bite pays off: energy and Suspended, and the Prey mark ends', () => {
-    const a = arena({ p0: [['stab.stasis']], p1: [['shot']], richEnergy: false });
-    setEnergy(a, 0, { S: 1 });
-    a.use(A1, 'stab.stasis', B1).end().end();
-    setEnergy(a, 0, { S: 1 });
+  it('Icebite: 5 more for each turn the user went without using it', () => {
+    const a = arena({ p0: [['stab.stasis']], p1: [['shot']] });
+    a.use(A1, 'stab.stasis', B1).end().pass(3); // one turn without it (its Toxin ticks 5 meanwhile)
+    expect(a.hp(B1)).toBe(85);
     a.use(A1, 'stab.stasis', B1).end();
-    expect([a.has(B1, 'suspended'), total(a.state.players[0].energy), a.stacks(B1, 'toxin'), a.has(B1, 'prey')]).toEqual([true, 1, 1, false]);
+    expect(a.hp(B1)).toBe(65); // 10, then 2 stacks tick
+    a.pass(5); // two turns without it: 2 more ticks of 10
+    a.use(A1, 'stab.stasis', B1).end();
+    expect(a.hp(B1)).toBe(15); // 45 − 15, then 3 stacks tick
   });
 
-  it('Icebite: the payoff doesn’t repeat on its own: the bite after it sets up again', () => {
-    const a = arena({ p0: [['stab.stasis']], p1: [['shot']], richEnergy: false });
-    const got: number[] = [];
-    for (let i = 0; i < 4; i++) {
-      setEnergy(a, 0, { S: 1 });
-      a.use(A1, 'stab.stasis', B1).end();
-      got.push(total(a.state.players[0].energy));
-      a.end();
-    }
-    expect(got).toEqual([0, 1, 0, 1]); // setup, payoff, setup, payoff
-    expect(a.stacks(B1, 'toxin')).toBe(2);
+  it('Icebite: the build-up stops at 15 more', () => {
+    const a = arena({ p0: [['stab.stasis']], p1: [['shot']] });
+    a.use(A1, 'stab.stasis', B1).end().pass(11); // five turns without it: 5 ticks of 5
+    expect(a.hp(B1)).toBe(65);
+    a.use(A1, 'stab.stasis', B1).end();
+    expect(a.hp(B1)).toBe(35); // 20, then 2 stacks tick
   });
 
-  it('Cryo Rend: 25 Piercing, or 40 against a Stunned target, who is also Suspended so the Stun can’t wear off', () => {
-    const a = arena({ p0: [['ravage.stasis'], ['ravage.stasis']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'stun', { source: A1, duration: 1 }).give(B2, 'armor', { stacks: 2 });
-    a.use(A1, 'ravage.stasis', B1).use(A2, 'ravage.stasis', B2).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B1, 'suspended'), a.has(B2, 'suspended')]).toEqual([60, 75, true, false]);
-    expect(a.has(B1, 'stun')).toBe(true);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+  it('Cryo Rend: 20 Piercing, and the target is Suspended for 1 turn', () => {
+    const a = arena({ p0: [['ravage.stasis']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).give(B1, 'weakness', { source: A1, duration: 3 });
+    a.use(A1, 'ravage.stasis', B1).end();
+    expect([a.hp(B1), suspended(a, B1) || a.has(B1, 'cryo_rend')]).toEqual([80, true]);
+    expect(dur(a, B1, 'weakness')).toBe(3); // held
+    expect(dur(a, B1, 'cryo_rend')).toBe(1); // through the enemy's turn
   });
 
-  it('Cold Shelter: Invisible; counters the target’s Harmful skill and the user is Frostborn for 2 turns', () => {
-    const a = arena({ p0: [['mislead.stasis']], p1: [['shot']] });
+  it('Cryo Rend: when they Thaw, the wound reopens for 20 Piercing (after the Thaw itself)', () => {
+    const a = arena({ p0: [['ravage.stasis']], p1: [['shot']] });
+    a.give(B1, 'toxin', { stacks: 2, source: B1 }).give(B1, 'armor', { stacks: 2 });
+    a.use(A1, 'ravage.stasis', B1).end().end();
+    expect([a.hp(B1), a.has(B1, 'cryo_rend')]).toEqual([40, false]); // 80 − 20 Thaw − 20 reopened
+  });
+
+  it('Cryo Rend: an early Thaw (Frozen Fang) reopens the wound early', () => {
+    const a = arena({ p0: [['companion.stasis', 'ravage.stasis']], p1: [['shot']] });
+    a.use(A1, 'companion.stasis').end().end();
+    const sp = minion(a, 'ice_spider')!;
+    a.use(A1, 'ravage.stasis', B1).use(sp.id, 'ice_spider_frozen_fang', B1).end();
+    expect([a.hp(B1), a.has(B1, 'cryo_rend')]).toEqual([60, false]);
+  });
+
+  it('Lingering Frost: Invisible; counters the target’s Harmful skill, and every Debuff on them lasts 2 turns longer', () => {
+    const a = arena({ p0: [['mislead.stasis']], p1: [['smash']] });
     a.use(A1, 'mislead.stasis', B1).end();
     expect(hidden(a, B1, 1)).toBe(true);
-    a.use(B1, 'shot', A1).end();
-    expect([a.hp(A1), a.has(A1, 'frostborn')]).toEqual([100, true]);
-    expect(appliedDur(a, A1, 'frostborn')).toBe(5);
+    a.give(B1, 'weakness', { source: A1, duration: 3 }).give(B1, 'chilled', { source: A1, duration: 2 });
+    a.use(B1, 'smash', A1).end();
+    expect(a.hp(A1)).toBe(100);
+    expect([dur(a, B1, 'weakness'), dur(a, B1, 'chilled')]).toEqual([6, 5]); // +4 each, then this turn's countdown
   });
 
-  it('Cold Shelter: Helpful skills go through with no Frostborn', () => {
+  it('Lingering Frost: Stuns aside', () => {
+    const a = arena({ p0: [['mislead.stasis']], p1: [['shout']] });
+    a.use(A1, 'mislead.stasis', B1).end();
+    a.give(B1, 'stun_ns', { source: A1, duration: 3 }).give(B1, 'weakness', { source: A1, duration: 3 });
+    a.use(B1, 'shout').end(); // Strategic, so the partial Stun allows it
+    expect(a.has(A1, 'intimidated')).toBe(false);
+    expect([dur(a, B1, 'stun_ns'), dur(a, B1, 'weakness')]).toEqual([2, 6]);
+  });
+
+  it('Lingering Frost: Helpful skills go through, and nothing is lengthened', () => {
     const a = arena({ p0: [['mislead.stasis']], p1: [['heal']] });
-    a.setHp(B1, 50).use(A1, 'mislead.stasis', B1).end().use(B1, 'heal', B1).end();
-    expect([a.hp(B1), a.has(A1, 'frostborn')]).toEqual([75, false]);
+    a.setHp(B1, 50).use(A1, 'mislead.stasis', B1).end();
+    a.give(B1, 'weakness', { source: A1, duration: 3 }).use(B1, 'heal', B1).end();
+    expect([a.hp(B1), dur(a, B1, 'weakness')]).toEqual([75, 2]);
   });
 
-  it('Hold: Stunned for 1 turn; when the Stun ends, their Toxin deals its damage at once, doubled', () => {
+  it('Hold: 2 Toxin and Suspended for 1 turn; they can still act meanwhile', () => {
     const a = arena({ p0: [['stun.stasis']], p1: [['shot']] });
-    a.give(B1, 'toxin', { stacks: 2, source: A1 });
-    a.use(A1, 'stun.stasis', B1).end(); // 10 tick at the end of A's turn
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([90, true]);
-    expect(appliedDur(a, B1, 'stun')).toBe(2);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.use(A1, 'stun.stasis', B1).end();
+    expect([a.stacks(B1, 'toxin'), a.has(B1, 'hold'), a.hp(B1), a.has(B1, 'stun')]).toEqual([2, true, 100, false]); // the Toxin is held
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(85);
+  });
+
+  it('Hold: when they Thaw, they’re Stunned for 1 turn', () => {
+    const a = arena({ p0: [['stun.stasis']], p1: [['shot']] });
+    a.use(A1, 'stun.stasis', B1).end().end();
+    expect([a.hp(B1), a.has(B1, 'hold'), a.has(B1, 'stun')]).toEqual([80, false, true]); // the Thaw: 2 stacks, doubled
+    expect(appliedDur(a, B1, 'stun')).toBe(2); // landed after this turn's countdown: through their next turn
     a.end();
-    expect([a.hp(B1), a.has(B1, 'stun')]).toEqual([70, false]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act');
+    a.end().end();
+    expect(a.has(B1, 'stun')).toBe(false);
   });
 
-  it('Hold: 2 turns against Prey', () => {
-    const a = arena({ p0: [['stun.stasis']], p1: [['shot']] });
-    a.give(B1, 'prey', { source: A1 }).use(A1, 'stun.stasis', B1).end();
-    expect(appliedDur(a, B1, 'stun')).toBe(4);
-  });
-
-  it('Serpent’s Measure: 1 Might, 1 Swiftness and 1 Focus for 3 turns', () => {
+  it('Frozen Waltz: Suspended for 3 turns; 1 Might and 1 Swiftness at the end of each of the user’s turns', () => {
     const a = arena({ p0: [['dance.stasis']], p1: [['shot']] });
     a.use(A1, 'dance.stasis').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.stacks(A1, 'focus')]).toEqual([1, 1, 1]);
+    expect([a.has(A1, 'suspended_ally'), a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([true, 1, 1]);
+    expect(appliedDur(a, A1, 'suspended_ally')).toBe(6);
+    a.end().end();
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([2, 2]);
+    a.end().end();
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([3, 3]);
   });
 
-  it('Serpent’s Measure: each enemy with Toxin at the end of the user’s turns is Prey until their next turn', () => {
-    const a = arena({ p0: [['dance.stasis']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 1 });
-    a.use(A1, 'dance.stasis').end();
-    expect([a.has(B1, 'prey'), a.has(B2, 'prey')]).toEqual([true, false]);
+  it('Frozen Waltz: the Buffs hold while Suspended, then last 1 turn more', () => {
+    const a = arena({ p0: [['dance.stasis', 'shot']], p1: [['shot']] });
+    a.use(A1, 'dance.stasis').end().pass(5); // the Suspension ends with the enemy's third turn
+    expect([suspended(a, A1), a.stacks(A1, 'might')]).toEqual([false, 3]);
+    a.use(A1, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(70); // 15 + 3 Might
+    a.end();
+    expect(a.stacks(A1, 'might')).toBe(0);
+  });
+
+  it('Frozen Waltz: no new Might or Swiftness once it ends', () => {
+    const a = arena({ p0: [['dance.stasis']], p1: [['shot']] });
+    a.use(A1, 'dance.stasis').end().pass(7);
+    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness')]).toEqual([0, 0]);
   });
 
   it('Cold Storage: heals 25 and removes their Toxin, then Suspended (allied) for 1 turn', () => {
@@ -480,14 +505,37 @@ describe('Stasis skills', () => {
     expect([a.has(B1, 'suspended'), a.hp(B1)]).toEqual([false, 80]);
   });
 
-  it('Frozen Quarry: 20 damage; the target is Chilled and Prey for 2 turns', () => {
-    const a = arena({ p0: [['smite.stasis'], ['stab.stasis']], p1: [['shot']] });
-    a.use(A1, 'smite.stasis', B1).end();
-    expect([a.hp(B1), a.has(B1, 'chilled'), a.has(B1, 'prey')]).toEqual([80, true, true]);
-    expect([appliedDur(a, B1, 'chilled'), appliedDur(a, B1, 'prey')]).toEqual([4, 4]);
-    const b = arena({ p0: [['smite.stasis'], ['stab.stasis']], p1: [['shot']] });
-    b.use(A1, 'smite.stasis', B1).use(A2, 'stab.stasis', B1).end(); // Icebite finds Prey: Suspended (and spends the mark)
-    expect([b.hp(B1), b.has(B1, 'suspended')]).toEqual([75, true]);
+  it('Frozen Quarry: 15 damage, and the target is Suspended for 1 turn', () => {
+    const a = arena({ p0: [['smite.stasis']], p1: [['shot']] });
+    a.give(B1, 'weakness', { source: A1, duration: 3 }).use(A1, 'smite.stasis', B1).end();
+    expect([a.hp(B1), a.has(B1, 'frozen_quarry'), dur(a, B1, 'weakness')]).toEqual([85, true, 3]);
+    expect(dur(a, B1, 'frozen_quarry')).toBe(1); // through the enemy's turn
+    a.end();
+    expect(a.has(B1, 'frozen_quarry')).toBe(false);
+  });
+
+  it('Frozen Quarry: the hits the user’s side lands meanwhile are kept; when they Thaw, half lands again as Affliction', () => {
+    const a = arena({ p0: [['smite.stasis'], ['shot'], ['shot']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 1 });
+    a.use(A1, 'smite.stasis', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(70); // 10 + 10 + 10 after Armor; the two shots' 20 kept
+    a.end();
+    expect([a.hp(B1), a.has(B1, 'frozen_quarry')]).toEqual([60, false]); // half of 20, through the Armor
+  });
+
+  it('Frozen Quarry: the echo is at most 30', () => {
+    const a = arena({ p0: [['smite.stasis'], ['shot'], ['shot']], p1: [['shot']] });
+    a.give(A2, 'might', { stacks: 7 }).give(B1, 'shield', { value: 40 });
+    a.use(A1, 'smite.stasis', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(60); // 15 + 50 + 15, the first 40 into the Shield; 65 kept
+    a.end();
+    expect(a.hp(B1)).toBe(30);
+  });
+
+  it('Frozen Quarry: their Toxin Thaws as usual', () => {
+    const a = arena({ p0: [['smite.stasis']], p1: [['shot']] });
+    a.give(B1, 'toxin', { stacks: 1, source: B1 }).use(A1, 'smite.stasis', B1).end().end();
+    expect(a.hp(B1)).toBe(75); // 15, then the Thaw: 1 stack, doubled; no hits kept
   });
 
   it('Hymn of Stillness: all allies heal 15 and lose their Toxin, gaining 10 Shield per stack lost', () => {
@@ -513,22 +561,32 @@ describe('Stasis skills', () => {
     expect([a.has(B2, 'toxin'), a.has(B2, 'suspended')]).toEqual([false, true]);
   });
 
-  it('Crack the Ice: all enemies gain 1 Toxin, then every Suspended enemy Thaws now', () => {
+  it('Hoarfrost Hush: all enemies are Chilled for 4 turns and Suspended for 1', () => {
     const a = arena({ p0: [['shout.stasis']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'toxin', { stacks: 2 }).give(B1, 'suspended', { source: A1, duration: 6 });
     a.use(A1, 'shout.stasis').end();
-    expect([a.hp(B1), a.has(B1, 'suspended'), a.stacks(B1, 'toxin')]).toEqual([65, false, 3]); // Thaw for 3 stacks, then the user's stack ticks 5
-    expect(a.stacks(B2, 'toxin')).toBe(1);
+    expect([a.has(B1, 'chilled'), a.has(B2, 'chilled'), a.has(B1, 'suspended'), a.has(B2, 'suspended')]).toEqual([true, true, true, true]);
+    expect([appliedDur(a, B1, 'chilled'), appliedDur(a, B1, 'suspended')]).toEqual([8, 2]);
+    expect([a.has(B1, 'toxin'), a.has(B2, 'toxin')]).toEqual([false, false]);
   });
 
-  it('Crack the Ice: the enemies that weren’t Suspended are Suspended for 1 turn, and Thaw when it ends', () => {
+  it('Hoarfrost Hush: the Chill holds while they’re Suspended, so the next Hush finds it and gives 1 Toxin first', () => {
     const a = arena({ p0: [['shout.stasis']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.stasis').end().end();
+    expect([a.has(B1, 'suspended'), dur(a, B1, 'chilled')]).toEqual([false, 8]); // held through the Suspension
+    a.pass(4); // turn 7: still cooling down
+    expect(a.reject(() => a.use(A1, 'shout.stasis'))).toBe('on_cooldown');
+    a.pass(2); // turn 9: ready, and the Chill is still there
+    expect(a.has(B1, 'chilled')).toBe(true);
     a.use(A1, 'shout.stasis').end();
-    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.has(B1, 'suspended'), a.has(B2, 'suspended')]).toEqual([1, 1, true, true]);
-    expect(appliedDur(a, B1, 'suspended')).toBe(2);
-    expect(a.hp(B1)).toBe(100); // the Toxin is held
+    expect([a.stacks(B1, 'toxin'), a.stacks(B2, 'toxin'), a.hp(B1)]).toEqual([1, 1, 100]); // held
     a.end();
-    expect([a.has(B1, 'suspended'), a.hp(B1), a.hp(B2)]).toEqual([false, 90, 90]); // 1 stack, doubled
+    expect([a.hp(B1), a.hp(B2)]).toEqual([90, 90]); // the Thaw
+  });
+
+  it('Hoarfrost Hush: only enemies who were already Chilled gain Toxin', () => {
+    const a = arena({ p0: [['shout.stasis']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'chilled', { source: A1, duration: 2 }).use(A1, 'shout.stasis').end();
+    expect([a.stacks(B1, 'toxin'), a.has(B2, 'toxin')]).toEqual([1, false]);
   });
 
   it('Hold the Moment: 10 Shield for 1 turn; at the start of the next turn, heals all HP lost since', () => {
@@ -545,24 +603,30 @@ describe('Stasis skills', () => {
     expect(a.hp(A1)).toBe(75);
   });
 
-  it('Glacial Glare: Taunted and Frostbitten for 2 turns; meanwhile Frostbitten stops all their Strategic skills', () => {
-    const a = arena({ p0: [['taunt.stasis']], p1: [['heal', 'shot']] });
+  it('Cold Grudge: Taunted by the user for 2 turns; each time they damage the user, they gain 1 Toxin', () => {
+    const a = arena({ p0: [['taunt.stasis'], ['shot']], p1: [['shot']] });
     a.use(A1, 'taunt.stasis', B1).end();
-    expect([a.has(B1, 'taunt'), a.has(B1, 'frostbitten')]).toEqual([true, true]);
-    expect([appliedDur(a, B1, 'taunt'), appliedDur(a, B1, 'frostbitten')]).toEqual([4, 4]);
-    expect(a.reject(() => a.use(B1, 'heal', B1))).toBe('cannot_act');
-    a.use(B1, 'shot', A1).end(); // non-Strategic still fine
+    expect(appliedDur(a, B1, 'taunt')).toBe(4);
+    expect(a.reject(() => a.use(B1, 'shot', A2))).toBe('bad_target');
+    a.use(B1, 'shot', A1).end();
+    expect(a.stacks(B1, 'toxin')).toBe(1);
   });
 
-  it('Glacial Glare: the lockout covers both of their turns, then Helpful Strategic skills work again', () => {
-    const a = arena({ p0: [['taunt.stasis']], p1: [['heal']] });
-    a.setHp(B1, 50).use(A1, 'taunt.stasis', B1).end().end().end();
-    expect([a.has(B1, 'taunt'), a.has(B1, 'frostbitten')]).toEqual([true, true]);
-    expect(a.reject(() => a.use(B1, 'heal', B1))).toBe('cannot_act'); // their second turn
+  it('Cold Grudge: then their Toxin deals its damage at once, doubled', () => {
+    const a = arena({ p0: [['taunt.stasis']], p1: [['shot']] });
+    a.use(A1, 'taunt.stasis', B1).end();
+    a.use(B1, 'shot', A1).end().end(); // 1 Toxin; it ticks 5 at the end of A's turn
+    expect(a.hp(B1)).toBe(95);
+    a.use(B1, 'shot', A1).end(); // 2 Toxin; the 2 turns are up: 20
+    expect([a.stacks(B1, 'toxin'), a.has(B1, 'taunt'), a.hp(B1)]).toEqual([2, false, 75]);
     a.end().end();
-    expect([a.has(B1, 'taunt'), a.has(B1, 'frostbitten')]).toEqual([false, false]);
-    a.use(B1, 'heal', B1).end();
-    expect(a.hp(B1)).toBe(75);
+    expect(a.stacks(B1, 'toxin')).toBe(2); // no more Toxin from it
+  });
+
+  it('Cold Grudge: no hits, no Toxin, no burst', () => {
+    const a = arena({ p0: [['taunt.stasis']], p1: [['shot']] });
+    a.use(A1, 'taunt.stasis', B1).pass(4);
+    expect([a.has(B1, 'toxin'), a.hp(B1)]).toEqual([false, 100]);
   });
 
   it('Frozen Instant: Immune for 3 turns; damage taken is held instead of landing', () => {
@@ -615,13 +679,12 @@ describe('Stasis costs and cooldowns match the kit table', () => {
     'smite.stasis': ['Wr', 1],
     'prayer.stasis': ['Ir', 2],
     'cleave.stasis': ['Sr', 1],
-    'shout.stasis': ['r', 1],
+    'shout.stasis': ['Ir', 3],
     'withstand.stasis': ['r', 3],
     'taunt.stasis': ['r', 3],
     'titan.stasis': ['WI', 4],
     ice_spider_frost_web: ['r', 0],
     ice_spider_frozen_fang: ['r', 0],
-    cryo_sprite_rime_sting: ['W', 0],
   };
   const parse = (s: string) => {
     const c = { S: 0, A: 0, I: 0, W: 0, r: 0 };

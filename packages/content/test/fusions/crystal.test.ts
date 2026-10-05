@@ -95,26 +95,20 @@ describe('Crystal skills', () => {
     expect([a.hp(B2), a.hp(B3)]).toEqual([80, 80]); // 2 stacks burst
   });
 
-  it('Shard Rush: 15 and 1 Focus; the next skill\'s Frost debuffs last 1 turn longer', () => {
-    const run = (charge: boolean) => {
-      const a = arena({ p0: [['charge.crystal', 'shot.ice']], p1: [['shot']] });
-      if (charge) a.use(A1, 'charge.crystal', B1).end().pass(1);
-      else a.pass(2);
-      a.use(A1, 'shot.ice', B1).end();
-      return a;
-    };
-    const a = run(true);
-    expect(a.hp(B1)).toBe(100 - 15 - 20);
-    expect(dur(a, B1, 'chilled')).toBe(dur(run(false), B1, 'chilled') + 2);
-    expect(a.has(A1, 'focus')).toBe(false);
+  it('Shard Rush: 15 and 1 Brittle; the user has Diamond until they next use a skill', () => {
+    const a = arena({ p0: [['charge.crystal', 'shot']], p1: [['smash']] });
+    a.use(A1, 'charge.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'brittle'), a.has(A1, 'diamond')]).toEqual([85, 1, true]);
+    a.use(B1, 'smash', A1).end();
+    expect(a.hp(A1)).toBe(85); // the 25 is capped at 15
+    a.use(A1, 'shot', B1).end();
+    expect([a.hp(B1), a.has(A1, 'diamond')]).toEqual([85 - 15 - 5, false]);
   });
 
-  it('Shard Rush: gives 1 Focus that lowers the next skill\'s cost', () => {
-    const a = arena({ p0: [['charge.crystal', 'shot']], p1: [['shot']] });
+  it('Shard Rush: no Focus', () => {
+    const a = arena({ p0: [['charge.crystal']], p1: [['shot']] });
     a.use(A1, 'charge.crystal', B1).end();
-    expect(a.stacks(A1, 'focus')).toBe(1);
-    a.pass(1).use(A1, 'shot', B1);
-    expect(a.state.players[0].queue[0]?.cost.r).toBe(0);
+    expect(a.has(A1, 'focus')).toBe(false);
   });
 
   it('Hoarfrost Guard: counters the first Harmful skill; its user is Frostbitten and the user Frostborn', () => {
@@ -148,13 +142,34 @@ describe('Crystal skills', () => {
     expect(dur(a, B1, 'frostbitten')).toBe(dur(run('shot'), B1, 'frostbitten') + 2);
   });
 
-  it('Crystal Lance: 40 Piercing on the following turn, plus 10 per Brittle', () => {
+  it('Crystal Lance: on the following turn, 3 shards of 5 Piercing, each leaving 1 Brittle (so they hit 5, 10, 15)', () => {
     const a = arena({ p0: [['snipe.crystal']], p1: [['shot']] });
-    a.give(B1, 'brittle', { stacks: 2, source: A1 }).give(B1, 'armor', { stacks: 2 });
-    a.use(A1, 'snipe.crystal', B1).end();
-    expect(a.hp(B1)).toBe(100);
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'snipe.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'brittle')]).toEqual([100, 0]);
     a.end();
-    expect(a.hp(B1)).toBe(100 - 40 - 20 - 10); // + Brittle's own 5 per stack
+    // Piercing ignores the Armor; each shard lands, then leaves its Brittle for the next.
+    expect([a.hp(B1), a.stacks(B1, 'brittle'), a.has(B1, 'shattered')]).toEqual([100 - 5 - 10 - 15, 3, false]);
+  });
+
+  it('Crystal Lance: it leaves them at 3 Brittle, so the next direct hit Shatters them', () => {
+    const a = arena({ p0: [['snipe.crystal'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'snipe.crystal', B1).end().end();
+    a.use(A2, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'shattered'), a.has(B1, 'brittle')]).toEqual([70 - 15 - 15 - 20, true, false]);
+  });
+
+  it('Crystal Lance: Brittle already on them makes the shards hit harder, and a shard can Shatter them', () => {
+    const a = arena({ p0: [['snipe.crystal']], p1: [['shot']] });
+    a.give(B1, 'brittle', { stacks: 1, source: A1 }).use(A1, 'snipe.crystal', B1).end().end();
+    // 10 (→2), 15 (→3), then the third shard hits at 3: 20 and the Shatter's 20; it then leaves 1 Brittle.
+    expect([a.hp(B1), a.has(B1, 'shattered'), a.stacks(B1, 'brittle')]).toEqual([100 - 10 - 15 - 20 - 20, true, 1]);
+  });
+
+  it('Crystal Lance: Channeled — stunning the user stops it', () => {
+    const a = arena({ p0: [['snipe.crystal']], p1: [['stun']] });
+    a.use(A1, 'snipe.crystal', B1).end();
+    a.use(B1, 'stun', A1).end();
+    expect([a.hp(B1), a.has(B1, 'brittle')]).toEqual([100, false]);
   });
 
   it('Hairline Fracture: the target\'s first Harmful skill raises their Brittle to 3', () => {
@@ -172,50 +187,52 @@ describe('Crystal skills', () => {
     expect(a.stacks(B1, 'brittle')).toBe(0);
   });
 
-  it('Crystal Cocoon: Invulnerable, Debuffs end; then Diamond for 1 turn per Debuff removed', () => {
-    const run = (debuffs: string[]) => {
-      const a = arena({ p0: [['maneuver.crystal']], p1: [['shot']] });
-      for (const d of debuffs) a.give(A1, d, { source: B1 });
-      a.use(A1, 'maneuver.crystal').end();
-      return a;
-    };
-    const a = run(['weakness', 'vulnerable']);
-    expect([a.has(A1, 'invulnerable'), a.has(A1, 'weakness'), a.has(A1, 'vulnerable'), a.has(A1, 'diamond')]).toEqual([
-      true,
-      false,
-      false,
-      false,
-    ]);
-    a.end();
-    expect([a.has(A1, 'invulnerable'), a.has(A1, 'diamond')]).toEqual([false, true]);
-    const b = run(['weakness']).end();
-    expect(dur(a, A1, 'diamond')).toBe(dur(b, A1, 'diamond') + 2);
-    const c = run([]).end();
-    expect(c.has(A1, 'diamond')).toBe(false);
+  it('Crystal Cocoon: Diamond for 2 turns; each enemy hit it caps gives the attacker 1 Brittle', () => {
+    const a = arena({ p0: [['maneuver.crystal']], p1: [['smash'], ['shot']] });
+    a.use(A1, 'maneuver.crystal').end();
+    expect([a.has(A1, 'diamond'), a.has(A1, 'invulnerable')]).toEqual([true, false]);
+    a.use(B1, 'smash', A1).use(B2, 'shot', A1).end();
+    // Smash's 25 is capped (Brittle for B1); Shot's 15 isn't (none for B2).
+    expect([a.hp(A1), a.stacks(B1, 'brittle'), a.stacks(B2, 'brittle')]).toEqual([70, 1, 0]);
   });
 
-  it('Crystal Golem: 40 HP; at the start of each of your turns the ally with the least HP gains Diamond', () => {
+  it('Crystal Cocoon: it ends after 2 turns', () => {
+    const a = arena({ p0: [['maneuver.crystal']], p1: [['smash']] });
+    a.use(A1, 'maneuver.crystal').end().pass(2);
+    expect(a.has(A1, 'diamond')).toBe(true);
+    a.pass(2);
+    expect([a.has(A1, 'diamond'), a.has(A1, 'crystal_cocoon')]).toEqual([false, false]);
+    a.use(B1, 'smash', A1).end();
+    expect([a.hp(A1), a.stacks(B1, 'brittle')]).toEqual([75, 0]);
+  });
+
+  it('Crystal Golem: a permanent 40 HP Golem, with no Diamond for allies', () => {
     const a = arena({ p0: [['companion.crystal'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'companion.crystal').end();
     expect(minions(a, 'crystal_golem').map((u) => u.hp)).toEqual([40]);
-    a.end();
-    expect([a.has(A2, 'diamond'), a.has(A1, 'diamond')]).toEqual([true, false]);
+    a.pass(9);
+    expect(minions(a, 'crystal_golem').length).toBe(1);
+    expect([a.has(A2, 'diamond'), a.has(A1, 'diamond')]).toEqual([false, false]);
   });
 
-  it('Shard Slam: 15 and 1 Brittle', () => {
-    const a = arena({ p0: [['companion.crystal']], p1: [['shot']] });
+  it('Shard Burst: 10 and 1 Brittle to every enemy', () => {
+    const a = arena({ p0: [['companion.crystal']], p1: [['shot'], ['shot']] });
     a.use(A1, 'companion.crystal').end().pass(1);
-    a.use(minions(a, 'crystal_golem')[0]!.id, 'golem_shard_slam', B1).end();
-    expect([a.hp(B1), a.stacks(B1, 'brittle')]).toEqual([85, 1]);
+    a.use(minions(a, 'crystal_golem')[0]!.id, 'golem_shard_slam').end();
+    expect([a.hp(B1), a.hp(B2), a.stacks(B1, 'brittle'), a.stacks(B2, 'brittle')]).toEqual([90, 90, 1, 1]);
   });
 
-  it('Quartz Spike: 20 and a Mark; when the Mark is spent, 2 Brittle', () => {
-    const a = arena({ p0: [['bolt.crystal'], ['shot']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'bolt.crystal', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 20 - 15 - 10);
-    expect([a.has(B1, 'mark'), a.stacks(B1, 'brittle')]).toEqual([false, 2]);
-    a.pass(3).use(A1, 'bolt.crystal', B2).end();
-    expect([a.has(B2, 'mark'), a.stacks(B2, 'brittle')]).toEqual([true, 0]); // unspent: no Brittle
+  it('Quartz Spike: 20 damage; one of their Buffs crystallizes into 2 Brittle', () => {
+    const a = arena({ p0: [['bolt.crystal']], p1: [['shot']] });
+    a.give(B1, 'might').give(B1, 'focus').use(A1, 'bolt.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'brittle'), a.has(B1, 'mark')]).toEqual([80, 2, false]);
+    expect([a.has(B1, 'might'), a.has(B1, 'focus')].filter(Boolean).length).toBe(1);
+  });
+
+  it('Quartz Spike: with no Buffs, 1 Brittle', () => {
+    const a = arena({ p0: [['bolt.crystal']], p1: [['shot']] });
+    a.use(A1, 'bolt.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'brittle')]).toEqual([80, 1]);
   });
 
   it('Hard Freeze: 25 to all; Chilled deepens to Frostbitten, Numb to Chilled', () => {
@@ -288,34 +305,57 @@ describe('Crystal skills', () => {
     expect([a.hp(B3), a.stacks(B3, 'brittle')]).toEqual([85, 1]); // 10 + Brittle's 5; Brittle isn't chipped
   });
 
-  it('Shatterpoint: 25 Piercing; at 2+ Brittle it Shatters them now', () => {
-    const a = arena({ p0: [['ravage.crystal']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'brittle', { stacks: 2, source: A1 }).give(B2, 'brittle', { stacks: 1, source: A1 });
+  it('Breaking Point: 40 Piercing damage (ignores Armor), and the user gains 1 Brittle', () => {
+    const a = arena({ p0: [['ravage.crystal']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 2 }).use(A1, 'ravage.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(A1, 'brittle'), a.has(B1, 'brittle')]).toEqual([60, 1, false]);
+  });
+
+  it("Breaking Point: the user's Brittle is real: hits on them grow, and it builds toward a Shatter", () => {
+    const a = arena({ p0: [['ravage.crystal']], p1: [['shot']] });
     a.use(A1, 'ravage.crystal', B1).end();
-    expect([a.has(B1, 'shattered'), a.has(B1, 'brittle'), a.hp(B1)]).toEqual([true, false, 100 - 35 - 20]);
-    a.pass(3).use(A1, 'ravage.crystal', B2).end();
-    expect([a.has(B2, 'shattered'), a.stacks(B2, 'brittle'), a.hp(B2)]).toEqual([false, 1, 70]);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A1)).toBe(80);
+    const b = arena({ p0: [['ravage.crystal']], p1: [['shot']] });
+    b.give(A1, 'brittle', { stacks: 2, source: B1 }).use(A1, 'ravage.crystal', B1).end();
+    b.use(B1, 'shot', A1).end();
+    expect([b.hp(A1), b.has(A1, 'shattered')]).toEqual([100 - 15 - 15 - 20, true]);
   });
 
-  it('Price of Frost: counters the target\'s Harmful skill', () => {
-    const a = arena({ p0: [['mislead.crystal']], p1: [['shot']] });
-    a.use(A1, 'mislead.crystal', B1).end().use(B1, 'shot', A1).end();
-    expect(a.hp(A1)).toBe(100);
+  it('Frozen Gambit: the first Harmful skill costing 2 or more is countered, and they gain 1 Brittle per energy', () => {
+    const a = arena({ p0: [['mislead.crystal'], ['shot']], p1: [['smash'], ['snipe']] });
+    a.use(A1, 'mislead.crystal', B1).end();
+    a.use(B1, 'smash', A1).end();
+    expect([a.hp(A1), a.hp(A2), a.stacks(B1, 'brittle')]).toEqual([100, 100, 2]);
+    const b = arena({ p0: [['mislead.crystal']], p1: [['snipe']] });
+    b.use(A1, 'mislead.crystal', B1).end();
+    b.use(B1, 'snipe', A1).end().pass(1);
+    expect([b.hp(A1), b.stacks(B1, 'brittle')]).toEqual([100, 3]);
   });
 
-  it('Price of Frost: once it triggers, Chilled enemies\' skills cost 1 more for 2 turns', () => {
-    const a = arena({ p0: [['mislead.crystal']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'mislead.crystal', B1).end().use(B1, 'shot', A1).end();
-    a.give(B2, 'chilled', { source: A1, duration: 10 }).pass(1);
-    a.use(B1, 'shot', A1).use(B2, 'shot', A1);
-    expect(a.state.players[1].queue.map((q) => q.cost.r)).toEqual([1, 2]);
+  it('Frozen Gambit: a cheaper Harmful skill slips through and leaves it waiting, for 2 turns', () => {
+    const a = arena({ p0: [['mislead.crystal']], p1: [['shot', 'smash']] });
+    a.use(A1, 'mislead.crystal', B1).end();
+    a.use(B1, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(B1, 'brittle')]).toEqual([85, 0]);
+    a.pass(1).use(B1, 'smash', A1).end();
+    expect([a.hp(A1), a.stacks(B1, 'brittle')]).toEqual([85, 2]);
   });
 
-  it('Price of Frost: no toll if it never triggers', () => {
-    const a = arena({ p0: [['mislead.crystal']], p1: [['shot'], ['shot']] });
-    a.give(B2, 'chilled', { source: A1, duration: 10 }).use(A1, 'mislead.crystal', B1).end();
-    a.use(B2, 'shot', A1);
-    expect(a.state.players[1].queue[0]?.cost.r).toBe(1);
+  it('Frozen Gambit: only the first; Helpful skills are untouched; it ends after 2 turns', () => {
+    const a = arena({ p0: [['mislead.crystal'], ['shot'], ['shot']], p1: [['smash', 'blast']] });
+    a.use(A1, 'mislead.crystal', B1).end();
+    a.use(B1, 'smash', A1).end().pass(1);
+    a.use(B1, 'blast').end();
+    expect([a.hp(A1), a.hp(A2), a.stacks(B1, 'brittle')]).toEqual([65, 65, 2]);
+    const h = arena({ p0: [['mislead.crystal']], p1: [['heal']] });
+    h.setHp(B1, 50).use(A1, 'mislead.crystal', B1).end();
+    h.use(B1, 'heal', B1).end();
+    expect([h.hp(B1), h.stacks(B1, 'brittle')]).toEqual([75, 0]);
+    const b = arena({ p0: [['mislead.crystal']], p1: [['smash']] });
+    b.use(A1, 'mislead.crystal', B1).end().pass(4);
+    b.use(B1, 'smash', A1).end();
+    expect([b.hp(A1), b.stacks(B1, 'brittle')]).toEqual([75, 0]);
   });
 
   it('Encrust: 15, Stunned for 2 turns with Diamond for as long', () => {
@@ -416,16 +456,26 @@ describe('Crystal skills', () => {
     expect(a.has(A1, 'diamond')).toBe(false);
   });
 
-  it('Seeking Shards: 25 + 15 to a Frostbitten enemy if any, who is also Numb for 2 turns', () => {
-    const a = arena({ p0: [['cleave.crystal']], p1: [['shot'], ['shot'], ['shot']] });
-    a.give(B3, 'frostbitten', { source: A1, duration: 10 }).use(A1, 'cleave.crystal', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(B3), a.has(B3, 'numb')]).toEqual([75, 100, 85, true]);
-  });
-
-  it('Seeking Shards: with no Frostbitten enemy, a random other one is hit and not Numbed', () => {
+  it('Seeking Shards: 20 and 1 Brittle; the Brittle shards off to a random other enemy, who takes 10', () => {
     const a = arena({ p0: [['cleave.crystal']], p1: [['shot'], ['shot']] });
     a.use(A1, 'cleave.crystal', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.has(B2, 'numb')]).toEqual([75, 85, false]);
+    // B2 takes 10 + Brittle's 5.
+    expect([a.hp(B1), a.stacks(B1, 'brittle'), a.hp(B2), a.stacks(B2, 'brittle')]).toEqual([80, 0, 85, 1]);
+  });
+
+  it('Seeking Shards: all the target\'s Brittle moves, and it can Shatter the second enemy', () => {
+    const a = arena({ p0: [['cleave.crystal']], p1: [['shot'], ['shot']] });
+    a.give(B1, 'brittle', { stacks: 1, source: A1 }).give(B2, 'brittle', { stacks: 1, source: A1 });
+    a.use(A1, 'cleave.crystal', B1).end();
+    // B1: 20 + 5. B2: 1 + 2 moved = 3 Brittle, so the 10 (+15) Shatters them (+20).
+    expect([a.hp(B1), a.has(B1, 'brittle')]).toEqual([75, false]);
+    expect([a.hp(B2), a.has(B2, 'brittle'), a.has(B2, 'shattered')]).toEqual([100 - 10 - 15 - 20, false, true]);
+  });
+
+  it('Seeking Shards: with no other enemy, the Brittle stays', () => {
+    const a = arena({ p0: [['cleave.crystal']], p1: [['shot']] });
+    a.use(A1, 'cleave.crystal', B1).end();
+    expect([a.hp(B1), a.stacks(B1, 'brittle')]).toEqual([80, 1]);
   });
 
   it('Glass Harmonic: Intimidates all enemies; every Shield on the field breaks and every unit is Shattered', () => {
@@ -446,21 +496,22 @@ describe('Crystal skills', () => {
     expect(shield(a, A1)).toBe(0);
   });
 
-  it('Flawless Challenge: Taunt for 2 turns and Diamond against the target\'s hits', () => {
-    const a = arena({ p0: [['taunt.crystal']], p1: [['shot', 'smash']] });
+  it('Crystal Effigy: a 30 HP Effigy for 2 turns; the target is Taunted by it', () => {
+    const a = arena({ p0: [['taunt.crystal']], p1: [['shot']] });
     a.use(A1, 'taunt.crystal', B1).end();
-    expect(a.has(B1, 'taunt')).toBe(true);
-    a.use(B1, 'smash', A1).end();
-    expect(a.hp(A1)).toBe(85);
+    const e = minions(a, 'crystal_effigy');
+    expect([e.length, e[0]!.hp, a.has(e[0]!.id, 'diamond'), a.has(B1, 'taunt')]).toEqual([1, 30, true, true]);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.end().pass(2);
+    expect([minions(a, 'crystal_effigy').length, a.has(B1, 'taunt')]).toEqual([0, false]);
   });
 
-  it('Flawless Challenge: each capped hit extends the Taunt by 1 turn', () => {
-    const run = (skill: string) => {
-      const a = arena({ p0: [['taunt.crystal']], p1: [[skill]] });
-      a.use(A1, 'taunt.crystal', B1).end().use(B1, skill, A1).end();
-      return dur(a, B1, 'taunt');
-    };
-    expect(run('smash')).toBe(run('shot') + 2);
+  it('Crystal Effigy: its Diamond caps each hit, and each enemy hit gives the attacker 1 Brittle', () => {
+    const a = arena({ p0: [['taunt.crystal']], p1: [['smash'], ['shot']] });
+    a.use(A1, 'taunt.crystal', B1).end();
+    const e = minions(a, 'crystal_effigy')[0]!.id;
+    a.use(B1, 'smash', e).use(B2, 'shot', e).end();
+    expect([a.unit(e).alive, a.stacks(B1, 'brittle'), a.stacks(B2, 'brittle')]).toEqual([false, 1, 1]);
   });
 
   it('Diamond Colossus: Diamond and Immune for 3 turns; then every enemy gains 2 Brittle', () => {

@@ -28,7 +28,7 @@ describe('Antidote: cost and cooldown match the kit table', () => {
   const table: [string, string, number][] = [
     ['strike', 'S', 0], ['smash', 'Wr', 2], ['charge', 'S', 2], ['riposte', 'W', 3], ['rage', 'A', 4],
     ['shot', 'r', 0], ['snipe', 'Arr', 3], ['trap', 'r', 2], ['maneuver', 'r', 3], ['companion', 'IW', 4],
-    ['bolt', 'Ir', 1], ['blast', 'IW', 2], ['consume', 'r', 2], ['summon', 'A', 2], ['channel', 'rr', 3],
+    ['bolt', 'I', 1], ['blast', 'IW', 2], ['consume', 'r', 2], ['summon', 'A', 2], ['channel', 'rr', 3],
     ['stab', 'A', 0], ['ravage', 'Wr', 1], ['mislead', 'W', 2], ['stun', 'A', 3], ['dance', 'AA', 4],
     ['heal', 'W', 1], ['bless', 'W', 2], ['curse', 'r', 2], ['smite', 'W', 1], ['prayer', 'WA', 3],
     ['cleave', 'S', 1], ['shout', 'W', 3], ['withstand', 'r', 3], ['taunt', 'A', 3], ['titan', 'W', 3],
@@ -279,15 +279,32 @@ describe('Antidote skills', () => {
     expect(a.hp(B1)).toBeLessThan(100);
   });
 
-  it("Neutralize: 25 and a 1-turn Mark; until the end of their next turn the target's Buffs do nothing", () => {
-    const a = arena({ p0: [['bolt.antidote'], ['shot']], p1: [['strike']] });
-    a.give(B1, 'armor', { stacks: 2 }).give(B1, 'might', { stacks: 2 });
-    a.use(A1, 'bolt.antidote', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(60); // Bolt 25 − 10 Armor (lands before the neutralizing), then 15 + 10 Mark with Armor ignored
-    a.use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(80); // Might ignored
-    a.pass(1).use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(80 - 20 - 15); // Might back (2 + the Strike's own)
+  it('Neutralize: 20; the next Buff the target would gain is stopped, and they can\'t gain it again for 3 turns', () => {
+    const a = arena({ p0: [['bolt.antidote']], p1: [['bless.holy', 'bless'], ['bless.holy']] });
+    a.use(A1, 'bolt.antidote', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    a.use(B1, 'bless.holy', B1).end(); // turn 2: the Anointing is stopped
+    expect([a.has(B1, 'anointed'), a.has(B1, 'immunity')]).toEqual([false, true]);
+    a.pass(5).use(B2, 'bless.holy', B1).end(); // turn 8: still immune to it
+    expect(a.has(B1, 'anointed')).toBe(false);
+    a.pass(1).use(B1, 'bless.holy', B1).end(); // turn 10: the immunity is over
+    expect(a.has(B1, 'anointed')).toBe(true);
+  });
+
+  it('Neutralize: only the next Buff is stopped; other Buffs land after it', () => {
+    const a = arena({ p0: [['bolt.antidote']], p1: [['bless.holy', 'bless'], ['bless']] });
+    a.use(A1, 'bolt.antidote', B1).end();
+    a.use(B1, 'bless.holy', B1).use(B2, 'bless', B1).end();
+    expect([a.has(B1, 'anointed'), a.stacks(B1, 'might')]).toEqual([false, 1]);
+  });
+
+  it('Neutralize: unused, it lapses after 2 turns', () => {
+    const a = arena({ p0: [['bolt.antidote']], p1: [['bless.holy']] });
+    a.use(A1, 'bolt.antidote', B1).end().pass(2).use(B1, 'bless.holy', B1).end(); // turn 4: still waiting
+    expect(a.has(B1, 'anointed')).toBe(false);
+    const b = arena({ p0: [['bolt.antidote']], p1: [['bless.holy']] });
+    b.use(A1, 'bolt.antidote', B1).end().pass(4).use(B1, 'bless.holy', B1).end(); // turn 6
+    expect(b.has(B1, 'anointed')).toBe(true);
   });
 
   it('Holy Wash: 15 to all enemies; then each ally Purges 1 Debuff, and each Purge hits every enemy', () => {
@@ -454,17 +471,24 @@ describe('Antidote skills', () => {
     expect(a.has(B1, 'condemned')).toBe(false);
   });
 
-  it('Theriac Brand: 20 and Sanctified for 1 turn, healing 5 more per Toxin on them', () => {
-    const a = arena({ p0: [['smite.antidote'], ['shot']], p1: [['shot']] });
-    a.give(B1, 'toxin', { stacks: 2, source: B1 });
-    a.setHp(A2, 50).use(A1, 'smite.antidote', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([65, 75]);
+  it('Theriac Brand: 15; an ally who damages them Purges one of their Debuffs onto them, or is Inoculated if they have none', () => {
+    const a = arena({ p0: [['smite.antidote'], ['shot'], ['shot']], p1: [['curse']] });
+    a.give(A2, 'weakness', { stacks: 1, source: B1 });
+    a.use(A1, 'smite.antidote', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(100 - 15 - 10 - 10 - 15); // the Weakness trims A2's hit, then goes over as 10 Affliction
+    expect([debuffs(a, A2).length, a.has(A2, 'inoculated')]).toEqual([0, false]);
+    expect([a.has(A3, 'inoculated'), a.has(A1, 'inoculated')]).toEqual([true, false]); // the brand comes after the user's hit
+    a.use(B1, 'curse', A3).end();
+    expect(a.has(A3, 'confusion')).toBe(false);
   });
 
-  it('Theriac Brand: without Toxin, an ordinary 15', () => {
+  it('Theriac Brand: it doesn\'t heal, and it lasts 1 turn', () => {
     const a = arena({ p0: [['smite.antidote'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50).use(A1, 'smite.antidote', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(A2)).toBe(65);
+    expect(a.hp(A2)).toBe(50);
+    const b = arena({ p0: [['smite.antidote'], ['shot']], p1: [['shot']] });
+    b.use(A1, 'smite.antidote', B1).end().pass(1).use(A2, 'shot', B1).end();
+    expect(b.has(A2, 'inoculated')).toBe(false);
   });
 
   it('Healing Liturgy: all allies heal 20 and gain 10 Shield', () => {

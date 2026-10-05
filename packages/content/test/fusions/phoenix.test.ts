@@ -15,9 +15,7 @@ const B3 = 'p1c2';
 
 const minions = (a: Arena, owner: 0 | 1, defId?: string) =>
   a.state.units.filter((u) => u.alive && u.owner === owner && u.kind === 'minion' && (!defId || u.defId === defId));
-const queuedR = (a: Arena, p: 0 | 1 = 0) => a.state.players[p].queue[0]!.cost.r;
 const shieldLeft = (a: Arena, id: string) => a.effects(id).reduce((n, e) => n + (e.defId === 'shield' || e.inline?.id === 'cocoon_of_flame' ? e.value : 0), 0);
-const duration = (a: Arena, id: string, key: string) => a.effects(id).find((e) => (e.inline ? e.inline.id : e.defId) === key)?.duration ?? null;
 
 /**
  * A2 (with Rebirth) burns to Ashes on our own turn 3: B1's Riposte counters A2's Shot for 15.
@@ -37,16 +35,16 @@ function ashesOnTurn2(a: Arena, who = A2) {
 
 describe('Phoenix keywords', () => {
   it('Kindle: on an enemy it deals the damage and Ignites', () => {
-    const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
-    a.use(A1, 'strike.phoenix', B1).end();
+    const a = arena({ p0: [['bolt.phoenix']], p1: [['shot']] });
+    a.use(A1, 'bolt.phoenix', B1).end();
     expect(a.has(B1, 'ignite')).toBe(true);
     expect(a.hp(B1)).toBe(75); // 20 + the Ignite's 5
   });
 
   it('Kindle: on an ally it heals the damage instead and gives 2 Renew (no Ignite)', () => {
-    const a = arena({ p0: [['strike.phoenix'], ['shot']], p1: [['shot']] });
+    const a = arena({ p0: [['bolt.phoenix'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50);
-    a.use(A1, 'strike.phoenix', A2);
+    a.use(A1, 'bolt.phoenix', A2);
     expect(a.has(A2, 'ignite')).toBe(false);
     a.end();
     expect(a.has(A2, 'ignite')).toBe(false);
@@ -55,9 +53,9 @@ describe('Phoenix keywords', () => {
   });
 
   it('Kindle: 2 Renew heals 10, then 5 more on the next turn (Renew loses a stack per tick)', () => {
-    const a = arena({ p0: [['strike.phoenix'], ['shot']], p1: [['shot']] });
+    const a = arena({ p0: [['bolt.phoenix'], ['shot']], p1: [['shot']] });
     a.setHp(A2, 50);
-    a.use(A1, 'strike.phoenix', A2).end();
+    a.use(A1, 'bolt.phoenix', A2).end();
     expect(a.hp(A2)).toBe(80); // 20 + 10
     a.pass(2);
     expect(a.hp(A2)).toBe(85);
@@ -65,14 +63,14 @@ describe('Phoenix keywords', () => {
   });
 
   it('Kindle: Harmful on an enemy (countered), Helpful on an ally (not countered)', () => {
-    const a = arena({ p0: [['strike.phoenix'], ['shot']], p1: [['mislead']] });
+    const a = arena({ p0: [['bolt.phoenix'], ['shot']], p1: [['mislead']] });
     a.setHp(A2, 50);
     a.pass(1).use(B1, 'mislead', A1).end();
-    a.use(A1, 'strike.phoenix', A2).end();
+    a.use(A1, 'bolt.phoenix', A2).end();
     expect(a.hp(A2)).toBeGreaterThanOrEqual(70);
-    const b = arena({ p0: [['strike.phoenix']], p1: [['mislead']] });
+    const b = arena({ p0: [['bolt.phoenix']], p1: [['mislead']] });
     b.pass(1).use(B1, 'mislead', A1).end();
-    b.use(A1, 'strike.phoenix', B1).end();
+    b.use(A1, 'bolt.phoenix', B1).end();
     expect([b.hp(B1), b.has(B1, 'ignite')]).toEqual([100, false]);
   });
 
@@ -144,65 +142,6 @@ describe('Phoenix keywords', () => {
 });
 
 describe('Phoenix skills', () => {
-  it('Firebrand Talon: 20 + Ignite on an enemy; the user gains 1 Might', () => {
-    const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
-    a.use(A1, 'strike.phoenix', B1).end();
-    expect([a.hp(B1), a.has(B1, 'ignite'), a.stacks(A1, 'might')]).toEqual([75, true, 1]);
-  });
-
-  it('Firebrand Talon: the Might has no stated duration, so it stays', () => {
-    const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
-    a.use(A1, 'strike.phoenix', B1).end().pass(3);
-    expect(a.stacks(A1, 'might')).toBe(1);
-  });
-
-  it('Firebrand Talon: 20 healing + 2 Renew on an ally; the user still gains 1 Might', () => {
-    const a = arena({ p0: [['strike.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'strike.phoenix', A2).end();
-    expect(a.stacks(A1, 'might')).toBe(1);
-    expect([a.hp(A2), a.hp(B1)]).toEqual([80, 100]); // 20 + 10 from 2 Renew
-  });
-
-  it('Wingbeat: 25 to the target and 15 to their allies', () => {
-    const a = arena({ p0: [['smash.phoenix']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'smash.phoenix', B1).end();
-    expect([a.hp(B1), a.hp(B2)]).toEqual([75, 85]);
-  });
-
-  it('Wingbeat: an ally who went to Ashes this turn rises at the end of this turn', () => {
-    const run = (wing: boolean) => {
-      const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['riposte'], ['shot']] });
-      a.setHp(A2, 10).give(A2, 'rebirth');
-      a.pass(1).use(B1, 'riposte').end();
-      a.use(A2, 'shot', B1); // countered: A2 takes 15 and burns to Ashes on our own turn
-      if (wing) a.use(A1, 'smash.phoenix', B2);
-      a.end();
-      return a;
-    };
-    const plain = run(false);
-    expect([plain.has(A2, 'ashes'), plain.hp(A2)]).toEqual([true, 1]); // waits for turn 3
-    const a = run(true);
-    expect([a.has(A2, 'ashes'), a.hp(A2)]).toEqual([false, 25]);
-  });
-
-  it('Rising Dive: 15 + Ignite on an enemy, or 15 healing + 2 Renew on an ally', () => {
-    const a = arena({ p0: [['charge.phoenix'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'charge.phoenix', B1).end();
-    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([80, true]);
-    const b = arena({ p0: [['charge.phoenix'], ['shot']], p1: [['shot']] });
-    b.setHp(A2, 50).use(A1, 'charge.phoenix', A2).end();
-    expect([b.hp(A2), b.has(A2, 'ignite')]).toEqual([75, false]); // 15 + 10 from 2 Renew
-  });
-
-  it('Rising Dive: the user gains 1 Focus for their next skill', () => {
-    const a = arena({ p0: [['charge.phoenix', 'shot.phoenix']], p1: [['shot']] });
-    a.use(A1, 'charge.phoenix', B1).end().pass(1);
-    a.use(A1, 'shot.phoenix', B1);
-    expect(queuedR(a)).toBe(0);
-    a.end().pass(1).use(A1, 'shot.phoenix', B1);
-    expect(queuedR(a)).toBe(1); // used up
-  });
-
   it('Searing Rebuttal: counters the first Harmful skill; an Ignited attacker burns at once and the user is Anointed', () => {
     const a = arena({ p0: [['riposte.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
     expect(content.skills['riposte.phoenix']!.tags).toContain('Invisible');
@@ -230,57 +169,6 @@ describe('Phoenix skills', () => {
     expect([a.hp(A1), a.hp(B1), a.has(A1, 'anointed')]).toEqual([100, 100, false]);
   });
 
-  it('Pyreheart Fury: 2 Might, Immune and Rebirth for 3 turns', () => {
-    const a = arena({ p0: [['rage.phoenix']], p1: [['curse']] });
-    a.use(A1, 'rage.phoenix').end().use(B1, 'curse', A1).end();
-    expect([a.stacks(A1, 'might'), a.has(A1, 'confusion'), a.has(A1, 'rebirth')]).toEqual([2, false, true]);
-    a.pass(4);
-    expect([a.stacks(A1, 'might'), a.has(A1, 'immune'), a.has(A1, 'rebirth')]).toEqual([0, false, false]);
-  });
-
-  it('Pyreheart Fury: rising from Ashes starts it over for 3 more turns (with a fresh Rebirth)', () => {
-    const a = arena({ p0: [['rage.phoenix']], p1: [['strike']] });
-    a.use(A1, 'rage.phoenix').end().pass(2);
-    a.setHp(A1, 10).use(B1, 'strike', A1).end(); // turn 4: Ashes
-    // Turn 5 starts: risen.
-    expect([a.hp(A1), a.has(A1, 'rebirth'), a.stacks(A1, 'might')]).toEqual([25, true, 2]);
-    a.pass(4); // the original 3 turns would be over now
-    expect([a.stacks(A1, 'might'), a.has(A1, 'immune'), a.has(A1, 'rebirth')]).toEqual([2, true, true]);
-  });
-
-  it('Ember Shot: 15 damage; at or below 30 HP the user gains Rebirth for 1 turn', () => {
-    const a = arena({ p0: [['shot.phoenix']], p1: [['strike']] });
-    a.setHp(A1, 30).use(A1, 'shot.phoenix', B1).end();
-    expect([a.hp(B1), a.has(A1, 'rebirth')]).toEqual([85, true]);
-    a.setHp(A1, 10).use(B1, 'strike', A1).end();
-    expect([a.hp(A1), a.has(A1, 'rebirth')]).toEqual([25, false]); // burned to Ashes and rose
-    const b = arena({ p0: [['shot.phoenix']], p1: [['shot']] });
-    b.setHp(A1, 31).use(A1, 'shot.phoenix', B1).end();
-    expect(b.has(A1, 'rebirth')).toBe(false);
-  });
-
-  it('Ember Shot: the Rebirth lasts only 1 turn', () => {
-    const a = arena({ p0: [['shot.phoenix']], p1: [['shot']] });
-    a.setHp(A1, 30).use(A1, 'shot.phoenix', B1).end().pass(1);
-    expect(a.has(A1, 'rebirth')).toBe(false);
-  });
-
-  it('Sunfall Lance: 50 damage on the following turn', () => {
-    const a = arena({ p0: [['snipe.phoenix']], p1: [['shot']] });
-    expect(content.skills['snipe.phoenix']!.tags).toEqual(expect.arrayContaining(['Channeled', 'HiddenTarget']));
-    a.use(A1, 'snipe.phoenix', B1).end();
-    expect(a.hp(B1)).toBe(100);
-    a.pass(1);
-    expect(a.hp(B1)).toBe(50);
-  });
-
-  it('Sunfall Lance: still fires if the user is in Ashes when it lands, and deals 25 more', () => {
-    const a = arena({ p0: [['snipe.phoenix']], p1: [['shot']] });
-    a.setHp(A1, 10).give(A1, 'rebirth');
-    a.use(A1, 'snipe.phoenix', B1).end().use(B1, 'shot', A1).end();
-    expect(a.hp(B1)).toBe(25);
-  });
-
   it('Smoldering Nest: the first time the target sends a unit to Ashes, they take 25 and are Ignited', () => {
     const a = arena({ p0: [['trap.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
     expect(content.skills['trap.phoenix']!.tags).toContain('Invisible');
@@ -303,24 +191,6 @@ describe('Phoenix skills', () => {
     a.setHp(A2, 10);
     a.use(A1, 'trap.phoenix', B1).end().use(B1, 'shot', A1).use(B2, 'shot', A2).end();
     expect([a.unit(A2).alive, a.hp(B1), a.has(B1, 'ignite')]).toEqual([false, 100, false]);
-  });
-
-  it('Anointed Ascent: Invulnerable for 1 turn and Anointed until the end of the user\'s next turn', () => {
-    const a = arena({ p0: [['maneuver.phoenix']], p1: [['shot']] });
-    a.setHp(A1, 50).use(A1, 'maneuver.phoenix').end();
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
-    expect([a.has(A1, 'anointed'), a.hp(A1)]).toEqual([true, 50]); // no heal without Condemn
-    a.pass(1);
-    expect(a.has(A1, 'anointed')).toBe(true);
-    a.pass(1);
-    expect(a.has(A1, 'anointed')).toBe(false);
-  });
-
-  it('Anointed Ascent: a Condemned user is purged (no Condemn debuff) and heals 15', () => {
-    const a = arena({ p0: [['maneuver.phoenix']], p1: [['shot']] });
-    a.setHp(A1, 50).give(A1, 'condemned', { source: B1 }).use(A1, 'maneuver.phoenix').end();
-    expect([a.has(A1, 'condemned'), a.hp(A1)]).toEqual([false, 65]);
-    expect(a.has(A1, 'weakness') || a.has(A1, 'vulnerable') || a.has(A1, 'confusion')).toBe(false);
   });
 
   it('Phoenix Chick: a permanent 15 HP minion; Peck deals 10 and Ignites', () => {
@@ -389,32 +259,6 @@ describe('Phoenix skills', () => {
     expect([a.has(A1, 'confusion'), a.has(A2, 'weakness'), a.has(A2, 'might')]).toEqual([false, false, true]);
   });
 
-  it('Draw the Flame: 5 drain; an Ignited target\'s Ignite goes out, and the weakest ally heals 15 and gains 2 Renew', () => {
-    const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 90).setHp(A2, 30);
-    a.give(B1, 'ignite', { source: A2 }).give(B2, 'ignite', { source: A2 });
-    a.use(A1, 'consume.phoenix', B1);
-    a.end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite')]).toEqual([false, true]); // only the target's goes out
-    expect(a.stacks(A2, 'renew')).toBe(1); // 2 Renew, one already spent on its tick
-    // A1: 90 + 5 drain. A2: 30 + 15 + 10 (Renew). B1: only the 5 hit.
-    expect([a.hp(A1), a.hp(A2), a.hp(B1)]).toEqual([95, 55, 95]);
-  });
-
-  it('Draw the Flame: a target that isn\'t Ignited becomes Ignited, and nobody else heals', () => {
-    const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 30).use(A1, 'consume.phoenix', B1).end();
-    expect([a.has(B1, 'ignite'), a.hp(A2), a.has(A2, 'renew')]).toEqual([true, 30, false]);
-    expect(a.hp(B1)).toBe(90); // 5 + the new Ignite's tick
-  });
-
-  it('Draw the Flame: its own Ignite pays off on its next use', () => {
-    const a = arena({ p0: [['consume.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 30).use(A1, 'consume.phoenix', B1).end().pass(5);
-    a.use(A1, 'consume.phoenix', B1).end();
-    expect([a.has(B1, 'ignite'), a.hp(A2)]).toEqual([false, 55]);
-  });
-
   it('Ember Spirit: a 20 HP minion for 3 turns', () => {
     const a = arena({ p0: [['summon.phoenix']], p1: [['shot']] });
     a.use(A1, 'summon.phoenix').end();
@@ -434,71 +278,6 @@ describe('Phoenix skills', () => {
     expect([a.hp(A2) >= 65, a.has(A2, 'ignite')]).toEqual([true, false]);
   });
 
-  it('Eternal Pyre: at the end of the user\'s turns, 10 + Ignite to each enemy and 10 healing + 2 Renew to each ally', () => {
-    const a = arena({ p0: [['channel.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
-    a.setHp(A2, 50);
-    a.use(A1, 'channel.phoenix').end();
-    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite'), a.has(A2, 'ignite')]).toEqual([true, true, false]);
-    expect(a.hp(B1)).toBeLessThanOrEqual(90);
-    expect(a.hp(A2)).toBeGreaterThanOrEqual(60);
-    expect(a.has(A2, 'renew')).toBe(true);
-  });
-
-  it('Eternal Pyre: lasts up to 3 of the user\'s turns', () => {
-    const a = arena({ p0: [['channel.phoenix']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'channel.phoenix').end().pass(4); // ticks on turns 1, 3, 5
-    const b2 = a.hp(B2);
-    // 3 × 10, and the Ignite (applied as the turn-1 tick lands) burns on turns 3 and 5.
-    expect(b2).toBe(100 - 3 * 10 - 2 * 5);
-    a.pass(2);
-    expect(b2 - a.hp(B2)).toBe(5); // only the Ignite
-  });
-
-  it('Eternal Pyre: stunning the user stops it', () => {
-    const a = arena({ p0: [['channel.phoenix']], p1: [['stun'], ['shot']] });
-    a.use(A1, 'channel.phoenix').end().use(B1, 'stun', A1).end();
-    const b2 = a.hp(B2);
-    a.pass(1);
-    expect(b2 - a.hp(B2)).toBe(5);
-  });
-
-  it('Ember Needle: 10 + Ignite to an enemy, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.phoenix']], p1: [['shot'], ['shot']] });
-    a.setHp(B2, 60);
-    a.use(A1, 'stab.phoenix', B1).end();
-    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([85, true]);
-    a.pass(1);
-    const b1 = a.hp(B1);
-    a.use(A1, 'stab.phoenix', B2).end();
-    expect(a.hp(B2)).toBe(35);
-    expect(b1 - a.hp(B1)).toBe(5);
-  });
-
-  it('Ember Needle: on an ally, 10 healing + 2 Renew, or 20 at or below 60 HP', () => {
-    const a = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 61).use(A1, 'stab.phoenix', A2).end();
-    expect(a.hp(A2)).toBe(61 + 10 + 10);
-    const b = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
-    b.setHp(A2, 60).use(A1, 'stab.phoenix', A2).end();
-    expect(b.hp(A2)).toBe(60 + 20 + 10);
-  });
-
-  it('Pyre Talon: 25 Piercing + Ignite, 15 more against a Stunned enemy', () => {
-    const a = arena({ p0: [['ravage.phoenix']], p1: [['shot'], ['shot']] });
-    a.give(B1, 'armor', { stacks: 3 }).give(B2, 'stun', { source: A1, duration: 10 });
-    a.use(A1, 'ravage.phoenix', B1).end();
-    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([70, true]);
-    a.pass(3).use(A1, 'ravage.phoenix', B2).end();
-    expect(a.hp(B2)).toBe(100 - 40 - 5);
-  });
-
-  it('Pyre Talon: on an ally, 25 healing + 2 Renew and it ends their Stun', () => {
-    const a = arena({ p0: [['ravage.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).give(A2, 'stun', { source: B1, duration: 4 });
-    a.use(A1, 'ravage.phoenix', A2).end();
-    expect([a.has(A2, 'stun'), a.hp(A2) >= 75, a.has(A2, 'ignite')]).toEqual([false, true, false]);
-  });
-
   it('Flaring Feint: counters the target\'s Harmful skill, and their Ignite burns three times at once', () => {
     const a = arena({ p0: [['mislead.phoenix'], ['shot']], p1: [['shot']] });
     expect(content.skills['mislead.phoenix']!.tags).toContain('Invisible');
@@ -516,48 +295,6 @@ describe('Phoenix skills', () => {
     const b = arena({ p0: [['mislead.phoenix']], p1: [['heal']] });
     b.setHp(B1, 50).use(A1, 'mislead.phoenix', B1).end().use(B1, 'heal', B1).end();
     expect(b.hp(B1)).toBe(75);
-  });
-
-  it('Blinding Plumage: 15 damage and a 1-turn Stun', () => {
-    const a = arena({ p0: [['stun.phoenix']], p1: [['shot']] });
-    a.use(A1, 'stun.phoenix', B1).end();
-    expect([a.hp(B1), a.reject(() => a.use(B1, 'shot', A1))]).toEqual([85, 'cannot_act']);
-    a.pass(2);
-    a.use(B1, 'shot', A1);
-  });
-
-  it('Blinding Plumage (simplified): on a Condemned target, the Stun lasts 3 turns', () => {
-    const a = arena({ p0: [['stun.phoenix']], p1: [['shot']] });
-    a.give(B1, 'condemned', { source: A1 });
-    a.use(A1, 'stun.phoenix', B1).end().pass(4);
-    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // turn 6
-    a.pass(2);
-    a.use(B1, 'shot', A1); // turn 8
-  });
-
-  it('Dance of Embers: 1 Might, 2 Swiftness and 1 Focus for 4 turns', () => {
-    const a = arena({ p0: [['dance.phoenix']], p1: [['shot']] });
-    a.use(A1, 'dance.phoenix').end();
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.stacks(A1, 'focus')]).toEqual([1, 2, 1]);
-    a.pass(8);
-    expect([a.stacks(A1, 'might'), a.stacks(A1, 'swiftness'), a.stacks(A1, 'focus')]).toEqual([0, 0, 0]);
-  });
-
-  it('Dance of Embers: a Kindle on an enemy heals the weakest ally for half its damage', () => {
-    const a = arena({ p0: [['dance.phoenix', 'strike.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
-    a.give(B1, 'armor'); // cancels the Dance's Might: the Talon deals 20
-    a.use(A1, 'dance.phoenix').end().pass(1);
-    a.setHp(A2, 30);
-    a.use(A1, 'strike.phoenix', B1).end();
-    expect(a.hp(A2)).toBe(40);
-  });
-
-  it('Dance of Embers: a Kindle on an ally heals no one else', () => {
-    const a = arena({ p0: [['dance.phoenix', 'strike.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
-    a.use(A1, 'dance.phoenix').end().pass(1);
-    a.setHp(A2, 30).setHp(A3, 90);
-    a.use(A1, 'strike.phoenix', A3).end();
-    expect(a.hp(A2)).toBe(30);
   });
 
   it('Sacrificial Flame: the user burns 30 HP; the target ally heals twice that', () => {
@@ -596,48 +333,6 @@ describe('Phoenix skills', () => {
     expect(a.hp(A2)).toBe(25);
   });
 
-  it('Cinders of Doubt: Confused for 2 turns and Condemned', () => {
-    const a = arena({ p0: [['curse.phoenix']], p1: [['shot']] });
-    a.use(A1, 'curse.phoenix', B1).end();
-    expect([a.has(B1, 'confusion'), a.has(B1, 'condemned')]).toEqual([true, true]);
-  });
-
-  it('Cinders of Doubt: for 2 turns, each Weakness, Vulnerable or Confusion the target gains lasts 1 turn longer', () => {
-    const a = arena({ p0: [['curse.phoenix'], ['curse']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'curse.phoenix', B1).use(A2, 'curse', B1).end();
-    const b = arena({ p0: [['shot'], ['curse']], p1: [['shot'], ['shot']] });
-    b.use(A2, 'curse', B1).end();
-    const plain = b.effects(B1).find((e) => e.defId === 'confusion')!.duration!;
-    const longer = a.effects(B1).filter((e) => e.defId === 'confusion' && e.sourceSkill === 'curse').map((e) => e.duration!);
-    expect(longer).toEqual([plain + 2]);
-  });
-
-  it('Cinders of Doubt: other Debuffs (a Stun) are not lengthened, and other enemies are unaffected', () => {
-    const a = arena({ p0: [['curse.phoenix'], ['stun'], ['curse']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'curse.phoenix', B1).use(A2, 'stun', B1).use(A3, 'curse', B2).end();
-    const b = arena({ p0: [['shot'], ['stun'], ['curse']], p1: [['shot'], ['shot']] });
-    b.use(A2, 'stun', B1).use(A3, 'curse', B2).end();
-    expect(duration(a, B1, 'stun_ns') ?? duration(a, B1, 'stun')).toBe(duration(b, B1, 'stun_ns') ?? duration(b, B1, 'stun'));
-    expect(duration(a, B2, 'confusion')).toBe(duration(b, B2, 'confusion'));
-  });
-
-  it('Sanctified Pyre: 20 damage and Sanctify for 2 turns', () => {
-    const a = arena({ p0: [['smite.phoenix'], ['shot']], p1: [['shot']] });
-    a.setHp(A2, 50).use(A1, 'smite.phoenix', B1).use(A2, 'shot', B1).end();
-    expect([a.hp(B1), a.hp(A2)]).toEqual([65, 65]);
-    a.pass(2);
-    expect(a.has(B1, 'sanctify')).toBe(true);
-    a.pass(1);
-    expect(a.has(B1, 'sanctify')).toBe(false);
-  });
-
-  it('Sanctified Pyre: each time the Sanctify heals someone, the target\'s Ignite burns once', () => {
-    const a = arena({ p0: [['smite.phoenix'], ['shot']], p1: [['shot']] });
-    a.give(B1, 'ignite', { source: B1 }); // ticks only on the enemy's turn
-    a.setHp(A2, 50).use(A1, 'smite.phoenix', B1).use(A2, 'shot', B1).end();
-    expect(a.hp(B1)).toBe(100 - 20 - 15 - 5);
-  });
-
   it('Second Dawn: fallen allies return with 20 HP and no effects, then all allies heal 15', () => {
     const a = arena({ p0: [['prayer.phoenix'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
     a.setHp(A2, 10).give(A2, 'might');
@@ -648,37 +343,6 @@ describe('Phoenix skills', () => {
     a.setHp(A1, 50).use(A1, 'prayer.phoenix').end();
     expect([a.unit(A2).alive, a.hp(A2), a.has(A2, 'might'), a.hp(A1)]).toEqual([true, 35, false, 65]);
     expect(a.unit(B2).alive).toBe(false); // enemies stay down
-  });
-
-  it('Fanned Flames: 25 and 15; each one\'s Ignite burns once now, and the user heals as much', () => {
-    const a = arena({ p0: [['cleave.phoenix']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 50).give(B1, 'ignite', { source: B1 });
-    a.use(A1, 'cleave.phoenix', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([70, 85, 55]);
-  });
-
-  it('Fanned Flames: no Ignites, no burns and no healing', () => {
-    const a = arena({ p0: [['cleave.phoenix']], p1: [['shot'], ['shot']] });
-    a.setHp(A1, 50).use(A1, 'cleave.phoenix', B1).end();
-    expect([a.hp(B1), a.hp(B2), a.hp(A1)]).toEqual([75, 85, 50]);
-  });
-
-  it('Phoenix Cry: all enemies are Intimidated for 2 turns', () => {
-    const a = arena({ p0: [['shout.phoenix']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'shout.phoenix').end();
-    expect([a.has(B1, 'intimidated'), a.has(B2, 'intimidated')]).toEqual([true, true]);
-    a.pass(3);
-    expect(a.has(B1, 'intimidated')).toBe(false);
-  });
-
-  it('Phoenix Cry: only allies who have risen this battle (or are in Ashes) gain 1 Might and 1 Swiftness for 2 turns', () => {
-    const a = arena({ p0: [['shout.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
-    ashesOnTurn2(a); // A2 rose at the start of turn 3
-    a.use(A1, 'shout.phoenix').end();
-    expect([a.stacks(A2, 'might'), a.stacks(A2, 'swiftness')]).toEqual([1, 1]);
-    expect([a.stacks(A1, 'might'), a.stacks(A3, 'might')]).toEqual([0, 0]);
-    a.pass(4);
-    expect([a.stacks(A2, 'might'), a.stacks(A2, 'swiftness')]).toEqual([0, 0]);
   });
 
   it('Cocoon of Flame: 40 Shield, and the user can\'t act on their next turn', () => {
@@ -700,38 +364,454 @@ describe('Phoenix skills', () => {
     expect([a.hp(A1), a.hp(A2)]).toEqual([75, 75]);
   });
 
-  it('Blazing Challenge: Taunts for 2 turns; each hit from the Taunted enemy makes the user\'s next skill 1 cheaper', () => {
-    const a = arena({ p0: [['taunt.phoenix', 'shot.phoenix']], p1: [['shot'], ['shot']] });
-    a.use(A1, 'taunt.phoenix', B1).end();
-    expect(a.has(B1, 'taunt')).toBe(true);
+});
+
+describe('Phoenix skills: evolutions', () => {
+  it('Firebrand Talon: on an enemy, 10 damage, then 10 Affliction each time they use a skill, for 2 turns', () => {
+    const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
+    a.use(A1, 'strike.phoenix', B1).end();
+    expect([a.hp(B1), a.has(B1, 'firebrand'), a.has(B1, 'ignite')]).toEqual([90, true, false]);
+    a.use(B1, 'shot', A1).end(); // turn 2
+    expect(a.hp(B1)).toBe(80);
+    a.pass(1).use(B1, 'shot', A1).end(); // turn 4
+    expect(a.hp(B1)).toBe(70);
+    a.pass(1).use(B1, 'shot', A1).end(); // turn 6: the brand is gone
+    expect([a.hp(B1), a.has(B1, 'firebrand')]).toEqual([70, false]);
+  });
+
+  it('Firebrand Talon: on an ally, 10 healing, then 10 more each time they use a skill, for 2 turns', () => {
+    const a = arena({ p0: [['strike.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 40).setHp(A3, 40).use(A1, 'strike.phoenix', A3).end();
+    expect([a.hp(A3), a.has(A3, 'firebrand_mend')]).toEqual([50, true]); // A3 didn't act: just the 10
+    a.pass(1).use(A1, 'strike.phoenix', A2).use(A2, 'shot', B1).end(); // turn 3: 10, then 10 for A2's Shot
+    expect(a.hp(A2)).toBe(60);
+    a.pass(1).use(A2, 'shot', B1).end(); // turn 5
+    expect(a.hp(A2)).toBe(70);
+    a.pass(1).use(A2, 'shot', B1).end(); // turn 7: over
+    expect([a.hp(A2), a.has(A2, 'firebrand_mend')]).toEqual([70, false]);
+  });
+
+  it('Firebrand Talon: a second brand refreshes the first instead of doubling it', () => {
+    const a = arena({ p0: [['strike.phoenix']], p1: [['shot']] });
+    a.use(A1, 'strike.phoenix', B1).end().pass(1).use(A1, 'strike.phoenix', B1).end();
+    expect(a.hp(B1)).toBe(80);
     a.use(B1, 'shot', A1).end();
-    a.use(A1, 'shot.phoenix', B1);
-    expect(queuedR(a)).toBe(0);
+    expect(a.hp(B1)).toBe(70);
   });
 
-  it('Blazing Challenge: hits from other enemies don\'t count', () => {
-    const a = arena({ p0: [['taunt.phoenix', 'shot.phoenix']], p1: [['heal'], ['shot']] });
-    a.use(A1, 'taunt.phoenix', B1).end();
-    a.use(B2, 'shot', A1).end();
-    a.use(A1, 'shot.phoenix', B1);
-    expect(queuedR(a)).toBe(1);
+  it('Pyre Plunge: the user burns 40 of their own HP; the target takes that much, and each of their allies half', () => {
+    const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'smash.phoenix', B1).end();
+    expect([a.hp(A1), a.hp(B1), a.hp(B2), a.hp(B3), a.hp(A2)]).toEqual([60, 60, 80, 80, 100]);
   });
 
-  it('Undying Phoenix: 2 Armor, Immune and Rebirth for 3 turns', () => {
-    const a = arena({ p0: [['titan.phoenix']], p1: [['strike']] });
-    a.use(A1, 'titan.phoenix').end();
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), a.has(A1, 'rebirth')]).toEqual([2, true, true]);
+  it('Pyre Plunge: never below 1: at 31 HP the user burns 30, for 30 and 15', () => {
+    const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 31).use(A1, 'smash.phoenix', B1).end();
+    expect([a.hp(A1), a.unit(A1).alive, a.hp(B1), a.hp(B2)]).toEqual([1, true, 70, 85]);
+  });
+
+  it('Pyre Plunge: at 1 HP nothing burns and nothing is dealt, but the user still gains Rebirth', () => {
+    const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 1).use(A1, 'smash.phoenix', B1).end();
+    expect([a.hp(A1), a.hp(B1), a.hp(B2), a.has(A1, 'rebirth')]).toEqual([1, 100, 100, true]);
+  });
+
+  it('Pyre Plunge: the user rises from it with Rebirth: a lethal hit on the enemy’s turn sends them to Ashes, and they rise with 25', () => {
+    const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 41).use(A1, 'smash.phoenix', B1).end();
+    expect([a.hp(A1), a.hp(B1), a.has(A1, 'rebirth')]).toEqual([1, 60, true]);
+    a.use(B1, 'shot', A1).end();
+    expect([a.unit(A1).alive, a.has(A1, 'ashes'), a.has(A1, 'rebirth')]).toEqual([true, false, false]);
+    expect(a.hp(A1)).toBe(25);
+  });
+
+  it('Pyre Plunge: the Rebirth lasts 1 turn', () => {
+    const a = arena({ p0: [['smash.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'smash.phoenix', B1).end();
+    expect(a.has(A1, 'rebirth')).toBe(true);
+    a.pass(1);
+    expect(a.has(A1, 'rebirth')).toBe(false);
+  });
+
+  it('Rising Dive: 15 damage to an enemy, or 15 healing to an ally (no Ignite, no Renew)', () => {
+    const a = arena({ p0: [['charge.phoenix'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'charge.phoenix', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([85, false]);
+    const b = arena({ p0: [['charge.phoenix'], ['shot']], p1: [['shot']] });
+    b.setHp(A2, 50).use(A1, 'charge.phoenix', A2).end();
+    expect([b.hp(A2), b.has(A2, 'renew')]).toEqual([65, false]);
+  });
+
+  it('Rising Dive: the user has Rebirth until their next skill; a lethal hit sends them to Ashes and spends it', () => {
+    const a = arena({ p0: [['charge.phoenix', 'shot']], p1: [['strike'], ['shot']] });
+    a.setHp(A1, 15).use(A1, 'charge.phoenix', B1).end();
+    expect(a.has(A1, 'rising_dive')).toBe(true);
     a.use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(90);
+    expect([a.unit(A1).alive, a.hp(A1), a.has(A1, 'rising_dive')]).toEqual([true, 25, false]); // rose at the start of turn 3
+    a.use(A1, 'shot', B2).end();
+    expect(a.hp(B2)).toBe(85); // spent: no bonus
   });
 
-  it('Undying Phoenix: rising from Ashes gives 40 HP instead of 25, and the Titan starts over', () => {
+  it("Rising Dive: unspent, the user's next skill to land deals 15 more to its enemy target — that one skill only", () => {
+    const a = arena({ p0: [['charge.phoenix', 'shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'charge.phoenix', B1).end().pass(1);
+    a.use(A1, 'shot', B2).end().pass(1);
+    expect([a.hp(B2), a.has(A1, 'rising_dive')]).toEqual([70, false]);
+    a.use(A1, 'shot', B3).end();
+    expect(a.hp(B3)).toBe(85);
+  });
+
+  it('Rising Dive: if that next skill targets an ally, they heal 15 more', () => {
+    const a = arena({ p0: [['charge.phoenix', 'heal'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'charge.phoenix', B1).end().pass(1);
+    a.setHp(A2, 40).use(A1, 'heal', A2).end();
+    expect(a.hp(A2)).toBe(40 + 25 + 15);
+  });
+
+  it('Rising Dive: a countered skill spends nothing; after 2 turns, the Rebirth and bonus lapse', () => {
+    const a = arena({ p0: [['charge.phoenix', 'shot']], p1: [['riposte'], ['shot']] });
+    a.use(A1, 'charge.phoenix', B2).end();
+    a.use(B1, 'riposte').end();
+    a.use(A1, 'shot', B1).end(); // turn 3: countered
+    expect([a.hp(B1), a.has(A1, 'rising_dive')]).toEqual([100, true]);
+    a.end().use(A1, 'shot', B1).end(); // turn 5
+    expect([a.hp(B1), a.has(A1, 'rising_dive')]).toEqual([85, false]);
+  });
+
+  it('Pyreheart Fury: for 3 turns, each enemy the user hits directly is Ignited (no Might, no Immune)', () => {
+    const a = arena({ p0: [['rage.phoenix', 'shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'rage.phoenix').end();
+    expect([a.has(A1, 'pyreheart_fury'), a.stacks(A1, 'might'), a.has(A1, 'immune')]).toEqual([true, 0, false]);
+    a.pass(1).use(A1, 'shot', B1).end(); // turn 3: nobody was Ignited yet, a plain 15
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([100 - 15 - 5, true]);
+    a.pass(1).use(A1, 'shot', B2).end(); // turn 5: 1 Ignited enemy
+    expect([a.hp(B2), a.has(B2, 'ignite')]).toEqual([100 - 20 - 5, true]);
+  });
+
+  it('Pyreheart Fury: 5 more direct damage per Ignited enemy, whoever lit them; over after 3 turns', () => {
+    const a = arena({ p0: [['rage.phoenix', 'shot']], p1: [['shot'], ['shot'], ['shot']] });
+    a.use(A1, 'rage.phoenix').end().pass(1);
+    a.give(B1, 'ignite', { source: A1 }).give(B2, 'ignite', { source: A1 });
+    a.use(A1, 'shot', B3).end();
+    expect(a.hp(B3)).toBe(100 - 25 - 5); // 15 + 2 × 5, then its new Ignite burns
+    a.pass(3); // turn 7
+    expect(a.has(A1, 'pyreheart_fury')).toBe(false);
+    const b1 = a.hp(B1);
+    a.use(A1, 'shot', B1).end();
+    expect(b1 - a.hp(B1)).toBe(15 + 5); // a plain Shot, then B1's Ignite burns
+  });
+
+  it("Ember Shot: 10 damage; the next direct hit from the user's side deals 10 more and Ignites them, once", () => {
+    const a = arena({ p0: [['shot.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'shot.phoenix', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    // 10, then 15 + 10, then a plain 15; the Ignite burns 5 at the end of the turn.
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([100 - 10 - 25 - 15 - 5, true]);
+  });
+
+  it('Ember Shot: the ember lasts 1 turn', () => {
+    const a = arena({ p0: [['shot.phoenix'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'shot.phoenix', B1).end().pass(1);
+    a.use(A2, 'shot', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([75, false]);
+  });
+
+  it('Sunfall Lance: on the following turn, 35 to target enemy and 15 to each of their allies', () => {
+    const a = arena({ p0: [['snipe.phoenix']], p1: [['shot'], ['shot'], ['shot']] });
+    const s = content.skills['snipe.phoenix']!;
+    expect(s.target).toBe('enemy');
+    expect(s.tags).toEqual(expect.arrayContaining(['Harmful', 'Channeled', 'HiddenTarget']));
+    a.use(A1, 'snipe.phoenix', B1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
+    a.end(); // it falls at the end of the following turn
+    expect([a.hp(B1), a.hp(B2), a.hp(B3)]).toEqual([65, 85, 85]);
+  });
+
+  it('Sunfall Lance: Channeled — a Stun before it falls stops it', () => {
+    const a = arena({ p0: [['snipe.phoenix']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'snipe.phoenix', B2).end().use(B1, 'stun', A1).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([100, 100]);
+  });
+
+  it('Banked Embers: no enemy or ally can target the user, and they lose no HP (Affliction included)', () => {
+    const a = arena({ p0: [['maneuver.phoenix'], ['heal']], p1: [['shot'], ['blast']] });
+    a.setHp(A1, 60).give(A1, 'ignite', { source: B1 });
+    a.use(A1, 'maneuver.phoenix').use(A2, 'heal', A1).end();
+    expect([a.hp(A1), a.has(A1, 'banked_embers')]).toEqual([60, true]); // the ally's heal queued behind it fails
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('bad_target');
+    a.use(B2, 'blast').end();
+    expect(a.hp(A2)).toBeLessThan(100);
+    expect([a.hp(A1), a.has(A1, 'banked_embers')]).toEqual([60, false]); // out at the start of turn 3
+  });
+
+  it('Banked Embers: they come out with the HP they had (no rise to 25, not Ashes)', () => {
+    const a = arena({ p0: [['maneuver.phoenix']], p1: [['shot']] });
+    a.setHp(A1, 10).use(A1, 'maneuver.phoenix');
+    expect(a.has(A1, 'ashes')).toBe(false);
+    a.end().end();
+    expect([a.hp(A1), a.has(A1, 'banked_embers')]).toEqual([10, false]);
+  });
+
+  it('Draw the Flame: 10 damage; if the target still has more HP, the user heals half the difference', () => {
+    const a = arena({ p0: [['consume.phoenix']], p1: [['shot']] });
+    a.setHp(A1, 40).use(A1, 'consume.phoenix', B1).end();
+    expect([a.hp(B1), a.hp(A1)]).toEqual([90, 65]); // (90 − 40) ÷ 2
+    const b = arena({ p0: [['consume.phoenix']], p1: [['shot']] });
+    b.setHp(A1, 59).use(A1, 'consume.phoenix', B1).end();
+    expect(b.hp(A1)).toBe(74); // 31 ÷ 2, rounded down
+  });
+
+  it('Draw the Flame: at most 25; nothing if the user has as much HP or more', () => {
+    const a = arena({ p0: [['consume.phoenix']], p1: [['shot']] });
+    a.setHp(A1, 10).use(A1, 'consume.phoenix', B1).end();
+    expect(a.hp(A1)).toBe(35);
+    const b = arena({ p0: [['consume.phoenix']], p1: [['shot']] });
+    b.setHp(B1, 60).setHp(A1, 50).use(A1, 'consume.phoenix', B1).end();
+    expect([b.hp(B1), b.hp(A1)]).toEqual([50, 50]);
+  });
+
+  it("Eternal Pyre: at the end of each of the user's turns, all enemies burn for 5, then 10, then 15", () => {
+    const a = arena({ p0: [['channel.phoenix']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'channel.phoenix').end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([95, 95]);
+    a.pass(2);
+    expect(a.hp(B2)).toBe(85);
+    a.pass(2);
+    expect(a.hp(B2)).toBe(70);
+    a.pass(2);
+    expect([a.hp(B2), a.has(A1, 'eternal_pyre')]).toEqual([70, false]);
+  });
+
+  it("Eternal Pyre: Channeled — a Stun or the user's next skill puts it out, growth and all", () => {
+    const a = arena({ p0: [['channel.phoenix']], p1: [['stun'], ['shot']] });
+    a.use(A1, 'channel.phoenix').end().use(B1, 'stun', A1).end();
+    a.pass(4);
+    expect(a.hp(B2)).toBe(95);
+    const b = arena({ p0: [['channel.phoenix', 'shot']], p1: [['shot'], ['shot']] });
+    b.use(A1, 'channel.phoenix').end().pass(1).use(A1, 'shot', B1).end().pass(3);
+    expect(b.hp(B2)).toBe(95);
+  });
+
+  it("Cautery Needle: on an enemy, 15 damage, and they can't be healed until the end of their next turn", () => {
+    const a = arena({ p0: [['stab.phoenix']], p1: [['shot'], ['heal'], ['heal']] });
+    a.setHp(B1, 50).use(A1, 'stab.phoenix', B1).end();
+    expect(a.hp(B1)).toBe(35);
+    a.use(B2, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(35);
+    a.pass(1).use(B3, 'heal', B1).end();
+    expect(a.hp(B1)).toBe(60);
+  });
+
+  it('Cautery Needle: on an ally, up to 2 Debuffs burn away, and they lose 10 HP for each (Buffs stay)', () => {
+    const a = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
+    a.give(A2, 'weakness', { source: B1, stacks: 2 }).give(A2, 'vulnerable', { source: B1 }).give(A2, 'might');
+    a.use(A1, 'stab.phoenix', A2).end();
+    expect([a.hp(A2), a.has(A2, 'weakness'), a.has(A2, 'vulnerable'), a.has(A2, 'might')]).toEqual([80, false, false, true]);
+  });
+
+  it('Cautery Needle: no more than 2 Debuffs a use; with none, it costs nothing', () => {
+    const a = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
+    a.give(A2, 'weakness', { source: B1 }).give(A2, 'vulnerable', { source: B1 }).give(A2, 'confusion', { source: B1 });
+    a.use(A1, 'stab.phoenix', A2).end();
+    const left = a.effects(A2).filter((e) => ['weakness', 'vulnerable', 'confusion'].includes(e.defId)).length;
+    expect([a.hp(A2), left]).toEqual([80, 1]);
+    const b = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
+    b.setHp(A2, 50).use(A1, 'stab.phoenix', A2).end();
+    expect(b.hp(A2)).toBe(50);
+  });
+
+  it('Cautery Needle: the ally never drops below 1 HP', () => {
+    const a = arena({ p0: [['stab.phoenix'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 5).give(A2, 'weakness', { source: B1 }).use(A1, 'stab.phoenix', A2).end();
+    expect([a.unit(A2).alive, a.hp(A2), a.has(A2, 'weakness')]).toEqual([true, 1, false]);
+  });
+
+  it('Pyre Talon: 20 Piercing at full HP; 5 more for every 10 HP the user is missing', () => {
+    const a = arena({ p0: [['ravage.phoenix']], p1: [['shot']] });
+    a.give(B1, 'armor', { stacks: 3 }).use(A1, 'ravage.phoenix', B1).end();
+    expect(a.hp(B1)).toBe(80);
+    const b = arena({ p0: [['ravage.phoenix']], p1: [['shot']] });
+    b.setHp(A1, 55).use(A1, 'ravage.phoenix', B1).end();
+    expect(b.hp(B1)).toBe(100 - 20 - 20); // 45 missing: 4 × 5
+  });
+
+  it('Pyre Talon: at most 30 more', () => {
+    const a = arena({ p0: [['ravage.phoenix']], p1: [['shot']] });
+    a.setHp(A1, 5).use(A1, 'ravage.phoenix', B1).end();
+    expect(a.hp(B1)).toBe(50);
+  });
+
+  it('Cinder Shroud: 15 damage and Stunned for 2 turns', () => {
+    const a = arena({ p0: [['stun.phoenix']], p1: [['shot']] });
+    a.use(A1, 'stun.phoenix', B1).end();
+    expect([a.hp(B1), a.reject(() => a.use(B1, 'shot', A1))]).toEqual([85, 'cannot_act']);
+    a.pass(2);
+    expect(a.reject(() => a.use(B1, 'shot', A1))).toBe('cannot_act'); // turn 4
+    a.pass(2);
+    a.use(B1, 'shot', A1); // turn 6
+  });
+
+  it("Cinder Shroud: while they're Stunned, they can't lose HP (Affliction included)", () => {
+    const a = arena({ p0: [['stun.phoenix'], ['shot'], ['strike.fire']], p1: [['shot']] });
+    a.use(A1, 'stun.phoenix', B1).use(A2, 'shot', B1).use(A3, 'strike.fire', B1).end();
+    expect([a.hp(B1), a.has(B1, 'ignite')]).toEqual([85, true]);
+  });
+
+  it("Cinder Shroud: if the Stun doesn't take (Swiftness), the cinders don't protect them", () => {
+    const a = arena({ p0: [['stun.phoenix'], ['shot']], p1: [['shot']] });
+    a.give(B1, 'swiftness').use(A1, 'stun.phoenix', B1).use(A2, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(70);
+  });
+
+  it('Dance of Embers: 2 Swiftness for 4 turns', () => {
+    const a = arena({ p0: [['dance.phoenix']], p1: [['shot']] });
+    a.use(A1, 'dance.phoenix').end();
+    expect(a.stacks(A1, 'swiftness')).toBe(2);
+    a.pass(8);
+    expect(a.stacks(A1, 'swiftness')).toBe(0);
+  });
+
+  it('Dance of Embers: each skill used leaves an ember; when the dance ends, each burns every enemy for 10 and heals every ally 5', () => {
+    const a = arena({ p0: [['dance.phoenix', 'shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'dance.phoenix').end().pass(1);
+    a.use(A1, 'shot', B1).end().pass(1); // ember 1 (turn 3)
+    a.use(A1, 'shot', B1).end().pass(1); // ember 2 (turn 5)
+    a.setHp(A2, 50);
+    const b2 = a.hp(B2);
+    a.use(A1, 'shot', B1).end(); // ember 3 (turn 7)
+    expect(a.hp(B2)).toBe(b2);
+    a.end(); // the dance ends with turn 8
+    expect([b2 - a.hp(B2), a.hp(A2)]).toEqual([30, 65]);
+  });
+
+  it('Dance of Embers: no skills used, no embers', () => {
+    const a = arena({ p0: [['dance.phoenix']], p1: [['shot']] });
+    a.use(A1, 'dance.phoenix').end().pass(8);
+    expect(a.hp(B1)).toBe(100);
+  });
+
+  it("Cinders of Doubt: Ignites the target; at the end of the user's turn, they gain 1 Weakness or 1 Vulnerable, or 1 Confusion", () => {
+    const a = arena({ p0: [['curse.phoenix']], p1: [['shot']] });
+    a.use(A1, 'curse.phoenix', B1).end();
+    const doubts = ['weakness', 'vulnerable', 'confusion'].filter((k) => a.has(B1, k));
+    expect([a.has(B1, 'ignite'), a.hp(B1), doubts.length]).toEqual([true, 95, 1]);
+    expect(a.has(B1, 'condemned')).toBe(false);
+  });
+
+  it("Cinders of Doubt: a fresh doubt at the end of each of the user's turns for 3 turns; Weakness and Vulnerable last 1 turn", () => {
+    const a = arena({ p0: [['curse.phoenix']], p1: [['shot']] });
+    const doubts = () => ['weakness', 'vulnerable', 'confusion'].filter((k) => a.has(B1, k)).length;
+    a.use(A1, 'curse.phoenix', B1).end();
+    const seen = [doubts()];
+    for (let i = 0; i < 3; i++) {
+      a.use(B1, 'shot', A1).end(); // their skill spends a Confusion; a Weakness or Vulnerable runs out
+      seen.push(doubts());
+      a.end();
+      seen.push(doubts());
+    }
+    expect(seen).toEqual([1, 0, 1, 0, 1, 0, 0]);
+  });
+
+  it('Cinders of Doubt: no Ignite, no doubt', () => {
+    const a = arena({ p0: [['curse.phoenix']], p1: [['shot']] });
+    a.use(A1, 'curse.phoenix', B1).end();
+    a.state.effects = a.state.effects.filter((e) => !(e.bearer === B1 && e.defId === 'ignite')); // put out on turn 2
+    a.use(B1, 'shot', A1).end().end(); // turn 3 ends
+    expect([a.has(B1, 'cinders_of_doubt'), ['weakness', 'vulnerable', 'confusion'].filter((k) => a.has(B1, k))]).toEqual([true, []]);
+  });
+
+  it('Sanctified Pyre: 20 damage; the pyre counts as Sanctify but heals no attacker', () => {
+    const a = arena({ p0: [['smite.phoenix'], ['stab.holy']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'smite.phoenix', B1).use(A2, 'stab.holy', B1).end();
+    expect([a.hp(B1), a.hp(A2)]).toEqual([100 - 20 - 20, 50]); // Piercing Light sees a Sanctified target
+  });
+
+  it('Sanctified Pyre: when it ends, they burn for 15 Affliction per direct hit taken meanwhile', () => {
+    const a = arena({ p0: [['smite.phoenix'], ['shot'], ['shot']], p1: [['shot']] });
+    a.use(A1, 'smite.phoenix', B1).use(A2, 'shot', B1).use(A3, 'shot', B1).end();
+    expect(a.hp(B1)).toBe(50);
+    a.end(); // it ends with the enemy's turn
+    expect([a.hp(B1), a.has(B1, 'sanctified_pyre')]).toEqual([50 - 30, false]);
+    const b = arena({ p0: [['smite.phoenix']], p1: [['shot']] });
+    b.use(A1, 'smite.phoenix', B1).end().end();
+    expect(b.hp(B1)).toBe(80); // no hits, no burn
+  });
+
+  it('Fanned Flames: 20 to the target and 15 to a random other enemy', () => {
+    const a = arena({ p0: [['cleave.phoenix']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.phoenix', B1).end();
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'ignite')]).toEqual([80, 85, false]);
+  });
+
+  it('Fanned Flames: for 1 turn, each direct hit on either of them burns the other for 5', () => {
+    const a = arena({ p0: [['cleave.phoenix'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'cleave.phoenix', B1).use(A2, 'shot', B1).use(A3, 'shot', B2).end();
+    expect([a.hp(B1), a.hp(B2)]).toEqual([60, 65]); // B1: 20 + 15 + 5; B2: 15 + 5 + 15
+    a.pass(1).use(A2, 'shot', B2).end(); // turn 3: the flames have died down
+    expect([a.hp(B1), a.hp(B2), a.has(B1, 'fanned_flames')]).toEqual([60, 50, false]);
+  });
+
+  it('Phoenix Cry: for 2 turns, an enemy who hits an ally of the user is Ignited, and the ally hit gains 1 Renew', () => {
+    const a = arena({ p0: [['shout.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.phoenix').end();
+    a.use(B1, 'shot', A2).end();
+    expect([a.has(B1, 'ignite'), a.has(B2, 'ignite'), a.stacks(A2, 'renew'), a.hp(A2)]).toEqual([true, false, 1, 85]);
+    a.end(); // the Renew is the user's: it heals at the end of their turn
+    expect(a.hp(A2)).toBe(90);
+  });
+
+  it('Phoenix Cry: after 2 turns, hits are free again', () => {
+    const a = arena({ p0: [['shout.phoenix'], ['shot']], p1: [['shot'], ['shot']] });
+    a.use(A1, 'shout.phoenix').end().pass(4);
+    a.use(B1, 'shot', A2).end();
+    expect([a.has(B1, 'ignite'), a.has(A2, 'renew')]).toEqual([false, false]);
+  });
+
+  it("Blazing Challenge: Taunted for 1 turn; each hit from them on the user heals the user's other allies 10", () => {
+    const a = arena({ p0: [['taunt.phoenix'], ['shot'], ['shot']], p1: [['shot'], ['shot']] });
+    a.setHp(A1, 50).setHp(A2, 50).setHp(A3, 50).use(A1, 'taunt.phoenix', B1).end();
+    expect(a.has(B1, 'taunt')).toBe(true);
+    a.use(B1, 'shot', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.hp(A2), a.hp(A3)]).toEqual([20, 60, 60]); // B2's hit doesn't count
+    expect(a.has(B1, 'taunt')).toBe(false);
+  });
+
+  it('Blazing Challenge: once the Taunt is over, hits heal no one', () => {
+    const a = arena({ p0: [['taunt.phoenix'], ['shot']], p1: [['shot']] });
+    a.setHp(A2, 50).use(A1, 'taunt.phoenix', B1).end().pass(2);
+    a.use(B1, 'shot', A1).end();
+    expect(a.hp(A2)).toBe(50);
+  });
+
+  it('Undying Phoenix: Immune for 3 turns', () => {
+    const a = arena({ p0: [['titan.phoenix']], p1: [['curse']] });
+    a.use(A1, 'titan.phoenix').end().use(B1, 'curse', A1).end();
+    expect([a.has(A1, 'immune'), a.has(A1, 'confusion')]).toEqual([true, false]);
+    a.pass(4);
+    expect(a.has(A1, 'immune')).toBe(false);
+  });
+
+  it('Undying Phoenix: each direct hit gives the user 1 Renew per 10 damage', () => {
+    const a = arena({ p0: [['titan.phoenix']], p1: [['strike'], ['shot']] });
+    a.use(A1, 'titan.phoenix').end();
+    a.use(B1, 'strike', A1).use(B2, 'shot', A1).end();
+    expect([a.hp(A1), a.stacks(A1, 'renew')]).toEqual([65, 3]); // 20 → 2 Renew, 15 → 1
+    a.end(); // the user's Renew heals at the end of their turn: 10 + 5
+    expect(a.hp(A1)).toBe(80);
+  });
+
+  it('Undying Phoenix: never more than 3 Renew at a time', () => {
+    const a = arena({ p0: [['titan.phoenix']], p1: [['strike'], ['strike'], ['smash']] });
+    a.use(A1, 'titan.phoenix').end();
+    a.use(B1, 'strike', A1).use(B2, 'strike', A1).use(B3, 'smash', A1).end();
+    expect(a.stacks(A1, 'renew')).toBe(3); // 2, then 1 of the next 2, then none
+  });
+
+  it('Undying Phoenix: after 3 turns, hits give nothing', () => {
     const a = arena({ p0: [['titan.phoenix']], p1: [['strike']] });
-    a.use(A1, 'titan.phoenix').end().pass(2);
-    a.setHp(A1, 5).use(B1, 'strike', A1).end();
-    expect(a.hp(A1)).toBe(40);
-    a.pass(4); // the first 3 turns would be over
-    expect([a.stacks(A1, 'armor'), a.has(A1, 'immune'), a.has(A1, 'rebirth')]).toEqual([2, true, true]);
+    a.use(A1, 'titan.phoenix').end().pass(6);
+    a.use(B1, 'strike', A1).end();
+    expect(a.has(A1, 'renew')).toBe(false);
   });
 });
 
