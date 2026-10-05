@@ -47,11 +47,20 @@ export function scanPortraits(dir: URL = PORTRAIT_DIR): PortraitScan {
   return { portraits, unrecognized };
 }
 
-/** The manifest the client loads from /assets/portraits/manifest.json. */
-export function portraitManifest(scan: PortraitScan = scanPortraits()): string {
+/** The size of the web copies the build makes (the largest portrait on screen is ~160 CSS px). */
+export const PORTRAIT_WEB_SIZE = 320;
+
+/** The web copy's file name: the original's, as WebP. */
+export const webFileName = (file: string) => file.replace(/\.(png|webp|jpe?g)$/i, '.webp');
+
+/**
+ * The manifest the client loads from /assets/portraits/manifest.json. `rename` maps each source file
+ * to the file served (the build serves WebP copies; development serves the originals).
+ */
+export function portraitManifest(scan: PortraitScan = scanPortraits(), rename: (file: string) => string = (f) => f): string {
   return JSON.stringify({
     _comment:
-      "Generated from character_images/ (apps/client/portraits.ts). Keys: '<class>.<element>'; files are '<element><class>prof.png'. Characters without a file keep the generated monogram portrait.",
-    portraits: scan.portraits,
+      "Generated from character_images/ (apps/client/portraits.ts). Keys: '<class>.<element>'; source files are '<element><class>prof.png'. Characters without a file keep the generated monogram portrait.",
+    portraits: Object.fromEntries(Object.entries(scan.portraits).map(([k, files]) => [k, files.map(rename)])),
   });
 }

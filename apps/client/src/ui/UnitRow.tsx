@@ -225,7 +225,10 @@ function Portrait({ unit, st, view, content }: { unit: Unit; st: UnitState; view
 
   const inner = (
     <>
-      <PortraitArt artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })} />
+      <PortraitArt
+        artKey={portraitKey({ kind: unit.kind, defId: unit.defId, classId: unit.defId, element: unit.element ?? 'None' })}
+        flip={!st.mine}
+      />
       <span className="mono">{unitCode(unit)}</span>
       <span className="tag">{unit.name}</span>
       {states && (

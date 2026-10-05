@@ -3438,6 +3438,11 @@ input[type="password"] {
   z-index: 0;
 }
 
+/* The opponent's portraits are mirrored so the two teams face each other (the art faces right). */
+.portrait-art.flipped {
+  transform: scaleX(-1);
+}
+
 .portrait:has(.portrait-art) .mono {
   visibility: hidden;
 }
