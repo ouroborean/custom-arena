@@ -332,7 +332,7 @@ export const lootBoxes = pgTable(
   (t) => [index('loot_boxes_user_idx').on(t.userId)],
 );
 
-/** Menu guides whose reward an account has been paid (economy `guideRewards`): once per guide. */
+/** Menu guides an account has finished, and so been paid for (economy `guideRewards`): once per guide. */
 export const guideRewards = pgTable(
   'guide_rewards',
   {

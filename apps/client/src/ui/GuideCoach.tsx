@@ -10,9 +10,9 @@ import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 
 /**
- * Claims the reward of every finished guide (economy `guideRewards`). The server pays each guide once
- * per account, so guides finished before rewards existed, or in another browser, are safe to claim
- * again; a fresh payout shows a notice and refreshes the experience bar's boxes.
+ * Reports each guide the player finishes to the server, which records it for the account and pays its
+ * reward (economy `guideRewards`) the first time; a payout shows a notice and refreshes the experience
+ * bar's boxes.
  */
 interface GuidePayout {
   guide: string;
@@ -21,21 +21,23 @@ interface GuidePayout {
 
 function useGuideRewards(): [GuidePayout | null, () => void] {
   const done = useGuide((s) => s.done);
+  const recorded = useGuide((s) => s.recorded);
   const claimed = useRef(new Set<string>());
   const [paid, setPaid] = useState<GuidePayout | null>(null);
   useEffect(() => {
     for (const id of done) {
-      if (claimed.current.has(id) || !content.economy.guideRewards?.[id]) continue;
+      if (recorded.includes(id) || claimed.current.has(id) || !content.economy.guideRewards?.[id]) continue;
       claimed.current.add(id);
       api.completeGuide(id).then(
         (r) => {
+          useGuide.getState().markRecorded(id);
           useMeta.setState({ progress: r.progress });
           if (r.reward?.boxes?.length) setPaid({ guide: guideById(id)?.name ?? id, boxes: r.reward.boxes });
         },
         () => claimed.current.delete(id),
       );
     }
-  }, [done]);
+  }, [done, recorded]);
   return [paid, () => setPaid(null)];
 }
 
