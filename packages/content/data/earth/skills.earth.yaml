@@ -528,7 +528,7 @@ taunt.earth:
   archetype: Taunt
   element: Earth
   name: Ancient Grudge
-  description: Permanently Taunts one enemy. Only one enemy can hold the grudge at a time.
+  description: Permanently Taunts target enemy. Only one enemy can have Ancient Grudge at a time.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]

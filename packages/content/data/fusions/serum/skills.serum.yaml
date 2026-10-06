@@ -19,8 +19,8 @@ smash.serum:
   element: Serum
   name: Liquid Courage
   description: >-
-    The user downs a vial and gains 1 Dose, then deals 20 damage to target enemy and 10 to their allies,
-    5 more to each per Dose the user has.
+    The user gains 1 Dose, then deals 20 damage to target enemy and 10 to their allies, 5 more to each per
+    Dose the user has.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -89,7 +89,7 @@ rage.serum:
   name: Stimulant Binge
   description: >-
     For 3 turns, the user gains Immune and 1 Might at the start of each of their turns (max 3). If they
-    use no damaging skill on a turn, it ends and they take 20 Affliction damage.
+    deal no direct damage on a turn, it ends and they take 20 Affliction damage.
   cost: S
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -104,7 +104,9 @@ rage.serum:
         name: Stimulant Binge
         kind: Buff
         element: Serum
-        description: Immune, and 1 Might each turn (max 3); a turn without a damaging skill ends it painfully.
+        description: >-
+          Immune, and 1 Might each turn (max 3); a turn without a damaging skill ends it and deals the bearer
+          20 Affliction damage.
         modifiers:
           - { mod: immuneTo, kind: Debuff }
         triggers:
@@ -134,8 +136,7 @@ shot.serum:
   element: Serum
   name: Purging Dart
   description: >-
-    Deals 5 Piercing damage to target enemy, +10 for each Debuff on the user. Those Debuffs are drawn out
-    with the dart and end.
+    Deals 5 Piercing damage to target enemy, +10 for each Debuff on the user. Those Debuffs end.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -167,7 +168,7 @@ snipe.serum:
         kind: Neutral
         element: Serum
         visibility: hidden
-        description: Healing the bearer receives is tallied for the user's shot.
+        description: Healing the bearer receives is added to the damage of the applier's Tracer Dye.
         triggers:
           - on: healed
             silent: true
@@ -277,8 +278,8 @@ blast.serum:
   element: Serum
   name: Acid Rain
   description: >-
-    Deals 20 damage to all enemies, and each gains 1 Dose. Then all Dose on the enemy team pools on one
-    enemy who has it.
+    Deals 20 damage to all enemies, and each gains 1 Dose. Then all Dose on the enemy team moves onto one
+    random enemy who has it.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -378,8 +379,8 @@ stab.serum:
   element: Serum
   name: Microdose
   description: >-
-    Deals 5 damage to target enemy now and at the start of each of their next 3 turns. Each dose is 15
-    instead while they're at or below 60 HP.
+    Deals 5 damage to target enemy now and at the start of each of their next 3 turns. Each hit is 15 instead
+    while they're at or below 60 HP.
   cost: r
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -648,8 +649,8 @@ cleave.serum:
   element: Serum
   name: Lashing Spray
   description: >-
-    Deals 20 damage to target enemy, who gains 1 Dose. For 2 turns, the first 2 times they're healed, the
-    serum sprays out of them: each of their allies takes 10 damage.
+    Deals 20 damage to target enemy, who gains 1 Dose. For 2 turns, the first 2 times they're healed, each of
+    their allies takes 10 damage.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]

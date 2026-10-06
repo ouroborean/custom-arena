@@ -80,7 +80,7 @@ charge.aurora:
         name: Streak of Light
         kind: Buff
         element: Aurora
-        description: The bearer's next skill deals 10 more to the enemy they streaked.
+        description: The bearer's next skill deals 10 more to the enemy hit by Streak of Light.
         modifiers:
           - { mod: damageDealt, amount: 10, when: { direct: true }, target: { has: { unit: it, effect: streaked } } }
 
@@ -214,8 +214,8 @@ trap.aurora:
   element: Aurora
   name: Snare of Lights
   description: >-
-    For 3 turns, the first time target enemy uses a skill, the lights go off around their whole team:
-    they and each of their allies are Dazzled for 2 turns. Invisible.
+    For 3 turns, the first time target enemy uses a skill, they and each of their allies are Dazzled for
+    2 turns. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -398,8 +398,8 @@ ravage.aurora:
   element: Aurora
   name: Grounding Rend
   description: >-
-    Deals 25 Piercing damage to target enemy. All the user's Charge pours into them: they're Sapped once
-    for each Charge spent.
+    Deals 25 Piercing damage to target enemy. The user spends all their Charge, and the target is Sapped
+    once for each Charge spent.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -415,8 +415,8 @@ mislead.aurora:
   element: Aurora
   name: Ghost Lights
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and its light drifts to the user's
-    side: their player gains 1 random energy for each energy it cost (up to 2). Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user's player gains 1
+    random energy for each energy it cost (up to 2). Invisible.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -448,8 +448,8 @@ stun.aurora:
   element: Aurora
   name: Lightshow
   description: >-
-    Deals 15 damage to target enemy. For 3 turns, the lights strobe: the next skill they use leaves
-    them Stunned for 1 turn afterward.
+    Deals 15 damage to target enemy. For 3 turns, the next skill they use leaves them Stunned for 1 turn
+    afterward.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -569,7 +569,7 @@ curse.aurora:
         name: Color Drain
         kind: Debuff
         element: Aurora
-        description: Each Dazzle shift also Saps the bearer.
+        description: Each time Dazzled changes one of the bearer's player's energies, they're also Sapped.
         triggers:
           - on: turnStart
             do:
@@ -627,7 +627,7 @@ cleave.aurora:
   archetype: Cleave
   element: Aurora
   name: Arc of Lights
-  description: Deals 20 damage to target enemy. It arcs for 10 to a random other enemy, Dazzling them for 1 turn.
+  description: Deals 20 damage to target enemy and 10 to a random other enemy, who is Dazzled for 1 turn.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -645,8 +645,8 @@ shout.aurora:
   element: Aurora
   name: Polar Static
   description: >-
-    All enemies are Chilled for 2 turns. Meanwhile, the static leaps between them: each skill one of
-    them uses gives a random ally of theirs 1 Confusion for 2 turns.
+    All enemies are Chilled for 2 turns. Meanwhile, each skill one of them uses gives a random ally of
+    theirs 1 Confusion for 2 turns.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -696,7 +696,7 @@ taunt.aurora:
   name: Polar Beacon
   description: >-
     Target enemy is Taunted by the user for 2 turns. Meanwhile, each time an enemy the user Taunted
-    damages them, the beacon flares: a random enemy who isn't Taunted is Taunted by the user for 1 turn.
+    damages them, a random enemy who isn't Taunted is Taunted by the user for 1 turn.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]

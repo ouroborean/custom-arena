@@ -127,8 +127,8 @@ snipe.blight:
   element: Blight
   name: Rotspear
   description: >-
-    On the following turn, target enemy takes 20 Affliction damage, and all the user's Toxin rides the spear: it moves
-    onto them. The target of this skill is invisible. Channeled.
+    On the following turn, target enemy takes 20 Affliction damage, and all the user's Toxin moves onto them. The
+    target of this skill is invisible. Channeled.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -283,8 +283,8 @@ consume.blight:
   element: Blight
   name: Drink the Plague
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. The user drinks their own Toxin: it's removed, and
-    they gain 1 Soul Fragment per 3 stacks (max 2).
+    Deals 5 damage to target enemy, healing the user for it. The user's Toxin is removed, and they gain 1 Soul
+    Fragment per 3 stacks removed (max 2).
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -345,8 +345,8 @@ stab.blight:
   element: Blight
   name: Rusted Knife
   description: >-
-    Deals 15 Piercing damage to target enemy. Then, if the user has a Soul Fragment, they spend one to rust the wound:
-    the target gains 2 Withered.
+    Deals 15 Piercing damage to target enemy. Then, if the user has a Soul Fragment, they spend one, and the target
+    gains 2 Withered.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -364,7 +364,7 @@ ravage.blight:
   element: Blight
   name: Flay
   description: >-
-    Deals 30 Piercing damage to target enemy. Each Buff on them is torn off and becomes 1 Withered.
+    Deals 30 Piercing damage to target enemy. Each Buff on them is removed and becomes 1 Withered.
   cost: AS
   cooldown: 2
   tags: [Harmful, NonStrategic]

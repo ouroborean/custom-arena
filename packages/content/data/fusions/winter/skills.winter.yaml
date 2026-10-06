@@ -7,8 +7,8 @@ strike.winter:
   element: Winter
   name: Bitter Blow
   description: >-
-    Deals 20 damage to target enemy. If they're moving (they have Swiftness, Rushing or Leaping),
-    they're Snowbound for 2 turns.
+    Deals 20 damage to target enemy. If they have Swiftness, Rushing or Leaping, they're Snowbound for 2
+    turns.
   cost: S
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -29,8 +29,8 @@ smash.winter:
   element: Winter
   name: Snowslide
   description: >-
-    The user Leaps. At the start of their next turn, if they're still Leaping, they land: 25 damage to
-    target enemy and 15 to their allies.
+    The user Leaps. At the start of their next turn, if they're still Leaping, they stop Leaping and deal 25
+    damage to target enemy and 15 to their allies.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -46,7 +46,9 @@ smash.winter:
         name: Snowslide
         kind: Neutral
         element: Winter
-        description: Lands at the start of the bearer's next turn if they're still Leaping.
+        description: >-
+          At the start of the bearer's next turn, if they're still Leaping, they stop Leaping and deal 25
+          damage to the target and 15 to their allies.
         onExpire:
           - op: if
             cond: { has: { unit: bearer, effect: leaping } }
@@ -61,9 +63,8 @@ charge.winter:
   element: Winter
   name: Ice Skate
   description: >-
-    The user gains 2 Swiftness for 2 turns. Their next Harmful skill ends the skate in a spray of ice:
-    it spends their Swiftness for 5 more damage per stack, and every enemy it damages is Snowbound for 1
-    turn.
+    The user gains 2 Swiftness for 2 turns. Their next Harmful skill spends their Swiftness for 5 more
+    damage per stack, and every enemy it damages is Snowbound for 1 turn.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -100,8 +101,8 @@ riposte.winter:
   element: Winter
   name: Shatterguard
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user. Every Frost debuff on its user
-    shatters: it ends, and they take 15 Piercing damage for each. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user. Every Frost debuff on its user ends, and
+    they take 15 Piercing damage for each. Invisible.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
@@ -116,7 +117,9 @@ riposte.winter:
         kind: Buff
         element: Winter
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and shatters its user's Frost debuffs.
+        description: >-
+          Counters the first Harmful skill used on the bearer; every Frost debuff on its user ends, dealing
+          them 15 Piercing damage for each.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -190,8 +193,8 @@ snipe.winter:
   element: Winter
   name: Whiteout
   description: >-
-    On the following turn, the whiteout closes in: 60 Piercing damage, split evenly among the enemy
-    characters who aren't Immobile then (or among all of them, if every one is). Channeled.
+    On the following turn, deals 60 Piercing damage, split evenly among the enemy characters who aren't
+    Immobile then (or among all of them, if every one is). Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -247,7 +250,9 @@ trap.winter:
         kind: Debuff
         element: Winter
         visibility: hidden
-        description: The bearer's next mobility skill is countered, and they're hurt and Snowbound.
+        description: >-
+          The bearer's next mobility skill is countered, and they take 15 Piercing damage and are Snowbound
+          for 2 turns.
         triggers:
           - on: skillUsed
             when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
@@ -262,8 +267,8 @@ maneuver.winter:
   element: Winter
   name: Powder Leap
   description: >-
-    For 2 turns, the user is ready to spring: the first time an enemy uses a Harmful skill on them,
-    they Leap before it lands, and that enemy is Snowbound for 1 turn.
+    For 2 turns, the first time an enemy uses a Harmful skill on the user, they Leap before it lands, and
+    that enemy is Snowbound for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -299,7 +304,7 @@ companion.winter:
   name: Great Yeti
   description: >-
     Summons a Great Yeti (80 HP) permanently. Yeti Maul (nc): 30 damage to target enemy. At the start of
-    each of the user's turns, their player pays 1 random energy to feed it, or it leaves.
+    each of the user's turns, their player pays 1 random energy, or it leaves.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -312,8 +317,7 @@ bolt.winter:
   element: Winter
   name: Frostwind Bolt
   description: >-
-    Deals 20 damage to target enemy. The gust carries on to a random other enemy: 10 damage, and
-    they're Snowbound for 1 turn.
+    Deals 20 damage to target enemy. A random other enemy takes 10 damage and is Snowbound for 1 turn.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -352,8 +356,8 @@ consume.winter:
   element: Winter
   name: Steal Warmth
   description: >-
-    Deals 5 damage to target enemy and passes them the user's chill: every Frost debuff on the user
-    (Snowbound included) moves to them. The user heals 10, plus 10 for each one passed.
+    Deals 5 damage to target enemy, and every Frost debuff on the user (Snowbound included) moves to them.
+    The user heals 10, plus 10 for each one moved.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -370,7 +374,7 @@ summon.winter:
   name: Snow Sprites
   description: >-
     Summons a Snow Sprite (20 HP) for 3 turns. Flurry (nc): 5 Piercing damage to all enemies. When the
-    Sprite melts (it's destroyed or its time runs out), every enemy is Snowbound for 1 turn.
+    Sprite is destroyed or its time runs out, every enemy is Snowbound for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -383,9 +387,8 @@ channel.winter:
   element: Winter
   name: Long Winter
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, the cold deepens: 5 damage to all
-    enemies, then 10, then 15. The third wave also leaves every enemy Snowbound for 2 turns.
-    Channeled.
+    For up to 3 turns, at the end of each of the user's turns, deals 5 damage to all enemies, then 10, then
+    15. The third time also leaves every enemy Snowbound for 2 turns. Channeled.
   cost: II
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -400,7 +403,9 @@ channel.winter:
         kind: Neutral
         element: Winter
         interruptible: true
-        description: Each turn, 5 more damage to all enemies than the last; the third wave Snowbinds them.
+        description: >-
+          Each turn, 5 more damage to all enemies than the last; the third time also Snowbinds them for 2
+          turns.
         triggers:
           # Stacks count the waves.
           - on: turnEnd
@@ -449,9 +454,9 @@ mislead.winter:
   element: Winter
   name: Snatching Gale
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, the gale snatches it: it's countered, and held
-    frozen in the wind until the end of the user's next turn. The next Harmful skill the user uses
-    meanwhile unleashes it too, as the user's own, on that skill's first target. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and stored until the end of the user's
+    next turn. The next Harmful skill the user uses meanwhile also uses the stored skill, as the user's own,
+    on that skill's first target. Invisible.
   cost: Ir
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -466,7 +471,7 @@ mislead.winter:
         kind: Debuff
         element: Winter
         visibility: hidden
-        description: The bearer's next Harmful skill is countered and snatched by the applier.
+        description: The bearer's next Harmful skill is countered and stored for the applier.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -484,8 +489,8 @@ mislead.winter:
                   kind: Buff
                   element: Winter
                   description: >-
-                    The bearer's next Harmful skill also unleashes the skill the gale snatched, as their own,
-                    on its first target.
+                    The bearer's next Harmful skill also uses the stored skill, as their own, on its first
+                    target.
                   triggers:
                     - on: skillResolved
                       when: { harmful: true }
@@ -498,8 +503,8 @@ stun.winter:
   element: Winter
   name: Squall
   description: >-
-    Deals 15 damage to target enemy, who is Snowbound for 2 turns. If they're still Snowbound at the end
-    of their next turn, the squall freezes them solid: they're Stunned for 1 turn.
+    Deals 15 damage to target enemy, who is Snowbound for 2 turns. If they're still Snowbound at the end of
+    their next turn, they're Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -622,8 +627,8 @@ curse.winter:
   element: Winter
   name: Snowbind
   description: >-
-    Target enemy is Snowbound for 1 turn. Each skill they use while it lasts packs the snow tighter:
-    it lasts 1 turn longer (up to 3 times).
+    Target enemy is Snowbound for 1 turn. Each skill they use while it lasts makes it last 1 turn longer (up
+    to 3 times).
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -654,8 +659,8 @@ smite.winter:
   element: Winter
   name: Frostfeather
   description: >-
-    Deals 20 damage to target enemy and coats them in frost for 1 turn: the second time the user's side
-    damages them again meanwhile, the frost sets: 10 Piercing damage, and they're Frostbitten for 1 turn.
+    Deals 20 damage to target enemy. For 1 turn, the second time the user's side damages them again, they
+    take 10 Piercing damage and are Frostbitten for 1 turn.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -671,8 +676,8 @@ smite.winter:
         kind: Debuff
         element: Winter
         description: >-
-          The second direct hit from the applier's side sets the frost: 10 Piercing, and Frostbitten for 1
-          turn.
+          The second direct hit from the applier's side deals the bearer 10 Piercing damage, and they're
+          Frostbitten for 1 turn.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
@@ -707,8 +712,8 @@ cleave.winter:
   element: Winter
   name: Winter's Descent
   description: >-
-    Deals 25 damage to target enemy. The descent rolls on through the others: each Immobile one takes
-    10, and each one still moving takes 5 and is Snowbound for 1 turn.
+    Deals 25 damage to target enemy. Each other enemy who's Immobile takes 10; each other one takes 5 and is
+    Snowbound for 1 turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -751,8 +756,8 @@ withstand.winter:
   element: Winter
   name: Deepening Drift
   description: >-
-    The user gains 10 Shield for 3 turns, and 10 more at the start of each of their turns meanwhile. It
-    all melts the moment they use a damaging skill.
+    The user gains 10 Shield for 3 turns, and 10 more at the start of each of their turns meanwhile. It's
+    all removed when they use a damaging skill.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -768,7 +773,7 @@ withstand.winter:
         kind: Buff
         element: Winter
         shield: true
-        description: A Shield that grows 10 each turn and melts when the bearer deals direct damage.
+        description: A Shield that grows 10 each turn and is removed when the bearer deals direct damage.
         triggers:
           - on: turnStart
             do:

@@ -23,6 +23,6 @@ phylactery_bond:
   kind: Neutral
   element: Lich
   stacking: unique
-  description: The bearer's soul is in a jar; while it stands, their HP can't drop below 1.
+  description: While the bearer's Phylactery is alive, their HP can't drop below 1.
   modifiers:
     - { mod: hpFloor, amount: 1 }

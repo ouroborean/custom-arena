@@ -6,7 +6,7 @@ rebirth:
   kind: Buff
   element: Phoenix
   stacking: unique
-  description: When the bearer would die, they burn to Ashes instead, and Rebirth ends.
+  description: When the bearer would die, they gain Ashes instead, and Rebirth ends.
   modifiers:
     - { mod: hpFloor, amount: 1 }
   triggers:
@@ -24,8 +24,8 @@ ashes:
   element: Phoenix
   stacking: unique
   description: >-
-    Until the start of the bearer's next turn, they're Untargetable and can't lose HP. Then they rise,
-    back up to 25 HP if they have less.
+    Until the start of the bearer's next turn, they're Untargetable and can't lose HP. Then, if they
+    have less than 25 HP, they go back up to 25 HP.
   modifiers:
     - { mod: untargetable, by: enemies, bypassable: false }
     - { mod: untargetable, by: allies, bypassable: false }

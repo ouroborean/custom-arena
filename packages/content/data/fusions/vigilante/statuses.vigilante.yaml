@@ -39,7 +39,7 @@ patrol_watch:
   kind: Neutral
   element: Vigilante
   stacking: unique
-  description: The patrol notes each Harmful skill the bearer uses.
+  description: Tracks each Harmful skill the bearer uses.
   triggers:
     - on: skillUsed
       when: { harmful: true }

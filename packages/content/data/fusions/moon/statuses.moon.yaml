@@ -31,7 +31,7 @@ moonshard:
   kind: Debuff
   element: Moon
   stacking: independent
-  description: At the start of the next Full Moon, the shard deals 15 damage.
+  description: At the start of the next Full Moon, the bearer takes 15 damage.
   triggers:
     - on: signal
       signal: full_moon
@@ -69,7 +69,7 @@ shared_dream:
   kind: Debuff
   element: Moon
   stacking: unique
-  description: Damage that wakes the bearer wakes everyone sharing the dream with them.
+  description: Damage that wakes the bearer also wakes everyone else with the same Shared Dream.
   triggers:
     - on: damaged
       when: { wakes: true }

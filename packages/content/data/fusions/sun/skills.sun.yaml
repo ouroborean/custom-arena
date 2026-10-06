@@ -45,8 +45,8 @@ charge.sun:
   element: Sun
   name: Rolling Sunstone
   description: >-
-    Deals 10 damage to target enemy and sets a Sunstone rolling: a Boulder (20 HP) that, at the start of
-    the user's next turn, crashes into them for its remaining HP. It Explodes when it crashes or is
+    Deals 10 damage to target enemy and creates a Sunstone, a Boulder (20 HP). At the start of the user's
+    next turn, it deals the target damage equal to its remaining HP. It Explodes when it does, or when it's
     destroyed.
   cost: S
   cooldown: 2
@@ -64,7 +64,9 @@ charge.sun:
         name: Rolling
         kind: Neutral
         element: Sun
-        description: At the start of its creator's next turn, it crashes into its target for its remaining HP, then Explodes.
+        description: >-
+          At the start of its creator's next turn, it deals its target damage equal to its remaining HP,
+          then Explodes.
         onExpire:
           - { op: set, var: boulderHp, value: { hp: bearer } }
           - { op: damage, to: effectTargets, from: bearer, amount: { var: boulderHp } }
@@ -91,7 +93,9 @@ riposte.sun:
         kind: Buff
         element: Sun
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and burns its user per Corona.
+        description: >-
+          Counters the first Harmful skill used on the bearer; its user takes 15 Affliction damage per
+          Corona.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -179,7 +183,9 @@ snipe.sun:
         element: Sun
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; every ally heals 10 per Corona spent.
+        description: >-
+          At the end of the following turn, deals 45 damage to its target; every ally heals 10 per Corona
+          spent.
         onExpire:
           - { op: damage, to: effectTargets, amount: 45 }
           - { op: heal, to: allAllies, amount: { mul: [10, { effectValue: true }] } }
@@ -205,7 +211,8 @@ trap.sun:
         kind: Debuff
         element: Sun
         visibility: hidden
-        description: Each Harmful skill the bearer uses deals them 10 damage and grows the applier a Seedling.
+        description: >-
+          Each Harmful skill the bearer uses deals them 10 damage, and the applier creates a Seedling.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -221,8 +228,8 @@ maneuver.sun:
   element: Sun
   name: Horizon
   description: >-
-    The user becomes Invulnerable for 1 turn. At the start of their next turn they rise: they gain 1
-    Corona, and each enemy who used a Harmful skill meanwhile is Ignited.
+    The user becomes Invulnerable for 1 turn. At the start of their next turn, they gain 1 Corona, and each
+    enemy who used a Harmful skill meanwhile is Ignited.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -249,7 +256,9 @@ maneuver.sun:
         kind: Debuff
         element: Sun
         visibility: hidden
-        description: If the bearer uses a Harmful skill before the sun rises, they're Ignited.
+        description: >-
+          If the bearer uses a Harmful skill before the start of the applier's next turn, they're Ignited
+          then.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -280,8 +289,8 @@ bolt.sun:
   element: Sun
   name: Ripening Vine
   description: >-
-    Deals 20 damage to target enemy. Each allied Seedling ripens: it uses Channel Earth at no cost,
-    then loses 5 HP. If there's no allied Seedling, the user creates one instead.
+    Deals 20 damage to target enemy. Each allied Seedling uses Channel Earth at no cost, then loses 5 HP.
+    If there's no allied Seedling, the user creates one instead.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -372,7 +381,7 @@ channel.sun:
         kind: Neutral
         element: Sun
         interruptible: true
-        description: Each turn, 1 Corona; meanwhile Corona doesn't expire and burns Ignited enemies double.
+        description: Each turn, 1 Corona; meanwhile Corona doesn't expire and deals double to Ignited enemies.
         triggers:
           - on: turnEnd
             do:
@@ -384,8 +393,7 @@ stab.sun:
   element: Sun
   name: Tinder Spike
   description: >-
-    Deals 15 damage to target enemy and Ignites them, and the spark catches the user too: they're Ignited
-    as well.
+    Deals 15 damage to target enemy and Ignites them. The user is Ignited as well.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -518,7 +526,7 @@ bless.sun:
   element: Sun
   name: Heliotrope
   description: >-
-    For 3 turns, target ally gains the sun's light (as 1 Might and 1 Renew). At the start of each of the
+    For 3 turns, target ally gains Heliotrope (works as 1 Might and 1 Renew). At the start of each of the
     user's turns, it moves to the ally with the least HP.
   cost: r
   cooldown: 2
@@ -642,8 +650,8 @@ cleave.sun:
   element: Sun
   name: Stubble Burn
   description: >-
-    Deals 15 damage to target enemy and 15 to a random other enemy. Then the fire runs to whichever of them
-    has more HP left: 10 more damage, and they're Ignited.
+    Deals 15 damage to target enemy and 15 to a random other enemy. Then whichever of them has more HP left
+    takes 10 more damage and is Ignited.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -697,8 +705,7 @@ withstand.sun:
   element: Sun
   name: Kiln Wall
   description: >-
-    The user gains 25 Shield for 2 turns. Each time it absorbs damage, the heat is banked: the user
-    gains 1 Corona.
+    The user gains 25 Shield for 2 turns. Each time it absorbs damage, the user gains 1 Corona.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -749,8 +756,8 @@ titan.sun:
   element: Sun
   name: Red Giant
   description: >-
-    For 3 turns, the user is Immune and swells: at the start of each of their turns, they gain 15 max
-    HP and heal 15. When it ends, they lose that max HP, and every enemy takes as much damage.
+    For 3 turns, the user is Immune, and at the start of each of their turns, they gain 15 max HP and heal
+    15. When it ends, they lose that max HP, and every enemy takes as much damage.
   cost: WW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -766,7 +773,9 @@ titan.sun:
         name: Red Giant
         kind: Buff
         element: Sun
-        description: Swells by 15 max HP each turn; when it ends, that max HP bursts out at every enemy.
+        description: >-
+          Gains 15 max HP each turn; when this ends, loses that max HP, and every enemy takes as much
+          damage.
         triggers:
           - on: turnStart
             do:

@@ -9,7 +9,7 @@ parasite:
       name: Lodged
       kind: Neutral
       element: Evolution
-      description: Can't be targeted by enemy skills (simplified from "only its host can target it"). Dies with its host.
+      description: Can't be targeted by enemy skills. Dies with its host.
       modifiers:
         - { mod: untargetable, by: enemies, bypassable: true }
       triggers:

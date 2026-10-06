@@ -7,8 +7,8 @@ strike.ocean:
   element: Ocean
   name: Breaker
   description: >-
-    Crest: deals 25 damage to target enemy, and one of their Buffs washes away. Trough: deals 15
-    damage, and one of the user's Debuffs washes away.
+    Crest: deals 25 damage to target enemy, and they lose one of their Buffs. Trough: deals 15 damage,
+    and the user loses one of their Debuffs.
   cost: I
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -28,8 +28,8 @@ smash.ocean:
   element: Ocean
   name: Rogue Wave
   description: >-
-    Crest: deals 30 damage to target enemy and 15 to their allies. Trough: the sea draws back:
-    15 damage to target enemy, and every enemy loses their Shield.
+    Crest: deals 30 damage to target enemy and 15 to their allies. Trough: deals 15 damage to target
+    enemy, and every enemy loses their Shield.
   cost: Srr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -166,8 +166,8 @@ snipe.ocean:
   name: Harpoon
   description: >-
     Crest: deals 45 damage to target enemy on the following turn. Trough: deals 30 damage on the
-    following turn, and the catch is shared: allies heal 30, split evenly between them. The target
-    of this skill is invisible. Channeled.
+    following turn, and allies heal 30, split evenly between them. The target of this skill is
+    invisible. Channeled.
   cost: Ir
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -202,7 +202,7 @@ snipe.ocean:
             element: Ocean
             visibility: hiddenTarget
             interruptible: true
-            description: Fires at the end of the following turn unless interrupted, sharing the catch with allies.
+            description: Fires at the end of the following turn unless interrupted, and allies heal 30, split evenly.
             onExpire:
               - { op: damage, to: effectTargets, amount: 30 }
               - { op: heal, to: allAllies, amount: { div: [30, { countOf: allAllies }] } }
@@ -291,8 +291,8 @@ companion.ocean:
   element: Ocean
   name: Kraken
   description: >-
-    Summons a Kraken (40 HP) permanently. Tentacles (r): Crest: 15 damage. Trough: it grabs target
-    enemy: their non-Strategic skills are stunned for 1 turn.
+    Summons a Kraken (40 HP) permanently. Tentacles (r): Crest: 15 damage. Trough: target enemy's
+    non-Strategic skills are stunned for 1 turn.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -443,8 +443,8 @@ stab.ocean:
   element: Ocean
   name: Slipfoot Knife
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Confused, they
-    lose their footing: the Confusion is spent and they're Stunned for 1 turn.
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. If they're Confused, they lose
+    their Confusion and are Stunned for 1 turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -464,8 +464,8 @@ ravage.ocean:
   element: Ocean
   name: Breaker Swell
   description: >-
-    Deals 40 Piercing damage to target enemy and 15 to each of their allies. The wave drags the
-    user under too: they're Stunned on their next turn.
+    Deals 40 Piercing damage to target enemy and 15 to each of their allies. The user is Stunned on
+    their next turn.
   cost: Ar
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -500,7 +500,7 @@ mislead.ocean:
             kind: Debuff
             element: Ocean
             visibility: hidden
-            description: The bearer's Harmful skills are countered, and they're Taunted by the Siren for 2 turns.
+            description: The bearer's Harmful skills are countered, and they're Taunted by the applier for 2 turns.
             triggers:
               - on: skillUsed
                 when: { harmful: true }
@@ -558,8 +558,8 @@ dance.ocean:
   element: Ocean
   name: Swell of the Deep
   description: >-
-    For 4 turns, the user is Brimming and slips through the current: once per turn, the first Debuff an
-    enemy gives them washes straight off, and they gain 2 Renew for it.
+    For 4 turns, the user is Brimming, and once per turn, the first Debuff an enemy gives them is
+    removed, and they gain 2 Renew for it.
   cost: Ar
   cooldown: 5
   tags: [Helpful, Strategic]
@@ -611,8 +611,7 @@ bless.ocean:
   name: Swell and Break
   description: >-
     Crest: target ally gains Brimming for 3 turns and 15 Brimming Shield. Trough: target ally's Brimming
-    Shield breaks over them: it ends, and they gain 1 Might for 3 turns, plus 1 for every 10 Shield it
-    held (up to 3 Might).
+    Shield ends, and they gain 1 Might for 3 turns, plus 1 for every 10 Shield it held (up to 3 Might).
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -657,7 +656,7 @@ curse.ocean:
         name: Brine Haze
         kind: Buff
         element: Ocean
-        description: Each time the bearer gains Renew, the hazed enemy gains 1 more Confusion.
+        description: Each time the bearer gains Renew, the Brine Haze target gains 1 more Confusion.
         triggers:
           - on: effectGained
             effect: renew
@@ -765,8 +764,8 @@ withstand.ocean:
   element: Ocean
   name: Returning Wave
   description: >-
-    The user gains 30 Shield for 1 turn. When it ends, whatever is left of it crashes outward as
-    damage, split evenly among all enemies.
+    The user gains 30 Shield for 1 turn. When it ends, whatever is left of it is dealt as damage, split
+    evenly among all enemies.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -782,7 +781,7 @@ withstand.ocean:
         kind: Buff
         element: Ocean
         shield: true
-        description: When it ends, the Shield left crashes into the enemies, split evenly.
+        description: When it ends, the Shield left is dealt as damage to the enemies, split evenly.
         onExpire:
           - op: damage
             to: allEnemies
@@ -823,8 +822,8 @@ titan.ocean:
   element: Ocean
   name: Leviathan Form
   description: >-
-    For 3 turns, the user gains 2 Armor and Brimming, and at the end of each of their turns they
-    bite the enemy with the least HP for 15 damage and gain 2 Renew.
+    For 3 turns, the user gains 2 Armor and Brimming, and at the end of each of their turns they deal 15
+    damage to the enemy with the least HP and gain 2 Renew.
   cost: WI
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -840,7 +839,9 @@ titan.ocean:
         name: Leviathan Form
         kind: Buff
         element: Ocean
-        description: At the end of the bearer's turn, they bite the enemy with the least HP for 15 and gain 2 Renew.
+        description: >-
+          At the end of the bearer's turn, they deal 15 damage to the enemy with the least HP and gain 2
+          Renew.
         triggers:
           - on: turnEnd
             do:
@@ -854,8 +855,8 @@ kraken_tentacles:
   element: Ocean
   name: Tentacles
   description: >-
-    Crest: deals 15 damage to target enemy. Trough: grabs target enemy: their non-Strategic skills
-    are stunned for 1 turn.
+    Crest: deals 15 damage to target enemy. Trough: target enemy's non-Strategic skills are stunned for
+    1 turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]

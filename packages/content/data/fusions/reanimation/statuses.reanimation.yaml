@@ -28,7 +28,7 @@ reanimating:
   kind: Neutral
   element: Reanimation
   stacking: unique
-  description: Struck down; returns at the end of this turn, Reanimated.
+  description: Returns at the end of this turn, Reanimated.
   modifiers:
     - { mod: cannotUseSkills }
     - { mod: untargetable, by: enemies, bypassable: false }
@@ -43,7 +43,7 @@ reanimated:
   kind: Neutral
   element: Reanimation
   stacking: unique
-  description: Back for good, but can't be healed or gain Renew, and loses 5 HP at the end of each of their turns.
+  description: Can't be healed or gain Renew, and loses 5 HP at the end of each of their turns.
   modifiers:
     - { mod: healingReceived, mul: 0 }
     - { mod: immuneToEffects, effects: [renew] }

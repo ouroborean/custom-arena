@@ -108,8 +108,8 @@ rage.reanimation:
   element: Reanimation
   name: Galvanic Overdrive
   description: >-
-    For 3 turns, the user is Galvanized and runs on stolen current: at the start of each of their turns,
-    they lose 10 HP to gain 2 Might for 1 turn and 1 Charge.
+    For 3 turns, the user is Galvanized, and at the start of each of their turns, they lose 10 HP and gain 2
+    Might for 1 turn and 1 Charge.
   cost: Sr
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -186,7 +186,9 @@ snipe.reanimation:
         element: Reanimation
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn, harder the more the bearer is hurt.
+        description: >-
+          At the end of the following turn, deals 30 damage to its target, plus half the HP the bearer is
+          missing.
         onExpire:
           - { op: damage, to: effectTargets, amount: { sum: [30, { div: [{ missingHp: bearer }, 2] }] } }
     - { op: apply, to: actor, effect: immortal, duration: { enemyTurns: 1 }, linkTo: dying_current }
@@ -196,8 +198,8 @@ trap.reanimation:
   element: Reanimation
   name: Death Coil
   description: >-
-    For 3 turns, the first time target enemy uses a Harmful skill, they take 15 damage and suffer
-    Reanimated's drawbacks for 2 turns: no healing, and 5 HP lost each turn. Invisible.
+    For 3 turns, the first time target enemy uses a Harmful skill, they take 15 damage, and for 2 turns they
+    can't be healed and lose 5 HP each turn. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -212,7 +214,9 @@ trap.reanimation:
         kind: Debuff
         element: Reanimation
         visibility: hidden
-        description: The bearer's first Harmful skill coils death around them.
+        description: >-
+          The first time the bearer uses a Harmful skill, they take 15 damage, and for 2 turns they can't be
+          healed and lose 5 HP each turn.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -535,8 +539,7 @@ curse.reanimation:
   element: Reanimation
   name: Short Circuit
   description: >-
-    For 2 turns, each Buff target enemy would gain shorts out: it's lost, and they gain 1 Sapped
-    instead.
+    For 2 turns, each Buff target enemy would gain is lost, and they gain 1 Sapped instead.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -742,7 +745,7 @@ titan.reanimation:
         name: The Monster Lives
         kind: Buff
         element: Reanimation
-        description: Returning from death now makes the bearer Stormborn with 1 Might for good.
+        description: If the bearer returns from death, they're Stormborn and gain 1 Might for the rest of the match.
 
 # Minion skills.
 

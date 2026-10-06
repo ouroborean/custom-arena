@@ -31,7 +31,7 @@ boss_high_inquisitor:
 boss_frost_warden:
   name: "Warden's Rime"
   kind: Neutral
-  description: "Its icy armor takes 10 less Normal damage from every hit."
+  description: "Takes 10 less Normal damage from every hit. Counts as Armor."
   modifiers:
     - { mod: damageTaken, amount: -10, armor: true, when: { types: [Normal] } }
 
@@ -47,7 +47,7 @@ boss_tide_caller:
 boss_barrow_king:
   name: "Undying Crown"
   kind: Neutral
-  description: "Can't drop below 5 Health while another enemy character stands."
+  description: "Can't drop below 5 Health while another enemy character is alive."
   modifiers:
     - mod: hpFloor
       amount: 5

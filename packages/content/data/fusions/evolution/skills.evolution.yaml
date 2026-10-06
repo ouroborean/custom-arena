@@ -45,8 +45,8 @@ smash.evolution:
   element: Evolution
   name: Primal Stomp
   description: >-
-    Deals 20 damage to target enemy, who gains 2 Toxin. The venom splashes out: each of their allies
-    takes 5 damage per Toxin the target has (at most 25).
+    Deals 20 damage to target enemy, who gains 2 Toxin. Each of their allies takes 5 damage per
+    Toxin the target has (at most 25).
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -67,8 +67,8 @@ charge.evolution:
   element: Evolution
   name: Scent Trail
   description: >-
-    I: 10 damage and 1 Toxin to target enemy, and the user gains 1 Focus. II: 2 Toxin instead. III: the
-    scent spreads: a random other enemy gains 1 Toxin too.
+    I: 10 damage and 1 Toxin to target enemy, and the user gains 1 Focus. II: 2 Toxin instead. III:
+    a random other enemy also gains 1 Toxin.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -146,8 +146,8 @@ rage.evolution:
   element: Evolution
   name: Apex Predator
   description: >-
-    For 3 turns, the user stalks the weak: each enemy they hit is marked as Prey for 2 turns, and
-    their hits deal 10 more damage to Prey.
+    For 3 turns, each enemy the user hits is marked as Prey for 2 turns, and the user's hits deal 10
+    more damage to Prey.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -192,9 +192,9 @@ snipe.evolution:
   element: Evolution
   name: Barbed Quill
   description: >-
-    On the following turn, a barbed quill lodges in target enemy for 3 turns. At the end of each of
-    the user's turns, it works deeper: 10 Affliction damage, then 15, then 20. The target of this
-    skill is invisible. Channeled, Uncounterable.
+    On the following turn, target enemy gains Barbed Quill for 3 turns: at the end of each of the
+    user's turns, they take 10 Affliction damage, then 15, then 20. The target of this skill is
+    invisible. Channeled, Uncounterable.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
@@ -211,7 +211,7 @@ snipe.evolution:
         element: Evolution
         visibility: hiddenTarget
         interruptible: true
-        description: Lodges at the end of the following turn unless interrupted.
+        description: At the end of the following turn, gives its target Barbed Quill unless interrupted.
         onExpire:
           # No hit when it lands: all its damage comes from the barb, growing while it stays in.
           - op: apply
@@ -225,7 +225,9 @@ snipe.evolution:
               # Each quill is its own barb (a second cast doesn't speed up or refresh the first), and
               # its damage stops at 20.
               stacking: independent
-              description: At the end of each of the applier's turns, it works deeper; 10 Affliction damage, then 15, then 20.
+              description: >-
+                At the end of each of the applier's turns, the bearer takes 10 Affliction damage,
+                then 15, then 20.
               triggers:
                 # Stacks count the turns it has worked: 1 → 10, 2 → 15, 3 → 20.
                 - on: turnEnd
@@ -238,8 +240,8 @@ trap.evolution:
   element: Evolution
   name: Nesting Pit
   description: >-
-    For 3 turns, each time target enemy uses a Strategic skill, a Larva hatches on the user's side
-    for 2 turns. If none has hatched when it ends, they gain 2 Toxin. Invisible.
+    For 3 turns, each time target enemy uses a Strategic skill, the user summons a Larva for 2
+    turns. If none was summoned when it ends, they gain 2 Toxin. Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -255,7 +257,9 @@ trap.evolution:
         element: Evolution
         visibility: hidden
         stacking: merge
-        description: Each Strategic skill the bearer uses hatches a Larva for the Pit's owner; if none hatches, they gain 2 Toxin when it ends.
+        description: >-
+          Each Strategic skill the bearer uses summons a Larva for the applier for 2 turns; if none
+          is summoned, the bearer gains 2 Toxin when this ends.
         triggers:
           - on: skillUsed
             when: { strategic: true }
@@ -273,9 +277,8 @@ maneuver.evolution:
   element: Evolution
   name: Slough Off
   description: >-
-    The user becomes Invulnerable for 1 turn and sheds their skin: they lose all their Debuffs, and
-    the last enemy who damaged them gains 1 Toxin per Debuff stack shed (at least 1, at most 3).
-    Unstunnable.
+    The user becomes Invulnerable for 1 turn and loses all their Debuffs, and the last enemy who
+    damaged them gains 1 Toxin per Debuff stack removed (at least 1, at most 3). Unstunnable.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic, Unstunnable]
@@ -297,7 +300,7 @@ companion.evolution:
   element: Evolution
   name: Brood Parasite
   description: >-
-    Summons a Parasite (20 HP) permanently, lodged in target enemy: only they can target it, and it
+    Summons a Parasite (20 HP) permanently, attached to target enemy: enemies can't target it, and it
     dies with them. Feed (r): its host loses 10 HP, and the user's ally with the least HP heals 10.
   cost: I
   cooldown: 1
@@ -314,7 +317,7 @@ bolt.evolution:
   name: Corrosive Glob
   description: >-
     I: 20 damage to target enemy; 1 of their Armor turns into Vulnerable. II: all of it does. III:
-    their Shield dissolves too, giving 1 Toxin per 10 removed.
+    they also lose their Shield, gaining 1 Toxin per 10 removed.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -362,8 +365,8 @@ consume.evolution:
   element: Evolution
   name: Cull the Weak
   description: >-
-    Target enemy gains 3 Toxin, then all their Toxin is culled: they die if their HP is at most 5 per
-    stack removed; otherwise the user heals 5 per stack.
+    Target enemy gains 3 Toxin, then all their Toxin is removed: they die if their HP is at most 5
+    per stack removed; otherwise the user heals 5 per stack.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -495,8 +498,8 @@ ravage.evolution:
   element: Evolution
   name: Envenomed Rend
   description: >-
-    Tears up to 2 Toxin out of target enemy, then deals them 20 Piercing damage, Bypassing
-    Invulnerable, plus 10 per Toxin torn out.
+    Removes up to 2 Toxin from target enemy, then deals them 20 Piercing damage, Bypassing
+    Invulnerable, plus 10 per Toxin removed.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic, Bypass]
@@ -580,8 +583,8 @@ stun.evolution:
   element: Evolution
   name: Paralytic Bite
   description: >-
-    Target enemy gains 2 Toxin, and the venom sets in slowly: at the end of their next turn, if they
-    still have any Toxin, they're Stunned for 1 turn.
+    Target enemy gains 2 Toxin. At the end of their next turn, if they still have any Toxin, they're
+    Stunned for 1 turn.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -702,8 +705,8 @@ smite.evolution:
   element: Evolution
   name: Stalking Mark
   description: >-
-    Deals 15 damage to target enemy and marks them for 2 turns. The mark grows each time the user or
-    an ally damages them; when it ends, they gain 1 Toxin per growth (at least 1, at most 4).
+    Deals 15 damage to target enemy. After 2 turns, they gain 1 Toxin for each time the user or an
+    ally damaged them in between (at least 1, at most 4).
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -719,7 +722,9 @@ smite.evolution:
         kind: Debuff
         element: Evolution
         stacking: merge
-        description: Grows each time the bearer's enemies damage them; when it ends, they gain 1 Toxin per growth (1 to 4).
+        description: >-
+          When this ends, the bearer gains 1 Toxin for each time their enemies damaged them
+          meanwhile (at least 1, at most 4).
         triggers:
           - on: damaged
             when: { byEnemy: true, direct: true }
@@ -756,7 +761,7 @@ prayer.evolution:
         name: Symbiotic Song
         kind: Debuff
         element: Evolution
-        description: Each time the bearer's Toxin ticks, a random ally of the singer heals 10.
+        description: Each time the bearer's Toxin ticks, a random ally of the applier heals 10.
         triggers:
           # Simplified: any indirect hit on the bearer while they carry Toxin counts as a tick.
           - on: damaged
@@ -772,8 +777,7 @@ cleave.evolution:
   element: Evolution
   name: Thrashing Tail
   description: >-
-    The tail lashes 4 times, each lash dealing 10 damage to a random enemy. Each enemy lashed more
-    than once also gains 1 Toxin.
+    Deals 10 damage to a random enemy 4 times. Each enemy hit more than once also gains 1 Toxin.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -795,7 +799,7 @@ cleave.evolution:
                 kind: Neutral
                 element: Evolution
                 stacking: merge
-                description: Lashes taken from this Thrashing Tail.
+                description: Hits taken from this Thrashing Tail.
     - op: forEach
       in: { filter: allEnemies, where: { compare: { value: { stacks: { unit: it, effect: thrashing_tail } }, atLeast: 2 } } }
       do:
@@ -829,8 +833,7 @@ withstand.evolution:
   element: Evolution
   name: Exoskeleton
   description: >-
-    The user gains 10 Shield for 3 turns. The shell hardens as it holds: at the start of each of
-    their turns, it gains 10 Shield.
+    The user gains 10 Shield for 3 turns. At the start of each of their turns, it gains 10 Shield.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -860,7 +863,7 @@ taunt.evolution:
         name: Hypnotic Hood
         kind: Debuff
         element: Evolution
-        description: If the bearer doesn't damage the hood's caster before this ends, they fall Asleep.
+        description: If the bearer doesn't damage the applier before this ends, they fall Asleep.
         triggers:
           - on: dealtDamage
             do:
@@ -876,8 +879,8 @@ titan.evolution:
   element: Evolution
   name: Chrysalis
   description: >-
-    The user is Stunned and Invulnerable for 1 turn, cocooned. Then, for 3 turns, they gain 3 Armor,
-    2 Might and Immune.
+    The user is Stunned and Invulnerable for 1 turn. Then, for 3 turns, they gain 3 Armor, 2 Might
+    and Immune.
   cost: W
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -893,7 +896,7 @@ titan.evolution:
         name: Chrysalis
         kind: Buff
         element: Evolution
-        description: When the cocoon opens, the bearer gains 3 Armor, 2 Might and Immune for 3 turns.
+        description: When this ends, the bearer gains 3 Armor, 2 Might and Immune for 3 turns.
         onExpire:
           - { op: apply, to: bearer, effect: armor, stacks: 3, duration: { enemyTurns: 3 } }
           - { op: apply, to: bearer, effect: might, stacks: 2, duration: { enemyTurns: 3 } }

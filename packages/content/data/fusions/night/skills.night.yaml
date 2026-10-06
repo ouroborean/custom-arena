@@ -22,7 +22,7 @@ smash.night:
   name: Moonfall
   description: >-
     Deals 15 damage to target enemy, who gains Dusk 3, or has their Dusk deepened by 1. When Midnight
-    strikes them, the moon falls: 20 damage to them and 10 to each of their allies.
+    strikes them, they take 20 damage and each of their allies takes 10.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -38,7 +38,7 @@ smash.night:
         kind: Debuff
         element: Night
         visibility: hidden
-        description: When Midnight strikes the bearer, the moon falls on them and their allies.
+        description: When Midnight strikes the bearer, they take 20 damage and each of their allies takes 10.
         triggers:
           - on: effectGained
             effect: frozen_sleep
@@ -173,8 +173,8 @@ trap.night:
   element: Night
   name: Breaking Ice
   description: >-
-    For 3 turns, the first enemy to use a Harmful skill on target ally breaks through: they take 20
-    Piercing damage and are Stunned for 1 turn. Invisible.
+    For 3 turns, the first enemy to use a Harmful skill on target ally takes 20 Piercing damage and is
+    Stunned for 1 turn. Invisible.
   cost: AI
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -189,7 +189,7 @@ trap.night:
         kind: Buff
         element: Night
         visibility: hidden
-        description: The first enemy to use a Harmful skill on the bearer breaks through the ice.
+        description: The first enemy to use a Harmful skill on the bearer takes 20 Piercing damage and is Stunned for 1 turn.
         triggers:
           - on: skillTargeted
             when: { harmful: true, side: enemy }
@@ -275,8 +275,8 @@ consume.night:
   element: Night
   name: Stolen Hours
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. Then the user steals an hour: every Debuff on
-    the user's side loses 1 turn, and every Debuff on target enemy gains 1.
+    Deals 5 damage to target enemy, healing the user for it. Then every Debuff on the user's side loses 1
+    turn, and every Debuff on target enemy gains 1.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -306,8 +306,8 @@ channel.night:
   element: Night
   name: Winter Solstice
   description: >-
-    The user becomes Dormant for 2 turns and channels from inside the sleep: at the end of each of their
-    turns, 10 damage to all enemies. Channeled.
+    The user becomes Dormant for 2 turns, and meanwhile, at the end of each of their turns, 10 damage to
+    all enemies. Channeled.
   cost: Ir
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -323,7 +323,7 @@ channel.night:
         kind: Neutral
         element: Night
         interruptible: true
-        description: Each turn, 10 damage to all enemies from inside the sleep.
+        description: Each turn, 10 damage to all enemies.
         triggers:
           - on: turnEnd
             do:
@@ -349,8 +349,8 @@ ravage.night:
   element: Night
   name: Blackfrost Fang
   description: >-
-    Deals 25 Piercing damage to target enemy. If they have Dusk, it deepens by 1; if not, black frost
-    sets in: they're Frostbitten and Numb for 2 turns.
+    Deals 25 Piercing damage to target enemy. If they have Dusk, it deepens by 1; if not, they're
+    Frostbitten and Numb for 2 turns.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -403,8 +403,8 @@ stun.night:
   element: Night
   name: Lulled Under Snow
   description: >-
-    Deals 15 damage to target enemy, and they become Dormant for 1 turn: out of the fight, but out of the
-    user's side's reach too.
+    Deals 15 damage to target enemy, and they become Dormant for 1 turn: they can't use skills, and the
+    user's side can't target them.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -451,7 +451,7 @@ heal.night:
   archetype: Heal
   element: Night
   name: Winter Rest
-  description: Target ally heals 15 and becomes Dormant for 1 turn, pulling them out of the fight.
+  description: Target ally heals 15 and becomes Dormant for 1 turn.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -519,8 +519,8 @@ smite.night:
   element: Night
   name: Hidden Moon
   description: >-
-    Deals 20 damage to target enemy, who is Sanctified for 1 turn. The moon hides the user: they gain
-    Stealth for 1 turn. Stealthy.
+    Deals 20 damage to target enemy, who is Sanctified for 1 turn. The user gains Stealth for 1 turn.
+    Stealthy.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic, Stealthy]
@@ -534,7 +534,7 @@ prayer.night:
   archetype: Prayer
   element: Night
   name: Hibernal Vigil
-  description: All allies heal 15 and become Dormant for 1 turn; the whole team skips a turn to fortify.
+  description: All allies heal 15 and become Dormant for 1 turn.
   cost: Irr
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -548,9 +548,8 @@ cleave.night:
   element: Night
   name: Crescent Cleave
   description: >-
-    The crescent cuts the night short: target enemy and a random other enemy each take 15 damage, plus 5
-    for each turn of Dusk they have left, and their Dusk ends. Each of them who had no Dusk gains Dusk 4
-    instead.
+    Target enemy and a random other enemy each take 15 damage, plus 5 for each turn of Dusk they have
+    left, and their Dusk ends. Each of them who had no Dusk gains Dusk 4 instead.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -632,7 +631,7 @@ taunt.night:
   name: Feigned Sleep
   description: >-
     Target enemy is Taunted by the user for 2 turns, then the user becomes Dormant for 1 turn: while the
-    user sleeps out of reach, the Taunted enemy has no one they may target.
+    user is Dormant, the Taunted enemy has no one they can target.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -662,7 +661,7 @@ titan.night:
         kind: Buff
         element: Night
         countsAs: [dormant]
-        description: Out of the fight, gaining 20 Shield per turn; wakes with 1 Focus, and every enemy gains Dusk 2.
+        description: Can't use skills or be targeted by enemies; gains 20 Shield per turn; wakes with 1 Focus, and every enemy gains Dusk 2.
         modifiers:
           - { mod: cannotUseSkills }
           - { mod: untargetable, by: enemies, bypassable: false }

@@ -72,9 +72,9 @@ charge.apocalypse:
   element: Apocalypse
   name: Coldsnap Dash
   description: >-
-    Deals 15 damage to target enemy, who gains Frostfire, and the user gets 1 Focus for their next
-    skill. If that skill hits an enemy who's Chilled and Ignited (Frostfire is both), the cold cracks
-    the Ignite: it ticks twice at once.
+    Deals 15 damage to target enemy, who gains Frostfire, and the user gets 1 Focus for their next skill.
+    If that skill hits an enemy who's Chilled and Ignited (Frostfire is both), their Ignite ticks twice at
+    once.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -91,7 +91,7 @@ charge.apocalypse:
         name: Coldsnap
         kind: Buff
         element: Apocalypse
-        description: The bearer's next skill makes each Chilled, Ignited enemy it targets burn twice at once.
+        description: The bearer's next skill makes the Ignite on each Chilled, Ignited enemy it targets tick twice at once.
         triggers:
           - on: skillUsed
             consume: true
@@ -108,8 +108,8 @@ riposte.apocalypse:
   element: Apocalypse
   name: Splintering Spines
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user, and the spines splinter outward: every
-    other enemy gains Frostfire. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user, and every other enemy gains Frostfire.
+    Invisible.
   cost: I
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -138,8 +138,8 @@ rage.apocalypse:
   element: Apocalypse
   name: Ragnarok
   description: >-
-    For 4 turns, the user swings between extremes: 3 Might on their first and third turns, and 3
-    Armor and Immune on their second and fourth.
+    For 4 turns, the user gains 3 Might on their first and third turns, and 3 Armor and Immune on their
+    second and fourth.
   cost: SS
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -179,8 +179,8 @@ shot.apocalypse:
   element: Apocalypse
   name: Sleetspark
   description: >-
-    Deals 10 damage to target enemy and leaves a spark in them until the end of the user's next turn.
-    Hitting them with it again while the spark is there sets it off: they're Thermal Shocked.
+    Deals 10 damage to target enemy. If the user hits them with this skill again before the end of the
+    user's next turn, they're Thermal Shocked.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -201,7 +201,7 @@ shot.apocalypse:
             name: Sleetspark
             kind: Debuff
             element: Apocalypse
-            description: Another Sleetspark from the applier sets it off, Thermal Shocking the bearer.
+            description: If the applier hits the bearer with Sleetspark again, the bearer is Thermal Shocked.
 
 snipe.apocalypse:
   archetype: Snipe
@@ -240,7 +240,7 @@ snipe.apocalypse:
         kind: Debuff
         element: Apocalypse
         visibility: hidden
-        description: If the bearer gains a Fire or Frost debuff, the comet lands at once and Thermal Shocks them.
+        description: If the bearer gains a Fire or Frost debuff, Comet of Ruin hits them at once and Thermal Shocks them.
         triggers:
           - on: effectGained
             when: { effects: [ignite, scorched, frostfire, frostbitten, chilled, numb] }
@@ -258,8 +258,8 @@ trap.apocalypse:
   element: Apocalypse
   name: Cracking Floe
   description: >-
-    For 3 turns, the first time target enemy falls to 50 HP or less, the ice cracks under them: they
-    take 20 Piercing damage and are Stunned for 1 turn. Invisible.
+    For 3 turns, the first time target enemy falls to 50 HP or less, they take 20 Piercing damage and are
+    Stunned for 1 turn. Invisible.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -329,8 +329,8 @@ bolt.apocalypse:
   element: Apocalypse
   name: Paradox Bolt
   description: >-
-    Deals 20 damage to target enemy, who gains Frostfire. If they already had it, the paradox Thermal
-    Shocks them, even if they were already Shocked this turn.
+    Deals 20 damage to target enemy, who gains Frostfire. If they already had it, they're Thermal Shocked,
+    even if they were already Shocked this turn.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -384,9 +384,9 @@ consume.apocalypse:
   element: Apocalypse
   name: Equilibrium
   description: >-
-    Deals 10 damage to target enemy, healing the user as much. If they have both a Fire and a Frost
-    debuff (Frostfire counts as both), the extremes cancel out: all their Fire and Frost debuffs end, and
-    the user heals 10 for each one that ended.
+    Deals 10 damage to target enemy, healing the user as much. If they have both a Fire and a Frost debuff
+    (Frostfire counts as both), all their Fire and Frost debuffs end, and the user heals 10 for each one
+    that ended.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -802,8 +802,8 @@ shout.apocalypse:
   element: Apocalypse
   name: Long Night's Toll
   description: >-
-    All enemies are Intimidated for 2 turns, and a random one gains Frostfire. For as long, each
-    enemy with Frostfire is Intimidated twice over.
+    All enemies are Intimidated for 2 turns, and a random one gains Frostfire. For as long, while an enemy
+    has Frostfire, their cooldowns increase by 1 more.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -828,8 +828,8 @@ withstand.apocalypse:
   element: Apocalypse
   name: Heart of the Glacier
   description: >-
-    The user gains 30 Shield until the end of their next turn. Then the heart thaws: whatever is left of it
-    bursts onto a random enemy as that much damage, and they gain Frostfire.
+    The user gains 30 Shield until the end of their next turn. When it ends, a random enemy takes damage
+    equal to what's left of it and gains Frostfire.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -845,7 +845,7 @@ withstand.apocalypse:
         kind: Buff
         element: Apocalypse
         shield: true
-        description: A Shield; when it runs out, what's left bursts onto a random enemy, who gains Frostfire.
+        description: A Shield; when it ends, a random enemy takes damage equal to what's left and gains Frostfire.
         onExpire:
           - op: forEach
             in: { randomEnemy: 1 }

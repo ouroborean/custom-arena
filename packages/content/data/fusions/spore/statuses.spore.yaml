@@ -65,8 +65,7 @@ humus_wall:
   stacking: unique
   shield: true
   description: >-
-    A Shield. At the end of each of its applier's later turns, it rots: it loses 10, and a random enemy
-    gains 1 Spore.
+    A Shield. At the end of each of its applier's later turns, it loses 10 and a random enemy gains 1 Spore.
   triggers:
     - on: turnEnd
       do:

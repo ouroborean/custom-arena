@@ -8,7 +8,7 @@ belching_toad:
       name: Belching Toad
       kind: Neutral
       element: Brimstone
-      description: At the end of its owner's turn, swallows a Debuff from a random ally and belches it onto a random enemy.
+      description: At the end of its owner's turn, moves a Debuff from a random ally onto a random enemy.
       triggers:
         - on: turnEnd
           do:

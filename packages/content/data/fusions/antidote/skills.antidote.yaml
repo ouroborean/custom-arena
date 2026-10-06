@@ -136,8 +136,8 @@ snipe.antidote:
   element: Antidote
   name: Long Diagnosis
   description: >-
-    In 3 turns, deals 20 damage to target enemy, plus 15 for each skill they used meanwhile (max 45 more): every
-    symptom they show sharpens the diagnosis. The target of this skill is invisible. Channeled.
+    In 3 turns, deals 20 damage to target enemy, plus 15 for each skill they used meanwhile (max 45 more). The
+    target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -559,8 +559,8 @@ smite.antidote:
   element: Antidote
   name: Theriac Brand
   description: >-
-    Deals 15 damage to target enemy and brands them for 1 turn: each ally of the user who damages them Purges one
-    of their own Debuffs onto them, or becomes Inoculated if they have none.
+    Deals 15 damage to target enemy. For 1 turn, each ally of the user who damages them Purges one of their own
+    Debuffs onto them, or becomes Inoculated if they have none.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]

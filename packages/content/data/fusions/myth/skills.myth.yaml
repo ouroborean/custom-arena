@@ -143,8 +143,8 @@ shot.myth:
   element: Myth
   name: Hurl the Stone
   description: >-
-    Deals 15 damage to target enemy, plus 5 per Legend the user has. Can instead target an allied
-    Boulder to shatter it into legend: the user gains 1 Legend per 15 HP it had (at most 3).
+    Deals 15 damage to target enemy, plus 5 per Legend the user has. Can instead target an allied Boulder:
+    it's destroyed, and the user gains 1 Legend per 15 HP it had (at most 3).
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -361,7 +361,7 @@ summon.myth:
   name: Trollkin
   description: >-
     Summons 2 Trolls (20 HP) for 3 turns. Club (r): 10 damage to target enemy. When a Troll dies or
-    expires, it turns to stone: an allied Boulder with 20 HP.
+    expires, an allied Boulder with 20 HP is created in its place.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -375,7 +375,7 @@ channel.myth:
   name: Awakening the Ancients
   description: >-
     For 3 turns, the user creates a Boulder at the end of each of their turns. When it ends, every allied
-    Boulder awakens as a Rime Giant (Frost Maul (nc): 15 damage). Channeled.
+    Boulder becomes a Rime Giant (Frost Maul (nc): 15 damage). Channeled.
   cost: Ir
   cooldown: 3
   tags: [Helpful, Strategic, Channeled]
@@ -390,7 +390,7 @@ channel.myth:
         kind: Neutral
         element: Myth
         interruptible: true
-        description: Each turn, a Boulder; when it ends, every allied Boulder awakens as a Rime Giant.
+        description: Each turn, a Boulder; when it ends, every allied Boulder becomes a Rime Giant.
         triggers:
           - on: turnEnd
             do:
@@ -465,7 +465,7 @@ mislead.myth:
         kind: Debuff
         element: Myth
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and their cooldowns freeze while they have a Frost debuff.
+        description: The bearer's next Harmful skill is countered, and their cooldowns don't tick down while they have a Frost debuff.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -607,8 +607,8 @@ curse.myth:
   element: Myth
   name: Kinslayer's Doom
   description: >-
-    Target enemy is Confused for 2 turns. If they die before it ends, the doom falls on their kin: every
-    ally of theirs is Confused for 2 turns.
+    Target enemy is Confused for 2 turns. If they die before it ends, every ally of theirs is Confused for
+    2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -682,7 +682,7 @@ prayer.myth:
             name: Song of the Saga
             kind: Buff
             element: Myth
-            description: +20 max HP while the singer stays Mythic.
+            description: +20 max HP while the applier stays Mythic.
             modifiers:
               - { mod: maxHp, amount: 20 }
 
@@ -691,8 +691,8 @@ cleave.myth:
   element: Myth
   name: Jotun Sweep
   description: >-
-    Deals 25 damage to target enemy. The sweep widens with the saga: 1 random other enemy per Legend
-    the user has takes 10. Mythic: every other enemy takes 10 and is Frostbitten for 1 turn.
+    Deals 25 damage to target enemy, and 1 random other enemy per Legend the user has takes 10. Mythic:
+    every other enemy takes 10 and is Frostbitten for 1 turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -725,7 +725,7 @@ cleave.myth:
                     name: Jotun Sweep
                     kind: Neutral
                     element: Myth
-                    description: Already reached by this sweep.
+                    description: Already hit by this skill.
         - { op: removeEffect, from: allEnemies, effect: jotun_swept }
 
 shout.myth:
@@ -758,9 +758,8 @@ withstand.myth:
   element: Myth
   name: Frozen Rampart
   description: >-
-    The user raises a rampart: they create a Boulder (25 HP), and until their next turn, while they have an
-    allied minion, each direct hit on them is split: they take half, and a random allied minion takes the
-    other half.
+    The user creates a Boulder (25 HP), and until their next turn, while they have an allied minion, each
+    direct hit on them is split: they take half, and a random allied minion takes the other half.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -802,8 +801,8 @@ taunt.myth:
   element: Myth
   name: Old Feud
   description: >-
-    Target enemy is Taunted until the user next becomes Mythic (at most 4 turns); if that ends it, the
-    feud is settled and they take 25 damage. If the user is already Mythic, the Taunt lasts 2 turns.
+    Target enemy is Taunted until the user next becomes Mythic (at most 4 turns); if it ends that way, they
+    take 25 damage. If the user is already Mythic, the Taunt lasts 2 turns.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -832,7 +831,7 @@ taunt.myth:
             name: Old Feud
             kind: Neutral
             element: Myth
-            description: When the bearer becomes Mythic, their feud is settled; the foe's Taunt ends and they take 25 damage.
+            description: When the bearer becomes Mythic, the enemy they Taunted with Old Feud is no longer Taunted and takes 25 damage.
             triggers:
               - on: effectGained
                 when: { effects: [mythic] }

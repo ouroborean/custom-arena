@@ -29,7 +29,7 @@ vanished:
   kind: Neutral
   element: Ghost
   stacking: unique
-  description: Gone from the field; returns at the start of the bearer's next turn with 30 HP.
+  description: Can't be targeted or damaged; returns at the start of the bearer's next turn with 30 HP.
   modifiers:
     - { mod: untargetable, by: enemies, bypassable: false }
     - { mod: untargetable, by: allies, bypassable: false }
@@ -58,8 +58,8 @@ beckoner:
   stacking: unique
   countsAs: [taunt]
   description: >-
-    Taunted by the one who sent it. At the end of each of their later turns, it drifts to a random ally
-    of the bearer.
+    Taunted by the applier. At the end of each of the applier's later turns, it moves to a random
+    ally of the bearer.
   modifiers:
     - { mod: forceTarget }
   triggers:

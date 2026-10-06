@@ -118,8 +118,8 @@ shot.assassin:
   element: Assassin
   name: Blowdart
   description: >-
-    Deals 5 Piercing damage to target enemy and slips them a hidden dose: at the end of their next turn,
-    it takes hold for 15 Affliction damage.
+    Deals 5 Piercing damage to target enemy. A hidden effect deals them 15 Affliction damage at the end of their
+    next turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -248,8 +248,8 @@ bolt.assassin:
   element: Assassin
   name: Whispered Names
   description: >-
-    Deals 20 damage to target enemy and Marks them for 2 turns. When the Mark is spent, the name is passed on: a
-    random other enemy is Marked for 1 turn, up to 3 times.
+    Deals 20 damage to target enemy and Marks them for 2 turns. When the Mark is spent, a random other enemy is
+    Marked for 1 turn, up to 3 times.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -372,8 +372,8 @@ ravage.assassin:
   element: Assassin
   name: Unseen Knife
   description: >-
-    Deals 25 Piercing damage to target enemy. Against a Blinded or Sleeping target, the user slips into Stealth
-    for 1 turn.
+    Deals 25 Piercing damage to target enemy. Against a Blinded or Sleeping target, the user gains Stealth for 1
+    turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -423,8 +423,8 @@ stun.assassin:
   element: Assassin
   name: Knockout Poison
   description: >-
-    Target enemy gains 2 Toxin, then the draught takes hold all at once: they lose all their Toxin,
-    take 10 Affliction damage per stack lost (at most 30), and are Stunned for 1 turn.
+    Target enemy gains 2 Toxin, then loses all their Toxin, takes 10 Affliction damage per stack lost (at most 30),
+    and is Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -473,8 +473,8 @@ heal.assassin:
   element: Assassin
   name: Blood Debt
   description: >-
-    Target ally heals 20, and the enemy who damaged them most recently owes them blood: the next time
-    that enemy takes a direct hit from the user's side within 2 turns, the ally heals 20 more.
+    Target ally heals 20. The next time the enemy who damaged them most recently takes a direct hit from the user's
+    side within 2 turns, the ally heals 20 more.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -583,8 +583,8 @@ cleave.assassin:
   element: Assassin
   name: Fan of Knives
   description: >-
-    Deals 20 damage to target enemy and 10 to a random other enemy; the second knife always finds your Death
-    Mark's bearer if it's out. Stealthy.
+    Deals 20 damage to target enemy and 10 to a random other enemy, who is always your Death Mark's bearer if it's
+    out. Stealthy.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic, Stealthy]
@@ -603,8 +603,7 @@ shout.assassin:
   element: Assassin
   name: Pick the Target
   description: >-
-    All enemies are Isolated for 1 turn, cut off from each other's help, and the one with the least HP
-    gains your Death Mark.
+    All enemies are Isolated for 1 turn, and the one with the least HP gains your Death Mark.
   cost: Wr
   cooldown: 3
   tags: [Harmful, Strategic]

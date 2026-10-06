@@ -22,8 +22,8 @@ smash.ninja:
   element: Ninja
   name: Whirlwind of Blades
   description: >-
-    Deals 20 damage to target enemy and 10 to the others. If the user has 3 Clones, they're thrown: each is
-    destroyed and deals 10 to a random enemy; otherwise the user creates a Clone.
+    Deals 20 damage to target enemy and 10 to the others. If the user has 3 Clones, each is destroyed and deals
+    10 damage to a random enemy; otherwise the user creates a Clone.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -47,7 +47,7 @@ charge.ninja:
   element: Ninja
   name: Blur
   description: >-
-    The user creates a Clone and blurs among their Clones: their next Harmful skill Flurries twice.
+    The user creates a Clone, and their next Harmful skill Flurries twice.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -70,8 +70,8 @@ riposte.ninja:
   element: Ninja
   name: Log Trick
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user; the user creates a Clone, then every Clone
-    strikes its user for 10 Piercing. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user; the user creates a Clone, then that skill's
+    user takes 10 Piercing damage per Clone the user has. Invisible.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -86,7 +86,7 @@ riposte.ninja:
         kind: Buff
         element: Ninja
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer, and the Clones strike back.
+        description: Counters the first Harmful skill used on the bearer; the bearer creates a Clone, then that skill's user takes 10 Piercing damage per Clone.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -194,7 +194,7 @@ trap.ninja:
         kind: Debuff
         element: Ninja
         visibility: hidden
-        description: Each Buff the bearer gains burns them for 10 and lasts 1 turn less.
+        description: Each Buff the bearer gains deals them 10 Piercing damage and lasts 1 turn less.
         triggers:
           - on: effectGained
             when: { kind: Buff }
@@ -287,8 +287,8 @@ consume.ninja:
   element: Ninja
   name: Steal Sight
   description: >-
-    Deals 5 damage to target enemy, healing the user for it; then the user absorbs their Clones, healing 10 per
-    Clone, or creates one if they have none.
+    Deals 5 damage to target enemy, healing the user for it; then the user destroys all their Clones, healing 10
+    per Clone, or creates one if they have none.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -353,9 +353,8 @@ stab.ninja:
   element: Ninja
   name: Second Draw
   description: >-
-    Deals 5 damage to target enemy, and a Clone slips into their blind spot (a new one, unless the user
-    already has 3): if it's still standing at the start of the user's next turn, it stabs them for 15
-    and is destroyed.
+    Deals 5 damage to target enemy, and a Clone is set on them (a new one, unless the user already has 3): if
+    it's still alive at the start of the user's next turn, it deals them 15 damage and is destroyed.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -376,7 +375,7 @@ stab.ninja:
             name: Blind Spot
             kind: Neutral
             element: Ninja
-            description: At the start of its Ninja's next turn, it stabs the enemy it waits behind for 15 and is destroyed.
+            description: At the start of its owner's next turn, the bearer deals 15 damage to the enemy it was set on and is destroyed.
             onExpire:
               - { op: damage, to: effectTargets, amount: 15 }
               - { op: kill, to: bearer }
@@ -391,8 +390,8 @@ ravage.ninja:
   element: Ninja
   name: Quickdraw
   description: >-
-    The user waits for an opening. For 1 turn, the first time target enemy uses a skill, they're cut for 30
-    Piercing damage before it takes effect; if they use none, the cut lands as the turn ends, for 20.
+    For 1 turn, the first time target enemy uses a skill, they take 30 Piercing damage before it takes effect;
+    if they use none, they take 20 Piercing damage as the turn ends.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -406,7 +405,7 @@ ravage.ninja:
         name: Quickdraw
         kind: Debuff
         element: Ninja
-        description: The bearer's next skill draws a 30 Piercing cut first; if they use none, 20 as it ends.
+        description: The bearer's next skill deals them 30 Piercing damage first; if they use none, 20 when this ends.
         triggers:
           - on: skillUsed
             consume: true
@@ -420,8 +419,8 @@ mislead.ninja:
   element: Ninja
   name: Feint
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user Leaps. If they don't, the
-    feint is read: the user is Marked for 1 turn. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user Leaps. If they don't, the user
+    is Marked for 1 turn. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -436,7 +435,7 @@ mislead.ninja:
         kind: Debuff
         element: Ninja
         visibility: hidden
-        description: The bearer's next Harmful skill is countered and the applier Leaps; unbitten, the applier is Marked.
+        description: The bearer's next Harmful skill is countered and the applier Leaps; if they use none, the applier is Marked.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -455,8 +454,7 @@ stun.ninja:
   element: Ninja
   name: Pressure Point
   description: >-
-    Deals 10 damage to target enemy and presses a pressure point. At the end of their next turn it seizes:
-    they're Stunned for 1 turn.
+    Deals 10 damage to target enemy. At the end of their next turn, they're Stunned for 1 turn.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -530,7 +528,7 @@ heal.ninja:
         name: Field Dressing
         kind: Neutral
         element: Ninja
-        description: When the dressed ally wakes, they begin Rushing with 1 Swiftness.
+        description: When the bearer wakes, they begin Rushing with 1 Swiftness.
         triggers:
           - on: ownEffectEnded
             when: { effects: [sleep] }
@@ -563,8 +561,7 @@ curse.ninja:
   element: Ninja
   name: Haunting Shadows
   description: >-
-    The user creates a Clone. For 2 turns, target enemy is haunted by the user's Clones: each skill they
-    use draws a Flurry on them.
+    The user creates a Clone. For 2 turns, each skill target enemy uses draws a Flurry on them.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -630,7 +627,7 @@ prayer.ninja:
         name: Scatter
         kind: Buff
         element: Ninja
-        description: Targeted by an enemy skill, the bearer slips into Stealth.
+        description: When targeted by an enemy skill, the bearer gains Stealth.
         triggers:
           - on: skillTargeted
             when: { side: enemy }
@@ -643,8 +640,8 @@ cleave.ninja:
   element: Ninja
   name: Shadow Whirl
   description: >-
-    The user creates a Clone and whirls: 10 damage to target enemy, and this skill's Flurry hits every
-    enemy, not just them. Stealthy.
+    The user creates a Clone. Deals 10 damage to target enemy, and this skill's Flurry hits every enemy, not
+    just them. Stealthy.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic, Stealthy]
@@ -659,8 +656,8 @@ shout.ninja:
   element: Ninja
   name: Smoke Bomb
   description: >-
-    All enemies are Intimidated for 2 turns. Then smoke fills the field: every character on both sides, the user
-    included, gains Stealth for 2 turns.
+    All enemies are Intimidated for 2 turns. Then every character on both sides, the user included, gains
+    Stealth for 2 turns.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -674,7 +671,7 @@ withstand.ninja:
   element: Ninja
   name: Shadow Guard
   description: >-
-    The user creates a Clone, then each of their Clones gains 20 Shield for 1 turn: the decoys hold up.
+    The user creates a Clone, then each of their Clones gains 20 Shield for 1 turn.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -688,8 +685,8 @@ taunt.ninja:
   element: Ninja
   name: Mocking Shadows
   description: >-
-    The user steps out from among their Clones: every Clone on their side is destroyed, and target enemy is
-    Taunted by the user for 1 turn, plus 1 turn per Clone destroyed (up to 3 turns).
+    Every Clone on the user's side is destroyed, and target enemy is Taunted by the user for 1 turn, plus 1 turn
+    per Clone destroyed (up to 3 turns).
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -759,7 +756,7 @@ ninken_track:
   archetype: Minion
   element: Ninja
   name: Track
-  description: The hound sniffs out every enemy, Stealthed or not; they lose Stealth and can't gain it for 1 turn.
+  description: Every enemy, Stealthed or not, loses Stealth and can't gain it for 1 turn.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]

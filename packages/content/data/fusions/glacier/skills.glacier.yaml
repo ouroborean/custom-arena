@@ -78,7 +78,9 @@ riposte.glacier:
         kind: Buff
         element: Glacier
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer, and gains Meltwater by its cooldown.
+        description: >-
+          Counters the first Harmful skill used on the bearer; they gain Meltwater for 1 turn per
+          turn of that skill's cooldown (max 3).
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -116,7 +118,7 @@ rage.glacier:
         name: Spring Thaw
         kind: Buff
         element: Glacier
-        description: Each skill Meltwater frees gives 1 Might until this ends.
+        description: Each time Meltwater brings one of the bearer's skills off cooldown, they gain 1 Might until this ends.
         triggers:
           - on: turnStart
             do:
@@ -169,7 +171,7 @@ snipe.glacier:
             element: Glacier
             visibility: hiddenTarget
             interruptible: true
-            description: Strikes its target at the end of the following turn unless interrupted.
+            description: At the end of the following turn, deals 50 Piercing damage to its target unless interrupted.
             onExpire:
               - { op: damage, to: effectTargets, amount: 50, type: Piercing }
 
@@ -194,7 +196,7 @@ trap.glacier:
         kind: Debuff
         element: Glacier
         visibility: hidden
-        description: The bearer's next Harmful skill Icebinds them and lengthens their cooldowns.
+        description: When the bearer next uses a Harmful skill, they're Icebound for 2 turns and their cooldowns rise by 1.
         triggers:
           - on: skillResolved
             when: { harmful: true }
@@ -238,8 +240,8 @@ bolt.glacier:
   element: Glacier
   name: Stolen Season
   description: >-
-    Deals 20 damage to target enemy and steals a turn of thaw: a random skill of theirs still on cooldown gains 1
-    turn, and a random other skill of the user's still on cooldown loses 1.
+    Deals 20 damage to target enemy. A random skill of theirs still on cooldown gains 1 turn of
+    cooldown, and a random other skill of the user's still on cooldown loses 1.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -254,8 +256,8 @@ blast.glacier:
   element: Glacier
   name: Thawburst
   description: >-
-    Deals 25 damage to all enemies. Every Frost debuff on them thaws: it's removed, and a random ally of
-    the user gains 2 Renew for each.
+    Deals 25 damage to all enemies. Every Frost debuff on them is removed, and a random ally of the
+    user gains 2 Renew for each.
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -333,7 +335,9 @@ channel.glacier:
         kind: Neutral
         element: Glacier
         interruptible: true
-        description: Each turn, 10 damage and Icebound on the target; the bearer's cooldowns are frozen too.
+        description: >-
+          At the end of each of the bearer's turns, deals 10 damage to the target, who is Icebound
+          for 1 turn. The bearer's cooldowns don't tick down.
         modifiers:
           - { mod: freezeCooldowns }
         triggers:
@@ -347,8 +351,8 @@ stab.glacier:
   element: Glacier
   name: Hoarfrost Pick
   description: >-
-    Deals 20 damage to target enemy, paid for in time: a random other skill of the user's still on cooldown
-    gains 1 turn. If none is, the frost settles on the pick instead: it goes on cooldown for 1 turn.
+    Deals 20 damage to target enemy. A random other skill of the user's still on cooldown gains 1
+    turn of cooldown. If none is on cooldown, this skill goes on cooldown for 1 turn instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -368,8 +372,8 @@ ravage.glacier:
   element: Glacier
   name: Scouring Melt
   description: >-
-    Deals 25 Piercing damage to target enemy, +10 per Confusion they have (max 3). Then their Confusion
-    is washed away.
+    Deals 25 Piercing damage to target enemy, +10 per Confusion they have (max 3). Then they lose
+    all their Confusion.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -393,9 +397,8 @@ mislead.glacier:
   element: Glacier
   name: Thin Ice
   description: >-
-    The user freezes over to wait: they're Icebound for up to 3 turns. Meanwhile, the first Harmful skill
-    target enemy uses breaks through the ice and is countered, and the user thaws: their Icebound ends,
-    and they gain Meltwater for 1 turn. Invisible.
+    The user is Icebound for up to 3 turns. Meanwhile, the first Harmful skill target enemy uses is
+    countered, the user's Icebound ends, and they gain Meltwater for 1 turn. Invisible.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -412,7 +415,9 @@ mislead.glacier:
         kind: Debuff
         element: Glacier
         visibility: hidden
-        description: The bearer's first Harmful skill is countered, and the user thaws out.
+        description: >-
+          The bearer's first Harmful skill is countered, and the applier's Icebound ends and they
+          gain Meltwater for 1 turn.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -427,8 +432,8 @@ stun.glacier:
   element: Glacier
   name: Pack Ice
   description: >-
-    Deals 10 damage to target enemy and Stuns them for 2 turns. The ice locks the user in too: they're Icebound
-    for as long.
+    Deals 10 damage to target enemy and Stuns them for 2 turns. The user is also Icebound for as
+    long.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -571,8 +576,8 @@ cleave.glacier:
   element: Glacier
   name: Calving
   description: >-
-    Deals 25 damage to target enemy. The calved slab drifts on: the next of their allies to use a skill before
-    the user's next turn takes 20 damage.
+    Deals 25 damage to target enemy. The next of their allies to use a skill before the user's next
+    turn takes 20 damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -587,7 +592,7 @@ cleave.glacier:
         name: Calved Slab
         kind: Debuff
         element: Glacier
-        description: The first of these to use a skill takes 20 damage, and the slab is gone.
+        description: The first of these to use a skill takes 20 damage, and this ends on all of them.
         triggers:
           - on: skillUsed
             consume: true
@@ -600,8 +605,8 @@ shout.glacier:
   element: Glacier
   name: Floe Horn
   description: >-
-    For 2 turns, the floes grind in on every enemy: at the end of each of the user's turns, each enemy takes 5
-    damage for each of their skills on cooldown (max 15).
+    For 2 turns, at the end of each of the user's turns, each enemy takes 5 damage for each of their
+    skills on cooldown (max 15).
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -615,7 +620,9 @@ shout.glacier:
         name: Floe Horn
         kind: Debuff
         element: Glacier
-        description: At the end of each of the applier's turns, 5 damage per skill of the bearer's on cooldown (max 15).
+        description: >-
+          At the end of each of the applier's turns, the bearer takes 5 damage per skill of theirs
+          on cooldown (max 15).
         triggers:
           - on: turnEnd
             do:
@@ -669,7 +676,7 @@ taunt.glacier:
         name: Rime Glare
         kind: Debuff
         element: Glacier
-        description: The Taunt breaks when the bearer takes direct damage.
+        description: The Taunt ends when the bearer takes direct damage.
         triggers:
           - on: damaged
             when: { direct: true }

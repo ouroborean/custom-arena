@@ -20,8 +20,8 @@ smash.nomad:
   element: Nomad
   name: Dune Crash
   description: >-
-    Deals 20 damage to target enemy and 10 to their allies. At 3 Trek, each one hit is also buried: they lose
-    their mobility buffs and are Isolated for 1 turn.
+    Deals 20 damage to target enemy and 10 to their allies. At 3 Trek, each enemy hit also loses their mobility
+    buffs and is Isolated for 1 turn.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -42,8 +42,8 @@ charge.nomad:
   element: Nomad
   name: Break Camp
   description: >-
-    The user begins Rushing. If they have an allied Boulder or Seedling, they pack one up: it's removed, and
-    they gain 2 Trek.
+    The user begins Rushing. If they have an allied Boulder or Seedling, one of them is removed, and the user
+    gains 2 Trek.
   cost: nc
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -163,9 +163,8 @@ snipe.nomad:
   element: Nomad
   name: Haboob
   description: >-
-    On the following turn, a haboob wanders the enemy team: it strikes a random enemy 3 times, for 20, 25,
-    then 30 Piercing damage, never the same enemy twice in a row; with no other enemy left to reach, it dies
-    out. Channeled.
+    On the following turn, deals 20, then 25, then 30 Piercing damage, each time to a random enemy, never the
+    same enemy twice in a row; once there's no other enemy left to hit, it stops. Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -205,9 +204,8 @@ trap.nomad:
   element: Nomad
   name: Sinking Sands
   description: >-
-    For 3 turns, target enemy stands on sinking sands: if they use the same skill on two of their turns in a
-    row, they sink at the end of the user's next turn, taking 25 damage and being Stunned for 1 turn.
-    Invisible.
+    For 3 turns, if target enemy uses the same skill on two of their turns in a row, at the end of the user's
+    next turn they take 25 damage and are Stunned for 1 turn. Invisible.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -224,7 +222,9 @@ trap.nomad:
         element: Nomad
         visibility: hidden
         countsAs: [trap]
-        description: If the bearer uses the same skill on two of their turns in a row, they sink.
+        description: >-
+          If the bearer uses the same skill on two of their turns in a row, at the end of the applier's next
+          turn they take 25 damage and are Stunned for 1 turn.
         triggers:
           # Checked at the end of each of the applier's turns, looking back at the bearer's last turn.
           - on: turnEnd
@@ -255,8 +255,8 @@ maneuver.nomad:
   element: Nomad
   name: Dune Leap
   description: >-
-    The user boosts the other ally with the least HP up the dune: that ally Leaps, and the user's Trek rises
-    by 1. With no other ally to boost, the user Leaps instead.
+    The user's other ally with the least HP Leaps, and the user's Trek rises by 1. With no other ally, the user
+    Leaps instead.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -289,8 +289,8 @@ bolt.nomad:
   element: Nomad
   name: Tent Stake
   description: >-
-    Deals 20 damage to target enemy and pins them to the ground for 2 turns: they lose all their mobility
-    buffs, can't gain any, and are Immobile.
+    Deals 20 damage to target enemy. For 2 turns, they lose all their mobility buffs, can't gain any, and are
+    Immobile.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -344,8 +344,8 @@ consume.nomad:
   element: Nomad
   name: Road Toll
   description: >-
-    Deals 10 damage to target enemy and sets a toll on them: the first skill they use before the user's next
-    turn costs 1 more random energy, and the user heals 20 when they pay it.
+    Deals 10 damage to target enemy. The first skill they use before the user's next turn costs 1 more random
+    energy, and the user heals 20 when they use it.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -426,7 +426,7 @@ stab.nomad:
   name: Traveler's Knife
   description: >-
     Deals 10 damage to target enemy, 15 if the user also used it on their last turn, and 20 if on their last
-    two. The user digs in: repeating it breaks their stride.
+    two. Repeating it resets the user's Trek.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -468,8 +468,8 @@ mislead.nomad:
   element: Nomad
   name: Mirage
   description: >-
-    For 4 turns, target enemy's Harmful skills flicker: the next one is countered, the one after lands, the one
-    after that is countered, and so on. Invisible.
+    For 4 turns, target enemy's next Harmful skill is countered, the one after lands, the one after that is
+    countered, and so on. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -482,8 +482,8 @@ stun.nomad:
   element: Nomad
   name: Grit in the Eyes
   description: >-
-    Deals 10 damage to target enemy and Stuns them for 2 turns; the grit washes out as soon as an enemy
-    damages the user.
+    Deals 10 damage to target enemy and Stuns them for 2 turns; the Stun ends as soon as an enemy damages the
+    user.
   cost: A
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -511,7 +511,7 @@ stun.nomad:
         name: Grit in the Eyes
         kind: Neutral
         element: Nomad
-        description: If an enemy damages the bearer, the grit in their target's eyes washes out.
+        description: If an enemy damages the bearer, the Stun on their target ends.
         triggers:
           - on: damaged
             when: { byEnemy: true }
@@ -594,7 +594,7 @@ bless.nomad:
         name: Cairn Blessing
         kind: Buff
         element: Nomad
-        description: Each mobility skill the bearer uses raises a Boulder for the applier.
+        description: Each mobility skill the bearer uses creates a Boulder for the applier.
         triggers:
           - on: skillUsed
             when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
@@ -606,8 +606,8 @@ curse.nomad:
   element: Nomad
   name: Dust in the Wind
   description: >-
-    Target enemy gains 1 Confusion for 2 turns. If the user has an allied Boulder, they crumble it into the
-    wind and vault off it: the target gains 1 more Confusion, and the user Leaps.
+    Target enemy gains 1 Confusion for 2 turns. If the user has an allied Boulder, it's removed, the target
+    gains 1 more Confusion, and the user Leaps.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -659,8 +659,8 @@ prayer.nomad:
   element: Nomad
   name: Campfire Song
   description: >-
-    All allies heal 15 and gain 10 Shield for 1 turn. The user makes camp: their Trek resets, and allies heal 10
-    more per Trek it had.
+    All allies heal 15 and gain 10 Shield for 1 turn. The user's Trek resets, and allies heal 10 more per Trek
+    it had.
   cost: Wrr
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -676,8 +676,8 @@ cleave.nomad:
   element: Nomad
   name: Sweeping Sands
   description: >-
-    Deals 20 damage to target enemy and buries a random other enemy in sand for up to 3 turns: the next time
-    the user's Trek resets, the sand collapses on them for 30 damage.
+    Deals 20 damage to target enemy. For up to 3 turns, the next time the user's Trek resets, a random other
+    enemy takes 30 damage.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -692,7 +692,7 @@ cleave.nomad:
         name: Buried in Sand
         kind: Debuff
         element: Nomad
-        description: When the applier's Trek next resets, the sand collapses on the bearer for 30 damage.
+        description: When the applier's Trek next resets, the bearer takes 30 damage.
         triggers:
           - on: signal
             signal: trek_reset
@@ -709,8 +709,7 @@ shout.nomad:
   element: Nomad
   name: Call of the Caravan
   description: >-
-    For 2 turns, all enemies are left in the caravan's dust: their direct damage to anyone on the move, with
-    Trek or a mobility buff, is 10 lower.
+    For 2 turns, all enemies deal 10 less direct damage to units with Trek or a mobility buff.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -754,7 +753,7 @@ taunt.nomad:
   name: Challenge in the Sand
   description: >-
     Target enemy is Taunted by the user for up to 2 turns. The first time they damage the user, the Taunt ends
-    and the user Leaps away.
+    and the user Leaps.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]

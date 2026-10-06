@@ -7,8 +7,8 @@ strike.dimension:
   element: Dimension
   name: Folded Moment
   description: >-
-    Deals 10 damage to target enemy. Time folds: this doesn't use up the user's turn, so they can use
-    another skill this turn.
+    Deals 10 damage to target enemy. This doesn't use up the user's turn, so they can use another
+    skill this turn.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic, FreeAction]
@@ -232,8 +232,7 @@ bolt.dimension:
   element: Dimension
   name: Dark Matter
   description: >-
-    Deals 30 damage to target enemy, but the dark matter swallows the light around the user too: they're
-    Blinded for 1 turn.
+    Deals 30 damage to target enemy, and the user is Blinded for 1 turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -318,8 +317,8 @@ stab.dimension:
   element: Dimension
   name: Unwatched Knife
   description: >-
-    Deals 10 damage to target enemy and leaves a cut in them until the end of the user's next turn. If the
-    user knifes a different enemy meanwhile, the old cut opens through the fold: its bearer takes 10 too.
+    Deals 10 damage to target enemy, who gains Open Cut until the end of the user's next turn. If the user
+    uses this skill on a different enemy meanwhile, the enemy with Open Cut takes 10 damage too.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -338,7 +337,7 @@ stab.dimension:
         name: Open Cut
         kind: Debuff
         element: Dimension
-        description: If the applier knifes a different enemy with Unwatched Knife, this cut opens for 10 damage.
+        description: If the applier uses Unwatched Knife on a different enemy, the bearer takes 10 damage.
 
 ravage.dimension:
   archetype: Ravage
@@ -389,7 +388,7 @@ stun.dimension:
   element: Dimension
   name: Phase Lock
   description: >-
-    Target enemy is Banished. When they return, they're out of phase with the world: Blinded for 1 turn.
+    Target enemy is Banished. When they return, they're Blinded for 1 turn.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -475,8 +474,7 @@ bless.dimension:
   element: Dimension
   name: Out of Phase
   description: >-
-    Target ally gains 2 Might for 2 turns, but they're out of phase with their own side meanwhile:
-    Isolated.
+    Target ally gains 2 Might for 2 turns, but they're Isolated for as long.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -555,8 +553,8 @@ cleave.dimension:
   element: Dimension
   name: Shear
   description: >-
-    Deals 20 damage to target enemy. The other half of the cut hangs in the fold: the first of their allies
-    to use a skill before the user's next turn takes 15.
+    Deals 20 damage to target enemy. The first of their allies to use a skill before the user's next turn
+    takes 15 damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -571,7 +569,7 @@ cleave.dimension:
         name: Shear
         kind: Debuff
         element: Dimension
-        description: The first of the cut enemy's allies to use a skill takes 15; then the hanging half is gone.
+        description: The first enemy with Shear to use a skill takes 15 damage; then it ends on all of them.
         triggers:
           - on: skillUsed
             do:
@@ -597,8 +595,8 @@ withstand.dimension:
   element: Dimension
   name: Pocket Ward
   description: >-
-    The user gains 25 Shield for 1 turn. Damage it absorbs is folded across: the ally with the least
-    HP gains that much Shield for 1 turn.
+    The user gains 25 Shield for 1 turn. Whenever it absorbs damage, the ally with the least HP
+    gains that much Shield for 1 turn.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -626,7 +624,7 @@ taunt.dimension:
   name: Pocket Arena
   description: >-
     Target enemy is Taunted by the user for 1 turn, and every other unit on both sides, minions
-    included, is Banished: the two fight alone.
+    included, is Banished.
   cost: r
   cooldown: 4
   tags: [Harmful, Strategic]

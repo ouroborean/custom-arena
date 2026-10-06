@@ -28,8 +28,8 @@ smash.ghost:
   element: Ghost
   name: Poltergeist Crash
   description: >-
-    Deals 20 damage to target enemy and 10 to their allies, and the target is Haunted for 2 turns. If they
-    already were, the Haunt splits: a second one lands on a random ally of theirs.
+    Deals 20 damage to target enemy and 10 to their allies, and the target is Haunted for 2 turns.
+    If they already were, a random ally of theirs is also Haunted for 2 turns.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -89,7 +89,7 @@ riposte.ghost:
         kind: Buff
         element: Ghost
         visibility: hidden
-        description: The first enemy to strike the bearer is hurt in return.
+        description: The first enemy to use a Harmful skill on the bearer takes 15 Affliction damage.
         triggers:
           - on: skillTargeted
             when: { harmful: true, side: enemy }
@@ -168,7 +168,7 @@ shot.ghost:
         name: Phantom Pain
         kind: Debuff
         element: Ghost
-        description: Direct damage to the bearer also hurts the haunted one.
+        description: Each time the bearer takes direct damage, the target of Phantom Pain takes 5 Affliction damage.
         triggers:
           - on: damaged
             when: { direct: true }
@@ -198,7 +198,7 @@ snipe.ghost:
         element: Ghost
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn.
+        description: At the end of the following turn, deals 35 Piercing damage to its target.
         onExpire:
           - { op: damage, to: effectTargets, amount: 35, type: Piercing }
     - { op: apply, to: actor, effect: spectral, duration: { enemyTurns: 1 }, linkTo: grave_omen }
@@ -224,7 +224,7 @@ trap.ghost:
         kind: Debuff
         element: Ghost
         visibility: hidden
-        description: The bearer's first Buff is torn away, and they're Haunted.
+        description: The bearer's first Buff is removed, and they're Haunted for 3 turns.
         triggers:
           - on: effectGained
             when: { kind: Buff }
@@ -279,8 +279,8 @@ bolt.ghost:
   element: Ghost
   name: Reaping Bolt
   description: >-
-    Deals 20 damage to target enemy, who is Haunted for 1 turn. If that Haunt drifts off them, it carries
-    a piece of their soul back: the user drains a Soul Fragment from them.
+    Deals 20 damage to target enemy, who is Haunted for 1 turn. If that Haunt drifts off them, the
+    user drains a Soul Fragment from them.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -333,8 +333,8 @@ consume.ghost:
   element: Ghost
   name: Steal Breath
   description: >-
-    Deals 5 damage to target enemy, who is Haunted for 2 turns; that Haunt's damage heals the user wherever it
-    drifts.
+    Deals 5 damage to target enemy, who is Haunted for 2 turns. Each time that Haunt deals damage,
+    on them or whoever it drifts to, the user heals as much.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -350,7 +350,7 @@ consume.ghost:
         kind: Debuff
         element: Ghost
         countsAs: [haunt]
-        description: A Haunt whose damage heals the one who sent it.
+        description: A Haunt whose damage heals its applier.
         triggers:
           - on: turnEnd
             do:
@@ -377,9 +377,9 @@ channel.ghost:
   element: Ghost
   name: Restless Dead
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, a restless spirit wails through the enemy
-    team: 15 Affliction damage to a random enemy it hasn't struck yet (any, once it has struck them all),
-    who is Horrified for 1 turn. Channeled.
+    For up to 3 turns, at the end of each of the user's turns, a random enemy not yet hit by this
+    skill (any enemy, once all have been hit) takes 15 Affliction damage and is Horrified for 1
+    turn. Channeled.
   cost: AS
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -394,7 +394,9 @@ channel.ghost:
         kind: Neutral
         element: Ghost
         interruptible: true
-        description: Each turn, 15 Affliction and Horrified on an enemy the spirit hasn't struck yet.
+        description: >-
+          At the end of each of the user's turns, an enemy not yet hit by this takes 15 Affliction
+          damage and is Horrified for 1 turn.
         triggers:
           - on: turnEnd
             do:
@@ -417,15 +419,13 @@ channel.ghost:
                       name: Struck by the Restless Dead
                       kind: Neutral
                       element: Ghost
-                      description: The restless spirit seeks out someone else first.
+                      description: Restless Dead hits enemies without this first.
 
 stab.ghost:
   archetype: Stab
   element: Ghost
   name: Through the Veil
-  description: >-
-    Deals 10 damage to target enemy, and the blade passes on through them: 10 damage to a random ally of
-    theirs.
+  description: Deals 10 damage to target enemy and 10 damage to a random ally of theirs.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -466,8 +466,8 @@ mislead.ghost:
   element: Ghost
   name: Night Terror
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, all its targets are Spectral against it, so its Normal
-    damage passes through them; its user is then Horrified for 2 turns. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, all its targets are Spectral against it,
+    taking no Normal damage from it; its user is then Horrified for 2 turns. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -482,7 +482,9 @@ mislead.ghost:
         kind: Debuff
         element: Ghost
         visibility: hidden
-        description: The bearer's next Harmful skill passes through its targets, and they're Horrified.
+        description: >-
+          The bearer's next Harmful skill deals no Normal damage to its targets, and the bearer is
+          then Horrified for 2 turns.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -580,7 +582,7 @@ bless.ghost:
         name: Spirit Form
         kind: Buff
         element: Ghost
-        description: Each Harmful skill an enemy uses on the bearer feeds the applier a Soul Fragment.
+        description: Each Harmful skill an enemy uses on the bearer gives the applier a Soul Fragment.
         triggers:
           - on: skillTargeted
             when: { harmful: true, side: enemy }
@@ -634,7 +636,7 @@ prayer.ghost:
   archetype: Prayer
   element: Ghost
   name: Dirge of Spirits
-  description: All allies heal 20. For 2 turns, each ally's Swiftness also shrugs off a Taunt, spending 1 stack.
+  description: All allies heal 20. For 2 turns, each ally's Swiftness also negates a Taunt, spending 1 stack.
   cost: Arr
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -650,7 +652,7 @@ prayer.ghost:
         name: Dirge of Spirits
         kind: Buff
         element: Ghost
-        description: Swiftness shrugs off Taunts too, 1 stack each.
+        description: Swiftness also negates Taunts, 1 stack each.
         modifiers:
           - { mod: negateNext, effect: taunt, if: { has: { unit: actor, effect: swiftness } } }
         triggers:
@@ -663,8 +665,8 @@ cleave.ghost:
   element: Ghost
   name: Phantom Sweep
   description: >-
-    Deals 20 damage to target enemy and leaves a phantom blade in them for 2 turns. At the end of each
-    of the user's turns, it drifts to a random ally of whoever carries it and cuts them for 15.
+    Deals 20 damage to target enemy and gives them Phantom Blade for 2 turns. At the end of each of
+    the user's turns, it moves to a random ally of its bearer, who takes 15 damage.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -680,8 +682,8 @@ cleave.ghost:
         kind: Debuff
         element: Ghost
         description: >-
-          At the end of each of its sender's turns, it drifts to a random ally of the bearer and cuts them
-          for 15.
+          At the end of each of its applier's turns, it moves to a random ally of the bearer, who
+          takes 15 damage.
         triggers:
           - on: turnEnd
             do:
@@ -696,8 +698,8 @@ shout.ghost:
   element: Ghost
   name: Keening
   description: >-
-    Every enemy is Haunted for 1 turn, so crowded with spirits that no Haunt can drift. Each one who was
-    already Haunted is also Intimidated for 2 turns.
+    Every enemy is Haunted for 1 turn, so no Haunt can drift. Each one who was already Haunted is
+    also Intimidated for 2 turns.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -753,8 +755,8 @@ taunt.ghost:
   element: Ghost
   name: Beckoning Spirit
   description: >-
-    For 3 turns, a beckoning spirit Taunts one enemy at a time toward the user: target enemy first, and at
-    the end of each of the user's later turns, it drifts to a random ally of theirs.
+    For 3 turns, one enemy at a time is Taunted by the user: target enemy first, and at the end of
+    each of the user's later turns, the Taunt moves to a random ally of theirs.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -768,9 +770,9 @@ titan.ghost:
   element: Ghost
   name: Second Haunting
   description: >-
-    For 3 turns, the user is Spectral, but Piercing and Affliction damage hurt them 5 more. The first time
-    a hit would leave them at 1 HP or less meanwhile, they vanish instead and return at the start of their
-    next turn with 30 HP.
+    For 3 turns, the user is Spectral, but Piercing and Affliction damage hurt them 5 more. The
+    first time a hit would leave them at 1 HP or less meanwhile, they're Vanished instead, and
+    return at the start of their next turn with 30 HP.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -786,8 +788,8 @@ titan.ghost:
         kind: Buff
         element: Ghost
         description: >-
-          Piercing and Affliction damage hurt the bearer 5 more; the first time a hit would leave them at
-          1 HP or less, they vanish and return next turn with 30 HP.
+          Piercing and Affliction damage hurt the bearer 5 more; the first time a hit would leave
+          them at 1 HP or less, they're Vanished instead, and return next turn with 30 HP.
         modifiers:
           - { mod: damageTaken, amount: 5, when: { types: [Piercing, Affliction] } }
           - { mod: hpFloor, amount: 1 }

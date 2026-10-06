@@ -19,9 +19,8 @@ smash.cloud:
   element: Cloud
   name: Anvil Cloud
   description: >-
-    It builds for 2 turns instead of 1: at the start of the user's second turn from now, deals 50
-    damage to target enemy and 30 to each of their allies. It still lands if the user is Stunned,
-    but is lost if they die.
+    At the start of the user's second turn from now, deals 50 damage to target enemy and 30 to each
+    of their allies. It still lands if the user is Stunned, but is lost if they die.
   cost: Arr
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -47,7 +46,7 @@ charge.cloud:
   name: Rising Air
   description: >-
     Deals 10 damage to target enemy, and the user gains Aloft for 2 turns. If they were already
-    Aloft, they dive instead: the target's non-Strategic skills are stunned for 1 turn.
+    Aloft, the target's non-Strategic skills are stunned for 1 turn instead.
   cost: nc
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -97,8 +96,8 @@ rage.cloud:
   element: Cloud
   name: Rise Above
   description: >-
-    For 3 turns, the user is Aloft and gains 1 Might, and any Debuff applied to them drifts off at
-    the start of their next turn.
+    For 3 turns, the user is Aloft and gains 1 Might, and at the start of each of their turns, all their
+    Debuffs are removed.
   cost: S
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -114,7 +113,7 @@ rage.cloud:
         name: Rise Above
         kind: Buff
         element: Cloud
-        description: At the start of the bearer's turn, their Debuffs drift off.
+        description: At the start of the bearer's turn, their Debuffs are removed.
         triggers:
           - on: turnStart
             do:
@@ -154,7 +153,8 @@ snipe.cloud:
         name: Squall Line
         kind: Debuff
         element: Cloud
-        description: Using a Harmful skill marks the bearer for the coming squall.
+        description: >-
+          If the bearer uses a Harmful skill, Squall Line deals them 30 Piercing damage instead of 15.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -169,7 +169,9 @@ snipe.cloud:
         kind: Neutral
         element: Cloud
         interruptible: true
-        description: Breaks at the end of the following turn unless interrupted.
+        description: >-
+          At the end of the following turn, unless interrupted, deals 30 Piercing damage to every enemy
+          who used a Harmful skill meanwhile, and 15 to the rest.
         onExpire:
           - op: forEach
             in: allEnemies
@@ -187,8 +189,8 @@ trap.cloud:
   element: Cloud
   name: Overcast
   description: >-
-    For 2 turns, each skill target enemy uses gathers a cloud over them. When it ends, 15 damage per
-    cloud Drifts onto them. Invisible.
+    For 2 turns, counts the skills target enemy uses. When it ends, 15 damage per skill they used
+    Drifts onto them. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -204,7 +206,7 @@ trap.cloud:
         element: Cloud
         visibility: hidden
         stacking: merge
-        description: Each skill the bearer uses gathers a cloud; when this ends, 15 damage per cloud drifts onto them.
+        description: When this ends, 15 damage per skill the bearer used during it Drifts onto them.
         triggers:
           - on: skillUsed
             do:
@@ -267,8 +269,8 @@ blast.cloud:
   element: Cloud
   name: Cloudburst
   description: >-
-    Deals 20 damage to all enemies, and the rain keeps falling: 10 more Drifts onto each of them at the
-    start of each of the user's next 2 turns.
+    Deals 20 damage to all enemies, and 10 more Drifts onto each of them at the start of each of the
+    user's next 2 turns.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -284,7 +286,7 @@ consume.cloud:
   name: Evaporate
   description: >-
     Deals 5 damage to target enemy, and the user heals as much. Drift: at the start of the user's
-    next turn, it drains them again for 15.
+    next turn, deals 15 more damage to them, and the user heals as much.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -301,7 +303,9 @@ consume.cloud:
         name: Evaporate
         kind: Neutral
         element: Cloud
-        description: Drains its target again for 15 at the start of the user's next turn.
+        description: >-
+          At the start of the bearer's next turn, deals 15 damage to its target, and the bearer heals as
+          much.
         onExpire:
           - { op: damage, to: effectTargets, amount: 15 }
           - { op: heal, to: bearer, amount: { lastDamage: true } }
@@ -311,8 +315,8 @@ summon.cloud:
   element: Cloud
   name: Cloudlings
   description: >-
-    Summons 2 Cloudlings (10 HP) for 3 turns. Drizzle (nc): Drift, 10 damage. When a Cloudling
-    dies, it breaks into rain: all allies heal 10.
+    Summons 2 Cloudlings (10 HP) for 3 turns. Drizzle (nc): Drift, 10 damage. When a Cloudling dies,
+    all allies heal 10.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -342,9 +346,9 @@ channel.cloud:
   element: Cloud
   name: Gathering Clouds
   description: >-
-    A storm gathers over every enemy. For up to 3 turns, at the end of each of the user's turns, it
-    grows by 15. At the end of the user's third turn, it breaks: each enemy takes all of theirs.
-    Channeled.
+    Every enemy gains a Gathering Storm. For up to 3 turns, at the end of each of the user's turns,
+    each Gathering Storm grows by 15. At the end of the user's third turn, each enemy takes damage
+    equal to their Gathering Storm. Channeled.
   cost: AI
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -362,7 +366,7 @@ channel.cloud:
         kind: Neutral
         element: Cloud
         interruptible: true
-        description: At the end of each of the user's turns, the storm over every enemy grows by 15.
+        description: At the end of each of the user's turns, every enemy's Gathering Storm grows by 15.
         triggers:
           - on: turnEnd
             do:
@@ -373,8 +377,8 @@ stab.cloud:
   element: Cloud
   name: Sleet Needle
   description: >-
-    Deals 5 damage to target enemy, and a second needle hangs in the sleet: 10 more damage Drifts onto
-    them at the start of the user's next turn.
+    Deals 5 damage to target enemy, and 10 more damage Drifts onto them at the start of the user's
+    next turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -388,8 +392,8 @@ ravage.cloud:
   element: Cloud
   name: Downburst
   description: >-
-    A downburst hangs over target enemy for 2 turns. The first time they use a Harmful skill, it crashes
-    down on them: 35 Piercing damage. If they never do, it falls as it ends, for 20.
+    For 2 turns, the first time target enemy uses a Harmful skill, they take 35 Piercing damage. If they
+    never do, they take 20 Piercing damage when it ends.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -404,7 +408,9 @@ ravage.cloud:
         kind: Debuff
         element: Cloud
         stacking: unique
-        description: The first Harmful skill the bearer uses brings it down on them for 35 Piercing damage; if none does, it falls for 20 as it ends.
+        description: >-
+          The first Harmful skill the bearer uses deals them 35 Piercing damage; if they use none, they
+          take 20 Piercing damage when this ends.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -500,8 +506,8 @@ heal.cloud:
   element: Cloud
   name: Rain Check
   description: >-
-    Target ally heals 15. For 1 turn, each hit they take is held in the cloud and lands at the start
-    of the user's next turn instead, 10 lower.
+    Target ally heals 15. For 1 turn, each hit they take is delayed and lands at the start of the
+    user's next turn instead, 10 lower.
   cost: A
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -525,8 +531,8 @@ bless.cloud:
   element: Cloud
   name: Lift
   description: >-
-    Target ally gains Aloft for 2 turns, above the fray: any Taunt on them ends, and they can't be
-    Taunted while Aloft.
+    Target ally gains Aloft for 2 turns. Any Taunt on them ends, and they can't be Taunted while
+    Aloft.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic]

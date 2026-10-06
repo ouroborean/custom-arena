@@ -7,8 +7,9 @@ strike.phoenix:
   element: Phoenix
   name: Firebrand Talon
   description: >-
-    Brands target unit for 2 turns. An enemy takes 10 damage, then 10 Affliction damage each time they
-    use a skill meanwhile; an ally heals 10, then heals 10 more each time they use a skill meanwhile.
+    Gives target unit Firebrand for 2 turns. An enemy takes 10 damage, then 10 Affliction damage each
+    time they use a skill meanwhile; an ally heals 10, then heals 10 more each time they use a skill
+    meanwhile.
   cost: S
   cooldown: 0
   tags: [Radiant, NonStrategic]
@@ -27,7 +28,7 @@ strike.phoenix:
             kind: Debuff
             element: Phoenix
             stacking: unique
-            description: Each skill the bearer uses burns them for 10 Affliction damage.
+            description: Each skill the bearer uses deals them 10 Affliction damage.
             triggers:
               - on: skillUsed
                 do:
@@ -54,9 +55,8 @@ smash.phoenix:
   element: Phoenix
   name: Pyre Plunge
   description: >-
-    The user dives in as a living pyre: they burn up to 40 of their own HP, never below 1. Target enemy
-    takes that much damage, and each of their allies half as much. The user rises from the plunge with
-    Rebirth for 1 turn.
+    The user loses up to 40 HP, never going below 1. Target enemy takes that much damage, and each of
+    their allies half as much. The user gains Rebirth for 1 turn.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -82,9 +82,9 @@ charge.phoenix:
   element: Phoenix
   name: Rising Dive
   description: >-
-    Deals 15 damage to target enemy, or heals target ally 15. The user rises from the dive with Rebirth
-    until their next skill lands (for up to 2 turns); if it's still unspent then, that skill also deals
-    15 more damage to its first target if they're an enemy, or heals them 15 more if they're an ally.
+    Deals 15 damage to target enemy, or heals target ally 15. The user gains Rebirth until their next
+    skill lands (for up to 2 turns); if it's still unspent then, that skill also deals 15 more damage to
+    its first target if they're an enemy, or heals them 15 more if they're an ally.
   cost: S
   cooldown: 2
   tags: [Radiant, NonStrategic]
@@ -136,8 +136,8 @@ riposte.phoenix:
   element: Phoenix
   name: Searing Rebuttal
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user. If its user is Ignited, the Ignite
-    burns once at once, and the user is Anointed until the end of their next turn. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user. If its user is Ignited, their Ignite
+    burns once immediately, and the user is Anointed until the end of their next turn. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -152,7 +152,9 @@ riposte.phoenix:
         kind: Buff
         element: Phoenix
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer; an Ignited attacker burns.
+        description: >-
+          Counters the first Harmful skill used on the bearer; if its user is Ignited, their Ignite
+          burns once.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -170,8 +172,8 @@ rage.phoenix:
   element: Phoenix
   name: Pyreheart Fury
   description: >-
-    For 3 turns, the user's fury catches: each enemy they deal direct damage to is Ignited, and their
-    direct damage is 5 more for each Ignited enemy.
+    For 3 turns, each enemy the user deals direct damage to is Ignited, and the user's direct damage is
+    5 more for each Ignited enemy.
   cost: SA
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -204,8 +206,8 @@ shot.phoenix:
   element: Phoenix
   name: Ember Shot
   description: >-
-    Deals 10 damage to target enemy and lodges an ember in them for 1 turn: the next direct hit they
-    take from the user's side deals 10 more and Ignites them.
+    Deals 10 damage to target enemy. For 1 turn, the next direct hit they take from the user's side
+    deals 10 more and Ignites them.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -234,8 +236,8 @@ snipe.phoenix:
   element: Phoenix
   name: Sunfall Lance
   description: >-
-    On the following turn, the sun falls on target enemy: 35 damage to them and 15 to each of their
-    allies. The target of this skill is invisible. Channeled.
+    On the following turn, deals 35 damage to target enemy and 15 to each of their allies. The target of
+    this skill is invisible. Channeled.
   cost: Srr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -252,7 +254,7 @@ snipe.phoenix:
         element: Phoenix
         visibility: hiddenTarget
         interruptible: true
-        description: Falls on its target at the end of the following turn, burning them and their allies.
+        description: At the end of the following turn, deals 35 damage to its target and 15 to each of their allies.
         onExpire:
           - op: forEach
             in: effectTargets
@@ -265,8 +267,8 @@ trap.phoenix:
   element: Phoenix
   name: Smoldering Nest
   description: >-
-    For 3 turns, the first time target enemy kills a unit or sends one to Ashes, the nest flares: they
-    take 25 damage and are Ignited. Invisible.
+    For 3 turns, the first time target enemy kills a unit or sends one to Ashes, they take 25 damage and
+    are Ignited. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -281,7 +283,7 @@ trap.phoenix:
         kind: Debuff
         element: Phoenix
         visibility: hidden
-        description: The first time the bearer fells a unit, the nest flares.
+        description: The first time the bearer kills a unit or sends one to Ashes, they take 25 damage and are Ignited.
         triggers:
           - on: dealtDamage
             do:
@@ -300,8 +302,8 @@ maneuver.phoenix:
   element: Phoenix
   name: Banked Embers
   description: >-
-    The user sinks into the embers: until the start of their next turn, they're Untargetable by allies
-    and enemies alike and can't lose HP. They come back out with the HP they had.
+    Until the start of their next turn, the user is Untargetable by allies and enemies alike and can't
+    lose HP.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -332,8 +334,8 @@ companion.phoenix:
   element: Phoenix
   name: Phoenix Chick
   description: >-
-    Summons a Phoenix Chick (15 HP) permanently. Peck (r): 10 damage and Ignite. The first time it
-    dies, it rises at the end of your next turn as a Firebird (30 HP) whose Peck deals 20.
+    Summons a Phoenix Chick (15 HP) permanently. Peck (r): 10 damage and Ignite. The first time it dies,
+    it's replaced at the end of your next turn by a Firebird (30 HP) whose Peck deals 20.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -381,8 +383,8 @@ consume.phoenix:
   element: Phoenix
   name: Draw the Flame
   description: >-
-    Deals 10 damage to target enemy. If they still have more HP than the user, the user draws on their
-    brighter flame and heals half the difference (at most 25).
+    Deals 10 damage to target enemy. If they still have more HP than the user, the user heals half the
+    difference (at most 25).
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -416,8 +418,8 @@ channel.phoenix:
   element: Phoenix
   name: Eternal Pyre
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, the pyre burns all enemies, growing as
-    it burns: 5 damage, then 10, then 15. Channeled.
+    For up to 3 turns, at the end of each of the user's turns, deals damage to all enemies: 5, then 10,
+    then 15. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -433,7 +435,7 @@ channel.phoenix:
         kind: Neutral
         element: Phoenix
         interruptible: true
-        description: Each turn, all enemies burn, 5 more than the turn before (5, 10, 15).
+        description: Each turn, deals damage to all enemies, 5 more than the turn before (5, 10, 15).
         triggers:
           - on: turnEnd
             do:
@@ -445,9 +447,8 @@ stab.phoenix:
   element: Phoenix
   name: Cautery Needle
   description: >-
-    On target enemy, 15 damage, and their wounds are seared shut: they can't be healed until the end of
-    their next turn. On target ally, the needle cauterizes: up to 2 of their Debuffs burn away, and they
-    lose 10 HP for each (never below 1).
+    On target enemy: deals 15 damage, and they can't be healed until the end of their next turn. On
+    target ally: removes up to 2 of their Debuffs, and they lose 10 HP for each (never below 1).
   cost: r
   cooldown: 0
   tags: [Radiant, NonStrategic]
@@ -489,7 +490,7 @@ ravage.phoenix:
   name: Pyre Talon
   description: >-
     Deals 20 Piercing damage to target enemy, plus 5 for every 10 HP the user is missing (at most 30
-    more): the nearer the pyre, the hotter the talon.
+    more).
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -506,8 +507,8 @@ mislead.phoenix:
   element: Phoenix
   name: Flaring Feint
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and their Ignite flares: it burns
-    three times at once. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and their Ignite burns three times
+    at once. Invisible.
   cost: S
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -536,8 +537,8 @@ stun.phoenix:
   element: Phoenix
   name: Cinder Shroud
   description: >-
-    Deals 15 damage to target enemy and Stuns them for 2 turns, wrapped in cinders: while they're
-    Stunned, they can't lose HP.
+    Deals 15 damage to target enemy and Stuns them for 2 turns. While they're Stunned, they can't lose
+    HP.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -563,8 +564,8 @@ dance.phoenix:
   element: Phoenix
   name: Dance of Embers
   description: >-
-    For 4 turns, the user gains 2 Swiftness, and each skill they use meanwhile leaves an ember. When the
-    dance ends, the embers burst: each one deals 10 damage to every enemy and heals every ally 5.
+    For 4 turns, the user gains 2 Swiftness, and each skill they use meanwhile adds 1 stack to this.
+    When it ends, each stack deals 10 damage to every enemy and heals every ally 5.
   cost: AW
   cooldown: 5
   tags: [Helpful, Strategic]
@@ -580,7 +581,9 @@ dance.phoenix:
         name: Dance of Embers
         kind: Buff
         element: Phoenix
-        description: Each skill the bearer uses leaves an ember; when this ends, each ember burns every enemy for 10 and heals every ally 5.
+        description: >-
+          Each skill the bearer uses adds 1 stack; when this ends, each stack deals 10 damage to every
+          enemy and heals every ally 5.
         triggers:
           - on: skillUsed
             do:
@@ -596,7 +599,7 @@ heal.phoenix:
   archetype: Heal
   element: Phoenix
   name: Sacrificial Flame
-  description: The user burns up to 30 of their own HP, never below 1. Target ally heals twice what was burned.
+  description: The user loses up to 30 HP, never going below 1. Target ally heals twice as much as the user lost.
   cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -611,8 +614,8 @@ bless.phoenix:
   element: Phoenix
   name: Phoenix Blessing
   description: >-
-    For 3 turns, target ally gains 1 Might and Rebirth. If the Rebirth goes unused, it burns off when
-    this ends: they heal 25.
+    For 3 turns, target ally gains 1 Might and Rebirth. If the Rebirth is still unused when this ends,
+    they heal 25.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -628,7 +631,7 @@ bless.phoenix:
         kind: Buff
         element: Phoenix
         countsAs: [rebirth]
-        description: When the bearer would die, they burn to Ashes instead. Unused, it heals 25 when it ends.
+        description: When the bearer would die, they gain Ashes instead. If unused, it heals the bearer 25 when it ends.
         modifiers:
           - { mod: hpFloor, amount: 1 }
         triggers:
@@ -647,9 +650,8 @@ curse.phoenix:
   element: Phoenix
   name: Cinders of Doubt
   description: >-
-    Target enemy is Ignited, and for 3 turns the fire breeds doubt: at the end of each of the user's
-    turns, if they're still Ignited, they randomly gain 1 Weakness or 1 Vulnerable for 1 turn, or 1
-    Confusion.
+    Ignites target enemy. For 3 turns, at the end of each of the user's turns, if they're still Ignited,
+    they gain 1 Weakness or 1 Vulnerable for 1 turn, or 1 Confusion, at random.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -665,7 +667,9 @@ curse.phoenix:
         kind: Debuff
         element: Phoenix
         stacking: unique
-        description: At the end of each of the applier's turns, if the bearer is Ignited, they randomly gain 1 Weakness or 1 Vulnerable for 1 turn, or 1 Confusion.
+        description: >-
+          At the end of each of the applier's turns, if the bearer is Ignited, they gain 1 Weakness or 1
+          Vulnerable for 1 turn, or 1 Confusion, at random.
         triggers:
           - on: turnEnd
             do:
@@ -683,8 +687,8 @@ smite.phoenix:
   element: Phoenix
   name: Sanctified Pyre
   description: >-
-    Deals 20 damage to target enemy and lays them on a pyre for 1 turn: it counts as Sanctify, but
-    rather than heal their attackers, each direct hit they take stokes it. When it ends, they burn for
+    Deals 20 damage to target enemy and gives them Sanctified Pyre for 1 turn: it counts as Sanctify,
+    but instead of healing their attackers, it counts each direct hit they take. When it ends, they take
     15 Affliction damage per hit.
   cost: Sr
   cooldown: 1
@@ -702,7 +706,9 @@ smite.phoenix:
         kind: Debuff
         element: Phoenix
         countsAs: [sanctify]
-        description: Counts as Sanctify. Each direct hit stokes it; when it ends, the bearer takes 15 Affliction damage per hit.
+        description: >-
+          Counts as Sanctify. Counts each direct hit the bearer takes; when it ends, the bearer takes 15
+          Affliction damage per hit.
         triggers:
           - on: damaged
             when: { direct: true }
@@ -729,8 +735,8 @@ cleave.phoenix:
   element: Phoenix
   name: Fanned Flames
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy, and fans the flames between them
-    for 1 turn: each direct hit either of them takes also burns the other for 5.
+    Deals 20 damage to target enemy and 15 to a random other enemy. For 1 turn, each direct hit either
+    of them takes also deals 5 damage to the other.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -751,7 +757,7 @@ cleave.phoenix:
             name: Fanned Flames
             kind: Debuff
             element: Phoenix
-            description: Each direct hit on the bearer burns the unit they're linked to for 5.
+            description: Each direct hit on the bearer deals 5 damage to the unit they're linked to.
             triggers:
               - on: damaged
                 when: { direct: true }
@@ -792,8 +798,8 @@ withstand.phoenix:
   element: Phoenix
   name: Cocoon of Flame
   description: >-
-    The user gains 40 Shield and can't act on their next turn. When the cocoon opens, the user and every
-    ally heal as much as the Shield has left.
+    The user gains 40 Shield and can't act on their next turn. When the Shield ends, the user and every
+    ally heal as much as it has left.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -809,7 +815,7 @@ withstand.phoenix:
         kind: Buff
         element: Phoenix
         shield: true
-        description: A Shield; when the cocoon opens, everyone on the bearer's side heals what's left.
+        description: A Shield; when it ends, everyone on the bearer's side heals what's left of it.
         onExpire:
           - { op: heal, to: allAllies, amount: { effectValue: true } }
     - op: apply
@@ -820,7 +826,7 @@ withstand.phoenix:
         name: Cocooned
         kind: Neutral
         element: Phoenix
-        description: Can't act until the cocoon opens.
+        description: Can't act until Cocoon of Flame ends.
         modifiers:
           - { mod: cannotUseSkills }
 
@@ -860,8 +866,8 @@ titan.phoenix:
   element: Phoenix
   name: Undying Phoenix
   description: >-
-    For 3 turns, the user gains Immune, and their wounds rekindle: each direct hit they take gives them
-    1 Renew for every 10 damage, up to 3 Renew at a time.
+    For 3 turns, the user gains Immune, and each direct hit they take gives them 1 Renew for every 10
+    damage, up to 3 Renew at a time.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]

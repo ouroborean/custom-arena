@@ -7,8 +7,8 @@ strike.ion:
   element: Ion
   name: Power Cut
   description: >-
-    Deals 20 damage to target enemy. Until their next skill resolves, they can't apply Buffs: it's cut to its
-    bare effects.
+    Deals 20 damage to target enemy. Until their next skill resolves, they can't apply Buffs; that
+    skill's other effects still happen.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -22,8 +22,8 @@ smash.ion:
   element: Ion
   name: Surge from the Dark
   description: >-
-    Each ally passes the user their Charge; then 20 damage to target enemy and 10 to their allies, +5 to each
-    hit per Charge passed.
+    Each ally gives all their Charge to the user. Then deals 20 damage to target enemy and 10 to
+    their allies, +5 to each hit per Charge given.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -162,7 +162,7 @@ snipe.ion:
         element: Ion
         visibility: hiddenTarget
         interruptible: true
-        description: Suppresses and strikes its target at the end of the following turn.
+        description: At the end of the following turn, its target is Suppressed for 1 turn and takes 40 damage.
         onExpire:
           - { op: apply, to: effectTargets, effect: suppressed, duration: { enemyTurns: 1 } }
           - { op: damage, to: effectTargets, amount: 40 }
@@ -188,7 +188,9 @@ trap.ion:
         kind: Debuff
         element: Ion
         visibility: hidden
-        description: The bearer's first summon or channel sets it off.
+        description: >-
+          The first time the bearer summons a minion or starts a channel, they take 15 damage and
+          have Blackout for 3 turns.
         triggers:
           - on: skillResolved
             when: { archetypes: [Companion, Summon, Channel] }
@@ -203,8 +205,7 @@ maneuver.ion:
   element: Ion
   name: Go Dark
   description: >-
-    The user goes dark: they become Invulnerable for 2 turns, but can't use Harmful skills for as long.
-    Stealthy.
+    The user becomes Invulnerable for 2 turns, but can't use Harmful skills for as long. Stealthy.
   cost: r
   cooldown: 4
   tags: [Helpful, Strategic, Stealthy]
@@ -302,8 +303,8 @@ summon.ion:
   element: Ion
   name: Jammer
   description: >-
-    Summons a Jammer (15 HP) for 3 turns; while it stands, every enemy has Blackout. Static Hiss (r): 10 damage
-    to target enemy.
+    Summons a Jammer (15 HP) for 3 turns; while it's alive, every enemy has Blackout. Static Hiss
+    (r): 10 damage to target enemy.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -316,8 +317,8 @@ channel.ion:
   element: Ion
   name: Dark Hum
   description: >-
-    For up to 3 turns, at the end of each of the user's turns, 10 damage to all enemies, plus 10 for each time
-    the user's Charge has turned into energy since it began. Channeled, Stealthy.
+    For up to 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies, plus
+    10 for each time the user's Charge has turned into energy since it began. Channeled, Stealthy.
   cost: Sr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled, Stealthy]
@@ -333,7 +334,9 @@ channel.ion:
         kind: Neutral
         element: Ion
         interruptible: true
-        description: Each turn, damage to all enemies that grows with each Charge spent.
+        description: >-
+          At the end of each of the bearer's turns, deals 10 damage to all enemies, plus 10 for each
+          time their Charge has turned into energy since this began.
         triggers:
           - on: energyFromEffect
             do:
@@ -347,8 +350,8 @@ stab.ion:
   element: Ion
   name: Circuit Breaker
   description: >-
-    Deals 10 damage to target enemy and trips one of their Buffs at random: it ends. If one did, the user
-    gains 1 Charge.
+    Deals 10 damage to target enemy, and a random Buff of theirs ends. If one did, the user gains 1
+    Charge.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -415,8 +418,8 @@ stun.ion:
   element: Ion
   name: Shutdown
   description: >-
-    The user pulls the plug on target enemy and on themself: the target is Stunned for 2 turns and
-    Suppressed for as long, and the user powers down: they can't use skills on their next turn.
+    Target enemy is Stunned for 2 turns and Suppressed for as long. The user can't use skills on
+    their next turn.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -461,8 +464,8 @@ heal.ion:
   element: Ion
   name: Hard Reboot
   description: >-
-    Target ally reboots: until the end of the enemy's next turn, all their effects, Buffs and Debuffs alike,
-    are Suppressed. When they come back online, they heal 30.
+    Until the end of the enemy's next turn, all of target ally's effects, Buffs and Debuffs alike,
+    are Suppressed. When that ends, they heal 30.
   cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -490,8 +493,8 @@ bless.ion:
   element: Ion
   name: Dead Zone
   description: >-
-    For 2 turns, target ally is a dead zone: each enemy who uses a skill on them is Suppressed for 1 turn,
-    and the ally gains 1 Charge.
+    For 2 turns, each enemy who uses a skill on target ally is Suppressed for 1 turn, and the ally
+    gains 1 Charge.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -664,8 +667,8 @@ taunt.ion:
   element: Ion
   name: Open Channel
   description: >-
-    The user goes quiet on every channel but one: target enemy is Taunted by them until the user next uses a
-    Harmful skill, for up to 3 turns. Each time that enemy damages the user meanwhile, the user gains 1 Charge.
+    Target enemy is Taunted by the user until the user next uses a Harmful skill, for up to 3 turns.
+    Each time that enemy damages the user meanwhile, the user gains 1 Charge.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -696,7 +699,7 @@ taunt.ion:
         name: Open Channel
         kind: Debuff
         element: Ion
-        description: Each time the bearer damages the one who opened the channel, that unit gains 1 Charge.
+        description: Each time the bearer damages the applier, the applier gains 1 Charge.
         triggers:
           - on: dealtDamage
             do:

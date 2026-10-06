@@ -7,14 +7,15 @@ tempest:
   element: Storm
   stacking: merge
   maxStacks: 5
-  description: The team's storm (max 5). At 5, the Eye of the Storm.
+  description: Rises as the team uses Storm skills (max 5). At 5, the bearer gains Eye of the Storm.
 
 eye_of_the_storm:
   name: Eye of the Storm
   kind: Buff
   element: Storm
   stacking: unique
-  description: The bearer's next Storm skill also strikes every other enemy for 15, and Tempest drops to 3.
+  description: >-
+    The bearer's next Storm skill also deals 15 damage to every other enemy, and Tempest drops to 3.
 
 # Fusion passive (every Storm character).
 storm_heart:
@@ -24,7 +25,7 @@ storm_heart:
   stacking: unique
   description: >-
     +1 Tempest each time the team uses a Storm skill; −1 at the end of each of this character's turns in
-    which none was used. At 5, the Eye of the Storm.
+    which none was used. At 5, they gain Eye of the Storm.
   triggers:
     - on: signal
       signal: "used:Storm"

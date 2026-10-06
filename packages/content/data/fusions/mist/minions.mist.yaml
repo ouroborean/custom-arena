@@ -24,7 +24,7 @@ mist_double:
       name: Mist Double
       kind: Neutral
       element: Mist
-      description: Can't be hurt. The first enemy Harmful skill that strikes it bursts it, and that skill's user takes 10 damage.
+      description: Can't be hurt. The first enemy Harmful skill that strikes it destroys it, and that skill's user takes 10 damage.
       modifiers:
         - { mod: damageTaken, amount: 0, mul: 0 }
       triggers:

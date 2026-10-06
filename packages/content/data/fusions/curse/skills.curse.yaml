@@ -19,8 +19,8 @@ smash.curse:
   element: Curse
   name: Crushing Malediction
   description: >-
-    Deals 35 damage to target enemy, who gains Hex of Pain for 2 turns. While it lasts, the pain is shared: each
-    time it hurts them, their allies take 10 Affliction damage too.
+    Deals 35 damage to target enemy, who gains Hex of Pain for 2 turns. While it lasts, each time it deals
+    them damage, their allies take 10 Affliction damage too.
   cost: SS
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -36,7 +36,9 @@ smash.curse:
         name: Crushing Malediction
         kind: Debuff
         element: Curse
-        description: Each time the bearer's Hex of Pain hurts them, their allies take 10 Affliction damage too.
+        description: >-
+          Each time the bearer's Hex of Pain deals them damage, their allies take 10 Affliction damage
+          too.
         triggers:
           # Hex of Pain fires on the same event; this one only echoes it while the bearer still has it.
           - on: dealtDamage
@@ -227,7 +229,7 @@ trap.curse:
         kind: Debuff
         element: Curse
         visibility: hidden
-        description: If this is cleansed, the bearer is Stunned and Hexed with Ruin.
+        description: If this is cleansed, the bearer is Stunned for 1 turn and gains Hex of Ruin for 3 turns.
     - op: apply
       to: actor
       duration: { enemyTurns: 2 }
@@ -237,7 +239,9 @@ trap.curse:
         kind: Neutral
         element: Curse
         visibility: hidden
-        description: Springs when the Snare is cleansed.
+        description: >-
+          If the bearer's Cleanser's Snare is cleansed, the enemy it was on is Stunned for 1 turn and
+          gains Hex of Ruin for 3 turns.
         triggers:
           - on: ownEffectEnded
             when: { effects: [cleansers_snare], reason: [removed] }
@@ -396,8 +400,8 @@ stab.curse:
   element: Curse
   name: Cursed Dagger
   description: >-
-    Deals 15 damage to target enemy. If the user is Hexed, one of their Hexes, chosen at random, passes into the
-    wound: it moves onto the target, and the hit deals 25 instead.
+    Deals 15 damage to target enemy. If the user is Hexed, a random one of their Hexes moves onto the
+    target, and the hit deals 25 instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -614,8 +618,8 @@ cleave.curse:
   element: Curse
   name: Grudging Cut
   description: >-
-    Deals 20 damage to target enemy. Then the grudge falls on whichever other enemy has the most HP: they
-    take Affliction damage equal to half the HP they have over the target (at least 5, at most 25).
+    Deals 20 damage to target enemy. Then whichever other enemy has the most HP takes Affliction damage
+    equal to half the HP they have over the target (at least 5, at most 25).
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]

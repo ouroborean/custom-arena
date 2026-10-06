@@ -7,8 +7,8 @@ engulfed:
   element: Slime
   stacking: unique
   description: >-
-    Inside an Ooze: Stunned, and 5 Affliction damage at the end of each of its owner's turns, until that
-    Ooze dies or 3 turns pass.
+    Held by an Ooze: Stunned, and takes 5 Affliction damage at the end of each of its owner's turns,
+    until that Ooze dies or 3 turns pass.
   modifiers:
     - { mod: cannotUseSkills }
   triggers:
@@ -24,8 +24,8 @@ gel_coat:
   element: Slime
   stacking: unique
   description: >-
-    The next direct hit that leaves the bearer with 10 or more HP Splits it off: it hops to a random ally
-    of theirs, dealing them 15 damage and coating them (it hops at most twice).
+    The next direct hit that leaves the bearer with 10 or more HP moves this to a random ally of theirs,
+    dealing them 15 damage. It moves at most twice.
   triggers:
     - on: damaged
       when: { direct: true }

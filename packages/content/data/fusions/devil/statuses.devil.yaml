@@ -25,7 +25,7 @@ contract:
   kind: Buff
   element: Devil
   stacking: independent
-  description: A deal with a due date. When it expires, the Devil collects the price.
+  description: When it expires, the bearer pays its price.
 
 # Put It on My Tab: a held hit. Its value is the damage held; the price is half of it.
 devils_tab:

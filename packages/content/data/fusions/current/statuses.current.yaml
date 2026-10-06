@@ -40,7 +40,7 @@ arc_lash:
   name: Arc Lash
   kind: Debuff
   element: Current
-  description: Each direct hit on the bearer also deals 10 damage to the enemy they're wired to.
+  description: Each direct hit on the bearer also deals 10 damage to the enemy they're linked to.
   triggers:
     - on: damaged
       when: { direct: true }

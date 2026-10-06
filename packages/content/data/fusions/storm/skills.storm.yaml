@@ -26,9 +26,8 @@ smash.storm:
   element: Storm
   name: Spider Lightning
   description: >-
-    Lightning strikes target enemy for 10, then arcs on through their allies one at a time, 10 stronger with
-    each arc (up to 30). Each arc spends 1 of the user's Tempest; once there's none left, the lightning
-    grounds out.
+    Deals 10 damage to target enemy, then hits their allies one at a time, 10 more with each hit (up to 30).
+    Each of those hits spends 1 of the user's Tempest; they stop once there's none left.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -64,8 +63,8 @@ charge.storm:
   element: Storm
   name: Ride the Wind
   description: >-
-    Deals 15 damage to target enemy. The user's next Harmful skill rides the gust: it also hits a random other
-    enemy for 5 per Tempest.
+    Deals 15 damage to target enemy. The user's next Harmful skill also deals 5 damage per Tempest to a
+    random other enemy.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -80,7 +79,7 @@ charge.storm:
         name: Ride the Wind
         kind: Buff
         element: Storm
-        description: The bearer's next Harmful skill also hits a random other enemy for 5 per Tempest.
+        description: The bearer's next Harmful skill also deals 5 damage per Tempest to a random other enemy.
         triggers:
           - on: skillResolved
             when: { harmful: true }
@@ -112,7 +111,9 @@ riposte.storm:
         kind: Buff
         element: Storm
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and Saps its user per energy.
+        description: >-
+          Counters the first Harmful skill used on the bearer; its user is Sapped once for each energy it
+          cost.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -126,8 +127,8 @@ rage.storm:
   element: Storm
   name: Storm Within
   description: >-
-    For 3 turns, the storm rides the user's attacks: each Harmful Storm skill they use that leaves an enemy
-    untargeted spends 1 Tempest to strike every enemy it didn't target for 10.
+    For 3 turns, each Harmful Storm skill the user uses that leaves an enemy untargeted spends 1 Tempest to
+    deal 10 damage to every enemy it didn't target.
   cost: Sr
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -142,8 +143,8 @@ rage.storm:
         kind: Buff
         element: Storm
         description: >-
-          Each Harmful Storm skill the bearer uses that leaves an enemy untargeted spends 1 Tempest to strike
-          every enemy it didn't target for 10.
+          Each Harmful Storm skill the bearer uses that leaves an enemy untargeted spends 1 Tempest to deal
+          10 damage to every enemy it didn't target.
         triggers:
           - on: skillResolved
             when: { harmful: true }
@@ -206,7 +207,9 @@ snipe.storm:
         kind: Neutral
         element: Storm
         interruptible: true
-        description: Breaks over the enemy team at the end of the following turn.
+        description: >-
+          At the end of the following turn, deals 15 Piercing damage to all enemies, +5 per Tempest, and
+          spends all of it.
         onExpire:
           - { op: damage, to: allEnemies, type: Piercing, amount: { sum: [15, { mul: [5, { stacks: { unit: bearer, effect: tempest } }] }] } }
           - { op: removeEffect, from: bearer, effect: tempest }
@@ -233,7 +236,9 @@ trap.storm:
         kind: Debuff
         element: Storm
         visibility: hidden
-        description: Each skill the bearer uses feeds the applier's Tempest and shocks them.
+        description: >-
+          Each skill the bearer uses gives the applier 1 Tempest and deals the bearer 5 Piercing damage per
+          Tempest.
         triggers:
           - on: skillUsed
             do:
@@ -245,8 +250,8 @@ maneuver.storm:
   element: Storm
   name: Into the Eye
   description: >-
-    The user's Tempest rises to 3 if it's lower. For 2 turns, while it's 3 or more, they ride the eye of the
-    storm: enemies can't single them out, and only skills that hit their whole side can reach them.
+    The user's Tempest rises to 3 if it's lower. For 2 turns, while it's 3 or more, enemies' single-target
+    skills can't target them; only skills that hit their whole side can.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -276,7 +281,8 @@ maneuver.storm:
         kind: Neutral
         element: Storm
         visibility: hidden
-        description: Can't single out a unit riding the eye of the storm (Into the Eye, at 3 or more Tempest).
+        description: >-
+          Can't use single-target skills on a unit with Into the Eye while their Tempest is 3 or more.
         modifiers:
           - mod: targetExclude
             singleOnly: true
@@ -304,9 +310,9 @@ bolt.storm:
   element: Storm
   name: Thunderhead
   description: >-
-    A thunderhead gathers over target enemy until the end of the user's next turn. Meanwhile, the user's
-    Tempest doesn't rise: each Storm skill their team uses charges the thunderhead instead (max 3). Then it
-    breaks on them: 20 damage, plus 10 per charge.
+    The user gains Thunderhead on target enemy until the end of their next turn. Meanwhile, their Tempest
+    doesn't rise; instead, each Storm skill their team uses adds 1 charge to the Thunderhead (max 3). When
+    it ends, the target takes 20 damage, plus 10 per charge.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -325,8 +331,8 @@ bolt.storm:
         stacking: merge
         maxStacks: 4
         description: >-
-          The bearer's Tempest doesn't rise; each Storm skill their team uses charges this instead (max 3).
-          When it ends, it breaks on its target: 20 damage, plus 10 per charge.
+          The bearer's Tempest doesn't rise; each Storm skill their team uses adds 1 charge to this instead
+          (max 3). When it ends, its target takes 20 damage, plus 10 per charge.
         triggers:
           - on: signal
             signal: "used:Storm"
@@ -344,7 +350,7 @@ blast.storm:
   element: Storm
   name: Supercell
   description: >-
-    Deals 25 damage to all enemies. The storm discharges: Tempest falls by 1, and each ally gains 1 Charge.
+    Deals 25 damage to all enemies. Tempest falls by 1, and each ally gains 1 Charge.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -359,8 +365,8 @@ consume.storm:
   element: Storm
   name: Calm Before the Storm
   description: >-
-    Deals 5 damage to target enemy. The storm calms: Tempest falls by up to 2, and the user heals the
-    damage dealt plus 10 for each point it fell.
+    Deals 5 damage to target enemy. Tempest falls by up to 2, and the user heals the damage dealt plus 10
+    for each point it fell.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -379,7 +385,7 @@ summon.storm:
   name: Brewing Squall
   description: >-
     Summons a Squall Cloud (20 HP) for 3 turns; its skills are Storm skills. Rumble (nc): 5 damage to target
-    enemy. When it expires, it breaks: 5 damage per Tempest to all enemies.
+    enemy. When it expires, it deals 5 damage per Tempest to all enemies.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -423,8 +429,7 @@ stab.storm:
   element: Storm
   name: Knife in the Gale
   description: >-
-    Deals 10 damage to target enemy, then the gale carries the knife on to the enemy with the least HP, for 5
-    per Tempest (max 10).
+    Deals 10 damage to target enemy, then 5 damage per Tempest (max 10) to the enemy with the least HP.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -473,7 +478,9 @@ mislead.storm:
         kind: Debuff
         element: Storm
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and they're Sapped by the storm.
+        description: >-
+          The bearer's next Harmful skill is countered, and they're Sapped once for every 2 of the applier's
+          Tempest (at least once).
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -490,8 +497,8 @@ stun.storm:
   element: Storm
   name: Static Buildup
   description: >-
-    Deals 15 damage to target enemy. Static builds in them for 2 turns: each skill they use adds 1 turn to a
-    Stun that lands when it ends (max 3).
+    Deals 15 damage to target enemy. For 2 turns, each skill they use adds 1 turn to a Stun they receive
+    when it ends (max 3).
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -507,7 +514,8 @@ stun.storm:
         name: Static Buildup
         kind: Debuff
         element: Storm
-        description: Each skill the bearer uses builds a Stun that lands when this ends (max 3 turns).
+        description: >-
+          Each skill the bearer uses adds 1 turn to a Stun they receive when this ends (max 3 turns).
         triggers:
           - on: skillUsed
             do:
@@ -555,8 +563,7 @@ heal.storm:
   element: Storm
   name: Mending Arc
   description: >-
-    Target ally heals 25. The current then arcs to the other ally with the least HP for 15, then to any
-    remaining allies for 5.
+    Target ally heals 25. Then the other ally with the least HP heals 15, and any remaining allies heal 5.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -608,8 +615,8 @@ curse.storm:
   element: Storm
   name: Crosswind
   description: >-
-    Target enemy loses all their Charge. For 2 turns, any Charge they would gain feeds the user's Tempest
-    instead.
+    Target enemy loses all their Charge. For 2 turns, any Charge they would gain is added to the user's
+    Tempest instead.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -624,7 +631,7 @@ curse.storm:
         name: Crosswind
         kind: Debuff
         element: Storm
-        description: Charge the bearer gains feeds the applier's Tempest instead.
+        description: Charge the bearer would gain is added to the applier's Tempest instead.
         triggers:
           - on: effectGained
             effect: charged
@@ -685,8 +692,8 @@ cleave.storm:
   element: Storm
   name: Shearing Gale
   description: >-
-    Deals 25 damage to target enemy and 5 to every other enemy. For each Tempest beyond the first (max 3 more),
-    the gale widens: 5 less to the target and 5 more to the others.
+    Deals 25 damage to target enemy and 5 to every other enemy. For each Tempest beyond the first (max 3
+    more), it deals 5 less to the target and 5 more to the others.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -706,7 +713,7 @@ shout.storm:
   element: Storm
   name: Storm Warning
   description: >-
-    For 2 turns, static clings to every enemy: each time a Storm skill damages one of them, they're Sapped.
+    For 2 turns, each time a Storm skill damages an enemy, they're Sapped.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]

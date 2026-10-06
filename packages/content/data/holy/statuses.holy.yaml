@@ -6,7 +6,7 @@ anointed:
   kind: Buff
   element: Holy
   stacking: unique
-  description: A mark that empowers Holy skills.
+  description: No effect on its own. Many Holy skills do more while their user is Anointed, and some consume it.
 
 condemned:
   name: Condemned

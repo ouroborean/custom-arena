@@ -8,7 +8,7 @@ great_yeti:
       name: Hungry Yeti
       kind: Neutral
       element: Winter
-      description: At the start of its owner's turns, their player pays 1 random energy to feed it, or it leaves.
+      description: At the start of its owner's turns, their player pays 1 random energy, or it leaves.
       triggers:
         - on: turnStart
           do:
