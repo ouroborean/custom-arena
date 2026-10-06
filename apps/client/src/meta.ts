@@ -30,6 +30,8 @@ interface MetaState {
   refresh(): Promise<void>;
   roll(): Promise<Character | null>;
   setTeam(ids: string[]): Promise<void>;
+  /** Saves a new roster order (shown at once; put back if the server refuses). */
+  reorderRoster(ids: string[]): Promise<void>;
   rename(id: string, name: string): Promise<void>;
   retire(id: string): Promise<void>;
   /** Forges the `addition` instance onto the `base` one (both unequipped); returns the new piece. */
@@ -126,6 +128,16 @@ export const useMeta = create<MetaState>((set, get) => {
           wallet: inv.wallet,
         });
       });
+    },
+
+    async reorderRoster(ids) {
+      const before = get().characters;
+      const byId = new Map(before.map((c) => [c.id, c]));
+      const next = ids.map((id) => byId.get(id)).filter((c) => c !== undefined);
+      if (next.length !== before.length) return;
+      set({ characters: next });
+      const ok = await act(() => api.reorderRoster(ids));
+      if (!ok) set({ characters: before });
     },
 
     async roll() {

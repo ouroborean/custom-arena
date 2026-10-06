@@ -1,5 +1,6 @@
 // Shared roster pieces: character card and effective (equipment-resolved) skills.
 
+import type { ButtonHTMLAttributes } from 'react';
 import { resolveLoadout, skillDefId, type CharacterRecord, type CharacterSkill } from '@arena/meta';
 import type { Character } from '../api.js';
 import { content } from '../content.js';
@@ -67,17 +68,23 @@ export function CharacterCard({
   onOpen,
   selected,
   order,
+  className = '',
+  buttonProps,
 }: {
   c: Character;
   onOpen: () => void;
   selected?: boolean;
   order?: number;
+  className?: string;
+  /** Extra props for the card's button (drag-and-drop handlers, a drop target). */
+  buttonProps?: ButtonHTMLAttributes<HTMLButtonElement> & { 'data-drop'?: string };
 }) {
   const cls = content.classes[c.classId];
   return (
     <button
       type="button"
-      className={`char-card ${selected ? 'selected' : ''}`}
+      {...buttonProps}
+      className={`char-card ${selected ? 'selected' : ''} ${className}`}
       onClick={onOpen}
       aria-pressed={selected}
       aria-label={`${c.name}, ${c.element} ${cls?.name ?? c.classId}`}

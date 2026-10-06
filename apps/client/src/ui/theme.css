@@ -4945,3 +4945,93 @@ button.pool-skill:disabled {
     font-size: 16px;
   }
 }
+
+/* ------------------------------------------------------------ roster drag-and-drop (ui/RosterDrag.tsx) */
+
+/* Draggable cards: no text selection or iOS long-press callout getting in the way of a drag. */
+.char-card.draggable,
+.team-slot.draggable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+}
+
+.roster-grid.dragging,
+.roster-grid.dragging .char-card {
+  cursor: grabbing;
+}
+
+/* The card being dragged stays in place, faded, so the gap it leaves is clear. */
+.char-card.drag-self,
+.team-slot.drag-self {
+  opacity: 0.35;
+}
+
+/* Where a roster card will land: a bar on the side it goes to. */
+.char-card.drop-before,
+.char-card.drop-after {
+  position: relative;
+}
+
+.char-card.drop-before::after,
+.char-card.drop-after::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 5px;
+  background: var(--yellow);
+}
+
+.char-card.drop-before::after {
+  left: -9px;
+}
+
+.char-card.drop-after::after {
+  right: -9px;
+}
+
+.team-slot {
+  position: relative;
+}
+
+.team-slot.drop-over {
+  border-color: var(--yellow);
+  border-style: solid;
+  background: color-mix(in srgb, var(--yellow) 14%, var(--ink-2));
+}
+
+.team-slot-n {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--red);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+/* The card that follows the pointer. */
+.drag-ghost {
+  position: fixed;
+  z-index: 200;
+  pointer-events: none;
+  transform: translate(-50%, -60%) rotate(-3deg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background: var(--ink-2);
+  border: 2px solid var(--yellow);
+  box-shadow: 6px 6px 0 #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  white-space: nowrap;
+}

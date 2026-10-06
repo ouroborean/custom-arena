@@ -16,10 +16,11 @@ import { Leaderboards } from './Leaderboards.js';
 import { OnlinePanel } from './OnlinePanel.js';
 import { XpBar } from './Progress.js';
 import { CharacterCard, Portrait } from './Roster.js';
+import { moveInRoster, placeInTeam, rosterKeys, useRosterDrag, type DragSource, type DropTarget } from './RosterDrag.js';
 
 export function Home() {
   const t = useT();
-  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, signOut, contentMismatch, clearError } = useMeta();
+  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, reorderRoster, signOut, contentMismatch, clearError } = useMeta();
   const rollCost = content.economy.roll.cost;
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
@@ -29,6 +30,7 @@ export function Home() {
   const [bot, setBot] = useState<BotKind>('normal');
   const [problem, setProblem] = useState<{ message: string; problems: string[] } | null>(null);
   const [arcade, setArcade] = useState<ArcadeStatus | null>(null);
+  const [teamNote, setTeamNote] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -72,6 +74,30 @@ export function Home() {
     if (picking.includes(id)) setPicking(picking.filter((x) => x !== id));
     else if (picking.length < 3) setPicking([...picking, id]);
   };
+
+  // Roster tab drag-and-drop: reorder the roster, or drop a character into a team slot.
+  const drop = (source: DragSource, target: DropTarget) => {
+    setTeamNote(null);
+    if (target.to === 'roster') {
+      if (source.from !== 'roster') return;
+      const ids = characters.map((c) => c.id);
+      const next = moveInRoster(ids, source.id, target);
+      if (next.some((id, i) => id !== ids[i])) void reorderRoster(next);
+      return;
+    }
+    const next = placeInTeam(team, source.id, target.slot);
+    if (next.length < 3) return setTeamNote(t('home.teamNeedsThree'));
+    if (next.some((id, i) => id !== team[i])) void setTeam(next);
+  };
+  const drag = useRosterDrag(drop, (source) => {
+    const c = characters.find((x) => x.id === source.id);
+    return c ? (
+      <>
+        <Portrait c={c} size={44} />
+        <b>{c.name}</b>
+      </>
+    ) : null;
+  });
 
   const eco = content.economy;
   const gold = (n: number | undefined) => formatAmounts(content, { gold: n ?? 0 });
@@ -272,13 +298,22 @@ export function Home() {
               <div className="team-slots">
                 {[0, 1, 2].map((i) => {
                   const c = teamChars[i];
+                  const over = drag.overKey === `team:${i}` ? ' drop-over' : '';
                   return c ? (
-                    <button type="button" key={c.id} className="team-slot" onClick={() => go('character', c.id)}>
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={`team-slot draggable${over}${drag.dragging?.id === c.id ? ' drag-self' : ''}`}
+                      data-drop={`team:${i}`}
+                      {...drag.sourceProps({ id: c.id, from: 'team', index: i })}
+                      onClick={() => go('character', c.id)}
+                    >
+                      <span className="team-slot-n">{i + 1}</span>
                       <Portrait c={c} size={44} />
                       <span>{c.name}</span>
                     </button>
                   ) : (
-                    <div key={i} className="team-slot empty">
+                    <div key={i} className={`team-slot empty${over}`} data-drop={`team:${i}`}>
                       {characters.length < 3 ? t('home.recruitSlot') : t('home.emptySlot')}
                     </div>
                   );
@@ -288,6 +323,7 @@ export function Home() {
                 {picking ? t('common.cancel') : t('home.changeTeam')}
               </button>
             </div>
+            {teamNote && <p className="muted">{teamNote}</p>}
           </section>
 
           <section aria-label={t('home.roster')}>
@@ -320,20 +356,35 @@ export function Home() {
               )}
             </div>
             <p className="muted">{t('home.rosterHint')}</p>
-            <div className="roster-grid" data-guide="roster">
-              {characters.map((c) => (
-                <CharacterCard
-                  key={c.id}
-                  c={c}
-                  selected={picking ? picking.includes(c.id) : team.includes(c.id)}
-                  {...(() => {
-                    const i = (picking ?? team).indexOf(c.id);
-                    return i >= 0 ? { order: i + 1 } : {};
-                  })()}
-                  onOpen={() => (picking ? togglePick(c.id) : go('character', c.id))}
-                />
-              ))}
+            <div className={`roster-grid${drag.dragging ? ' dragging' : ''}`} data-guide="roster">
+              {characters.map((c, index) => {
+                const overBefore = drag.overKey === `roster:${index}:b`;
+                const overAfter = drag.overKey === `roster:${index}:a`;
+                return (
+                  <CharacterCard
+                    key={c.id}
+                    c={c}
+                    selected={picking ? picking.includes(c.id) : team.includes(c.id)}
+                    {...(() => {
+                      const i = (picking ?? team).indexOf(c.id);
+                      return i >= 0 ? { order: i + 1 } : {};
+                    })()}
+                    className={`draggable${overBefore ? ' drop-before' : ''}${overAfter ? ' drop-after' : ''}${drag.dragging?.id === c.id ? ' drag-self' : ''}`}
+                    buttonProps={
+                      picking
+                        ? {}
+                        : {
+                            ...drag.sourceProps({ id: c.id, from: 'roster', index }),
+                            'data-drop': `roster:${index}`,
+                            onKeyDown: rosterKeys(index, characters.length, (target) => drop({ id: c.id, from: 'roster', index }, target)),
+                          }
+                    }
+                    onOpen={() => (picking ? togglePick(c.id) : go('character', c.id))}
+                  />
+                );
+              })}
             </div>
+            {drag.ghost}
           </section>
         </div>
       )}

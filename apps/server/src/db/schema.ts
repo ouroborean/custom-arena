@@ -50,6 +50,8 @@ export const characters = pgTable(
     /** Content version the character was generated against. */
     contentVersion: text('content_version').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Place in the player's roster order (they drag to arrange it); null for recruits since, which go last. */
+    position: integer('position'),
   },
   (t) => [index('characters_user_idx').on(t.userId)],
 );
