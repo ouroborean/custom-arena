@@ -2,6 +2,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { guideRewards } from '../db/schema.js';
 import { grant, inTransaction } from '../economy.js';
@@ -22,8 +23,14 @@ export function progressRoutes(ctx: AppContext) {
       return { ...opened, progress: await progressOf(ctx.db, ctx.content, userId) };
     });
 
+    /** The menu guides this account has finished (each was paid when first finished). */
+    app.get('/api/guides', async (req) => {
+      const rows = await ctx.db.select({ id: guideRewards.guideId }).from(guideRewards).where(eq(guideRewards.userId, req.user!.id));
+      return { done: rows.map((r) => r.id) };
+    });
+
     /**
-     * Pays a menu guide's reward (economy `guideRewards`) the first time the account finishes it;
+     * Records a finished menu guide and pays its reward (economy `guideRewards`) the first time the account finishes it;
      * later calls pay nothing (`reward: null`). The guides run in the browser, so this trusts the
      * client that the guide was finished, and only guards against paying twice.
      */

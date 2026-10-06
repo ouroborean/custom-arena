@@ -14,9 +14,11 @@ import { Brand } from './Account.js';
 import { elementClass } from './common.js';
 
 function grantText(g: GrantSpec | undefined): string {
-  const parts = [formatAmounts(content, g?.currency ?? {}), ...(g?.items ?? []).map((i) => pieceDisplayName(content, i))].filter(
-    (p) => p !== 'nothing',
-  );
+  const parts = [
+    formatAmounts(content, g?.currency ?? {}),
+    ...(g?.boxes ?? []).map((b) => content.economy.lootBoxes?.[b]?.name ?? b),
+    ...(g?.items ?? []).map((i) => pieceDisplayName(content, i)),
+  ].filter((p) => p !== 'nothing');
   return parts.length ? parts.join(' · ') : '—';
 }
 

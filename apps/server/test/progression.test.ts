@@ -130,6 +130,17 @@ describe('loot boxes', () => {
     ]);
   });
 
+  it('finished guides belong to the account, not the browser', async () => {
+    const a = await account('guides-a@example.com');
+    const b = await account('guides-b@example.com');
+    await a.call('POST', '/api/guides/recruit/complete');
+    await a.call('POST', '/api/guides/forge/complete');
+    expect(((await a.call('GET', '/api/guides')).json() as { done: string[] }).done.sort()).toEqual(['forge', 'recruit']);
+    // Another account starts with none finished, and is paid for its own.
+    expect((await b.call('GET', '/api/guides')).json()).toEqual({ done: [] });
+    expect(((await b.call('POST', '/api/guides/recruit/complete')).json() as { reward: { boxes: string[] } }).reward.boxes).toEqual(['uncommon']);
+  });
+
   it('open only once, and only for their owner', async () => {
     const a = await account('once@example.com');
     const b = await account('thief@example.com');

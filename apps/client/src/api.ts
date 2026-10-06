@@ -203,6 +203,7 @@ export const api = {
 
   inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
   progress: () => call<Progress>('GET', '/progress'),
+  guides: () => call<{ done: string[] }>('GET', '/guides'),
   completeGuide: (id: string) => call<{ reward: Reward | null; progress: Progress }>('POST', `/guides/${id}/complete`),
   openLootBox: (id: string) => call<{ box: string; rolls: LootRoll[]; wallet: Wallet; progress: Progress }>('POST', `/loot-boxes/${id}/open`),
   forge: (base: string, addition: string) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/forge', { base, addition }),

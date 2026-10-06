@@ -39,6 +39,7 @@ export function Tutorial() {
   const grantText = (g: GrantSpec | undefined): string => {
     const parts = [
       formatAmounts(content, g?.currency ?? {}),
+      ...(g?.boxes ?? []).map((b) => content.economy.lootBoxes?.[b]?.name ?? b),
       ...(g?.items ?? []).map((i) => pieceDisplayName(content, i)),
       ...(g?.rolls ? [t('grant.freeCharacters', { count: g.rolls })] : []),
     ].filter((p) => p !== 'nothing');
@@ -130,7 +131,9 @@ export function Tutorial() {
                 <div className="encounter-main">
                   <b>{g.name}</b>
                   <span className="muted">{g.description}</span>
-                  {finished && <span className="muted">{t('tutorial.done')}</span>}
+                  <span className="muted">
+                    {finished ? t('tutorial.done') : t('tutorial.reward', { reward: grantText(content.economy.guideRewards?.[g.id]) })}
+                  </span>
                 </div>
                 <button type="button" className={`btn${finished ? '' : ' primary'}`} onClick={() => startGuide(g.id)}>
                   {finished ? t('tutorial.again') : t('tutorial.start')}

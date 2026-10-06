@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { api, ApiError, type Character, type InventoryItem, type LootRoll, type Progress, type User, type Wallet } from './api.js';
 import { content } from './content.js';
+import { useGuide } from './guides.js';
 import { online } from './match/online.js';
 
 export type MetaStatus = 'loading' | 'signedOut' | 'signedIn' | 'offline';
@@ -105,12 +106,15 @@ export const useMeta = create<MetaState>((set, get) => {
     async signOut() {
       online.disconnect();
       await act(() => api.logout());
+      useGuide.getState().load([]);
+      useGuide.getState().stop();
       set({ user: null, status: 'signedOut', characters: [], team: [], inventory: [], wallet: {}, progress: null });
     },
 
     async refresh() {
       await act(async () => {
-        const [chars, team, inv, progress] = await Promise.all([api.characters(), api.activeTeam(), api.inventory(), api.progress()]);
+        const [chars, team, inv, progress, guides] = await Promise.all([api.characters(), api.activeTeam(), api.inventory(), api.progress(), api.guides()]);
+        useGuide.getState().load(guides.done);
         set({
           progress,
           characters: chars.characters,

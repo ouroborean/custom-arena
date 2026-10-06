@@ -183,14 +183,13 @@ export const GUIDES: Guide[] = [
 
 export const guideById = (id: string) => GUIDES.find((g) => g.id === id);
 
-const DONE_KEY = 'arena:guides:done';
-function loadDone(): string[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(DONE_KEY) ?? '[]') as unknown;
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
+// Finished guides belong to the account, not the browser: the server keeps them (GET /api/guides),
+// and finishing one records it there (POST /api/guides/:id/complete, which also pays its reward).
+// Older builds kept them in localStorage, which leaked one account's guides into another's.
+try {
+  localStorage.removeItem('arena:guides:done');
+} catch {
+  // Storage blocked: nothing to clean up.
 }
 
 export function snapshotOf(characters: Character[], signals: Signals, screen: string, characterId: string | null): GuideSnapshot {
@@ -199,8 +198,14 @@ export function snapshotOf(characters: Character[], signals: Signals, screen: st
 
 interface GuideState {
   active: { id: string; step: number; start: GuideSnapshot } | null;
-  /** Guides finished in this browser. */
+  /** Guides the signed-in account has finished: the server's list plus any finished since. */
   done: string[];
+  /** Of those, the ones the server has recorded; the rest still need reporting. */
+  recorded: string[];
+  /** The account's finished guides from the server (sign-in, refresh); [] when signed out. */
+  load(done: string[]): void;
+  /** The server has recorded a finished guide. */
+  markRecorded(id: string): void;
   /** What the screens report (see GuideSnapshot). */
   signals: Signals;
   begin(id: string, now: GuideSnapshot): void;
@@ -216,7 +221,14 @@ interface GuideState {
 
 export const useGuide = create<GuideState>((set, get) => ({
   active: null,
-  done: loadDone(),
+  done: [],
+  recorded: [],
+  load(done) {
+    set({ done: [...done], recorded: [...done] });
+  },
+  markRecorded(id) {
+    if (!get().recorded.includes(id)) set({ recorded: [...get().recorded, id] });
+  },
   signals: { draftItems: '', draftInfusions: '', saves: 0, forges: 0, benchBase: false, benchAddition: false },
   begin(id, now) {
     set({ active: { id, step: 0, start: now } });
@@ -230,13 +242,7 @@ export const useGuide = create<GuideState>((set, get) => ({
     if (!a) return;
     const guide = guideById(a.id);
     if (!guide || a.step + 1 >= guide.steps.length) {
-      const done = [...new Set([...get().done, a.id])];
-      try {
-        localStorage.setItem(DONE_KEY, JSON.stringify(done));
-      } catch {
-        // Not saved (private window): the checkmark lasts this session.
-      }
-      set({ active: null, done });
+      set({ active: null, done: [...new Set([...get().done, a.id])] });
       return;
     }
     set({ active: { ...a, step: a.step + 1, start: now } });
