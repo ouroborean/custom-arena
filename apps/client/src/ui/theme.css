@@ -73,7 +73,17 @@
   --chamfer: 14px;
   --font-display: 'Big Shoulders Display', 'Impact', sans-serif;
   --font-ui: 'Chakra Petch', 'Segoe UI', sans-serif;
-  color-scheme: dark;
+  /* The page is dark-only. "only" tells browsers with their own dark mode (Chrome's dark theme for
+     sites) not to recolor it; without it, they lighten dark shapes on dark panels, and the black
+     random-energy pip turned light grey, like Wisdom's white. */
+  color-scheme: only dark;
+}
+
+/* Samsung Internet's dark mode instead looks for a prefers-color-scheme rule to leave a page alone. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: only dark;
+  }
 }
 
 *,
