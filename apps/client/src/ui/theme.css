@@ -4614,3 +4614,25 @@ button.pool-skill:disabled {
 .lootbox-earned.box-epic {
   --q: var(--q-epic);
 }
+
+/* Keywords in rules text (ui/RulesText.tsx): tinted in their element's color, base keywords in the
+   keyword accent, bold and underlined, so game terms stand apart from plain wording. A keyword's own
+   element class sets --el; it resets --el-text so a Shadow panel's text color doesn't leak in. */
+.kw {
+  --el-text: initial;
+  /* Lightened a little so dark element colors (Shadow, Unholy, Water) stay readable on dark panels. */
+  color: color-mix(in srgb, var(--kw-color, var(--yellow)) 72%, #fff);
+  font-weight: 700;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.kw[class*='el-'] {
+  --kw-color: var(--el-text, var(--el));
+}
+
+.kw.el-shadow,
+.kw.el-dimension {
+  --el-text: var(--el-shadow-text);
+}

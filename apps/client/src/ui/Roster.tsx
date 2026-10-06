@@ -5,6 +5,7 @@ import type { Character } from '../api.js';
 import { content } from '../content.js';
 import { portraitKey } from '../assets.js';
 import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, SkillGlyph, Tooltip } from './common.js';
+import { RulesText } from './RulesText.js';
 
 export const recordOf = (c: Character): CharacterRecord => ({
   name: c.name,
@@ -31,7 +32,7 @@ export function SkillChips({ skills }: { skills: CharacterSkill[] }) {
             content={
               <>
                 <h4>{d.name}</h4>
-                <div>{d.description}</div>
+                <div><RulesText text={d.description} /></div>
                 <div className="row">
                   <CostPips cost={d.cost} /> · cooldown {d.cooldown}
                   {s.locked && ' · default infusion'}

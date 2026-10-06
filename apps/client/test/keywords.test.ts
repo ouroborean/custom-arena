@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { loadContentOrThrow } from '@arena/content';
-import { keywordItems, keywordMatcher } from '../src/keywords.js';
+import { keywordItems, keywordMatcher, splitKeywords } from '../src/keywords.js';
 
 const content = loadContentOrThrow();
 const baseSkills = new Set(Object.values(content.skills).filter((s) => !s.id.includes('.')).map((s) => s.name));
@@ -34,5 +34,18 @@ describe('keyword matching', () => {
       ['shield', 'Affliction'],
       ['invulnerable', 'Affliction'],
     ]);
+  });
+});
+
+describe('splitting rules text', () => {
+  it('splits text into plain runs and keyword runs, keeping every character', () => {
+    const text = 'Deals 15 damage to target enemy, then every Ignited enemy Explodes.';
+    const parts = splitKeywords(match, text);
+    expect(parts.map((p) => p.text).join('')).toBe(text);
+    expect(parts.filter((p) => p.keyword).map((p) => p.text)).toEqual(['Ignited', 'Explodes']);
+  });
+
+  it('leaves text without keywords whole', () => {
+    expect(splitKeywords(match, 'Deals 20 damage to target enemy.')).toEqual([{ text: 'Deals 20 damage to target enemy.' }]);
   });
 });

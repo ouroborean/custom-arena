@@ -10,6 +10,7 @@ import { useT } from '../i18n/index.js';
 import { keywordItems, keywordMatcher, type KeywordItem, type KeywordMatch } from '../keywords.js';
 import { keywordHelpMode, useSettings } from '../settings.js';
 import { elementClass } from './common.js';
+import { RulesText } from './RulesText.js';
 
 const HIGHLIGHT = 'keyword';
 
@@ -201,7 +202,9 @@ export function KeywordHelp() {
               {k.name}
               {k.element && <span className="kw-el">{k.element}</span>}
             </div>
-            <div className="kw-text">{k.text}</div>
+            <div className="kw-text">
+              <RulesText text={k.text} />
+            </div>
             {via && <div className="kw-via">{t('keywords.via', { name: via })}</div>}
           </div>
         ))}
