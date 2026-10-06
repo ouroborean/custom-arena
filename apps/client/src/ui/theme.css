@@ -4696,3 +4696,252 @@ button.pool-skill:disabled {
 .kw.el-dimension {
   --el-text: var(--el-shadow-text);
 }
+
+/* ------------------------------------------------------------ Home tabs: Main, Roster, Forge */
+
+.home-tabs {
+  display: flex;
+  gap: 0;
+  margin: 4px 0 16px;
+  border-bottom: 3px solid var(--line);
+}
+
+.home-tab {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 22px;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+  cursor: pointer;
+}
+
+.home-tab:hover {
+  color: var(--text);
+}
+
+.home-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--red);
+}
+
+.home-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-heading {
+  font-size: 22px;
+  margin: 8px 0 -4px;
+}
+
+/* Active team beside the two leaderboards. */
+.home-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.active-team-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.active-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 2px solid var(--line);
+  background: var(--ink-2);
+  color: var(--text);
+  text-align: center;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.active-member:hover {
+  border-color: var(--text);
+}
+
+.active-member b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-member .muted {
+  font-size: 12px;
+}
+
+.active-member.empty {
+  border-style: dashed;
+  color: var(--faint);
+  justify-content: center;
+  min-height: 150px;
+  cursor: default;
+}
+
+.leaderboards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.leaderboard {
+  border-top: 4px solid var(--yellow);
+}
+
+.lb-hint {
+  margin: -4px 0 8px;
+  font-size: 12px;
+}
+
+.lb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lb-list li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  background: var(--ink-2);
+}
+
+.lb-list li:first-child {
+  background: color-mix(in srgb, var(--yellow) 16%, var(--ink-2));
+}
+
+.lb-place {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--yellow);
+  text-align: right;
+}
+
+.lb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-value {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.lb-list li.unranked .lb-value,
+.lb-list li.unranked .lb-place {
+  color: var(--faint);
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 4px solid var(--red);
+}
+
+.mode-card h3 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.mode-card p {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.queue-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.queue-notes p {
+  margin: 0;
+}
+
+.queue-notes b {
+  color: var(--text);
+}
+
+/* The trade-in bench on the Forge tab. */
+.trade-bench {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--line);
+  background: var(--ink);
+  padding: 10px;
+  margin: 10px 0 6px;
+}
+
+.trade-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.trade-slot {
+  flex: 0 1 190px;
+}
+
+.trade-text {
+  flex: 1 1 200px;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .home-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .leaderboards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home-tab {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 16px;
+  }
+}

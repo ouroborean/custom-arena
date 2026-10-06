@@ -42,6 +42,20 @@ export interface Reward {
   boxes?: string[];
 }
 
+/** One place on a leaderboard; `value` is null for a place filled by registration order. */
+export interface LeaderboardEntry {
+  name: string;
+  value: number | null;
+  /** The ranked tier (or "Placement"). */
+  detail?: string;
+}
+
+export interface Leaderboards {
+  winstreak: LeaderboardEntry[];
+  rank: LeaderboardEntry[];
+  season: { id: string; name: string } | null;
+}
+
 /** An unopened loot box: its kind, and the level and bubble that paid it. */
 export interface LootBox {
   id: string;
@@ -202,6 +216,8 @@ export const api = {
   teamSpecs: () => call<{ specs: CharacterSpec[] }>('GET', '/teams/active/specs'),
 
   inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
+  tradeIn: (ids: string[]) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/inventory/trade-in', { ids }),
+  leaderboards: () => call<Leaderboards>('GET', '/leaderboards'),
   progress: () => call<Progress>('GET', '/progress'),
   guides: () => call<{ done: string[] }>('GET', '/guides'),
   completeGuide: (id: string) => call<{ reward: Reward | null; progress: Progress }>('POST', `/guides/${id}/complete`),

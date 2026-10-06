@@ -5,7 +5,7 @@
 // salvage only take unequipped pieces.
 
 import { pick, pieceComponentIds, pieceDisplayName, pieceProblems, seedRng } from '@arena/engine';
-import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
+import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, tradeIn, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -203,6 +203,28 @@ export function equipmentRoutes(ctx: AppContext) {
       });
       audit(ctx.db, 'salvage', { userId, detail: { instance: id, ...paid } });
       return { paid: paid.value, wallet: await walletOf(ctx.db, ctx.content, userId) };
+    });
+
+    /**
+     * Trades in unequipped single components (economy `tradeIn`: 3) for one random other component.
+     * Returns the new piece's instance.
+     */
+    app.post('/api/inventory/trade-in', async (req, reply) => {
+      const userId = req.user!.id;
+      const { ids } = parse(z.object({ ids: z.array(z.uuid()).min(1).max(10) }), req.body);
+      const made = await inTransaction(ctx.db, async (db) => {
+        const insts = await spareInstances(db, userId, ids);
+        const r = tradeIn(ctx.content, insts.map((i) => i.itemId), seedRng(ctx.rollSeed()));
+        if (!r.ok) throw new HttpError(400, r.problems.join(' '), { problems: r.problems });
+        await db.delete(itemInstances).where(inArray(itemInstances.id, ids));
+        const [row] = await db.insert(itemInstances).values({ userId, itemId: r.item, source: 'trade-in' }).returning();
+        return { row: row!, traded: insts.map((i) => i.itemId) };
+      });
+      audit(ctx.db, 'trade_in', { userId, detail: { traded: made.traded, made: made.row.itemId } });
+      return reply.status(201).send({
+        item: { id: made.row.id, itemId: made.row.itemId, source: made.row.source, acquiredAt: made.row.acquiredAt, equippedOn: null },
+        wallet: await walletOf(ctx.db, ctx.content, userId),
+      });
     });
 
     if (ctx.devGrants) {

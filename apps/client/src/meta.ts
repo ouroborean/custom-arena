@@ -37,6 +37,8 @@ interface MetaState {
   /** Splits a forged (unequipped) instance into its components. */
   split(id: string): Promise<InventoryItem[] | null>;
   salvage(id: string): Promise<void>;
+  /** Trades in single components (economy `tradeIn`) for one random other; the new piece, or null. */
+  tradeIn(ids: string[]): Promise<InventoryItem | null>;
   /** Opens a loot box; its gold and gear are paid at once. Null if it failed. */
   openLootBox(id: string): Promise<{ box: string; rolls: LootRoll[] } | null>;
   clearError(): void;
@@ -173,6 +175,13 @@ export const useMeta = create<MetaState>((set, get) => {
     async salvage(id) {
       const r = await act(() => api.salvage(id));
       if (r) set({ inventory: get().inventory.filter((i) => i.id !== id), wallet: r.wallet });
+    },
+
+    async tradeIn(ids) {
+      const r = await act(() => api.tradeIn(ids));
+      if (!r) return null;
+      set({ inventory: [...get().inventory.filter((i) => !ids.includes(i.id)), r.item], wallet: r.wallet });
+      return r.item;
     },
 
     async openLootBox(id) {

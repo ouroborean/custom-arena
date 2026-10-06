@@ -1,6 +1,6 @@
 // Inventory and the forge (docs/equipment.md §6): owned pieces, where they're equipped, forging two
-// pieces into one, splitting a forged piece back into its components, and salvage. Only unequipped
-// pieces can be forged, split or salvaged.
+// pieces into one, splitting a forged piece back into its components, selling (salvage, for gold) and
+// trading in 3 single components for a random other one. Only unequipped pieces can be used.
 
 import { useEffect, useMemo, useState } from 'react';
 import { describePiece, type PieceDef } from '@arena/engine';
@@ -21,7 +21,9 @@ interface Entry {
 }
 
 export function InventoryPanel() {
-  const { inventory, characters, wallet, busy, forge, split, salvage } = useMeta();
+  const { inventory, characters, wallet, busy, forge, split, salvage, tradeIn } = useMeta();
+  const tradeRule = content.economy.tradeIn;
+  const [trade, setTrade] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [base, setBase] = useState<string | null>(null);
   const [addition, setAddition] = useState<string | null>(null);
@@ -51,7 +53,8 @@ export function InventoryPanel() {
   const instance = (id: string | null) => (id ? inventory.find((i) => i.id === id && !i.equippedOn) : undefined);
   const baseInst = instance(base);
   const addInst = instance(addition);
-  const onBench = new Set([baseInst?.id, addInst?.id].filter(Boolean));
+  const tradeInsts = trade.map((id) => instance(id)).filter((i): i is InventoryItem => !!i);
+  const onBench = new Set([baseInst?.id, addInst?.id, ...tradeInsts.map((i) => i.id)].filter(Boolean));
   const free = (e: Entry) => e.spare.filter((i) => !onBench.has(i.id));
   const result = baseInst && addInst ? forgeRule(content, baseInst.itemId, addInst.itemId) : null;
   // The Forging guide follows the bench.
@@ -78,6 +81,16 @@ export function InventoryPanel() {
     setAddition(null);
     setSelected(item.itemId);
     setNotice(`Forged ${made.name}.`);
+  };
+
+  const doTrade = async () => {
+    if (!tradeRule || tradeInsts.length !== tradeRule.count) return;
+    const names = tradeInsts.map((i) => describePiece(content, i.itemId)?.name ?? i.itemId);
+    const item = await tradeIn(tradeInsts.map((i) => i.id));
+    if (!item) return;
+    setTrade([]);
+    setSelected(item.itemId);
+    setNotice(`Traded in ${names.join(', ')} for ${describePiece(content, item.itemId)?.name ?? item.itemId}.`);
   };
 
   const doSplit = async (e: Entry) => {
@@ -144,6 +157,48 @@ export function InventoryPanel() {
       <p className="muted forge-hint">
         The base keeps its name and the addition adds to it. A piece holds up to 3 components: one Sigil at most, and no skill twice.
       </p>
+
+      {tradeRule && (
+        <div className="trade-bench" role="group" aria-label="Trade in" data-guide="trade">
+          <span className="slot-label">Trade in</span>
+          <div className="trade-slots">
+            {Array.from({ length: tradeRule.count }, (_, i) => {
+              const inst = tradeInsts[i];
+              const def = inst ? describePiece(content, inst.itemId) : undefined;
+              return (
+                <div key={i} className={`forge-slot trade-slot${def ? ' filled' : ''}`}>
+                  {def ? (
+                    <>
+                      <span className="item-tile static">
+                        <PieceBadge def={def} />
+                        <ItemFace def={def} content={content} className="code" />
+                      </span>
+                      <span className="forge-slot-name">{def.name}</span>
+                      <button
+                        type="button"
+                        className="equip-remove"
+                        aria-label={`Take ${def.name} out of the trade`}
+                        title="Remove"
+                        onClick={() => setTrade(trade.filter((id) => id !== inst!.id))}
+                      >
+                        ×
+                      </button>
+                    </>
+                  ) : (
+                    <span className="muted">Empty</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <span className="muted trade-text">
+            Any {tradeRule.count} single components (tier 1) for one random component of another kind.
+          </span>
+          <button type="button" className="btn small primary" disabled={busy || tradeInsts.length !== tradeRule.count} onClick={() => void doTrade()}>
+            Trade in
+          </button>
+        </div>
+      )}
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -214,6 +269,17 @@ export function InventoryPanel() {
               <button type="button" className="btn small" disabled={free(current).length === 0} onClick={() => setAddition(free(current)[0]!.id)}>
                 Use as addition
               </button>
+              {tradeRule && current.def.components.length === 1 && (
+                <button
+                  type="button"
+                  className="btn small"
+                  disabled={free(current).length === 0 || tradeInsts.length >= tradeRule.count}
+                  title={`Put it in the trade-in (${tradeInsts.length}/${tradeRule.count})`}
+                  onClick={() => setTrade([...tradeInsts.map((i) => i.id), free(current)[0]!.id])}
+                >
+                  Add to trade-in
+                </button>
+              )}
               {current.def.components.length > 1 && (
                 <button
                   type="button"
@@ -232,11 +298,11 @@ export function InventoryPanel() {
                 onClick={() => {
                   if (confirming !== current.def.id) return setConfirming(current.def.id);
                   setConfirming(null);
-                  void salvage(free(current)[0]!.id).then(() => setNotice(`Salvaged ${current.def.name}.`));
+                  void salvage(free(current)[0]!.id).then(() => setNotice(`Sold ${current.def.name} for ${formatAmounts(content, salvageValue(content, current.def.id))}.`));
                 }}
                 onBlur={() => confirming === current.def.id && setConfirming(null)}
               >
-                {confirming === current.def.id ? `Salvage for ${formatAmounts(content, salvageValue(content, current.def.id))}?` : 'Salvage'}
+                {confirming === current.def.id ? `Sell for ${formatAmounts(content, salvageValue(content, current.def.id))}?` : `Sell (${formatAmounts(content, salvageValue(content, current.def.id))})`}
               </button>
             </div>
           </div>

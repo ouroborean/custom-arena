@@ -334,7 +334,9 @@ Anti-farming rules:
   by players.
 - **Forging:** two unequipped pieces become one, for **50 Gold** (2 components) or **100 Gold**
   (3). **Splitting** a forged piece back into its components costs **25 Gold**. See §6.
-- **Salvage:** an unequipped piece pays gold for each component: Skill 10, Shard 5, Sigil 30.
+- **Salvage** (shown as **Sell**): an unequipped piece pays gold for each component: Skill 10, Shard 5, Sigil 30.
+- **Trade-in** (2026-10-06): any 3 unequipped single components (tier 1) become one random component of
+  another kind from the `standard` table (`economy.tradeIn`, `POST /api/inventory/trade-in`).
 - **Equipped pieces:** forging, splitting and salvage refuse them, returning 409.
 
 ### 4.1 Player levels and loot boxes (2026-10-05)

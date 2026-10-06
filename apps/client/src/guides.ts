@@ -147,7 +147,7 @@ export const GUIDES: Guide[] = [
   {
     id: 'forge',
     name: 'Forging',
-    description: 'Combine pieces into stronger ones, split them, or salvage them for Gold.',
+    description: 'Combine pieces into stronger ones, split them, sell them for Gold, or trade them in.',
     steps: [
       {
         screen: 'home',
@@ -175,7 +175,7 @@ export const GUIDES: Guide[] = [
       {
         screen: 'home',
         highlight: 'pieces',
-        text: 'A forged piece fills one slot with everything it holds. "Split" takes it back apart for a small fee, and "Salvage" turns any spare piece into Gold.',
+        text: 'A forged piece fills one slot with everything it holds. "Split" takes it back apart for a small fee, "Sell" turns any spare piece into Gold, and "Add to trade-in" puts single components toward a trade: any 3 for a random one of another kind.',
       },
     ],
   },

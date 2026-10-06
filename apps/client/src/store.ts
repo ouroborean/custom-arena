@@ -57,6 +57,8 @@ export interface CommitPlan {
 /** Screens a match can return to. */
 export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
 export type Screen = ReturnScreen | 'character' | 'battle' | 'settings';
+/** Home's tabs: playing (main), the roster and team, and the forge. */
+export type HomeTab = 'main' | 'roster' | 'forge';
 
 /** A skill use, as the action popup shows it. */
 export interface ShownAction {
@@ -68,6 +70,8 @@ export interface ShownAction {
 
 interface StoreState {
   screen: Screen;
+  /** The Home tab last shown (kept while the player visits a character and comes back). */
+  homeTab: HomeTab;
   /** The character open on the character screen. */
   characterId: string | null;
   /** Where leaving a match goes back to. */
@@ -107,6 +111,7 @@ interface StoreState {
   /** Leaves the match, back to the screen it was started from. */
   toSetup(): void;
   go(screen: Exclude<Screen, 'battle'>, characterId?: string): void;
+  setHomeTab(tab: HomeTab): void;
   selectSkill(actor: string, slot: number): void;
   chooseTarget(unitId: string): void;
   cancelTargeting(): void;
@@ -254,6 +259,7 @@ export const useStore = create<StoreState>((set, get) => {
 
   return {
     screen: 'home',
+    homeTab: 'main',
     storyResult: null,
     coach: null,
     characterId: null,
@@ -355,6 +361,10 @@ export const useStore = create<StoreState>((set, get) => {
 
     go(screen, characterId) {
       set({ screen, characterId: characterId ?? null });
+    },
+
+    setHomeTab(homeTab) {
+      set({ homeTab });
     },
 
     selectSkill(actor, slot) {
