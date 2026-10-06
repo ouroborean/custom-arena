@@ -45,7 +45,9 @@ export const en = {
   'home.editTeam': 'Edit team',
   'home.noTeam': 'No team yet. Recruit three characters on the Roster tab and they become your team.',
   'home.needTeam': 'Bot practice, the arcade and online matches need a full team of three: pick one on the Roster tab.',
-  'home.rosterHint': 'Open a character to equip pieces and place infusions. Change team picks the three you take into battle, in battle order.',
+  'home.rosterHint':
+    'Drag a character onto a team slot to put them in your team, or onto another card to rearrange your roster (on a touch screen, press and hold first). Click one to equip pieces and place infusions. With the keyboard: Alt + arrows move the focused character, Alt + 1, 2 or 3 puts them in that team slot.',
+  'home.teamNeedsThree': 'A team needs three characters: recruit more, then drag them in.',
   'home.leaderboards': 'Leaderboards',
   'home.lb.streak': 'Win streak',
   'home.lb.streakHint': 'Wins in a row right now, in casual and ranked matches.',

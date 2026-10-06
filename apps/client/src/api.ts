@@ -208,6 +208,7 @@ export const api = {
 
   characters: () => call<{ characters: Character[]; maxRoster: number }>('GET', '/characters'),
   roll: () => call<{ character: Character; wallet: Wallet }>('POST', '/characters/roll'),
+  reorderRoster: (ids: string[]) => call<{ ids: string[] }>('PUT', '/characters/order', { ids }),
   rename: (id: string, name: string) => call<{ character: Character }>('PATCH', `/characters/${id}`, { name }),
   retire: (id: string) => call<void>('DELETE', `/characters/${id}`),
 

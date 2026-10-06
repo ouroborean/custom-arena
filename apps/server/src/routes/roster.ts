@@ -3,7 +3,7 @@
 
 import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter } from '@arena/meta';
 import { seedRng, type CharacterSpec } from '@arena/engine';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
@@ -104,8 +104,28 @@ export function rosterRoutes(ctx: AppContext) {
     });
 
     app.get('/api/characters', async (req) => {
-      const rows = await ctx.db.select().from(characters).where(eq(characters.userId, req.user!.id)).orderBy(characters.createdAt);
+      // The player's own order first; recruits since it was saved follow, oldest first.
+      const rows = await ctx.db
+        .select()
+        .from(characters)
+        .where(eq(characters.userId, req.user!.id))
+        .orderBy(sql`${characters.position} asc nulls last`, characters.createdAt);
       return { characters: rows.map(characterJson), maxRoster: MAX_ROSTER, maxSkills: MAX_SKILLS };
+    });
+
+    /** Saves the roster order: every one of the player's characters, each once, in the new order. */
+    app.put('/api/characters/order', async (req) => {
+      const userId = req.user!.id;
+      const { ids } = parse(z.object({ ids: z.array(z.uuid()).max(MAX_ROSTER) }), req.body);
+      const owned = await ctx.db.select({ id: characters.id }).from(characters).where(eq(characters.userId, userId));
+      const mine = new Set(owned.map((r) => r.id));
+      if (new Set(ids).size !== ids.length || ids.length !== mine.size || ids.some((id) => !mine.has(id))) {
+        throw new HttpError(400, 'The order must list each of your characters once');
+      }
+      await inTransaction(ctx.db, async (db) => {
+        for (const [i, id] of ids.entries()) await db.update(characters).set({ position: i }).where(eq(characters.id, id));
+      });
+      return { ids };
     });
 
     app.get('/api/characters/:id', async (req) => {
