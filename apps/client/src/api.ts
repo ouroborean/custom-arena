@@ -38,14 +38,18 @@ export interface Reward {
   currency: Record<string, number>;
   items: string[];
   xp?: XpGain;
+  /** Loot boxes a fixed grant paid (tutorial lessons, menu guides), by box id. */
+  boxes?: string[];
 }
 
 /** An unopened loot box: its kind, and the level and bubble that paid it. */
 export interface LootBox {
   id: string;
   box: string;
-  level: number;
-  at: number;
+  /** What paid it: level (a bubble on the bar), tutorial, guide, … */
+  source: string;
+  level: number | null;
+  at: number | null;
   createdAt: string;
 }
 
@@ -199,6 +203,7 @@ export const api = {
 
   inventory: () => call<{ items: InventoryItem[]; wallet: Wallet }>('GET', '/inventory'),
   progress: () => call<Progress>('GET', '/progress'),
+  completeGuide: (id: string) => call<{ reward: Reward | null; progress: Progress }>('POST', `/guides/${id}/complete`),
   openLootBox: (id: string) => call<{ box: string; rolls: LootRoll[]; wallet: Wallet; progress: Progress }>('POST', `/loot-boxes/${id}/open`),
   forge: (base: string, addition: string) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/forge', { base, addition }),
   split: (id: string) => call<{ items: InventoryItem[]; wallet: Wallet }>('POST', `/inventory/${id}/split`),

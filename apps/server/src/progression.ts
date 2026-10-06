@@ -13,8 +13,11 @@ import { credit, inTransaction, walletOf } from './economy.js';
 export interface LootBoxView {
   id: string;
   box: string;
-  level: number;
-  at: number;
+  /** level (a bubble on the bar), tutorial, guide, … */
+  source: string;
+  /** Level-up boxes: the level and bubble that paid it. */
+  level: number | null;
+  at: number | null;
   createdAt: Date;
 }
 
@@ -33,7 +36,7 @@ export async function progressOf(db: Db, content: ContentBundle, userId: string)
   const [xp, boxes] = await Promise.all([
     totalXp(db, userId),
     db
-      .select({ id: lootBoxes.id, box: lootBoxes.box, level: lootBoxes.level, at: lootBoxes.at, createdAt: lootBoxes.createdAt })
+      .select({ id: lootBoxes.id, box: lootBoxes.box, source: lootBoxes.source, level: lootBoxes.level, at: lootBoxes.at, createdAt: lootBoxes.createdAt })
       .from(lootBoxes)
       .where(and(eq(lootBoxes.userId, userId), isNull(lootBoxes.openedAt)))
       .orderBy(asc(lootBoxes.createdAt), asc(lootBoxes.level), asc(lootBoxes.at)),

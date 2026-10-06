@@ -6,7 +6,7 @@ import { formatAmounts, matchReward, matchXp, startingWallet, type Outcome, type
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { HttpError } from './app.js';
 import type { Db } from './db/client.js';
-import { currencies, itemInstances, matchRewards, spAttempts } from './db/schema.js';
+import { currencies, itemInstances, lootBoxes, matchRewards, spAttempts } from './db/schema.js';
 import { awardXp } from './progression.js';
 
 /** Runs `fn` in a transaction. The handle has the same query API as Db. */
@@ -63,11 +63,18 @@ export async function spend(db: Db, content: ContentBundle, userId: string, cost
   }
 }
 
-/** Pays a fixed grant (story, achievements, tutorial): currency and items, with `source` on the items. */
-export async function grant(db: Db, content: ContentBundle, userId: string, spec: GrantSpec | undefined, source: string): Promise<Reward> {
+/**
+ * Pays a fixed grant (story, achievements, tutorial, guides): currency, items with `source` on them, and
+ * loot boxes stored unopened with `boxSource` (tutorial, guide, …) as what paid them.
+ */
+export async function grant(db: Db, content: ContentBundle, userId: string, spec: GrantSpec | undefined, source: string, boxSource = source): Promise<Reward> {
   const reward: Reward = { currency: { ...spec?.currency }, items: [...(spec?.items ?? [])] };
   await credit(db, content, userId, reward.currency);
   if (reward.items.length) await db.insert(itemInstances).values(reward.items.map((itemId) => ({ userId, itemId, source })));
+  if (spec?.boxes?.length) {
+    reward.boxes = [...spec.boxes];
+    await db.insert(lootBoxes).values(spec.boxes.map((box) => ({ userId, box, source: boxSource })));
+  }
   return reward;
 }
 
@@ -77,6 +84,7 @@ export function sumRewards(rs: Reward[]): Reward {
   for (const r of rs) {
     for (const [k, n] of Object.entries(r.currency)) out.currency[k] = (out.currency[k] ?? 0) + n;
     out.items.push(...r.items);
+    if (r.boxes?.length) out.boxes = [...(out.boxes ?? []), ...r.boxes];
   }
   return out;
 }

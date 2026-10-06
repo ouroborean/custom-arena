@@ -1333,34 +1333,84 @@ button.portrait.targetable {
 /* enemy: compact skill list beside statuses */
 
 .enemy-skills {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: stretch;
+  /* Two rows of small skill icons, filling columns left to right (up to 3 columns for 5 skills), in
+     the same 104px-wide column the names used to take. */
+  --mini: 32px;
+  display: grid;
+  grid-template-rows: repeat(2, var(--mini));
+  grid-auto-flow: column;
+  grid-auto-columns: var(--mini);
+  gap: 4px;
+  align-content: start;
   width: 104px;
   flex: none;
 }
 
-.enemy-skills .mini {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
+.mini-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--mini);
+  height: var(--mini);
+  border: 1px solid var(--line-2);
+  background: var(--ink-3);
   overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 6px;
-  border: 1px solid var(--line);
-  background: var(--ink);
-  color: var(--muted);
-  white-space: nowrap;
-  cursor: help;
+  cursor: default;
 }
 
-.enemy-skills .mini .cdn {
+/* The category bar along the top, as on the player's tiles. */
+.mini-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--cat, var(--line-2));
+}
+
+.mini-tile.cat-attack {
+  --cat: var(--attack);
+}
+.mini-tile.cat-control {
+  --cat: var(--control);
+}
+.mini-tile.cat-support {
+  --cat: var(--support);
+}
+
+/* The element's corner notch, scaled down from the player's tiles. */
+.mini-tile.has-el {
+  background: linear-gradient(315deg, var(--el) 0 7px, transparent 7px), var(--ink-3);
+}
+
+.mini-tile .glyph {
+  width: 70%;
+  height: 70%;
+  margin-top: 2px;
+}
+
+.mini-tile .code {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.mini-tile .cdn {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
   color: var(--yellow);
+}
+
+.mini-tile:hover,
+.mini-tile:focus-visible {
+  border-color: var(--text);
+  outline: none;
 }
 
 /* ------------------------------------------------------------ minion bench (fixed slots) */

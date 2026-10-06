@@ -109,6 +109,27 @@ describe('loot boxes', () => {
     expect((await a.progress()).boxes).toEqual([]);
   });
 
+  it('menu guides pay their box once: uncommon for the first three, rare for forging', async () => {
+    const a = await account('guides@example.com');
+    const paid: string[] = [];
+    for (const g of ['recruit', 'equip', 'infuse', 'forge']) {
+      const res = await a.call('POST', `/api/guides/${g}/complete`);
+      expect(res.statusCode).toBe(200);
+      paid.push(...((res.json() as { reward: { boxes?: string[] } }).reward.boxes ?? []));
+    }
+    expect(paid).toEqual(['uncommon', 'uncommon', 'uncommon', 'rare']);
+    // Finishing a guide again pays nothing.
+    expect((await a.call('POST', '/api/guides/recruit/complete')).json().reward).toBeNull();
+    expect((await a.call('POST', '/api/guides/nonsense/complete')).statusCode).toBe(404);
+    const boxes = (await a.progress()).boxes as unknown as { box: string; source: string }[];
+    expect(boxes.map((b) => [b.box, b.source])).toEqual([
+      ['uncommon', 'guide'],
+      ['uncommon', 'guide'],
+      ['uncommon', 'guide'],
+      ['rare', 'guide'],
+    ]);
+  });
+
   it('open only once, and only for their owner', async () => {
     const a = await account('once@example.com');
     const b = await account('thief@example.com');

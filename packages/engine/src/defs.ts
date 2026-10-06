@@ -895,6 +895,8 @@ export interface EconomyDef {
   progression?: ProgressionDef;
   /** Loot boxes by id (uncommon, rare, epic, …). */
   lootBoxes?: Record<string, LootBoxDef>;
+  /** Paid once per account for finishing each menu guide (recruit, equip, infuse, forge). */
+  guideRewards?: Record<string, GrantSpec>;
 }
 
 /** Player levels: experience per match, the level curve and the bar's loot-box bubbles. */
@@ -966,6 +968,8 @@ export interface GrantSpec {
   items?: string[];
   /** Free character rolls (story and tutorial rewards; the roster cap still applies). */
   rolls?: number;
+  /** Loot boxes, by box id (economy `lootBoxes`): stored unopened for the player to open. */
+  boxes?: string[];
 }
 
 /** A character in an authored encounter. */

@@ -94,7 +94,15 @@ function LootBoxDialog({ onClose }: { onClose: () => void }) {
             <div className={`lootbox-closed box-${next.box}`}>
               <div className="lootbox-crate" aria-hidden="true" />
               <div className="lootbox-name">{boxName(next.box)}</div>
-              <div className="muted">{t('progress.from', { level: next.level, at: next.at })}</div>
+              <div className="muted">
+                {next.level !== null && next.at !== null
+                  ? t('progress.from', { level: next.level, at: next.at })
+                  : next.source === 'tutorial'
+                    ? t('progress.fromTutorial')
+                    : next.source === 'guide'
+                      ? t('progress.fromGuide')
+                      : t('progress.fromReward')}
+              </div>
             </div>
           )
         )}

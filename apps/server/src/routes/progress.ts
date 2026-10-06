@@ -2,7 +2,9 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { parse, requireUser, type AppContext } from '../app.js';
+import { HttpError, parse, requireUser, type AppContext } from '../app.js';
+import { guideRewards } from '../db/schema.js';
+import { grant, inTransaction } from '../economy.js';
 import { awardXp, openBox, progressOf } from '../progression.js';
 
 export function progressRoutes(ctx: AppContext) {
@@ -18,6 +20,23 @@ export function progressRoutes(ctx: AppContext) {
       const { id } = parse(z.object({ id: z.uuid() }), req.params);
       const opened = await openBox(ctx.db, ctx.content, userId, id, ctx.rollSeed());
       return { ...opened, progress: await progressOf(ctx.db, ctx.content, userId) };
+    });
+
+    /**
+     * Pays a menu guide's reward (economy `guideRewards`) the first time the account finishes it;
+     * later calls pay nothing (`reward: null`). The guides run in the browser, so this trusts the
+     * client that the guide was finished, and only guards against paying twice.
+     */
+    app.post('/api/guides/:id/complete', async (req) => {
+      const userId = req.user!.id;
+      const { id } = parse(z.object({ id: z.string().min(1).max(40) }), req.params);
+      const spec = ctx.content.economy.guideRewards?.[id];
+      if (!spec) throw new HttpError(404, 'No such guide');
+      const reward = await inTransaction(ctx.db, async (db) => {
+        const claimed = await db.insert(guideRewards).values({ userId, guideId: id }).onConflictDoNothing().returning();
+        return claimed.length ? grant(db, ctx.content, userId, spec, 'guide') : null;
+      });
+      return { reward, progress: await progressOf(ctx.db, ctx.content, userId) };
     });
 
     if (ctx.devGrants) {

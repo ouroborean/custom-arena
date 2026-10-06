@@ -22,8 +22,8 @@ async function clearedSet(db: Db, userId: string): Promise<Map<string, number>> 
 type CharacterRow = Awaited<ReturnType<typeof rollForUser>>;
 
 /** Pays a grant, including free character rolls (skipped once the roster is full). */
-async function payGrant(ctx: AppContext, db: Db, userId: string, spec: GrantSpec | undefined, characters: CharacterRow[]): Promise<Reward> {
-  const reward = await grant(db, ctx.content, userId, spec, 'story');
+async function payGrant(ctx: AppContext, db: Db, userId: string, spec: GrantSpec | undefined, characters: CharacterRow[], boxSource: string): Promise<Reward> {
+  const reward = await grant(db, ctx.content, userId, spec, 'story', boxSource);
   for (let i = 0; i < (spec?.rolls ?? 0); i++) {
     try {
       characters.push(await rollForUser({ ...ctx, db }, userId));
@@ -86,6 +86,7 @@ export function storyRoutes(ctx: AppContext) {
 
       const enc = ctx.content.encounters[attempt.ref]!;
       const chapterId = chapterOf(ctx.content, attempt.ref)!;
+      const boxSource = ctx.content.chapters[chapterId]?.tutorial ? 'tutorial' : 'story';
       const paid = await inTransaction(ctx.db, async (db) => {
         // Only the first submission of an attempt counts.
         const claimed = await db
@@ -110,7 +111,7 @@ export function storyRoutes(ctx: AppContext) {
           } else {
             await db.insert(storyProgress).values({ userId, encounterId: attempt.ref, clears: 1 });
           }
-          rewards.push(await payGrant(ctx, db, userId, prev ? enc.rewards?.repeat : enc.rewards?.first, characters));
+          rewards.push(await payGrant(ctx, db, userId, prev ? enc.rewards?.repeat : enc.rewards?.first, characters, boxSource));
           // The chapter's reward, the first time all its encounters are cleared.
           const chapter = ctx.content.chapters[chapterId]!;
           const cleared = await clearedSet(db, userId);
@@ -118,7 +119,7 @@ export function storyRoutes(ctx: AppContext) {
             const ins = await db.insert(storyChapters).values({ userId, chapterId }).onConflictDoNothing().returning();
             if (ins.length) {
               chapterDone = true;
-              rewards.push(await payGrant(ctx, db, userId, chapter.reward, characters));
+              rewards.push(await payGrant(ctx, db, userId, chapter.reward, characters, boxSource));
             }
           }
         }

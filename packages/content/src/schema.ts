@@ -580,6 +580,13 @@ const rewardSpec = z.strictObject({
   drops: z.strictObject({ table: z.string(), count: z.number().int().min(1), chance: z.number().gt(0).max(1).optional() }).optional(),
 });
 
+const grantSpec = z.strictObject({
+  currency: amounts.optional(),
+  items: z.array(z.string()).optional(),
+  rolls: z.number().int().min(1).max(3).optional(),
+  boxes: z.array(z.string()).optional(),
+});
+
 /** The economy file(s): top-level sections merged from every economy*.yaml. */
 export const economySchema = z.strictObject({
   currencies: z.record(z.string(), z.strictObject({ name: z.string().min(1), start: z.number().int().min(0) })),
@@ -632,6 +639,7 @@ export const economySchema = z.strictObject({
       table: z.string(),
     })
     .optional(),
+  guideRewards: z.record(z.string(), grantSpec).optional(),
   lootBoxes: z
     .record(
       z.string(),
@@ -646,11 +654,6 @@ export const economySchema = z.strictObject({
     .optional(),
 });
 
-const grantSpec = z.strictObject({
-  currency: amounts.optional(),
-  items: z.array(z.string()).optional(),
-  rolls: z.number().int().min(1).max(3).optional(),
-});
 const energy = z.strictObject({ S: z.number().int().min(0), A: z.number().int().min(0), I: z.number().int().min(0), W: z.number().int().min(0) });
 
 const encounterUnit = z.strictObject({

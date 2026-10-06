@@ -99,6 +99,13 @@
       "when": 1791233734081,
       "tag": "0013_progression",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791308474703,
+      "tag": "0014_reward_boxes",
+      "breakpoints": true
     }
   ]
 }

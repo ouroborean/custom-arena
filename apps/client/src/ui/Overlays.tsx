@@ -120,13 +120,17 @@ export function GameOverOverlay() {
 /** "Earned 40 Gold · Wind Katana". */
 function Earned({ currency, items }: { currency: Record<string, number>; items: string[] }) {
   const t = useT();
+  // With no currency (a reward of items alone), the first item takes the place of the amounts.
+  const hasCurrency = Object.values(currency).some((n) => n > 0);
+  const names = items.map((id) => pieceDisplayName(content, id));
+  const rest = hasCurrency ? names : names.slice(1);
   return (
     <p className="reward">
-      {t('over.earned', { amounts: formatAmounts(content, currency) })}
-      {items.map((id, i) => (
-        <span key={`${id}${i}`}>
+      {t('over.earned', { amounts: hasCurrency ? formatAmounts(content, currency) : (names[0] ?? '') })}
+      {rest.map((name, i) => (
+        <span key={`${name}${i}`}>
           {' · '}
-          <b>{pieceDisplayName(content, id)}</b>
+          <b>{name}</b>
         </span>
       ))}
     </p>
@@ -178,10 +182,16 @@ function StoryVerdict() {
   }
   const r = result.result;
   const earned = Object.values(r.reward.currency).some((n) => n > 0) || r.reward.items.length > 0;
+  const boxes = r.reward.boxes ?? [];
   return (
     <div className="story-verdict">
       {earned && <Earned currency={r.reward.currency} items={r.reward.items} />}
-      {!earned && !r.reward.xp && <p className="muted">{t('over.recorded', { outcome: r.outcome })}</p>}
+      {!earned && !r.reward.xp && boxes.length === 0 && <p className="muted">{t('over.recorded', { outcome: r.outcome })}</p>}
+      {boxes.map((box, i) => (
+        <p key={`grant-${box}${i}`} className={`reward lootbox-earned box-${box}`}>
+          {t('over.lootBox', { box: content.economy.lootBoxes?.[box]?.name ?? box })}
+        </p>
+      ))}
       {r.reward.xp && <XpEarned xp={r.reward.xp} />}
       {r.arcade && (
         <p className="reward">

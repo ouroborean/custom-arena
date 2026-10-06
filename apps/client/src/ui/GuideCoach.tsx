@@ -2,12 +2,63 @@
 // it's about, a way there when the player is elsewhere, and "Got it" for steps that only ask the
 // player to read. Steps with `until` move on by themselves once the player has done the thing.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../api.js';
+import { content } from '../content.js';
 import { guideById, snapshotOf, useGuide } from '../guides.js';
 import { useMeta } from '../meta.js';
 import { useStore } from '../store.js';
 
+/**
+ * Claims the reward of every finished guide (economy `guideRewards`). The server pays each guide once
+ * per account, so guides finished before rewards existed, or in another browser, are safe to claim
+ * again; a fresh payout shows a notice and refreshes the experience bar's boxes.
+ */
+interface GuidePayout {
+  guide: string;
+  boxes: string[];
+}
+
+function useGuideRewards(): [GuidePayout | null, () => void] {
+  const done = useGuide((s) => s.done);
+  const claimed = useRef(new Set<string>());
+  const [paid, setPaid] = useState<GuidePayout | null>(null);
+  useEffect(() => {
+    for (const id of done) {
+      if (claimed.current.has(id) || !content.economy.guideRewards?.[id]) continue;
+      claimed.current.add(id);
+      api.completeGuide(id).then(
+        (r) => {
+          useMeta.setState({ progress: r.progress });
+          if (r.reward?.boxes?.length) setPaid({ guide: guideById(id)?.name ?? id, boxes: r.reward.boxes });
+        },
+        () => claimed.current.delete(id),
+      );
+    }
+  }, [done]);
+  return [paid, () => setPaid(null)];
+}
+
+/** "Guide complete: Recruiting. You earned an Uncommon Loot Box." */
+function GuidePaid({ paid, onClose }: { paid: GuidePayout; onClose: () => void }) {
+  const names = paid.boxes.map((b) => content.economy.lootBoxes?.[b]?.name ?? b).join(', ');
+  return (
+    <aside className="coach guide-coach" role="status" aria-live="polite" aria-label="Guide complete">
+      <span className="coach-step">{paid.guide} · complete</span>
+      <p>
+        You earned: <b>{names}</b>. Open it from the experience bar on Home.
+      </p>
+      <div className="guide-actions">
+        <button type="button" className="btn small primary" autoFocus onClick={onClose}>
+          Nice
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 export function GuideCoach() {
+  const [paid, dismissPaid] = useGuideRewards();
   const active = useGuide((s) => s.active);
   const signals = useGuide((s) => s.signals);
   const advance = useGuide((s) => s.advance);
@@ -41,7 +92,8 @@ export function GuideCoach() {
     if (met) advance(now);
   }, [met, now, active, advance]);
 
-  if (!active || !guide || !step || screen === 'battle') return null;
+  if (screen === 'battle') return null;
+  if (!active || !guide || !step) return paid ? <GuidePaid paid={paid} onClose={dismissPaid} /> : null;
 
   const needsRecruit = guide.needsCharacter && characters.length === 0;
   const firstCharacter = team[0] ?? characters[0]?.id;
