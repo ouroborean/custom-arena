@@ -23,6 +23,8 @@ export interface Reward {
   items: string[];
   /** Experience the match paid, with any level-ups and loot boxes it brought (progression.ts). */
   xp?: XpGain;
+  /** Loot boxes a fixed grant paid (tutorial lessons, menu guides), by box id. */
+  boxes?: string[];
 }
 
 /** Losses that weren't played out: they never pay (no surrender or AFK farming). */

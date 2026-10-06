@@ -375,6 +375,12 @@ Numbers live in `economy.progression.yaml`, rules in `@arena/meta` (`progression
   | Rare | 40 / 52 / 8 | 40–90 | 60 / 40 |
   | Epic | 15 / 60 / 25 | 80–160 | 30 / 70 |
 
+- **Other sources (2026-10-06):** the battle tutorial pays an uncommon box for each of its first two
+  lessons (instead of gold) and a rare box for the third. Each menu guide pays once per account on
+  finishing: uncommon for Recruiting, Equipment and Infusions, rare for Forging (`guideRewards`,
+  `POST /api/guides/:id/complete`, tracked in `guide_rewards`). The client trusts itself that a guide
+  was finished; the server only stops it paying twice. A box records its `source` (level, tutorial,
+  guide); only level boxes have a level and bubble.
 - **Box rewards** don't count toward the daily drop cap. Opening a box is a conditional update, so it
   pays once; gear goes into the inventory with source `lootbox:<box>`.
 

@@ -47,3 +47,10 @@ lootBoxes:
     bands: { gold: 15, gear: 60, prize: 25 }
     gold: { min: 80, max: 160 }
     gear: { "1": 30, "2": 70 }
+
+# Finishing a menu guide (the coached walkthroughs on Home) pays once per account.
+guideRewards:
+  recruit: { boxes: [uncommon] }
+  equip: { boxes: [uncommon] }
+  infuse: { boxes: [uncommon] }
+  forge: { boxes: [rare] }

@@ -210,10 +210,12 @@ const EMPTY_ECONOMY: EconomyDef = { currencies: {}, roll: { cost: {} }, rewards:
 export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
   const issues: ContentIssue[] = [];
   const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
-  const grant = (where: string, g: { currency?: Record<string, number>; items?: string[] } | undefined) => {
+  const grant = (where: string, g: { currency?: Record<string, number>; items?: string[]; boxes?: string[] } | undefined) => {
     for (const k of Object.keys(g?.currency ?? {})) if (!b.economy.currencies[k]) err(where, `unknown currency "${k}"`);
     for (const i of g?.items ?? []) for (const p of pieceProblems(b, pieceComponentIds(i))) err(where, `item "${i}": ${p}`);
+    for (const x of g?.boxes ?? []) if (!b.economy.lootBoxes?.[x]) err(where, `unknown loot box "${x}"`);
   };
+  for (const [id, g] of Object.entries(b.economy.guideRewards ?? {})) grant(`economy.guideRewards.${id}`, g);
   // Every character in a match has a base element (it picks their portrait): none, or a fusion, is an error.
   const fusionNames = new Set(Object.values(b.fusions ?? {}).map((f) => f.name));
   const baseElements = new Set(Object.values(b.skills).map((s) => s.element).filter((e) => e !== 'None' && !fusionNames.has(e)));

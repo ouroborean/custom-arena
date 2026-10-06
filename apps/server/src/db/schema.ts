@@ -319,13 +319,28 @@ export const lootBoxes = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     /** Loot box id in content (uncommon, rare, epic). */
     box: text('box').notNull(),
-    /** The level and bubble that paid it. */
-    level: integer('level').notNull(),
-    at: smallint('at').notNull(),
+    /** What paid it: `level` (a bubble on the bar), `tutorial` (a battle lesson) or `guide` (a menu guide). */
+    source: text('source').notNull().default('level'),
+    /** For `level` boxes: the level and bubble that paid it. */
+    level: integer('level'),
+    at: smallint('at'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** null until opened; then what it held (LootRoll[] from @arena/meta). */
     openedAt: timestamp('opened_at', { withTimezone: true }),
     contents: jsonb('contents').$type<unknown[]>(),
   },
   (t) => [index('loot_boxes_user_idx').on(t.userId)],
+);
+
+/** Menu guides whose reward an account has been paid (economy `guideRewards`): once per guide. */
+export const guideRewards = pgTable(
+  'guide_rewards',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guideId: text('guide_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.guideId] })],
 );

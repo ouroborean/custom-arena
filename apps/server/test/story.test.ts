@@ -103,9 +103,16 @@ describe('story', () => {
   it('finishing the tutorial pays its lessons, then a free character and a crystal', async () => {
     const a = await account('tutorial@example.com');
     const before = (await a.call('GET', '/api/characters')).json().characters.length;
-    await winEncounter(a, 'tutorial_1');
-    await winEncounter(a, 'tutorial_2');
+    // The first two lessons pay an uncommon loot box (no gold), the last a rare one.
+    const first = await winEncounter(a, 'tutorial_1');
+    expect(first.body.reward).toMatchObject({ currency: {}, boxes: ['uncommon'] });
+    const second = await winEncounter(a, 'tutorial_2');
+    expect(second.body.reward).toMatchObject({ currency: {}, boxes: ['uncommon'] });
     const last = await winEncounter(a, 'tutorial_3');
+    expect(last.body.reward.boxes).toEqual(['rare']);
+    const boxes = (await a.call('GET', '/api/progress')).json().boxes as { box: string; source: string; level: number | null }[];
+    expect(boxes.filter((b) => b.source === 'tutorial').map((b) => b.box)).toEqual(['uncommon', 'uncommon', 'rare']);
+    expect(boxes.filter((b) => b.source === 'tutorial').every((b) => b.level === null)).toBe(true);
     expect(last.body.chapterComplete).toBe('tutorial');
     expect(last.body.characters).toHaveLength(1);
     expect(last.body.reward.items).toEqual(['fire_shard', 'fire_shard+fire_shard']);
