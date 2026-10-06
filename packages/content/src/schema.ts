@@ -602,6 +602,7 @@ export const economySchema = z.strictObject({
   ),
   forge: z.strictObject({ cost: z.record(z.enum(['2', '3']), amounts) }),
   split: z.strictObject({ cost: amounts }),
+  tradeIn: z.strictObject({ count: z.number().int().min(2).max(10), table: z.string() }).optional(),
   salvage: z.partialRecord(itemType, amounts),
   arcade: z
     .strictObject({

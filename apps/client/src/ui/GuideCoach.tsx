@@ -7,7 +7,7 @@ import { api } from '../api.js';
 import { content } from '../content.js';
 import { guideById, snapshotOf, useGuide } from '../guides.js';
 import { useMeta } from '../meta.js';
-import { useStore } from '../store.js';
+import { useStore, type HomeTab } from '../store.js';
 
 /**
  * Reports each guide the player finishes to the server, which records it for the account and pays its
@@ -59,8 +59,21 @@ function GuidePaid({ paid, onClose }: { paid: GuidePayout; onClose: () => void }
   );
 }
 
+/** The Home tab each highlighted part of Home lives on, so a guide step can open it. */
+const HOME_TAB_OF: Record<string, HomeTab> = {
+  recruit: 'roster',
+  roster: 'roster',
+  team: 'roster',
+  inventory: 'forge',
+  pieces: 'forge',
+  forge: 'forge',
+  trade: 'forge',
+};
+
 export function GuideCoach() {
   const [paid, dismissPaid] = useGuideRewards();
+  const homeTab = useStore((s) => s.homeTab);
+  const setHomeTab = useStore((s) => s.setHomeTab);
   const active = useGuide((s) => s.active);
   const signals = useGuide((s) => s.signals);
   const advance = useGuide((s) => s.advance);
@@ -93,6 +106,12 @@ export function GuideCoach() {
   useEffect(() => {
     if (met) advance(now);
   }, [met, now, active, advance]);
+
+  // A step about part of Home opens the tab it's on.
+  const wantTab = screen === 'home' && step?.highlight ? HOME_TAB_OF[step.highlight] : undefined;
+  useEffect(() => {
+    if (wantTab && wantTab !== homeTab) setHomeTab(wantTab);
+  }, [wantTab, homeTab, setHomeTab]);
 
   if (screen === 'battle') return null;
   if (!active || !guide || !step) return paid ? <GuidePaid paid={paid} onClose={dismissPaid} /> : null;

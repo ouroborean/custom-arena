@@ -887,6 +887,8 @@ export interface EconomyDef {
   forge: { cost: Record<string, CurrencyAmounts> };
   /** Splitting a forged piece back into its components. */
   split: { cost: CurrencyAmounts };
+  /** Trading `count` single components for one random other component from `table`. */
+  tradeIn?: { count: number; table: string };
   /** What salvaging a piece pays, per component, by component type. */
   salvage: Partial<Record<ItemType, CurrencyAmounts>>;
   /** Arcade mode's ladder (docs/single-player.md §Arcade); absent, the mode is off. */

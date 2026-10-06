@@ -47,6 +47,10 @@ forge:
 split:
   cost: { gold: 25 }
 
+# Trading in: any `count` unequipped single components (tier 1) for one random other component from
+# `table` (never one of the kinds traded in).
+tradeIn: { count: 3, table: standard }
+
 # Salvaging an unequipped piece pays gold for each of its components, by component type.
 salvage:
   Skill: { gold: 10 }

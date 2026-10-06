@@ -287,6 +287,7 @@ export function checkEconomy(b: ContentBundle): ContentIssue[] {
   }
   for (const [n, amounts] of Object.entries(e.forge.cost)) currencies(`forge.cost.${n}`, amounts);
   currencies('split.cost', e.split.cost);
+  if (e.tradeIn && !e.dropTables[e.tradeIn.table]) err('tradeIn.table', `unknown drop table "${e.tradeIn.table}"`);
   for (const [type, amounts] of Object.entries(e.salvage)) currencies(`salvage.${type}`, amounts);
   if (e.arcade) {
     const reward = (where: string, spec: RewardSpec) => {

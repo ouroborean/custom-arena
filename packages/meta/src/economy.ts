@@ -116,6 +116,29 @@ export function splitPiece(content: ContentBundle, piece: string): SplitResult {
   return { ok: true, components: def.components.map((c) => c.id), cost: { ...content.economy.split.cost } };
 }
 
+export type TradeInResult = { ok: true; item: string } | { ok: false; problems: string[] };
+
+/**
+ * Trading in single components (tier 1, docs/equipment.md §4): exactly `tradeIn.count` of them become
+ * one random component from the trade-in table, never one of the kinds traded in.
+ */
+export function tradeIn(content: ContentBundle, items: readonly string[], rng: RngState): TradeInResult {
+  const rule = content.economy.tradeIn;
+  if (!rule) return { ok: false, problems: ['Trading in is off'] };
+  const problems: string[] = [];
+  if (items.length !== rule.count) problems.push(`Trade in exactly ${rule.count} components`);
+  for (const id of items) {
+    if (pieceComponentIds(id).length !== 1 || !content.items[id]) problems.push(`${describePiece(content, id)?.name ?? id} isn't a single component`);
+  }
+  if (problems.length) return { ok: false, problems };
+  const traded = new Set(items);
+  for (let tries = 0; tries < 200; tries++) {
+    const [next] = rollDrops(content, rule.table, 1, rng);
+    if (next && !traded.has(next)) return { ok: true, item: next };
+  }
+  return { ok: false, problems: ['Nothing else to trade for'] };
+}
+
 /** What salvaging a piece pays: each component's value by its type. */
 export function salvageValue(content: ContentBundle, piece: string): CurrencyAmounts {
   const total: CurrencyAmounts = {};
