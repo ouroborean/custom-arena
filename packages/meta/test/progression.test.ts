@@ -87,6 +87,9 @@ function sample(box: string, n = 3000) {
   };
 }
 
+// The statistical tests roll thousands of boxes: give them room under a loaded full-suite run.
+const SAMPLING = 30_000;
+
 describe('loot boxes', () => {
   it('hold three rolls, lowest first', () => {
     for (const box of Object.keys(boxes)) {
@@ -122,19 +125,19 @@ describe('loot boxes', () => {
     expect(u.tier(3)).toBeLessThan(r.tier(3));
     expect(r.tier(3)).toBeLessThan(e.tier(3));
     expect(u.tier(2)).toBeLessThan(e.tier(2));
-  });
+  }, SAMPLING);
 
   it('keep uncommon rewards small: mostly gold, rarely tier 3', () => {
     const u = sample('uncommon');
     expect(u.gold).toBeGreaterThan(0.5);
     expect(u.tier(3)).toBeLessThan(0.06);
-  });
+  }, SAMPLING);
 
   it('weight the epic (level-up) box heavily toward good gear', () => {
     const e = sample('epic');
     expect(e.gold).toBeLessThan(0.2);
     expect(e.tier(2) + e.tier(3)).toBeGreaterThan(0.6);
-  });
+  }, SAMPLING);
 
   it('are reproducible from a seed', () => {
     expect(openLootBox(content, 'epic', seedRng(42))).toEqual(openLootBox(content, 'epic', seedRng(42)));
