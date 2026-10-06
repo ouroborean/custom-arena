@@ -1,8 +1,10 @@
 // Inventory and the forge (docs/equipment.md §6): owned pieces, where they're equipped, forging two
 // pieces into one, splitting a forged piece back into its components, selling (salvage, for gold) and
 // trading in 3 single components for a random other one. Only unequipped pieces can be used.
+// Pieces drag (mouse or touch, ui/PointerDrag.tsx) from the grid into the base, addition and trade-in
+// slots, between slots, and back onto the grid to take them off; clicking still works as before.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type HTMLAttributes } from 'react';
 import { describePiece, type PieceDef } from '@arena/engine';
 import { canAfford, forge as forgeRule, formatAmounts, pieceKind, salvageValue, splitPiece } from '@arena/meta';
 import type { InventoryItem } from '../api.js';
@@ -10,7 +12,20 @@ import { content } from '../content.js';
 import { useGuide } from '../guides.js';
 import { useMeta } from '../meta.js';
 import { ItemFace } from './common.js';
+import { usePointerDrag } from './PointerDrag.js';
 import { ELEMENTS, ItemDetails, KIND_ORDER, PIECE_GROUPS, PieceBadge, pieceKindLabel, pieceSearchText } from './LoadoutEditor.js';
+
+/** What's being dragged: a piece from the grid, or what sits in a bench or trade-in slot. */
+type ForgeDrag = { from: 'grid'; piece: string } | { from: 'base' } | { from: 'addition' } | { from: 'trade'; index: number };
+/** Where it can go: a bench slot, a trade-in slot, or back to the grid (off the bench). */
+type ForgeDrop = { to: 'base' } | { to: 'addition' } | { to: 'trade'; index: number } | { to: 'grid' };
+
+function parseDrop(spec: string): ForgeDrop | null {
+  if (spec === 'base' || spec === 'addition' || spec === 'grid') return { to: spec };
+  const [kind, n] = spec.split(':');
+  return kind === 'trade' ? { to: 'trade', index: Number(n) } : null;
+}
+const dropKey = (d: ForgeDrop) => (d.to === 'trade' ? `trade:${d.index}` : d.to);
 
 /** One owned piece id: its unequipped copies, and who wears the others. */
 interface Entry {
@@ -93,6 +108,66 @@ export function InventoryPanel() {
     setNotice(`Traded in ${names.join(', ')} for ${describePiece(content, item.itemId)?.name ?? item.itemId}.`);
   };
 
+  // Drag-and-drop between the grid, the bench and the trade-in.
+  const instOf = (src: ForgeDrag): InventoryItem | undefined => {
+    if (src.from === 'grid') {
+      const e = entries.find((x) => x.def.id === src.piece);
+      return e ? free(e)[0] : undefined;
+    }
+    if (src.from === 'base') return baseInst;
+    if (src.from === 'addition') return addInst;
+    return tradeInsts[src.index];
+  };
+  const single = (inst: InventoryItem) => describePiece(content, inst.itemId)?.components.length === 1;
+  const takeOut = (src: ForgeDrag) => {
+    if (src.from === 'base') setBase(null);
+    else if (src.from === 'addition') setAddition(null);
+    else if (src.from === 'trade') setTrade(trade.filter((id) => id !== tradeInsts[src.index]?.id));
+  };
+  const onDrop = (src: ForgeDrag, to: ForgeDrop) => {
+    const inst = instOf(src);
+    if (!inst || src.from === to.to) return;
+    if (to.to === 'grid') return takeOut(src);
+    if (to.to === 'trade') {
+      if (!tradeRule || !single(inst)) return setNotice('Only single components (tier 1) can be traded in.');
+      const others = trade.filter((id) => id !== inst.id);
+      if (others.length >= tradeRule.count) return setNotice(`The trade-in holds ${tradeRule.count}.`);
+      takeOut(src);
+      setTrade([...others, inst.id]);
+      return;
+    }
+    // Onto a bench slot: what was there swaps back to where this came from (bench to bench), or goes
+    // back to the grid.
+    const there = to.to === 'base' ? baseInst : addInst;
+    const setThere = to.to === 'base' ? setBase : setAddition;
+    if (src.from === 'base' || src.from === 'addition') {
+      const setHere = src.from === 'base' ? setBase : setAddition;
+      setHere(there?.id ?? null);
+    } else {
+      takeOut(src);
+    }
+    setThere(inst.id);
+    setSelected(describePiece(content, inst.itemId)?.id ?? null);
+  };
+  const drag = usePointerDrag<ForgeDrag, ForgeDrop>({
+    parse: parseDrop,
+    key: dropKey,
+    onDrop,
+    ghost: (src) => {
+      const inst = instOf(src);
+      const def = inst ? describePiece(content, inst.itemId) : undefined;
+      return def ? (
+        <>
+          <span className="item-tile static">
+            <ItemFace def={def} content={content} className="code" />
+          </span>
+          <b>{def.name}</b>
+        </>
+      ) : null;
+    },
+  });
+  const over = (key: string) => (drag.overKey === key ? ' drop-over' : '');
+
   const doSplit = async (e: Entry) => {
     const inst = free(e)[0];
     if (!inst) return;
@@ -110,11 +185,23 @@ export function InventoryPanel() {
       </div>
 
       <div className="forge-bench" role="group" aria-label="Forge" data-guide="forge">
-        <BenchSlot label="Base" inst={baseInst} onClear={() => setBase(null)} />
+        <BenchSlot
+          label="Base"
+          inst={baseInst}
+          onClear={() => setBase(null)}
+          className={over('base')}
+          slotProps={{ 'data-drop': 'base', ...(baseInst ? drag.sourceProps({ from: 'base' }) : {}) }}
+        />
         <span className="forge-op" aria-hidden>
           +
         </span>
-        <BenchSlot label="Addition" inst={addInst} onClear={() => setAddition(null)} />
+        <BenchSlot
+          label="Addition"
+          inst={addInst}
+          onClear={() => setAddition(null)}
+          className={over('addition')}
+          slotProps={{ 'data-drop': 'addition', ...(addInst ? drag.sourceProps({ from: 'addition' }) : {}) }}
+        />
         <span className="forge-op" aria-hidden>
           =
         </span>
@@ -155,7 +242,8 @@ export function InventoryPanel() {
         </div>
       </div>
       <p className="muted forge-hint">
-        The base keeps its name and the addition adds to it. A piece holds up to 3 components: one Sigil at most, and no skill twice.
+        Drag pieces into the slots (or use the buttons below). The base keeps its name and the addition adds to it. A piece holds up to 3
+        components: one Sigil at most, and no skill twice.
       </p>
 
       {tradeRule && (
@@ -166,7 +254,12 @@ export function InventoryPanel() {
               const inst = tradeInsts[i];
               const def = inst ? describePiece(content, inst.itemId) : undefined;
               return (
-                <div key={i} className={`forge-slot trade-slot${def ? ' filled' : ''}`}>
+                <div
+                  key={i}
+                  className={`forge-slot trade-slot${def ? ' filled draggable' : ''}${over(`trade:${i}`)}`}
+                  data-drop={`trade:${i}`}
+                  {...(inst ? drag.sourceProps({ from: 'trade', index: i }) : {})}
+                >
                   {def ? (
                     <>
                       <span className="item-tile static">
@@ -231,14 +324,15 @@ export function InventoryPanel() {
         {entries.length === 0 ? (
           <p className="muted">No equipment yet. Casual and ranked wins, the story and achievements all give components.</p>
         ) : (
-          <div className="item-grid" aria-label="Your pieces">
+          <div className={`item-grid${over('grid')}`} aria-label="Your pieces" data-drop="grid">
             {shown.map((e) => {
               const n = free(e).length;
               return (
                 <button
                   key={e.def.id}
                   type="button"
-                  className={`item-tile${n === 0 ? ' blocked' : ''}${selected === e.def.id ? ' here' : ''}`}
+                  className={`item-tile${n === 0 ? ' blocked' : ' draggable'}${selected === e.def.id ? ' here' : ''}`}
+                  {...(n > 0 ? drag.sourceProps({ from: 'grid', piece: e.def.id }) : {})}
                   aria-pressed={selected === e.def.id}
                   aria-label={`${e.def.name}, ${pieceKindLabel(e.def)}, ${n} free${e.worn.length ? `, ${e.worn.length} equipped` : ''}`}
                   onClick={() => {
@@ -256,6 +350,7 @@ export function InventoryPanel() {
           </div>
         )}
 
+        {drag.ghost}
         {current && (
           <div className="inventory-detail item-card" aria-label={`${current.def.name} details`}>
             <ItemDetails def={current.def} />
@@ -317,10 +412,23 @@ const splitCost = (def: PieceDef) => {
   return r.ok ? r.cost : {};
 };
 
-function BenchSlot({ label, inst, onClear }: { label: string; inst: InventoryItem | undefined; onClear: () => void }) {
+function BenchSlot({
+  label,
+  inst,
+  onClear,
+  className = '',
+  slotProps,
+}: {
+  label: string;
+  inst: InventoryItem | undefined;
+  onClear: () => void;
+  className?: string;
+  /** Drop target and drag handlers. */
+  slotProps?: HTMLAttributes<HTMLDivElement> & { 'data-drop'?: string };
+}) {
   const def = inst ? describePiece(content, inst.itemId) : undefined;
   return (
-    <div className={`forge-slot${def ? ' filled' : ''}`}>
+    <div {...slotProps} className={`forge-slot${def ? ' filled draggable' : ''}${className}`}>
       <span className="slot-label">{label}</span>
       {def ? (
         <>

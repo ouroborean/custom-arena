@@ -5035,3 +5035,28 @@ button.pool-skill:disabled {
   font-size: 12px;
   white-space: nowrap;
 }
+
+/* Forge drag-and-drop: pieces drag into the bench and trade-in slots and back onto the grid. */
+.item-tile.draggable,
+.forge-slot.draggable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+}
+
+.forge-slot.drop-over {
+  border-color: var(--yellow);
+  border-style: solid;
+  background: color-mix(in srgb, var(--yellow) 14%, transparent);
+}
+
+.item-grid.drop-over {
+  outline: 2px dashed var(--yellow);
+  outline-offset: 4px;
+}
+
+.drag-ghost .item-tile {
+  width: 40px;
+  height: 40px;
+}
