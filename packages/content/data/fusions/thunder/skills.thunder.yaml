@@ -49,9 +49,8 @@ charge.thunder:
   element: Thunder
   name: Sonic Boom
   description: >-
-    Deals 10 damage to target enemy, who is Deafened until the end of the user's next turn. The boom
-    catches up when the user next uses a skill, by the end of their next turn: every Deafened enemy
-    takes 10 damage.
+    Deals 10 damage to target enemy, who is Deafened until the end of the user's next turn. The next time
+    the user uses a skill, by the end of their next turn, every Deafened enemy takes 10 damage.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -96,7 +95,8 @@ riposte.thunder:
         kind: Buff
         element: Thunder
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer, Deafening and Sapping its user.
+        description: >-
+          Counters the first Harmful skill used on the bearer; its user is Deafened for 2 turns and Sapped.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -138,8 +138,7 @@ shot.thunder:
   element: Thunder
   name: Backflash
   description: >-
-    Deals 15 damage to target enemy. The strike arcs back along their Sapped: they lose all of it,
-    and the user gains 1 Charge per stack.
+    Deals 15 damage to target enemy. They lose all their Sapped, and the user gains 1 Charge per stack.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -155,8 +154,8 @@ snipe.thunder:
   element: Thunder
   name: Thunderbolt
   description: >-
-    The flash: deals 10 damage to target enemy now, and they're Deafened for 1 turn. The thunder:
-    40 Piercing damage to them on the following turn. Channeled.
+    Deals 10 damage to target enemy now, and they're Deafened for 1 turn. On the following turn, deals them
+    40 Piercing damage. Channeled.
   cost: AS
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -174,7 +173,8 @@ snipe.thunder:
         kind: Neutral
         element: Thunder
         interruptible: true
-        description: The thunder lands at the end of the following turn unless interrupted.
+        description: >-
+          Deals 40 Piercing damage to its target at the end of the following turn unless interrupted.
         onExpire:
           - { op: damage, to: effectTargets, amount: 40, type: Piercing }
 
@@ -265,8 +265,8 @@ bolt.thunder:
   element: Thunder
   name: Thundercrack
   description: >-
-    Deals 15 damage to target enemy and Resounds, but the crack doesn't wait: every Echo on the enemy
-    side, this one included, lands at once.
+    Deals 15 damage to target enemy and Resounds. Then every Echo on the enemy side, this one included,
+    takes effect at once.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -315,7 +315,8 @@ consume.thunder:
   element: Thunder
   name: Ground Out
   description: >-
-    Deals 5 damage to target enemy. All Charge on the enemy side is grounded: it's removed, and the user heals 10 per Charge.
+    Deals 5 damage to target enemy. All Charge on the enemy side is removed, and the user heals 10 per
+    Charge.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -331,9 +332,8 @@ summon.thunder:
   element: Thunder
   name: Thunderhead
   description: >-
-    Summons a Thunderhead (25 HP) for 3 turns. At the end of each of your turns, it strikes the
-    unit with the most Charge on the field, either side, for 20 damage (a random enemy if no one
-    has any).
+    Summons a Thunderhead (25 HP) for 3 turns. At the end of each of the user's turns, it deals 20 damage to
+    the unit with the most Charge on the field, either side (a random enemy if no one has any).
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -346,7 +346,7 @@ channel.thunder:
   element: Thunder
   name: Drumroll
   description: >-
-    For up to 3 turns, nothing lands. When it ends, every enemy takes 10 damage per turn it lasted,
+    Channels for up to 3 turns with no effect until it ends. When it ends, every enemy takes 30 damage,
     and it Resounds. Channeled.
   cost: r
   cooldown: 2
@@ -375,8 +375,8 @@ stab.thunder:
   element: Thunder
   name: Thunder Spike
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The user discharges all
-    their Charge into them: 1 Sapped per Charge spent.
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. The user spends all their Charge,
+    and the target gains 1 Sapped per Charge spent.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -429,8 +429,8 @@ mislead.thunder:
   element: Thunder
   name: Hush
   description: >-
-    Target enemy is Deafened for 1 turn. When that turn is over, the hush falls: for 1 turn, if they
-    use a Harmful skill, it's countered and the user gains 1 Charge. Invisible.
+    Target enemy is Deafened for 1 turn. After that turn, for 1 turn, if they use a Harmful skill, it's
+    countered and the user gains 1 Charge. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -446,7 +446,7 @@ mislead.thunder:
         kind: Debuff
         element: Thunder
         visibility: hidden
-        description: When this runs out, the hush falls on the bearer's next turn.
+        description: When this ends, the bearer gains Hush for their next turn.
         onExpire:
           # Runs out as their turn ends, so the counter covers their following turn.
           - op: apply
@@ -627,8 +627,8 @@ prayer.thunder:
   element: Thunder
   name: Rolling Hymn
   description: >-
-    All allies heal 15. Until the user's next turn, each skill an enemy uses rolls back as an echo:
-    all allies heal 10 more.
+    All allies heal 15. Until the user's next turn, each time an enemy uses a skill, all allies heal 10
+    more.
   cost: WW
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -643,7 +643,7 @@ prayer.thunder:
         name: Rolling Hymn
         kind: Debuff
         element: Thunder
-        description: Each skill the bearer uses heals the hymn-singer's allies 10.
+        description: Each skill the bearer uses heals the applier's allies 10.
         triggers:
           - on: skillUsed
             do:
@@ -653,7 +653,9 @@ cleave.thunder:
   archetype: Cleave
   element: Thunder
   name: Forked Peal
-  description: Deals 25 damage to target enemy. Resound, but the echo forks to a random other enemy instead, at full strength.
+  description: >-
+    Deals 25 damage to target enemy. Resound, but the Echo hits a random other enemy instead, at full
+    strength.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -698,7 +700,9 @@ withstand.thunder:
         name: Thunder Cage
         kind: Buff
         element: Thunder
-        description: Direct hits on the bearer deal half damage, and each one echoes back on its dealer for half of what it dealt.
+        description: >-
+          Direct hits on the bearer deal half damage, and each one's dealer takes half of what it dealt as
+          their turn ends.
         modifiers:
           - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
         triggers:
@@ -721,8 +725,8 @@ taunt.thunder:
   element: Thunder
   name: Challenge Peal
   description: >-
-    Taunts target enemy until they damage the user, for up to 3 turns. That hit echoes back on them
-    for half (rounded up to 5) as their turn ends, giving the user 1 Charge.
+    Taunts target enemy until they damage the user, for up to 3 turns. They take half of that hit's damage
+    (rounded up to 5) as their turn ends, and the user gains 1 Charge.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -738,7 +742,7 @@ taunt.thunder:
         name: Challenge Peal
         kind: Neutral
         element: Thunder
-        description: The bearer's challenge stands until the challenged enemy damages them.
+        description: Lasts until the Taunted enemy damages the bearer.
     - { op: apply, to: primary, effect: taunt, duration: { enemyTurns: 3 }, linkTo: challenge_peal_duel }
     - op: apply
       to: primary
@@ -749,7 +753,9 @@ taunt.thunder:
         name: Challenge Peal
         kind: Debuff
         element: Thunder
-        description: The bearer's first hit on the challenger ends the challenger's Taunt and echoes back on them for half.
+        description: >-
+          The bearer's first hit on the user who Taunted them ends the Taunt, and the bearer takes half that
+          hit's damage as their turn ends.
         triggers:
           - on: dealtDamage
             when: { direct: true }
@@ -769,8 +775,8 @@ titan.thunder:
   element: Thunder
   name: Stormspire
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune, and draws the storm: enemy skills that would hit
-    more than one of the user's allies hit only the user instead.
+    For 3 turns, the user gains 2 Armor and Immune, and enemy skills that would hit more than one of the
+    user's allies hit only the user instead.
   cost: Wr
   cooldown: 4
   tags: [Helpful, Strategic]

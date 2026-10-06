@@ -94,7 +94,9 @@ riposte.plasma:
         kind: Buff
         element: Plasma
         visibility: hidden
-        description: Counters the next Harmful skill used on the bearer and vents their Heat into its user.
+        description: >-
+          Counters the next Harmful skill used on the bearer. Vent: its user takes 10 Affliction damage
+          per Heat removed and is Ignited.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -156,9 +158,9 @@ snipe.plasma:
   element: Plasma
   name: Coilgun
   description: >-
-    For up to 3 turns, the user charges the coil. When the channel ends (the user uses another skill,
-    or 3 turns pass), it deals 30 Piercing damage to target enemy, +15 for each turn it was held. The
-    target of this skill is invisible. Channeled.
+    The user channels for up to 3 turns. When the channel ends (the user uses another skill, or 3 turns
+    pass), it deals 30 Piercing damage to target enemy, +15 for each turn it was held. The target of this
+    skill is invisible. Channeled.
   cost: AS
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -176,7 +178,7 @@ snipe.plasma:
         element: Plasma
         visibility: hiddenTarget
         interruptible: true
-        description: Each turn held adds 15 damage to the shot.
+        description: Each turn held adds 15 damage.
         triggers:
           - on: turnEnd
             do:
@@ -194,7 +196,7 @@ snipe.plasma:
         kind: Neutral
         element: Plasma
         visibility: hiddenTarget
-        description: The coil fires when the bearer uses another skill.
+        description: Deals the damage when the bearer uses another skill.
         triggers:
           - on: skillUsed
             consume: true
@@ -571,8 +573,7 @@ curse.plasma:
   element: Plasma
   name: Power Surge
   description: >-
-    For 2 turns, each skill target enemy uses surges back through them: they take 5 Affliction damage per
-    energy in its cost.
+    For 2 turns, each skill target enemy uses deals them 5 Affliction damage per energy in its cost.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -597,8 +598,8 @@ smite.plasma:
   element: Plasma
   name: Arc Brand
   description: >-
-    Deals 20 damage to target enemy and brands them for 1 turn. Each time an ally damages them meanwhile,
-    the brand heats up by 10; when it ends, it bursts for that much Affliction damage.
+    Deals 20 damage to target enemy and brands them for 1 turn. Each time an ally deals direct damage to
+    them meanwhile, the brand gains 10; when it ends, they take that much Affliction damage.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -613,7 +614,9 @@ smite.plasma:
         name: Arc Brand
         kind: Debuff
         element: Plasma
-        description: Each direct hit from the applier's side heats it by 10; when it ends, it bursts for that much Affliction.
+        description: >-
+          Each direct hit from the applier's side adds 10; when it ends, the bearer takes that much
+          Affliction damage.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
@@ -688,7 +691,7 @@ withstand.plasma:
   element: Plasma
   name: Overcharged Barrier
   description: >-
-    The user gains 50 Shield for 1 turn. The surge costs them: their next skill costs 2 more energy.
+    The user gains 50 Shield for 1 turn. Their next skill costs 2 more energy.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]

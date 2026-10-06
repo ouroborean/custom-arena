@@ -162,8 +162,8 @@ snipe.brimstone:
   element: Brimstone
   name: Pitch Javelin
   description: >-
-    On the following turn, the burning javelin lands: target enemy gains 2 Sulfur, then their Sulfur
-    Erupts. The target of this skill is invisible. Channeled, Uncounterable.
+    On the following turn, target enemy gains 2 Sulfur, then their Sulfur Erupts. The target of this
+    skill is invisible. Channeled, Uncounterable.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
@@ -180,7 +180,9 @@ snipe.brimstone:
         element: Brimstone
         visibility: hiddenTarget
         interruptible: true
-        description: Lands at the end of the following turn unless interrupted, Erupting its target.
+        description: >-
+          At the end of the following turn, unless interrupted, its target gains 2 Sulfur, then their
+          Sulfur Erupts.
         onExpire:
           - { op: apply, to: effectTargets, effect: sulfur, stacks: 2 }
           - { op: forEach, in: effectTargets, do: [{ op: macro, id: erupt }] }
@@ -233,8 +235,8 @@ companion.brimstone:
   element: Brimstone
   name: Belching Toad
   description: >-
-    Summons a Belching Toad (30 HP) permanently. At the end of each of your turns, it swallows a
-    Debuff from a random ally and belches it onto a random enemy.
+    Summons a Belching Toad (30 HP) permanently. At the end of each of your turns, it moves a Debuff
+    from a random ally onto a random enemy.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -291,8 +293,8 @@ consume.brimstone:
   element: Brimstone
   name: Consumed by Fire
   description: >-
-    Target enemy is Ignited by a hungry flame for 2 turns: it burns for 10 instead of 5, and the user heals
-    for every burn.
+    Ignites target enemy for 2 turns. This Ignite deals 10 instead of 5, and the user heals as much each
+    time it deals damage.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -395,7 +397,7 @@ ravage.brimstone:
   archetype: Ravage
   element: Brimstone
   name: Caustic Flame
-  description: Deals 20 Affliction damage to target enemy, +10 per Toxin on them. Then their Toxin is burned away.
+  description: Deals 20 Affliction damage to target enemy, +10 per Toxin on them. Then their Toxin is removed.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -465,7 +467,7 @@ dance.brimstone:
   name: Sulfur Dance
   description: >-
     For 3 turns, at the end of each of the user's turns, a random enemy gains 1 Sulfur and the user gains
-    1 Swiftness until the dance ends. When it ends, the user Explodes.
+    1 Swiftness until this ends. When it ends, the user Explodes.
   cost: S
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -492,7 +494,7 @@ heal.brimstone:
   archetype: Heal
   element: Brimstone
   name: Sulfur Tonic
-  description: Target ally heals 20, and their Toxin is drawn off; a random enemy gains that much Sulfur.
+  description: Target ally heals 20, and their Toxin is removed; a random enemy gains that much Sulfur.
   cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -646,7 +648,8 @@ shout.brimstone:
         name: Stench of Sulfur
         kind: Buff
         element: Brimstone
-        description: Sulfur the bearer gave that's cleansed away burns its bearer for 10 Affliction.
+        description: >-
+          When Sulfur the bearer gave is cleansed away, the unit it was on takes 10 Affliction damage.
         triggers:
           - on: ownEffectEnded
             when: { effects: [sulfur], reason: [removed] }
@@ -723,8 +726,8 @@ titan.brimstone:
   element: Brimstone
   name: Pit Lord
   description: >-
-    For 3 turns, the user gains Immune, and every hit on them burns its dealer: each enemy who deals them
-    direct damage gains 1 Sulfur and is Ignited.
+    For 3 turns, the user gains Immune, and each enemy who deals them direct damage gains 1 Sulfur and is
+    Ignited.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]

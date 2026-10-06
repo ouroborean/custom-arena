@@ -69,8 +69,8 @@ riposte.life:
   element: Life
   name: Thornwall
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user. A Seedling sprouts in its path, and its
-    user is Taunted by the Seedling for 1 turn. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user. When it does, the user creates a Seedling,
+    and that skill's user is Taunted by the Seedling for 1 turn. Invisible.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic, Invisible]
@@ -85,7 +85,7 @@ riposte.life:
         kind: Buff
         element: Life
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer; a Seedling sprouts and Taunts its user.
+        description: Counters the first Harmful skill used on the bearer; the bearer creates a Seedling, which Taunts that skill's user.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -100,8 +100,8 @@ rage.life:
   element: Life
   name: Wild Growth
   description: >-
-    The user creates a Seedling. For 3 turns, another sprouts for them at the start of each of their turns,
-    and they deal 5 more direct damage for each allied Seedling (up to 20 more).
+    The user creates a Seedling. For 3 turns, they create another at the start of each of their turns, and they
+    deal 5 more direct damage for each allied Seedling (up to 20 more).
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -116,7 +116,7 @@ rage.life:
         name: Wild Growth
         kind: Buff
         element: Life
-        description: A Seedling sprouts at the start of each of the bearer's turns; +5 direct damage per allied Seedling, up to 20.
+        description: The bearer creates a Seedling at the start of each of their turns; +5 direct damage per allied Seedling, up to 20.
         modifiers:
           - mod: damageDealt
             amount: 0
@@ -135,10 +135,11 @@ shot.life:
   element: Life
   name: Ripening Seed
   description: >-
-    Deals 5 damage to target enemy and plants a seed in them for 3 turns. It ripens at the end of each of the
-    user's turns: to 10, then to 25. Using this on them again harvests it first: it bursts for that much
-    damage, and the user heals half of what it dealt, which can Flourish. The user tends one seed at a time:
-    planting one withers their seed in any other enemy, with no burst.
+    Deals 5 damage to target enemy and gives them a Ripening Seed for 3 turns. At the end of each of the user's
+    turns, its value rises: to 10, then to 25. Using this on them again first removes their Ripening Seed and
+    deals them damage equal to its value, and the user heals half of what it dealt, which can Flourish. The user
+    can have one Ripening Seed out at a time: using this removes their Ripening Seed from any other enemy, with
+    no damage.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -179,7 +180,7 @@ shot.life:
         element: Life
         stacking: unique
         maxStacks: 3
-        description: Ripens at the end of each of the user's turns (10, then 25); the user's next Ripening Seed on the bearer harvests it, and on anyone else withers it.
+        description: Its value rises at the end of each of the user's turns (10, then 25). The user's next Ripening Seed on the bearer removes it and deals its value as damage; on another enemy, it removes it with no damage.
         triggers:
           - on: turnEnd
             do:
@@ -222,8 +223,8 @@ trap.life:
   element: Life
   name: Strangling Roots
   description: >-
-    For 2 turns, each skill target enemy uses tightens the roots: 1 Weakness for 2 turns (max 3). At
-    3, a Seedling sprouts for the user. Invisible.
+    For 2 turns, each skill target enemy uses gives them 1 Weakness for 2 turns (max 3). At 3, the user creates
+    a Seedling. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -240,7 +241,7 @@ trap.life:
         visibility: hidden
         # Re-casting refreshes it; only the bearer's skills tighten it (its stacks count the tightenings).
         stacking: unique
-        description: Each skill the bearer uses gives them 1 Weakness (max 3); at 3, a Seedling sprouts for the trapper.
+        description: Each skill the bearer uses gives them 1 Weakness (max 3); at 3, the applier creates a Seedling.
         triggers:
           - on: skillUsed
             do:
@@ -259,8 +260,8 @@ maneuver.life:
   element: Life
   name: Take Root
   description: >-
-    The user becomes Invulnerable for 1 turn and creates a Boulder. If the Boulder still stands at
-    the start of their next turn, it cracks open into a Worldsprout.
+    The user becomes Invulnerable for 1 turn and creates a Boulder. If the Boulder is still alive at the start
+    of their next turn, it becomes a Worldsprout.
   cost: r
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -276,7 +277,7 @@ maneuver.life:
         name: Taking Root
         kind: Neutral
         element: Life
-        description: Cracks open into a Worldsprout at the start of its owner's next turn.
+        description: Becomes a Worldsprout at the start of its owner's next turn.
         onExpire:
           - { op: transformMinion, to: bearer, minion: worldsprout }
 
@@ -299,8 +300,8 @@ bolt.life:
   element: Life
   name: Growing Thorn
   description: >-
-    Deals 15 damage to target enemy and lodges a thorn in them for 2 turns: at the end of each of the
-    user's turns, it deals them 10 damage and the user heals 5, which can Flourish.
+    Deals 15 damage to target enemy. For 2 turns, at the end of each of the user's turns, they take 10 damage
+    and the user heals 5, which can Flourish.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -407,7 +408,7 @@ channel.life:
         kind: Neutral
         element: Life
         interruptible: true
-        description: At the end of each of the user's turns, allied minions heal 15 (Flourishing), or a Seedling sprouts.
+        description: At the end of each of the user's turns, allied minions heal 15 (Flourishing), or, if there are none, the user creates a Seedling.
         triggers:
           - on: turnEnd
             do:
@@ -488,7 +489,7 @@ mislead.life:
             kind: Debuff
             element: Life
             visibility: hidden
-            description: The bearer's next Harmful skill hits the screen's minions instead.
+            description: The bearer's next Harmful skill hits the applier's minions instead.
             triggers:
               - on: skillUsed
                 when: { harmful: true }
@@ -515,7 +516,7 @@ mislead.life:
             kind: Debuff
             element: Life
             visibility: hidden
-            description: The bearer's next Harmful skill is countered, and a Boulder rises for the screen's maker.
+            description: The bearer's next Harmful skill is countered, and the applier creates a Boulder.
             triggers:
               - on: skillUsed
                 when: { harmful: true }
@@ -529,8 +530,8 @@ stun.life:
   element: Life
   name: Overgrow
   description: >-
-    Deals 10 damage to target enemy and roots them: a Seedling sprouts for the user, and the target is
-    Stunned for 2 turns, or until that Seedling dies.
+    Deals 10 damage to target enemy. The user creates a Seedling, and the target is Stunned for 2 turns, or
+    until that Seedling dies.
   cost: Ar
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -599,8 +600,7 @@ bless.life:
   element: Life
   name: Graft
   description: >-
-    For 3 turns, target ally gains 1 Might, and their max HP rises by 20; the extra HP arrives
-    filled and leaves when it ends.
+    For 3 turns, target ally gains 1 Might and 20 max HP, and they heal 20 now.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -681,7 +681,7 @@ prayer.life:
         name: Common Root
         kind: Buff
         element: Life
-        description: Damage to the bearer is split evenly with every ally sharing the root.
+        description: Damage to the bearer is split evenly among every unit with Common Root.
         modifiers:
           - { mod: shareDamage }
 

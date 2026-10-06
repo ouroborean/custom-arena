@@ -59,8 +59,8 @@ riposte.vigilante:
   element: Vigilante
   name: Caught Red-Handed
   description: >-
-    For 1 turn, the user keeps watch over their allies instead of themselves: the first Harmful skill an
-    enemy uses on any of them is countered, and its user is Exposed for 2 turns. Invisible.
+    For 1 turn, the first Harmful skill an enemy uses on any of the user's allies, the user excluded, is
+    countered, and its user is Exposed for 2 turns. Invisible.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -156,7 +156,7 @@ snipe.vigilante:
         kind: Neutral
         element: Vigilante
         visibility: hidden
-        description: Notes whether the bearer hides.
+        description: Tracks whether the bearer gains Stealth or uses an Invisible skill.
         triggers:
           - on: effectGained
             effect: stealth
@@ -177,7 +177,9 @@ snipe.vigilante:
         element: Vigilante
         visibility: hiddenTarget
         interruptible: true
-        description: When this runs out, its target takes 40 damage, or 60 and Exposed if they hid meanwhile.
+        description: >-
+          When this runs out, its target takes 40 damage, or 60 and is Exposed for 2 turns if they gained
+          Stealth or used an Invisible skill meanwhile.
         onExpire:
           - op: forEach
             in: effectTargets
@@ -440,7 +442,9 @@ mislead.vigilante:
         kind: Debuff
         element: Vigilante
         visibility: hidden
-        description: The bearer's next Harmful skill is countered; they're Condemned and watched.
+        description: >-
+          The bearer's next Harmful skill is countered, and they're Condemned; for 2 turns, any ally of
+          theirs who gives them a Buff is Exposed for 2 turns.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -579,8 +583,8 @@ smite.vigilante:
   element: Vigilante
   name: Full Sentence
   description: >-
-    Deals 15 damage to target enemy. For 2 turns, they owe restitution: after each Harmful skill they use, each of its
-    targets heals 10.
+    Deals 15 damage to target enemy. For 2 turns, after each Harmful skill they use, each of its targets
+    heals 10.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -730,7 +734,9 @@ taunt.vigilante:
         name: Bait and Switch
         kind: Debuff
         element: Vigilante
-        description: The first time the bearer hits the applier, the Taunt ends, the applier hides, and the bearer is Exposed.
+        description: >-
+          The first time the bearer hits the applier, the Taunt ends, the applier gains Stealth, and the
+          bearer is Exposed for 2 turns.
         triggers:
           - on: dealtDamage
             when: { direct: true }
@@ -808,7 +814,7 @@ bloodhound_scent:
         name: On the Scent
         kind: Debuff
         element: Vigilante
-        description: The Bloodhound has the bearer's scent.
+        description: Exposed for as long as the Bloodhound lives, until it uses Scent again.
 
 informant_tip_off:
   archetype: Minion

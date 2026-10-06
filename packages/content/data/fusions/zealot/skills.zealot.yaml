@@ -191,7 +191,9 @@ trap.zealot:
         kind: Debuff
         element: Zealot
         visibility: hidden
-        description: Each skill the bearer uses gives the inquisitor 1 Fervor; when this ends, the bearer takes 5 damage per skill used.
+        description: >-
+          Each skill the bearer uses gives the applier 1 Fervor; when this ends, the bearer takes 5 damage
+          per skill used.
         triggers:
           # The effect's stacks count the skills (it starts at 1).
           - on: skillUsed
@@ -353,8 +355,8 @@ stab.zealot:
   element: Zealot
   name: Atoning Blade
   description: >-
-    Deals 15 damage to target enemy, and the user's penance goes into the wound: a random Debuff of theirs
-    moves onto that enemy, with the time it had left.
+    Deals 15 damage to target enemy, and a random Debuff of the user's moves onto that enemy, with the time
+    it had left.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -598,7 +600,7 @@ shout.zealot:
         name: Sermon of Dread
         kind: Debuff
         element: Zealot
-        description: Each Buff the bearer would gain is lost, and the preacher gains 1 Fervor for it.
+        description: Each Buff the bearer would gain is lost, and the applier gains 1 Fervor for it.
         triggers:
           - on: effectGained
             when: { kind: Buff }
@@ -611,7 +613,7 @@ withstand.zealot:
   element: Zealot
   name: Hardened Faith
   description: >-
-    For 1 turn, each enemy hit on the user hardens them: after it lands, they gain 15 Shield for 1 turn.
+    For 1 turn, after each enemy hit on the user lands, they gain 15 Shield for 1 turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -667,8 +669,8 @@ titan.zealot:
   element: Zealot
   name: Living Saint
   description: >-
-    For 3 turns, the user gains 2 Armor and Immune. When it ends, they're a Martyr without dying: their allies get
-    the Martyr payout for the user's Fervor, which is then spent.
+    For 3 turns, the user gains 2 Armor and Immune. When it ends, they count as a Martyr without dying:
+    their allies gain the Martyr effect for the user's Fervor, which is then spent.
   cost: AW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -684,7 +686,9 @@ titan.zealot:
         name: Living Saint
         kind: Buff
         element: Zealot
-        description: When this ends, the bearer's Fervor pays out to their allies as a Martyr's, and is spent.
+        description: >-
+          When this ends, the bearer's allies gain the Martyr effect for the bearer's Fervor, which is then
+          spent.
         onExpire:
           - { op: macro, id: martyr_payout }
           - { op: removeEffect, from: actor, effect: fervor }

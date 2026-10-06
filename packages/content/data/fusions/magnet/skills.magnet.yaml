@@ -119,7 +119,7 @@ rage.magnet:
         name: Repelling Fury
         kind: Buff
         element: Magnet
-        description: Each turn, the bearer's Debuffs are pushed onto their last attacker.
+        description: At the start of each of the bearer's turns, they Repel all their Debuffs onto the enemy who last damaged them.
         triggers:
           - on: turnStart
             do:
@@ -148,8 +148,8 @@ snipe.magnet:
   element: Magnet
   name: Mass Driver
   description: >-
-    The user creates a Boulder; on the following turn, an allied Boulder is launched at target enemy for 20
-    damage plus its remaining HP. The target of this skill is invisible. Channeled.
+    The user creates a Boulder. On the following turn, a random allied Boulder is destroyed to deal target
+    enemy 20 damage plus its remaining HP. The target of this skill is invisible. Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -167,7 +167,7 @@ snipe.magnet:
         element: Magnet
         visibility: hiddenTarget
         interruptible: true
-        description: Launches a Boulder at its target at the end of the following turn.
+        description: At the end of the following turn, a random allied Boulder is destroyed to deal the target 20 damage plus its HP.
         onExpire:
           - op: forEach
             in: { randomAlly: 1, where: { minion: { unit: it, types: [boulder] } } }
@@ -197,7 +197,7 @@ trap.magnet:
         kind: Debuff
         element: Magnet
         visibility: hidden
-        description: The bearer's first Harmful skill shocks them and strips their Armor and Shield.
+        description: The bearer's first Harmful skill deals them 15 damage, and the applier Attracts their Armor and Shield.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -285,8 +285,7 @@ summon.magnet:
   element: Magnet
   name: Clinging Filings
   description: >-
-    Summons an Iron Filing swarm (20 HP) for 3 turns, clinging to target enemy. Grind (r): 10 Piercing
-    damage to that enemy.
+    Summons Iron Filings (20 HP) for 3 turns on target enemy. Grind (r): 10 Piercing damage to that enemy.
   cost: W
   cooldown: 1
   tags: [Harmful, Strategic]
@@ -302,7 +301,7 @@ summon.magnet:
         name: Clinging Filings
         kind: Debuff
         element: Magnet
-        description: Iron Filings cling to the bearer.
+        description: Grind from the applier's Iron Filings hits the bearer.
 
 channel.magnet:
   archetype: Channel
@@ -325,7 +324,7 @@ channel.magnet:
         kind: Neutral
         element: Magnet
         interruptible: true
-        description: Each turn, 10 damage to all enemies and 10 of each one's Shield pulled to the bearer.
+        description: Each turn, 10 damage to all enemies, and the bearer Attracts 10 of each one's Shield.
         triggers:
           - on: turnEnd
             do:
@@ -482,7 +481,7 @@ bless.magnet:
         name: Polarized Plating
         kind: Buff
         element: Magnet
-        description: The first Debuff on the bearer each turn is pushed onto a random enemy.
+        description: The first Debuff on the bearer each turn is Repelled onto a random enemy.
         triggers:
           - on: effectGained
             when: { kind: Debuff }
@@ -515,8 +514,7 @@ smite.magnet:
   element: Magnet
   name: True North
   description: >-
-    Deals 20 damage to target enemy. Until the user's next turn, the user's side's random picks among enemies
-    are drawn to them: they're Vulnerable to everything for as long.
+    Deals 20 damage to target enemy, who is Vulnerable until the user's next turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -611,7 +609,7 @@ withstand.magnet:
         kind: Buff
         element: Magnet
         shield: true
-        description: A Shield; when it ends, a Debuff is Repelled onto each enemy who struck the bearer.
+        description: A Shield; when it ends, a Debuff is Repelled onto each enemy who damaged the bearer.
         triggers:
           - on: damaged
             when: { byEnemy: true }
@@ -645,7 +643,7 @@ taunt.magnet:
         name: Opposite Poles
         kind: Neutral
         element: Magnet
-        description: The bearer's skills can target only the enemy at the opposite pole.
+        description: Among enemies, the bearer's skills can target only the one with Opposite Pole.
         modifiers:
           - { mod: targetExclude, where: { and: [{ isEnemy: it }, { not: { has: { unit: it, effect: opposite_pole } } }] } }
 
@@ -654,8 +652,8 @@ titan.magnet:
   element: Magnet
   name: Iron Colossus
   description: >-
-    The user creates a Boulder, then absorbs every allied Boulder for 1 Armor per 15 HP it had, and is Immune,
-    for 3 turns. When it ends, the Armor falls away as one Boulder with 10 HP per stack.
+    The user creates a Boulder, then destroys every allied Boulder and gains 1 Armor per 15 HP they had in
+    total, and is Immune, for 3 turns. When it ends, the user creates one Boulder with 10 HP per Armor gained.
   cost: IW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -674,7 +672,7 @@ titan.magnet:
         name: Iron Colossus
         kind: Buff
         element: Magnet
-        description: Immune; when it ends, the Armor falls away as a Boulder.
+        description: Immune; when it ends, the bearer creates a Boulder with 10 HP per Armor gained.
         modifiers:
           - { mod: immuneTo, kind: Debuff }
         onExpire:
@@ -725,7 +723,7 @@ iron_filings_grind:
   archetype: Minion
   element: Magnet
   name: Grind
-  description: Deals 10 Piercing damage to the enemy the Filings cling to.
+  description: Deals 10 Piercing damage to the enemy the Filings were summoned on.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]

@@ -53,7 +53,7 @@ squall_marked:
   kind: Neutral
   element: Cloud
   stacking: unique
-  description: Used a Harmful skill under a Squall Line.
+  description: Used a Harmful skill during Squall Line, which deals the bearer 30 damage instead of 15.
 
 cloud_titan_mark:
   name: Stormcloud

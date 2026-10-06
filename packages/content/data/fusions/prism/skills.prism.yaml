@@ -30,8 +30,8 @@ smash.prism:
   element: Prism
   name: Lightfall
   description: >-
-    Deals 20 damage to target enemy and 10 to their allies. At the start of the user's next turn, the
-    light falls again: 10 more to each of them who still has a Frost debuff.
+    Deals 20 damage to target enemy and 10 to their allies. At the start of the user's next turn, each of them
+    who still has a Frost debuff takes 10 more.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -105,7 +105,9 @@ riposte.prism:
         kind: Buff
         element: Prism
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and refracts it onto an ally of its user.
+        description: >-
+          Counters the first Harmful skill used on the bearer; it Refracts instead: a random ally of its user
+          takes 15 damage.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -119,8 +121,8 @@ rage.prism:
   element: Prism
   name: Burning Glass
   description: >-
-    For 3 turns, the user is Immune. They gain Lens, and the glass heats with every Lens: each time they use a
-    skill with Lens meanwhile, they gain 1 Might until this ends.
+    For 3 turns, the user is Immune. They gain Lens, and each time they use a skill with Lens meanwhile, they
+    gain 1 Might until this ends.
   cost: I
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -189,8 +191,8 @@ snipe.prism:
   element: Prism
   name: Focal Point
   description: >-
-    On the following turn, deals 30 Piercing damage to target enemy, and the beam splits into a spectrum:
-    15 Piercing damage to each other enemy. The target of this skill is invisible. Channeled.
+    On the following turn, deals 30 Piercing damage to target enemy and 15 Piercing damage to each other
+    enemy. The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -207,7 +209,9 @@ snipe.prism:
         element: Prism
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn, splitting onto every other enemy.
+        description: >-
+          At the end of the following turn, deals 30 Piercing damage to its target and 15 to every other
+          enemy.
         onExpire:
           - op: forEach
             in: effectTargets
@@ -301,8 +305,8 @@ bolt.prism:
   element: Prism
   name: Splinter of Light
   description: >-
-    Deals 10 damage to target enemy and lodges a splinter of light in them. At the start of the user's next
-    turn, it bursts: 15 damage to them and 10 to a random ally of theirs. Healing them first draws it out.
+    Deals 10 damage to target enemy and gives them Splinter of Light. At the start of the user's next turn,
+    they take 15 damage and a random ally of theirs takes 10. Healing them first removes it.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -318,8 +322,8 @@ bolt.prism:
         kind: Debuff
         element: Prism
         description: >-
-          Bursts at the start of the applier's next turn: 15 damage to the bearer and 10 to a random ally of
-          theirs. Healing the bearer draws it out.
+          At the start of the applier's next turn, the bearer takes 15 damage and a random ally of theirs
+          takes 10. Healing the bearer removes it.
         triggers:
           - on: healed
             do:
@@ -441,8 +445,7 @@ ravage.prism:
   element: Prism
   name: Converging Light
   description: >-
-    Deals 20 Piercing damage to target enemy, +10 for each of their allies who is Condemned or Sanctified,
-    as their light converges on the target.
+    Deals 20 Piercing damage to target enemy, +10 for each of their allies who is Condemned or Sanctified.
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -612,9 +615,9 @@ smite.prism:
   element: Prism
   name: Glacial Rebuke
   description: >-
-    Deals 20 damage to target enemy. Until the end of the enemy's next turn, the user's ally with the least
-    HP is guarded by cold grace: the first time an enemy deals direct damage to them, they heal 15 and that
-    enemy is Frostbitten for 1 turn.
+    Deals 20 damage to target enemy. Until the end of the enemy's next turn, the first time an enemy deals
+    direct damage to the user's ally with the least HP, that ally heals 15 and that enemy is Frostbitten for 1
+    turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]

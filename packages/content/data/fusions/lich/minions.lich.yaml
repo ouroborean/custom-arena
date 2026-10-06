@@ -51,7 +51,7 @@ skeletal_mage:
       name: Skeletal Mage
       kind: Neutral
       element: Lich
-      description: While it stands, Frost debuffs on enemies don't count down.
+      description: While it's alive, Frost debuffs on enemies don't count down.
       triggers:
         - on: turnEnd
           do:

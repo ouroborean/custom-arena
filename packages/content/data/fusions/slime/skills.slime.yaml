@@ -7,8 +7,8 @@ strike.slime:
   element: Slime
   name: Plunging Fist
   description: >-
-    Deals 20 damage to target enemy. If they're Engulfed, the blow drives them deeper: the user's Oozes
-    heal 10 and the Engulf lasts 1 turn longer.
+    Deals 20 damage to target enemy. If they're Engulfed, the user's Oozes heal 10 and the Engulf lasts 1
+    turn longer.
   cost: W
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -26,8 +26,8 @@ smash.slime:
   element: Slime
   name: Splatter
   description: >-
-    Deals 25 damage to target enemy and 10 to their allies. If the target is Stunned, the splatter sets
-    around them: a new Ooze Engulfs them.
+    Deals 25 damage to target enemy and 10 to their allies. If the target is Stunned, a new Ooze Engulfs
+    them.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -46,8 +46,8 @@ charge.slime:
   element: Slime
   name: Slime Roll
   description: >-
-    Deals 15 damage to target enemy, and the user rolls behind an Ooze, creating one if they have none:
-    for 1 turn, damage aimed at them hits an allied minion instead.
+    Deals 15 damage to target enemy, and the user creates an Ooze if they have none. For 1 turn, damage
+    aimed at the user hits an allied minion instead.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -92,7 +92,7 @@ riposte.slime:
         kind: Buff
         element: Slime
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and makes an Ooze from it.
+        description: Counters the first Harmful skill used on the bearer, and the bearer creates an Ooze.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -148,8 +148,8 @@ shot.slime:
   element: Slime
   name: Feeding Glob
   description: >-
-    Deals 10 damage to target enemy. The splash feeds a random allied Ooze: it gains 10 max HP (up to 40) and
-    heals 10. If the user has no Ooze, a 10 HP one forms instead.
+    Deals 10 damage to target enemy. A random allied Ooze gains 10 max HP (up to 40) and heals 10. If the
+    user has no Ooze, they create a 10 HP one instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -176,9 +176,8 @@ snipe.slime:
   element: Slime
   name: Ooze Mortar
   description: >-
-    Now, the user creates an Ooze. On the following turn, an allied Ooze is hurled at target enemy for 30
-    damage and Engulfs them, keeping the HP it has left. The target of this skill is invisible.
-    Channeled.
+    Now, the user creates an Ooze. On the following turn, an allied Ooze deals 30 damage to target enemy and
+    Engulfs them, keeping the HP it has left. The target of this skill is invisible. Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -197,7 +196,8 @@ snipe.slime:
         element: Slime
         visibility: hiddenTarget
         interruptible: true
-        description: Hurls an Ooze at its target at the end of the following turn.
+        description: >-
+          At the end of the following turn, an allied Ooze deals 30 damage to the target and Engulfs them.
         onExpire:
           - op: forEach
             in: { randomAlly: 1, where: { minion: { unit: it, types: [ooze] } } }
@@ -210,7 +210,7 @@ trap.slime:
   element: Slime
   name: Gel Snare
   description: >-
-    For 3 turns, the next healing target enemy receives is swallowed: they're Engulfed by a new Ooze with
+    For 3 turns, the next healing target enemy receives is undone, and they're Engulfed by a new Ooze with
     that much HP (max 40). Invisible.
   cost: W
   cooldown: 3
@@ -226,7 +226,8 @@ trap.slime:
         kind: Debuff
         element: Slime
         visibility: hidden
-        description: The next healing the bearer receives becomes an Ooze that Engulfs them.
+        description: >-
+          The next healing the bearer receives is undone, and a new Ooze with that much HP Engulfs them.
         triggers:
           - on: healed
             consume: true
@@ -245,8 +246,7 @@ maneuver.slime:
   element: Slime
   name: Clay Shell
   description: >-
-    The user becomes Invulnerable for 1 turn, and their Renew sets like clay: every 2 stacks become 1 Armor
-    for good.
+    The user becomes Invulnerable for 1 turn, and every 2 stacks of their Renew become 1 Armor for good.
   cost: r
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -276,8 +276,7 @@ bolt.slime:
   element: Slime
   name: Ooze Lash
   description: >-
-    Deals 25 damage to target enemy. For 1 turn, the next time they take damage, a glob splits off them:
-    the user creates an Ooze.
+    Deals 25 damage to target enemy. For 1 turn, the next time they take damage, the user creates an Ooze.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -292,7 +291,7 @@ bolt.slime:
         name: Ooze Lash
         kind: Debuff
         element: Slime
-        description: The next damage the bearer takes splits off an Ooze for the applier.
+        description: The next time the bearer takes damage, the applier creates an Ooze.
         triggers:
           - on: damaged
             consume: true
@@ -305,8 +304,8 @@ blast.slime:
   element: Slime
   name: Burst Bubble
   description: >-
-    Deals 25 damage to all enemies, and the user creates an Ooze. For 2 turns, whenever an allied Ooze
-    dies, it bursts for 10 damage to all enemies.
+    Deals 25 damage to all enemies, and the user creates an Ooze. For 2 turns, whenever an allied Ooze dies,
+    it deals 10 damage to all enemies.
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -323,7 +322,7 @@ blast.slime:
         name: Burst Bubble
         kind: Buff
         element: Slime
-        description: Allied Oozes burst for 10 damage to all enemies when they die.
+        description: When an allied Ooze dies, it deals 10 damage to all enemies.
 
 consume.slime:
   archetype: Consume
@@ -331,8 +330,7 @@ consume.slime:
   name: Digest
   description: >-
     Deals 5 damage to target enemy, healing the user for it, and a new Ooze with 10 HP Engulfs them for 1
-    turn. If they're already Engulfed, they're digested instead: 20 Affliction damage, healing the user as
-    much.
+    turn. If they're already Engulfed, they take 20 Affliction damage instead, healing the user as much.
   cost: W
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -410,8 +408,8 @@ stab.slime:
   element: Slime
   name: Oozing Cut
   description: >-
-    Deals 10 damage to target enemy, and a glob of slime clings to the wound: for 2 turns, they take 5
-    Affliction damage at the end of each of the user's turns. A new cut refreshes the glob instead of adding one.
+    Deals 10 damage to target enemy. For 2 turns, they take 5 Affliction damage at the end of each of the
+    user's turns. Using this again refreshes that effect instead of adding a second one.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -439,8 +437,8 @@ ravage.slime:
   element: Slime
   name: Crushing Mass
   description: >-
-    Deals 25 Piercing damage to target enemy. If they're Stunned, the user absorbs some of their mass: 1
-    Might and 1 Armor for good.
+    Deals 25 Piercing damage to target enemy. If they're Stunned, the user gains 1 Might and 1 Armor for
+    good.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -502,8 +500,8 @@ dance.slime:
   element: Slime
   name: Slick Shimmy
   description: >-
-    For 3 turns, the user gains 1 Might and 2 Swiftness, and they're too slick to hold: their Debuffs slide
-    off at the end of each of their turns.
+    For 3 turns, the user gains 1 Might and 2 Swiftness, and their Debuffs are removed at the end of each of
+    their turns.
   cost: AI
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -519,7 +517,7 @@ dance.slime:
         name: Slick Shimmy
         kind: Buff
         element: Slime
-        description: The bearer's Debuffs slide off at the end of each of their turns.
+        description: The bearer's Debuffs are removed at the end of each of their turns.
         triggers:
           - on: turnEnd
             do:
@@ -611,7 +609,7 @@ smite.slime:
   element: Slime
   name: Settling Silt
   description: >-
-    Deals 20 damage to target enemy, and silt settles on them for 2 turns: Stuns on them can't be removed.
+    Deals 20 damage to target enemy. For 2 turns, Stuns on them can't be removed.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -635,8 +633,8 @@ prayer.slime:
   element: Slime
   name: Gel Mantle
   description: >-
-    All allies heal 20 and gain 10 Shield for 2 turns. Every allied Ooze then melts into it: each adds 10
-    Shield to every ally, and dies.
+    All allies heal 20 and gain 10 Shield for 2 turns. Then every allied Ooze dies, and each adds 10 Shield
+    to every ally.
   cost: Irr
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -656,9 +654,9 @@ cleave.slime:
   element: Slime
   name: Clinging Sweep
   description: >-
-    Deals 20 damage to target enemy and coats them in gel for 2 turns. Like an Ooze, the gel Splits off the
-    first time a direct hit, this blow included, leaves them with 10 or more HP: it hops to a random ally of
-    theirs, dealing them 15 damage and coating them for 2 turns. It hops at most twice.
+    Deals 20 damage to target enemy and gives them Gel Coat for 2 turns. The first time a direct hit, this
+    one included, leaves them with 10 or more HP, the Gel Coat moves to a random ally of theirs, dealing
+    them 15 damage and lasting 2 turns on them. It moves at most twice.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -673,8 +671,7 @@ shout.slime:
   element: Slime
   name: Quagmire
   description: >-
-    All enemies sink into the mire: for 1 turn, their non-Strategic skills are Stunned. Damage pulls an enemy
-    free.
+    For 1 turn, all enemies' non-Strategic skills are Stunned. This ends for an enemy when they take damage.
   cost: Ir
   cooldown: 4
   tags: [Harmful, Strategic]
@@ -703,7 +700,7 @@ withstand.slime:
   archetype: Withstand
   element: Slime
   name: Quivering Wall
-  description: The user gains 40 Shield with no time limit. It melts by 10 at the end of each of their turns.
+  description: The user gains 40 Shield with no time limit. It loses 10 at the end of each of their turns.
   cost: r
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -718,7 +715,7 @@ withstand.slime:
         kind: Buff
         element: Slime
         shield: true
-        description: A Shield with no time limit that melts by 10 at the end of each of the bearer's turns.
+        description: A Shield with no time limit that loses 10 at the end of each of the bearer's turns.
         triggers:
           - on: turnEnd
             do:
@@ -732,8 +729,8 @@ taunt.slime:
   element: Slime
   name: Sticky Bait
   description: >-
-    The user creates an Ooze (30 HP), and target enemy is Taunted by it for 2 turns. If it's still standing
-    when the Taunt ends, it swallows them: they're Engulfed by it.
+    The user creates an Ooze (30 HP), and target enemy is Taunted by it for 2 turns. If the Ooze is still
+    alive when the Taunt ends, it Engulfs them.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -752,7 +749,7 @@ taunt.slime:
         name: Sticky Bait
         kind: Debuff
         element: Slime
-        description: If the bait still stands when this ends, it Engulfs the bearer.
+        description: If the Ooze is still alive when this ends, it Engulfs the bearer.
         onExpire:
           - { op: apply, to: bearer, effect: engulfed, bindTo: actor, duration: { enemyTurns: 3 } }
 

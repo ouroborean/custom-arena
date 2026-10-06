@@ -45,8 +45,8 @@ smash.divine:
   element: Divine
   name: Heaven's Hammer
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. If the user is Exalted, it's spent to
-    bring the Hammer down on both sides: every ally also heals 25.
+    Deals 25 damage to target enemy and 15 to their allies. If the user is Exalted, it's spent, and
+    every ally also heals 25.
   cost: Wr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -90,8 +90,8 @@ riposte.divine:
   element: Divine
   name: Absolution
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user, and the ally with the least HP
-    heals the damage it would have dealt. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user, and the ally with the least HP heals
+    20. Invisible.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -106,7 +106,9 @@ riposte.divine:
         kind: Buff
         element: Divine
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer; their weakest ally heals 20.
+        description: >-
+          Counters the first Harmful skill used on the bearer; the bearer's ally with the least HP heals
+          20.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -136,7 +138,9 @@ rage.divine:
         name: Apotheosis
         kind: Buff
         element: Divine
-        description: The bearer's direct damage to enemies heals the weakest ally half as much; their heals hit a random enemy for half as much.
+        description: >-
+          The bearer's direct damage to enemies heals the ally with the least HP for half as much; their
+          healing deals half as much damage to a random enemy.
         triggers:
           - on: dealtDamage
             when: { byEnemy: true, direct: true }
@@ -190,7 +194,9 @@ snipe.divine:
         element: Divine
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes at the end of the following turn unless interrupted, 10 harder for each heal the user's side gathers (max 30).
+        description: >-
+          At the end of the following turn, unless interrupted, deals 35 damage to its target, plus 10
+          for each time an ally of the bearer was healed meanwhile (max 30 more).
         onExpire:
           - op: damage
             to: effectTargets
@@ -206,7 +212,7 @@ snipe.divine:
         name: Spear of Heaven
         kind: Neutral
         element: Divine
-        description: Each time the bearer is healed, the Spear of Heaven gathers light.
+        description: Each time the bearer is healed, the Spear of Heaven deals 10 more damage (max 30 more).
         triggers:
           - on: healed
             do:
@@ -243,7 +249,7 @@ trap.divine:
         kind: Debuff
         element: Divine
         visibility: hidden
-        description: The bearer's first Helpful skill is diverted to the tither's ally with the least HP.
+        description: The bearer's first Helpful skill is diverted to the applier's ally with the least HP.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -699,7 +705,9 @@ taunt.divine:
         name: Beacon
         kind: Debuff
         element: Divine
-        description: Each time the bearer damages the Beacon, it's Exalted until the end of its next turn.
+        description: >-
+          Each time the bearer damages the applier, the applier is Exalted until the end of their next
+          turn.
         triggers:
           - on: dealtDamage
             do:

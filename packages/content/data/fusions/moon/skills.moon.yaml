@@ -96,9 +96,8 @@ rage.moon:
   element: Moon
   name: Turn Beast
   description: >-
-    The beast takes the user: their Lunar Cycle leaps to the Full Moon and holds there for 3 turns. For as long,
-    their direct hits deal 10 more damage and heal them for half the damage dealt, but their Strategic skills
-    are Stunned.
+    The user's Lunar Cycle moves to the Full Moon and holds there for 3 turns. For as long, their direct hits
+    deal 10 more damage and heal them for half the damage dealt, but their Strategic skills are Stunned.
   cost: WA
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -135,8 +134,7 @@ shot.moon:
   element: Moon
   name: Moonshard
   description: >-
-    Deals 10 Piercing damage to target enemy. Waxing: the shard stays lodged, dealing 15 more at the start of the
-    next Full Moon.
+    Deals 10 Piercing damage to target enemy. Waxing: they also take 15 more at the start of the next Full Moon.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -152,8 +150,8 @@ snipe.moon:
   element: Moon
   name: Hunter's Moon
   description: >-
-    The user stalks target enemy. On the following turn, they deal 30 damage to them, 10 more for each hit the
-    user's allies land on them before then (max 60). Channeled.
+    On the following turn, the user deals 30 damage to target enemy, 10 more for each hit the user's allies land
+    on them before then (max 60). Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -169,7 +167,7 @@ snipe.moon:
         kind: Debuff
         element: Moon
         stacking: unique
-        description: Each hit the hunter's allies land on the bearer makes the Hunter's Moon 10 stronger (max 30 more).
+        description: Each hit the applier's allies land on the bearer adds 10 damage to the Hunter's Moon (max 30 more).
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
@@ -248,8 +246,8 @@ companion.moon:
   element: Moon
   name: Lunar Wolf
   description: >-
-    Summons a Lunar Wolf (35 HP) permanently. Moonfang (r): 10 Piercing damage. At the start of each Full Moon, it
-    howls: it heals 20, and a random enemy is Taunted by it for 1 turn.
+    Summons a Lunar Wolf (35 HP) permanently. Moonfang (r): 10 Piercing damage. At the start of each Full Moon,
+    it heals 20, and a random enemy is Taunted by it for 1 turn.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -262,8 +260,7 @@ bolt.moon:
   element: Moon
   name: Moonless Bolt
   description: >-
-    Deals 15 damage to target enemy, who is Blinded for longer the darker the moon: 4 turns at the New Moon, 3
-    Waxing, 2 Full, 1 Waning.
+    Deals 15 damage to target enemy, who is Blinded for 4 turns at the New Moon, 3 Waxing, 2 Full, or 1 Waning.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -297,7 +294,7 @@ consume.moon:
   element: Moon
   name: Drink the Moonlight
   description: >-
-    Deals 10 damage to target enemy, healing the user for the damage dealt. Waning: it drains every enemy instead.
+    Deals 10 damage to target enemy, healing the user for the damage dealt. Waning: it hits every enemy instead.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -394,8 +391,7 @@ ravage.moon:
   element: Moon
   name: Feral Maw
   description: >-
-    Deals 35 Piercing damage to target enemy, then the frenzy takes the user: they're Blinded through their next
-    turn.
+    Deals 35 Piercing damage to target enemy, then the user is Blinded through their next turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -409,8 +405,8 @@ mislead.moon:
   element: Moon
   name: False Moonlight
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the false light Blinds every enemy for
-    1 turn. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and every enemy is Blinded for 1 turn.
+    Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -439,8 +435,8 @@ stun.moon:
   element: Moon
   name: Lunacy
   description: >-
-    Deals 10 damage to target enemy, then they and a random ally of theirs share one dream: both fall Asleep for
-    1 turn, and damage that wakes either one wakes both.
+    Deals 10 damage to target enemy, then they and a random ally of theirs fall Asleep for 1 turn, and damage
+    that wakes either one wakes both.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -460,8 +456,8 @@ dance.moon:
   element: Moon
   name: Dance of Phases
   description: >-
-    For 2 turns, the user gains 1 Swiftness and the phase's gift: New, Stealth; Waxing, 2 Armor; Full, 2 Might;
-    Waning, 2 Renew.
+    For 2 turns, the user gains 1 Swiftness and, by phase: New, Stealth; Waxing, 2 Armor; Full, 2 Might; Waning,
+    2 Renew.
   cost: A
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -486,7 +482,7 @@ heal.moon:
   element: Moon
   name: Borrowed Moonlight
   description: >-
-    Target ally heals 40. 3 turns later, the moonlight wanes and they lose 20 HP, which can't kill them.
+    Target ally heals 40. 3 turns later, they lose 20 HP, which can't kill them.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -514,8 +510,8 @@ bless.moon:
   element: Moon
   name: Moonveil
   description: >-
-    Target ally sinks into a moonlit dream through their next turn: they're Asleep and Invulnerable. When they
-    wake, they gain 2 Might for 2 turns and 3 Renew.
+    Target ally is Asleep and Invulnerable through their next turn. When they wake, they gain 2 Might for 2
+    turns and 3 Renew.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -612,8 +608,8 @@ cleave.moon:
   element: Moon
   name: Shattered Crescent
   description: >-
-    Deals 10 damage to target enemy, and the crescent shatters: a Moonshard lodges in each other enemy, dealing
-    15 damage at the start of the next Full Moon.
+    Deals 10 damage to target enemy, and each other enemy gains a Moonshard: 15 damage at the start of the next
+    Full Moon.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -628,8 +624,7 @@ shout.moon:
   element: Moon
   name: Howl at the Moon
   description: >-
-    The user howls as the Lunar Wolves do at the Full Moon: they heal 20, and every enemy is Taunted by them for
-    1 turn.
+    The user heals 20, and every enemy is Taunted by them for 1 turn.
   cost: Wr
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -643,8 +638,8 @@ withstand.moon:
   element: Moon
   name: Cairn Ward
   description: >-
-    The user gains 25 Shield for 1 turn. Whatever is left of it when it ends becomes a Boulder for the user, with
-    that much HP.
+    The user gains 25 Shield for 1 turn. When it ends, the user creates a Boulder with HP equal to what's left
+    of it.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -660,7 +655,7 @@ withstand.moon:
         kind: Buff
         element: Moon
         shield: true
-        description: Absorbs damage; what's left when it runs out becomes a Boulder.
+        description: Absorbs damage; when it runs out, the bearer creates a Boulder with HP equal to what's left.
         onExpire:
           - op: if
             cond: { compare: { value: { effectValue: true }, atLeast: 1 } }
@@ -702,8 +697,8 @@ titan.moon:
   element: Moon
   name: Face of the Moon
   description: >-
-    For 3 turns, the moon's face glares from the user: each enemy who hits them is Blinded for 2 turns, and deals
-    them 10 less damage while Blinded.
+    For 3 turns, each enemy who hits the user is Blinded for 2 turns, and deals them 10 less damage while
+    Blinded.
   cost: AW
   cooldown: 4
   tags: [Helpful, Strategic]

@@ -142,9 +142,9 @@ snipe.lich:
   element: Lich
   name: Death's Icicle
   description: >-
-    On the following turn, deals 40 Piercing damage to target enemy. If it kills them, their soul becomes
-    the user's Phylactery: one is created, or theirs is restored to full. The target of this skill is
-    invisible. Channeled.
+    On the following turn, deals 40 Piercing damage to target enemy. If it kills them, the user
+    creates a Phylactery, or restores theirs to full. The target of this skill is invisible.
+    Channeled.
   cost: AS
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -161,7 +161,9 @@ snipe.lich:
         element: Lich
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; a kill feeds the Phylactery.
+        description: >-
+          At the end of the following turn, deals 40 Piercing damage to its target. If it kills
+          them, the bearer creates a Phylactery, or restores theirs to full.
         onExpire:
           - op: forEach
             in: effectTargets
@@ -316,8 +318,8 @@ summon.lich:
   element: Lich
   name: Skeletal Mage
   description: >-
-    Summons a Skeletal Mage (25 HP) for 3 turns. While it stands, Frost debuffs on enemies don't count
-    down. Bone Chill (r): 10 damage to target enemy.
+    Summons a Skeletal Mage (25 HP) for 3 turns. While it's alive, Frost debuffs on enemies don't
+    count down. Bone Chill (r): 10 damage to target enemy.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -330,8 +332,8 @@ channel.lich:
   element: Lich
   name: Drain Warmth
   description: >-
-    For 3 turns, at the end of each of the user's turns, deals 10 damage to target enemy, poured into the
-    user's Phylactery: its max HP rises by 10 and it heals 10. With no Phylactery, one is created at 10
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to target enemy, and the
+    user's Phylactery's max HP rises by 10 and it heals 10. With no Phylactery, one is created at 10
     HP. Channeled.
   cost: rr
   cooldown: 3
@@ -348,7 +350,9 @@ channel.lich:
         kind: Neutral
         element: Lich
         interruptible: true
-        description: Each turn, 10 damage to the target, poured into the bearer's Phylactery.
+        description: >-
+          At the end of each of the bearer's turns, deals 10 damage to the target, and the bearer's
+          Phylactery's max HP rises by 10 and it heals 10 (or one is created at 10 HP).
         triggers:
           - on: turnEnd
             do:
@@ -593,7 +597,7 @@ curse.lich:
         name: Touch of the Grave
         kind: Debuff
         element: Lich
-        description: Can't gain Buffs; Helpful skills used on the bearer feed the applier Soul Fragments.
+        description: Can't gain Buffs; Helpful skills used on the bearer give the applier Soul Fragments.
         modifiers:
           - { mod: immuneTo, kind: Buff }
         triggers:
@@ -693,8 +697,8 @@ shout.lich:
   element: Lich
   name: Echo from the Tomb
   description: >-
-    All enemies are Intimidated for 2 turns. The shriek echoes from the tomb: 3 turns later, all enemies
-    are Intimidated for 2 turns again.
+    All enemies are Intimidated for 2 turns. 3 turns later, all enemies are Intimidated for 2 turns
+    again.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]

@@ -26,8 +26,8 @@ smash.grave:
   element: Grave
   name: Split the Earth
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. If the user has a Boulder, one is ground into the
-    blow, and the user drains a Soul Fragment from each enemy hit.
+    Deals 25 damage to target enemy and 15 to their allies. If the user has a Boulder, one of them is
+    destroyed, and the user gains a Soul Fragment for each enemy hit.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -73,8 +73,8 @@ riposte.grave:
   element: Grave
   name: Grasping Hands
   description: >-
-    For 1 turn, counters the first Harmful skill used on the user; a Skeleton claws up for the user, spending no
-    Grave, and Taunts its user for 1 turn. Invisible.
+    For 1 turn, counters the first Harmful skill used on the user; a Skeleton is summoned for the
+    user, spending no Grave, and Taunts that skill's user for 1 turn. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -89,7 +89,9 @@ riposte.grave:
         kind: Buff
         element: Grave
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer; a Skeleton rises and Taunts its user.
+        description: >-
+          Counters the first Harmful skill used on the bearer; a Skeleton is summoned for them and
+          Taunts that skill's user for 1 turn.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -152,8 +154,8 @@ snipe.grave:
   element: Grave
   name: Grave Burrower
   description: >-
-    In 2 turns, deals 55 damage to target enemy. If any unit or minion dies before then, it bursts out at once
-    instead. Channeled.
+    In 2 turns, deals 55 damage to target enemy. If any unit or minion dies before then, it lands at
+    once instead. Channeled.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -184,8 +186,8 @@ trap.grave:
   element: Grave
   name: Open Grave
   description: >-
-    For 2 turns, if target enemy kills a unit or minion, they're Stunned for 1 turn and the fallen rises for the
-    user as a Skeleton, spending no Grave. Invisible.
+    For 2 turns, if target enemy kills a unit or minion, they're Stunned for 1 turn and a Skeleton
+    is summoned for the user, spending no Grave. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -200,7 +202,7 @@ trap.grave:
         kind: Debuff
         element: Grave
         visibility: hidden
-        description: If the bearer kills anyone, they're Stunned and the fallen rises for the applier as a Skeleton.
+        description: If the bearer kills anyone, they're Stunned for 1 turn and a Skeleton is summoned for the applier.
         triggers:
           - on: signal
             signal: died
@@ -217,8 +219,8 @@ maneuver.grave:
   element: Grave
   name: Bury Yourself
   description: >-
-    The user becomes Invulnerable for 1 turn. When it ends, they spend up to 2 Graves and rise with 15 Shield per
-    Grave spent.
+    The user becomes Invulnerable for 1 turn. When it ends, they spend up to 2 Graves and gain 15
+    Shield per Grave spent.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -280,8 +282,8 @@ blast.grave:
   element: Grave
   name: Uprising
   description: >-
-    Raise: the user spends up to 2 Graves for as many Skeletons, each bursting out under a random enemy for 15
-    damage. Then deals 20 damage to all enemies.
+    Raise: the user spends up to 2 Graves for as many Skeletons; for each one, a random enemy takes
+    15 damage. Then deals 20 damage to all enemies.
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -300,8 +302,9 @@ consume.grave:
   element: Grave
   name: Marrow Draught
   description: >-
-    If there's no allied minion, a Skeleton claws up for the user first, spending no Grave. Then drains 10 HP from
-    every minion on both sides; the user heals the total. Minions that die leave Graves as usual.
+    If there's no allied minion, a Skeleton is summoned for the user first, spending no Grave. Then
+    drains 10 HP from every minion on both sides; the user heals the total. Minions that die leave
+    Graves as usual.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -341,8 +344,8 @@ channel.grave:
   element: Grave
   name: Necropolis
   description: >-
-    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies. Any unit or minion that
-    dies meanwhile rises for the user as a Skeleton. Channeled.
+    For 3 turns, at the end of each of the user's turns, deals 10 damage to all enemies. For each
+    unit or minion that dies meanwhile, a Skeleton is summoned for the user. Channeled.
   cost: Sr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -357,7 +360,9 @@ channel.grave:
         kind: Neutral
         element: Grave
         interruptible: true
-        description: Each turn, 10 damage to all enemies; each death raises a Skeleton for the bearer.
+        description: >-
+          At the end of each of the bearer's turns, deals 10 damage to all enemies; each death
+          summons a Skeleton for the bearer.
         triggers:
           - on: turnEnd
             do:
@@ -413,7 +418,7 @@ mislead.grave:
   element: Grave
   name: Premature Burial
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and buried: its cooldown rises by 3.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and its cooldown rises by 3.
     Invisible.
   cost: S
   cooldown: 2
@@ -429,7 +434,7 @@ mislead.grave:
         kind: Debuff
         element: Grave
         visibility: hidden
-        description: The bearer's next Harmful skill is countered and buried (+3 cooldown).
+        description: The bearer's next Harmful skill is countered, and its cooldown rises by 3.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -518,7 +523,7 @@ bless.grave:
         name: Epitaph
         kind: Neutral
         element: Grave
-        description: If the inscribed ally dies, their allies each gain a copy of every Buff they had.
+        description: If the bearer dies, their allies each gain a copy of every Buff they had.
         triggers:
           - on: signal
             signal: died
@@ -534,8 +539,8 @@ curse.grave:
   element: Grave
   name: Bitter Soil
   description: >-
-    Target enemy is Confused for 2 turns. Meanwhile, each Helpful skill they use while Horrified sprouts a Seedling
-    for the user.
+    Target enemy is Confused for 2 turns. Meanwhile, each Helpful skill they use while Horrified
+    summons a Seedling for the user.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -550,7 +555,7 @@ curse.grave:
         name: Bitter Soil
         kind: Debuff
         element: Grave
-        description: Each Helpful skill the bearer uses while Horrified sprouts a Seedling for the applier.
+        description: Each Helpful skill the bearer uses while Horrified summons a Seedling for the applier.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -564,8 +569,8 @@ smite.grave:
   element: Grave
   name: Grave Marker
   description: >-
-    Deals 20 damage to target enemy. For 2 turns, each time they're healed, the user drains a Soul Fragment from
-    them.
+    Deals 20 damage to target enemy. For 2 turns, each time they're healed, the user gains a Soul
+    Fragment.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -634,8 +639,8 @@ withstand.grave:
   element: Grave
   name: Wall of Bones
   description: >-
-    The user gains 25 Shield for 2 turns. When it breaks, a Skeleton rises from the bones for the user, spending no
-    Grave.
+    The user gains 25 Shield for 2 turns. When it breaks, a Skeleton is summoned for the user,
+    spending no Grave.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -650,7 +655,7 @@ withstand.grave:
         name: Wall of Bones
         kind: Buff
         element: Grave
-        description: When the bearer's Shield breaks, a Skeleton rises.
+        description: When the bearer's Shield breaks, a Skeleton is summoned for them.
         triggers:
           - on: shieldDamaged
             do:
@@ -665,8 +670,8 @@ taunt.grave:
   element: Grave
   name: Grudge Beyond the Grave
   description: >-
-    Taunts target enemy for 2 turns. If the user dies meanwhile, they rise as a Ghoul, spending no Grave, and the
-    Taunt carries on to it.
+    Taunts target enemy for 2 turns. If the user dies meanwhile, a Ghoul is summoned in their place,
+    spending no Grave, and that enemy is Taunted by the Ghoul for 1 turn.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -681,7 +686,7 @@ taunt.grave:
         name: Grudge Beyond the Grave
         kind: Debuff
         element: Grave
-        description: If the applier dies, they rise as a Ghoul that Taunts the bearer.
+        description: If the applier dies, a Ghoul is summoned in their place and Taunts the bearer.
         triggers:
           - on: signal
             signal: died

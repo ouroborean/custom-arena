@@ -36,8 +36,7 @@ smash.alchemy:
   element: Alchemy
   name: Kiln Crash
   description: >-
-    Deals 25 damage to target enemy. The kiln's heat washes over their allies instead of hurting them:
-    each gains Catalyst.
+    Deals 25 damage to target enemy. Each of their allies gains Catalyst.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -73,9 +72,8 @@ riposte.alchemy:
   element: Alchemy
   name: Reactive Flask
   description: >-
-    For 1 turn, the first Harmful skill used on the user shatters the flask: it's countered, and its
-    user is splashed: their Might, Armor, Focus and Renew are Transmuted, and they gain Catalyst.
-    Invisible.
+    For 1 turn, counters the first Harmful skill used on the user. Its user's Might, Armor, Focus and
+    Renew are Transmuted, and they gain Catalyst. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -197,7 +195,7 @@ snipe.alchemy:
         kind: Debuff
         element: Alchemy
         visibility: hidden
-        description: Healing the bearer receives is added to the arrow.
+        description: Healing the bearer receives is added to Distilled Arrow's damage.
         triggers:
           - on: healed
             do:
@@ -208,8 +206,8 @@ trap.alchemy:
   element: Alchemy
   name: Volatile Compound
   description: >-
-    For 2 turns, each time target enemy uses a skill, they gain Catalyst. If they already had it, it
-    reacts instead: they Explode. Invisible.
+    For 2 turns, each time target enemy uses a skill, they gain Catalyst. If they already have it, they
+    lose it and Explode instead. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -317,9 +315,8 @@ consume.alchemy:
   element: Alchemy
   name: Essence Extraction
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. Then 10 of their max HP is distilled
-    into the user: theirs drops by 10 and the user's rises by 10 for the rest of the match (up to 30
-    per enemy).
+    Deals 5 damage to target enemy, healing the user for it. Then their max HP drops by 10 and the
+    user's rises by 10 for the rest of the match (up to 30 per enemy).
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -351,9 +348,9 @@ channel.alchemy:
   element: Alchemy
   name: Slow Distillation
   description: >-
-    For up to 3 turns, the brew concentrates at the end of each of the user's turns. When it ends,
-    run its course or broken early (using another skill breaks it), it's released all at once: 10
-    damage to every enemy and 5 healing to every ally per turn it brewed. Channeled.
+    For up to 3 turns, counts the end of each of the user's turns. When it ends, whether it runs its
+    course or is broken early (using another skill breaks it), it deals 10 damage to every enemy and
+    heals every ally 5 for each turn counted. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -368,7 +365,7 @@ channel.alchemy:
         kind: Neutral
         element: Alchemy
         stacking: unique
-        description: When the Slow Distillation ends, it's released on both teams.
+        description: When Slow Distillation ends, deals 10 damage to every enemy and heals every ally 5 for each turn it counted.
         triggers:
           - on: ownEffectEnded
             when: { effects: [slow_distillation] }
@@ -385,7 +382,7 @@ channel.alchemy:
         kind: Neutral
         element: Alchemy
         interruptible: true
-        description: Concentrates each turn; released on both teams when it ends.
+        description: Counts the end of each of the bearer's turns; when it ends, deals 10 damage to every enemy and heals every ally 5 per turn counted.
         triggers:
           - on: turnEnd
             do:
@@ -396,8 +393,8 @@ stab.alchemy:
   element: Alchemy
   name: Probing Lancet
   description: >-
-    Deals 10 damage to target enemy. If they have more Buffs than Debuffs, the lancet Transmutes one of
-    their Buffs (one with no recipe is removed); if not, it finds a weak spot: 10 more damage.
+    Deals 10 damage to target enemy. If they have more Buffs than Debuffs, one of their Buffs is
+    Transmuted (one with no recipe is removed); if not, this deals 10 more damage.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -416,8 +413,8 @@ ravage.alchemy:
   element: Alchemy
   name: Boiling Point
   description: >-
-    Deals 25 Piercing damage to target enemy. The user boils off all their Renew, and the target's
-    Ignite ticks once per stack (max 4).
+    Deals 25 Piercing damage to target enemy. The user loses all their Renew, and the target's Ignite
+    ticks once per stack lost (max 4).
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -444,8 +441,8 @@ mislead.alchemy:
   element: Alchemy
   name: Inversion Circle
   description: >-
-    For 1 turn, if target enemy uses a Helpful skill, it's Transmuted: it's countered, and its
-    targets take 15 Affliction damage and are Weakened for 1 turn instead. Invisible.
+    For 1 turn, if target enemy uses a Helpful skill, it's countered, and its targets take 15
+    Affliction damage and are Weakened for 1 turn instead. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -460,7 +457,7 @@ mislead.alchemy:
         kind: Debuff
         element: Alchemy
         visibility: hidden
-        description: The bearer's next Helpful skill is inverted into harm for its targets.
+        description: The bearer's next Helpful skill is countered, and its targets take 15 Affliction damage and are Weakened for 1 turn instead.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -627,8 +624,8 @@ cleave.alchemy:
   element: Alchemy
   name: Splash Potion
   description: >-
-    Deals 20 damage to target enemy, who is Weakened for 1 turn. The potion splashes onto every other
-    enemy: 5 damage for each Debuff on the target (up to 15).
+    Deals 20 damage to target enemy, who is Weakened for 1 turn. Every other enemy takes 5 damage for
+    each Debuff on the target (up to 15).
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -700,8 +697,8 @@ taunt.alchemy:
   element: Alchemy
   name: Lure Flask
   description: >-
-    Target enemy is Taunted by the user for 2 turns. Meanwhile, half the damage they deal the user is
-    Transmuted into healing for the user.
+    Target enemy is Taunted by the user for 2 turns. Meanwhile, the user heals half the damage that
+    enemy deals them.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -716,7 +713,7 @@ taunt.alchemy:
         name: Lure Flask
         kind: Buff
         element: Alchemy
-        description: The bearer heals half the damage the lured enemy deals them.
+        description: The bearer heals half the damage dealt to them by enemies they Taunted.
         triggers:
           - on: damaged
             when: { byEnemy: true }

@@ -19,8 +19,8 @@ smash.mechanic:
   element: Mechanic
   name: Steam Hammer
   description: >-
-    Deals 25 damage to target enemy and 15 to their allies. If the user is Rushing, it vents: their
-    Rushing ends, and the splash is 30 and Ignites.
+    Deals 25 damage to target enemy and 15 to their allies. If the user is Rushing, their Rushing ends,
+    and their allies take 30 instead and are Ignited.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -40,7 +40,7 @@ charge.mechanic:
   archetype: Charge
   element: Mechanic
   name: Rocket Boots
-  description: Deals 15 damage to target enemy. The user begins Rushing and leaves a Turret behind for 2 turns.
+  description: Deals 15 damage to target enemy. The user begins Rushing and builds a Turret for 2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -204,8 +204,8 @@ maneuver.mechanic:
   element: Mechanic
   name: Jetpack
   description: >-
-    The user takes to the air: Invulnerable for 2 turns, but they can't use skills on their next turn.
-    When the flight ends, they come down with an Explosion.
+    The user becomes Invulnerable for 2 turns, but they can't use skills on their next turn. When it
+    ends, they cause an Explosion.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -221,7 +221,7 @@ maneuver.mechanic:
         name: Airborne
         kind: Neutral
         element: Mechanic
-        description: Can't use skills while the jetpack flies.
+        description: Can't use skills.
         modifiers:
           - { mod: cannotUseSkills }
     - op: apply
@@ -232,7 +232,7 @@ maneuver.mechanic:
         name: Jetpack
         kind: Neutral
         element: Mechanic
-        description: When this ends, the bearer lands with an Explosion.
+        description: When this ends, the bearer causes an Explosion.
         onExpire:
           - { op: macro, id: explode }
 
@@ -255,8 +255,8 @@ bolt.mechanic:
   element: Mechanic
   name: Grapnel Shot
   description: >-
-    Deals 20 damage to target enemy and Marks them for 1 turn. Until the end of their next turn,
-    they're hooked: they lose Invulnerable, Untargetable and Stealth, and can't gain them.
+    Deals 20 damage to target enemy and Marks them for 1 turn. Until the end of their next turn, they
+    lose Invulnerable, Untargetable and Stealth, and can't gain them.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -296,8 +296,8 @@ consume.mechanic:
   element: Mechanic
   name: Refuel
   description: >-
-    Deals 10 damage to target enemy, healing the user as much. The user burns all their Swiftness as
-    fuel: 10 more healing per stack.
+    Deals 10 damage to target enemy, healing the user as much. The user spends all their Swiftness: 10
+    more healing per stack.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -356,8 +356,8 @@ stab.mechanic:
   element: Mechanic
   name: Drill Bit
   description: >-
-    Deals 10 damage to target enemy, 5 more for each earlier Drill Bit still in them (up to 10 more):
-    the hole only gets deeper. Usable while Stunned.
+    Deals 10 damage to target enemy, 5 more for each earlier Drill Bit still in them (up to 10 more).
+    Usable while Stunned.
   cost: nc
   cooldown: 1
   tags: [Harmful, NonStrategic, UsableWhileStunned]
@@ -381,7 +381,7 @@ ravage.mechanic:
   name: Chainsaw
   description: >-
     Deals Piercing damage to target enemy equal to a third of their current HP (at least 10, at most
-    25): the saw bites deepest into the thickest hide.
+    25).
   cost: A
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -431,8 +431,8 @@ stun.mechanic:
   element: Mechanic
   name: Concussion Grenade
   description: >-
-    Lands at the start of the user's next turn: 15 damage and a 1-turn Stun to target enemy, unless
-    they used a mobility skill in between.
+    At the start of the user's next turn, target enemy takes 15 damage and is Stunned for 1 turn,
+    unless they used a mobility skill in between.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -446,7 +446,7 @@ stun.mechanic:
         name: Concussion Grenade
         kind: Debuff
         element: Mechanic
-        description: Lands at the start of the applier's next turn unless the bearer uses a mobility skill first.
+        description: At the start of the applier's next turn, the bearer takes 15 damage and is Stunned for 1 turn, unless they use a mobility skill first.
         triggers:
           - on: skillUsed
             when: { archetypes: [Charge, Maneuver, Mislead, Dance] }
@@ -461,8 +461,8 @@ dance.mechanic:
   element: Mechanic
   name: Overclock
   description: >-
-    For 3 turns, the user gains 1 Might and runs overclocked: at the end of each of their turns, their
-    cooldowns tick down 1 extra turn, and the engine burns them for 5 Affliction damage.
+    For 3 turns, the user gains 1 Might, and at the end of each of their turns, their cooldowns tick
+    down 1 extra turn and they take 5 Affliction damage.
   cost: AA
   cooldown: 5
   tags: [Helpful, Strategic]
@@ -553,8 +553,8 @@ curse.mechanic:
   element: Mechanic
   name: Sabotage
   description: >-
-    Target enemy is Confused for 2 turns. Meanwhile, each mobility skill they use backfires: it's
-    countered and they're Stunned for 1 turn.
+    Target enemy is Confused for 2 turns. Meanwhile, each mobility skill they use is countered, and
+    they're Stunned for 1 turn.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -633,8 +633,8 @@ cleave.mechanic:
   element: Mechanic
   name: Red-Hot Blades
   description: >-
-    Deals 25 damage to target enemy and 15 to a random other enemy. The user overheats: they're
-    Ignited, and deal 5 more direct damage while they stay Ignited.
+    Deals 25 damage to target enemy and 15 to a random other enemy. The user is Ignited, and deals 5
+    more direct damage while they stay Ignited.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -688,7 +688,7 @@ shout.mechanic:
                 name: Steam Whistle
                 kind: Neutral
                 element: Mechanic
-                description: Loses the borrowed Upgrade level when this ends.
+                description: Loses the Upgrade level it gave when this ends.
                 onExpire:
                   - { op: removeStacks, from: bearer, effect: upgraded, amount: 1 }
                   - { op: addMaxHp, to: bearer, amount: -10 }
@@ -698,8 +698,8 @@ withstand.mechanic:
   element: Mechanic
   name: Blast Shield
   description: >-
-    The user gains 25 Shield for 1 turn. When it ends, if 10 or more is left, the user builds a
-    Turret for 2 turns from it.
+    The user gains 25 Shield for 1 turn. When it ends, if 10 or more is left, the user builds a Turret
+    for 2 turns.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -715,7 +715,7 @@ withstand.mechanic:
         kind: Buff
         element: Mechanic
         shield: true
-        description: A Shield; with 10 or more left when it ends, it becomes a Turret.
+        description: A Shield; with 10 or more left when it ends, the bearer builds a Turret.
         onExpire:
           - op: if
             cond: { compare: { value: { effectValue: true }, atLeast: 10 } }
@@ -747,9 +747,9 @@ titan.mechanic:
   element: Mechanic
   name: Mech Suit
   description: >-
-    For 3 turns, the user climbs into the suit and counts as a Contraption: Immune, ignores Stuns and
-    can't be healed, and it's Upgraded now and at the start of each of their turns. When the suit comes
-    off, so do its Upgrades.
+    For 3 turns, the user is Immune and counts as a Contraption: they ignore Stuns and Sleep and can't
+    be healed, and they're Upgraded now and at the start of each of their turns. When it ends, they lose
+    those Upgrades.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -765,7 +765,7 @@ titan.mechanic:
         kind: Buff
         element: Mechanic
         countsAs: [contraption]
-        description: Counts as a Contraption that can be Upgraded; ignores Stuns, can't be healed, and is Upgraded at the start of each of the bearer's turns. Its Upgrades come off with it.
+        description: Counts as a Contraption that can be Upgraded; ignores Stuns, can't be healed, and is Upgraded at the start of each of the bearer's turns. The bearer loses those Upgrades when this ends.
         modifiers:
           - { mod: immuneToEffects, effects: [stun, stun_ns, stun_s, sleep] }
           - { mod: healingReceived, mul: 0 }

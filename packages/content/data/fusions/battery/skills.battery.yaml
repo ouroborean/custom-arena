@@ -28,8 +28,8 @@ smash.battery:
   element: Battery
   name: Toxic Circuit
   description: >-
-    Deals 20 damage to target enemy and overloads them for 1 turn: the next skill they use shorts out
-    through their team, dealing 20 damage to each of their allies and Corroding them for 2 turns.
+    Deals 20 damage to target enemy. For 1 turn, the next skill they use deals 20 damage to each of their
+    allies and Corrodes them for 2 turns.
   cost: SI
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -44,7 +44,7 @@ smash.battery:
         name: Overloaded
         kind: Debuff
         element: Battery
-        description: The bearer's next skill shorts out through their team, 20 damage and Corroded on each ally.
+        description: The bearer's next skill deals 20 damage to each of their allies and Corrodes them for 2 turns.
         triggers:
           - on: skillUsed
             consume: true
@@ -128,7 +128,7 @@ rage.battery:
         name: Thermal Runaway
         kind: Buff
         element: Battery
-        description: Each skill the bearer uses gives 1 more Might and burns them for 10.
+        description: Each skill the bearer uses gives 1 more Might and deals them 10 Affliction damage.
         triggers:
           - on: skillUsed
             do:
@@ -224,7 +224,7 @@ trap.battery:
         kind: Debuff
         element: Battery
         visibility: hidden
-        description: The bearer's first Helpful skill shocks them and Corrodes its targets.
+        description: The bearer's first Helpful skill deals them 15 Piercing damage and Corrodes its targets.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -301,8 +301,8 @@ consume.battery:
   element: Battery
   name: Leech Line
   description: >-
-    Target enemy gains 2 Toxin, and the user siphons it for 2 turns: at the end of each of their turns,
-    they heal 5 per Toxin the target has and gain 1 Charge.
+    Target enemy gains 2 Toxin. For 2 turns, at the end of each of the user's turns, the user heals 5 per
+    Toxin the target has and gains 1 Charge.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -359,7 +359,7 @@ channel.battery:
         kind: Neutral
         element: Battery
         interruptible: true
-        description: Each turn, 10 damage and Corroded on all enemies; it lingers once if nothing protects them.
+        description: Each turn, 10 damage and Corroded on all enemies; once, if no enemy has Shield or Armor, it lasts 1 turn longer.
         triggers:
           - on: turnEnd
             do:
@@ -418,8 +418,8 @@ mislead.battery:
   element: Battery
   name: Short to Ground
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Corroded for 2 turns; their
-    Shield dissolves at once, dealing them 10 Affliction damage. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Corroded for 2 turns; if
+    they have a Shield, they lose it and take 10 Affliction damage. Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -434,7 +434,7 @@ mislead.battery:
         kind: Debuff
         element: Battery
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and their Shield dissolves.
+        description: The bearer's next Harmful skill is countered, and they lose their Shield.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -577,7 +577,7 @@ smite.battery:
         name: Stripping Brand
         kind: Debuff
         element: Battery
-        description: The applier's allies who damage the bearer heal 10, or 20 once the bearer is bare.
+        description: The applier's allies who damage the bearer heal 10, or 20 once the bearer has no Shield or Armor.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
@@ -620,8 +620,8 @@ cleave.battery:
   element: Battery
   name: Acid Arc
   description: >-
-    Deals 20 damage to target enemy and 15 to a random other enemy, who catches the target's Corrosion for 2
-    turns. If the target had none, both are Corroded for 1 turn.
+    Deals 20 damage to target enemy and 15 to a random other enemy. If the target is Corroded, the other
+    enemy is Corroded for 2 turns; if not, both are Corroded for 1 turn.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]

@@ -14,8 +14,8 @@ thunderhead:
       kind: Neutral
       element: Thunder
       description: >-
-        At the end of its owner's turn, strikes the unit with the most Charge on the field, either
-        side, for 20 damage (a random enemy if no one has any).
+        At the end of its owner's turn, deals 20 damage to the unit with the most Charge on the
+        field, either side (a random enemy if no one has any).
       triggers:
         - on: turnEnd
           do:

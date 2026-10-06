@@ -68,7 +68,9 @@ riposte.lightning:
         name: Feedback Loop
         kind: Buff
         element: Lightning
-        description: Counters the next Harmful skill used on the bearer, then trades Charge for cooldown.
+        description: >-
+          Counters the next Harmful skill used on the bearer, then consumes their Charge to lower
+          Feedback Loop's cooldown by 1 per Charge.
         triggers:
           - on: skillTargeted
             when: { harmful: true }

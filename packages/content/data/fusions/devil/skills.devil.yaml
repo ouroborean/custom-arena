@@ -57,8 +57,8 @@ riposte.devil:
   element: Devil
   name: Devil's Due
   description: >-
-    For 1 turn, counters any Harmful skill used on the user, and its user pays up: a random Buff of
-    theirs goes to the user, or, if they have none, they take 15 Affliction damage. Invisible.
+    For 1 turn, counters any Harmful skill used on the user, and a random Buff of its user's moves
+    to the user, or, if they have none, they take 15 Affliction damage. Invisible.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -73,7 +73,9 @@ riposte.devil:
         kind: Buff
         element: Devil
         visibility: hidden
-        description: Counters Harmful skills used on the bearer; each one's user hands over a random Buff, or takes 15 Affliction.
+        description: >-
+          Counters Harmful skills used on the bearer; a random Buff of each one's user moves to the
+          bearer, or, if they have none, they take 15 Affliction.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -91,7 +93,7 @@ rage.devil:
   element: Devil
   name: Faustian Fury
   description: >-
-    The user signs a Contract (3 turns): 2 Might, Flameborn and Immortal now; price: 30 Affliction
+    The user gains a Contract (3 turns): 2 Might, Flameborn and Immortal now; price: 30 Affliction
     damage and Horrified for 2 turns.
   cost: Sr
   cooldown: 4
@@ -172,8 +174,8 @@ trap.devil:
   element: Devil
   name: Fine Print
   description: >-
-    For 1 turn, if target enemy uses a skill, they're bound by a Contract (2 turns): 1 Swiftness now;
-    price: Stunned for 1 turn and 2 Weakness. Invisible.
+    For 1 turn, if target enemy uses a skill, they gain a Contract (2 turns): 1 Swiftness now; price:
+    Stunned for 1 turn and 2 Weakness. Invisible.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -188,7 +190,7 @@ trap.devil:
         kind: Debuff
         element: Devil
         visibility: hidden
-        description: The bearer's next skill binds them to a Contract.
+        description: The bearer's next skill gives them a Contract.
         triggers:
           - on: skillUsed
             consume: true
@@ -213,7 +215,7 @@ maneuver.devil:
   element: Devil
   name: Put It on My Tab
   description: >-
-    For 1 turn, each hit on the user goes on their tab instead: a Contract whose price, at the end of
+    For 1 turn, each hit on the user is delayed and becomes a Contract whose price, at the end of
     their next turn, is half that damage as Affliction. Invisible.
   cost: I
   cooldown: 2
@@ -230,7 +232,9 @@ maneuver.devil:
         name: Put It on My Tab
         kind: Neutral
         element: Devil
-        description: Each hit on the bearer is held as a Contract; its price is half of it, as Affliction.
+        description: >-
+          Each hit on the bearer is delayed and becomes a Contract; its price is half that damage, as
+          Affliction.
         modifiers:
           - { mod: deferHits, status: devils_tab, reduceBy: 0, delay: 2 }
 
@@ -254,7 +258,7 @@ bolt.devil:
   element: Devil
   name: Borrowed Fire
   description: >-
-    Deals 35 damage to target enemy on credit: the user takes a Contract (2 turns) whose price is 15
+    Deals 35 damage to target enemy, and the user gains a Contract (2 turns) whose price is 15
     Affliction damage, waived if that enemy has died by then.
   cost: Ir
   cooldown: 1
@@ -310,8 +314,8 @@ consume.devil:
   element: Devil
   name: Collect
   description: >-
-    Deals 5 damage to target enemy and puts them in debt to the user: a Contract (2 turns) whose price
-    is 20 Affliction damage, and the user heals as much as it deals.
+    Deals 5 damage to target enemy, who gains a Contract (2 turns) whose price is 20 Affliction
+    damage; the user heals as much as it deals.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -328,7 +332,8 @@ consume.devil:
         kind: Neutral
         element: Devil
         countsAs: [contract]
-        description: "Price when it expires: 20 Affliction damage, and the Devil who lent it heals as much."
+        description: >-
+          Price when it expires: 20 Affliction damage, and the applier heals as much.
         onExpire:
           # What it deals: no more than the HP they had left.
           - { op: set, var: had, value: { hp: bearer } }
@@ -387,8 +392,8 @@ stab.devil:
   element: Devil
   name: Pitchfork
   description: >-
-    Deals 10 damage to target enemy and burns away a random Buff of theirs; if they have none, it deals
-    20 instead.
+    Deals 10 damage to target enemy and removes a random Buff of theirs; if they have none, it deals 20
+    instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -439,7 +444,7 @@ mislead.devil:
   name: Soul Snare
   description: >-
     For 1 turn, if target enemy uses a Harmful skill, it's countered, and the user gains a Soul Fragment
-    for each Ignite and Scorch they carry. Invisible.
+    for each Ignite and Scorch they have. Invisible.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -454,7 +459,9 @@ mislead.devil:
         kind: Debuff
         element: Devil
         visibility: hidden
-        description: The bearer's next Harmful skill is countered; the applier drains Soul Fragments per Ignite and Scorch.
+        description: >-
+          The bearer's next Harmful skill is countered; the applier gains a Soul Fragment for each
+          Ignite and Scorch on the bearer.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -605,8 +612,8 @@ curse.devil:
   element: Devil
   name: Double or Nothing
   description: >-
-    Target enemy gains Hellfire for 1 turn. Then a coin is flipped: heads, each of their Debuffs gains
-    1 more stack and lasts 2 turns longer; tails, the user gains 1 Soul Fragment.
+    Target enemy gains Hellfire for 1 turn. Then, at random, either each of their Debuffs gains 1 more
+    stack and lasts 2 turns longer, or the user gains 1 Soul Fragment.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -693,8 +700,8 @@ cleave.devil:
   element: Devil
   name: Co-signed Debt
   description: >-
-    Deals 20 damage to target enemy, and a random other enemy co-signs for them: a Contract (2 turns) whose
-    price is half of all the damage the target takes until it's due (this hit included), as Affliction damage.
+    Deals 20 damage to target enemy, and a random other enemy gains a Contract (2 turns) whose price is
+    half of all the damage the target takes until it's due (this hit included), as Affliction damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -726,7 +733,9 @@ cleave.devil:
             element: Devil
             stacking: unique
             countsAs: [contract]
-            description: "Price when it expires: half of the damage the debtor took meanwhile (rounded down to 5), as Affliction damage."
+            description: >-
+              Price when it expires: half of the damage the Debtor took meanwhile (rounded down to 5),
+              as Affliction damage.
             onExpire:
               - op: damage
                 to: bearer
@@ -744,7 +753,8 @@ cleave.devil:
             kind: Neutral
             element: Devil
             stacking: independent
-            description: All the damage the bearer takes is added to their co-signer's debt.
+            description: >-
+              All the damage the bearer takes is added to the price of the other enemy's Co-signed Debt.
             triggers:
               - on: damaged
                 do:
@@ -758,8 +768,7 @@ shout.devil:
   element: Devil
   name: Infernal Toll
   description: >-
-    For 2 turns, all enemies pay a toll on their skills: each skill one of them uses deals them 5
-    Affliction damage per energy it cost.
+    For 2 turns, each skill an enemy uses deals them 5 Affliction damage per energy it cost.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -787,7 +796,7 @@ withstand.devil:
   element: Devil
   name: Bargained Aegis
   description: >-
-    The user signs a Contract (2 turns): 40 Shield now; price: any Shield left is lost and dealt to them
+    The user gains a Contract (2 turns): 40 Shield now; price: any Shield left is lost and dealt to them
     as Affliction damage.
   cost: r
   cooldown: 3
@@ -814,8 +823,8 @@ taunt.devil:
   element: Devil
   name: Dare the Damned
   description: >-
-    Target enemy is Taunted by the user for up to 3 turns, until they've paid their way out by dealing
-    the user 30 damage in all.
+    Target enemy is Taunted by the user for up to 3 turns, until they've dealt the user 30 damage in
+    total.
   cost: S
   cooldown: 3
   tags: [Harmful, Strategic]

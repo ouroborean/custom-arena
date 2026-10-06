@@ -8,8 +8,8 @@ strike.mist:
   element: Mist
   name: Veiled Strike
   description: >-
-    Deals 15 damage to target enemy, and the user gains Fog for 1 turn. This Fog condenses on that enemy
-    instead of the user: when it ends, they take 15 damage, or 25 if it redirected a skill.
+    Deals 15 damage to target enemy, and the user gains Fog for 1 turn. When this Fog ends, it gives the
+    user no Renew; instead, that enemy takes 15 damage, or 25 if it redirected a skill.
   cost: I
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -26,7 +26,7 @@ strike.mist:
         kind: Buff
         element: Mist
         countsAs: [fog]
-        description: Fog that condenses on the struck enemy instead of into Renew; 25 damage if it redirected a skill, else 15.
+        description: Fog that gives no Renew when it ends; instead, the struck enemy takes 25 damage if it redirected a skill, else 15.
         modifiers:
           - { mod: fogged }
         triggers:
@@ -62,9 +62,8 @@ charge.mist:
   element: Mist
   name: Mistwalk
   description: >-
-    Deals 10 damage to target enemy, and the user's afterimage lingers beside them in the mist until the end
-    of the user's next turn. The next time the user deals direct damage to another enemy with a skill, the
-    afterimage strikes too: target enemy takes as much (max 25).
+    Deals 10 damage to target enemy. Until the end of the user's next turn, the next time the user deals
+    direct damage to another enemy with a skill, target enemy takes as much damage too (max 25).
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -80,7 +79,7 @@ charge.mist:
         name: Afterimage
         kind: Buff
         element: Mist
-        description: The next direct hit the bearer's skills land on another enemy is echoed onto the enemy beside the afterimage (max 25).
+        description: The next direct hit the bearer's skills land on another enemy also deals as much damage to the enemy hit by Mistwalk (max 25).
         triggers:
           - on: dealtDamage
             when: { direct: true, byEnemy: true }
@@ -158,8 +157,7 @@ shot.mist:
   element: Mist
   name: Dew Shot
   description: >-
-    Fired blind into the fog, the shot lands on a random enemy instead: 20 damage, or 10 if that's target
-    enemy after all.
+    Hits a random enemy instead of target enemy: 20 damage, or 10 if it's target enemy.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -238,8 +236,8 @@ maneuver.mist:
   element: Mist
   name: Dissipate
   description: >-
-    The user gains Fog for 1 turn. The first time it sends a skill elsewhere, they dissipate into the mist:
-    they become Invulnerable for 1 turn.
+    The user gains Fog for 1 turn. The first time it redirects a skill, the user becomes Invulnerable for 1
+    turn.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -356,8 +354,8 @@ summon.mist:
   description: >-
     Summons a Mist Double of the user for 2 turns. The first enemy single-target Harmful skill aimed at the
     user strikes the Double instead. The Double can't be hurt, but any enemy Harmful skill that strikes it
-    bursts it: it's destroyed, and that skill's user takes 10 damage. When it fades or bursts, it falls back
-    into mist around the user: they gain Fog for 1 turn.
+    destroys it, and that skill's user takes 10 damage. When it expires or is destroyed, the user gains Fog
+    for 1 turn.
   cost: I
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -416,9 +414,8 @@ stab.mist:
   element: Mist
   name: Whisper Knife
   description: >-
-    Deals 10 damage to target enemy, and the knife waits in the fog until the user's next turn: the first
-    time an ally of the user deals that enemy direct damage while they're at or below 60 HP, it strikes too,
-    for 15 more.
+    Deals 10 damage to target enemy. Until the user's next turn, the first time an ally of the user deals
+    that enemy direct damage while they're at or below 60 HP, they take 15 more damage.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -433,7 +430,7 @@ stab.mist:
         name: Whisper Knife
         kind: Debuff
         element: Mist
-        description: The first direct hit from the applier's side while the bearer is at or below 60 HP brings 15 more damage.
+        description: The first direct hit from the applier's side while the bearer is at or below 60 HP deals them 15 more damage.
         triggers:
           - on: damaged
             when: { direct: true, fromSide: ally }
@@ -473,8 +470,8 @@ mislead.mist:
   element: Mist
   name: Lost in the Fog
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered. If it was aimed at a single unit, the
-    fog carries it onto a random one of their own allies instead (if they have any). Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered. If it was aimed at a single unit, it's
+    used on a random one of their own allies instead (if they have any). Invisible.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -552,7 +549,7 @@ heal.mist:
   archetype: Heal
   element: Mist
   name: Morning Dew
-  description: Target ally heals 20. If they have Fog, it condenses now, giving them 4 Renew instead of 2.
+  description: Target ally heals 20. If they have Fog, it ends now, and they gain 4 Renew instead of 2.
   cost: A
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -645,7 +642,7 @@ prayer.mist:
   element: Mist
   name: Mercy of the Mist
   description: >-
-    All allies heal 15 and gain Fog for 1 turn that doesn't condense into Renew. Instead, while it lasts,
+    All allies heal 15 and gain Fog for 1 turn that gives no Renew when it ends. Instead, while it lasts,
     each skill Fog redirects heals every ally 10.
   cost: Wrr
   cooldown: 2
@@ -662,7 +659,7 @@ prayer.mist:
         kind: Buff
         element: Mist
         countsAs: [fog]
-        description: Fog that doesn't condense into Renew.
+        description: Fog that gives no Renew when it ends.
         modifiers:
           - { mod: fogged }
     - op: apply
@@ -686,9 +683,9 @@ cleave.mist:
   element: Mist
   name: Mistcutter
   description: >-
-    Deals 20 damage to target enemy. If the user has Fog, it condenses into the blade instead of Renew: the
-    Fog ends, and every other enemy takes 15 damage. If they don't, the mist gathers: a random other enemy
-    takes 10 damage, and the user gains Fog until the end of their next 2 turns.
+    Deals 20 damage to target enemy. If the user has Fog, it ends without giving Renew, and every other
+    enemy takes 15 damage. If they don't, a random other enemy takes 10 damage, and the user gains Fog until
+    the end of their next 2 turns.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -711,8 +708,7 @@ shout.mist:
   element: Mist
   name: Foghorn
   description: >-
-    The horn echoes through the fog: 3 times, a random enemy character is Intimidated for 2 turns (it can
-    be the same one).
+    3 times, a random enemy character is Intimidated for 2 turns (it can be the same one).
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -728,7 +724,8 @@ withstand.mist:
   element: Mist
   name: Veil of Mist
   description: >-
-    The user gains 15 Shield for 1 turn. If they have Fog, it condenses now: 15 more Shield and its 2 Renew.
+    The user gains 15 Shield for 1 turn. If they have Fog, it ends now, and they gain 15 more Shield and its
+    2 Renew.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -771,8 +768,8 @@ titan.mist:
   element: Mist
   name: Marid Form
   description: >-
-    For 3 turns, the user gains Immune and Fog, and their attacks spill through the mist: each of their
-    skills that deals direct damage also deals 10 damage to a random enemy.
+    For 3 turns, the user gains Immune and Fog, and each of their skills that deals direct damage also deals
+    10 damage to a random enemy.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]

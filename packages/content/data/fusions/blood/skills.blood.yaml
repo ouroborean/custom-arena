@@ -7,8 +7,8 @@ strike.blood:
   element: Blood
   name: Wringing Cut
   description: >-
-    Deals 20 damage to target enemy. The cut wrings their weakness out as soul: the user removes up to 2
-    Weakness from them and gains a Soul Fragment for each.
+    Deals 20 damage to target enemy. The user removes up to 2 Weakness from them and gains a Soul
+    Fragment for each one removed.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -43,8 +43,8 @@ charge.blood:
   element: Blood
   name: Quickened Pulse
   description: >-
-    Deals 10 damage to target enemy, who gains 1 Hemorrhage. The user's pulse quickens: when their next skill
-    resolves, every bleeding enemy's Hemorrhage ticks once more, dealing its damage and growing.
+    Deals 10 damage to target enemy, who gains 1 Hemorrhage. When the user's next skill resolves, every
+    enemy's Hemorrhage ticks once more, dealing its damage and gaining a stack.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -62,7 +62,7 @@ charge.blood:
         name: Quickened Pulse
         kind: Buff
         element: Blood
-        description: When the bearer's next skill resolves, every bleeding enemy's Hemorrhage ticks once more.
+        description: When the bearer's next skill resolves, every enemy's Hemorrhage ticks once more.
         triggers:
           - on: skillResolved
             do:
@@ -103,7 +103,9 @@ riposte.blood:
         kind: Buff
         element: Blood
         visibility: hidden
-        description: Counters the first Harmful skill used on the bearer and bleeds its user by their wounds.
+        description: >-
+          Counters the first Harmful skill used on the bearer; its user gains 1 Hemorrhage for every 20
+          HP the bearer is missing.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -142,8 +144,8 @@ shot.blood:
   element: Blood
   name: Blood Dart
   description: >-
-    Deals 15 damage to target enemy, who gains 1 Hemorrhage. If they were already bleeding, the user heals
-    back the HP they paid. Blood Price.
+    Deals 15 damage to target enemy, who gains 1 Hemorrhage. If they already had Hemorrhage, the user
+    heals back the HP they paid. Blood Price.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic, BloodPrice]
@@ -249,7 +251,8 @@ maneuver.blood:
         name: Pale Step
         kind: Buff
         element: Blood
-        description: Invulnerable to bleeding enemies; each enemy who damages the bearer starts bleeding.
+        description: >-
+          Invulnerable to enemies with Hemorrhage; each enemy who damages the bearer gains 1 Hemorrhage.
         modifiers:
           - { mod: invulnerableTo, sourceHas: [hemorrhage] }
         triggers:
@@ -309,8 +312,8 @@ consume.blood:
   element: Blood
   name: Transfusion
   description: >-
-    Deals 5 damage to target enemy. If they have Hemorrhage, the user drinks it: it ends, and they heal 10
-    per stack. If not, the target gains 1 Hemorrhage.
+    Deals 5 damage to target enemy. If they have Hemorrhage, it ends, and the user heals 10 per stack. If
+    not, the target gains 1 Hemorrhage.
   cost: I
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -363,7 +366,9 @@ channel.blood:
         kind: Neutral
         element: Blood
         interruptible: true
-        description: Each turn, the target bleeds more, and the bearer drinks it.
+        description: >-
+          At the end of each of the bearer's turns, the target gains 1 Hemorrhage, and the bearer heals
+          for what their Hemorrhage deals.
         triggers:
           - on: turnEnd
             do:
@@ -375,8 +380,7 @@ stab.blood:
   element: Blood
   name: Bloodletter's Knife
   description: >-
-    Deals 10 damage to target enemy, then opens their wounds: they gain 1 Hemorrhage for every 30 HP they're
-    missing.
+    Deals 10 damage to target enemy, then they gain 1 Hemorrhage for every 30 HP they're missing.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -414,8 +418,8 @@ mislead.blood:
   element: Blood
   name: Red Herring
   description: >-
-    Target enemy gains 1 Hemorrhage. Then, for 1 turn, the first Harmful skill used by any enemy who's
-    bleeding is countered (only one). Blood Price. Invisible.
+    Target enemy gains 1 Hemorrhage. Then, for 1 turn, the first Harmful skill used by any enemy with
+    Hemorrhage is countered (only one). Blood Price. Invisible.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic, Invisible, BloodPrice]
@@ -433,7 +437,9 @@ mislead.blood:
         kind: Debuff
         element: Blood
         visibility: hidden
-        description: The first Harmful skill used by a watched enemy is countered; then the watch ends for all of them.
+        description: >-
+          The first Harmful skill used by an enemy with Red Herring is countered; then it ends on all of
+          them.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -447,7 +453,7 @@ stun.blood:
   element: Blood
   name: Swoon
   description: >-
-    Deals 15 damage to target enemy, and they faint: Stunned until they're healed, up to 2 turns.
+    Deals 15 damage to target enemy, who is Stunned for up to 2 turns. Healing them ends the Stun.
   cost: A
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -463,7 +469,7 @@ stun.blood:
         name: Swoon
         kind: Debuff
         element: Blood
-        description: Healing wakes the bearer from the faint.
+        description: Healing the bearer ends their Stun.
         triggers:
           - on: healed
             consume: true
@@ -475,8 +481,8 @@ dance.blood:
   element: Blood
   name: Danse Sanguine
   description: >-
-    Target enemy gains 1 Hemorrhage. For 3 turns, each time the user damages a bleeding enemy, that
-    Hemorrhage grows by 1 and the user gains 1 Swiftness (max 2).
+    Target enemy gains 1 Hemorrhage. For 3 turns, each time the user damages an enemy with
+    Hemorrhage, that enemy gains 1 more Hemorrhage and the user gains 1 Swiftness (max 2).
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -491,7 +497,9 @@ dance.blood:
         name: Danse Sanguine
         kind: Buff
         element: Blood
-        description: Damaging a bleeding enemy deepens their Hemorrhage and gives Swiftness (max 2).
+        description: >-
+          Each time the bearer damages an enemy with Hemorrhage, that enemy gains 1 Hemorrhage and the
+          bearer gains 1 Swiftness (max 2).
         triggers:
           - on: dealtDamage
             when: { byEnemy: true, direct: true }
@@ -509,8 +517,7 @@ heal.blood:
   element: Blood
   name: Bloodletting
   description: >-
-    Lets the bad blood out of target ally: up to 2 of their Debuffs are removed, and they heal 15,
-    plus 10 for each Debuff removed.
+    Removes up to 2 Debuffs from target ally, who heals 15, plus 10 for each Debuff removed.
   cost: W
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -527,7 +534,7 @@ bless.blood:
   element: Blood
   name: Blood Doping
   description: >-
-    For 2 turns, target ally gains 2 Might and 2 Swiftness. When it ends, they crash: Stunned for 1 turn,
+    For 2 turns, target ally gains 2 Might and 2 Swiftness. When it ends, they're Stunned for 1 turn,
     which Swiftness can't stop.
   cost: W
   cooldown: 2
@@ -544,7 +551,7 @@ bless.blood:
         name: Blood Doping
         kind: Buff
         element: Blood
-        description: When this ends, the bearer crashes for 1 turn.
+        description: When this ends, the bearer is Stunned for 1 turn.
         onExpire:
           - op: apply
             to: bearer
@@ -638,8 +645,8 @@ cleave.blood:
   element: Blood
   name: Crimson Spray
   description: >-
-    Deals 20 damage to target enemy, and their Hemorrhage bursts onto a random other enemy: it ends,
-    and that enemy takes 10 damage per stack it had (at least 10).
+    Deals 20 damage to target enemy. Their Hemorrhage ends, and a random other enemy takes 10 damage
+    per stack it had (at least 10).
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -686,9 +693,8 @@ withstand.blood:
   element: Blood
   name: Clotting Ward
   description: >-
-    For 1 turn, direct hits on the user deal half damage, and every 20 damage it stops clots into 1
-    Hemorrhage on them. At the end of their next turn, once it has bled, the clot closes: their Hemorrhage
-    ends.
+    For 1 turn, direct hits on the user deal half damage, and the user gains 1 Hemorrhage for every 20
+    damage this prevents. At the end of their next turn, after their Hemorrhage ticks, it ends.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -706,7 +712,8 @@ withstand.blood:
         name: Clotting Ward
         kind: Neutral
         element: Blood
-        description: Direct hits deal half damage; every 20 it stops becomes 1 Hemorrhage on the bearer.
+        description: >-
+          Direct hits deal half damage; the bearer gains 1 Hemorrhage for every 20 damage this prevents.
         modifiers:
           - { mod: damageTaken, amount: 0, mul: 0.5, when: { direct: true } }
         triggers:
@@ -734,7 +741,7 @@ withstand.blood:
         name: Clotting Ward
         kind: Neutral
         element: Blood
-        description: At the end of the bearer's next turn, after it has bled, their Hemorrhage ends.
+        description: At the end of the bearer's next turn, after their Hemorrhage ticks, it ends.
         onExpire:
           - { op: removeEffect, from: bearer, effect: hemorrhage }
 
@@ -743,9 +750,8 @@ taunt.blood:
   element: Blood
   name: Open Vein
   description: >-
-    The user opens a vein to bait target enemy: the user gains 2 Hemorrhage, and the enemy is Taunted by
-    them for 2 turns. Each time an enemy the user Taunted damages them meanwhile, the user's Hemorrhage
-    moves onto that enemy.
+    The user gains 2 Hemorrhage, and target enemy is Taunted by them for 2 turns. Meanwhile, each time
+    an enemy the user Taunted damages them, the user's Hemorrhage moves onto that enemy.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]

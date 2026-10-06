@@ -6,8 +6,8 @@ strike.faerie:
   element: Faerie
   name: Thorned Kiss
   description: >-
-    Deals 20 damage to target enemy, who is Charmed for their next skill (within 1 turn). The thorn
-    pricks back: the user gains 1 Toxin.
+    Deals 20 damage to target enemy, who is Charmed for their next skill (within 1 turn). The user
+    gains 1 Toxin.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -89,7 +89,9 @@ riposte.faerie:
         kind: Buff
         element: Faerie
         visibility: hidden
-        description: The first Harmful skill used on the bearer lands on its user's ally instead.
+        description: >-
+          The first Harmful skill used on the bearer is countered: a random ally of its user takes
+          15 damage instead, and its user is Charmed for 1 turn.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -104,8 +106,8 @@ rage.faerie:
   element: Faerie
   name: Wild Hunt
   description: >-
-    For 3 turns, the Wild Hunt rides behind the user. Once per turn, when they deal direct damage to
-    an enemy, the Hunt rides on into a random other enemy: 10 damage and 1 Toxin.
+    For 3 turns, once per turn, when the user deals direct damage to an enemy, a random other enemy
+    takes 10 damage and gains 1 Toxin.
   cost: W
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -158,8 +160,9 @@ snipe.faerie:
   element: Faerie
   name: Elfshot
   description: >-
-    On the following turn, deals 30 Affliction damage to target enemy; if another enemy has more Toxin by then,
-    it veers to them instead. The target of this skill is invisible. Channeled, Uncounterable.
+    On the following turn, deals 30 Affliction damage to target enemy; if any other enemy has more
+    Toxin than them by then, a random one of those takes it instead. The target of this skill is
+    invisible. Channeled, Uncounterable.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget, Uncounterable]
@@ -176,7 +179,9 @@ snipe.faerie:
         element: Faerie
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes at the end of the following turn, veering to a more poisoned enemy.
+        description: >-
+          At the end of the following turn, deals 30 Affliction damage to its target, or to a random
+          enemy with more Toxin than them instead.
         onExpire:
           - op: if
             cond:
@@ -217,7 +222,7 @@ trap.faerie:
         kind: Debuff
         element: Faerie
         visibility: hidden
-        description: Each Helpful skill the bearer uses poisons and Charms them.
+        description: Each Helpful skill the bearer uses gives them 1 Toxin and Charms them for 1 turn.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -267,8 +272,8 @@ bolt.faerie:
   element: Faerie
   name: Wisp Bolt
   description: >-
-    Deals 20 damage to target enemy. For 2 turns, a wisp follows them: each skill they use deals them
-    10 Affliction damage.
+    Deals 20 damage to target enemy. For 2 turns, each skill they use deals them 10 Affliction
+    damage.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -307,8 +312,8 @@ consume.faerie:
   element: Faerie
   name: Changeling's Bargain
   description: >-
-    Deals 5 damage to target enemy, healing the user for it. Then a changeling swap: one of the user's Debuffs
-    moves to them, and one of their Buffs moves to the user.
+    Deals 5 damage to target enemy, healing the user for it. Then one of the user's Debuffs moves to
+    them, and one of their Buffs moves to the user.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -408,8 +413,8 @@ mislead.faerie:
   element: Faerie
   name: Fae Wager
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user gains 1 Swiftness and 1
-    Focus. If they don't, the fae collect: the user is Charmed for 1 turn. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and the user gains 1 Swiftness
+    and 1 Focus. If they don't, the user is Charmed for 1 turn. Invisible.
   cost: A
   cooldown: 1
   tags: [Harmful, Strategic, Invisible]
@@ -424,7 +429,9 @@ mislead.faerie:
         kind: Debuff
         element: Faerie
         visibility: hidden
-        description: The bearer's next Harmful skill is countered and pays the applier; if none comes, the fae collect from the applier.
+        description: >-
+          The bearer's next Harmful skill is countered, and the applier gains 1 Swiftness and 1
+          Focus. If the bearer uses none, the applier is Charmed for 1 turn when this ends.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -500,9 +507,7 @@ bless.faerie:
   archetype: Bless
   element: Faerie
   name: Fairy Wings
-  description: >-
-    For 3 turns, target ally floats free of Stuns: each Stun that would land on them Charms them for 1
-    turn instead.
+  description: For 3 turns, each Stun that would land on target ally Charms them for 1 turn instead.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -610,8 +615,8 @@ cleave.faerie:
   element: Faerie
   name: Glamoured Feint
   description: >-
-    A feint: target enemy is Charmed for their next skill (within 1 turn), while the real cut sweeps past
-    them: each other enemy takes 20 damage. With no other enemy to cut, target enemy takes the 20 instead.
+    Target enemy is Charmed for their next skill (within 1 turn), and each other enemy takes 20
+    damage. If there's no other enemy, target enemy takes the 20 damage instead.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -630,8 +635,8 @@ shout.faerie:
   element: Faerie
   name: Fae Laughter
   description: >-
-    For 2 turns, laughter is catching among the enemies: at the end of each of the user's turns,
-    each enemy whose ally used a skill since the user's last turn gains 1 Confusion.
+    For 2 turns, at the end of each of the user's turns, each enemy whose ally used a skill since
+    the user's last turn gains 1 Confusion.
   cost: W
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -645,7 +650,9 @@ shout.faerie:
         name: Fae Laughter
         kind: Debuff
         element: Faerie
-        description: Each skill the bearer uses sets their allies giggling; giggling enemies gain 1 Confusion at the end of the applier's turn.
+        description: >-
+          Each skill the bearer uses makes their allies Giggling; Giggling enemies gain 1 Confusion
+          at the end of the applier's turn.
         triggers:
           - on: skillUsed
             do:
@@ -658,7 +665,7 @@ shout.faerie:
                   kind: Neutral
                   element: Faerie
                   stacking: unique
-                  description: Gains 1 Confusion at the end of the laughing fae's turn.
+                  description: Gains 1 Confusion at the end of the applier's turn.
           - on: turnEnd
             do:
               - op: if
@@ -687,7 +694,7 @@ withstand.faerie:
         kind: Buff
         element: Faerie
         shield: true
-        description: A Shield; each enemy who strikes it is Charmed for 1 turn.
+        description: A Shield; each enemy who hits it is Charmed for 1 turn.
         triggers:
           - on: shieldDamaged
             do:
@@ -718,8 +725,8 @@ titan.faerie:
   element: Faerie
   name: Faerie Queen
   description: >-
-    For 3 turns, the user is Immune and holds court: a Sprite (10 HP) joins her now and at the start
-    of each of her turns, for 2 turns each, and she takes 5 less damage for each allied Sprite.
+    For 3 turns, the user is Immune. A Sprite (10 HP) is summoned for her now and at the start of
+    each of her turns, for 2 turns each, and she takes 5 less damage for each allied Sprite.
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -735,7 +742,9 @@ titan.faerie:
         name: Faerie Queen
         kind: Buff
         element: Faerie
-        description: A Sprite joins the bearer at the start of each of her turns; she takes 5 less damage per allied Sprite.
+        description: >-
+          A Sprite is summoned for the bearer at the start of each of her turns; she takes 5 less
+          damage per allied Sprite.
         modifiers:
           - mod: damageTaken
             amount: -5

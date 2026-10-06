@@ -30,7 +30,7 @@ smash.current:
   name: Breakdown Surge
   description: >-
     Deals 25 damage to target enemy and 15 to their allies. Each of them who has Shield or Armor takes 10
-    Affliction damage at the start of the user's next turn, as the absorbed charge arcs back.
+    Affliction damage at the start of the user's next turn.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -99,7 +99,9 @@ riposte.current:
         kind: Buff
         element: Current
         visibility: hidden
-        description: Counters Harmful skills used on the bearer; their users are Soaked and shocked.
+        description: >-
+          Counters Harmful skills used on the bearer; their users are Soaked for 2 turns, then take 15
+          damage, which conducts.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -201,8 +203,8 @@ trap.current:
   element: Current
   name: Live Wire
   description: >-
-    For 2 turns, the first time target enemy uses a Harmful skill, the shock floods their whole team: every
-    enemy is Soaked for 2 turns, then takes 10 damage. Invisible.
+    For 2 turns, the first time target enemy uses a Harmful skill, every enemy is Soaked for 2 turns, then
+    takes 10 damage. Invisible.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic, Invisible]
@@ -217,7 +219,9 @@ trap.current:
         kind: Debuff
         element: Current
         visibility: hidden
-        description: The bearer's first Harmful skill floods their team with the shock - every one Soaked, then 10 damage.
+        description: >-
+          The first time the bearer uses a Harmful skill, they and each of their allies are Soaked for 2
+          turns, then take 10 damage.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -231,8 +235,8 @@ maneuver.current:
   element: Current
   name: Submerge
   description: >-
-    The user becomes Invulnerable for 1 turn and gains 1 Charge. When it ends, they surface and spend all
-    their Charge: a random enemy is Soaked for 2 turns, then each Soaked enemy takes 10 damage per Charge
+    The user becomes Invulnerable for 1 turn and gains 1 Charge. When it ends, they spend all their
+    Charge: a random enemy is Soaked for 2 turns, then each Soaked enemy takes 10 damage per Charge
     spent.
   cost: I
   cooldown: 3
@@ -249,7 +253,9 @@ maneuver.current:
         name: Submerge
         kind: Buff
         element: Current
-        description: When this ends, a random enemy is Soaked, and all the bearer's Charge discharges into Soaked enemies.
+        description: >-
+          When this ends, the bearer spends all their Charge: a random enemy is Soaked, then each Soaked
+          enemy takes 10 damage per Charge spent.
         onExpire:
           - { op: set, var: charge, value: { stacks: { unit: bearer, effect: charged } } }
           - { op: removeEffect, from: bearer, effect: charged }
@@ -354,7 +360,9 @@ channel.current:
         kind: Neutral
         element: Current
         interruptible: true
-        description: Each turn, Soaks a random enemy and shocks a random Soaked one; it conducts.
+        description: >-
+          At the end of each of the bearer's turns, a random enemy is Soaked, then a random Soaked enemy
+          takes 10 damage, which conducts.
         triggers:
           - on: turnEnd
             do:
@@ -401,8 +409,8 @@ ravage.current:
   element: Current
   name: Riptide Pike
   description: >-
-    Deals 25 Piercing damage to target enemy. If they're Soaked, the riptide carries the user on: their
-    other cooldowns drop by 1; if not, they're Soaked for 2 turns.
+    Deals 25 Piercing damage to target enemy. If they're Soaked, the user's other cooldowns drop by 1;
+    if not, they're Soaked for 2 turns.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -422,8 +430,8 @@ mislead.current:
   element: Current
   name: Grounding
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the charge runs to ground
-    through them: they're Soaked for 2 turns and Sapped. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and they're Soaked for 2 turns
+    and Sapped. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -630,7 +638,9 @@ prayer.current:
         name: Swelling Current
         kind: Buff
         element: Current
-        description: The healing swells at the start of the bearer's next 2 turns, until they take damage.
+        description: >-
+          At the start of each of the bearer's next 2 turns, all their allies heal 10 more than the last
+          time (20, then 30). Ends once the bearer takes damage.
         triggers:
           - on: turnStart
             do:
@@ -645,8 +655,8 @@ cleave.current:
   element: Current
   name: Arc Lash
   description: >-
-    Target enemy is wired to a random other enemy until the end of the turn: each direct hit on either
-    one also deals 10 damage to the other. Then the target takes 25 damage.
+    Target enemy is linked to a random other enemy until the end of the turn: each direct hit on
+    either one also deals 10 damage to the other. Then the target takes 25 damage.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]

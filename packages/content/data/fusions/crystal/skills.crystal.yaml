@@ -6,8 +6,8 @@ strike.crystal:
   element: Crystal
   name: Faceted Hammer
   description: >-
-    Deals 20 damage and 1 Brittle to target enemy. Each of their other Frost debuffs crystallizes:
-    it ends, and they gain 1 more Brittle for it.
+    Deals 20 damage and 1 Brittle to target enemy. Each of their other Frost debuffs ends, and they
+    gain 1 more Brittle for each one.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -22,8 +22,8 @@ smash.crystal:
   element: Crystal
   name: Crystal Quake
   description: >-
-    Deals 25 damage and 1 Brittle to target enemy. Then their Brittle bursts: it's removed, and each
-    of their allies takes 10 damage per stack.
+    Deals 25 damage and 1 Brittle to target enemy. Then their Brittle is removed, and each of their
+    allies takes 10 damage per stack.
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -40,8 +40,8 @@ charge.crystal:
   element: Crystal
   name: Shard Rush
   description: >-
-    Deals 15 damage and 1 Brittle to target enemy, and the user rushes on in crystal: they have Diamond
-    until they next use a skill.
+    Deals 15 damage and 1 Brittle to target enemy, and the user has Diamond until they next use a
+    skill.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -57,7 +57,8 @@ riposte.crystal:
   name: Hoarfrost Guard
   description: >-
     For 1 turn, counters the first Harmful skill used on the user. Its user is Frostbitten for 2
-    turns, and the user becomes Frostborn for as long, so that enemy can't touch them. Invisible.
+    turns, and the user becomes Frostborn for as long, so that enemy can't target or damage them.
+    Invisible.
   cost: I
   cooldown: 3
   tags: [Helpful, Strategic, Invisible]
@@ -125,9 +126,8 @@ snipe.crystal:
   element: Crystal
   name: Crystal Lance
   description: >-
-    On the following turn, the lance splinters over target enemy: 3 shards strike them in turn, each
-    dealing 5 Piercing damage and then leaving 1 Brittle. The target of this skill is invisible.
-    Channeled.
+    On the following turn, target enemy is hit 3 times, each hit dealing 5 Piercing damage and then
+    giving them 1 Brittle. The target of this skill is invisible. Channeled.
   cost: AIr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -144,7 +144,9 @@ snipe.crystal:
         element: Crystal
         visibility: hiddenTarget
         interruptible: true
-        description: At the end of the following turn unless interrupted, 3 shards of 5 Piercing damage, each leaving 1 Brittle.
+        description: >-
+          At the end of the following turn, unless interrupted, its target is hit 3 times for 5 Piercing
+          damage, each hit giving them 1 Brittle.
         onExpire:
           - op: repeat
             times: 3
@@ -187,8 +189,7 @@ maneuver.crystal:
   element: Crystal
   name: Crystal Cocoon
   description: >-
-    The user hardens into crystal: Diamond for 2 turns, and each enemy hit it caps gives the attacker 1
-    Brittle.
+    The user gains Diamond for 2 turns, and each enemy hit it caps gives the attacker 1 Brittle.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -232,7 +233,7 @@ bolt.crystal:
   element: Crystal
   name: Quartz Spike
   description: >-
-    Deals 20 damage to target enemy, and one of their Buffs crystallizes: it ends, and they gain 2
+    Deals 20 damage to target enemy. If they have a Buff, a random one ends, and they gain 2
     Brittle. If they have no Buffs, they gain 1 Brittle.
   cost: Ir
   cooldown: 1
@@ -253,8 +254,8 @@ blast.crystal:
   element: Crystal
   name: Hard Freeze
   description: >-
-    Deals 25 damage to all enemies, and the frost on each deepens a step: Chilled becomes
-    Frostbitten, and Numb becomes Chilled, each for 2 turns.
+    Deals 25 damage to all enemies. On each of them, Chilled becomes Frostbitten, and Numb becomes
+    Chilled, each for 2 turns.
   cost: Irr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -281,8 +282,8 @@ consume.crystal:
   element: Crystal
   name: Harvest Shards
   description: >-
-    Deals 10 damage and 1 Brittle to target enemy. Then all their Brittle is harvested: it's removed,
-    and the user gains 10 Shield per stack.
+    Deals 10 damage and 1 Brittle to target enemy. Then all their Brittle is removed, and the user
+    gains 10 Shield per stack.
   cost: r
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -351,7 +352,7 @@ stab.crystal:
   element: Crystal
   name: Ice Pick
   description: >-
-    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. It chips away one of their
+    Deals 10 damage to target enemy, or 20 if they're at or below 60 HP. It removes one of their
     Frost debuffs, other than Brittle, for 10 more damage.
   cost: r
   cooldown: 0
@@ -385,7 +386,7 @@ ravage.crystal:
   element: Crystal
   name: Breaking Point
   description: >-
-    Deals 40 Piercing damage to target enemy, but the force of it cracks the user too: they gain 1 Brittle.
+    Deals 40 Piercing damage to target enemy, and the user gains 1 Brittle.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -429,7 +430,7 @@ stun.crystal:
   element: Crystal
   name: Encrust
   description: >-
-    Deals 15 damage to target enemy, then encases them: Stunned for 2 turns, with Diamond for as long as the Stun lasts.
+    Deals 15 damage to target enemy, who is Stunned for 2 turns and has Diamond for 2 turns.
   cost: AI
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -444,8 +445,8 @@ dance.crystal:
   element: Crystal
   name: Perfect Form
   description: >-
-    For 4 turns, the user gains 2 Might, 2 Swiftness and 1 Focus. The first single hit of 25 or
-    more damage shatters it: all of it ends, and the user is Stunned for 1 turn.
+    For 4 turns, the user gains 2 Might, 2 Swiftness and 1 Focus. The first single hit of 25 or more
+    damage on them ends all of it, and the user is Stunned for 1 turn.
   cost: AI
   cooldown: 5
   tags: [Helpful, Strategic]
@@ -593,8 +594,8 @@ cleave.crystal:
   element: Crystal
   name: Seeking Shards
   description: >-
-    Deals 20 damage and 1 Brittle to target enemy, then their Brittle shards off: all of it moves to a
-    random other enemy, who takes 10 damage.
+    Deals 20 damage and 1 Brittle to target enemy, then all their Brittle moves to a random other
+    enemy, who takes 10 damage.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -613,8 +614,8 @@ shout.crystal:
   element: Crystal
   name: Glass Harmonic
   description: >-
-    All enemies are Intimidated for 2 turns. The pitch shatters every Shield on the field, the
-    user's side included: every unit loses its Shield and is Shattered for 1 turn.
+    All enemies are Intimidated for 2 turns. Every unit on the field, the user's side included,
+    loses its Shield and is Shattered for 1 turn.
   cost: I
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -679,7 +680,7 @@ titan.crystal:
   element: Crystal
   name: Diamond Colossus
   description: >-
-    For 3 turns, the user gains Diamond and Immune. When it ends, the Colossus shatters: every enemy gains 2 Brittle.
+    For 3 turns, the user gains Diamond and Immune. When it ends, every enemy gains 2 Brittle.
   cost: WI
   cooldown: 4
   tags: [Helpful, Strategic]

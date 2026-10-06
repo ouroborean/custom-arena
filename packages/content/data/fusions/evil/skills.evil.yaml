@@ -34,9 +34,9 @@ smash.evil:
   element: Evil
   name: Soulgrinder
   description: >-
-    Deals 25 damage to target enemy and grinds them for 2 turns: at the end of each of the user's turns,
-    they take 10 Affliction damage, each of their allies takes 5, and the user drains a Soul Fragment
-    from them.
+    Deals 25 damage to target enemy. For 2 turns, at the end of each of the user's turns, they take
+    10 Affliction damage, each of their allies takes 5, and the user drains a Soul Fragment from
+    them.
   cost: SS
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -114,7 +114,7 @@ riposte.evil:
         kind: Buff
         element: Evil
         visibility: hidden
-        description: Counters Harmful skills used on the bearer and dooms their user to die with them.
+        description: Counters Harmful skills used on the bearer, and gives each countered enemy Doomed Together.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -129,7 +129,7 @@ riposte.evil:
                   name: Doomed Together
                   kind: Debuff
                   element: Evil
-                  description: If the one who doomed the bearer dies before this ends, the bearer dies too.
+                  description: If the applier dies before this ends, the bearer dies too.
                   triggers:
                     - on: signal
                       signal: died
@@ -172,7 +172,7 @@ shot.evil:
   element: Evil
   name: Bone Needle
   description: >-
-    If the user has a Soul Fragment to spend, they hurl it: 25 Piercing damage to target enemy.
+    If the user has a Soul Fragment, they spend it to deal 25 Piercing damage to target enemy.
     Otherwise, deals 10 damage to target enemy and drains a Soul Fragment from them.
   cost: r
   cooldown: 1
@@ -212,7 +212,7 @@ snipe.evil:
         element: Evil
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target for 70 Affliction when it ends, sooner each time they're healed.
+        description: When this ends, deals 70 Affliction damage to its target. It ends sooner each time they're healed.
         onExpire:
           - { op: damage, to: effectTargets, amount: 70, type: Affliction }
     - op: apply
@@ -224,7 +224,7 @@ snipe.evil:
         kind: Debuff
         element: Evil
         visibility: hidden
-        description: Each time the bearer is healed, the knell tolls a turn sooner.
+        description: Each time the bearer is healed, Doom Knell lands a turn sooner.
         triggers:
           - on: healed
             do:
@@ -251,7 +251,9 @@ trap.evil:
         kind: Debuff
         element: Evil
         visibility: hidden
-        description: The first healing the bearer would receive hurts them instead, and Stuns them.
+        description: >-
+          The first time the bearer would be healed, they take that much Affliction damage instead
+          and are Stunned for 1 turn.
         modifiers:
           - { mod: invertHealing }
         triggers:
@@ -373,7 +375,7 @@ summon.evil:
   name: Tormentor
   description: >-
     Summons a Tormentor (25 HP) for 3 turns. Barbed Whip (r): 10 Affliction damage. False Mercy (I):
-    target enemy is Unhallowed for 1 turn; if it takes hold, they then heal 15.
+    target enemy is Unhallowed for 1 turn; if it's applied, they then heal 15.
   cost: S
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -403,7 +405,7 @@ channel.evil:
         kind: Neutral
         element: Evil
         interruptible: true
-        description: Drains its target for 10 at the end of each of the user's turns.
+        description: At the end of each of the user's turns, deals 10 damage to its target, with Lifesteal.
         triggers:
           - on: turnEnd
             do:
@@ -418,7 +420,7 @@ channel.evil:
         name: Undying Thirst
         kind: Buff
         element: Evil
-        description: Immortal, and only the Thirst's own Lifesteal can heal the bearer.
+        description: Immortal, and only Undying Thirst's own Lifesteal can heal the bearer.
         modifiers:
           - { mod: hpFloor, amount: 5 }
           - { mod: healingReceived, mul: 0 }
@@ -429,7 +431,7 @@ stab.evil:
   name: Heartpiercer
   description: >-
     Deals 15 damage to target enemy. If that leaves them at or below 30 HP, they're Unhallowed for 2
-    turns, so no healing can save them.
+    turns.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -446,8 +448,8 @@ ravage.evil:
   element: Evil
   name: Mutual Ruin
   description: >-
-    Deals 35 Piercing damage to target enemy. The user pays in blood instead of energy: they lose 25
-    HP, which can't kill them.
+    Deals 35 Piercing damage to target enemy. Costs no energy: instead, the user loses 25 HP, which
+    can't kill them.
   cost: nc
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -482,7 +484,9 @@ mislead.evil:
         kind: Debuff
         element: Evil
         visibility: hidden
-        description: The bearer's first Helpful skill is countered, and its targets are hurt instead.
+        description: >-
+          The bearer's first Helpful skill is countered, and its targets take the healing it would
+          have given as Affliction damage.
         triggers:
           - on: skillUsed
             when: { harmful: false }
@@ -580,8 +584,8 @@ bless.evil:
   element: Evil
   name: Dark Gift
   description: >-
-    The user gives up 1 Soul Fragment, and target ally gains 2; after 2 turns, one of them crumbles away.
-    With none to give up, the user pays 15 HP instead, and both crumble away after 2 turns.
+    The user gives up 1 Soul Fragment, and target ally gains 2; after 2 turns, the ally loses 1 of
+    them. With none to give up, the user loses 15 HP instead, and the ally loses both after 2 turns.
   cost: W
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -611,7 +615,7 @@ bless.evil:
         kind: Neutral
         element: Evil
         stacking: independent
-        description: When this ends, the borrowed Soul Fragments of the gift crumble away.
+        description: When this ends, the bearer loses 1 Soul Fragment, or 2 if the user had none to give up.
         onExpire:
           - op: repeat
             times: { effectValue: true }
@@ -685,7 +689,7 @@ prayer.evil:
   archetype: Prayer
   element: Evil
   name: Black Mass
-  description: All allies heal 25. Then each ally at full HP gives 10 of it back to gain 1 Soul Fragment.
+  description: All allies heal 25. Then each ally at full HP loses 10 HP and gains 1 Soul Fragment.
   cost: Srr
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -703,8 +707,8 @@ cleave.evil:
   element: Evil
   name: Spreading Agony
   description: >-
-    Deals 20 damage to target enemy, and their agony spills onto their allies: each takes 5 Affliction damage
-    for every 20 HP the target is now missing (at least 5, at most 15).
+    Deals 20 damage to target enemy. Each of their allies takes 5 Affliction damage for every 20 HP
+    the target is now missing (at least 5, at most 15).
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -754,8 +758,8 @@ withstand.evil:
   element: Evil
   name: Wretched Bulwark
   description: >-
-    The user gains 20 Shield for 1 turn, plus 10 drained as Affliction damage from each Unhallowed or
-    Horrified enemy.
+    The user gains 20 Shield for 1 turn. Each Unhallowed or Horrified enemy takes 10 Affliction
+    damage, and the Shield gains 10 for each of them.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -861,7 +865,7 @@ tormentor_false_mercy:
   archetype: Minion
   element: Evil
   name: False Mercy
-  description: Target enemy is Unhallowed for 1 turn; if it takes hold, they then heal 15.
+  description: Target enemy is Unhallowed for 1 turn; if it's applied, they then heal 15.
   cost: I
   cooldown: 0
   tags: [Harmful, Strategic]

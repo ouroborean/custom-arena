@@ -38,8 +38,8 @@ smash.mirror:
   element: Mirror
   name: Shattered Likeness
   description: >-
-    Deals 25 damage to target enemy, and the shattered glass shows their allies the same wounds: each ally
-    of theirs with more HP than them then takes half the difference as damage (max 20).
+    Deals 25 damage to target enemy. Then each ally of theirs with more HP than them takes half the difference
+    as damage (max 20).
   cost: Sr
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -102,7 +102,7 @@ riposte.mirror:
         kind: Buff
         element: Mirror
         visibility: hidden
-        description: Debuffs from enemies are passed back to whoever sent them.
+        description: Debuffs from enemies are Reflected onto whoever sent them.
         triggers:
           - on: effectGained
             when: { kind: Debuff }
@@ -118,8 +118,8 @@ rage.mirror:
   element: Mirror
   name: Contrary Fury
   description: >-
-    For 3 turns, the user gains 1 Might, and their Debuffs work in reverse: each Weakness counts as 1
-    Might, and each Vulnerable as 1 Armor.
+    For 3 turns, the user gains 1 Might; meanwhile, each Weakness on them counts as 1 Might, and each
+    Vulnerable as 1 Armor.
   cost: SA
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -144,8 +144,8 @@ shot.mirror:
   element: Mirror
   name: Hairline Crack
   description: >-
-    Deals 10 damage to target enemy. For 3 turns, the first single hit of 30 or more damage they take
-    shatters them: it lands a second time.
+    Deals 10 damage to target enemy. For 3 turns, the first single hit of 30 or more damage they take is dealt
+    to them a second time.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -176,8 +176,8 @@ snipe.mirror:
   element: Mirror
   name: Return to Sender
   description: >-
-    On the following turn, the user Mimics the last skill target enemy used, aimed back at them where it
-    can be. Channeled.
+    On the following turn, the user Mimics the last skill target enemy used, targeting them if it can.
+    Channeled.
   cost: Ar
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -202,8 +202,8 @@ trap.mirror:
   element: Mirror
   name: False Reflection
   description: >-
-    For 2 turns, the first Helpful skill target enemy uses is turned: its effects land on a random unit of
-    yours instead. Invisible.
+    For 2 turns, the first Helpful skill target enemy uses is countered and used on a random unit on the
+    user's side instead. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -232,8 +232,7 @@ maneuver.mirror:
   element: Mirror
   name: Through the Glass
   description: >-
-    The user leaves their reflection in the glass for 1 turn. When it ends, they step back into it: if
-    their HP is lower than when they used this, it returns to what it was.
+    After 1 turn, if the user's HP is lower than when they used this, it returns to what it was.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -274,8 +273,8 @@ bolt.mirror:
   element: Mirror
   name: Glintbolt
   description: >-
-    Deals 15 damage to target enemy, then the glint flashes back at whoever last damaged the user: they take
-    15 damage. If no one has, the target takes it instead.
+    Deals 15 damage to target enemy, then 15 damage to whoever last damaged the user. If no one has, the
+    target takes it instead.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -335,7 +334,7 @@ summon.mirror:
   name: Mirror Shade
   description: >-
     Summons a Mirror Shade (20 HP) for 3 turns. Glass Shard (nc): 5 damage to target enemy, who gains 1
-    Confusion. When it's killed, the skill that killed it is turned back on its user.
+    Confusion. When it's killed, it uses a copy of the skill that killed it on that skill's user.
   cost: I
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -413,8 +412,8 @@ mislead.mirror:
   element: Mirror
   name: Mirror Feint
   description: >-
-    For 1 turn, target enemy wears the user's reflection: the first Harmful skill an enemy aims at the user
-    is countered and turned onto target enemy instead, even if it's their own. Invisible.
+    For 1 turn, the first Harmful skill an enemy aims at the user is countered and used on target enemy
+    instead, even if it's their own. Invisible.
   cost: I
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -430,7 +429,7 @@ mislead.mirror:
         kind: Buff
         element: Mirror
         visibility: hidden
-        description: The first Harmful skill an enemy aims at the bearer is countered and recast on the remembered enemy.
+        description: The first Harmful skill an enemy aims at the bearer is countered and used on the enemy targeted by Mirror Feint instead.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -444,8 +443,7 @@ stun.mirror:
   element: Mirror
   name: Hypnotic Reflection
   description: >-
-    Deals 15 damage to target enemy and traps them in the user's reflection: they're Stunned for 2 turns,
-    or until the user takes damage.
+    Deals 15 damage to target enemy. They're Stunned for 2 turns, or until the user takes damage.
   cost: A
   cooldown: 3
   tags: [Harmful, NonStrategic]
@@ -460,7 +458,7 @@ stun.mirror:
         name: Hypnotic Reflection
         kind: Neutral
         element: Mirror
-        description: The enemy trapped in the bearer's reflection is Stunned until this ends; it ends when the bearer takes damage.
+        description: The enemy Stunned by Hypnotic Reflection stays Stunned until this ends; it ends when the bearer takes damage.
         triggers:
           - on: damaged
             do:
@@ -487,7 +485,7 @@ dance.mirror:
         name: Dance of Reflections
         kind: Buff
         element: Mirror
-        description: Gains 1 Swiftness each turn; each stopped Stun is Mimicked back.
+        description: Gains 1 Swiftness each turn; each time Swiftness stops a Stun, the bearer Mimics the last skill of the one who tried it.
         triggers:
           - on: turnStart
             do:
@@ -501,8 +499,7 @@ heal.mirror:
   element: Mirror
   name: Mirrored Mending
   description: >-
-    Target ally heals 20. Within 2 turns, the next Helpful skill an enemy uses is turned, landing on that ally
-    instead.
+    Target ally heals 20. Within 2 turns, the next Helpful skill an enemy uses lands on that ally instead.
   cost: r
   cooldown: 1
   tags: [Helpful, Strategic]
@@ -533,8 +530,7 @@ bless.mirror:
   element: Mirror
   name: Silvered Veil
   description: >-
-    For 3 turns, target ally is silvered: each enemy who uses a Harmful skill on them is dazzled by the glare
-    and Blinded for 2 turns.
+    For 3 turns, each enemy who uses a Harmful skill on target ally is Blinded for 2 turns.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -633,7 +629,7 @@ prayer.mirror:
         name: Reflecting Pool
         kind: Buff
         element: Mirror
-        description: A turn without damage ends in Stealth.
+        description: If the bearer takes no damage in a turn, they gain Stealth at its end.
         triggers:
           - on: damaged
             do:
@@ -667,8 +663,8 @@ shout.mirror:
   element: Mirror
   name: Inverted Echo
   description: >-
-    All enemies are Intimidated for 2 turns. Each enemy's cooldowns are mirrored: their ready skills go on
-    cooldown for 1 turn, and those on cooldown become ready.
+    All enemies are Intimidated for 2 turns. Each enemy's ready skills go on cooldown for 1 turn, and their
+    skills on cooldown become ready.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -682,8 +678,7 @@ withstand.mirror:
   element: Mirror
   name: Silvered Guard
   description: >-
-    The user gains 20 Shield for 2 turns that mirrors every blow: each enemy who damages it takes as much
-    damage as it absorbed.
+    The user gains 20 Shield for 2 turns. Each enemy who damages it takes as much damage as it absorbed.
   cost: A
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -713,8 +708,8 @@ taunt.mirror:
   element: Mirror
   name: Face in the Glass
   description: >-
-    For 2 turns, target enemy and the user face each other in the glass: each is Taunted by the other, and
-    each hit the enemy lands on the user is mirrored back, dealing them half as much.
+    For 2 turns, target enemy and the user are each Taunted by the other, and each hit the enemy lands on the
+    user also deals them half as much damage.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -745,8 +740,8 @@ titan.mirror:
   element: Mirror
   name: Mirror of the Faceless
   description: >-
-    For 3 turns, the user wears target enemy's face: 2 Armor and copies of their Buffs. It begins with the
-    user Mimicking that enemy's last skill.
+    For 3 turns, the user gains 2 Armor and copies of target enemy's Buffs. Then the user Mimics that
+    enemy's last skill.
   cost: IW
   cooldown: 4
   tags: [Harmful, Strategic]

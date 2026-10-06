@@ -367,7 +367,9 @@ mislead.unholy:
         kind: Debuff
         element: Unholy
         visibility: hidden
-        description: The bearer's Strategic skills are countered; each counter empowers the caster.
+        description: >-
+          The bearer's Strategic skills are countered; each counter makes the caster Untargetable for
+          1 turn and gives them 1 Might and 1 Swiftness.
         triggers:
           - on: skillUsed
             when: { strategic: true, harmful: true }

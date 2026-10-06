@@ -90,7 +90,7 @@ riposte.vengeance:
         kind: Buff
         element: Vengeance
         visibility: hidden
-        description: Counters the next Harmful skill used on the bearer and charges them.
+        description: Counters the next Harmful skill used on the bearer, and the bearer gains 1 Charge.
         triggers:
           - on: skillTargeted
             when: { harmful: true }
@@ -167,7 +167,7 @@ snipe.vengeance:
   name: Spear of Reprisal
   description: >-
     On the following turn, deals 40 damage to target enemy. If they hit one of the user's allies before
-    then, it strikes at once instead, as 60 Piercing damage. The target of this skill is invisible.
+    then, it deals 60 Piercing damage to them at once instead. The target of this skill is invisible.
     Channeled.
   cost: Arr
   cooldown: 2
@@ -185,7 +185,9 @@ snipe.vengeance:
         element: Vengeance
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn; if they hit one of the user's allies first, it strikes at once.
+        description: >-
+          Deals 40 damage to its target at the end of the following turn; if they hit one of the user's
+          allies first, it deals 60 Piercing damage to them at once instead.
         onExpire:
           - { op: damage, to: effectTargets, amount: 40 }
     # The target's watch, gone with the aim: their first hit on the user's side brings the Spear down.
@@ -199,7 +201,7 @@ snipe.vengeance:
         kind: Neutral
         element: Vengeance
         visibility: hidden
-        description: If the bearer hits one of the Spear's wielder's allies, it strikes them at once.
+        description: If the bearer hits one of the applier's allies, they take 60 Piercing damage at once.
         triggers:
           - on: dealtDamage
             when: { byEnemy: true, direct: true }
@@ -213,8 +215,8 @@ trap.vengeance:
   element: Vengeance
   name: Warrant
   description: >-
-    For 3 turns, the first time target enemy uses a Harmful skill, every ally of the user takes a Vow for 1
-    turn before it lands. Invisible.
+    For 3 turns, the first time target enemy uses a Harmful skill, every ally of the user gains a Vow for 1
+    turn before it resolves. Invisible.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -270,7 +272,7 @@ companion.vengeance:
   element: Vengeance
   name: Storm Griffin
   description: >-
-    Summons a Storm Griffin (45 HP) permanently, under a Vow that never ends. Righteous Strike (W): 15 damage
+    Summons a Storm Griffin (45 HP) permanently, with a Vow that never ends. Righteous Strike (W): 15 damage
     and Sanctify.
   cost: SI
   cooldown: 4
@@ -465,7 +467,9 @@ mislead.vengeance:
         kind: Debuff
         element: Vengeance
         visibility: hidden
-        description: The bearer's next Harmful skill is countered, and the applier strikes back.
+        description: >-
+          The bearer's next Harmful skill is countered, and the applier deals them 15 damage, with Wrath
+          adding.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -570,8 +574,7 @@ bless.vengeance:
   element: Vengeance
   name: Oathbond
   description: >-
-    For 3 turns, target ally and the user share a Vow: whenever an enemy damages either of them, both gain 1
-    Wrath.
+    For 3 turns, whenever an enemy damages target ally or the user, both of them gain 1 Wrath.
   cost: r
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -585,7 +588,7 @@ bless.vengeance:
         name: Oathbond
         kind: Buff
         element: Vengeance
-        description: When an enemy damages the bearer, both oath-bound allies gain 1 Wrath.
+        description: When an enemy damages the bearer, every ally with Oathbond gains 1 Wrath.
         triggers:
           - on: damaged
             when: { byEnemy: true, direct: true }
@@ -697,7 +700,7 @@ shout.vengeance:
   element: Vengeance
   name: Call for Vengeance
   description: >-
-    Every ally takes a Vow for 2 turns; each enemy who gives one of them Wrath is Intimidated for 1 turn.
+    Every ally gains a Vow for 2 turns; each enemy who gives one of them Wrath is Intimidated for 1 turn.
   cost: W
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -712,7 +715,7 @@ shout.vengeance:
         name: Call for Vengeance
         kind: Buff
         element: Vengeance
-        description: Enemies who stoke the bearer's Wrath are Intimidated.
+        description: Enemies who give the bearer Wrath are Intimidated for 1 turn.
         triggers:
           - on: damaged
             when: { byEnemy: true, direct: true }
@@ -793,7 +796,7 @@ titan.vengeance:
   name: Avenger
   description: >-
     For 3 turns, the user gains 2 Armor, Immune and a Vow. Every enemy who damages them meanwhile is
-    Sanctified for 1 turn, so allies who answer heal 15.
+    Sanctified for 1 turn, so allies who damage that enemy heal 15.
   cost: Ar
   cooldown: 4
   tags: [Helpful, Strategic]

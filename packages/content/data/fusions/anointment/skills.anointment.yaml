@@ -134,8 +134,8 @@ shot.anointment:
   element: Anointment
   name: Holy Sprinkle
   description: >-
-    Deals 10 damage to target enemy, and the holy water washes one of their Buffs onto the ally with the
-    lowest HP (the user included). If they have none, that ally gains 1 Unction instead.
+    Deals 10 damage to target enemy, and one of their Buffs, at random, moves to the ally with the lowest HP
+    (the user included). If they have none, that ally gains 1 Unction instead.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -154,8 +154,8 @@ snipe.anointment:
   element: Anointment
   name: Lance of the Font
   description: >-
-    On the following turn, deals 30 damage to target enemy, +10 per Debuff on them; those Debuffs are
-    washed away. The target of this skill is invisible. Channeled.
+    On the following turn, deals 30 damage to target enemy, +10 per Debuff on them; then those Debuffs are
+    removed. The target of this skill is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -172,7 +172,7 @@ snipe.anointment:
         element: Anointment
         visibility: hiddenTarget
         interruptible: true
-        description: Strikes its target at the end of the following turn, washing their Debuffs away.
+        description: Strikes its target at the end of the following turn, then removes their Debuffs.
         onExpire:
           - op: forEach
             in: effectTargets
@@ -254,8 +254,8 @@ bolt.anointment:
   element: Anointment
   name: Vial of Holy Water
   description: >-
-    Deals 20 damage to target enemy, and the vial splashes over the user's side: every ally with a Debuff
-    gains 1 Unction. If none has one, the ally with the lowest HP gains it.
+    Deals 20 damage to target enemy, and every ally with a Debuff gains 1 Unction. If none has one, the ally
+    with the lowest HP gains it.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -313,8 +313,8 @@ channel.anointment:
   element: Anointment
   name: Consecrated Rain
   description: >-
-    For up to 4 turns, at the end of each of the user's turns, 5 damage to all enemies, and each loses a
-    Buff; for each Buff washed away, a random ally gains 1 Unction. Channeled.
+    For up to 4 turns, at the end of each of the user's turns, deals 5 damage to all enemies, and each loses
+    a random Buff; for each Buff removed, a random ally gains 1 Unction. Channeled.
   cost: rr
   cooldown: 3
   tags: [Harmful, NonStrategic, Channeled]
@@ -329,7 +329,7 @@ channel.anointment:
         kind: Neutral
         element: Anointment
         interruptible: true
-        description: Each turn, 5 damage to all enemies, a Buff washed off each, and Unction for allies.
+        description: Each turn, 5 damage to all enemies, a Buff removed from each, and Unction for allies.
         triggers:
           - on: turnEnd
             do:
@@ -343,8 +343,8 @@ stab.anointment:
   element: Anointment
   name: Brine Needle
   description: >-
-    The user washes off one of their Debuffs. Then this deals 10 damage to target enemy, or 20 if the user
-    has no Debuffs left.
+    The user loses a random Debuff. Then this deals 10 damage to target enemy, or 20 if the user has no
+    Debuffs left.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -390,8 +390,8 @@ mislead.anointment:
   element: Anointment
   name: Turned to Grace
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Condemned, and every
-    Debuff on the user's side washes onto them. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered and they're Condemned, and every Debuff
+    on the user's side moves onto them. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -516,7 +516,7 @@ curse.anointment:
   element: Anointment
   name: Font of Penance
   description: >-
-    Target enemy's Buffs are washed away, and for 2 turns they can't gain new ones.
+    Target enemy's Buffs are removed, and for 2 turns they can't gain new ones.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -540,8 +540,8 @@ smite.anointment:
   element: Anointment
   name: Flowing Brand
   description: >-
-    Deals 20 damage to target enemy. If the user is Anointed, the anointing flows downstream: it leaves
-    them, and the ally with the least HP gains Chrism until the end of their next turn.
+    Deals 20 damage to target enemy. If the user is Anointed, they lose it, and the ally with the least HP
+    gains Chrism until the end of their next turn.
   cost: I
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -624,8 +624,8 @@ taunt.anointment:
   element: Anointment
   name: Call of the Font
   description: >-
-    Raises a Holy Spring (20 HP) for 2 turns; target enemy is Taunted by it for as long. When the Spring
-    fades or is destroyed, it pours out: every allied character gains 1 Unction.
+    Summons a Holy Spring (20 HP) for 2 turns; target enemy is Taunted by it for as long. When the Spring
+    expires or is destroyed, every allied character gains 1 Unction.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]

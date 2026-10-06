@@ -92,8 +92,7 @@ rage.sanctuary:
   element: Sanctuary
   name: Temple Within
   description: >-
-    The user takes in your Sanctum: it ends, and for 3 turns they gain Immune and 1 Might and 1 Armor per level it
-    had (at least 1).
+    Your Sanctum ends, and for 3 turns the user gains Immune and 1 Might and 1 Armor per level it had (at least 1).
   cost: AW
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -220,8 +219,8 @@ bolt.sanctuary:
   element: Sanctuary
   name: Stone Rebuke
   description: >-
-    Deals 15 damage to target enemy and Condemns them. When that Condemnation takes hold, the stone falls:
-    they take 10 more damage and your Sanctum rises by 1.
+    Deals 15 damage to target enemy and Condemns them. When that Condemnation resolves, they take 10 more damage
+    and your Sanctum rises by 1.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -237,7 +236,7 @@ bolt.sanctuary:
         kind: Debuff
         element: Sanctuary
         stacking: unique
-        description: When the bearer's Condemnation takes hold, they take 10 damage and the applier's Sanctum rises by 1.
+        description: When the bearer's Condemnation resolves, they take 10 damage and the applier's Sanctum rises by 1.
         triggers:
           - on: skillUsed
             do:
@@ -556,9 +555,9 @@ smite.sanctuary:
   element: Sanctuary
   name: Firstfruits Tithe
   description: >-
-    Deals 15 damage to target enemy and takes a tithe of their life: they lose 10 max HP, and the ally with
-    the lowest HP (the user included) gains 10 max HP and heals 10, both for the rest of the match. Each
-    enemy character can be tithed 3 times at most; minions can't be.
+    Deals 15 damage to target enemy; they lose 10 max HP, and the ally with the lowest HP (the user included) gains
+    10 max HP and heals 10, both for the rest of the match. Each enemy character can lose max HP to this 3 times at
+    most; minions can't.
   cost: W
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -613,8 +612,8 @@ shout.sanctuary:
   element: Sanctuary
   name: Call to the Faithful
   description: >-
-    Every allied Boulder that isn't a Wardstone yet is consecrated into one; if there's none, the user creates a
-    Wardstone. All enemies are Intimidated for 2 turns.
+    Every allied Boulder that isn't a Wardstone yet becomes one; if there's none, the user creates a Wardstone. All
+    enemies are Intimidated for 2 turns.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]

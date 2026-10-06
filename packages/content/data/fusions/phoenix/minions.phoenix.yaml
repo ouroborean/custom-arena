@@ -15,7 +15,7 @@ phoenix_chick:
         name: Firebird Egg
         kind: Neutral
         element: Phoenix
-        description: A Firebird hatches from the Phoenix Chick's ashes when this ends.
+        description: When this ends, a Firebird is summoned in the Phoenix Chick's place.
         onExpire:
           - { op: summon, minion: firebird }
 

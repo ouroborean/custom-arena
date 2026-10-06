@@ -96,4 +96,4 @@ haboob_trail:
   element: Nomad
   stacking: unique
   visibility: hidden
-  description: The haboob's last gust hit the bearer; the next one goes elsewhere.
+  description: The bearer took the last hit; the next hit goes to a different enemy.

@@ -5,7 +5,7 @@ rebound_mark:
   kind: Debuff
   element: Magnet
   stacking: unique
-  description: Struck the Rebound Plate; a Debuff will be Repelled onto them.
+  description: Damaged the bearer of a Rebound Plate; when it ends, a Debuff will be Repelled onto them.
 
 opposite_pole:
   name: Opposite Pole

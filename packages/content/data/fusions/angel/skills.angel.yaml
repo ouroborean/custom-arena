@@ -124,7 +124,7 @@ rage.angel:
         name: Unbroken Wings
         kind: Buff
         element: Angel
-        description: If the Halo saves the bearer, the Rage swells.
+        description: If the Halo saves the bearer, they gain 2 Might and this lasts 2 turns longer.
         triggers:
           - on: damaged
             do:
@@ -143,8 +143,8 @@ shot.angel:
   element: Angel
   name: Quill of Light
   description: >-
-    Deals 10 damage to target enemy, leaving a quill in them for 1 turn. If they use a Harmful skill meanwhile,
-    the quill flares once it resolves: they take 10 damage, and each unit on the user's side it targeted heals 10.
+    Deals 10 damage to target enemy. For 1 turn, if they use a Harmful skill, once it resolves they take 10
+    damage, and each unit on the user's side it targeted heals 10.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -159,7 +159,7 @@ shot.angel:
         name: Quill of Light
         kind: Debuff
         element: Angel
-        description: The bearer's next Harmful skill makes the quill flare - 10 damage to them, 10 healing for its targets.
+        description: After the bearer's next Harmful skill resolves, they take 10 damage, and each of its targets on the applier's side heals 10.
         triggers:
           - on: skillResolved
             when: { harmful: true }
@@ -173,9 +173,9 @@ snipe.angel:
   element: Angel
   name: Descending Spear
   description: >-
-    For 1 turn, the user Wards every ally. If no hit is redirected to them meanwhile, the spear falls on target
-    enemy on the following turn for 40 damage; if any is, it's turned to the user's defense instead, and they
-    heal 20 for each hit redirected. The target of this skill is invisible. Channeled.
+    For 1 turn, the user Wards every ally. If no hit is redirected to them meanwhile, target enemy takes 40 damage
+    on the following turn; if any is, the user heals 20 for each hit redirected instead. The target of this skill
+    is invisible. Channeled.
   cost: Arr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled, HiddenTarget]
@@ -194,8 +194,8 @@ snipe.angel:
         visibility: hiddenTarget
         interruptible: true
         description: >-
-          Falls on its target at the end of the following turn, unless a hit is redirected to the bearer first;
-          then it heals the bearer 20 per redirected hit instead.
+          Deals 40 damage to its target at the end of the following turn, unless a hit is redirected to the bearer
+          first; then it heals the bearer 20 per redirected hit instead.
         triggers:
           - on: signal
             signal: ward_redirect
@@ -253,8 +253,8 @@ maneuver.angel:
   element: Angel
   name: Take Flight
   description: >-
-    The user gains Leaping, but hands its cover down: their other ally with the least HP becomes Invulnerable for
-    1 turn instead of them. With no other ally, the user keeps it.
+    The user gains Leaping, but their other ally with the least HP becomes Invulnerable for 1 turn instead of
+    them. With no other ally, the user becomes Invulnerable.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic]
@@ -287,8 +287,8 @@ bolt.angel:
   element: Angel
   name: Beam from Above
   description: >-
-    Deals 20 damage to target enemy. The light then falls on the ally with the least HP, the user included, who
-    heals as much as it dealt.
+    Deals 20 damage to target enemy. Then the ally with the least HP, the user included, heals as much as it
+    dealt.
   cost: Ir
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -416,8 +416,8 @@ stab.angel:
   element: Angel
   name: Piercing Feather
   description: >-
-    Deals 15 damage to target enemy and pins them for 1 turn: meanwhile, they can't target a character on the
-    user's team who is at or below 40 HP with a skill.
+    Deals 15 damage to target enemy. For 1 turn, they can't target a character on the user's team who is
+    at or below 40 HP with a single-target skill.
   cost: A
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -443,8 +443,8 @@ ravage.angel:
   element: Angel
   name: Plummet
   description: >-
-    The user Leaps. At the start of their next turn, they dive onto target enemy for 30 Piercing damage, with the
-    Leap's bonus.
+    The user Leaps. At the start of their next turn, they deal 30 Piercing damage to target enemy, with the Leap's
+    bonus.
   cost: A
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -460,7 +460,7 @@ ravage.angel:
         name: Plummet
         kind: Neutral
         element: Angel
-        description: Dives onto the target when this ends.
+        description: Deals 30 Piercing damage to the target when this ends.
         onExpire:
           - { op: damage, to: effectTargets, amount: 30, type: Piercing }
 
@@ -485,7 +485,7 @@ mislead.angel:
         kind: Debuff
         element: Angel
         visibility: hidden
-        description: The bearer's next Harmful skill gives the applier a Halo and draws the bearer to them.
+        description: The bearer's next Harmful skill gives the applier a Halo, and the bearer is Taunted by the applier for 1 turn.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -499,7 +499,7 @@ stun.angel:
   element: Angel
   name: Glorious Light
   description: >-
-    Target enemy is Stunned for 1 turn, but the light is merciful: they also gain a Halo for 2 turns.
+    Target enemy is Stunned for 1 turn and gains a Halo for 2 turns.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -514,7 +514,7 @@ dance.angel:
   name: Wings of Respite
   description: >-
     For 4 turns, the user gains 1 Might and 2 Swiftness. Whenever an ally would be Stunned meanwhile, the user
-    spends 1 Swiftness to shrug it off for them.
+    spends 1 Swiftness to prevent it.
   cost: AW
   cooldown: 5
   tags: [Helpful, Strategic]
@@ -531,7 +531,7 @@ dance.angel:
         name: Wings of Respite
         kind: Buff
         element: Angel
-        description: While the Angel has Swiftness, Stuns on the bearer are shrugged off at its expense.
+        description: While the Angel has Swiftness, each Stun on the bearer is prevented, and the Angel loses 1 Swiftness.
         modifiers:
           - { mod: negateNext, effect: stun, if: { any: { in: allAllies, cond: { has: { unit: it, effect: swiftness } } } } }
         triggers:
@@ -665,8 +665,8 @@ cleave.angel:
   element: Angel
   name: Sweeping Wings
   description: >-
-    Deals 20 damage to target enemy. The backswing deals 20 to the last enemy who damaged the user, if that's
-    someone else; if not, it deals 10 to every other enemy.
+    Deals 20 damage to target enemy, then 20 to the last enemy who damaged the user, if that's someone else; if
+    not, 10 to every other enemy.
   cost: S
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -683,7 +683,7 @@ shout.angel:
   element: Angel
   name: Last Trumpet
   description: >-
-    The trumpet calls every enemy to face the user: all enemies are Taunted by the user for 1 turn.
+    All enemies are Taunted by the user for 1 turn.
   cost: A
   cooldown: 3
   tags: [Harmful, Strategic]

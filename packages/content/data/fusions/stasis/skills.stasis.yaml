@@ -162,8 +162,8 @@ snipe.stasis:
   element: Stasis
   name: Release
   description: >-
-    Target enemy is Suspended until it lands on the following turn: 30 Piercing damage, and then they
-    Thaw. Channeled.
+    Target enemy is Suspended. At the end of the following turn, they take 30 Piercing damage, and then
+    they Thaw. Channeled.
   cost: AIr
   cooldown: 2
   tags: [Harmful, NonStrategic, Channeled]
@@ -180,7 +180,7 @@ snipe.stasis:
         kind: Neutral
         element: Stasis
         interruptible: true
-        description: Strikes its target at the end of the following turn.
+        description: At the end of the following turn, deals 30 Piercing damage to its target.
         onExpire:
           - { op: damage, to: effectTargets, amount: 30, type: Piercing }
 
@@ -218,8 +218,8 @@ maneuver.stasis:
   element: Stasis
   name: Cryosleep
   description: >-
-    The user becomes Invulnerable for 1 turn and is Suspended for 2: their Buffs hold, and their Debuffs
-    wait. Unstunnable.
+    The user becomes Invulnerable for 1 turn and is Suspended for 2, so their Buffs and Debuffs don't
+    tick or lose duration. Unstunnable.
   cost: I
   cooldown: 3
   tags: [Helpful, Strategic, Unstunnable]
@@ -375,8 +375,8 @@ stab.stasis:
   element: Stasis
   name: Icebite
   description: >-
-    Deals 5 Piercing damage to target enemy, who gains 1 Toxin. The cold builds while it's held: 5 more
-    for each turn the user went without using Icebite (max 15 more).
+    Deals 5 Piercing damage to target enemy, who gains 1 Toxin, plus 5 more damage for each turn the user
+    went without using Icebite (max 15 more).
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -406,8 +406,8 @@ ravage.stasis:
   element: Stasis
   name: Cryo Rend
   description: >-
-    Deals 20 Piercing damage to target enemy, who is Suspended for 1 turn. When they Thaw, the wound
-    reopens: 20 Piercing damage again.
+    Deals 20 Piercing damage to target enemy, who is Suspended for 1 turn. When they Thaw, they take 20
+    Piercing damage again.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -424,7 +424,7 @@ ravage.stasis:
         kind: Debuff
         element: Stasis
         countsAs: [suspended]
-        description: Suspended. When the bearer Thaws, the wound reopens for 20 Piercing damage.
+        description: Suspended. When the bearer Thaws, they take 20 Piercing damage.
         modifiers:
           - { mod: suspendEffects }
         onExpire:
@@ -436,8 +436,8 @@ mislead.stasis:
   element: Stasis
   name: Lingering Frost
   description: >-
-    For 1 turn, if target enemy uses a Harmful skill, it's countered, and the cold sets in: every Debuff
-    on them, Stuns aside, lasts 2 turns longer. Invisible.
+    For 1 turn, if target enemy uses a Harmful skill, it's countered, and every Debuff on them, Stuns
+    aside, lasts 2 turns longer. Invisible.
   cost: W
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -582,8 +582,8 @@ smite.stasis:
   element: Stasis
   name: Frozen Quarry
   description: >-
-    Deals 15 damage to target enemy, who is Suspended for 1 turn. The ice keeps every hit the user's side
-    lands on them meanwhile: when they Thaw, half of it all lands again as Affliction (max 30).
+    Deals 15 damage to target enemy, who is Suspended for 1 turn. Damage the user's side deals them
+    meanwhile is recorded: when they Thaw, they take half of it again as Affliction damage (max 30).
   cost: Wr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -601,7 +601,9 @@ smite.stasis:
         kind: Debuff
         element: Stasis
         countsAs: [suspended]
-        description: Suspended. Each hit an enemy of theirs lands on the bearer is kept; when they Thaw, half of it lands again (max 30).
+        description: >-
+          Suspended. Damage the bearer's enemies deal them is recorded; when they Thaw, they take half of
+          it again (max 30).
         modifiers:
           - { mod: suspendEffects }
         triggers:
@@ -763,8 +765,8 @@ titan.stasis:
   element: Stasis
   name: Frozen Instant
   description: >-
-    For 3 turns, the user gains Immune, and damage they take is held instead of landing. Each held hit
-    lands 3 turns later, halved, as Affliction.
+    For 3 turns, the user gains Immune, and damage they take is delayed instead of dealt. Each delayed
+    hit is dealt 3 turns later, halved, as Affliction.
   cost: WI
   cooldown: 4
   tags: [Helpful, Strategic]
@@ -779,7 +781,7 @@ titan.stasis:
         name: Frozen Instant
         kind: Buff
         element: Stasis
-        description: Damage the bearer takes is held, and lands 3 turns later, halved.
+        description: Damage the bearer takes is delayed, and dealt 3 turns later, halved.
         modifiers:
           - { mod: deferHits, status: frozen_instant_hit, reduceBy: 0, delay: 6 }
 

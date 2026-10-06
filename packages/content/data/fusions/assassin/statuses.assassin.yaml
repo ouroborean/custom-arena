@@ -49,7 +49,7 @@ whispered_names:
   kind: Debuff
   element: Assassin
   stacking: unique
-  description: When the bearer's Mark is spent, a random other enemy is Marked for 1 turn and the whisper passes on.
+  description: When the bearer's Mark is spent, a random other enemy is Marked for 1 turn and gains this effect (up to 3 times in all).
   triggers:
     - on: damaged
       when: { direct: true }

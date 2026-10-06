@@ -94,8 +94,7 @@ charge.ritual:
   element: Ritual
   name: Candlestep
   description: >-
-    Deals 10 damage to target enemy. Rite (1): the flame catches up with them: they take 15 damage
-    and are Ignited.
+    Deals 10 damage to target enemy. Rite (1): they take 15 damage and are Ignited.
   cost: S
   cooldown: 2
   tags: [Harmful, NonStrategic]
@@ -173,7 +172,7 @@ shot.ritual:
   archetype: Shot
   element: Ritual
   name: Severing Spark
-  description: Deals 10 Piercing damage to target enemy. If they have no Buffs (nobody tended them), they're Isolated for 1 turn.
+  description: Deals 10 Piercing damage to target enemy. If they have no Buffs, they're Isolated for 1 turn.
   cost: r
   cooldown: 0
   tags: [Harmful, NonStrategic]
@@ -236,7 +235,9 @@ trap.ritual:
         kind: Debuff
         element: Ritual
         visibility: hidden
-        description: Each Harmful skill the bearer uses burns them and advances the applier's Rite.
+        description: >-
+          Each Harmful skill the bearer uses deals them 10 Affliction damage and advances the applier's
+          Rite by 1.
         triggers:
           - on: skillUsed
             when: { harmful: true }
@@ -249,8 +250,8 @@ maneuver.ritual:
   element: Ritual
   name: Hush of Smoke
   description: >-
-    For 2 turns, the first time an enemy hits the user, the user bursts into smoke and cinders: they
-    become Invulnerable for 1 turn, and that enemy is Ignited. Stealthy.
+    For 2 turns, the first time an enemy hits the user, the user becomes Invulnerable for 1 turn, and
+    that enemy is Ignited. Stealthy.
   cost: r
   cooldown: 3
   tags: [Helpful, Strategic, Stealthy]
@@ -264,7 +265,7 @@ maneuver.ritual:
         name: Hush of Smoke
         kind: Buff
         element: Ritual
-        description: The first enemy hit on the bearer turns them to smoke (Invulnerable for 1 turn) and Ignites the attacker.
+        description: The first enemy hit on the bearer makes them Invulnerable for 1 turn and Ignites the attacker.
         triggers:
           # The hit lands; the Invulnerable covers the rest of that turn and the next enemy turn.
           - on: damaged
@@ -293,8 +294,7 @@ bolt.ritual:
   element: Ritual
   name: Shadowflame Bolt
   description: >-
-    Deals 30 damage to target enemy, but the shadowflame's glare takes the user's sight: they're
-    Blinded until the end of their next turn.
+    Deals 30 damage to target enemy. The user is Blinded until the end of their next turn.
   cost: Ar
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -324,7 +324,7 @@ blast.ritual:
         name: Rite of Ruin
         kind: Debuff
         element: Ritual
-        description: Counts the bearer's skills for the Rite of Ruin.
+        description: Counts the bearer's skills for Rite of Ruin.
         triggers:
           - on: skillUsed
             do:
@@ -353,8 +353,8 @@ consume.ritual:
   element: Ritual
   name: Candle Offering
   description: >-
-    Target enemy burns as an offering for 2 turns: at the end of each of the user's turns, they take 5
-    Affliction damage and the user heals 10.
+    For 2 turns, at the end of each of the user's turns, target enemy takes 5 Affliction damage and the
+    user heals 10.
   cost: r
   cooldown: 2
   tags: [Harmful, Strategic]
@@ -601,8 +601,7 @@ curse.ritual:
   element: Ritual
   name: Cursed Flame
   description: >-
-    For 2 turns, target enemy unknowingly carries a cursed flame: each skill they use Ignites a random
-    ally of theirs. Invisible.
+    For 2 turns, each skill target enemy uses Ignites a random ally of theirs. Invisible.
   cost: A
   cooldown: 2
   tags: [Harmful, Strategic, Invisible]
@@ -628,8 +627,8 @@ smite.ritual:
   element: Ritual
   name: Offering Brand
   description: >-
-    Deals 20 damage to target enemy and brands them. Rite (2): the brand is burned as an offering: the
-    user's ally with the least HP heals half of all the direct damage the target took while it counted.
+    Deals 20 damage to target enemy and brands them. Rite (2): the user's ally with the least HP heals
+    half of all the direct damage the target took while it counted.
   cost: Sr
   cooldown: 1
   tags: [Harmful, NonStrategic]
@@ -663,7 +662,7 @@ smite.ritual:
         name: Offering Brand
         kind: Debuff
         element: Ritual
-        description: Direct damage the bearer takes is gathered for the applier's Rite.
+        description: Direct damage the bearer takes is counted for the applier's Rite.
         triggers:
           - on: damaged
             when: { direct: true }
@@ -676,7 +675,7 @@ prayer.ritual:
   name: Vigil of Candles
   description: >-
     All allies heal 20. Rite (3): every ally who hasn't taken damage since it started heals 30 and gains
-    Stealth.
+    Stealth for 2 turns.
   cost: Wrr
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -690,7 +689,7 @@ prayer.ritual:
         name: Vigil
         kind: Buff
         element: Ritual
-        description: Untouched since the Vigil began.
+        description: Hasn't taken damage since Vigil of Candles was used.
         triggers:
           - on: damaged
             do:
@@ -705,7 +704,7 @@ prayer.ritual:
         kind: Neutral
         element: Ritual
         countsAs: [rite]
-        description: When it completes, every untouched ally heals 30 and gains Stealth.
+        description: When it completes, every ally who hasn't taken damage since it started heals 30 and gains Stealth.
         triggers: *rite_triggers
         onExpire:
           - op: forEach
@@ -756,8 +755,8 @@ shout.ritual:
   element: Ritual
   name: Rings of Ash
   description: >-
-    All enemies are Isolated for 2 turns, each shut inside a ring of ash. Rite (1): the rings catch
-    fire: every enemy who's still Isolated takes 10 Affliction damage.
+    All enemies are Isolated for 2 turns. Rite (1): every enemy who's still Isolated takes 10 Affliction
+    damage.
   cost: Sr
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -787,8 +786,8 @@ withstand.ritual:
   element: Ritual
   name: Smokewall
   description: >-
-    The user gains 20 Shield for 1 turn. If any of it is left when the turn is up, the smoke catches
-    fire: a random enemy takes damage equal to what's left.
+    The user gains 20 Shield for 1 turn. If any of it is left when it ends, a random enemy takes damage
+    equal to what's left.
   cost: A
   cooldown: 2
   tags: [Helpful, Strategic]
@@ -813,9 +812,9 @@ taunt.ritual:
   element: Ritual
   name: Effigy
   description: >-
-    The user offers up 15 of their HP to raise an Effigy (30 HP), and target enemy is Taunted by it for
-    2 turns. If it still stands when the Taunt ends, it burns as an offering: the user heals for half the
-    HP it has left. The user needs more than 15 HP to use it.
+    The user loses 15 HP and summons an Effigy (30 HP), and target enemy is Taunted by it for 2 turns. If
+    it still stands when the Taunt ends, it dies and the user heals for half the HP it had left. The user
+    needs more than 15 HP to use it.
   cost: r
   cooldown: 3
   tags: [Harmful, Strategic]
@@ -834,7 +833,7 @@ taunt.ritual:
         name: Offering
         kind: Neutral
         element: Ritual
-        description: When the Taunt ends, the Effigy burns away and the user heals for half the HP it has left.
+        description: When the Taunt ends, the Effigy dies and the user heals for half the HP it had left.
         onExpire:
           # Half, so an untouched Effigy gives back exactly the 15 offered: never a profit.
           - { op: heal, to: actor, amount: { div: [{ hp: bearer }, 2] } }
@@ -845,9 +844,8 @@ titan.ritual:
   element: Ritual
   name: Candle Colossus
   description: >-
-    For 3 turns, the user gains Immune and burns like a candle that won't go out: their HP can't drop
-    below 1. When it ends, the wax runs off them as fire: every enemy takes 5 Affliction damage for
-    every 20 damage the user took meanwhile (at most 30).
+    For 3 turns, the user gains Immune, and their HP can't drop below 1. When it ends, every enemy takes
+    5 Affliction damage for every 20 damage the user took meanwhile (at most 30).
   cost: SW
   cooldown: 4
   tags: [Helpful, Strategic]
