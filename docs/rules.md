@@ -122,6 +122,7 @@ For each queued skill:
 6. Multiple traps and counters stack on one unit, unless a skill says otherwise.
 7. **Minions** count as allies and enemies for every effect. Only text that says "character" excludes them (Q13).
 8. **Confusion ends when its bearer uses a skill** (decided 2026-10-04; status flag `endsOnSkillUse`). Every stack goes at once. It still raises the cost of that skill and of anything queued with it, and effects that react to the skill ("each skill they use while Confused") still see it. It ends once the skill has resolved or been countered. Confusion applied during that skill, by the skill itself or by a reaction to it (Condemned, Maddening Glass), stays for the next one. A stated duration ("Confused for 2 turns") is now an upper limit. Skills that paid out each time over a Confused window were adjusted to pay once: Offertory gives 2 energy per Confusion, Ebbing Toll heals 10 per Confusion. Crisis of Conscience's window is now a flat 2 turns.
+9. **Focus ends when its bearer uses a skill** (decided 2026-10-05), as Confusion's opposite, the same way: every stack goes once the bearer's skill has resolved or been countered. It still discounts that skill and anything queued with it (costs are set at queue time). Focus gained during that skill, from the skill itself or a reaction to it, stays for the next one. A stated duration ("1 Focus for 4 turns") is now an upper limit, and Focus with no stated duration lasts until the next skill rather than forever.
 
 ## 9. Randomness and determinism — `rng.ts`, `replay.ts`
 
@@ -211,7 +212,7 @@ Content: `packages/content/data/poison/`. Statuses: **Toxin**, **Prey (marked)**
 | Shed Skin | Triggers on the first direct hit only. The 3 Renew then decays normally. |
 | Sting | The Toxin, Weakness or Vulnerable is picked uniformly at random. |
 | Snake Pit | Triggers on **every** Strategic skill the target uses during the 3 turns. |
-| Slither | Unstunnable. Its Focus has no stated duration, so it's **permanent** (Q16). |
+| Slither | Unstunnable. Its Focus has no stated duration, so it lasts until the user's next skill (§8 rule 9). |
 | Unstated durations | Also permanent: Sting's debuff, Acid Orb's Mark and Vulnerable, Swamp Toxins' Confusion, Numbing Needle's debuffs, and Coil's Shield and Armor. |
 | Devour | Kills characters at 14 HP or less and minions at 29 or less (the sheet says "less than 15", doubled for minions). Tagged Strategic, since it deals no damage. |
 | Emerald Asp | Its skills are Serpent Fang (r, no cooldown) and Constrict (rr, no cooldown). The sheet gives no cooldowns. |
@@ -229,7 +230,7 @@ Content: `packages/content/data/poison/`. Statuses: **Toxin**, **Prey (marked)**
 - By character element: Fire 50.0%, None 49.9%, Poison 49.5%.
 - Highest Poison skills: Plague Stomp about 66%, Viper Strike about 63% (Flickerflare, after its cooldown change, about 67%).
 - Lowest Poison skills: Pounce, Slither, Mesmerizing Glare, Tail Lash, Lacerate, Shed Skin and Coil, at 43–45%.
-- **Watch:** Slither's permanent Focus, and permanent Weakness/Vulnerable from Sting and Numbing Needle. These stack up over long matches; permanent debuffs also make Prey easy to trigger.
+- **Watch:** permanent Weakness/Vulnerable from Sting and Numbing Needle. These stack up over long matches; permanent debuffs also make Prey easy to trigger.
 
 ---
 
@@ -549,7 +550,7 @@ Content: `packages/content/data/shadow/`. Themes are Untargetability, Deception 
 | Black Axe | The user gains Stealth if the target is dead after the hit. |
 | Shadow Crash | 15 to the target and 10 to each other enemy, then a fresh Stealth for the user (replacing any older one), so its own non-Stealthy use doesn't end it. **Redesigned 2026-10-03:** it used to spend allied Stealth for its damage. |
 | Long Shadow | Stealthy. It gives a one-shot buff that makes the user's next skill count as Stealthy. |
-| Mirage Blade | Invisible. Counters the first Harmful skill used on the user within 1 turn. The Focus has no duration, so it's permanent (Q16). |
+| Mirage Blade | Invisible. Counters the first Harmful skill used on the user within 1 turn. The Focus has no duration, so it lasts until the user's next skill (§8 rule 9). |
 | Shadow Spine | 15 Piercing, then Isolated for 1 turn (through the enemy's turn). Cooldown 1 (was 0), so the Isolation can't be kept up on one enemy every turn. **Redesigned 2026-10-03:** it used to deal 5 Piercing per Blinded, Isolated and Sleep. |
 | Dream Seeker | Not Channeled, since the sheet doesn't say so, and so not interruptible. 35 damage a turn later with Bypass, and it doesn't wake a Sleeping target. |
 | Dream Chains | Visible. If the target uses no skill during their next turn, they take 15 indirect Affliction and fall Asleep for 2 turns. |

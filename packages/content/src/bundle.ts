@@ -214,8 +214,13 @@ export function checkSinglePlayer(b: ContentBundle): ContentIssue[] {
     for (const k of Object.keys(g?.currency ?? {})) if (!b.economy.currencies[k]) err(where, `unknown currency "${k}"`);
     for (const i of g?.items ?? []) for (const p of pieceProblems(b, pieceComponentIds(i))) err(where, `item "${i}": ${p}`);
   };
+  // Every character in a match has a base element (it picks their portrait): none, or a fusion, is an error.
+  const fusionNames = new Set(Object.values(b.fusions ?? {}).map((f) => f.name));
+  const baseElements = new Set(Object.values(b.skills).map((s) => s.element).filter((e) => e !== 'None' && !fusionNames.has(e)));
   const unit = (where: string, u: EncounterDef['enemies'][number]) => {
     if (!b.classes[u.classId]) err(where, `unknown class "${u.classId}"`);
+    if (!u.element) err(where, 'needs an element');
+    else if (!baseElements.has(u.element)) err(where, `"${u.element}" isn't a base element`);
     for (const s of u.skills ?? []) if (!b.skills[s]) err(where, `unknown skill "${s}"`);
     for (const p of u.passives ?? []) if (!b.statuses[p]) err(where, `unknown status "${p}"`);
   };

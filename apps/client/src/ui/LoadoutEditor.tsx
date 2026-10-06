@@ -31,6 +31,7 @@ import {
 import type { Character, InventoryItem } from '../api.js';
 import { content } from '../content.js';
 import { CostPips, elementClass, ItemFace, SkillGlyph, Tooltip } from './common.js';
+import { RulesText } from './RulesText.js';
 
 export const PIECE_GROUPS: { id: string; label: string; kinds: readonly PieceKind[] }[] = [
   { id: 'all', label: 'All', kinds: [] },
@@ -559,7 +560,7 @@ function SkillInfusions({
                 content={
                   <>
                     <h4>{variant.name}</h4>
-                    <div>{variant.description}</div>
+                    <div><RulesText text={variant.description} /></div>
                     <div className="row">
                       <CostPips cost={variant.cost} /> · cooldown {variant.cooldown}
                     </div>
@@ -583,7 +584,7 @@ function SkillInfusions({
           current && (
             <>
               <h4>{current.name}</h4>
-              <div>{current.description}</div>
+              <div><RulesText text={current.description} /></div>
               <div className="row">
                 <CostPips cost={current.cost} /> · cooldown {current.cooldown}
                 {skill.source === 'equipment' && ' · from equipment'}
@@ -631,7 +632,7 @@ export function ItemDetails({
           return (
             <li key={s}>
               <b>Skill</b> {d?.name ?? s} {d && <CostPips cost={d.cost} />}
-              {d && <div className="muted">{d.description}</div>}
+              {d && <div className="muted"><RulesText text={d.description} /></div>}
             </li>
           );
         })}
@@ -642,9 +643,9 @@ export function ItemDetails({
         ))}
         {def.passive && (
           <li>
-            <b>Passive</b> {def.passive}
+            <b>Passive</b> <RulesText text={def.passive} />
             {effect ? (
-              effect.description && effect.description !== def.passive && <div className="muted">In play: {effect.description}</div>
+              effect.description && effect.description !== def.passive && <div className="muted">In play: <RulesText text={effect.description} /></div>
             ) : (
               <div className="muted">Not active yet.</div>
             )}

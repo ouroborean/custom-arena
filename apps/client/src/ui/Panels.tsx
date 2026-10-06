@@ -11,9 +11,10 @@ import {
 } from '@arena/engine';
 import { serverNow } from '../match/online.js';
 import type { MatchSession, OnlineInfo } from '../match/session.js';
-import { useStore } from '../store.js';
+import { useStore, type Anchor } from '../store.js';
 import { ExchangePanel } from './ExchangePanel.js';
 import { CATEGORY_LABEL, CostPips, describeAction, durationText, elementClass, ENERGY_NAMES, EnergyPip, skillCategory } from './common.js';
+import { RulesText } from './RulesText.js';
 
 const TARGET_TEXT: Record<string, string> = {
   self: 'Self',
@@ -26,6 +27,11 @@ const TARGET_TEXT: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------- hover card
+
+/** Whether a scrolled container's box holds the hovered element's (so scrolling it moves the element). */
+function containsRect(box: DOMRect, r: Anchor): boolean {
+  return r.left >= box.left && r.left + r.width <= box.right && r.top >= box.top && r.top + r.height <= box.bottom;
+}
 
 export function HoverCard({ view, content, availability }: { view: PlayerView; content: ContentBundle; availability: SkillAvailability[] }) {
   const inspect = useStore((s) => s.inspect);
@@ -49,14 +55,20 @@ export function HoverCard({ view, content, availability }: { view: PlayerView; c
     setPos({ left, top });
   }, [anchor, inspect]);
 
-  // A fixed card would drift from its element on scroll or resize, so close it instead.
+  // A fixed card would drift from its element on scroll or resize, so close it instead. Only scrolls
+  // that move the hovered element count: the battle log scrolls itself to each new line during
+  // playback, and that mustn't close the card the player is reading.
   useEffect(() => {
     if (!anchor) return;
     const close = () => setInspect(null);
-    window.addEventListener('scroll', close, true);
+    const onScroll = (ev: Event) => {
+      if (ev.target instanceof Element && !containsRect(ev.target.getBoundingClientRect(), anchor)) return;
+      close();
+    };
+    window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', close);
     return () => {
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', close);
     };
   }, [anchor, setInspect]);
@@ -87,7 +99,7 @@ export function HoverCard({ view, content, availability }: { view: PlayerView; c
                 </span>
               ))}
           </div>
-          <div className="desc">{def.description}</div>
+          <div className="desc"><RulesText text={def.description} /></div>
           {slot.cooldown > 0 && <div className="warn">On cooldown: {slot.cooldown} more of your turns</div>}
           {a && a.targets.length === 0 && a.reason && slot.cooldown === 0 && <div className="warn">{a.reason}</div>}
         </>
@@ -112,7 +124,7 @@ export function HoverCard({ view, content, availability }: { view: PlayerView; c
             </span>
             {e.value > 0 && <span>Value {e.value}</span>}
           </div>
-          <div className="desc">{def?.description}</div>
+          <div className="desc"><RulesText text={def?.description} /></div>
           <div className="meta">{durationText(e.duration)}</div>
           {def?.visibility === 'hidden' && !e.revealed && <div className="hint">Hidden from your opponent</div>}
         </>
@@ -139,7 +151,7 @@ export function HoverCard({ view, content, availability }: { view: PlayerView; c
                 <div key={i}>
                   <b>{d.name}</b> <CostPips cost={d.cost} />
                   {s.cooldown > 0 && <span className="hint"> · CD {s.cooldown}</span>}
-                  <span className="muted"> — {d.description}</span>
+                  <span className="muted"> — <RulesText text={d.description} /></span>
                 </div>
               );
             })}

@@ -64,3 +64,19 @@ export function keywordItems(match: Matcher, found: readonly KeywordMatch[]): Ke
   }
   return [...direct, ...nested];
 }
+
+/** A run of rules text: plain, or a keyword's word form. */
+export type TextPart = { text: string; keyword?: GlossaryDef };
+
+/** Splits text into plain runs and keyword runs, in order, for rendering keywords distinctly. */
+export function splitKeywords(match: Matcher, text: string): TextPart[] {
+  const parts: TextPart[] = [];
+  let at = 0;
+  for (const m of match(text)) {
+    if (m.index > at) parts.push({ text: text.slice(at, m.index) });
+    parts.push({ text: text.slice(m.index, m.index + m.length), keyword: m.keyword });
+    at = m.index + m.length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at) });
+  return parts;
+}

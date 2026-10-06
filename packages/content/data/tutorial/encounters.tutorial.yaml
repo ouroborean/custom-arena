@@ -6,9 +6,9 @@ tutorial_1:
   name: "Energy and Skills"
   description: "Learn how energy pays for skills, how the queue resolves, and what cooldowns are."
   playerTeam:
-    - { name: "Recruit", classId: warrior, skills: [strike, smash], hp: 100 }
+    - { name: "Recruit", classId: warrior, element: Earth, skills: [strike, smash], hp: 100 }
   enemies:
-    - { name: "Training Dummy", classId: paladin, skills: [taunt], hp: 60 }
+    - { name: "Training Dummy", classId: paladin, element: Wind, skills: [taunt], hp: 60 }
   ai: { tier: easy }
   settings:
     fixedEnergy:
@@ -24,11 +24,11 @@ tutorial_2:
   name: "Statuses and Counters"
   description: "Buffs, Debuffs, and Invisible counters that punish the enemy's attacks."
   playerTeam:
-    - { name: "Squire", classId: knight, skills: [charge, riposte, shout, strike], hp: 100 }
-    - { name: "Acolyte", classId: priest, skills: [heal, bless], hp: 100 }
+    - { name: "Squire", classId: knight, element: Holy, skills: [charge, riposte, shout, strike], hp: 100 }
+    - { name: "Acolyte", classId: priest, element: Water, skills: [heal, bless], hp: 100 }
   enemies:
-    - { name: "Sparring Partner", classId: knight, skills: [strike], hp: 80 }
-    - { name: "Sparring Mage", classId: mage, skills: [bolt], hp: 70 }
+    - { name: "Sparring Partner", classId: knight, element: Shadow, skills: [strike], hp: 80 }
+    - { name: "Sparring Mage", classId: mage, element: Lightning, skills: [bolt], hp: 70 }
   ai:
     tier: easy
     script:
@@ -51,8 +51,8 @@ tutorial_3:
     - { name: "Flame Warrior", classId: warrior, element: Fire, skills: [strike.fire, smash.fire], hp: 100 }
     - { name: "Pyromancer", classId: mage, element: Fire, skills: [bolt.fire, blast.fire], hp: 100 }
   enemies:
-    - { name: "Straw Dummy", classId: priest, skills: [bless], hp: 70 }
-    - { name: "Straw Target", classId: priest, skills: [bless], hp: 70 }
+    - { name: "Straw Dummy", classId: priest, element: Earth, skills: [bless], hp: 70 }
+    - { name: "Straw Target", classId: priest, element: Wind, skills: [bless], hp: 70 }
   ai: { tier: easy }
   settings:
     fixedEnergy:

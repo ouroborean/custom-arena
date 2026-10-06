@@ -11,6 +11,31 @@ const B1 = 'p1c0';
 const B2 = 'p1c1';
 const B3 = 'p1c2';
 
+describe('Focus', () => {
+  it('lowers the cost of the next skill, then every stack ends once the bearer has used a skill', () => {
+    const a = arena({ p0: [['shot']], p1: [['shot']] });
+    a.give(A1, 'focus', { source: A1 }).give(A1, 'focus', { source: A1 });
+    expect(a.stacks(A1, 'focus')).toBe(2);
+    a.use(A1, 'shot', B1).end();
+    expect(a.stacks(A1, 'focus')).toBe(0);
+  });
+
+  it("a stated duration is an upper limit: Dance's Focus goes with the next skill", () => {
+    const a = arena({ p0: [['dance', 'shot']], p1: [['shot']] });
+    a.use(A1, 'dance').end(); // 1 Focus "for 4 turns"
+    expect(a.has(A1, 'focus')).toBe(true);
+    a.pass(1).use(A1, 'shot', B1).end();
+    expect(a.has(A1, 'focus')).toBe(false);
+    expect(a.has(A1, 'might')).toBe(true); // the rest of Dance stays
+  });
+
+  it('Focus gained by the skill itself stays for the next one (Charge)', () => {
+    const a = arena({ p0: [['charge']], p1: [['shot']] });
+    a.use(A1, 'charge', B1).end();
+    expect(a.stacks(A1, 'focus')).toBe(1);
+  });
+});
+
 describe('Confusion', () => {
   it('raises the cost of the next skill, then every stack ends once the bearer has used a skill', () => {
     const a = arena({ p0: [['curse']], p1: [['shot']] });

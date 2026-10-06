@@ -125,10 +125,14 @@ intimidated:
   modifiers:
     - { mod: cooldownOnUse, amount: 1, perStack: true }
 
+# Confusion's opposite, and ends the same way (decided 2026-10-05): every stack goes once the bearer
+# uses a skill. It still discounts that skill and anything queued with it, and reactions to the skill
+# still see it; it clears after the skill has resolved (or been countered).
 focus:
   name: Focus
   kind: Buff
-  description: Reduces skill costs by 1 GEN per stack.
+  endsOnSkillUse: true
+  description: Reduces skill costs by 1 GEN per stack. All of it ends once the bearer uses a skill.
   modifiers:
     - { mod: costGeneric, amount: -1, perStack: true }
 

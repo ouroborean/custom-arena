@@ -6,6 +6,7 @@ import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
 import { portraitKey } from '../assets.js';
 import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, SkillGlyph, Tooltip } from './common.js';
+import { RulesText } from './RulesText.js';
 
 const ELEMENTS = availableElements(content);
 
@@ -40,10 +41,10 @@ function CharacterEditor({
               </option>
             ))}
           </select>
-          <select aria-label="Element" value={spec.element ?? 'None'} onChange={(e) => onReroll(spec.classId, e.target.value)}>
+          <select aria-label="Element" value={spec.element} onChange={(e) => onReroll(spec.classId, e.target.value)}>
             {ELEMENTS.map((el) => (
               <option key={el} value={el}>
-                {el === 'None' ? 'No element' : el}
+                {el}
               </option>
             ))}
           </select>
@@ -60,7 +61,7 @@ function CharacterEditor({
                 content={
                   <>
                     <h4>{d.name}</h4>
-                    <div>{d.description}</div>
+                    <div><RulesText text={d.description} /></div>
                     <div className="row">
                       <CostPips cost={d.cost} /> · cooldown {d.cooldown}
                     </div>
