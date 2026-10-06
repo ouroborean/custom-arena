@@ -161,13 +161,20 @@ function StaticTile({ unit, slot, content }: { unit: Unit; slot: number; content
   );
 }
 
+/** An enemy's skill as a small icon (hover or focus for its details card), with its cooldown on top. */
 function EnemySkill({ unit, slot, content }: { unit: Unit; slot: number; content: ContentBundle }) {
   const hover = useHover({ kind: 'skill', unit: unit.id, slot });
   const s = unit.skills[slot]!;
+  const def = content.skills[s.defId]!;
   return (
-    <span className="mini" tabIndex={0} {...hover}>
-      <span>{content.skills[s.defId]!.name}</span>
-      <span className="cdn">{s.cooldown > 0 ? s.cooldown : ''}</span>
+    <span
+      className={`mini-tile cat-${skillCategory(def)} ${elementClass(def.element)}`}
+      tabIndex={0}
+      aria-label={`${def.name}${s.cooldown > 0 ? `, cooldown ${s.cooldown}` : ''}`}
+      {...hover}
+    >
+      <SkillFace def={def} content={content} />
+      {s.cooldown > 0 && <span className="cdn">{s.cooldown}</span>}
     </span>
   );
 }
