@@ -14,6 +14,7 @@ import { GuideCoach } from './ui/GuideCoach.js';
 import { KeywordHelp } from './ui/KeywordHelp.js';
 import { ReferenceScreen } from './ui/Reference.js';
 import { isReferenceHash } from './reference/route.js';
+import { Admin } from './ui/Admin.js';
 
 export function App() {
   const screen = useStore((s) => s.screen);
@@ -66,5 +67,6 @@ function Page({ screen, status }: { screen: ReturnType<typeof useStore.getState>
   if (screen === 'history') return <History />;
   if (screen === 'story') return <Story />;
   if (screen === 'tutorial') return <Tutorial />;
+  if (screen === 'admin') return <Admin />;
   return <Home />;
 }

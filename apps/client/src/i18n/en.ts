@@ -12,6 +12,7 @@ export const en = {
   'common.claimed': '(claimed)',
   'common.none': '—',
   'nav.settings': 'Settings',
+  'nav.admin': 'Admin',
   'nav.signOut': 'Sign out',
   'nav.tutorial': 'Tutorial',
   'nav.story': 'Story',

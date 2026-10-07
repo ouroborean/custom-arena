@@ -13,6 +13,8 @@ export interface SessionUser {
   id: string;
   email: string;
   displayName: string;
+  /** Can use the admin tool (the account's email is in ADMIN_EMAILS). */
+  isAdmin?: boolean;
 }
 
 const tokenId = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -33,10 +35,10 @@ export async function createSession(db: Db, userId: string, days: number): Promi
   return { token, expiresAt };
 }
 
-export async function userForSession(db: Db, token: string | undefined): Promise<SessionUser | null> {
+export async function userForSession(db: Db, token: string | undefined): Promise<(SessionUser & { lastSeenAt: Date | null }) | null> {
   if (!token) return null;
   const rows = await db
-    .select({ id: users.id, email: users.email, displayName: users.displayName })
+    .select({ id: users.id, email: users.email, displayName: users.displayName, lastSeenAt: users.lastSeenAt })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.id, tokenId(token)), gt(sessions.expiresAt, new Date())))

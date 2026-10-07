@@ -124,6 +124,11 @@ export function Home() {
             ))}
           </span>
           <span>{user?.displayName}</span>
+          {user?.isAdmin && (
+            <button type="button" className="btn small" onClick={() => go('admin')}>
+              {t('nav.admin')}
+            </button>
+          )}
           <button type="button" className="btn small" onClick={() => go('settings')}>
             {t('nav.settings')}
           </button>

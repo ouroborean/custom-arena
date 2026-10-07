@@ -8,6 +8,48 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  /** Can use the admin tool. */
+  isAdmin?: boolean;
+}
+
+/** The admin tool's headline counts and who's online. */
+export interface AdminOverview {
+  registered: number;
+  newToday: number;
+  newThisWeek: number;
+  activeToday: number;
+  activeNow: number;
+  matchesToday: number;
+  inMatch: number;
+  online: { id: string; name: string; inMatch: boolean }[];
+}
+
+export interface AdminPlayerRow {
+  id: string;
+  displayName: string;
+  email: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  level: number;
+  gold: number | null;
+  characters: number;
+  online: boolean;
+}
+
+export interface AdminPlayer {
+  account: { id: string; displayName: string; email: string; createdAt: string; lastSeenAt: string | null; online: boolean; inMatch: boolean };
+  progress: { level: number; xp: number; needed: number; total: number; unopenedBoxes: number };
+  wallet: Wallet;
+  characters: (Character & { resolved: ResolvedLoadout })[];
+  team: string[];
+  inventory: { id: string; itemId: string; source: string; acquiredAt: string; equippedOn: string | null }[];
+  ranked: { season: string; rating: number; display: number; games: number; wins: number; tier: string | null } | null;
+  casual: { games: number; wins: number };
+  story: { cleared: number; clears: { id: string; clears: number }[]; chapters: string[] };
+  arcadeBest: number;
+  achievements: string[];
+  guides: string[];
+  recentMatches: { id: string; kind: string; status: string; opponent: string; outcome: 'win' | 'loss' | 'draw' | null; endReason: string | null; turns: number; startedAt: string }[];
 }
 
 export interface Character {
@@ -201,6 +243,10 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 export const api = {
   health: () => call<{ ok: boolean; engine: string; content: string }>('GET', '/health'),
   me: () => call<{ user: User }>('GET', '/me'),
+  adminOverview: () => call<AdminOverview>('GET', '/admin/overview'),
+  adminPlayers: (q: string, page: number) =>
+    call<{ total: number; page: number; pageSize: number; players: AdminPlayerRow[] }>('GET', `/admin/players?q=${encodeURIComponent(q)}&page=${page}`),
+  adminPlayer: (id: string) => call<AdminPlayer>('GET', `/admin/players/${id}`),
   register: (email: string, password: string, displayName: string) =>
     call<{ user: User }>('POST', '/auth/register', { email, password, displayName }),
   login: (email: string, password: string) => call<{ user: User }>('POST', '/auth/login', { email, password }),

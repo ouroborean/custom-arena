@@ -68,6 +68,16 @@ interface Lobby {
 }
 
 export class MatchHub {
+  /** Accounts connected right now (one live connection each). */
+  onlineUserIds(): string[] {
+    return [...this.clients.keys()];
+  }
+
+  /** Accounts in an online match right now. */
+  inMatchUserIds(): string[] {
+    return [...this.userRoom.keys()];
+  }
+
   private readonly rooms = new Map<string, MatchRoom>();
   private readonly userRoom = new Map<string, string>();
   private readonly clients = new Map<string, Client>();
