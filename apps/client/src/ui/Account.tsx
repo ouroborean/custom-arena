@@ -1,4 +1,4 @@
-// Sign in / register, plus the way into the offline sandbox.
+// Sign in / register, plus the ways into the offline sandbox and the game reference.
 
 import { useState, type FormEvent } from 'react';
 import { useMeta } from '../meta.js';
@@ -72,9 +72,14 @@ export function Account() {
         </button>
         {mode === 'register' && <p className="muted small-note">New accounts start with three characters and a few items.</p>}
       </form>
-      <button type="button" className="btn" onClick={() => go('sandbox')}>
-        Play offline sandbox
-      </button>
+      <div className="row-actions">
+        <button type="button" className="btn" onClick={() => go('sandbox')}>
+          Play offline sandbox
+        </button>
+        <button type="button" className="btn" onClick={() => go('reference')}>
+          Game reference
+        </button>
+      </div>
     </div>
   );
 }
@@ -103,6 +108,9 @@ export function Offline() {
           </button>
           <button type="button" className="btn primary" onClick={() => go('sandbox')}>
             Offline sandbox
+          </button>
+          <button type="button" className="btn" onClick={() => go('reference')}>
+            Game reference
           </button>
         </div>
       </section>

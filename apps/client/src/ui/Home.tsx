@@ -1,6 +1,7 @@
-// Home: the header (wallet, account), the experience bar, and three tabs. Main: the active team, the
+// Home: the header (wallet, account), the experience bar, and four tabs. Main: the active team, the
 // leaderboards, and every way to play, each explained. Roster: recruiting, opening characters and picking
-// the team. Forge: the inventory, forging, splitting, selling and trading in.
+// the team. Forge: the inventory, forging, splitting, selling and trading in. Reference: every skill,
+// element, fusion, keyword and status (ui/Reference.tsx).
 
 import { useEffect, useState } from 'react';
 import { canAfford, formatAmounts } from '@arena/meta';
@@ -13,6 +14,7 @@ import { arcadeMode, useStore, type HomeTab } from '../store.js';
 import { Brand } from './Account.js';
 import { InventoryPanel } from './Inventory.js';
 import { Leaderboards } from './Leaderboards.js';
+import { Reference } from './Reference.js';
 import { OnlinePanel } from './OnlinePanel.js';
 import { XpBar } from './Progress.js';
 import { CharacterCard, Portrait } from './Roster.js';
@@ -106,6 +108,7 @@ export function Home() {
     { id: 'main', label: t('home.tab.main') },
     { id: 'roster', label: t('home.tab.roster') },
     { id: 'forge', label: t('home.tab.forge') },
+    { id: 'reference', label: t('home.tab.reference') },
   ];
 
   return (
@@ -392,6 +395,12 @@ export function Home() {
       {tab === 'forge' && (
         <div className="home-panel" role="tabpanel" id="home-panel-forge" aria-labelledby="home-tab-forge">
           <InventoryPanel />
+        </div>
+      )}
+
+      {tab === 'reference' && (
+        <div className="home-panel" role="tabpanel" id="home-panel-reference" aria-labelledby="home-tab-reference">
+          <Reference />
         </div>
       )}
     </div>
