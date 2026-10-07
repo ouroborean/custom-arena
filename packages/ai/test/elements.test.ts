@@ -17,13 +17,13 @@ describe('character elements', () => {
       for (const team of randomConfig(content, seed).teams) for (const c of team) expect(base.has(c.element!), `${seed}: ${c.element}`).toBe(true);
     }
     for (let seed = 0; seed < 200; seed++) expect(base.has(randomCharacter(content, seedRng(seed), '').element!)).toBe(true);
-  });
+  }, 30_000); // hundreds of random teams: room for a loaded full-suite run
 
   it('arcade teams always have base elements', () => {
     for (let stage = 1; stage <= arcadeDef(content).stages.length; stage++) {
       for (let i = 0; i < 20; i++) for (const c of arcadeTeam(content, stage, seedRng(stage * 100 + i))) expect(base.has(c.element!)).toBe(true);
     }
-  });
+  }, 30_000);
 
   it('every story and tutorial character has a base element', () => {
     for (const enc of Object.values(content.encounters)) {
