@@ -22,6 +22,7 @@ export function Tutorial() {
   const [starting, setStarting] = useState<string | null>(null);
   const done = useGuide((s) => s.done);
   const beginGuide = useGuide((s) => s.begin);
+  const setHomeTab = useStore((s) => s.setHomeTab);
   const characters = useMeta((s) => s.characters);
   const team = useMeta((s) => s.team);
 
@@ -31,9 +32,13 @@ export function Tutorial() {
     const first = guide.steps[0]!.screen ?? 'home';
     const who = team[0] ?? characters[0]?.id;
     const screen = first === 'character' && who ? 'character' : 'home';
-    beginGuide(id, snapshotOf(characters, useGuide.getState().signals, screen, screen === 'character' ? who! : null));
+    // Home guides start on the Main tab: their first steps show the player which tab to open.
+    beginGuide(id, snapshotOf(characters, useGuide.getState().signals, screen, screen === 'character' ? who! : null, 'main'));
     if (screen === 'character') go('character', who);
-    else go('home');
+    else {
+      setHomeTab('main');
+      go('home');
+    }
   };
 
   const grantText = (g: GrantSpec | undefined): string => {

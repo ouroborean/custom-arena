@@ -159,6 +159,7 @@ export function Home() {
             aria-selected={tab === x.id}
             aria-controls={`home-panel-${x.id}`}
             className={`home-tab${tab === x.id ? ' active' : ''}`}
+            data-guide={`tab-${x.id}`}
             onClick={() => setTab(x.id)}
           >
             {x.label}

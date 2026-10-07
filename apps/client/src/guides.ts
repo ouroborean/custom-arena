@@ -22,6 +22,8 @@ export interface GuideSnapshot {
   benchBase: boolean;
   benchAddition: boolean;
   screen: string;
+  /** The Home tab showing (main, roster, forge, reference). */
+  homeTab: string;
   characterId: string | null;
 }
 
@@ -58,6 +60,12 @@ export const GUIDES: Guide[] = [
       },
       {
         screen: 'home',
+        highlight: 'tab-roster',
+        text: 'Your characters and your team live on the Roster tab. Click "Roster".',
+        until: (now) => now.homeTab === 'roster',
+      },
+      {
+        screen: 'home',
         highlight: 'recruit',
         text: 'Click "Recruit a character". You get a random class (favoring classes you have fewer of) and a random element.',
         until: (now, start) => now.characters > start.characters,
@@ -70,11 +78,11 @@ export const GUIDES: Guide[] = [
       {
         screen: 'home',
         highlight: 'team',
-        text: 'Your first three recruits become your active team: the three you take into practice, the story, the arcade and online matches. "Change team" picks a different three, in battle order.',
+        text: 'Your first three recruits become your active team: the three you take into practice, the story, the arcade and online matches, in slot order. Drag a character onto a team slot to put them in, or drag the slots to change the order (on a touch screen, press and hold first). "Change team" does the same by clicking. Drag cards onto each other to rearrange your roster.',
       },
       {
         highlight: 'roster',
-        text: "Click a character's card to open them. Their page shows their skills and loadout; the Equipment and Infusions guides go on from there.",
+        text: "Click a character's card to open them. Their page shows their skills and loadout; the Equipment and Infusions guides go on from there. Your team also shows on the Main tab, beside the ways to play.",
         until: (now) => now.screen === 'character',
       },
     ],
@@ -151,19 +159,25 @@ export const GUIDES: Guide[] = [
     steps: [
       {
         screen: 'home',
+        highlight: 'tab-forge',
+        text: 'Your pieces and the forge are on the Forge tab. Click "Forge".',
+        until: (now) => now.homeTab === 'forge',
+      },
+      {
+        screen: 'home',
         highlight: 'inventory',
         text: 'Your inventory holds pieces made of components: Skills, Shards (infusions) and Sigils (passives). Matches, the story and the arcade drop new ones.',
       },
       {
         screen: 'home',
         highlight: 'pieces',
-        text: 'Click a piece you aren\'t wearing, then "Use as base". The base keeps its name; what you add to it gives it a prefix or suffix.',
+        text: 'Drag a piece you aren\'t wearing onto the Base slot (or click it, then "Use as base"). The base keeps its name; what you add to it gives it a prefix or suffix.',
         until: (now) => now.benchBase,
       },
       {
         screen: 'home',
         highlight: 'pieces',
-        text: 'Now pick a second piece and click "Use as addition". A piece holds up to 3 components, with at most one Sigil and no skill twice.',
+        text: 'Now drag a second piece onto the Addition slot (or click it, then "Use as addition"). A piece holds up to 3 components, with at most one Sigil and no skill twice. Drag a piece back onto your pieces to take it off the bench.',
         until: (now) => now.benchAddition,
       },
       {
@@ -175,7 +189,12 @@ export const GUIDES: Guide[] = [
       {
         screen: 'home',
         highlight: 'pieces',
-        text: 'A forged piece fills one slot with everything it holds. "Split" takes it back apart for a small fee, "Sell" turns any spare piece into Gold, and "Add to trade-in" puts single components toward a trade: any 3 for a random one of another kind.',
+        text: 'A forged piece fills one slot with everything it holds. "Split" takes it back apart for a small fee, and "Sell" turns any spare piece into Gold.',
+      },
+      {
+        screen: 'home',
+        highlight: 'trade',
+        text: 'Single components you don\'t need can be traded in: drag any 3 onto these slots (or use "Add to trade-in"), then click "Trade in" for one random component of another kind. It\'s free.',
       },
     ],
   },
@@ -192,8 +211,8 @@ try {
   // Storage blocked: nothing to clean up.
 }
 
-export function snapshotOf(characters: Character[], signals: Signals, screen: string, characterId: string | null): GuideSnapshot {
-  return { characters: characters.length, ...signals, screen, characterId };
+export function snapshotOf(characters: Character[], signals: Signals, screen: string, characterId: string | null, homeTab = 'main'): GuideSnapshot {
+  return { characters: characters.length, ...signals, screen, homeTab, characterId };
 }
 
 interface GuideState {
