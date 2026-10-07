@@ -86,7 +86,7 @@ export function GuideCoach() {
   const characters = useMeta((s) => s.characters);
   const team = useMeta((s) => s.team);
 
-  const now = useMemo(() => snapshotOf(characters, signals, screen, characterId), [characters, signals, screen, characterId]);
+  const now = useMemo(() => snapshotOf(characters, signals, screen, characterId, homeTab), [characters, signals, screen, characterId, homeTab]);
   const guide = active ? guideById(active.id) : undefined;
   const step = active && guide ? guide.steps[active.step] : undefined;
   const elsewhere = !!step?.screen && step.screen !== screen;
@@ -98,7 +98,7 @@ export function GuideCoach() {
     if (!active || here) return;
     // The screens report their state in their own effects; read it fresh rather than from this render.
     const s = useGuide.getState().signals;
-    rebase(snapshotOf(useMeta.getState().characters, s, screen, characterId));
+    rebase(snapshotOf(useMeta.getState().characters, s, screen, characterId, useStore.getState().homeTab));
   }, [active, here, screen, characterId, rebase]);
 
   // `active` is a dependency too: a step can already be met when it begins (the addition was on the
