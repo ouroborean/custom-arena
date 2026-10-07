@@ -96,10 +96,14 @@ function CharacterPage({
     setServerProblems([]);
     setSaved(null);
     try {
-      await api.saveLoadout(c.id, draft);
+      // Pieces another character wears that the player chose to move here come off them on save.
+      const take = draft.items
+        .map((e) => e.instanceId)
+        .filter((id): id is string => !!id && !!inventory.find((i) => i.id === id && i.equippedOn && i.equippedOn !== c.id));
+      const r = await api.saveLoadout(c.id, draft, take);
       await onSaved();
       countForGuide('saves');
-      setSaved('Loadout saved');
+      setSaved(r.moved.length ? `Loadout saved; moved from ${r.moved.map((m) => m.name).join(', ')}` : 'Loadout saved');
     } catch (e) {
       setServerProblems(e instanceof ApiError && e.problems.length ? e.problems : [String((e as Error).message)]);
     }

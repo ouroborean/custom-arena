@@ -272,8 +272,13 @@ export const api = {
   forge: (base: string, addition: string) => call<{ item: InventoryItem; wallet: Wallet }>('POST', '/forge', { base, addition }),
   split: (id: string) => call<{ items: InventoryItem[]; wallet: Wallet }>('POST', `/inventory/${id}/split`),
   salvage: (id: string) => call<{ paid: Record<string, number>; wallet: Wallet }>('POST', `/inventory/${id}/salvage`),
-  saveLoadout: (id: string, loadout: Loadout) =>
-    call<{ loadout: Loadout; resolved: ResolvedLoadout }>('PUT', `/characters/${id}/loadout`, { loadout }),
+  /** `take`: instances worn by other characters that the player confirmed moving to this one. */
+  saveLoadout: (id: string, loadout: Loadout, take: string[] = []) =>
+    call<{ loadout: Loadout; resolved: ResolvedLoadout; moved: { characterId: string; name: string; loadout: Loadout }[] }>(
+      'PUT',
+      `/characters/${id}/loadout`,
+      take.length ? { loadout, take } : { loadout },
+    ),
   presets: (id: string) => call<{ presets: Preset[] }>('GET', `/characters/${id}/presets`),
   savePreset: (id: string, name: string, loadout: Loadout) =>
     call<{ preset: Preset }>('POST', `/characters/${id}/presets`, { name, loadout }),

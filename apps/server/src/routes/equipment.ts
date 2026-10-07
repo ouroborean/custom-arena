@@ -5,7 +5,7 @@
 // salvage only take unequipped pieces.
 
 import { pick, pieceComponentIds, pieceDisplayName, pieceProblems, seedRng } from '@arena/engine';
-import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, tradeIn, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
+import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, tradeIn, withoutItem, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -39,8 +39,18 @@ export function resolveStored(ctx: AppContext, c: CharacterRow): ResolvedLoadout
   return resolveLoadout(ctx.content, recordOf(c), c.loadout);
 }
 
-/** Full validation of a loadout the user wants to save on a character; throws 400 with problems. */
-export async function checkLoadout(ctx: AppContext, userId: string, c: CharacterRow, loadout: Loadout): Promise<ResolvedLoadout> {
+/**
+ * Full validation of a loadout the user wants to save on a character; throws 400 with problems. A piece
+ * equipped on another character is a problem unless its instance is in `take` (the player confirmed
+ * moving it here): those are returned by character, to come off them when the loadout is saved.
+ */
+export async function checkLoadout(
+  ctx: AppContext,
+  userId: string,
+  c: CharacterRow,
+  loadout: Loadout,
+  take: ReadonlySet<string> = new Set(),
+): Promise<{ resolved: ResolvedLoadout; takeFrom: { row: CharacterRow; instances: string[] }[] }> {
   const eqs = loadout.items;
   const ids = eqs.map((e) => e.instanceId!).filter(Boolean);
   const owned = ids.length
@@ -55,20 +65,25 @@ export async function checkLoadout(ctx: AppContext, userId: string, c: Character
     if (!inst) problems.push(`You don't own that ${pieceDisplayName(ctx.content, e.itemId)}`);
     else if (inst.itemId !== e.itemId) problems.push(`Instance ${e.instanceId} is a ${inst.itemId}, not ${e.itemId}`);
   }
-  // An instance can only be equipped on one character.
+  // An instance can only be equipped on one character: one the player chose to take moves here.
   const others = await ctx.db
-    .select({ name: characters.name, loadout: characters.loadout })
+    .select()
     .from(characters)
     .where(and(eq(characters.userId, userId), ne(characters.id, c.id)));
+  const takeFrom: { row: CharacterRow; instances: string[] }[] = [];
   for (const o of others) {
+    const taken: string[] = [];
     for (const e of o.loadout.items ?? []) {
-      if (e.instanceId && ids.includes(e.instanceId)) problems.push(`${pieceDisplayName(ctx.content, e.itemId)} is equipped on ${o.name}`);
+      if (!e.instanceId || !ids.includes(e.instanceId)) continue;
+      if (take.has(e.instanceId)) taken.push(e.instanceId);
+      else problems.push(`${pieceDisplayName(ctx.content, e.itemId)} is equipped on ${o.name}`);
     }
+    if (taken.length) takeFrom.push({ row: o, instances: taken });
   }
   const resolved = resolveLoadout(ctx.content, recordOf(c), loadout);
   problems.push(...resolved.problems);
   if (problems.length) throw new HttpError(400, 'That loadout is invalid', { problems });
-  return resolved;
+  return { resolved, takeFrom };
 }
 
 /** Instance ids currently equipped on any of the user's characters, and on whom. */
@@ -242,13 +257,31 @@ export function equipmentRoutes(ctx: AppContext) {
       return { loadout: c.loadout, resolved: resolveStored(ctx, c) };
     });
 
+    /**
+     * Saves a character's loadout. `take` lists instances the player confirmed moving here from other
+     * characters: they come off those characters (with the skills and infusions that needed them) in the
+     * same transaction.
+     */
     app.put('/api/characters/:id/loadout', async (req) => {
       const { id } = parse(IdParam, req.params);
-      const { loadout } = parse(z.object({ loadout: LoadoutSchema }), req.body);
+      const { loadout, take } = parse(z.object({ loadout: LoadoutSchema, take: z.array(z.uuid()).max(EQUIPMENT_SLOTS).optional() }), req.body);
       const c = await ownedCharacter(ctx, req.user!.id, id);
-      const resolved = await checkLoadout(ctx, req.user!.id, c, loadout);
-      await ctx.db.update(characters).set({ loadout }).where(eq(characters.id, id));
-      return { loadout, resolved };
+      const { resolved, takeFrom } = await checkLoadout(ctx, req.user!.id, c, loadout, new Set(take ?? []));
+      const moved = await inTransaction(ctx.db, async (db) => {
+        const out: { characterId: string; name: string; loadout: Loadout }[] = [];
+        for (const { row, instances } of takeFrom) {
+          let next = row.loadout;
+          for (const inst of instances) {
+            const slot = next.items.findIndex((e) => e.instanceId === inst);
+            if (slot >= 0) next = withoutItem(ctx.content, recordOf(row), next, slot);
+          }
+          await db.update(characters).set({ loadout: next }).where(eq(characters.id, row.id));
+          out.push({ characterId: row.id, name: row.name, loadout: next });
+        }
+        await db.update(characters).set({ loadout }).where(eq(characters.id, id));
+        return out;
+      });
+      return { loadout, resolved, moved };
     });
 
     app.get('/api/characters/:id/presets', async (req) => {
@@ -278,7 +311,7 @@ export function equipmentRoutes(ctx: AppContext) {
         .from(loadoutPresets)
         .where(and(eq(loadoutPresets.id, presetId), eq(loadoutPresets.characterId, id)));
       if (!p) throw new HttpError(404, 'No such preset');
-      const resolved = await checkLoadout(ctx, req.user!.id, c, p.loadout);
+      const { resolved } = await checkLoadout(ctx, req.user!.id, c, p.loadout);
       await ctx.db.update(characters).set({ loadout: p.loadout }).where(eq(characters.id, id));
       return { loadout: p.loadout, resolved };
     });

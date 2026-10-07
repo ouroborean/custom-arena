@@ -129,6 +129,25 @@ describe('loadouts', () => {
     expect(second.json().problems[0]).toContain(`equipped on ${chars[0]!.name}`);
   });
 
+  it('a piece another character wears moves here when the player confirms (take), cleaning up after it', async () => {
+    const { call, grant, chars } = await account('take@example.com');
+    const [a, b] = [chars[0]!, chars[1]!];
+    const shard = await grant('wind_shard');
+    const on = (c: Character) => ({ items: [{ itemId: 'wind_shard', instanceId: shard }], infusions: [{ skill: freeSkill(c), element: 'Wind' }] });
+    expect((await call('PUT', `/api/characters/${a.id}/loadout`, { loadout: on(a) })).statusCode).toBe(200);
+    // Without confirming, it's still refused; confirmed, it moves.
+    expect((await call('PUT', `/api/characters/${b.id}/loadout`, { loadout: on(b) })).statusCode).toBe(400);
+    const moved = await call('PUT', `/api/characters/${b.id}/loadout`, { loadout: on(b), take: [shard] });
+    expect(moved.statusCode).toBe(200);
+    expect(moved.json().moved).toEqual([{ characterId: a.id, name: a.name, loadout: { items: [], infusions: [], skills: [] } }]);
+    // The first character lost the Shard and the Wind infusion it paid for; the second has both.
+    expect((await call('GET', `/api/characters/${a.id}/loadout`)).json().loadout.items).toEqual([]);
+    expect((await call('GET', `/api/characters/${a.id}/loadout`)).json().loadout.infusions).toEqual([]);
+    expect((await call('GET', `/api/characters/${b.id}/loadout`)).json().loadout).toMatchObject(on(b));
+    const inv = (await call('GET', '/api/inventory')).json().items as { id: string; equippedOn: string | null }[];
+    expect(inv.find((i) => i.id === shard)!.equippedOn).toBe(b.id);
+  });
+
   it('presets save, apply and delete', async () => {
     const { call, grant, chars } = await account('presets@example.com');
     const c = chars[0]!;
