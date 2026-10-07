@@ -57,7 +57,7 @@ export interface CommitPlan {
 
 /** Screens a match can return to. */
 export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
-export type Screen = ReturnScreen | 'character' | 'battle' | 'settings' | 'reference';
+export type Screen = ReturnScreen | 'character' | 'battle' | 'settings' | 'reference' | 'admin';
 /** Home's tabs: playing (main), the roster and team, the forge, and the game reference. */
 export type HomeTab = 'main' | 'roster' | 'forge' | 'reference';
 

@@ -22,6 +22,8 @@ export interface ServerConfig {
   seasonsFile?: string;
   /** Behind a reverse proxy on this machine (TRUST_PROXY=1): client IPs come from X-Forwarded-For. */
   trustProxy: boolean;
+  /** Accounts (by email, any case) that can use the admin tool: ADMIN_EMAILS, comma-separated. */
+  adminEmails: string[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -36,5 +38,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     testGold: env.NODE_ENV === 'production' ? 0 : Number(env.TEST_GOLD ?? 0),
     ...(env.SEASONS_FILE ? { seasonsFile: env.SEASONS_FILE } : {}),
     trustProxy: env.TRUST_PROXY === '1' || env.TRUST_PROXY === 'true',
+    adminEmails: (env.ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
   };
 }

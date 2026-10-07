@@ -28,6 +28,25 @@ It uploads the release, runs `npm ci` and the client build on the VM, publishes 
 `/api/health`. Players get the new client the next time they load the page (the service worker
 picks up the new build).
 
+## Admin
+
+The admin tool (Home → **Admin**, `apps/client/src/ui/Admin.tsx`, `/api/admin/*`) shows:
+- player counts and who's online;
+- a searchable player list;
+- each account's characters, loadouts, level, wallet, inventory, team, ratings, progress and recent matches.
+
+Only accounts whose email is listed in `ADMIN_EMAILS` (comma-separated, any case) can use it. Everyone else gets 403, and each player lookup is written to `audit_log` as `admin_view`. The list is kept out of the repo, in a systemd drop-in on the VM:
+
+```sh
+sudo mkdir -p /etc/systemd/system/custom-arena.service.d
+printf '[Service]
+Environment=ADMIN_EMAILS=you@example.com
+' | sudo tee /etc/systemd/system/custom-arena.service.d/admin.conf
+sudo systemctl daemon-reload && sudo systemctl restart custom-arena
+```
+
+Locally, the `server-admin` entry in `.claude/launch.json` runs the dev server with `ADMIN_EMAILS=admin-dev@example.test`.
+
 ## Useful commands (on the VM)
 
 ```bash

@@ -14,6 +14,8 @@ export const users = pgTable(
     displayName: text('display_name').notNull(),
     passwordHash: text('password_hash').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** When the account was last active (any signed-in request, written at most every few minutes). */
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('users_email_idx').on(sql`lower(${t.email})`)],
 );

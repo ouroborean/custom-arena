@@ -29,6 +29,18 @@
         "@arena/client"
       ],
       "port": 4173
+    },
+    {
+      "name": "server-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "server"
+      ],
+      "port": 8787,
+      "env": {
+        "ADMIN_EMAILS": "admin-dev@example.test"
+      }
     }
   ]
 }

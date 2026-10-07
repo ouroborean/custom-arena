@@ -6334,3 +6334,210 @@ a.ref-card-name:hover {
     font-size: 19px;
   }
 }
+
+/* ------------------------------------------------------------ admin tool (ui/Admin.tsx) */
+
+.admin .conn-dot {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--ink);
+  border: 2px solid var(--line);
+}
+
+.admin-stat b {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.admin-stat span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.admin-stat.accent {
+  border-color: var(--hp);
+}
+
+.admin-stat.accent b {
+  color: var(--hp);
+}
+
+.admin-online {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.admin-online .panel-title {
+  margin: 0;
+}
+
+.admin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--ink-2);
+  border: 1px solid var(--line-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.admin-chip:hover {
+  border-color: var(--text);
+}
+
+.admin-players .section-head input {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 2px solid var(--line);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-table th {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--ink);
+}
+
+.admin-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-table tbody tr:hover,
+.admin-table tbody tr.open {
+  background: var(--ink-2);
+}
+
+.admin-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-pager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-detail {
+  width: min(920px, 100%);
+}
+
+.admin-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-detail h3 {
+  font-size: 18px;
+  margin: 4px 0 -6px;
+  color: var(--text);
+}
+
+.admin-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.admin-facts dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-chars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.admin-char {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--ink-2);
+  border: 2px solid var(--line);
+  font-size: 12px;
+}
+
+.admin-char.in-team {
+  border-color: var(--yellow);
+}
+
+.admin-char-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-char-line {
+  overflow-wrap: anywhere;
+}
+
+.admin-inventory {
+  margin: 0;
+  padding-left: 18px;
+  columns: 2 240px;
+  font-size: 13px;
+}

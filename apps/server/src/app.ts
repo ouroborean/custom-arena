@@ -7,10 +7,12 @@ import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import { ENGINE_VERSION, type ContentBundle } from '@arena/engine';
 import { OPEN_SCHEDULE, type SeasonSchedule } from '@arena/meta';
+import { eq } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { SESSION_COOKIE, userForSession, type SessionUser } from './auth.js';
 import type { Db } from './db/client.js';
+import { users } from './db/schema.js';
 import { realClock, type Clock } from './match/clock.js';
 import { MatchHub } from './match/hub.js';
 import { authRoutes } from './routes/auth.js';
@@ -18,10 +20,14 @@ import { equipmentRoutes } from './routes/equipment.js';
 import { matchRoutes } from './routes/matches.js';
 import { rosterRoutes } from './routes/roster.js';
 import { arcadeRoutes } from './routes/arcade.js';
+import { adminRoutes } from './routes/admin.js';
 import { leaderboardRoutes } from './routes/leaderboards.js';
 import { progressRoutes } from './routes/progress.js';
 import { practiceRoutes } from './routes/practice.js';
 import { storyRoutes } from './routes/story.js';
+
+/** How often a player's last-active time is written (ms). */
+const SEEN_EVERY_MS = 5 * 60_000;
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -51,6 +57,8 @@ export interface AppOptions {
   authRateLimit?: number;
   /** Behind a reverse proxy (nginx): take the client IP from X-Forwarded-For. */
   trustProxy?: boolean;
+  /** Accounts (by email) that can use the admin tool (ServerConfig.adminEmails). */
+  adminEmails?: string[];
   logger?: boolean;
 }
 
@@ -65,6 +73,10 @@ export interface AppContext {
   authRateLimit: number;
   clock: Clock;
   seasons: SeasonSchedule;
+  /** Lower-cased emails of the accounts that can use the admin tool. */
+  adminEmails: Set<string>;
+  /** The live match service (set once the app is built): who's connected, who's in a match. */
+  hub?: MatchHub;
 }
 
 export class HttpError extends Error {
@@ -89,6 +101,12 @@ export async function requireUser(req: FastifyRequest): Promise<void> {
   if (!req.user) throw new HttpError(401, 'Sign in first');
 }
 
+/** The admin tool's guard: a signed-in account listed in ADMIN_EMAILS. */
+export async function requireAdmin(req: FastifyRequest): Promise<void> {
+  if (!req.user) throw new HttpError(401, 'Sign in first');
+  if (!req.user.isAdmin) throw new HttpError(403, 'Admins only');
+}
+
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   const ctx: AppContext = {
     db: opts.db,
@@ -101,6 +119,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     authRateLimit: opts.authRateLimit ?? 20,
     clock: opts.clock ?? realClock,
     seasons: opts.seasons ?? OPEN_SCHEDULE,
+    adminEmails: new Set((opts.adminEmails ?? []).map((e) => e.trim().toLowerCase())),
   };
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: opts.trustProxy ?? false });
   await app.register(cookie);
@@ -110,7 +129,18 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
 
   app.decorateRequest('user', null);
   app.addHook('onRequest', async (req) => {
-    req.user = await userForSession(ctx.db, req.cookies[SESSION_COOKIE]);
+    const found = await userForSession(ctx.db, req.cookies[SESSION_COOKIE]);
+    if (!found) {
+      req.user = null;
+      return;
+    }
+    const { lastSeenAt, ...user } = found;
+    req.user = { ...user, isAdmin: ctx.adminEmails.has(user.email.toLowerCase()) };
+    // When the player was last active (for the admin tool): written at most every few minutes.
+    const now = Date.now();
+    if (!lastSeenAt || now - lastSeenAt.getTime() > SEEN_EVERY_MS) {
+      void ctx.db.update(users).set({ lastSeenAt: new Date(now) }).where(eq(users.id, user.id)).catch(() => undefined);
+    }
   });
 
   app.setErrorHandler((err: unknown, _req: FastifyRequest, reply: FastifyReply) => {
@@ -141,9 +171,11 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(arcadeRoutes(ctx));
   await app.register(progressRoutes(ctx));
   await app.register(leaderboardRoutes(ctx));
+  await app.register(adminRoutes(ctx));
 
   // The match service (GDD §10.4): one WebSocket per signed-in user.
   const hub = new MatchHub(ctx, ctx.clock, (msg, err) => app.log.error({ err }, msg));
+  ctx.hub = hub;
   app.decorate('hub', hub);
   app.get('/api/ws', { websocket: true }, (socket, req) => {
     if (!req.user) return socket.close(4401, 'Sign in first');
