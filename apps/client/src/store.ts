@@ -19,6 +19,7 @@ import { useMeta } from './meta.js';
 import { useSettings } from './settings.js';
 import { cueFor } from './match/cues.js';
 import { playCue } from './sfx.js';
+import { isReferenceHash } from './reference/route.js';
 
 /** True while playback is being skipped to the end (no sound per event). */
 let fastForwarding = false;
@@ -56,9 +57,9 @@ export interface CommitPlan {
 
 /** Screens a match can return to. */
 export type ReturnScreen = 'home' | 'sandbox' | 'history' | 'story' | 'tutorial';
-export type Screen = ReturnScreen | 'character' | 'battle' | 'settings';
-/** Home's tabs: playing (main), the roster and team, and the forge. */
-export type HomeTab = 'main' | 'roster' | 'forge';
+export type Screen = ReturnScreen | 'character' | 'battle' | 'settings' | 'reference';
+/** Home's tabs: playing (main), the roster and team, the forge, and the game reference. */
+export type HomeTab = 'main' | 'roster' | 'forge' | 'reference';
 
 /** A skill use, as the action popup shows it. */
 export interface ShownAction {
@@ -258,7 +259,8 @@ export const useStore = create<StoreState>((set, get) => {
   }
 
   return {
-    screen: 'home',
+    // A reference link (#reference/…) opens the game reference (ui/Reference.tsx).
+    screen: typeof location !== 'undefined' && isReferenceHash(location.hash) ? 'reference' : 'home',
     homeTab: 'main',
     storyResult: null,
     coach: null,
