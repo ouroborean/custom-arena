@@ -5,7 +5,7 @@
 
 import type { ContentBundle, EffectKind, GlossaryDef, SkillDef } from '@arena/engine';
 import { keywordMatcher, type Matcher } from '../keywords.js';
-import { ELEMENTS, ELEMENT_PROSE, GROUPS } from './prose.js';
+import { ELEMENTS, ELEMENT_PROSE, KITS } from './prose.js';
 
 export type Element = (typeof ELEMENTS)[number];
 
@@ -47,7 +47,8 @@ export interface RefKit {
   id: string;
   name: string;
   parents: [Element, Element];
-  group: string;
+  /** The element sections it's listed under: both parents' (one for a pure fusion). */
+  groups: string[];
   tagline: string;
   playsLike: string;
   notes: string[];
@@ -188,55 +189,63 @@ export function buildReference(content: ContentBundle, coreStatusIds: readonly s
   const rules = glossary.filter((g) => !g.element && !g.status).map((g) => termEntry(g, 'rules'));
 
   // ------------------------------------------------ fusions
-  const prose = new Map(GROUPS.flatMap((g) => g.kits.map((k) => [k.id, { ...k, group: g.slug }] as const)));
+  // Fusions are listed by element: each element's section has its pure fusion first, then its pairs in
+  // element order, so a pair appears under both of its elements.
+  const prose = new Map(KITS.map((k) => [k.id, k] as const));
   for (const f of Object.values(content.fusions)) if (!prose.has(f.id)) problems.push(`fusion ${f.id} has no reference prose`);
+  for (const k of KITS) if (!content.fusions[k.id]) problems.push(`prose for ${k.id}, which isn't a fusion`);
+  const order = (e: string) => (ELEMENTS as readonly string[]).indexOf(e);
   const kitById = new Map<string, RefKit>();
-  const groups: RefGroup[] = GROUPS.map((g) => ({
-    slug: g.slug,
-    title: g.title,
-    lead: g.lead,
-    kits: g.kits.flatMap((p) => {
-      const f = content.fusions[p.id];
-      if (!f) {
-        problems.push(`prose for ${p.id}, which isn't a fusion`);
-        return [];
+  for (const f of Object.values(content.fusions)) {
+    const p = prose.get(f.id);
+    if (!p) continue;
+    const keywords: RefKeyword[] = glossary
+      .filter((x) => x.element === f.name)
+      .map((x) => {
+        const kind = x.status ? content.statuses[x.status]?.kind : undefined;
+        return { id: x.id, name: x.name, text: x.text, passive: false, ...(kind ? { kind } : {}) };
+      });
+    const passives: RefPassive[] = [];
+    for (const id of f.passives ?? []) {
+      const st = content.statuses[id];
+      if (!st) {
+        problems.push(`${f.id}: passive ${id} doesn't exist`);
+        continue;
       }
-      const keywords: RefKeyword[] = glossary
-        .filter((x) => x.element === f.name)
-        .map((x) => {
-          const kind = x.status ? content.statuses[x.status]?.kind : undefined;
-          return { id: x.id, name: x.name, text: x.text, passive: false, ...(kind ? { kind } : {}) };
-        });
-      const passives: RefPassive[] = [];
-      for (const id of f.passives ?? []) {
-        const s = content.statuses[id];
-        if (!s) {
-          problems.push(`${f.id}: passive ${id} doesn't exist`);
-          continue;
-        }
-        const kw = keywords.find((k) => content.glossary[k.id]?.status === id || k.name === s.name);
-        if (kw) kw.passive = true;
-        else passives.push({ id, name: s.name, text: s.description ?? '' });
-      }
-      const [a, b] = f.elements;
-      if (!elementNames.has(a) || !elementNames.has(b)) problems.push(`${f.id}: parents ${a} + ${b} aren't both base elements`);
-      const kit: RefKit = {
-        id: f.id,
-        name: f.name,
-        parents: [a as Element, b as Element],
-        group: g.slug,
-        tagline: p.tagline,
-        playsLike: p.playsLike,
-        notes: p.notes ?? [],
-        keywords,
-        passives,
-        skills: versions(f.id, f.id),
-      };
-      kitById.set(f.id, kit);
-      return [kit];
-    }),
-  }));
-  const kits = groups.flatMap((g) => g.kits);
+      const kw = keywords.find((k) => content.glossary[k.id]?.status === id || k.name === st.name);
+      if (kw) kw.passive = true;
+      else passives.push({ id, name: st.name, text: st.description ?? '' });
+    }
+    const [a, b] = [...f.elements].sort((x, y) => order(x) - order(y)) as [string, string];
+    if (!elementNames.has(a) || !elementNames.has(b)) problems.push(`${f.id}: parents ${a} + ${b} aren't both base elements`);
+    kitById.set(f.id, {
+      id: f.id,
+      name: f.name,
+      parents: [a as Element, b as Element],
+      groups: [...new Set([a.toLowerCase(), b.toLowerCase()])],
+      tagline: p.tagline,
+      playsLike: p.playsLike,
+      notes: p.notes ?? [],
+      keywords,
+      passives,
+      skills: versions(f.id, f.id),
+    });
+  }
+  const groups: RefGroup[] = ELEMENTS.map((el) => {
+    const mine = [...kitById.values()].filter((k) => k.parents.includes(el));
+    const other = (k: RefKit) => (k.parents[0] === el ? k.parents[1] : k.parents[0]);
+    // The pure fusion first, then the pairs by the other element's place in the element order.
+    const sorted = mine.sort((x, y) => Number(other(x) !== el) - Number(other(y) !== el) || order(other(x)) - order(other(y)));
+    const pure = sorted.find((k) => k.parents[0] === el && k.parents[1] === el);
+    return {
+      slug: el.toLowerCase(),
+      title: `${el} fusions`,
+      lead: pure ? `${el} with each element: ${el} + ${el} (${pure.name}) first, then ${el} with every other element.` : `${el} with each other element.`,
+      kits: sorted,
+    };
+  });
+  // Every fusion once, in the order its first section lists it.
+  const kits = [...new Set(groups.flatMap((g) => g.kits))];
 
   // ------------------------------------------------ elements
   const elements: RefElement[] = ELEMENTS.map((name) => {

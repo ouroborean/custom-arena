@@ -1,6 +1,6 @@
 // The reference's own words (ported from the Element Arena Reference site's content/*.md): the home
 // page's "How the game works", the element and fusion overviews, each element's tagline and themes, and
-// each fusion group's intro and each fusion's tagline, "plays like" line and notes. Nothing mechanical:
+// each fusion's tagline, "plays like" line and notes. Nothing mechanical:
 // every skill, keyword, status, term and class comes from the content bundle (reference/data.ts).
 // `**bold**` marks emphasis; keep these in step with the game when a rule changes or a kit is reworked.
 
@@ -125,253 +125,191 @@ export interface KitProse {
   notes?: string[];
 }
 
-export interface GroupProse {
-  slug: string;
-  title: string;
-  lead: string;
-  kits: KitProse[];
-}
-
-/** The fusion groups, in the order the reference lists them, and every fusion in its group. */
-export const GROUPS: GroupProse[] = [
+/** Every fusion's tagline, "plays like" line and notes. The reference lists fusions by element (each
+ * pair under both its elements), built in reference/data.ts. */
+export const KITS: KitProse[] = [
   {
-    slug: 'pure-fusions',
-    title: 'Pure fusions',
-    lead: 'One element taken twice: Fire + Fire is Dragon, Ice + Ice is Crystal, and so on.',
-    kits: [
-      {
-        id: 'dragon',
-        tagline: 'Fire at its peak: a wyrm whose burns fill its hoard, whose hoard hardens its scales, and who spends it all on one breath.',
-        playsLike: 'Grows hotter and harder, then spends it all on one breath',
-      },
-      { id: 'crystal', tagline: 'Ice made perfect: flawless for allies, fatally flawed for enemies.', playsLike: 'Shatter combos on offense, burst-proof allies on defense' },
-      { id: 'ocean', tagline: 'Water without limits: every skill rises and falls like a wave.', playsLike: 'A rhythm: plan which half of each skill lands when' },
-      {
-        id: 'thunder',
-        tagline: "The sound after the flash: every strike lands twice, and the roar drowns out the enemy's tricks.",
-        playsLike: "Hits twice, and switches off the enemy's tricks",
-      },
-      {
-        id: 'cloud',
-        tagline: 'Wind that gathers instead of rushing: slow, telegraphed, and heavy when it breaks.',
-        playsLike: "Wind's speed traded for weight: slow, telegraphed, heavy",
-      },
-      { id: 'evolution', tagline: 'Poison that adapts: every use evolves the skill.', playsLike: "Weak openers that become the team's strongest skills" },
-      {
-        id: 'life',
-        tagline: 'Earth that grows: a garden that becomes a grove, and a team that keeps getting bigger.',
-        playsLike: 'A garden, and a team that keeps getting bigger',
-      },
-      {
-        id: 'divine',
-        tagline: 'Holy made absolute: one light that heals whoever it touches on your side and burns whoever it touches on theirs.',
-        playsLike: 'Always useful: heal or smite as the turn needs',
-      },
-      { id: 'evil', tagline: 'Unholy with nothing held back: it poisons healing itself, and spends souls like coin.', playsLike: 'Punishes healers, feeds on souls' },
-      {
-        id: 'dimension',
-        tagline: 'Shadow folded into space: pull a unit out of the fight, or tie two together so one effect lands twice.',
-        playsLike: 'Takes a unit out of play; makes one effect count twice',
-      },
-    ],
+    id: 'dragon',
+    tagline: 'Fire at its peak: a wyrm whose burns fill its hoard, whose hoard hardens its scales, and who spends it all on one breath.',
+    playsLike: 'Grows hotter and harder, then spends it all on one breath',
+  },
+  { id: 'crystal', tagline: 'Ice made perfect: flawless for allies, fatally flawed for enemies.', playsLike: 'Shatter combos on offense, burst-proof allies on defense' },
+  { id: 'ocean', tagline: 'Water without limits: every skill rises and falls like a wave.', playsLike: 'A rhythm: plan which half of each skill lands when' },
+  {
+    id: 'thunder',
+    tagline: "The sound after the flash: every strike lands twice, and the roar drowns out the enemy's tricks.",
+    playsLike: "Hits twice, and switches off the enemy's tricks",
   },
   {
-    slug: 'fire-pairs',
-    title: 'Fire pairs',
-    lead: 'Fire with Ice, Water, Lightning, Wind, Poison, Earth, Holy, Unholy and Shadow. Fire + Fire (Dragon) is under Pure fusions.',
-    kits: [
-      { id: 'apocalypse', tagline: 'The world ending both ways at once, and the shock where fire meets ice.', playsLike: 'Alternate fire and ice for combo damage' },
-      { id: 'alchemy', tagline: 'Fire and water in the crucible: nothing is destroyed, only changed.', playsLike: 'Converts the board: their buffs become your weapons' },
-      { id: 'plasma', tagline: 'Fire and lightning past their limits: power you ride until it melts down.', playsLike: 'Push your luck, then time the meltdown' },
-      {
-        id: 'mechanic',
-        tagline: 'Fire in the boiler, wind in the bellows: machines you build, tune and send into the fight.',
-        playsLike: 'A small workshop of machines, built and tuned',
-      },
-      { id: 'brimstone', tagline: 'Sulfur and hellfire: pack the enemy with fuel, then light it.', playsLike: 'Load them up, then light the fuse' },
-      { id: 'sun', tagline: 'Fire over earth: a star that scorches the enemy and ripens everything on your side.', playsLike: 'A slow-burning star on your side of the board' },
-      { id: 'phoenix', tagline: 'A holy flame that burns its foes, mends its friends, and rises from its own ashes.', playsLike: 'Burn the foe, mend the friend, rise again' },
-      { id: 'devil', tagline: 'Fire and damnation: everything is for sale, and the bill always comes.', playsLike: 'Deals for allies, tempting gifts for enemies' },
-      {
-        id: 'ritual',
-        tagline: 'Fire in the dark: candles, circles and rites that pay off only if nobody breaks them.',
-        playsLike: 'Big payoffs the enemy must race to interrupt',
-      },
-    ],
+    id: 'cloud',
+    tagline: 'Wind that gathers instead of rushing: slow, telegraphed, and heavy when it breaks.',
+    playsLike: "Wind's speed traded for weight: slow, telegraphed, heavy",
+  },
+  { id: 'evolution', tagline: 'Poison that adapts: every use evolves the skill.', playsLike: "Weak openers that become the team's strongest skills" },
+  {
+    id: 'life',
+    tagline: 'Earth that grows: a garden that becomes a grove, and a team that keeps getting bigger.',
+    playsLike: 'A garden, and a team that keeps getting bigger',
   },
   {
-    slug: 'ice-pairs',
-    title: 'Ice pairs',
-    lead: 'Ice with Water, Lightning, Wind, Poison, Earth, Holy, Unholy and Shadow. Fire + Ice (Apocalypse) is under Fire pairs.',
-    kits: [
-      {
-        id: 'glacier',
-        tagline: "Ice that moves at its own pace: freeze the enemy's clock and let yours run.",
-        playsLike: 'Freeze their clock, speed up yours',
-        notes: ["A tempo kit: Ice's lockdown aimed at cooldowns, and Water's cooldown relief pushed further."],
-      },
-      {
-        id: 'aurora',
-        tagline: 'Ice and lightning lit up across the sky: the kit that bends energy colors.',
-        playsLike: 'The energy-color kit: free yourself, scramble them',
-        notes: ['Lightning changes how much energy a player has; Aurora changes which colors they have.'],
-      },
-      { id: 'winter', tagline: 'Ice on the wind: the season that pins everything in place.', playsLike: "Pins targets down, then uses Wind's tools against the Immobile" },
-      {
-        id: 'stasis',
-        tagline: 'Cold that stops the clock on poison: freeze the afflictions in place, then let them all go at once.',
-        playsLike: 'Freeze the poison, then release it all',
-      },
-      {
-        id: 'myth',
-        tagline: 'Ice and stone that remember: the old legends of the frozen north, and the hero who becomes one.',
-        playsLike: 'A hero who becomes a giant of legend',
-      },
-      { id: 'prism', tagline: 'Light through ice: split it to reach everyone, or focus it to burn through one.', playsLike: 'Split light to spread it, focus it to burst' },
-      {
-        id: 'lich',
-        tagline: 'Cold undeath: a sorcerer who hid their soul in a jar, and freezes the souls of others.',
-        playsLike: "Break the jar first, or the Lich won't die",
-      },
-      {
-        id: 'night',
-        tagline: 'The cold that comes unseen, for enemies; chosen stillness, for allies.',
-        playsLike: 'The cold that comes unseen, on a clock only you can see',
-        notes: ['Dusk is hidden from the enemy, but the battle log still shows who used Evening Star on whom, so an attentive opponent can count the clocks.'],
-      },
-    ],
+    id: 'divine',
+    tagline: 'Holy made absolute: one light that heals whoever it touches on your side and burns whoever it touches on theirs.',
+    playsLike: 'Always useful: heal or smite as the turn needs',
+  },
+  { id: 'evil', tagline: 'Unholy with nothing held back: it poisons healing itself, and spends souls like coin.', playsLike: 'Punishes healers, feeds on souls' },
+  {
+    id: 'dimension',
+    tagline: 'Shadow folded into space: pull a unit out of the fight, or tie two together so one effect lands twice.',
+    playsLike: 'Takes a unit out of play; makes one effect count twice',
+  },
+  { id: 'apocalypse', tagline: 'The world ending both ways at once, and the shock where fire meets ice.', playsLike: 'Alternate fire and ice for combo damage' },
+  { id: 'alchemy', tagline: 'Fire and water in the crucible: nothing is destroyed, only changed.', playsLike: 'Converts the board: their buffs become your weapons' },
+  { id: 'plasma', tagline: 'Fire and lightning past their limits: power you ride until it melts down.', playsLike: 'Push your luck, then time the meltdown' },
+  {
+    id: 'mechanic',
+    tagline: 'Fire in the boiler, wind in the bellows: machines you build, tune and send into the fight.',
+    playsLike: 'A small workshop of machines, built and tuned',
+  },
+  { id: 'brimstone', tagline: 'Sulfur and hellfire: pack the enemy with fuel, then light it.', playsLike: 'Load them up, then light the fuse' },
+  { id: 'sun', tagline: 'Fire over earth: a star that scorches the enemy and ripens everything on your side.', playsLike: 'A slow-burning star on your side of the board' },
+  { id: 'phoenix', tagline: 'A holy flame that burns its foes, mends its friends, and rises from its own ashes.', playsLike: 'Burn the foe, mend the friend, rise again' },
+  { id: 'devil', tagline: 'Fire and damnation: everything is for sale, and the bill always comes.', playsLike: 'Deals for allies, tempting gifts for enemies' },
+  {
+    id: 'ritual',
+    tagline: 'Fire in the dark: candles, circles and rites that pay off only if nobody breaks them.',
+    playsLike: 'Big payoffs the enemy must race to interrupt',
   },
   {
-    slug: 'water-pairs',
-    title: 'Water pairs',
-    lead: "Water with Lightning, Wind, Poison, Earth, Holy, Unholy and Shadow. Water's pairs with Fire and Ice are under those groups.",
-    kits: [
-      { id: 'current', tagline: 'Water carries lightning: soak the enemy team, and one strike runs through all of them.', playsLike: 'Soak the team, and one hit becomes three' },
-      { id: 'mist', tagline: "Water on the wind: a fog where nobody can tell who they're hitting.", playsLike: 'Hides who is vulnerable; shields a carry by chance' },
-      {
-        id: 'serum',
-        tagline: 'Water and poison in one syringe: the dose makes the medicine, and the dose makes the poison.',
-        playsLike: 'Medicine for allies, an overdose for enemies',
-      },
-      {
-        id: 'slime',
-        tagline: 'Water and earth become ooze: it splits when struck, swallows what it touches, and keeps coming back.',
-        playsLike: 'A multiplying swarm that is hard to clear',
-      },
-      {
-        id: 'anointment',
-        tagline: 'Holy water: blessings that wash away what ails, and flow from one ally to the next.',
-        playsLike: "Steady cleansing; Holy's Anoint shared around",
-      },
-      {
-        id: 'blood',
-        tagline: 'The one liquid in every body: spent like energy, and spilled until someone treats it.',
-        playsLike: 'Health spent as energy; bleeds that worsen until treated',
-      },
-      { id: 'mirror', tagline: 'Still water in the dark: whatever the enemy does comes back at them, or is copied.', playsLike: "Turns the enemy's kit against them" },
-    ],
+    id: 'glacier',
+    tagline: "Ice that moves at its own pace: freeze the enemy's clock and let yours run.",
+    playsLike: 'Freeze their clock, speed up yours',
+    notes: ["A tempo kit: Ice's lockdown aimed at cooldowns, and Water's cooldown relief pushed further."],
   },
   {
-    slug: 'lightning-pairs',
-    title: 'Lightning pairs',
-    lead: 'Lightning with Wind, Poison, Earth, Holy, Unholy and Shadow.',
-    kits: [
-      {
-        id: 'storm',
-        tagline: 'Lightning on the wind: a storm your team keeps fed turn after turn, until it breaks over everyone.',
-        playsLike: 'Feed the storm every turn, or it dies down',
-      },
-      {
-        id: 'battery',
-        tagline: 'Stored lightning in a leaking cell: charge up slowly, let it all out at once, and let the acid eat through defenses.',
-        playsLike: 'Charge up slowly while eating through defenses',
-      },
-      {
-        id: 'magnet',
-        tagline: 'Lightning in iron and stone: pull what the enemy relies on toward you, and push your problems onto them.',
-        playsLike: 'Steals defenses and pushes problems back',
-      },
-      { id: 'vengeance', tagline: 'Holy lightning that answers every blow: hurt us, and the strike comes back harder.', playsLike: 'Hurt us, and we hit back harder' },
-      { id: 'reanimation', tagline: 'Lightning in dead flesh: death is a setback, not an ending.', playsLike: 'Revival with a jolt, and a shelf life' },
-      { id: 'ion', tagline: 'Lightning in the dark: a pulse that switches the enemy off.', playsLike: 'An EMP for buffs and minions' },
-    ],
+    id: 'aurora',
+    tagline: 'Ice and lightning lit up across the sky: the kit that bends energy colors.',
+    playsLike: 'The energy-color kit: free yourself, scramble them',
+    notes: ['Lightning changes how much energy a player has; Aurora changes which colors they have.'],
+  },
+  { id: 'winter', tagline: 'Ice on the wind: the season that pins everything in place.', playsLike: "Pins targets down, then uses Wind's tools against the Immobile" },
+  {
+    id: 'stasis',
+    tagline: 'Cold that stops the clock on poison: freeze the afflictions in place, then let them all go at once.',
+    playsLike: 'Freeze the poison, then release it all',
   },
   {
-    slug: 'wind-pairs',
-    title: 'Wind pairs',
-    lead: 'Wind with Poison, Earth, Holy, Unholy and Shadow.',
-    kits: [
-      { id: 'faerie', tagline: 'Wind and poison: fae mischief, pixie dust, and charms that turn friends on each other.', playsLike: 'Fae mischief: enemies hitting their friends' },
-      {
-        id: 'nomad',
-        tagline: 'Wind over open ground: a wanderer who never stays in one place, and grows stronger for it.',
-        playsLike: 'Never stay still: rotate skills to stay strong',
-      },
-      {
-        id: 'angel',
-        tagline: 'Holy wings: a guardian that takes the blows meant for others and pulls the fallen back from the edge.',
-        playsLike: 'Takes the hits, and saves lives',
-      },
-      { id: 'ghost', tagline: 'Unholy on the wind: hard to touch, and haunting whoever it pleases.', playsLike: 'Hard to hit; a haunting that wanders their team' },
-      { id: 'ninja', tagline: 'Wind and shadow: too quick to see, and never alone.', playsLike: 'Many small cuts, and a decoy for every threat' },
-    ],
+    id: 'myth',
+    tagline: 'Ice and stone that remember: the old legends of the frozen north, and the hero who becomes one.',
+    playsLike: 'A hero who becomes a giant of legend',
+  },
+  { id: 'prism', tagline: 'Light through ice: split it to reach everyone, or focus it to burn through one.', playsLike: 'Split light to spread it, focus it to burst' },
+  {
+    id: 'lich',
+    tagline: 'Cold undeath: a sorcerer who hid their soul in a jar, and freezes the souls of others.',
+    playsLike: "Break the jar first, or the Lich won't die",
   },
   {
-    slug: 'poison-earth-pairs',
-    title: 'Poison & Earth pairs',
-    lead: 'Poison with Earth, Holy, Unholy and Shadow; then Earth with Holy, Unholy and Shadow.',
-    kits: [
-      {
-        id: 'spore',
-        tagline: 'Poison in the soil: an infection that spreads from host to host and fruits into a colony.',
-        playsLike: 'Infect one, and the colony spreads',
-      },
-      {
-        id: 'antidote',
-        tagline: 'Poison made medicine by holy hands: protection that learns, and cleansing that strikes back.',
-        playsLike: 'Protection that learns; cleansing that hits back',
-      },
-      { id: 'blight', tagline: 'Poison and death: a rot that takes what never grows back.', playsLike: 'Rot: permanent attrition that only cleansing answers' },
-      {
-        id: 'assassin',
-        tagline: 'Poison from the dark: a contract only you can see, and a blade that ends it.',
-        playsLike: "A hidden contract: they never know who's marked",
-        notes: ['Death Mark is hidden from the enemy: the skill in playing against it is working out who is marked.'],
-      },
-      { id: 'sanctuary', tagline: 'Holy ground: stone raised into a fortress that shelters the whole team.', playsLike: 'Holy ground: a fortress for the whole team' },
-      {
-        id: 'grave',
-        tagline: 'Earth that keeps the dead: every fallen body, on either side, becomes another soldier.',
-        playsLike: 'Every death, on either side, feeds the army',
-      },
-      {
-        id: 'moon',
-        tagline: 'Stone that shines in the dark: a four-beat rhythm of hiding, growing, striking and draining.',
-        playsLike: 'A four-beat rhythm: hide, grow, strike, drain',
-        notes: ['The cycle is predictable, so both players can plan around the Full Moon.'],
-      },
-    ],
+    id: 'night',
+    tagline: 'The cold that comes unseen, for enemies; chosen stillness, for allies.',
+    playsLike: 'The cold that comes unseen, on a clock only you can see',
+    notes: ['Dusk is hidden from the enemy, but the battle log still shows who used Evening Star on whom, so an attentive opponent can count the clocks.'],
+  },
+  { id: 'current', tagline: 'Water carries lightning: soak the enemy team, and one strike runs through all of them.', playsLike: 'Soak the team, and one hit becomes three' },
+  { id: 'mist', tagline: "Water on the wind: a fog where nobody can tell who they're hitting.", playsLike: 'Hides who is vulnerable; shields a carry by chance' },
+  {
+    id: 'serum',
+    tagline: 'Water and poison in one syringe: the dose makes the medicine, and the dose makes the poison.',
+    playsLike: 'Medicine for allies, an overdose for enemies',
   },
   {
-    slug: 'holy-unholy-pairs',
-    title: 'Holy & Unholy pairs',
-    lead: 'Holy with Unholy and Shadow; then Unholy with Shadow.',
-    kits: [
-      {
-        id: 'zealot',
-        tagline: 'Holy and unholy in one soul: faith that feeds on suffering, and a death that serves the cause.',
-        playsLike: 'Suffering fuels faith; even death helps',
-      },
-      {
-        id: 'vigilante',
-        tagline: 'Holy light from the shadows: justice outside the law, dragging hidden things into the open.',
-        playsLike: "Works from the shadows to drag the enemy's into the light",
-      },
-      {
-        id: 'curse',
-        tagline: 'Unholy in the shadows: hexes that punish every kind of choice, and outlive their victims.',
-        playsLike: 'Curses that punish choices and refuse to leave',
-      },
-    ],
+    id: 'slime',
+    tagline: 'Water and earth become ooze: it splits when struck, swallows what it touches, and keeps coming back.',
+    playsLike: 'A multiplying swarm that is hard to clear',
+  },
+  {
+    id: 'anointment',
+    tagline: 'Holy water: blessings that wash away what ails, and flow from one ally to the next.',
+    playsLike: "Steady cleansing; Holy's Anoint shared around",
+  },
+  {
+    id: 'blood',
+    tagline: 'The one liquid in every body: spent like energy, and spilled until someone treats it.',
+    playsLike: 'Health spent as energy; bleeds that worsen until treated',
+  },
+  { id: 'mirror', tagline: 'Still water in the dark: whatever the enemy does comes back at them, or is copied.', playsLike: "Turns the enemy's kit against them" },
+  {
+    id: 'storm',
+    tagline: 'Lightning on the wind: a storm your team keeps fed turn after turn, until it breaks over everyone.',
+    playsLike: 'Feed the storm every turn, or it dies down',
+  },
+  {
+    id: 'battery',
+    tagline: 'Stored lightning in a leaking cell: charge up slowly, let it all out at once, and let the acid eat through defenses.',
+    playsLike: 'Charge up slowly while eating through defenses',
+  },
+  {
+    id: 'magnet',
+    tagline: 'Lightning in iron and stone: pull what the enemy relies on toward you, and push your problems onto them.',
+    playsLike: 'Steals defenses and pushes problems back',
+  },
+  { id: 'vengeance', tagline: 'Holy lightning that answers every blow: hurt us, and the strike comes back harder.', playsLike: 'Hurt us, and we hit back harder' },
+  { id: 'reanimation', tagline: 'Lightning in dead flesh: death is a setback, not an ending.', playsLike: 'Revival with a jolt, and a shelf life' },
+  { id: 'ion', tagline: 'Lightning in the dark: a pulse that switches the enemy off.', playsLike: 'An EMP for buffs and minions' },
+  { id: 'faerie', tagline: 'Wind and poison: fae mischief, pixie dust, and charms that turn friends on each other.', playsLike: 'Fae mischief: enemies hitting their friends' },
+  {
+    id: 'nomad',
+    tagline: 'Wind over open ground: a wanderer who never stays in one place, and grows stronger for it.',
+    playsLike: 'Never stay still: rotate skills to stay strong',
+  },
+  {
+    id: 'angel',
+    tagline: 'Holy wings: a guardian that takes the blows meant for others and pulls the fallen back from the edge.',
+    playsLike: 'Takes the hits, and saves lives',
+  },
+  { id: 'ghost', tagline: 'Unholy on the wind: hard to touch, and haunting whoever it pleases.', playsLike: 'Hard to hit; a haunting that wanders their team' },
+  { id: 'ninja', tagline: 'Wind and shadow: too quick to see, and never alone.', playsLike: 'Many small cuts, and a decoy for every threat' },
+  {
+    id: 'spore',
+    tagline: 'Poison in the soil: an infection that spreads from host to host and fruits into a colony.',
+    playsLike: 'Infect one, and the colony spreads',
+  },
+  {
+    id: 'antidote',
+    tagline: 'Poison made medicine by holy hands: protection that learns, and cleansing that strikes back.',
+    playsLike: 'Protection that learns; cleansing that hits back',
+  },
+  { id: 'blight', tagline: 'Poison and death: a rot that takes what never grows back.', playsLike: 'Rot: permanent attrition that only cleansing answers' },
+  {
+    id: 'assassin',
+    tagline: 'Poison from the dark: a contract only you can see, and a blade that ends it.',
+    playsLike: "A hidden contract: they never know who's marked",
+    notes: ['Death Mark is hidden from the enemy: the skill in playing against it is working out who is marked.'],
+  },
+  { id: 'sanctuary', tagline: 'Holy ground: stone raised into a fortress that shelters the whole team.', playsLike: 'Holy ground: a fortress for the whole team' },
+  {
+    id: 'grave',
+    tagline: 'Earth that keeps the dead: every fallen body, on either side, becomes another soldier.',
+    playsLike: 'Every death, on either side, feeds the army',
+  },
+  {
+    id: 'moon',
+    tagline: 'Stone that shines in the dark: a four-beat rhythm of hiding, growing, striking and draining.',
+    playsLike: 'A four-beat rhythm: hide, grow, strike, drain',
+    notes: ['The cycle is predictable, so both players can plan around the Full Moon.'],
+  },
+  {
+    id: 'zealot',
+    tagline: 'Holy and unholy in one soul: faith that feeds on suffering, and a death that serves the cause.',
+    playsLike: 'Suffering fuels faith; even death helps',
+  },
+  {
+    id: 'vigilante',
+    tagline: 'Holy light from the shadows: justice outside the law, dragging hidden things into the open.',
+    playsLike: "Works from the shadows to drag the enemy's into the light",
+  },
+  {
+    id: 'curse',
+    tagline: 'Unholy in the shadows: hexes that punish every kind of choice, and outlive their victims.',
+    playsLike: 'Curses that punish choices and refuse to leave',
   },
 ];
