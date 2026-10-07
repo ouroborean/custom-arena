@@ -131,7 +131,7 @@ export function Battle() {
 
       <main className="arena">
         {roster(viewer)}
-        <Stage turn={view.turn} status={status} tone={tone} popup={<ActionPopup units={view.units} content={content} />} />
+        <Stage turn={view.turn} status={status} tone={tone} />
         {roster(other)}
       </main>
 
@@ -141,6 +141,7 @@ export function Battle() {
         </footer>
       )}
 
+      <ActionPopup units={view.units} content={content} />
       <HoverCard view={view} content={content} availability={availability} />
       <TargetHint view={liveView} content={content} />
       <LogDrawer />

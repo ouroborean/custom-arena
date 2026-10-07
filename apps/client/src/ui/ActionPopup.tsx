@@ -1,6 +1,8 @@
-// The action popup: while a turn plays back, each skill use shows as a small panel ("Ember Mage used
+// The action popup: while a turn plays back, each skill use shows as a large panel ("Ember Mage used
 // Fireball on Red Ranger 1"), with the actor's portrait, the skill's icon and the targets' portraits.
-// Decorative: the battle log and the announcer carry the same information for screen readers.
+// It floats centered over the whole board on its own layer (under the hover card and dialogs), takes no
+// room in the layout and lets clicks and hovers through. Decorative: the battle log and the announcer
+// carry the same information for screen readers.
 
 import { useEffect, useState } from 'react';
 import type { ContentBundle, Unit } from '@arena/engine';
@@ -25,11 +27,11 @@ export function ActionPopup({ units, content }: { units: readonly Unit[]; conten
   }, [action, speed]);
 
   const actor = shown ? units.find((u) => u.id === shown.actor) : undefined;
-  if (!shown || !actor) return <div className="action-slot" />;
+  if (!shown || !actor) return null;
   const def = content.skills[shown.skill];
   const targets = shown.targets.map((id) => units.find((u) => u.id === id)).filter((u): u is Unit => !!u);
   return (
-    <div className="action-slot">
+    <div className="action-layer" aria-hidden>
       <div key={shown.id} className={`action-popup ${actor.owner === viewer ? 'ally' : 'foe'}`}>
         <Face unit={actor} flip={actor.owner !== viewer} />
         <div className="action-text">

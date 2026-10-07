@@ -436,8 +436,8 @@ export function TopBar({ match, view, viewer, myTurn }: { match: MatchSession; v
 
 // ---------------------------------------------------------------- stage (center)
 
-/** The middle of the arena: the turn number, whose turn it is, the action popup (`popup`) and the recent log. */
-export function Stage({ turn, status, tone, popup }: { turn: number; status: string; tone: 'mine' | 'busy' | 'idle'; popup?: React.ReactNode }) {
+/** The middle of the arena: the turn number, whose turn it is and the recent log. */
+export function Stage({ turn, status, tone }: { turn: number; status: string; tone: 'mine' | 'busy' | 'idle' }) {
   const lines = useStore((s) => s.logs[s.viewer]);
   const recent = lines.slice(-6);
   return (
@@ -447,7 +447,6 @@ export function Stage({ turn, status, tone, popup }: { turn: number; status: str
         {String(turn).padStart(2, '0')}
       </div>
       <div className={`stage-status ${tone === 'idle' ? '' : tone}`}>{status}</div>
-      {popup}
       <div className="stage-feed">
         {recent.map((l) => (
           <div key={l.id} className={`k-${l.kind}`}>
