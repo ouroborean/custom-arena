@@ -690,26 +690,30 @@ h3,
   color: #fff;
 }
 
-/* The action popup (ActionPopup): who used what on whom, while a turn plays back. Its slot keeps its
-   height so the stage doesn't jump as popups come and go. */
-.action-slot {
+/* The action popup (ActionPopup): who used what on whom, while a turn plays back. It floats centered over
+   the whole board on its own layer (above the board and log drawer, under the hover card and dialogs),
+   takes no room in the layout, and lets the pointer through to the board beneath. */
+.action-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  min-height: 96px;
+  padding: 16px;
+  pointer-events: none;
 }
 
 .action-popup {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(420px, 100%);
-  padding: 8px 12px 8px 8px;
+  gap: clamp(12px, 2vw, 20px);
+  max-width: min(680px, 100%);
+  padding: clamp(10px, 1.6vw, 16px) clamp(16px, 2.4vw, 26px) clamp(10px, 1.6vw, 16px) clamp(10px, 1.6vw, 16px);
   background: var(--void);
-  border: 2px solid var(--line-2);
-  border-left: 5px solid var(--yellow);
-  box-shadow: var(--shadow);
+  border: 3px solid var(--text);
+  border-left: 10px solid var(--yellow);
+  box-shadow: 10px 10px 0 #000;
   text-align: left;
   animation: action-in 0.18s ease-out;
 }
@@ -730,15 +734,15 @@ h3,
   flex: none;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: clamp(64px, 11vw, 112px);
+  height: clamp(64px, 11vw, 112px);
   overflow: hidden;
   border: 2px solid var(--line-2);
 }
 
 .action-face.small {
-  width: 22px;
-  height: 22px;
+  width: clamp(28px, 4vw, 40px);
+  height: clamp(28px, 4vw, 40px);
   border-width: 1px;
 }
 
@@ -753,13 +757,13 @@ h3,
 .action-face .mono {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 24px;
+  font-size: clamp(28px, 5vw, 48px);
   line-height: 1;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55);
 }
 
 .action-face.small .mono {
-  font-size: 11px;
+  font-size: clamp(13px, 1.8vw, 17px);
   text-shadow: none;
 }
 
@@ -770,44 +774,52 @@ h3,
 .action-text {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: clamp(4px, 0.8vw, 8px);
   min-width: 0;
 }
 
 .action-actor {
   font-weight: 900;
-  font-size: 14px;
+  font-size: clamp(16px, 2.2vw, 22px);
 }
 
 .action-used {
-  font-size: 12px;
+  font-size: clamp(13px, 1.6vw, 16px);
   color: var(--muted);
 }
 
 .action-skill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 17px;
+  font-size: clamp(22px, 3.6vw, 36px);
+  line-height: 1.05;
   letter-spacing: 0.03em;
   color: var(--text);
+}
+
+.action-skill .chip-glyph {
+  display: inline-block;
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
 }
 
 .action-targets {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
-  font-size: 11.5px;
+  gap: 6px 12px;
+  font-size: clamp(13px, 1.6vw, 16px);
   color: var(--muted);
 }
 
 .action-target {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: var(--text);
   font-weight: 700;
 }
