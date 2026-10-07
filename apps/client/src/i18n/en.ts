@@ -302,7 +302,7 @@ export const en = {
   'ref.matrix': 'Fusion matrix',
   'ref.matrixHint': 'Point at a fusion to preview it; click to open its kit.',
   'ref.keywordsList': 'Keywords: {name}',
-  'ref.groups': 'Every fusion',
+  'ref.groups': 'Fusions by element',
   'ref.filterFusions': 'Filter fusions and keywords',
   'ref.kit.passivesNote': 'Every character carrying at least one {name} skill also has:',
   'ref.passive': 'Passive',

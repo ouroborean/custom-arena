@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DATA_DIR, loadContentOrThrow, rawFromYamlFiles } from '@arena/content';
 import { buildReference, searchReference } from '../src/reference/data.js';
-import { ELEMENTS, GROUPS } from '../src/reference/prose.js';
+import { ELEMENTS } from '../src/reference/prose.js';
 import { pageKey, parseRefHash, refHash, type RefRoute } from '../src/reference/route.js';
 
 const content = loadContentOrThrow();
@@ -17,9 +17,25 @@ describe('the reference, from the content bundle', () => {
     expect(ref.bases).toHaveLength(30);
     expect(ref.elements.map((e) => e.name)).toEqual([...ELEMENTS]);
     expect(ref.kits).toHaveLength(Object.keys(content.fusions).length);
-    expect(ref.kits.map((k) => k.id)).toEqual(GROUPS.flatMap((g) => g.kits.map((k) => k.id)));
+    expect(new Set(ref.kits.map((k) => k.id)).size).toBe(ref.kits.length);
     for (const x of [...ref.elements, ...ref.kits]) expect(Object.keys(x.skills), x.name).toHaveLength(30);
     expect(ref.elementBySlug.get('fire')!.skills.strike!.name).toBe(content.skills['strike.fire']!.name);
+  });
+
+  it('lists the fusions in ten element sections: the pure fusion first, then the pairs in element order', () => {
+    expect(ref.groups.map((g) => g.title)).toEqual(ELEMENTS.map((e) => `${e} fusions`));
+    for (const g of ref.groups) {
+      expect(g.kits, g.title).toHaveLength(10);
+      const el = g.title.replace(' fusions', '');
+      expect(g.kits[0]!.parents).toEqual([el, el]);
+      expect(g.kits.every((k) => k.parents.includes(el as (typeof ELEMENTS)[number]))).toBe(true);
+    }
+    expect(ref.groups[0]!.kits.map((k) => k.id).slice(0, 3)).toEqual(['dragon', 'apocalypse', 'alchemy']);
+    // A pair is listed under both its elements; a pure fusion under its one.
+    const phoenix = ref.kitById.get('phoenix')!;
+    expect(phoenix.groups).toEqual(['fire', 'holy']);
+    expect(ref.groups.filter((g) => g.kits.includes(phoenix)).map((g) => g.slug)).toEqual(['fire', 'holy']);
+    expect(ref.kitById.get('dragon')!.groups).toEqual(['fire']);
   });
 
   it("lists each element's ten fusions, itself first", () => {

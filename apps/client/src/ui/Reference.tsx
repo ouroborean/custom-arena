@@ -215,7 +215,7 @@ export function Reference() {
   })();
 
   const current = navKey(route);
-  const currentGroup = route.page === 'kit' ? data.kitById.get(route.kit)?.group : undefined;
+  const currentGroups = route.page === 'kit' ? (data.kitById.get(route.kit)?.groups ?? []) : [];
   const item = (to: RefRoute, label: React.ReactNode, lead?: React.ReactNode) => {
     const on = navKey(to) === current;
     return (
@@ -262,7 +262,7 @@ export function Reference() {
         <h2>{t('ref.nav.fusions')}</h2>
         <ul>{item({ page: 'fusions' }, t('ref.overviewMatrix'))}</ul>
         {data.groups.map((g) => (
-          <details key={g.slug} className="ref-fold" open={g.slug === currentGroup || undefined}>
+          <details key={g.slug} className="ref-fold" open={currentGroups.includes(g.slug) || undefined}>
             <summary>
               {g.title}
               <span className="ref-n">{g.kits.length}</span>

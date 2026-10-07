@@ -498,7 +498,7 @@ export function FusionsPage({ data }: { data: ReferenceData }) {
 export function KitPage({ data, kit: k, skill, go }: { data: ReferenceData; kit: RefKit; skill: string | undefined; go: Go }) {
   const t = useT();
   const [filter, setFilter] = useState<string | null>(null);
-  const group = data.groups.find((g) => g.slug === k.group);
+  const group = data.groups.find((g) => g.slug === k.groups[0]);
   const used = k.keywords
     .map((kw) => ({ kw, count: data.bases.filter((b) => data.usesOf(k.skills[b.id]?.description ?? '').includes(kw.id)).length }))
     .filter((x) => x.count > 0);
