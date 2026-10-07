@@ -6541,3 +6541,38 @@ a.ref-card-name:hover {
   columns: 2 240px;
   font-size: 13px;
 }
+
+/* A piece another character wears: dimmed like a blocked one, but it can be clicked to move it here. */
+.item-tile.worn {
+  border-style: dashed;
+}
+
+.item-tile.worn .code,
+.item-tile.worn .tile-name {
+  opacity: 0.5;
+}
+
+.equip-slot-name .moving {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fit-warn {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.take-dialog {
+  width: min(480px, 100%);
+}
+
+.take-dialog h2 {
+  font-size: 26px;
+}
+
+.take-dialog p {
+  margin: 0;
+}

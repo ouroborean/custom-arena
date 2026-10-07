@@ -59,11 +59,14 @@ interface PoolEntry {
   here: number;
   /** Names of other characters wearing a copy. */
   elsewhere: string[];
+  /** The copies other characters wear, and who: one can be moved here (it comes off them on save). */
+  worn: { inst: InventoryItem; owner: string }[];
 }
 
 type Fit =
-  | { kind: 'ok'; adds: string[] }
-  | { kind: 'problems'; problems: string[] }
+  /** `takeFrom`: no copy is free, so this moves the one that character wears. */
+  | { kind: 'ok'; adds: string[]; takeFrom?: string }
+  | { kind: 'problems'; problems: string[]; takeFrom?: string }
   | { kind: 'full' }
   /** No copy free: every one is equipped (here, or on other characters). */
   | { kind: 'none'; reason: string };
@@ -107,6 +110,8 @@ export function LoadoutEditor({
   const [group, setGroup] = useState('all');
   const [element, setElement] = useState('');
   const [fitsOnly, setFitsOnly] = useState(false);
+  /** A piece worn by another character, waiting for the player to confirm moving it here. */
+  const [confirmTake, setConfirmTake] = useState<{ def: PieceDef; inst: InventoryItem; owner: string } | null>(null);
   const items = draft.items;
 
   // A hover card belongs to where the item was; any scroll or resize moves the item.
@@ -127,10 +132,14 @@ export function LoadoutEditor({
     for (const inst of inventory) {
       const def = describePiece(content, inst.itemId);
       if (!def) continue;
-      const e = by.get(def.id) ?? { def, free: [], here: 0, elsewhere: [] };
+      const e = by.get(def.id) ?? { def, free: [], here: 0, elsewhere: [], worn: [] };
       if (inDraft.has(inst.id)) e.here++;
       else if (inst.equippedOn === null || inst.equippedOn === character.id) e.free.push(inst);
-      else e.elsewhere.push(names.get(inst.equippedOn) ?? 'another character');
+      else {
+        const owner = names.get(inst.equippedOn) ?? 'another character';
+        e.elsewhere.push(owner);
+        e.worn.push({ inst, owner });
+      }
       by.set(def.id, e);
     }
     return [...by.values()].sort(
@@ -142,17 +151,20 @@ export function LoadoutEditor({
     const out = new Map<string, Fit>();
     for (const e of pool) {
       const def = e.def;
-      if (e.free.length === 0) {
-        const where = [e.here ? 'on this character' : null, e.elsewhere.length ? `on ${[...new Set(e.elsewhere)].join(', ')}` : null].filter(Boolean).join(' and ');
-        out.set(def.id, { kind: 'none', reason: `Every copy you own is equipped ${where}.` });
+      // No free copy: one another character wears can be moved here; with none, every copy is on this one.
+      const take = e.free.length === 0 ? e.worn[0] : undefined;
+      if (e.free.length === 0 && !take) {
+        out.set(def.id, { kind: 'none', reason: 'Every copy you own is equipped on this character.' });
       } else if (selected === null && items.length >= EQUIPMENT_SLOTS) {
         out.set(def.id, { kind: 'full' });
       } else {
-        const next = withItem(content, record, draft, { itemId: def.id, instanceId: e.free[0]!.id }, selected ?? undefined);
+        const inst = take ? take.inst : e.free[0]!;
+        const next = withItem(content, record, draft, { itemId: def.id, instanceId: inst.id }, selected ?? undefined);
         const r = resolveLoadout(content, record, next);
         const problems = r.problems.filter((p) => !resolved.problems.includes(p));
         const dropped = draft.infusions.length - next.infusions.length;
-        out.set(def.id, problems.length ? { kind: 'problems', problems } : { kind: 'ok', adds: changeNotes(resolved, r, dropped) });
+        const from = take ? { takeFrom: take.owner } : {};
+        out.set(def.id, problems.length ? { kind: 'problems', problems, ...from } : { kind: 'ok', adds: changeNotes(resolved, r, dropped), ...from });
       }
     }
     return out;
@@ -168,14 +180,30 @@ export function LoadoutEditor({
     return !q || pieceSearchText(d).includes(q);
   });
 
+  const put = (def: PieceDef, inst: InventoryItem) => {
+    onChange(withItem(content, record, draft, { itemId: def.id, instanceId: inst.id }, selected ?? undefined));
+    setSelected(null);
+    setNotice(null);
+    setHover(null);
+  };
+
   const equip = (e: PoolEntry) => {
     const fit = fits.get(e.def.id)!;
     if (fit.kind === 'none') return;
     if (fit.kind === 'full') return setNotice(`All ${EQUIPMENT_SLOTS} slots are full: select a slot to replace, or remove an item.`);
-    onChange(withItem(content, record, draft, { itemId: e.def.id, instanceId: e.free[0]!.id }, selected ?? undefined));
-    setSelected(null);
-    setNotice(null);
-    setHover(null);
+    // Worn by another character: ask before moving it here.
+    if (fit.takeFrom && e.worn[0]) {
+      setHover(null);
+      return setConfirmTake({ def: e.def, inst: e.worn[0].inst, owner: e.worn[0].owner });
+    }
+    put(e.def, e.free[0]!);
+  };
+
+  /** Who a slot's piece is coming from (worn by another character until this loadout is saved). */
+  const movingFrom = (instanceId: string | undefined) => {
+    const inst = instanceId ? inventory.find((i) => i.id === instanceId) : undefined;
+    if (!inst?.equippedOn || inst.equippedOn === character.id) return null;
+    return characters.find((c) => c.id === inst.equippedOn)?.name ?? 'another character';
   };
 
   const removeSlot = (i: number) => {
@@ -226,6 +254,7 @@ export function LoadoutEditor({
                     <b>{def.name}</b>
                     <span className="muted">{pieceKindLabel(def)}</span>
                     {isSelected && <span className="replacing">Replacing: pick an item</span>}
+                    {movingFrom(eq.instanceId) && <span className="moving">Moves from {movingFrom(eq.instanceId)} when saved</span>}
                   </span>
                 </button>
                 <button type="button" className="equip-remove" aria-label={`Remove ${def.name}`} title="Remove" onClick={() => removeSlot(i)}>
@@ -244,6 +273,36 @@ export function LoadoutEditor({
         </p>
       )}
 
+      {confirmTake && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="take-title" onClick={() => setConfirmTake(null)}>
+          <div className="dialog take-dialog" onClick={(ev) => ev.stopPropagation()}>
+            <h2 id="take-title">Move {confirmTake.def.name}?</h2>
+            <p>
+              <b>{confirmTake.def.name}</b> is already equipped by <b>{confirmTake.owner}</b>. Are you sure you want to unequip it and equip it to{' '}
+              <b>{character.name}</b>?
+            </p>
+            <p className="muted">
+              It comes off {confirmTake.owner} when you save this loadout, along with any skills and infusions on {confirmTake.owner} that needed it.
+            </p>
+            <div className="actions">
+              <button type="button" className="btn" onClick={() => setConfirmTake(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                autoFocus
+                onClick={() => {
+                  put(confirmTake.def, confirmTake.inst);
+                  setConfirmTake(null);
+                }}
+              >
+                Move to {character.name}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <SkillPoolPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
       <InfusionPanel record={record} draft={draft} resolved={resolved} onChange={onChange} />
 
@@ -284,13 +343,14 @@ export function LoadoutEditor({
               const key = `pool-${e.def.id}`;
               const card = <ItemDetails def={e.def} entry={e} fit={fit} selected={selected} />;
               const blocked = fit.kind === 'none' && !e.here;
+              const taken = (fit.kind === 'ok' || fit.kind === 'problems') && !!fit.takeFrom;
               return (
                 <button
                   key={e.def.id}
                   type="button"
-                  className={`item-tile${blocked ? ' blocked' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
+                  className={`item-tile${blocked ? ' blocked' : ''}${taken ? ' worn' : ''}${fit.kind === 'problems' ? ' conflict' : ''}${e.here ? ' here' : ''}`}
                   aria-disabled={blocked}
-                  aria-label={`${e.def.name}, ${pieceKindLabel(e.def)}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}`}
+                  aria-label={`${e.def.name}, ${pieceKindLabel(e.def)}${e.free.length > 1 ? `, ${e.free.length} free` : ''}${e.here ? ', equipped here' : ''}${taken && e.worn[0] ? `, equipped on ${e.worn[0].owner}` : ''}`}
                   onClick={() => equip(e)}
                   onMouseEnter={(ev) => show(key, ev.currentTarget, card)}
                   onMouseLeave={() => hide(key)}
@@ -673,10 +733,16 @@ function FitLine({ fit, selected }: { fit: Fit; selected: number | null }) {
   const where = selected === null ? 'equip' : `replace slot ${selected + 1}`;
   switch (fit.kind) {
     case 'ok':
-      return <div className="item-card-line fit-ok">Fits{fit.adds.length ? `: uses ${fit.adds.join(', ')}` : ''}. Click to {where}.</div>;
+      return (
+        <>
+          {fit.takeFrom && <div className="item-card-line fit-warn">Equipped on {fit.takeFrom}: click to move it to this character.</div>}
+          <div className="item-card-line fit-ok">Fits{fit.adds.length ? `: uses ${fit.adds.join(', ')}` : ''}. Click to {where}.</div>
+        </>
+      );
     case 'problems':
       return (
         <div className="item-card-line fit-bad">
+          {fit.takeFrom && <div className="fit-warn">Equipped on {fit.takeFrom}.</div>}
           Equipping it would break the loadout:
           <ul>
             {fit.problems.map((p) => (
