@@ -124,6 +124,7 @@ export function storyRoutes(ctx: AppContext) {
           }
         }
         const reward = sumRewards(rewards);
+        // Tutorial lessons pay no experience (their reward is a loot box): 'tutorial' has no xp entry.
         const kind = ctx.content.chapters[chapterId]?.tutorial ? 'tutorial' : 'story';
         const gain = await awardXp(db, ctx.content, userId, matchXp(ctx.content, { kind, outcome: result.outcome, endReason: result.endReason, turns: result.turns }));
         if (gain) reward.xp = gain;

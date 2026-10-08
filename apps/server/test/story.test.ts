@@ -106,6 +106,11 @@ describe('story', () => {
     // The first two lessons pay an uncommon loot box (no gold), the last a rare one.
     const first = await winEncounter(a, 'tutorial_1');
     expect(first.body.reward).toMatchObject({ currency: {}, boxes: ['uncommon'] });
+    // Lessons pay no experience (their reward is the box), and a replay pays nothing: they can't be farmed.
+    expect(first.body.reward.xp).toBeUndefined();
+    const replay = await winEncounter(a, 'tutorial_1');
+    expect(replay.body.reward.xp).toBeUndefined();
+    expect(replay.body.reward.boxes ?? []).toEqual([]);
     const second = await winEncounter(a, 'tutorial_2');
     expect(second.body.reward).toMatchObject({ currency: {}, boxes: ['uncommon'] });
     const last = await winEncounter(a, 'tutorial_3');
