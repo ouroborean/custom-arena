@@ -14,7 +14,7 @@ progression:
     practice: { minTurns: 8, win: 60, loss: 25, draw: 30 }
     arcade: { minTurns: 8, win: 80, loss: 30, draw: 30 }
     story: { win: 80, loss: 25, draw: 25 }
-    tutorial: { win: 60, loss: 20, draw: 20 }
+    # No tutorial entry: the lessons pay a loot box on their first clear and no experience.
   # Experience from level L to L+1: base + step × (L − 1), at most max.
   levels: { base: 400, step: 100, max: 1200 }
   # The bubbles on the bar, by percent of the level.
