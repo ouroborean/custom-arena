@@ -23,8 +23,10 @@ import { moveInRoster, placeInTeam, rosterKeys, useRosterDrag, type DragSource, 
 
 export function Home() {
   const t = useT();
-  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, reorderRoster, signOut, contentMismatch, clearError, infusedRecruits } = useMeta();
+  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, reorderRoster, signOut, contentMismatch, clearError, infusedRecruits, retire } = useMeta();
   const [infusing, setInfusing] = useState(false);
+  /** The character the roster's X asked to retire, waiting for confirmation. */
+  const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(null);
   const rollCost = content.economy.roll.cost;
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
@@ -413,11 +415,41 @@ export function Home() {
                           }
                     }
                     onOpen={() => (picking ? togglePick(c.id) : go('character', c.id))}
+                    {...(picking
+                      ? {}
+                      : {
+                          retire: {
+                            onClick: () => setRetiring({ id: c.id, name: c.name }),
+                            ...(team.includes(c.id) ? { blocked: t('home.retireInTeam') } : {}),
+                          },
+                        })}
                   />
                 );
               })}
             </div>
             {drag.ghost}
+            {retiring && (
+              <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="retire-title" onClick={() => setRetiring(null)}>
+                <div className="dialog take-dialog" onClick={(e) => e.stopPropagation()}>
+                  <h2 id="retire-title">{t('home.retireTitle', { name: retiring.name })}</h2>
+                  <p>{t('home.retireBody')}</p>
+                  <div className="actions">
+                    <button type="button" className="btn" onClick={() => setRetiring(null)}>
+                      {t('common.cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn danger"
+                      autoFocus
+                      disabled={busy}
+                      onClick={() => void retire(retiring.id).then(() => setRetiring(null))}
+                    >
+                      {t('home.retireConfirm')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}

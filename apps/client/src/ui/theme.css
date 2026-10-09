@@ -2886,6 +2886,47 @@ input[type="password"] {
   min-width: 0;
 }
 
+/* The roster's retire shortcut: an X over the card's top-right corner (Roster.tsx CharacterCard). */
+.char-card-wrap {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.char-card-wrap > .char-card {
+  padding-right: 32px; /* room for the X */
+}
+
+.char-retire {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--void);
+  border: 1px solid var(--line-2);
+  cursor: pointer;
+}
+
+.char-retire:hover:not(:disabled),
+.char-retire:focus-visible {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.char-retire:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .char-card:hover {
   border-color: var(--line-2);
 }
