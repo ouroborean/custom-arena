@@ -12,6 +12,7 @@ import { useT } from '../i18n/index.js';
 import { useMeta } from '../meta.js';
 import { arcadeMode, useStore, type HomeTab } from '../store.js';
 import { Brand } from './Account.js';
+import { InfusedRecruitDialog } from './InfusedRecruit.js';
 import { InventoryPanel } from './Inventory.js';
 import { Leaderboards } from './Leaderboards.js';
 import { Reference } from './Reference.js';
@@ -22,7 +23,8 @@ import { moveInRoster, placeInTeam, rosterKeys, useRosterDrag, type DragSource, 
 
 export function Home() {
   const t = useT();
-  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, reorderRoster, signOut, contentMismatch, clearError } = useMeta();
+  const { user, characters, maxRoster, team, wallet, busy, error, roll, setTeam, reorderRoster, signOut, contentMismatch, clearError, infusedRecruits } = useMeta();
+  const [infusing, setInfusing] = useState(false);
   const rollCost = content.economy.roll.cost;
   const go = useStore((s) => s.go);
   const newMatch = useStore((s) => s.newMatch);
@@ -353,15 +355,37 @@ export function Home() {
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  className="btn primary"
-                  data-guide="recruit"
-                  disabled={busy || characters.length >= maxRoster || !canAfford(wallet, rollCost)}
-                  onClick={() => void roll()}
-                >
-                  {t('home.roll', { cost: formatAmounts(content, rollCost) })}
-                </button>
+                <>
+                  {infusedRecruits > 0 && (
+                    <button
+                      type="button"
+                      className="btn infused-btn"
+                      disabled={busy || characters.length >= maxRoster}
+                      onClick={() => setInfusing(true)}
+                      title={t('infused.hint')}
+                    >
+                      {t('home.infused', { count: infusedRecruits })}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn primary"
+                    data-guide="recruit"
+                    disabled={busy || characters.length >= maxRoster || !canAfford(wallet, rollCost)}
+                    onClick={() => void roll()}
+                  >
+                    {t('home.roll', { cost: formatAmounts(content, rollCost) })}
+                  </button>
+                </>
+              )}
+              {infusing && (
+                <InfusedRecruitDialog
+                  onClose={() => setInfusing(false)}
+                  onRecruited={(id) => {
+                    setInfusing(false);
+                    go('character', id);
+                  }}
+                />
               )}
             </div>
             <p className="muted">{t('home.rosterHint')}</p>

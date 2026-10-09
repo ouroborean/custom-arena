@@ -313,3 +313,61 @@ export const KITS: KitProse[] = [
     playsLike: 'Curses that punish choices and refuse to leave',
   },
 ];
+
+/** A thematic line per element (the recruit picker; ELEMENT_PROSE has the mechanics). */
+export const ELEMENT_FLAVOR: Record<(typeof ELEMENTS)[number], string> = {
+  Fire: 'Wildfire that spreads from foe to foe and feeds whoever started it.',
+  Ice: 'A slow, crushing cold that shelters friends and freezes enemies in place.',
+  Water: 'Patient tides: steady healing, shifting currents, and time bent your way.',
+  Lightning: 'Stored power released in arcs, leaping from one target to the next.',
+  Wind: 'Quicksilver reflexes: always a step ahead, never where the blow lands.',
+  Poison: 'Venom that takes its time, weakening the prey until it falls.',
+  Earth: 'Stone skin, deep roots and a living army that grows from the ground.',
+  Holy: 'Sacred light that mends allies and passes judgment on the wicked.',
+  Unholy: "Hungry darkness that drinks life and harvests the souls of the fallen.",
+  Shadow: 'Unseen hands that blind, mislead and unravel the enemy\'s plans.',
+};
+
+/** Each class's identity (the recruit picker): its theme, and how its six skills play. */
+export const CLASS_PROSE: Record<string, { flavor: string; play: string }> = {
+  warrior: {
+    flavor: 'A frontline brawler who settles fights by hitting harder than anyone else.',
+    play: 'Raw damage and self-empowerment: Strike and Smash hit hard, Charge closes in, Rage and Titan make the Warrior stronger and harder to stop, and Shout Intimidates the whole enemy team.',
+  },
+  knight: {
+    flavor: 'A disciplined duelist who meets every attack with a counter.',
+    play: 'Opens with Charge, punishes attackers with Riposte, controls the fight with Stun and Shout, and spreads damage with Strike and Cleave.',
+  },
+  druid: {
+    flavor: 'A wild shaper of nature who fights alongside the beasts it calls.',
+    play: 'Minions and brawling: Companion summons a lasting ally, Rage and Ravage tear into enemies, Smash splashes, and Trap and Blast cover the field.',
+  },
+  ranger: {
+    flavor: 'A patient hunter who strikes from afar and is never where the enemy expects.',
+    play: 'Steady ranged damage with Shot, a hidden, delayed big hit with Snipe, Traps for careless enemies, Maneuver to dodge, Stab to finish, and a Companion at their side.',
+  },
+  monk: {
+    flavor: 'A disciplined ascetic whose body and spirit are both weapons.',
+    play: 'Smite punishes, Dance and Maneuver keep the Monk quick and hard to hit, Riposte counters, and Bless and Prayer support the whole team.',
+  },
+  mage: {
+    flavor: 'An arcane scholar who bends raw power into destructive spells.',
+    play: 'Spell damage of every shape: Bolt for one target, Blast for all, Channel over several turns; Consume drains life, Summon conjures a familiar, and Mislead turns the enemy\'s attacks back on them.',
+  },
+  warlock: {
+    flavor: 'A dealmaker with dark powers who weakens enemies before they can act.',
+    play: 'Debuffs and endurance: Curse cripples, Consume drains life, Summon calls servants, Bolt adds damage, Withstand shields, and Taunt forces attacks onto the Warlock.',
+  },
+  rogue: {
+    flavor: 'A cunning skirmisher who strikes weak points and vanishes.',
+    play: 'Finishing blows and tricks: Stab hits harder on wounded targets, Ravage punishes the Stunned, Stun and Mislead disrupt, Snipe lands a hidden blow, and Dance keeps the Rogue nimble.',
+  },
+  priest: {
+    flavor: 'A devoted healer who keeps the team standing through anything.',
+    play: 'Healing and support: Heal mends one ally, Prayer heals and shields everyone, Bless empowers; Channel, Curse and Shot let the Priest contribute between heals.',
+  },
+  paladin: {
+    flavor: 'A holy guardian who stands in front so others don\'t have to.',
+    play: 'The tank: Taunt draws enemy attacks, Withstand and Titan make the Paladin hard to bring down, Cleave and Smite deal damage, and Heal mends allies.',
+  },
+};

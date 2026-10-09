@@ -1,13 +1,25 @@
 // Roster (characters) and teams (GDD §7, §9.1). Rolling costs currency (content economy `roll`);
 // a new account's first three characters are free.
 
-import { MAX_SKILLS, rollCharacter, toCharacterSpec, validateCharacter } from '@arena/meta';
+import {
+  autoInfuse,
+  EMPTY_LOADOUT,
+  infusedRecruitKit,
+  MAX_SKILLS,
+  resolveLoadout,
+  rollableClasses,
+  rollableElements,
+  rollCharacter,
+  toCharacterSpec,
+  validateCharacter,
+  withItem,
+} from '@arena/meta';
 import { seedRng, type CharacterSpec } from '@arena/engine';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HttpError, parse, requireUser, type AppContext } from '../app.js';
-import { characters, teams } from '../db/schema.js';
+import { characters, itemInstances, teams, users } from '../db/schema.js';
 import { inTransaction, spend, walletOf } from '../economy.js';
 import { recordOf, resolveStored } from './equipment.js';
 
@@ -51,12 +63,12 @@ export function characterJson(c: CharacterRow) {
  * Rolls a character for a user (class weighting from their roster) and stores it. A user without an
  * active team gets one as soon as they have 3 characters: their first three recruits.
  */
-export async function rollForUser(ctx: AppContext, userId: string): Promise<CharacterRow> {
+export async function rollForUser(ctx: AppContext, userId: string, choose: { classId?: string; element?: string } = {}): Promise<CharacterRow> {
   const owned = await ctx.db.select({ classId: characters.classId }).from(characters).where(eq(characters.userId, userId));
   if (owned.length >= MAX_ROSTER) throw new HttpError(409, `Your roster is full (${MAX_ROSTER})`);
   const ownedClassCounts: Record<string, number> = {};
   for (const o of owned) ownedClassCounts[o.classId] = (ownedClassCounts[o.classId] ?? 0) + 1;
-  const { character } = rollCharacter(ctx.content, seedRng(ctx.rollSeed()), { ownedClassCounts });
+  const { character } = rollCharacter(ctx.content, seedRng(ctx.rollSeed()), { ownedClassCounts, ...choose });
   const [row] = await ctx.db
     .insert(characters)
     .values({ userId, ...character, contentVersion: ctx.content.version })
@@ -110,7 +122,8 @@ export function rosterRoutes(ctx: AppContext) {
         .from(characters)
         .where(eq(characters.userId, req.user!.id))
         .orderBy(sql`${characters.position} asc nulls last`, characters.createdAt);
-      return { characters: rows.map(characterJson), maxRoster: MAX_ROSTER, maxSkills: MAX_SKILLS };
+      const [me] = await ctx.db.select({ infusedRecruits: users.infusedRecruits }).from(users).where(eq(users.id, req.user!.id));
+      return { characters: rows.map(characterJson), maxRoster: MAX_ROSTER, maxSkills: MAX_SKILLS, infusedRecruits: me?.infusedRecruits ?? 0 };
     });
 
     /** Saves the roster order: every one of the player's characters, each once, in the new order. */
@@ -146,6 +159,46 @@ export function rosterRoutes(ctx: AppContext) {
         return rollForUser({ ...ctx, db }, userId);
       });
       return reply.status(201).send({ character: characterJson(row), wallet: await walletOf(ctx.db, ctx.content, userId) });
+    });
+
+    /**
+     * An Infused Recruit (decided 2026-10-09): spends one of the account's Infused Recruits on a
+     * character of the chosen class and element, equipped with its kit (meta `infusedRecruitKit`, the
+     * pieces added to the inventory) and every infusion placed. All or nothing: a full roster (409)
+     * leaves the count and inventory untouched.
+     */
+    app.post('/api/characters/recruit-infused', async (req, reply) => {
+      const userId = req.user!.id;
+      const { classId, element } = parse(z.object({ classId: z.string(), element: z.string() }), req.body);
+      if (!rollableClasses(ctx.content).some((c) => c.id === classId)) throw new HttpError(400, 'Choose a class');
+      if (!rollableElements(ctx.content).includes(element)) throw new HttpError(400, 'Choose an element');
+      const { row, left } = await inTransaction(ctx.db, async (db) => {
+        const [spent] = await db
+          .update(users)
+          .set({ infusedRecruits: sql`${users.infusedRecruits} - 1` })
+          .where(and(eq(users.id, userId), gt(users.infusedRecruits, 0)))
+          .returning({ left: users.infusedRecruits });
+        if (!spent) throw new HttpError(409, 'No Infused Recruits left');
+        const c = await rollForUser({ ...ctx, db }, userId, { classId, element });
+        const record = recordOf(c);
+        const pieces = infusedRecruitKit(ctx.content, record, seedRng(ctx.rollSeed()));
+        const stored = await db
+          .insert(itemInstances)
+          .values(pieces.map((itemId) => ({ userId, itemId, source: 'infused_recruit' })))
+          .returning();
+        const free = [...stored];
+        let loadout = EMPTY_LOADOUT;
+        for (const itemId of pieces) {
+          const inst = free.splice(free.findIndex((i) => i.itemId === itemId), 1)[0]!;
+          loadout = withItem(ctx.content, record, loadout, { itemId, instanceId: inst.id });
+        }
+        loadout = autoInfuse(ctx.content, record, loadout);
+        const problems = resolveLoadout(ctx.content, record, loadout).problems;
+        if (problems.length) throw new HttpError(500, 'The recruit kit came out invalid', { problems });
+        const [updated] = await db.update(characters).set({ loadout }).where(eq(characters.id, c.id)).returning();
+        return { row: updated!, left: spent.left };
+      });
+      return reply.status(201).send({ character: characterJson(row), infusedRecruits: left });
     });
 
     app.patch('/api/characters/:id', async (req) => {

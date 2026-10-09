@@ -13,6 +13,8 @@ interface MetaState {
   user: User | null;
   characters: Character[];
   maxRoster: number;
+  /** Infused Recruits left (a chosen class and element, recruited already equipped). */
+  infusedRecruits: number;
   team: string[];
   inventory: InventoryItem[];
   wallet: Wallet;
@@ -29,6 +31,7 @@ interface MetaState {
   signOut(): Promise<void>;
   refresh(): Promise<void>;
   roll(): Promise<Character | null>;
+  recruitInfused(classId: string, element: string): Promise<Character | null>;
   setTeam(ids: string[]): Promise<void>;
   /** Saves a new roster order (shown at once; put back if the server refuses). */
   reorderRoster(ids: string[]): Promise<void>;
@@ -67,6 +70,7 @@ export const useMeta = create<MetaState>((set, get) => {
     user: null,
     characters: [],
     maxRoster: 0,
+    infusedRecruits: 0,
     team: [],
     inventory: [],
     wallet: {},
@@ -123,6 +127,7 @@ export const useMeta = create<MetaState>((set, get) => {
           progress,
           characters: chars.characters,
           maxRoster: chars.maxRoster,
+          infusedRecruits: chars.infusedRecruits ?? 0,
           team: team.team?.characterIds ?? [],
           inventory: inv.items,
           wallet: inv.wallet,
@@ -149,6 +154,17 @@ export const useMeta = create<MetaState>((set, get) => {
         const team = await act(() => api.activeTeam());
         if (team) set({ team: team.team?.characterIds ?? [] });
       }
+      return r.character;
+    },
+
+    async recruitInfused(classId, element) {
+      const r = await act(() => api.recruitInfused(classId, element));
+      if (!r) return null;
+      set({ characters: [...get().characters, r.character], infusedRecruits: r.infusedRecruits });
+      // Its kit went into the inventory, and the first three recruits become the active team.
+      const [inv, team] = await Promise.all([act(() => api.inventory()), get().team.length < 3 ? act(() => api.activeTeam()) : null]);
+      if (inv) set({ inventory: inv.items, wallet: inv.wallet });
+      if (team) set({ team: team.team?.characterIds ?? [] });
       return r.character;
     },
 

@@ -10,6 +10,10 @@ import { NATIVE_SKILLS } from './rules.js';
 export interface RollContext {
   /** How many characters of each class the player already owns; classes they own fewer of are favored. */
   ownedClassCounts?: Record<string, number>;
+  /** The class to recruit (an Infused Recruit lets the player choose); otherwise weighted at random. */
+  classId?: string;
+  /** The base element to recruit with; otherwise random. */
+  element?: string;
 }
 
 export interface RollResult {
@@ -43,10 +47,14 @@ function weighted<T>(rng: RngState, items: readonly T[], weight: (t: T) => numbe
 export function rollCharacter(content: ContentBundle, rng: RngState, ctx: RollContext = {}): RollResult {
   // Class: weighted towards classes the player owns fewer of (weight ∝ 1 / (1 + owned)).
   const owned = ctx.ownedClassCounts ?? {};
-  const cls = weighted(rng, rollableClasses(content), (c) => Math.round(1200 / (1 + (owned[c.id] ?? 0))));
+  const classes = rollableClasses(content);
+  const chosen = ctx.classId ? classes.find((c) => c.id === ctx.classId) : undefined;
+  if (ctx.classId && !chosen) throw new Error(`Can't recruit class "${ctx.classId}"`);
+  const cls = chosen ?? weighted(rng, classes, (c) => Math.round(1200 / (1 + (owned[c.id] ?? 0))));
 
   const elements = rollableElements(content);
-  const element = elements[nextInt(rng, elements.length)]!;
+  if (ctx.element && !elements.includes(ctx.element)) throw new Error(`Can't recruit element "${ctx.element}"`);
+  const element = ctx.element ?? elements[nextInt(rng, elements.length)]!;
 
   // The class's starter skill first, then the rest drawn from the class pool.
   const pool = [...cls.signatures, ...cls.affinity];

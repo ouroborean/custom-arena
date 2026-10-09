@@ -8,7 +8,6 @@ import { HttpError, parse, requireUser, type AppContext } from '../app.js';
 import { audit } from '../audit.js';
 import { SESSION_COOKIE, createSession, deleteSession, hashPassword, verifyPassword } from '../auth.js';
 import { users } from '../db/schema.js';
-import { grantStarterKit } from './equipment.js';
 import { walletOf } from '../economy.js';
 
 const Credentials = z.object({
@@ -52,9 +51,8 @@ export function authRoutes(ctx: AppContext) {
         .returning({ id: users.id, email: users.email, displayName: users.displayName });
       if (!user) throw new HttpError(500, 'Could not create the account');
 
-      // No characters yet: new players recruit them with their starting Gold (the first three
-      // become the active team).
-      await grantStarterKit(ctx, user.id);
+      // No characters or equipment yet: new players recruit with their starting Gold and their
+      // Infused Recruits, which arrive equipped (the first three recruits become the active team).
       await walletOf(ctx.db, ctx.content, user.id);
 
       await setSession(reply, user.id);
