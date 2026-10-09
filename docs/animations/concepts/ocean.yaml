@@ -1,0 +1,297 @@
+group: ocean
+# Ocean is Water turned up (Water + Water): heavier, larger, two layers deep. Every color is Water, split
+# by depth: bodies, undertows and swells are `element` at `tone: dark` (abyssal navy); the foam, spray and
+# whitecaps thrown off them are `element2` at `tone: light`. Nearly every skill is a dark mass that breaks
+# white. Water's splashes stay, but its waves grow into breakers and swells (paladin_8, frost_knight_10,
+# slime_1's stacked swell crests, frost_mage_7's curling foam head), and Water's tells (Flow's rising bubbles, its
+# consumed droplets) are left to Flow. Ocean's own motifs are the sea's creatures (Kraken tentacles as navy
+# rakes, Jellyfish as starry bells with drooping stings, the whale's song and sonar, the leviathan's jaws)
+# and the brim: water welling past full. Brimming spills over in a foam crown, and its Shield is held as a
+# ring of seawater with drops in orbit. Crest and Trough emit different events, so cues split them where
+# they can.
+
+statuses:
+  brimming:
+    note: "No trigger of its own: when Renew's healing overflows, Brimming Shield's apply plays."
+    apply:  [ { fx: directional_splatter_002, size: small, tint: element2, tone: light, scale: 0.55, speed: 1.3 } ]   # water rises to the brim and spills over in a crown of foam droplets
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.4, opacity: 0.6 } ]   # the swell settles into a wisp of sea-mist
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.4, opacity: 0.6 } ]
+  brimming_shield:
+    note: "Only the first fill plays apply: growing an existing Brimming Shield (Renew's overflow, Swell and Break, Chorus of Tides) emits no event. Broken, spent or cleansed, it plays remove."
+    apply:  [ { fx: frost_mage_1, tint: element, scale: 0.75, opacity: 0.85, speed: 1.3, frames: [0, 12] } ]   # the overflow gathers into a ring of seawater with two drops in orbit; cut the dim ghost ring
+    remove: [ { fx: round_bubble_burst_001, size: small, tint: element2, tone: light, scale: 0.6 } ]   # the held water bursts into foam
+  slack_water_calm:
+    apply:  [ { fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.6, offset: [0, -0.45], layer: under, opacity: 0.8 } ]   # a flat, glassy sheen spreads at their feet: the tide at rest
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, offset: [0, -0.45], layer: under, opacity: 0.5 } ]   # the tide turns: ripples break the stillness
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, offset: [0, -0.45], layer: under, opacity: 0.5 } ]
+  swell_of_the_deep:
+    note: "No skill applies it yet. Its Might comes inside Renew's tick when Brimming fills, and Might's default carries that."
+    apply:  [ { fx: directional_particle_burst_002, tint: element, tone: dark, scale: 0.9, layer: under } ]   # a deep swell surges up behind the bearer (Swell of the Deep's dance raises the same swell in white)
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element, tone: dark, scale: 0.45, opacity: 0.6 } ]
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element, tone: dark, scale: 0.45, opacity: 0.6 } ]
+
+macros: {}   # Ocean defines no macros
+
+skills:
+  strike.ocean:
+    beat: A dark breaker curls over and crashes down through the target, throwing white foam past them.
+    note: "Trough deals 15, not 25: play the breaker at about 0.65 when the renderer can read the amount."
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: element, tone: dark, scale: 0.85 }
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, tint: element2, tone: light, scale: 0.5, delay: 100 }
+      - { on: remove, status: buff, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 150 }   # Crest: their Buff washes off in a ring of foam
+      - { on: remove, status: debuff, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.5 }   # Trough: the backwash rinses a Debuff off the user
+
+  smash.ocean:
+    beat: A wall of dark water curls over the target and crashes; on the Crest the flood spills under their allies, on the Trough it tears every enemy's Shield away.
+    cues:
+      - { on: hit, only: primary, fx: paladin_8, face: fromActor, tint: element, tone: dark, scale: 1.3, offset: [0, 0.15], note: "its banded curl peaks upper-center: let the dome close over the head" }
+      - { on: hit, only: primary, fx: directional_impact_004, tint: element2, tone: light, scale: 1.0, delay: 250 }   # the crash throws up a tower of whitewater
+      - { on: hit, only: others, fx: directional_impact_002, tint: element2, tone: light, scale: 0.9, layer: under, delay: 350, stagger: 90, note: "its spark pixels are a fixed #fcd64b in every variant: remap them to the light stop or drop them" }   # Crest: the flood runs out along the ground under each ally
+      - { on: remove, status: buff, fx: round_bubble_burst_001, size: small, tint: element2, tone: light, scale: 0.6, stagger: 80 }   # Trough: each Shield bursts away in foam, over Shield's own remove
+
+  charge.ocean:
+    beat: A swell rolls across the board under a curling white crest and breaks over the target.
+    note: "Crest grows with each of the user's turns since their last Trough (+5 each, up to +20): grow the impact about 0.1 per 5. Trough's Flow rises off the user by its own default."
+    cues:
+      - { on: travel, fx: frost_mage_7, path: beam, tint: element, scale: 0.9, frames: [0, 6], note: "the foam head reaches the target end; the portrait surges forward with it and snaps back" }   # blue streaks drive a curling white crest; cut the grey last frame
+      - { on: hit, fx: burst_splatter_003, tint: element, tone: dark, scale: 0.85 }   # the deep swell breaks on them in a dark star of water (no white core, so it stays navy)
+      - { on: hit, fx: burst_splatter_002, tint: element2, tone: light, scale: 0.75, delay: 80 }   # and bursts into foam
+
+  riposte.ocean:
+    beat: A seawall of dark water stands unseen before the user; a blow against them breaks on it in a burst of spray that washes back over the attacker.
+    cues:
+      - { on: cast, fx: fanfx_barrier, tint: element, tone: dark, scale: 0.7, opacity: 0.75 }   # owner only (Invisible): the breakwater's blocks stack up
+      - { on: trigger, status: breakwater, fx: symmetrical_impact_004, tint: element2, tone: light, scale: 1.0 }   # the blow breaks on the wall: a shredded burst of spray on the user
+      - { on: trigger, status: breakwater, fx: directional_splatter_004, at: source, face: fromActor, tint: element, tone: dark, scale: 0.6, delay: 150 }   # the backwash sprays over the attacker
+      # Brimming's and Renew's defaults follow on the user; the base counter X marks the attacker.
+
+  rage.ocean:
+    beat: Surf heaves up beneath the user in a dark dome and a white crest rears over them; for three turns, their first blow on each Stunned enemy drags it back under.
+    cues:
+      - { on: cast, fx: stylized_explosion_003, tint: element, tone: dark, scale: 1.2, layer: under, frames: [0, 4], note: "fade out over frame 4: its fixed slate smoke starts there and isn't swapped by the tint" }   # a dome of surf and its shock ring heave up under them; stop before the slate-rubble tail
+      - { on: cast, fx: frost_knight_2, tint: element2, tone: light, scale: 1.0, delay: 200 }   # a foam crest rears up and over them
+      - { on: trigger, status: relentless_surf, fx: slime_5, at: target, tint: element, tone: dark, scale: 0.45, offset: [0, 0.6], speed: 1.5, note: "only when it lengthens a Stun (the first time the user damages each Stunned enemy). The extension emits no event of its own, so the renderer has to spot it" }   # a small whirl over the head: dragged back under
+      # Might's default follows.
+
+  shot.ocean:
+    beat: A bead of wind-torn spray whips off the user into the target; if they're Brimming, their held water pours out after it.
+    note: "The Brimming branch adds the Shield it spends (up to 20) to the damage: play the hit about 1.3x then. Spending only part of the Shield emits no event; emptying it plays the remove cue."
+    cues:
+      - { on: travel, fx: deathbringer_6, path: beam, tint: element2, tone: light, scale: 0.45, speed: 1.5, frames: [1, 11] }   # a pale crescent bead trailing spray across the gap
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.55 }
+      - { on: remove, status: brimming_shield, fx: scifi_muzzle_flash_003, face: toTarget, size: small, tint: element2, tone: light, scale: 0.6 }   # the user's held water blasts out toward the target (replaces Brimming Shield's remove here)
+      # Not Brimming: Renew's and Brimming's defaults on the user.
+
+  snipe.ocean:
+    beat: Glints run over the user as they take aim with a harpoon; next turn it spears through the target in a lance of white water.
+    note: "Trough deals 30, not 45: play the harpoon at about 0.75."
+    cues:
+      - { on: cast, fx: stylized_explosion_004, size: small, tint: element2, tone: light, scale: 0.6, frames: [0, 8] }   # only its glint wind-up, centered on the user: HiddenTarget-safe
+      - { on: trigger, status: harpoon_crest, fx: round_firework_burst_001, tint: element2, tone: light, scale: 0.75 }   # spray flung off the user as the harpoon looses (radial: points at no one)
+      - { on: trigger, status: harpoon_trough, fx: round_firework_burst_001, tint: element2, tone: light, scale: 0.75 }
+      - { on: hit, fx: warrior_8, face: fromActor, tint: element2, tone: light, scale: 1.2, note: "put the blade tip (about 68% across the canvas) on the target" }   # the harpoon spears through
+      - { on: hit, fx: symmetrical_impact_001, tint: element2, tone: light, scale: 0.8, delay: 40, frames: [0, 2] }   # the lance's flash; stop before its ring, which carries fixed yellow sparks
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: element, tone: dark, scale: 0.8, delay: 60 }   # deep water bursts out behind them
+      - { on: heal, fx: directional_sparkle_burst_003, size: small, tint: element2, tone: light, scale: 0.6, stagger: 80 }   # Trough: the catch is shared out among the allies
+
+  trap.ocean:
+    beat: Dark ripples spread unseen at the target's feet; when they strike, the undertow sucks at them, and when they heal, their water drains to the user's weakest ally.
+    note: "Invisible: the opponent sees only the springs. Crest's cooldown rise shows on their skill bar."
+    cues:
+      - { on: apply, status: debuff, fx: symmetrical_smoke_burst_002, tint: element, scale: 0.6, offset: [0, -0.4], layer: under, opacity: 0.85 }   # owner only: ripples spread at their feet (either Undercurrent)
+      - { on: trigger, status: undercurrent_crest, fx: spell_absorb_001, tint: element, tone: dark, scale: 0.8, offset: [0, -0.15], speed: 1.6 }   # the undertow spirals in around them
+      - { on: hit, fx: directional_splatter_005, size: small, tint: element, tone: dark, scale: 0.6, delay: 200 }   # and dark water slaps up from beneath: the 10 damage
+      - { on: trigger, status: undercurrent_trough, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.6 }   # a wisp of their healing drains off them
+      - { on: heal, fx: directional_splatter_005, tint: element2, tone: light, scale: 0.7 }   # and wells up under the user's weakest ally
+
+  maneuver.ocean:
+    beat: The user sounds like a whale, diving under a burst of whitewater as a sonar ring spreads; while they keep Flow, each skill they use pings Renew to their weakest ally.
+    cues:
+      - { on: cast, fx: directional_impact_003, tint: element2, tone: light, scale: 1.0 }   # whitewater closes over them as they dive
+      - { on: cast, fx: frost_knight_7, tint: element, tone: dark, scale: 1.2, layer: under, delay: 200 }   # a sonar ring with compass ticks spreads from where they sank
+      - { on: trigger, status: sounding, fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.6, note: "only when the Renew lands (the user still has Flow)" }   # a sonar ping off the user; Renew's heart lands on the ally
+      # Invulnerable's void and Flow's bubbles follow by default.
+
+  companion.ocean:
+    beat: The sea heaves white and two great tentacles rear up out of it as the Kraken surfaces.
+    cues:
+      - { on: summon, fx: dark_mage_1, tint: element, tone: dark, scale: 1.0, offset: [-0.2, 0], delay: 100 }   # a tentacle rears up and hooks over
+      - { on: summon, fx: dark_mage_1, tint: element, tone: dark, scale: 0.85, offset: [0.25, -0.05], flip: x, delay: 220 }   # and a second from the other side
+      - { on: summon, fx: symmetrical_smoke_burst_003, tint: element2, tone: light, scale: 1.1, layer: under }   # the sea heaves up in a clover of white spray
+
+  bolt.ocean:
+    beat: A dark globe of brine streaks into the target and bursts open like a cracking sphere; the more Renew the user's side holds, the bigger it bursts.
+    note: "Crest adds 5 per Renew stack on the user's side (up to 15): grow the burst about 0.1 per 5. Trough's Renew defaults play on every ally."
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, tint: element, scale: 1.0, frames: [1, 5] }   # the brine comet in flight; skip the lone first-frame dot and cut its own dark smudge splat
+      - { on: hit, fx: frost_mage_6, tint: element, scale: 0.85 }   # the globe swells, cracks white and bursts
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, tint: element2, tone: light, scale: 0.6, delay: 150 }   # a ring of foam
+
+  blast.ocean:
+    beat: A colossal breaker crashes over the whole enemy row and the flood runs white along the ground beneath them.
+    cues:
+      - { on: hit, fx: frost_knight_10, at: enemySide, face: fromActor, tint: element, tone: dark, scale: 2.6, frames: [2, 9], note: "once, with the first hit. Its crash sits in the canvas's bottom corner on the leading side: place that corner at the middle of the row" }
+      - { on: hit, fx: directional_impact_002, at: enemySide, tint: element2, tone: light, scale: 1.3, layer: under, delay: 300, note: "once, with the first hit. Its spark pixels are a fixed #fcd64b in every variant: remap them to the light stop or drop them" }   # the flood runs white along the ground under the row
+      - { on: hit, fx: directional_impact_003, tint: element2, tone: light, scale: 0.7, delay: 320, stagger: 80 }   # whitewater bursts up at each enemy
+      # Brimming's and Renew's defaults on every ally.
+
+  consume.ocean:
+    beat: The tide ebbs off the target and spirals into the user; each skill they use while Confused, the ebb drags off them again.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_005, face: toActor, size: small, tint: element, tone: dark, scale: 0.55 }   # the ebb rushes off them along the ground toward the user
+      - { on: heal, fx: spell_absorb_001, size: small, tint: element, tone: dark, scale: 0.6, speed: 1.6 }   # and spirals into the user (each toll too)
+      - { on: trigger, status: ebbing_toll, fx: directional_smoke_burst_005, face: toActor, size: small, tint: element, tone: dark, scale: 0.45, opacity: 0.85, note: "only when the toll pays (they're still Confused)" }   # the toll drains off them; the heal cue plays on the user
+      # Confusion's default on the target.
+
+  summon.ocean:
+    beat: Pale bells bloom up out of little splashes one after another; whoever kills a Jellyfish is caught in its stinging threads.
+    cues:
+      - { on: summon, fx: spell_dispel_001, tint: element2, tone: light, scale: 0.7, stagger: 120, frames: [3, 21] }   # sparkle-filled rings drift up: the translucent bells; skip the empty first frames
+      - { on: summon, fx: directional_splatter_005, size: small, scale: 0.5, layer: under, stagger: 120 }   # each surfaces from a small splash
+      - { on: trigger, status: jellyfish_bloom, fx: scifi_spark_burst_001, at: target, tint: element2, tone: light, scale: 0.7, note: "only when the Stun lands (the dead unit was one of the user's Jellyfish)" }   # stinging threads droop over the killer; Stun's default follows
+
+  channel.ocean:
+    beat: The tide goes slack and glassy under the user's side; at the end of each of their turns a slow swell rolls out and slaps up under every enemy.
+    cues:
+      - { on: trigger, status: slack_water, fx: symmetrical_explosion_004, tint: element, tone: dark, scale: 0.9, opacity: 0.8, frames: [0, 6] }   # each pulse: a slow ring of swell rolls out from the user; stop before its fixed olive fade
+      - { on: hit, fx: directional_splatter_005, size: small, tint: element, tone: dark, scale: 0.6, layer: under, delay: 150, stagger: 60 }   # it slaps up under each enemy
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: element2, tone: light, scale: 0.4, delay: 220, stagger: 60 }   # flecks of foam fly off past them
+      # Slack Water's glassy sheen spreads under every ally by its default as the channel starts.
+
+  stab.ocean:
+    beat: A quick shell-white jab and a slick of water underfoot; a Confused target's feet go out from under them.
+    note: "20 damage against a target at or below 60 HP: play the jab at about 0.7."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, tint: element2, tone: light, scale: 0.5 }   # a quick white jab
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: element, tone: dark, scale: 0.4, delay: 60 }
+      - { on: remove, status: confusion, fx: directional_impact_002, size: small, tint: element2, tone: light, scale: 0.7, layer: under, note: "its spark pixels are a fixed #fcd64b in every variant: remap them to the light stop or drop them" }   # their feet skid on the slick; Stun's default follows
+
+  ravage.ocean:
+    beat: A massive swell drives in crest after crest and smashes into the target in a white blast of surf that spills over their allies; the user is left spent.
+    cues:
+      - { on: hit, only: primary, fx: slime_1, face: fromActor, tint: element, tone: dark, scale: 1.3, note: "its white splat lands about 70-75% across the canvas, vertically centered: put that point on the target" }   # stacked swell crests drive in level and smash white against them
+      - { on: hit, only: primary, fx: symmetrical_impact_003, tint: element2, tone: light, scale: 1.0, delay: 300 }   # the break: a white flash of surf
+      - { on: hit, only: primary, fx: burst_splatter_002, tint: element, tone: dark, scale: 1.0, delay: 360 }
+      - { on: hit, only: others, fx: directional_splatter_004, size: small, face: fromActor, tint: element2, tone: light, scale: 0.6, delay: 420, stagger: 90 }   # 15 to each ally: the surf spills over them
+      # Stun's default on the user: spent.
+
+  mislead.ocean:
+    beat: A siren's song hangs unheard over the target; when they act on the wrong impulse, pale wisps curl around them and the skill is lost.
+    cues:
+      - { on: apply, status: sirens_lure_crest, fx: directional_music_burst_002, size: small, tint: element2, tone: light, scale: 0.5, opacity: 0.7 }   # owner only (Invisible): the song hangs over their head
+      - { on: apply, status: sirens_lure_trough, fx: directional_music_burst_002, size: small, tint: element2, tone: light, scale: 0.5, opacity: 0.7 }
+      - { on: trigger, status: sirens_lure_crest, fx: starcaller_4, tint: element2, tone: light, scale: 0.8 }   # the lure springs on a Harmful skill: pale wisps, then Taunt's '!'
+      - { on: trigger, status: sirens_lure_trough, fx: starcaller_4, tint: element2, tone: light, scale: 0.8 }   # on a Helpful one the same pale wisps curl around them
+      - { on: trigger, status: sirens_lure_trough, fx: slime_5, tint: element, scale: 0.6, layer: under, speed: 1.5 }   # and a whirl opens beneath to drag them under: Stun's default follows
+      # The base counter X marks the lost skill.
+
+  stun.ocean:
+    beat: A maelstrom whirls open around the target and drags them under; on the Trough it spreads beneath the whole enemy row.
+    note: "Trough lengthens existing Stuns with no event of its own: if the renderer spots it, replay Stun's apply default on those enemies (and play the row maelstrom when no Confusion lands)."
+    cues:
+      - { on: hit, fx: slime_5, tint: element, tone: dark, scale: 0.9, speed: 1.3 }   # Crest: the whirlpool opens around them
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, tint: element2, tone: light, scale: 0.6, delay: 200 }   # foam churned into a ring
+      - { on: apply, status: confusion, fx: slime_5, at: enemySide, tint: element, tone: dark, scale: 2.2, layer: under, opacity: 0.75 }   # Trough: once, the maelstrom spreads under the whole row
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, scale: 0.5, speed: 1.5, delay: 200 }   # Confusion's default, re-added (this skill's own apply cues replace it)
+      # Stun's default on the Crest.
+
+  dance.ocean:
+    beat: Deep currents circle the user and the swell rises white around them; the first Debuff an enemy lays on them each turn is swept off in foam.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: element, tone: dark, scale: 1.1, layer: under, frames: [0, 9] }   # two currents join into a ring circling them; cut the red last frames
+      - { on: cast, fx: directional_particle_burst_002, tint: element2, tone: light, scale: 1.1, layer: under, delay: 250 }   # the swell rises white around them
+      - { on: trigger, status: riding_the_swell, fx: round_bubble_burst_001, size: small, tint: element2, tone: light, scale: 0.6, note: "only when it fires (an enemy's Debuff, the first each turn)" }   # the Debuff bursts off them in foam; Renew's default follows
+      # Brimming's default follows the cast.
+
+  heal.ocean:
+    beat: A tidepool rings the ally's feet and wells up around them in columns of light; any overflow stays as Renew.
+    cues:
+      - { on: heal, fx: dark_mage_3, tint: element, scale: 0.95, layer: under, frames: [2, 12] }   # the pool rings their feet and wells up
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.55, delay: 250 }   # crosses lift off them
+      # Renew (from the overflow) and Brimming defaults follow.
+
+  bless.ocean:
+    beat: A bead of seawater falls onto the ally; on the Crest it gathers into held water around them, on the Trough their held water bursts and pours its strength into them.
+    cues:
+      - { on: travel, fx: scifi_warp_003, path: drop, tint: element2, tone: light, scale: 0.8, note: "its own bead already falls and splashes: play it in place on the ally rather than moving the canvas" }   # a bead of seawater drops onto them and splashes up in curling spray
+      - { on: remove, status: brimming_shield, fx: frost_mage_6, tint: element, scale: 0.7 }   # Trough: the held globe bursts (replaces Brimming Shield's remove); Might's default follows, 1 to 3 stacks by what it held
+      # Crest: Brimming's default, then Brimming Shield's if they had none (growing an existing one emits no event).
+
+  curse.ocean:
+    beat: A dark brine-mist billows up around the target and leaves them reeling; whenever the user's side gains Renew, salt spray drifts over and the haze thickens.
+    cues:
+      - { on: apply, status: debuff, fx: directional_smoke_burst_001, tint: element, tone: dark, scale: 0.9, opacity: 0.8 }   # dark sea-mist billows up around them, at each Confusion (the later ones too); Confusion's '?' follows
+      - { on: apply, status: brine_haze, fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.4, opacity: 0.6, stagger: 60 }   # a wisp of salt spray rises off each ally
+      - { on: trigger, status: brine_haze, fx: directional_smoke_burst_003, face: toTarget, size: small, tint: element, tone: dark, scale: 0.4, opacity: 0.7 }   # brine drifts off the ally toward the target
+
+  smite.ocean:
+    beat: A white crest dives down onto the target and bursts in a star of spray; for a turn, each ally who strikes them knocks foam loose and drinks it in.
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, tint: element2, tone: light, scale: 0.9 }   # the crest's streaks dive in from above and burst white on them
+      - { on: trigger, status: foambreaker, fx: symmetrical_smoke_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # struck by an ally: foam bursts off them; Renew and Brimming land on the striker
+
+  prayer.ocean:
+    beat: The user's chorus rises and the tide wells up beneath every ally, lifting them in foam and light.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, tint: element2, tone: light, scale: 0.7 }   # the chorus rises off the user
+      - { on: heal, fx: directional_splatter_005, scale: 0.8, layer: under, stagger: 80 }   # the tide wells up beneath each ally
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.7, delay: 150, stagger: 80, speed: 1.5 }   # foam lifts into a halo
+      # Brimming Shield's default where the healing overflows.
+
+  cleave.ocean:
+    beat: A deep current sweeps under the target as foam currents cross over it in an X, and a smaller crosscurrent catches a second enemy; on the Trough each one's Debuffs wash over onto the other.
+    note: "The Trough's primary takes 10, not 25: play the primary pair at about 0.7 then."
+    cues:
+      - { on: hit, only: primary, fx: necromancer_2, face: fromActor, tint: element, tone: dark, scale: 0.9 }   # the deep current sweeps under them
+      - { on: hit, only: primary, fx: warrior_1, face: fromActor, tint: element2, tone: light, scale: 0.85, delay: 80 }   # and two foam currents cross over it in an X
+      - { on: hit, only: others, fx: necromancer_2, face: fromActor, tint: element, tone: dark, scale: 0.6, delay: 220 }   # the random second target: the same crosscurrent, smaller
+      - { on: hit, only: others, fx: warrior_1, face: fromActor, tint: element2, tone: light, scale: 0.55, delay: 280 }
+      - { on: apply, status: debuff, fx: burst_splatter_001, size: small, tint: element2, tone: light, scale: 0.5, delay: 150, stagger: 80, note: "Trough only (the Crest applies nothing): a Debuff washed over from the other target; a named status's own default plays as well" }   # a splash of the other's water lands on them
+
+  shout.ocean:
+    beat: A whale's song booms out from the user in rolling rings, carries along wavering lines and resonates through every enemy, laying hidden things bare.
+    note: "Each uncovered effect emits effectRevealed (bearer, source), seen by both players: from the cast's reveal and from each later reveal through Whalesong's trigger. No `on:` binds it yet: on each one, play a small echo (round_music_burst_001, size small, tint element2, tone light, scale 0.4, offset [0, 0.6]) on that effect's bearer and flash its icon. Play Whalesong's trigger cue only when an effectRevealed follows the trigger: it marks the enemy who made the effect, the echo marks where the effect sits."
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: element2, tone: light, scale: 0.9 }   # the song bursts out around wavy sound rings
+      - { on: travel, fx: necromancer_6, path: beam, flip: x, tint: element2, tone: light, scale: 0.8, speed: 1.5, stagger: 60 }   # the song rolls out to each enemy along a wavering sound-line (flipped so its pulse runs away from the user)
+      - { on: apply, status: whalesong, fx: symmetrical_impact_002, size: small, tint: element2, tone: light, scale: 0.6 }   # the song resonates through them; Vulnerable's default follows
+      - { on: trigger, status: whalesong, fx: round_music_burst_001, size: small, tint: element2, tone: light, scale: 0.4, offset: [0, 0.6], opacity: 0.8, note: "only when an effectRevealed follows the trigger (the effect it made was hidden)" }   # an echo of the song gives away the hidden effect they just made
+
+  withstand.ocean:
+    beat: A wave rears up behind the user and holds there as a wall; when it ends, what's left of it bursts off them and breaks over every enemy.
+    cues:
+      - { on: apply, status: returning_wave, fx: frost_knight_8, tint: element, tone: dark, scale: 1.3, layer: under, frames: [0, 6], note: "hold its crest frame a beat behind the portrait, then fade it: the held wave" }
+      - { on: apply, status: returning_wave, fx: directional_splatter_005, tint: element2, tone: light, scale: 0.7, layer: under, delay: 200 }   # foam boils up at their feet
+      - { on: trigger, status: returning_wave, fx: symmetrical_smoke_burst_003, tint: element, scale: 1.0 }   # when it ends, the held water bursts off the user
+      - { on: trigger, status: returning_wave, fx: symmetrical_smoke_burst_001, tint: element2, tone: light, scale: 0.7, delay: 60 }   # a rim of foam inside the burst
+      - { on: hit, fx: frost_knight_8, tint: element2, tone: light, scale: 0.6, stagger: 80, note: "mirror per side (flip x for a user on the right) instead of rotating, so the crest always curls over the top" }   # and a wave breaks over each enemy (its share of what was left)
+
+  taunt.ocean:
+    beat: A rip current lashes out from the user, hooks the target and drags their attention back; each Harmful skill they throw while Taunted feeds the user Renew.
+    cues:
+      - { on: travel, fx: slime_3, path: return, tint: element, scale: 0.55, frames: [0, 4] }   # the current lashes out and snaps back; just its wavy streak, not the puddle splat
+      - { on: trigger, status: riptide, fx: directional_particle_burst_001, face: toActor, size: small, tint: element, scale: 0.5, note: "only when the Renew lands (they're still Taunted)" }   # droplets drift off them toward the user; Renew's heart lands there
+      # Taunt's '!' on the target.
+
+  titan.ocean:
+    beat: The sea erupts in a colossal breach around the user and they surface as the leviathan; at the end of each of their turns it lunges at the weakest enemy.
+    cues:
+      - { on: cast, fx: epic_explosion_002, scale: 1.9, layer: under, frames: [0, 6], note: "the breach: a colossal arch of seawater flung up behind them; light screen shake. Fade out over frames 5-6: the art's fixed slate smoke takes over from frame 7" }
+      - { on: resolve, fx: directional_impact_002, tint: element2, tone: light, scale: 1.5, layer: under, note: "its spark pixels are a fixed #fcd64b in every variant: remap them to the light stop or drop them" }   # whitewater spreads out from their feet as they surface
+      - { on: trigger, status: leviathan_form, fx: scifi_muzzle_flash_002, face: toTarget, size: small, tint: element2, tone: light, scale: 0.6 }   # each turn's end: a jet of spray as it lunges
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: element, tone: dark, scale: 0.8 }   # the leviathan's jaws snap shut on the weakest enemy
+      # Armor, Brimming, and each turn's Renew play their defaults.
+
+  kraken_tentacles:
+    beat: A tentacle lashes up out of the water at the target; on the Trough it coils around them instead and pins their attacks.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: element, tone: dark, scale: 0.8 }   # Crest: the tentacle lashes them
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: element2, tone: light, scale: 0.45, delay: 80 }
+      - { on: apply, status: debuff, fx: dark_mage_2, tint: element, tone: dark, scale: 0.75, frames: [0, 9] }   # Trough: the tentacle coils round them (cut the red last frames); the locked-attacks default follows
+
+  jellyfish_stinging_bell:
+    beat: The Jellyfish's bell pulses and a thread of sting flickers onto the target.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.35 }   # on the Jellyfish: the bell pulses
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # thin stinging threads droop over them

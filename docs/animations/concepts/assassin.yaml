@@ -1,0 +1,291 @@
+group: assassin
+# Assassin (Poison + Shadow) kills from the dark. Three materials carry the kit:
+#   venom-edged slate  every blade, wire and smoke bank is `duo`: Poison's dark green outline around Shadow's
+#                      slate body and pale highlights, so the steel reads dark with a sick green edge.
+#   lime venom         Poison's ramp (`element`, the palette default): spurts, sprays, gas and drops.
+#   ink                Shadow's drawn `black` variant and `element2`: slits in the air, blots, the dark itself.
+# Signature: the Death Mark. Native Deathbringer art, whose indigo and lime already look like venom in the
+# dark, is the Mark's own family: a lime skull flares across the marked's face (deathbringer_3, seen only by
+# the marker's side), knives hang over them while it lasts, and when an Assassin blow cashes it in the skull
+# is slashed through (deathbringer_5). The Mark always sits on the face, larger than Toxin's small skull over
+# the head, so in a kit that spreads Toxin everywhere the two never read alike. Second tell: Assassin blades
+# strike from behind. The blade layers of melee cuts face `toActor`, bursting out of the target's far side
+# back toward the user as if they came out of the target's own shadow; the venom a cut spills sprays
+# `fromActor`, on past the target, so no cut reads as a drain (Bloodletting owns the `toActor` spray). Only
+# thrown and fired things travel from the user.
+# Contracts (Hired Blade, Open Contract, Subcontract) are paid in tarnished silver: coins tinted `duo`.
+# Portraits are opaque squares: `layer: under` cues are scaled past the frame, or they wouldn't show.
+
+statuses:
+  death_mark:
+    note: >-
+      Hidden until it reacts. Placing or moving an unrevealed Mark (its apply, and its remove on the old bearer)
+      is seen only by the marker's side, and so is its aura while it stays unrevealed. Its trigger fires on
+      every direct hit to the bearer, whoever lands it, and the engine reveals the Mark to both sides
+      (effectRevealed) before the Assassin check runs. So the first direct hit of any kind gives it away, and
+      from then on that instance is public: its aura, remove, expire and later trigger cues play for both sides.
+      Pick the trigger cue by what the firing did. With the +10 (an Assassin skill, or a Subcontracted ally's,
+      from the marker's side) play the first cue. With no +10 but its effectRevealed (the first direct hit was
+      someone else's), play the second, so the Mark visibly surfaces instead of its icon just popping on. With
+      no +10 on an already-revealed Mark, play nothing. The aura is the one exception to the kit's no-aura
+      habit: every Assassin skill keys off who carries it, and there is one per side (Guildmaster aside).
+    apply:   [ { fx: deathbringer_3, scale: 0.8, speed: 1.5, frames: [4, 20] } ]   # on the face: the lime skull flares, flashes white and crumbles; its near-invisible purple fade-in skipped
+    aura:    { fx: fanfx_pain, scale: 0.9, opacity: 0.5 }   # pins and needles hang about the marked: the knives are waiting
+    trigger:
+      - { fx: deathbringer_5, scale: 0.8, speed: 2, frames: [6, 20], note: "the +10 only: a crescent slashes across the skull and it flashes lime. On an execution (its mark_executed signal, then the kill) play it instead at scale 1.1, frames [4, 22] at speed 1.5, the portrait held still until the cut; then the death default" }
+      - { fx: deathbringer_3, scale: 0.8, speed: 1.5, frames: [4, 20], note: "only a firing with no +10 that reveals the Mark (its effectRevealed): the apply flare, so the Mark surfaces on them. Never together with the +10 cue" }
+    remove:  [ { fx: deathbringer_3, scale: 0.65, speed: 1.5, frames: [13, 20] } ]   # moved on or cleansed: only the skull's crumble
+    expire:  [ { fx: deathbringer_3, scale: 0.65, speed: 1.5, frames: [13, 20], opacity: 0.7, note: "if the Mark was never revealed, play frames [4, 20] at full opacity instead: a hidden effect that expires untriggered is shown to both sides (Q11), so this can be the opponent's only sight of it, and they should see the skull before it crumbles" } ]
+  subcontract:
+    note: No aura; the status icon carries it.
+    apply: [ { fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.6, speed: 1.5 } ]   # the fee: tarnished silver spills over them
+  whispered_names:
+    apply:   [ { fx: directional_smoke_burst_004, tint: duo, tone: light, size: small, scale: 0.5, offset: [0, 0.45], opacity: 0.85 } ]   # a pale murmur curls up off their head; Mark's default is the lock-on
+    trigger: [ { fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.4, offset: [0, 0.35], note: "the name scatters off them. Only when it passes on (2+ stacks): the last one just ends. The new bearer's Mark and Whispered Names defaults follow" } ]
+
+macros:
+  place_mark: []     # Death Mark's own remove (old bearer) and apply (new bearer) carry the move; the new Mark is hidden, so only the marker's side sees it land (an old Mark that was already revealed is seen leaving by both)
+  mark_if_none: []   # acts through place_mark
+
+skills:
+  strike.assassin:
+    beat: A low, flat blade sweeps across the target's throat from behind and venom spurts from the cut, on past them.
+    cues:
+      - { on: hit, fx: warrior_4, face: toActor, tint: duo, scale: 0.8 }   # its sweep hugs the lower half of the canvas: throat height
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.5, delay: 100 }   # away from the user: a cut, not a drain
+      # An execution plays Death Mark's trigger; the fresh Mark on a random enemy is its apply default, owner side only.
+
+  smash.assassin:
+    beat: Blades converge on the target from every side at once, and the crack where they meet throws venom over each of their allies.
+    note: "Stealthy, so the hits read without the user. The Toxin per Stealthed ally shows in Toxin's default; with 2+ Stealthed allies, play frost_knight_9 a second time flipped (flip: x) 120 ms later, so more hidden hands strike."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_9, tint: duo, scale: 1.1 }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, size: small, scale: 0.6, delay: 150 }
+      - { on: hit, only: others, fx: directional_splatter_004, face: fromActor, scale: 0.55, delay: 220, stagger: 80 }
+
+  charge.assassin:
+    beat: The user slides across the floor inside a rolling bank of venom-dark smoke and cuts clean through the target, venom spikes bursting out past them.
+    cues:
+      - { on: travel, fx: directional_smoke_burst_003, tint: duo, scale: 0.7, speed: 1.3, note: "the portrait dims and slides along under the smoke front. Stealthy: from Stealth only the owner sees it, so the hit reads alone" }
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.7, note: "origin at the lower-left (~20%, 75%): put it on the target so the spikes fan out past them, the impact carrying on along the dash" }
+      # Death Mark's apply default follows, owner side only.
+
+  riposte.assassin:
+    beat: A wire is drawn taut between the user's hands; the first enemy to strike them gets it cinched across their throat.
+    cues:
+      - { on: cast, fx: necromancer_6, tint: duo, tone: light, scale: 0.4, offset: [0, -0.1], opacity: 0.7, speed: 0.5, frames: [0, 3] }   # Invisible: owner only. The bare wire, before its pulse
+      - { on: trigger, status: garrote_wire, fx: necromancer_6, at: source, tint: duo, tone: light, scale: 0.5, offset: [0, 0.2], speed: 1.5, delay: 80, note: "across the countered attacker's throat: its pulse runs once along the wire, the portrait jerks back, then fade" }
+      - { on: trigger, status: garrote_wire, fx: symmetrical_impact_005, tint: duo, tone: light, size: small, scale: 0.45 }   # the guard flash: the wire whips out from the user
+      # The counter's X and Stun's default follow on the attacker (1 or 2 turns: same look).
+
+  rage.assassin:
+    beat: A column of shadow-fire with a skull in its plume roars up around the user, and each of their turn ends the bounty grows by a spill of tarnished coin.
+    cues:
+      - { on: cast, fx: directional_fire_burst_001, tint: duo, scale: 1.1, note: "let its plume's skull face show at the top" }
+      - { on: trigger, status: open_contract, fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.5, speed: 1.5, note: "on the user, never on the marked enemy: the Mark and its threshold stay hidden" }
+      # Might's default on the user; a Mark placed by mark_if_none plays Death Mark's apply, owner side only.
+
+  shot.assassin:
+    beat: A slim fletched dart whips across and pricks the target; at the end of their next turn its poison blooms out of them in a skull-faced cloud.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, scale: 0.35, speed: 1.5 }   # the slanted blade is the dart, its trailing prongs the fletching
+      - { on: hit, fx: directional_splatter_001, face: fromActor, scale: 0.6, note: "the later 15 Affliction plays this at about 1.4x" }
+      - { on: trigger, status: blowdart, fx: spell_poison_001, size: small, scale: 0.6, speed: 1.3, note: "the hidden dart running out: the opponent's first sight of it, right before the 15 Affliction" }
+
+  snipe.assassin:
+    beat: Glints wink around the user as they settle their aim; next turn a bolt is loosed straight up and plunges onto the hidden target.
+    cues:
+      # HiddenTarget: the wind-up and the release stay on the user and point nowhere near the target.
+      - { on: cast, fx: stylized_explosion_004, tint: duo, scale: 0.9, speed: 0.8, offset: [0, 0.25], frames: [0, 8], note: "only the twinkling glints: a lens catching the light" }
+      - { on: trigger, status: the_long_shot, fx: scifi_muzzle_flash_002, face: up, tint: duo, scale: 0.6, offset: [0, 0.5] }   # muzzle ring at the user's center, the jet straight up past their head
+      - { on: hit, fx: starcaller_2, face: down, tint: duo, scale: 1.0, offset: [0, 0.45] }   # the bolt plunges from above and ends on their center; no impact of its own
+      - { on: hit, fx: symmetrical_impact_003, size: large, scale: 0.9, delay: 280 }   # as the comet head arrives: the kit's biggest single hit
+      - { on: death, fx: deathbringer_5, scale: 1.1, speed: 1.5, frames: [4, 22], note: "only for its own execute (they had your Death Mark and were left at 40 HP or less), and not when Death Mark's trigger already played its execution on this hit" }
+      # Unmarked, they gain the Mark: Death Mark's apply default, owner side only.
+
+  trap.assassin:
+    beat: A drop of venom falls unseen into each enemy's cup; every skill they use makes the poison well up through them.
+    cues:
+      - { on: apply, status: tainted_well, fx: paladin_7, tint: element, scale: 0.5, stagger: 80, note: "Invisible: owner only. Fade its held last frame" }
+      - { on: trigger, status: tainted_well, fx: directional_splatter_005, scale: 0.6 }   # the poison wells up from below as they act: the opponent's first sight
+      - { on: hit, fx: symmetrical_impact_001, tone: dark, size: small, scale: 0.4, delay: 120 }
+
+  maneuver.assassin:
+    beat: The user cracks a smoke bomb at their feet and vanishes into it, and green haze settles over every Stealthed ally.
+    cues:
+      - { on: cast, fx: stylized_explosion_004, tint: duo, scale: 1.1, frames: [10, 22], note: "the bomb only: its dark-cored flash dome and the cloud, the glint wind-up skipped" }
+      - { on: apply, status: covering_smoke, fx: directional_smoke_burst_001, tint: duo, scale: 0.7, opacity: 0.7, delay: 200, stagger: 100 }
+      # Invulnerable's default on the user, Stealth's on their weakest ally.
+
+  companion.assassin:
+    beat: A scaled black crescent sweeps in low out of the dark and a lime glint opens as the Shadow Viper coils up.
+    cues:
+      - { on: summon, fx: necromancer_2, tint: duo, scale: 0.85 }   # the viper's body; its strikes reuse it
+      - { on: summon, fx: symmetrical_impact_005, size: small, scale: 0.3, offset: [0.05, 0.2], delay: 300 }
+
+  bolt.assassin:
+    beat: A pale breath of whispered names streaks into the target and bursts into a murmuring cloud of sparks.
+    cues:
+      - { on: travel, fx: frost_mage_7, tint: duo, scale: 0.7 }   # the cloud head stays pale (a breath); the streaks take the venom-edged slate
+      - { on: hit, fx: round_sparkle_burst_002, tint: duo, scale: 0.85 }
+      # Mark's and Whispered Names' defaults follow.
+
+  blast.assassin:
+    beat: A choking pall of smoke rolls over the whole enemy side and venom gas bursts up thick around each enemy.
+    cues:
+      - { on: hit, fx: stylized_explosion_006, scale: 0.9, stagger: 80 }
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tint: element2, tone: light, scale: 2.4, layer: under, opacity: 0.75, note: "once, with the first hit: the pall behind the whole side" }
+      # Toxin's default on each; the moved Death Mark plays its remove and apply, owner side only.
+
+  consume.assassin:
+    beat: A lancet rakes the target and dark venom-blood flicks toward the user; at each of their turn ends the poisoned blood is drawn home.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: toActor, tint: element, scale: 0.5 }
+      - { on: trigger, status: bloodletting, fx: directional_splatter_001, face: toActor, tone: dark, scale: 0.6 }
+      - { on: heal, fx: spell_absorb_001, tint: duo, size: small, scale: 0.6, speed: 1.5, note: "about 0.1 larger per 5 healed above 10" }
+      # Toxin's default (2 stacks).
+
+  summon.assassin:
+    beat: A slit tears open in the air, a hired blade steps through, and tarnished coin spills at its feet.
+    note: "Whoever kills the Blade gains the Death Mark (its onDeath): Death Mark's apply default on the killer, owner side only."
+    cues:
+      - { on: summon, fx: scifi_warp_001, tint: duo, scale: 0.8 }
+      - { on: summon, fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.6, delay: 200 }
+
+  channel.assassin:
+    beat: Blades of shadow rise in a ring around the user as the hunt opens; at each of their turn ends a fan of knives bursts off them and one sinks into every enemy.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, frames: [2, 12] }
+      - { on: trigger, status: open_season, fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.8 }
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, size: small, scale: 0.55, stagger: 80 }
+      # A Mark placed by mark_if_none plays Death Mark's apply, owner side only; the 35 HP execute shows in Death Mark's trigger.
+
+  stab.assassin:
+    beat: A stiletto point bursts out of the target's chest from behind, aimed back at the user.
+    note: "Against your Death Mark the threshold rise has no event of its own; the Mark's +10 shows in its trigger."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_002, face: toActor, tint: duo, size: small, scale: 0.6, note: "origin on the target's far side, so the thin point punches out of them toward the user. At 20 damage (60 HP or less) play it about 1.3x" }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.4, delay: 80, note: "the 20-damage branch only: the damage event's base amount is 20" }
+
+  ravage.assassin:
+    beat: An ink-black slit opens behind the target, a spiked burst of shadow tears out of them toward the user, and venom gushes out the far side after it.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: toActor, tint: duo, delay: 80, note: "origin at ~40%/65%: put it on the target so the spikes splay out of them toward the user" }
+      - { on: hit, fx: scifi_warp_001, variant: black, size: small, scale: 0.55 }   # the slit, first
+      - { on: hit, fx: directional_splatter_004, face: fromActor, scale: 0.6, delay: 200 }   # away from the user: a wound, not a drain
+      # Against a Blinded or Sleeping target, Stealth's default on the user.
+
+  mislead.assassin:
+    beat: Glittering lime baubles dangle before the target like bait; when they attack, the bait bursts in a froth of venom and the skill dies in their hands.
+    cues:
+      - { on: apply, status: poisoned_lure, fx: directional_star_burst_001, scale: 0.6, opacity: 0.85 }   # Invisible: owner only
+      - { on: trigger, status: poisoned_lure, fx: round_bubble_burst_001, scale: 0.7, note: "counter branch only (its skillUsed trigger, followed by the skillCountered X). When it runs out unused (its onExpire), skip this cue; the 2 Toxin's default carries that branch" }   # the opponent's first sight of it
+      # The counter's X follows, then Death Mark's apply (owner side only); unused, it ends in Toxin's default (2 stacks).
+
+  stun.assassin:
+    beat: Every drop of venom in the target is drawn together into one bright point and bursts inside them, and they reel.
+    cues:
+      - { on: remove, status: toxin, fx: round_sparkle_burst_003, size: small, scale: 0.6, speed: 1.5, frames: [0, 7], note: "replaces Toxin's remove: the sparkles converge into one star, then the burst" }
+      - { on: hit, fx: burst_splatter_002, scale: 0.8, delay: 80, note: "scale with the dose: about 0.7 at 10, 0.8 at 20, 1.0 at 30" }
+      # Toxin's default for the 2 stacks first; Stun's default (the stagger) after.
+
+  dance.assassin:
+    beat: Knives whirl around the user in two counter-turning flurries; every skill they use flicks one into the marked enemy.
+    note: "With no Death Mark out, dance_of_knives deals nothing: skip its trigger cue."
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.7, layer: under }   # behind the portrait: only the bands that pass its frame show, a ring of knives whirling over and around the user
+      - { on: cast, fx: paladin_8, tint: duo, flip: x, scale: 1.7, layer: under, delay: 150 }
+      - { on: trigger, status: dance_of_knives, fx: frost_knight_2, tint: duo, scale: 0.45, speed: 1.5 }   # a knife flicks off the dancer
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.5 }
+      # Swiftness's and Focus's defaults on the user.
+
+  heal.assassin:
+    beat: Pale venom-green droplets rise through the ally as they mend, and an ink blot marks the enemy who hurt them until the debt is collected.
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tone: light, scale: 0.8, speed: 1.3 }   # also the collected 20, later
+      - { on: apply, status: blood_debt, fx: burst_splatter_003, variant: black, size: small, scale: 0.45, offset: [0, 0.3] }
+      - { on: trigger, status: blood_debt, fx: burst_splatter_003, size: small, scale: 0.5, offset: [0, 0.3] }   # collected: the blot bursts in venom, then the ally's heal
+
+  bless.assassin:
+    beat: A shaft of pale shadow drives a black blade point-first into the floor before the ally, and tarnished coin seals the contract.
+    cues:
+      - { on: resolve, fx: paladin_5, at: target, tint: duo, tone: light, scale: 0.7, speed: 0.8, note: "the sword silhouette stays black under the tint, so the pale shaft carries it; fade the spire it leaves" }   # smaller and slower than Shadow's Smite: set down, not slammed
+      # Might's and Subcontract's (the coins) defaults follow.
+
+  curse.assassin:
+    beat: A fanged shroud of venom and shadow closes over the enemy and a skull surfaces in it, leaving them reeling, unsure what marked them.
+    note: "When Immune refuses the Confusion, no shroud: only the effectBlocked default plays."
+    cues:
+      - { on: apply, status: confusion, fx: necromancer_8, scale: 0.9 }   # native mint and violet; its skull is the death sentence
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, scale: 0.5, speed: 1.5, delay: 500 }   # Confusion's default, re-added after the shroud
+      - { on: apply, status: death_mark, fx: deathbringer_3, scale: 0.9, speed: 1.3, frames: [4, 20], note: "owner side only (hidden). Larger than the default: placed by name. About 0.1 larger per Toxin that raised its threshold" }
+
+  smite.assassin:
+    beat: A hooked claw of shadow arcs over and crashes down on the target in a lime splash, leaving a sour stain that curdles their buffs whenever an ally strikes.
+    cues:
+      - { on: hit, fx: deathbringer_1, face: fromActor, scale: 0.9, offset: [0, 0.3], note: "its crash sits at the bottom-right of the 192x128 canvas (~80%/80%; bottom-left once mirrored). The offset lifts it to center height; also shift it ~0.4 portrait back toward the actor, mirrored with the art (pre-mirror [-0.4, 0.3]), so the crash lands on the target" }
+      - { on: apply, status: souring_mark, fx: directional_splatter_002, tone: dark, size: small, scale: 0.5, delay: 250 }
+      - { on: trigger, status: souring_mark, fx: directional_splatter_002, tone: dark, size: small, scale: 0.45, note: "only when it turns a Buff (they had one): Vulnerable's default follows" }
+
+  prayer.assassin:
+    beat: A serpent's coil of shadow turns slowly behind the allies while lime crosses rise through each of them.
+    cues:
+      - { on: cast, fx: slime_5, at: allySide, tint: duo, scale: 2.2, layer: under, opacity: 0.7, note: "behind the whole team, past the portraits' frames" }
+      - { on: heal, fx: spell_heal_002, scale: 0.7, speed: 1.4, stagger: 80 }
+      # Hormesis's default (Evolution's venom bubbles) follows on each.
+
+  cleave.assassin:
+    beat: Two thrown knives cross through the target in an X, and a third arcs off into the marked enemy, or a random one.
+    note: "Stealthy: thrown from the user, but the cues all land on the enemies, so the skill reads without showing them."
+    cues:
+      - { on: hit, only: primary, fx: warrior_1, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: paladin_9, face: fromActor, tint: duo, scale: 0.6, delay: 150 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.4, delay: 120, stagger: 150 }
+
+  shout.assassin:
+    beat: A spiked targeting ring bursts out of the user across the enemy side, and a ring of spiked puffs closes around each enemy as they're cut off.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.4, speed: 0.7 }   # the reticle stays on the user
+      - { on: apply, status: debuff, fx: symmetrical_explosion_004, tint: duo, tone: light, size: small, scale: 0.6, stagger: 80 }   # adds to Isolated's default: its empty center frames each portrait, and its olive fade suits the venom. The Mark comes through place_mark, so it plays the macro's cues, not this
+      # The weakest enemy's Death Mark plays its apply default, owner side only.
+
+  withstand.assassin:
+    beat: Rings of slate mail close around the user under their cloak; blows that land on them glance off in sparks.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 0.9, opacity: 0.8, frames: [0, 10] }   # Invisible: owner only. Its dark-red last frame dropped
+      - { on: trigger, status: hidden_mail, fx: scifi_spark_burst_001, tint: duo, tone: light, size: small, scale: 0.6, note: "on every direct enemy hit it halves: the opponent's first sight of the mail" }
+      # The first attacker gains the Death Mark: its apply default, owner side only.
+
+  taunt.assassin:
+    beat: Pale wisps curl around the target's head as a voice from nowhere calls them out.
+    note: "Stealthy: nothing plays on the user; the whisper and the '!' land on the target alone."
+    cues:
+      - { on: apply, status: taunt, fx: starcaller_4, tint: duo, tone: light, scale: 0.6, offset: [0, 0.3] }
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, scale: 0.5, delay: 350 }   # Taunt's '!', re-added
+
+  titan.assassin:
+    beat: A fanged cocoon of shadow swallows the user and bursts out as the guild's skull seal, and a lime skull flares over every enemy.
+    cues:
+      - { on: cast, fx: blood_knight_5, tint: duo, scale: 1.4, note: "the portrait darkens to a hooded slate silhouette as the cocoon closes, and stays so while the Titan lasts" }
+      - { on: cast, fx: necromancer_7, scale: 1.6, delay: 450 }
+      - { on: apply, status: death_mark, fx: deathbringer_3, scale: 0.75, speed: 1.5, frames: [4, 20], stagger: 120, note: "owner side only (hidden): the skulls light one enemy after another" }
+      # Armor's and Ghosted's defaults on the user.
+
+  viper_venom_fang:
+    beat: The viper's scaled crescent snaps across the target.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.5, speed: 1.3 }
+      # Toxin's default is the venom.
+
+  viper_seek_the_mark:
+    beat: The viper whips across the board onto the marked enemy, wherever they stand, and venom bursts from the bite.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, scale: 0.5, delay: 120 }
+      # With no Mark out, Death Mark's apply default on the target, owner side only.
+
+  blade_shank:
+    beat: The hired blade jabs a short, dirty knife into the target from behind.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, face: toActor, tint: duo, scale: 0.45 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tone: dark, size: small, scale: 0.4, delay: 60 }   # out the far side

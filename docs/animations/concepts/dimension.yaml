@@ -1,0 +1,325 @@
+# Dimension (Shadow + Shadow) animation concepts. Spec: docs/animations/README.md; brief: briefs/dimension.md.
+# Dimension is Shadow folded over on itself. Shadow's ink, smoke and navy Dark Mage sorcery stay, but the
+# board itself bends: rifts open in the air, space caves in and bursts back, units are folded out of the
+# fight and threads of dark tie them together. Both parents are Shadow, so `element`, `element2` and `duo`
+# are all the Shadow ramp; the layering tells Dimension apart. Bodies and voids take `element` (at `tone:
+# dark` for the deepest), the pale rims, echoes and light the fold lets through take `element2` at `tone:
+# light`, drawn black and white variants are used where they exist, and Dark Mage art plays native (its
+# navy already reads as Shadow). Other class art is colorized to Shadow.
+# Signature motifs, used across the kit:
+#   echo    the same art again a beat later and fainter: one moment seen from both sides of a fold. Ravage,
+#           Blast, Dance and Bless echo themselves mirrored (`flip`); Strike's echo is an offset afterimage
+#           instead, since a mirrored slash would cross the first into an X (Cleave's shears and Ravage's
+#           rips keep that). Shot and Rend echo onto Entangled partners.
+#   rift    dark_mage_2's navy ring, two crescents folding into a spinning portal: the Rift, the pockets
+#           Pocket Dimension and Pocket Ward close, the rifts Through the Rift reaches across. Always cut it
+#           at frame 9: its last two frames (10-11) turn crimson.
+#   fold    scifi_warp_001's slit: Banished, and only Banished, so no skill uses it as flavor; skills that
+#           banish let its default play, except Step Between and Phase Lock, which re-time it so their own
+#           pull or lock lands first. A unit banished by someone else's move (a counter, a sprung trap, the
+#           last attacker) is first pulled toward the fold by spell_absorb_001 in black.
+#   thread  Entangled is a knot (frost_mage_1) on each linked unit; Dimension's binding skills draw the
+#           thread itself (necromancer_6).
+# Portraits are opaque full-bleed squares, so `layer: under` cues here are scaled past the frame.
+group: dimension
+
+statuses:
+  banished:
+    note: "No aura: the portrait itself is the tell. It folds flat into the slit as the ring bursts and stays folded away (squashed to a thin dark band at about 25% opacity) until the bearer returns; the status icon carries the rest."
+    apply:
+      - { fx: scifi_warp_001, variant: black, scale: 1.1, note: "a slit opens across the portrait, its white portal flares and the portrait folds flat into it as the black ring bursts" }
+      - { fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.5, opacity: 0.45, delay: 300 }   # a last pale wisp curls up where they stood (a black one would vanish on the dark board over the folded portrait)
+    expire:
+      - { fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8, note: "back from the fold: the seam swells into a pale disc and the portrait unfolds to full size and opacity as the ring bursts" }
+    remove:
+      - { fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8, note: "as its expire: the portrait unfolds back" }
+  banished_ally:
+    # The same fold drawn pale: a pocket the user's own side stepped into, not a void that swallowed them.
+    note: "No aura, as Banished: the folded-away portrait is the tell."
+    apply:
+      - { fx: scifi_warp_001, variant: white, scale: 1.1, note: "the slit opens, its pale ring bursts and the portrait folds flat into it, held at about 25% opacity until they return" }
+      - { fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.5, opacity: 0.5, delay: 300 }
+    expire:
+      - { fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8, note: "the portrait unfolds back to full size and opacity" }
+    remove:
+      - { fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8 }
+  entangled:
+    note: "No aura: the status icon carries it. Hovering a linked unit may draw a faint thread to its partners (UI, not an effect)."
+    apply:
+      - { fx: frost_mage_1, tint: element, tone: light, scale: 0.7, note: "a ring knots shut around them with two motes circling it. Every unit of one link plays it together, so the knot shows on all the partners at once" }
+    trigger:
+      - { fx: frost_mage_1, tint: element, tone: light, scale: 0.4, speed: 2, frames: [4, 10], note: "the knot pulses. No event of its own: infer it when an effect reaches a unit through the link (the same status landing on its partners in the same step as on the unit it was aimed at) and play it on each partner just before that status's own apply. When the status arriving through the link is already on the partner (a refresh), play only this pulse, not that status's apply default again. Skip the pulse too when the same skill aimed that status at the partner directly" }
+    remove:
+      - { fx: directional_smoke_burst_004, tint: element, tone: light, size: small, scale: 0.45, opacity: 0.7 }   # the thread frays
+    expire:
+      - { fx: directional_smoke_burst_004, tint: element, tone: light, size: small, scale: 0.45, opacity: 0.7 }
+  entangled_buffs:
+    note: "No aura, as Entangled."
+    apply:
+      - { fx: starcaller_4, tint: element2, tone: light, scale: 0.8, opacity: 0.9, note: "two pale star-wisps curl round each other: a softer knot than Entangled's ring, since only Buffs cross it" }
+    trigger:
+      - { fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.4, note: "inferred like Entangled's, with the same refresh and aimed-directly rules: a Buff reaching a partner over the link" }
+    remove:
+      - { fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.4, opacity: 0.6 }
+    expire:
+      - { fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.4, opacity: 0.6 }
+
+macros: {}   # Dimension defines no macros (Phase Lunge and Unfold call Shadow's gain_stealth)
+
+skills:
+  strike.dimension:
+    beat: A thin seam of shadow slices the target, and the same cut runs through it again a heartbeat later just beside the first, one moment seen twice.
+    note: "FreeAction: no wind-up and no settle on the user afterward, since they can act again at once."
+    cues:
+      - { on: hit, fx: starcaller_7, tint: element, tone: light, face: fromActor, scale: 0.7 }
+      - { on: hit, fx: starcaller_7, tint: element, tone: light, face: fromActor, scale: 0.6, opacity: 0.5, offset: [0.12, 0.1], delay: 100 }   # the echo: a parallel afterimage of the same cut, not a cross (the X is Cleave's and Ravage's)
+
+  smash.dimension:
+    beat: Space caves in on the target and bursts back out of a black core, smaller implosions pop on each of their allies, and the user folds out of the fight.
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_004, scale: 1.2, frames: [12, 22], delay: 250, note: "skip the glint wind-up: the dark-core dome bursts as the pull closes" }
+      - { on: hit, only: primary, fx: spell_absorb_001, variant: black, speed: 2, frames: [0, 16] }   # plays first: dark orbs spiral into the target
+      - { on: hit, only: others, fx: stylized_explosion_004, size: small, scale: 0.7, frames: [12, 22], delay: 350, stagger: 80 }
+      # Then Banished's default folds the user away.
+
+  charge.dimension:
+    beat: The user streaks across the board as a pale blade of folded space and rakes through the target, then flickers half-there, about to slip out of sight.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: element, tone: light, scale: 0.7, speed: 1.5, note: "the portrait lunges with it and snaps back" }
+      - { on: hit, fx: dark_mage_1, face: fromActor, scale: 0.85 }   # Bypass: no block flash, it goes straight through
+      - { on: apply, status: phase_lunge, fx: status_sparkling_001, tint: element2, tone: light, scale: 0.8, opacity: 0.7, speed: 1.5, note: "once, not looped: the portrait flickers translucent twice as the glints pass" }
+      - { on: trigger, status: phase_lunge, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5, note: "skillTargeted firing only: an enemy targeted the user and Phasing is consumed. Not from its onExpire, which is the Stealth branch and is carried by Stealth's apply default via gain_stealth" }   # the flicker snaps solid
+      # Untouched, Phasing runs out at their next turn's start and Stealth's apply default plays (gain_stealth).
+
+  riposte.dimension:
+    beat: A thin band of folded space quietly closes across the user; a blow aimed at them falls into the pocket, it snaps shut, and the attacker is dragged out of the fight.
+    cues:
+      - { on: cast, fx: dark_mage_2, layer: over, scale: 0.9, opacity: 0.55, speed: 1.3, frames: [0, 9] }   # Invisible: owner only. A small guard band across the portrait (Pocket Ward's ring wraps round it instead); cut before the red last frames
+      - { on: trigger, status: pocket_dimension, fx: symmetrical_impact_002, tint: element2, tone: light, scale: 0.8 }   # the pocket snaps on the user
+      - { on: trigger, status: pocket_dimension, fx: spell_absorb_001, at: source, variant: black, size: small, scale: 0.7, speed: 2, frames: [0, 16], delay: 100 }   # the attacker is pulled in, cut at the dense cluster so it lands before the fold; the counter default and Banished's default follow
+
+  rage.dimension:
+    beat: Pale spikes of void shoot up behind the user and a ring of torn space bursts off them; whenever they step out of Stealth, the dark rolls through everyone that blow was aimed at.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted."
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: element, tone: light, scale: 1.9, layer: under, note: "past the frame, so the white-cored spikes rise behind the portrait and well above it" }
+      - { on: cast, fx: symmetrical_explosion_004, tint: element2, tone: light, scale: 1.2, delay: 250, frames: [0, 6] }   # its empty center frames the user; cut before the fixed olive fade
+      - { on: apply, status: debuff, fx: directional_smoke_burst_003, face: fromActor, tint: element, tone: light, size: small, scale: 0.6, note: "each target Void Walker Blinds: the dark rolls through them just before Blinded's default. Rage's own applies (Might, Immune, Void Walker) are Buffs, so only those Blinds match" }
+      - { on: trigger, status: void_walker, fx: none }   # it fires on every skill they use and only Blinds when that skill ends their Stealth: the apply cue above carries it
+      # Might's and Immune's defaults follow on the user.
+
+  shot.dimension:
+    beat: A pale shard flicks into the target and shatters, and its echo shatters on every unit linked to them.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: element2, tone: light, scale: 0.45, speed: 1.4 }
+      - { on: hit, only: primary, fx: symmetrical_impact_003, size: small, tint: element2, tone: light, scale: 0.55 }
+      - { on: hit, only: others, fx: symmetrical_impact_003, size: small, tint: element2, tone: light, scale: 0.45, opacity: 0.6, delay: 120, stagger: 60 }   # Entangled branch: the same shard, fainter, on each partner
+      # Otherwise Entangled's default knots the target to a random ally.
+
+  snipe.dimension:
+    beat: The user sinks a hand into a rift at their side; next turn a ring tears open under the target and a navy claw rakes up out of it.
+    note: "HiddenTarget: nothing on the user points anywhere, and nothing shows at the target until the rift opens under them. Stealthy: channeling and landing it don't end Stealth, so the hit must read without the user."
+    cues:
+      - { on: cast, fx: dark_mage_2, scale: 0.6, offset: [0.3, -0.1], frames: [0, 9] }   # a small rift beside the user, pointing nowhere
+      - { on: trigger, status: through_the_rift, fx: dark_mage_2, scale: 0.6, offset: [0.3, -0.1], speed: 1.5, frames: [4, 9] }   # fires from onExpire: the rift beside the user flares again, still pointing nowhere
+      - { on: hit, fx: dark_mage_1, face: up, scale: 1.2 }
+      - { on: hit, fx: dark_mage_2, scale: 1.1, offset: [0, -0.4], opacity: 0.85, frames: [0, 9] }   # the rift at their feet the claw came out of
+      - { on: hit, fx: symmetrical_impact_001, variant: white, size: small, scale: 0.5, delay: 150 }
+
+  trap.dimension:
+    beat: A black ring settles round the enemy with light streaking into it; when they reach out to help an ally, the ring swallows the help and the ally is pulled out of the fight.
+    cues:
+      - { on: apply, status: event_horizon, fx: scifi_charge_up_001, variant: black, scale: 1.0, layer: over, opacity: 0.5, repeat: 2, note: "an accretion ring drawn faintly over the portrait (behind it, it would be hidden): streaks spiral in, the white needle sweeps its edge" }   # Invisible: owner only
+      - { on: trigger, status: event_horizon, fx: scifi_charge_up_001, variant: black, scale: 0.9, speed: 2 }   # sprung: the ring flares on the bearer as their skill is countered
+      - { on: trigger, status: event_horizon, fx: spell_absorb_001, at: target, variant: black, size: small, scale: 0.7, speed: 2, frames: [0, 16], delay: 100 }   # their ally is pulled in, cut at the dense cluster so it lands before the fold; Banished's default follows
+
+  maneuver.dimension:
+    beat: A pale seam opens across the user, who folds sideways out of the board and drags their last attacker through after them.
+    cues:
+      # Banished's apply on the attacker, re-timed for this skill so the pull lands before the fold.
+      - { on: apply, status: banished, fx: spell_absorb_001, variant: black, size: small, scale: 0.7, speed: 2, frames: [0, 16] }   # first, the last attacker is pulled toward the fold
+      - { on: apply, status: banished, fx: scifi_warp_001, variant: black, scale: 1.1, delay: 350, note: "then Banished's own fold: a slit opens across the portrait, its white portal flares and the portrait folds flat into it as the black ring bursts" }
+      - { on: apply, status: banished, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.5, opacity: 0.45, delay: 650 }   # Banished's last wisp
+      # Banished (ally)'s pale slit on the user is the seam they step through.
+
+  companion.dimension:
+    beat: A fanged oval of darkness yawns open on the user's side and the Void Stalker slinks out of it onto the floor.
+    cues:
+      - { on: summon, fx: necromancer_8, tint: element, tone: light, frames: [0, 6], note: "just the maw opening: cut before the skull surfaces" }
+      - { on: summon, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.5, opacity: 0.7, delay: 250 }   # it lands with a pale wisp curling off it
+
+  bolt.dimension:
+    beat: The user hurls a pale coil of dark matter trailing tendrils, and it collapses on the target in a cracking sphere; the strain leaves the user's own eyes dim.
+    cues:
+      - { on: travel, fx: blood_knight_4, path: straight, tint: element, tone: light, scale: 0.6, frames: [12, 17], note: "just the coiled comet in flight: skip the draw-in and vortex, cut before its crescent splash" }
+      - { on: hit, fx: frost_mage_6, tint: element }   # a dark sphere veined with pale cracks, shattering
+      - { on: hit, fx: symmetrical_impact_001, variant: white, size: small, scale: 0.5, delay: 200 }
+      # Blinded's default follows on the user.
+
+  blast.dimension:
+    beat: Two vortices of shadow wheel open over the enemy side in opposite directions, a ring of torn space bursts off every enemy, and the heaviest of them is torn out of the fight.
+    cues:
+      - { on: hit, fx: slime_5, at: enemySide, tint: element, scale: 2.4, layer: under, speed: 0.8, note: "once, with the first hit: behind the row and past it, so the gyre turns around the portraits" }
+      - { on: hit, fx: slime_5, at: enemySide, tint: element2, tone: light, scale: 2.0, layer: under, flip: x, speed: 0.8, opacity: 0.35, delay: 150 }   # the echo, mirrored so it turns the other way; pale and faint, since a dark one vanishes on the board
+      - { on: hit, fx: symmetrical_explosion_004, tint: element2, tone: light, scale: 0.9, delay: 200, stagger: 80, frames: [0, 6] }   # cut before its fixed olive fade
+      # Banished's default then folds away the enemy with the most HP.
+
+  consume.dimension:
+    beat: A hairline cut opens across every enemy and a thread of each one's essence drifts off through it to the user.
+    cues:
+      - { on: hit, fx: paladin_9, tint: element, tone: light, face: fromActor, scale: 0.6, stagger: 60 }
+      - { on: hit, fx: directional_particle_burst_001, tint: element2, tone: light, face: toActor, scale: 0.6, delay: 100, stagger: 60 }
+      - { on: resolve, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 1.0, frames: [4, 10], note: "once: skip the faint edge glints, so the motes converge on the user into one star that pops into a small ring as it lands; cut before the cloud" }
+      # Blinded's default lands on the random un-Blinded enemy.
+
+  summon.dimension:
+    beat: A navy ring tears open on the user's side and stays open as the Rift, pale stars rising off its rim.
+    cues:
+      - { on: summon, fx: dark_mage_2, scale: 1.1, frames: [0, 9] }   # two crescents fold into a spinning ring; cut before its last two frames turn red
+      - { on: summon, fx: directional_sparkle_burst_002, tint: element2, tone: light, scale: 0.7, delay: 200 }
+
+  channel.dimension:
+    beat: The user gathers the space between the two sides into their hands; at the end of each of their turns the fold snaps shut across every enemy and a Debuff and a Buff swap sides through it.
+    cues:
+      - { on: cast, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.8, speed: 1.5 }
+      - { on: trigger, status: crossfold, fx: symmetrical_impact_002, tint: element2, tone: light, scale: 1.3, layer: under }   # each pulse: rings open behind the user
+      - { on: hit, fx: frost_knight_2, tint: element, tone: light, face: fromActor, scale: 0.6, stagger: 70 }
+      # stealRandom removes the status from one unit and applies it to the other: show both halves. Crossfold itself
+      # is Neutral, so neither its cast-time apply nor its own end matches these Buff/Debuff filters.
+      - { on: remove, status: buff, fx: directional_particle_burst_001, tint: element2, tone: light, size: small, scale: 0.5 }   # a traded Buff lifts off the enemy losing it
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, tint: element2, tone: light, size: small, scale: 0.5 }   # a traded Debuff lifts off the ally losing it
+      - { on: apply, status: buff, fx: directional_particle_burst_001, tint: element2, tone: light, size: small, scale: 0.5, face: down, delay: 120, note: "the traded status settling onto the unit gaining it; adds to its default, and is the only visual when it's an inline status" }
+      - { on: apply, status: debuff, fx: directional_particle_burst_001, tint: element2, tone: light, size: small, scale: 0.5, face: down, delay: 120, note: "as the Buff's: the traded Debuff settling onto the enemy gaining it" }
+
+  stab.dimension:
+    beat: A knife of shadow punches out of the target from behind, toward the user, and leaves a pale slit; stab someone else and the old slit splits open too.
+    cues:
+      - { on: hit, only: primary, fx: directional_splatter_004, variant: black, face: toActor, scale: 0.45, delay: 60, note: "origin corner on the target's far side, so the ink fans out of them toward the user just behind the knife: struck from behind" }
+      - { on: hit, only: primary, fx: scifi_muzzle_flash_003, tint: element2, tone: light, face: toActor, scale: 0.5 }   # the thin pale knife punches out of them first, its streaks jetting toward the user
+      - { on: hit, only: others, fx: directional_splatter_004, variant: black, face: toActor, scale: 0.45 }   # the old Open Cut splits open
+      - { on: apply, status: open_cut, fx: directional_splatter_001, tint: element2, tone: light, size: small, scale: 0.5, offset: [0.1, 0.1], delay: 150 }   # a thin pale slit is left on them
+
+  ravage.dimension:
+    beat: Space tears across the target in two crossing rips and crumples inward, and any Blind or Isolation on them is stitched in longer.
+    note: "extendEffects emits no event: when it lengthens a Blind or Isolation, pulse that status's icon once."
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: element, tone: light, face: fromActor }
+      - { on: hit, fx: blood_knight_2, tint: element, tone: light, face: fromActor, flip: x, opacity: 0.7, delay: 120 }   # the echo: a second rip mirrored across the first
+      - { on: hit, fx: symmetrical_impact_004, tint: element, tone: dark, scale: 0.9, delay: 220 }   # the torn space crumples
+
+  mislead.dimension:
+    beat: Two faint doorways tilt open across each other around the enemy; when they strike, the blow goes in one door and out the other, and they're left knotted to an ally and cut off.
+    cues:
+      - { on: apply, status: crossed_doors, fx: stylized_impact_001, tint: element2, tone: light, scale: 0.8, opacity: 0.8 }   # Invisible: owner only. Its two tilted rings are the crossed doors
+      - { on: trigger, status: crossed_doors, fx: stylized_impact_001, size: small, scale: 0.6, speed: 1.5 }   # the doors swing shut on the bearer as the skill is countered
+      # The counter default, then Entangled's (on them and their new partner) and Isolated's defaults.
+
+  stun.dimension:
+    beat: A spiked reticle of locked space snaps out round the target and they're folded away inside it; when they come back the lock springs open in a flash that leaves them blind.
+    cues:
+      # Banished's apply, re-timed for this skill so the lock reads before the fold (it would otherwise start first, by ops order).
+      - { on: apply, status: banished, fx: frost_knight_7, tint: element, tone: light, scale: 0.9, speed: 0.7 }   # the lock: a spiked reticle snapping out round them
+      - { on: apply, status: banished, fx: scifi_warp_001, variant: black, scale: 1.1, delay: 250, note: "then Banished's own fold: a slit opens across the portrait, its white portal flares and the portrait folds flat into it as the black ring bursts" }
+      - { on: apply, status: banished, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.5, opacity: 0.45, delay: 550 }   # Banished's last wisp
+      - { on: apply, status: phase_lock, fx: none }   # the lock above carries it
+      - { on: trigger, status: phase_lock, fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.5, offset: [0, 0.3] }   # fires from onExpire as they return; Blinded's default follows
+
+  dance.dimension:
+    beat: Two pale crescents peel open above and below the user like a lens opening and they step through; when they unfold back, they come out ghosted and hidden.
+    cues:
+      - { on: cast, fx: starcaller_5, tint: element, tone: light, scale: 1.4, layer: under }
+      - { on: cast, fx: starcaller_5, tint: element, tone: light, scale: 1.4, layer: under, flip: y, opacity: 0.7, delay: 80 }   # the echo, mirrored across the user
+      - { on: trigger, status: unfold, fx: round_sparkle_burst_003, tint: element2, tone: light, size: small, scale: 0.7, frames: [6, 16] }   # fires from onExpire as they return; Stealth's, Ghosted's and Focus's defaults follow
+      # Banished (ally)'s default folds them away after the swirl.
+
+  heal.dimension:
+    beat: A pale lattice locks together over the ally as they fold safely away; when it breaks apart, they step out mended, their afflictions trailing off as dark wisps.
+    cues:
+      - { on: apply, status: safe_harbor, fx: fanfx_barrier, tint: element2, tone: light, scale: 1.0, opacity: 0.7, frames: [0, 11], note: "the shelter panel builds tile by tile over them as Banished (ally)'s pale slit folds them away; fade it out over about 150 ms rather than cutting it" }
+      - { on: trigger, status: safe_harbor, fx: fanfx_barrier, tint: element2, tone: light, scale: 1.0, opacity: 0.7, frames: [12, 25] }   # fires from onExpire: the panel breaks apart as they unfold back
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.9, delay: 150 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, variant: black, size: small, scale: 0.5, opacity: 0.8, stagger: 60 }   # each Debuff left behind
+
+  bless.dimension:
+    beat: A shard of night drops onto the ally and shatters, and they slip half out of phase, a faint double of them standing a step aside.
+    cues:
+      - { on: apply, status: buff, fx: frost_mage_5, tint: element, scale: 0.8 }
+      - { on: apply, status: buff, fx: frost_mage_5, tint: element, scale: 0.8, flip: x, offset: [0.2, 0], opacity: 0.4, delay: 120, note: "the echo: the portrait shows a faint offset double for a moment" }
+      # Might's and Isolated's defaults follow.
+
+  curse.dimension:
+    beat: A dark thread settles taut through the enemy and knots them to an ally; each time either acts, the thread jerks and both lose their bearings.
+    cues:
+      - { on: apply, status: tangled_fates, fx: necromancer_6, tint: element, tone: light, scale: 0.7, offset: [0, 0.15] }   # a short thread drawn through them, over Entangled's knot
+      - { on: trigger, status: tangled_fates, fx: necromancer_6, tint: element, tone: light, scale: 0.6, offset: [0, 0.15], speed: 2 }   # each skill they use: the thread twangs, then Confusion's default on both
+
+  smite.dimension:
+    beat: A claw of void dives onto the target from above and leaves a pale brand on them that no veil can hide.
+    cues:
+      - { on: hit, fx: warrior_5, tint: element, face: fromActor, scale: 0.8 }
+      - { on: apply, status: void_brand, fx: deathbringer_2, tint: element, tone: light, scale: 0.5, offset: [0, 0.2], frames: [0, 14], note: "the seal glows into its pale pattern; cut before it melts into a blob" }
+
+  prayer.dimension:
+    beat: A navy ring opens under the whole team with pale light rising through it, every ally is mended, and threads of starlight weave them together.
+    cues:
+      - { on: heal, fx: dark_mage_3, at: allySide, scale: 2.0, layer: under, opacity: 0.8, note: "once, with the first heal, so a countered Prayer shows no uplift: one ring under the whole side, wider than the row, so the columns rise behind the portraits" }
+      - { on: heal, fx: spell_heal_003, tint: element2, tone: light, speed: 1.8, delay: 150, stagger: 90 }   # after the ring's short wind-up
+      # Entangled (Buffs)'s default then knots each ally.
+
+  cleave.dimension:
+    beat: Two blades of folded space scissor through the target and leave crossed hairlines hanging on each of their allies; the first of them to move gets the shears.
+    cues:
+      - { on: hit, only: primary, fx: warrior_1, tint: element, tone: light, face: fromActor, note: "its two crescents cross one after the other: the shears closing" }
+      - { on: apply, status: shear, fx: fanfx_pain, variant: white, scale: 0.9, opacity: 1, speed: 1.5, frames: [0, 20], stagger: 60 }   # two thin needle-lines cross over each ally; large and full strength, since the art is very sparse
+      - { on: trigger, status: shear, fx: warrior_1, tint: element, tone: light, scale: 0.7, speed: 1.5 }   # the hanging shears snap shut on whoever moved first
+      - { on: hit, only: others, fx: burst_splatter_003, variant: black, scale: 0.6, delay: 100 }   # Shear's 15 damage
+      - { on: remove, status: shear, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.4, opacity: 0.6 }   # the other hairlines fade
+
+  shout.dimension:
+    beat: A ring of buckled space bursts off the user and a rolling front of grey haze sweeps over every enemy, knotting them together and blacking out their sight.
+    note: "The Blind is applied to every enemy after they're linked, so it also reaches each one again through the link as refreshes. Play Blinded's default once per enemy, and no Entangled link pulse, since every enemy was aimed at directly."
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: element, tone: light, scale: 1.3, layer: under }
+      - { on: travel, fx: frost_mage_7, path: beam, tint: element, tone: light, stagger: 60, note: "stretched from the user to each enemy: the art already travels inside its own canvas, so moving it as well would carry the cloud past them; as a beam the billowing cloud ends on them" }
+      # Each enemy then shows Entangled's knot and Blinded's default, once each.
+
+  withstand.dimension:
+    beat: A ring of folded space closes round the user inside a shield bubble, and whatever it swallows comes back out as a ward around their weakest ally.
+    cues:
+      - { on: apply, status: pocket_ward, fx: dark_mage_2, scale: 2.0, layer: under, frames: [0, 9] }   # the pocket ring, well past the frame so it wraps round the portrait (about 0.4 showing at each side); cut before its red last frames
+      - { on: apply, status: pocket_ward, fx: stylized_explosion_002, scale: 1.1, opacity: 0.55, layer: under, delay: 300 }   # Shield's own bubble: it is a Shield
+      - { on: trigger, status: pocket_ward, fx: spell_absorb_001, tint: element2, tone: light, size: small, scale: 0.6, speed: 2 }   # each absorbed blow is drawn in; Shield's default then forms on the ally with the least HP
+
+  taunt.dimension:
+    beat: A thread snaps taut from the user to their chosen foe, then a navy nova rolls across the whole board and folds everyone else away, leaving the two of them alone.
+    note: "Every other unit is Banished at once: stagger their Banished defaults about 60 ms down each side so the board empties in a wave."
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, tone: light, opacity: 0.85 }   # a thread from the user to the target, held while the Taunt lands
+      - { on: apply, status: any, at: field, fx: dark_mage_4, scale: 3, layer: under, opacity: 0.7, speed: 0.8, note: "once, on the first status this skill lands (the Taunt on the target), so a countered Taunt plays no wipe; the Banished defaults then ripple out. A filter, so it adds to Taunt's '!' rather than replacing it" }
+      # Taunt's '!' on the target.
+
+  titan.dimension:
+    beat: Folded space wraps round the user arc over arc and peels away from a faceless silhouette as a cloud of shadow billows out behind them, and their weakest ally is knotted to them and armored alike.
+    note: "The portrait turns to a dark, featureless silhouette with a pale rim as the Armor lands on the user, and stays so while the Titan lasts: until the Armor and Immune this skill gave the user have both ended (expired, removed or stolen). The linked ally keeps its normal portrait. Entangled's, Armor's and Immune's defaults play on both the user and that ally."
+    cues:
+      - { on: cast, fx: frost_knight_9, tint: element, tone: light, scale: 1.3, note: "pale arcs stack round the user into a striped orb that hides the portrait, then thin away to show the silhouette it leaves" }
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: element, tone: light, scale: 2.0, layer: under, delay: 300 }   # behind and past the frame: its four lobes billow out round the portrait's corners
+
+  void_stalker_tether:
+    beat: The stalker flicks a dark thread across to the target that loops on to one of their allies.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, tone: light, scale: 0.6 }
+      # Entangled's default knots both.
+
+  void_stalker_rend:
+    beat: The stalker rakes the target, and the same claw marks tear open on everyone linked to them.
+    cues:
+      - { on: hit, only: primary, fx: warrior_7, tint: element, tone: light, face: fromActor, scale: 0.6 }
+      - { on: hit, only: others, fx: warrior_7, tint: element, tone: light, face: fromActor, scale: 0.5, opacity: 0.6, delay: 120, stagger: 60 }   # the echo on each Entangled partner
+
+  rift_shunt:
+    beat: The Rift flares and spits a navy comet at the target, cutting them off from their allies, or swallowing them if they already were.
+    cues:
+      - { on: cast, fx: dark_mage_2, scale: 0.6, speed: 1.5, frames: [4, 9] }   # the rift ring flares on the minion
+      - { on: travel, fx: dark_mage_5, path: straight, scale: 0.6, frames: [0, 6], note: "the orb and its tail only: cut before its own low-contrast impact" }
+      # Isolated's default, or Banished's if they already were Isolated.

@@ -1,0 +1,300 @@
+group: anointment
+# Anointment (Water + Holy) is holy water and anointing oil. Its material is `duo`: Water's deep-blue
+# rims around a Holy-gold body, the gilded water itself. Plain Water (`element`) is the river and spray
+# that carry it; Holy (`element2`) is the light that rises off it. Class art is colorized to `duo`.
+# Signature motifs, used across the kit:
+#   the Font — a font ring opens on the ground and light wells up through it (dark_mage_3, `duo`). It
+#              opens in every Font skill: Lance, Ward, Baptismal Font, Penance, Shield, Call, Living Font.
+#              Penance turns it over (`flip: y`): the ring opens above the enemy and its light drives down.
+#   the drop — Unction is a gilded drop landing on the brow; Chrism is a ring of gilded water spinning
+#              over the head as a halo (dark_mage_2): it forms (apply), flares as it anoints someone
+#              (trigger) and dims out (remove/expire). Neither parent marks the head this way.
+#   the wash — cleansing reads the same everywhere: each Debuff washed away lifts off as a pale wisp of
+#              steam (directional_smoke_burst_004, `element`, `tone: light`); each Buff stripped bursts
+#              off as gold orbs (round_firework_burst_002, `element2`).
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  unction:
+    note: >-
+      No aura: Unction sits on most of the team for most of a match and merges into stacks; its icon
+      carries the count. Scale the apply drop about +0.05 per stack gained at once (Fervent Unction,
+      Anointing Oil, Shield of the Font).
+    # The gilded drop falls onto the brow and splashes into a little crown. Its ground point is raised to the forehead.
+    apply:  [ { fx: paladin_7, tint: duo, scale: 0.45, offset: [0, 0.75], speed: 1.2, frames: [0, 6] } ]   # cut the held dark patch of the last frame
+    tick:
+      - { fx: spell_heal_002, tint: duo, size: small, scale: 0.55, speed: 1.6, note: "Living Font: play it on every allied character (staggered 50 ms), not only the bearer, since that stack heals them all" }   # one stack soaks in: the 10 heal
+      - { fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.4, delay: 150, note: "only when the stack lifted a Debuff (an effectRemoved comes with the tick); under Living Font, on each ally it cleansed" }   # the wash
+    remove: [ { fx: burst_splatter_003, tint: duo, size: small, scale: 0.35, offset: [0, 0.3], opacity: 0.8 } ]   # last stack spent, cleansed or stolen: the last drop splashes away from the brow
+  chrism:
+    note: No aura. Chrism lasts a turn or three and the status icon carries it; Anointed's own halo is Holy's and plays where Chrism anoints someone.
+    apply:   [ { fx: dark_mage_2, tint: duo, scale: 0.5, offset: [0, 0.55], frames: [0, 10] } ]   # a ring of gilded water spins up over the head as a halo; its last frame jumps to dark red, so it is cut
+    trigger: [ { fx: dark_mage_2, tint: duo, tone: light, scale: 0.55, offset: [0, 0.55], frames: [5, 8], speed: 1.3 } ]   # the halo flares (its brightest ring frames) as it anoints the helped ally; Anointed's default lands on them
+    remove:  [ { fx: dark_mage_2, tint: duo, scale: 0.5, offset: [0, 0.55], frames: [8, 11], speed: 0.8, opacity: 0.8 } ]   # spent or cleansed: the halo dims and goes dark (frames 10-11 are drawn red; the colorize tint maps them to dark duo)
+    expire:  [ { fx: dark_mage_2, tint: duo, scale: 0.5, offset: [0, 0.55], frames: [8, 11], speed: 0.8, opacity: 0.6 } ]
+  submission:
+    # A dark-gold ring with four points snaps out round the bearer: marked for the Anointed to strike harder.
+    apply:  [ { fx: frost_knight_7, tint: duo, scale: 0.7 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.45, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.4, opacity: 0.5 } ]
+
+macros: {}   # Anointment defines none
+
+skills:
+  strike.anointment:
+    beat: A gilded crescent of water slashes through the target, and its spray falls back on every ally as a blessing.
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, scale: 0.5, delay: 100 }   # spray carries on past them
+      - { on: apply, status: buff, fx: directional_particle_burst_001, face: down, tint: duo, size: small, scale: 0.45, offset: [0, 0.4], stagger: 60 }   # drops fall on each ally, under Might's default
+
+  smash.anointment:
+    beat: A wave of gilded water arcs over and crashes down on the target, and the splash spills up under each of their allies; an Anointed user spends it and their clock leaps ahead.
+    note: >-
+      Spending Anointed plays Anointed's and Chrism's remove defaults on the user. The cooldown cut has no
+      event of its own, so its clock rides that removal: the only Buffs this skill removes are the user's
+      own Anointed and Chrism, so it shows only in that branch.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, tint: duo, scale: 1.1, note: "impact sits in the bottom-right corner as drawn (bottom-left when mirrored): put that corner on the target's feet" }   # the wave arcs over and slams down; the crash lands around frames 6-7
+      - { on: hit, only: primary, fx: directional_splatter_002, scale: 0.9, delay: 300 }   # the crown of water as the crash lands
+      - { on: hit, only: others, fx: directional_splatter_005, tint: duo, scale: 0.6, delay: 350, stagger: 80 }   # the 10-damage spill wells up under each ally, after the crash
+      - { on: remove, status: buff, fx: fanfx_slow, size: small, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 2, delay: 150, note: "once on the user, even when both Anointed and Chrism go: the clock hands jump ahead as the other cooldowns drop by 1 (2 with two or more enemies)" }   # adds to the remove defaults
+
+  charge.anointment:
+    beat: The user rushes in behind a gilded wave-front and breaks over the target; Chrism's halo settles on them, and each ally they later help catches a guiding star.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.7, note: "portrait lunges along it; the slanted leading edge leads" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, scale: 0.6 }
+      - { on: trigger, status: pilgrims_rush, fx: directional_star_burst_001, tint: element2, size: small, scale: 0.5, speed: 1.5 }   # on the user, as their Helpful skill resolves; Focus's default then lands on each helped ally
+      # Chrism's default stands for Pilgrim's Rush on the user (one halo, not two).
+
+  riposte.anointment:
+    beat: A still ring of water settles round the user and every Anointed ally; when a blow comes, the surface rises in a low wave and turns it aside.
+    cues:
+      - { on: apply, status: calm_waters, fx: frost_mage_1, tint: duo, scale: 0.7, opacity: 0.75, frames: [0, 13] }   # Invisible: owner only. Two gilded drops circle the ring; cut its dim ghost-ring last frame
+      - { on: trigger, status: calm_waters, fx: necromancer_2, tint: duo, scale: 0.9, note: "mirrored toward the source (the unit whose skill it turns aside)" }
+      # The opponent sees the wave, base's counter X on their own unit, and Flow's bubbles rising off whoever it protected.
+
+  rage.anointment:
+    beat: The user's anointing oil catches and gilded flame forks up around them; each turn they still hold Unction, a tongue of it flares again.
+    cues:
+      - { on: cast, fx: lightning_strike_001, tint: duo, scale: 1.5, layer: under }   # two jets of oil-fire fork up past the frame from a glow at the feet
+      - { on: trigger, status: chrismation, fx: directional_fire_burst_002, tint: duo, scale: 0.6, opacity: 0.85 }   # turn start, while Unction lasts: Might's default follows
+      # Unction's drop (two stacks) and Might's default land on the user.
+
+  shot.anointment:
+    beat: A flick of holy water sprinkles the target; one of their blessings bursts off and runs to the weakest ally.
+    cues:
+      - { on: travel, fx: directional_splatter_003, path: arc, size: small, tint: duo, scale: 0.4 }   # the flicked droplets
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: duo, scale: 0.6 }   # droplets fountain off them and droop
+      - { on: remove, status: buff, fx: round_firework_burst_002, tint: element2, size: small, scale: 0.5, speed: 1.5, note: "if the renderer can aim them, the orbs streak off toward the weakest ally who receives the Buff" }   # the wash
+      - { on: apply, status: buff, only: others, fx: round_sparkle_burst_003, tint: element2, size: small, scale: 0.45, speed: 1.4, delay: 200, note: "the stolen Buff arriving on the weakest ally (its own apply default, if it has one, plays too); skip it when the applied status is unction (the no-Buff branch, where Unction's drop is the tell)" }   # the blessing gathers into them
+      # No Buff to take: Unction's drop lands on the weakest ally instead.
+
+  snipe.anointment:
+    beat: A font opens under the user and they draw its light in and hold it; next turn the lance is flung up off the font and dives onto the hidden target, washing their Debuffs away.
+    note: >-
+      HiddenTarget: nothing points anywhere until the hit lands; the lance launches straight up off the
+      user's font and the next thing seen is it diving onto the target. The damage grows 10 per Debuff:
+      scale paladin_6 about +0.1 per Debuff.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.4, layer: under, opacity: 0.85 }   # the font ring opens under the user, its light rising past the frame
+      - { on: cast, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.6, delay: 150 }   # and they draw it in: the held charge (radial, so it points at no one)
+      - { on: trigger, status: lance_of_the_font, fx: directional_impact_004, size: small, tint: duo, scale: 0.7 }   # the lance is flung straight up off the font: spikes thrown skyward
+      - { on: hit, fx: paladin_6, face: fromActor, tint: duo, scale: 1.2 }   # gilded comet streaks dive onto them, a white star and a ring at their feet: the thrown-down lance
+      - { on: hit, fx: directional_splatter_002, scale: 0.8, delay: 150 }   # the water it carries splashes up as it strikes
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.5, delay: 200, stagger: 60 }   # the wash
+
+  trap.anointment:
+    beat: A font ring is laid under the enemy (owner only); when they lay a Debuff on an ally, it erupts through them and the ally is anointed.
+    cues:
+      - { on: apply, status: font_ward, fx: necromancer_1, tint: duo, scale: 1.8, offset: [0, -0.35], opacity: 0.8, layer: under }   # Invisible: owner only. The snare ring, in gilded water: dropped and widened so its arc shows below and beside the portrait
+      - { on: trigger, status: font_ward, fx: dark_mage_3, tint: duo, scale: 0.9, opacity: 0.9, frames: [4, 12] }   # the font flares under them (frames 0-3 are only the shrinking ring, so skip to the pillars)
+      - { on: hit, fx: directional_impact_004, size: small, tint: duo, scale: 0.8, delay: 150 }   # and erupts through them as its pillars rise
+      # Unction's drop lands on the ally they cursed.
+
+  maneuver.anointment:
+    beat: The user sinks under a dome of water and is sealed in it; the ripple of their dive splashes up at each enemy's feet in turn, and any enemy who strikes is marked for judgment.
+    cues:
+      - { on: cast, fx: blood_knight_5, tint: element, scale: 1.5, layer: under }   # the water closes over them, its rim showing past the frame
+      # Invulnerable's default (the sealed shell) follows.
+      - { on: apply, status: immersion, fx: directional_impact_003, size: small, tint: element, scale: 0.6, opacity: 0.75, stagger: 90 }   # a small ring of spray reaches each enemy in turn, down the column or along the row
+      - { on: trigger, status: immersion, fx: directional_splatter_005, tint: duo, size: small, scale: 0.5 }   # the water they stirred clings to them; Condemned's default follows
+
+  companion.anointment:
+    beat: A golden koi breaks the surface in a crown of spray, scattering gold glints.
+    cues:
+      - { on: summon, fx: directional_impact_003, tint: duo, scale: 0.9 }
+      - { on: summon, fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.6, delay: 200 }   # its scales catch the light
+
+  bolt.anointment:
+    beat: A glowing vial is lobbed onto the target and shatters in a burst of holy water; Unction drips onto the allies who need it.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, tint: duo, scale: 0.6, note: "its own dull splat lands under the hit: fade it" }   # the vial, a gilded orb with a deep-blue tail
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8 }   # the glass shatters
+      - { on: hit, fx: burst_splatter_002, scale: 0.7, delay: 100 }       # the water bursts out
+      # Unction's drop lands on each debuffed ally (or the weakest).
+
+  blast.anointment:
+    beat: Spray blasts off the user and a flood of gilded waves surges across the enemy row, spouting up under each enemy.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_005, face: toTarget, scale: 0.9, note: "its origin corner on the user, so the spray fans out toward the enemy row" }
+      - { on: hit, fx: slime_1, at: enemySide, face: fromActor, tint: duo, scale: 2.6, note: "once, with the first hit: the side anchor doesn't repeat per enemy. Its splat lands ~70% across the canvas: center that on the row" }
+      - { on: hit, fx: directional_splatter_002, scale: 0.8, delay: 250, stagger: 80, note: "about +0.1 scale per Anointed ally (each adds 10 damage)" }
+
+  consume.anointment:
+    beat: Gilded drops spray off the target back across the board and gather into the user and every Anointed ally.
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: toActor, tint: duo, size: small, scale: 0.5 }   # drawn off them, toward the user's side
+      - { on: heal, fx: round_sparkle_burst_003, tint: duo, size: small, scale: 0.6, speed: 1.4, delay: 150, stagger: 80 }   # converging into each who shares it
+
+  summon.anointment:
+    beat: A font ring opens and pillars of gilded light raise the Baptismal Font; it fills and spills over, and a faint glitter of grace settles on every unit on the board.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: duo, scale: 1.2 }
+      - { on: summon, fx: directional_splatter_002, scale: 0.7, delay: 300 }   # it fills and spills over
+      - { on: apply, status: any, fx: status_sparkling_001, tint: element2, scale: 0.7, opacity: 0.6, speed: 1.5, frames: [0, 14], stagger: 40, note: "the Font's onSummon baptismal_font_grace, applied to every unit; it lives on the minion, not in this skill's ops, so it can't be named here, but it is the only status this skill applies" }   # the Font's grace (no Debuffs for anyone while it stands) on each unit it reaches, both sides; large size, since the small sprites vanish
+
+  channel.anointment:
+    beat: A cloud of light gathers over the user; at the end of each of their turns, it rains gilded drops on every enemy and washes a Buff off each.
+    cues:
+      - { on: apply, status: consecrated_rain, fx: round_sparkle_burst_002, tint: element2, scale: 0.6, offset: [0, 0.9] }
+      - { on: trigger, status: consecrated_rain, fx: round_sparkle_burst_002, at: enemies, tint: element2, scale: 0.5, offset: [0, 0.85], opacity: 0.85, stagger: 50 }   # a lit cloud over each enemy
+      - { on: hit, fx: directional_particle_burst_001, face: down, tint: duo, size: small, scale: 0.6, offset: [0, 0.3], delay: 150, stagger: 50 }   # the drops fall (5 damage)
+      - { on: remove, status: buff, fx: round_firework_burst_002, tint: element2, size: small, scale: 0.45, speed: 1.5, delay: 250, stagger: 50 }   # the wash
+      # Unction's drop lands on a random ally for each Buff washed off.
+
+  stab.anointment:
+    beat: Brine scours a stain off the user, then a thin salt-white needle pierces the target.
+    note: The 20-damage branch (the user ends with no Debuffs) has no event of its own; if the renderer can tell from the amount, play the needle at scale 0.7.
+    cues:
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.45 }   # the wash, on the user
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, tone: light, scale: 0.5 }   # its ring on the target, the needle fanning out past them
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, tint: duo, scale: 0.4, delay: 60 }
+
+  ravage.anointment:
+    beat: A churning current of gilded water wraps the target in stacked arcs and bursts through them; while the user has Flow, it scours each enemy they strike.
+    cues:
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.8, delay: 250 }   # the Piercing burst through them
+      - { on: apply, status: scouring_current, fx: slime_5, scale: 0.45, tint: element, opacity: 0.8, speed: 1.6 }   # a current whirls round the user
+      - { on: trigger, status: scouring_current, fx: directional_splatter_003, at: target, face: fromActor, size: small, scale: 0.5 }   # scoured; Shattered's default follows
+
+  mislead.anointment:
+    beat: A faint gilded shimmer clings to the target (owner only); when they strike, the blow folds into light and every stain on the user's side drains across onto them.
+    cues:
+      - { on: apply, status: turned_to_grace, fx: status_poison_001, tint: duo, scale: 0.8, opacity: 0.6, speed: 1.5 }   # Invisible: owner only. A film of gilded bubbles, played once
+      - { on: trigger, status: turned_to_grace, fx: scifi_warp_001, tint: duo, scale: 0.9 }   # the blow folds shut into a slit of light and bursts
+      - { on: remove, status: debuff, only: others, fx: directional_particle_burst_001, face: toTarget, tint: element, tone: dark, size: small, scale: 0.5, delay: 200, stagger: 60, note: "each stain drifts off its ally toward the bearer, where its own default lands. Only others: Turned to Grace is itself a Debuff on the bearer, consumed as it fires, and must not drift off toward itself" }
+      # Base's counter X and Condemned's default follow on the bearer.
+
+  stun.anointment:
+    beat: A gilded torrent drives the target to their knees and a ring of judgment snaps round them; each of the user's allies flares with zeal toward them.
+    note: The press hangs off the Stun landing, not the cast, so an Immune or Swiftness-negated target shows only the block.
+    cues:
+      - { on: apply, status: stun, fx: warrior_5, face: fromActor, tint: duo, scale: 0.9 }
+      # Stun's default, re-added (this skill's own apply cue replaces it). Submission's ring follows.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, delay: 250, note: "portrait staggers back a step" }
+      - { on: apply, status: submission_zeal, fx: scifi_muzzle_flash_001, face: toTarget, tint: element2, tone: light, size: small, scale: 0.35, offset: [0, 0.3], stagger: 60 }   # each ally's zeal flares toward the submitted foe (not round_sparkle_burst_001: that is Anointed's remove, read here as a lost halo)
+
+  dance.anointment:
+    beat: A river of gilded water winds round and round the user and light rises through them; each ally they help is swept into a smaller eddy of it.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.6, layer: under }   # the river spirals out past the frame
+      - { on: cast, fx: directional_sparkle_burst_001, tint: element2, scale: 0.9, delay: 300 }
+      - { on: trigger, status: river_of_grace, fx: slime_5, at: target, tint: duo, scale: 1.3, layer: under, opacity: 0.7, speed: 1.6 }   # a smaller eddy of the same river behind each helped ally, not over their face; Chrism's halo follows on them
+      # Chrism's and Swiftness's defaults land on the user.
+
+  heal.anointment:
+    beat: Gilded oil wells up round the ally and light rises through them as Unction lands on their brow.
+    cues:
+      - { on: heal, fx: directional_splatter_005, tint: duo, scale: 0.8, opacity: 0.9 }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: element2, tone: light, scale: 0.8, delay: 200 }
+      # Unction's drop follows, scaled by the stacks (1 + 1 per Debuff).
+
+  bless.anointment:
+    beat: Drops of holy oil drip onto the ally and pool at their feet, sealing them against Debuffs; each blow aimed at them only anoints them further.
+    cues:
+      - { on: apply, status: holy_oil, fx: spell_forge_001, tint: duo, scale: 0.9 }   # its yellow spark streaks suit the gold
+      - { on: trigger, status: holy_oil, fx: scifi_spark_burst_001, tint: duo, size: small, scale: 0.5 }   # the oil's sheen flashes as a Harmful skill reaches them; Unction's drop follows
+
+  curse.anointment:
+    beat: Every blessing the enemy carries bursts off them, then a font turned over opens above their head and drives its bars of light down around them, shutting new ones out.
+    cues:
+      - { on: remove, status: buff, fx: round_firework_burst_002, tint: element2, size: small, scale: 0.5, speed: 1.5, stagger: 60 }   # the wash
+      - { on: apply, status: font_of_penance, fx: dark_mage_3, tint: duo, flip: y, scale: 1.0, opacity: 0.85, delay: 150, note: "flipped: the ring opens at head height and the pillars drive down onto them. If the flip reads poorly, use fanfx_barrier (duo, scale 0.9, opacity 0.55, speed 1.5): a lattice panel closing over them" }   # the Font turned over: light settling down, not welling up
+
+  smite.anointment:
+    beat: A gilded brand drops onto the target and breaks, and water wells up round them; an Anointed user's halo flows on to the weakest ally.
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.9 }   # the shard falls from above and breaks into curls at their feet
+      - { on: hit, fx: directional_splatter_005, scale: 0.6, delay: 200 }
+      # Anointed's and Chrism's remove defaults on the user, then Chrism's halo on the weakest ally.
+
+  prayer.anointment:
+    beat: The user's hymn rings out and blessing rises through every ally; then every ally's stains drift across into the user, who is anointed once for each.
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: element2, scale: 0.7 }
+      - { on: heal, fx: directional_heart_burst_002, tint: element2, scale: 0.7, speed: 1.3, stagger: 80 }
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, face: toActor, tone: dark, size: small, scale: 0.5, delay: 300, stagger: 60 }   # each stain drifts off toward the user
+      # The moved Debuffs' own defaults land on the user, then Unction's drop (a stack per Debuff).
+
+  cleave.anointment:
+    beat: A wide gilded wave sweeps low through the target and rolls on into a second enemy; the user bows under judgment for it.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: duo }
+      - { on: hit, only: others, fx: warrior_4, face: fromActor, tint: duo, scale: 0.75, delay: 150 }   # the random second enemy: the sweep rolling on
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.5, delay: 100, stagger: 150 }
+      # Condemned's default on the user.
+
+  shout.anointment:
+    beat: A gilded nova bursts from the user, a wash of light rolls out to every enemy, and every stain on the board steams away.
+    cues:
+      - { on: cast, fx: dark_mage_4, tint: duo, scale: 1.5 }
+      - { on: travel, fx: frost_mage_7, path: straight, tint: element2, tone: light, scale: 0.6, opacity: 0.85, stagger: 60 }   # a wash of light rolls into each enemy, its white cloud leading the gold streaks
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.45, stagger: 40 }   # the wash, on every unit of both sides
+      # Intimidated's default on each enemy.
+
+  withstand.anointment:
+    beat: A font opens under the user and all their Unction wells up at once, washing their stains away as the shield closes over them.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.0, opacity: 0.85 }
+      - { on: remove, status: unction, fx: directional_splatter_005, tint: duo, scale: 1.0, note: "replaces Unction's remove default: every stack wells up at once; about +0.1 scale per stack" }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.45, delay: 150, stagger: 80 }   # the wash
+      # Unction's drop (the 2 new stacks) lands first; Shield's default bubble closes last.
+
+  taunt.anointment:
+    beat: A Holy Spring wells up out of a font ring and flicks a bright drop at the target to catch their eye.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: duo, scale: 0.8 }
+      - { on: summon, fx: directional_fire_burst_002, scale: 0.6, delay: 250 }   # the spring spouts (a small geyser in Water)
+      - { on: travel, fx: directional_splatter_001, from: minion, path: arc, tint: duo, size: small, scale: 0.4, note: "from the Spring, which is what Taunts them" }
+      # Taunt's '!' lands on the target. When the Spring fades or falls, Unction's drop lands on every allied character.
+
+  titan.anointment:
+    beat: A great font opens beneath the user, a fountain of gilded water erupts up through them and rains back down, and they stand as a living spring that wells up again each turn.
+    note: The portrait swells about 10% as the fountain peaks. Armor's default lands on the user.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.8, layer: under }
+      - { on: resolve, fx: epic_explosion_002, tint: duo, scale: 1.4 }   # the fountain
+      - { on: resolve, fx: round_firework_burst_001, tint: element2, scale: 1.2, delay: 300 }   # its spray droops back down in gold streaks
+      - { on: trigger, status: living_font, fx: directional_splatter_005, tint: duo, size: small, scale: 0.6 }   # each turn start the spring wells up again; Unction's drop follows
+
+  sacred_koi_golden_leap:
+    beat: The koi springs from a splash and leaps in a light golden arc onto the ally, a bright head trailing its tail.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, scale: 0.5 }
+      - { on: travel, fx: starcaller_2, path: arc, tint: element2, tone: light, scale: 0.5 }   # the golden koi: a star-headed comet with a trailing tail, no impact of its own
+      # Anointed's halo, or Chrism's if they already were, carries the landing on the ally.
+
+  sacred_koi_tail_slap:
+    beat: A flick of the koi's tail whips a gilded arc across the target.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.4, delay: 80 }
+
+  baptismal_font_pour:
+    beat: The font pours a ladle of gilded water over the ally.
+    cues:
+      - { on: travel, fx: slime_3, path: arc, tint: duo, scale: 0.5, note: "its own splat lands as the pour arrives" }
+      - { on: heal, fx: spell_heal_002, tint: duo, size: small, scale: 0.55, speed: 1.6 }

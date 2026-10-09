@@ -1,0 +1,3543 @@
+{
+ "base": {
+  "name": "Base (elementless)",
+  "elements": [
+   "None"
+  ],
+  "skills": [
+   "strike",
+   "smash",
+   "charge",
+   "riposte",
+   "rage",
+   "shot",
+   "snipe",
+   "trap",
+   "maneuver",
+   "companion",
+   "bolt",
+   "blast",
+   "consume",
+   "summon",
+   "channel",
+   "stab",
+   "ravage",
+   "mislead",
+   "stun",
+   "dance",
+   "heal",
+   "bless",
+   "curse",
+   "smite",
+   "prayer",
+   "cleave",
+   "shout",
+   "withstand",
+   "taunt",
+   "titan"
+  ],
+  "minions": [
+   "wolf",
+   "arcane_familiar"
+  ],
+  "statuses": [
+   "might",
+   "weakness",
+   "vulnerable",
+   "armor",
+   "shield",
+   "stun",
+   "stun_ns",
+   "stun_s",
+   "sleep",
+   "invulnerable",
+   "ghosted",
+   "untargetable",
+   "isolated",
+   "shattered",
+   "swiftness",
+   "intimidated",
+   "focus",
+   "confusion",
+   "mark",
+   "taunt",
+   "immune",
+   "trap",
+   "sanctify",
+   "renew"
+  ],
+  "macros": []
+ },
+ "fire": {
+  "name": "Fire",
+  "elements": [
+   "Fire"
+  ],
+  "skills": [
+   "strike.fire",
+   "smash.fire",
+   "charge.fire",
+   "riposte.fire",
+   "rage.fire",
+   "shot.fire",
+   "snipe.fire",
+   "trap.fire",
+   "maneuver.fire",
+   "companion.fire",
+   "bolt.fire",
+   "blast.fire",
+   "consume.fire",
+   "summon.fire",
+   "channel.fire",
+   "stab.fire",
+   "ravage.fire",
+   "mislead.fire",
+   "stun.fire",
+   "dance.fire",
+   "heal.fire",
+   "bless.fire",
+   "curse.fire",
+   "smite.fire",
+   "prayer.fire",
+   "cleave.fire",
+   "shout.fire",
+   "withstand.fire",
+   "taunt.fire",
+   "titan.fire"
+  ],
+  "minions": [
+   "dragon_hatchling",
+   "cinderling"
+  ],
+  "statuses": [
+   "ignite",
+   "scorched",
+   "flameborn"
+  ],
+  "macros": [
+   "burn_aftermath",
+   "explode"
+  ]
+ },
+ "ice": {
+  "name": "Ice",
+  "elements": [
+   "Ice"
+  ],
+  "skills": [
+   "strike.ice",
+   "smash.ice",
+   "charge.ice",
+   "riposte.ice",
+   "rage.ice",
+   "shot.ice",
+   "snipe.ice",
+   "trap.ice",
+   "maneuver.ice",
+   "companion.ice",
+   "bolt.ice",
+   "blast.ice",
+   "consume.ice",
+   "summon.ice",
+   "channel.ice",
+   "stab.ice",
+   "ravage.ice",
+   "mislead.ice",
+   "stun.ice",
+   "dance.ice",
+   "heal.ice",
+   "bless.ice",
+   "curse.ice",
+   "smite.ice",
+   "prayer.ice",
+   "cleave.ice",
+   "shout.ice",
+   "withstand.ice",
+   "taunt.ice",
+   "titan.ice",
+   "ice_bear_frostfang",
+   "icy_familiar_touch",
+   "icy_familiar_breath"
+  ],
+  "minions": [
+   "ice_bear",
+   "icy_familiar"
+  ],
+  "statuses": [
+   "frostbitten",
+   "chilled",
+   "numb",
+   "frostborn"
+  ],
+  "macros": []
+ },
+ "water": {
+  "name": "Water",
+  "elements": [
+   "Water"
+  ],
+  "skills": [
+   "strike.water",
+   "smash.water",
+   "charge.water",
+   "riposte.water",
+   "rage.water",
+   "shot.water",
+   "snipe.water",
+   "trap.water",
+   "maneuver.water",
+   "companion.water",
+   "bolt.water",
+   "blast.water",
+   "consume.water",
+   "summon.water",
+   "channel.water",
+   "stab.water",
+   "ravage.water",
+   "mislead.water",
+   "stun.water",
+   "dance.water",
+   "heal.water",
+   "bless.water",
+   "curse.water",
+   "smite.water",
+   "prayer.water",
+   "cleave.water",
+   "shout.water",
+   "withstand.water",
+   "taunt.water",
+   "titan.water",
+   "fish_shimmer",
+   "elemental_lashing_water"
+  ],
+  "minions": [
+   "rainbow_scale_fish",
+   "water_elemental"
+  ],
+  "statuses": [
+   "flow"
+  ],
+  "macros": []
+ },
+ "lightning": {
+  "name": "Lightning",
+  "elements": [
+   "Lightning"
+  ],
+  "skills": [
+   "strike.lightning",
+   "smash.lightning",
+   "charge.lightning",
+   "riposte.lightning",
+   "rage.lightning",
+   "shot.lightning",
+   "snipe.lightning",
+   "trap.lightning",
+   "maneuver.lightning",
+   "companion.lightning",
+   "bolt.lightning",
+   "blast.lightning",
+   "consume.lightning",
+   "summon.lightning",
+   "channel.lightning",
+   "stab.lightning",
+   "ravage.lightning",
+   "mislead.lightning",
+   "stun.lightning",
+   "dance.lightning",
+   "heal.lightning",
+   "bless.lightning",
+   "curse.lightning",
+   "smite.lightning",
+   "prayer.lightning",
+   "cleave.lightning",
+   "shout.lightning",
+   "withstand.lightning",
+   "taunt.lightning",
+   "titan.lightning",
+   "hawk_stormfeather",
+   "hawk_glowing_down",
+   "static_zap"
+  ],
+  "minions": [
+   "storm_hawk",
+   "static_elemental"
+  ],
+  "statuses": [
+   "charged",
+   "sapped",
+   "stormborn",
+   "conduit"
+  ],
+  "macros": []
+ },
+ "wind": {
+  "name": "Wind",
+  "elements": [
+   "Wind"
+  ],
+  "skills": [
+   "strike.wind",
+   "smash.wind",
+   "charge.wind",
+   "riposte.wind",
+   "rage.wind",
+   "shot.wind",
+   "snipe.wind",
+   "trap.wind",
+   "maneuver.wind",
+   "companion.wind",
+   "bolt.wind",
+   "blast.wind",
+   "consume.wind",
+   "summon.wind",
+   "channel.wind",
+   "stab.wind",
+   "ravage.wind",
+   "mislead.wind",
+   "stun.wind",
+   "dance.wind",
+   "heal.wind",
+   "bless.wind",
+   "curse.wind",
+   "smite.wind",
+   "prayer.wind",
+   "cleave.wind",
+   "shout.wind",
+   "withstand.wind",
+   "taunt.wind",
+   "titan.wind",
+   "eagle_talon_rake",
+   "eagle_soar",
+   "sprite_bother"
+  ],
+  "minions": [
+   "grand_eagle",
+   "wind_sprite"
+  ],
+  "statuses": [
+   "rushing",
+   "leaping"
+  ],
+  "macros": [
+   "rush_upkeep",
+   "leap",
+   "remove_mobility"
+  ]
+ },
+ "poison": {
+  "name": "Poison",
+  "elements": [
+   "Poison"
+  ],
+  "skills": [
+   "strike.poison",
+   "smash.poison",
+   "charge.poison",
+   "riposte.poison",
+   "rage.poison",
+   "shot.poison",
+   "snipe.poison",
+   "trap.poison",
+   "maneuver.poison",
+   "companion.poison",
+   "bolt.poison",
+   "blast.poison",
+   "consume.poison",
+   "summon.poison",
+   "channel.poison",
+   "stab.poison",
+   "ravage.poison",
+   "mislead.poison",
+   "stun.poison",
+   "dance.poison",
+   "heal.poison",
+   "bless.poison",
+   "curse.poison",
+   "smite.poison",
+   "prayer.poison",
+   "cleave.poison",
+   "shout.poison",
+   "withstand.poison",
+   "taunt.poison",
+   "titan.poison",
+   "asp_fang",
+   "asp_constrict",
+   "spriggan_sting"
+  ],
+  "minions": [
+   "emerald_asp",
+   "spriggan_harasser"
+  ],
+  "statuses": [
+   "toxin",
+   "prey"
+  ],
+  "macros": []
+ },
+ "earth": {
+  "name": "Earth",
+  "elements": [
+   "Earth"
+  ],
+  "skills": [
+   "strike.earth",
+   "smash.earth",
+   "charge.earth",
+   "riposte.earth",
+   "rage.earth",
+   "shot.earth",
+   "snipe.earth",
+   "trap.earth",
+   "maneuver.earth",
+   "companion.earth",
+   "bolt.earth",
+   "blast.earth",
+   "consume.earth",
+   "summon.earth",
+   "channel.earth",
+   "stab.earth",
+   "ravage.earth",
+   "mislead.earth",
+   "stun.earth",
+   "dance.earth",
+   "heal.earth",
+   "bless.earth",
+   "curse.earth",
+   "smite.earth",
+   "prayer.earth",
+   "cleave.earth",
+   "shout.earth",
+   "withstand.earth",
+   "taunt.earth",
+   "titan.earth",
+   "seedling_channel_earth",
+   "stalker_rootlash",
+   "worldsprout_treant_smash",
+   "worldsprout_vitality_transfer"
+  ],
+  "minions": [
+   "boulder",
+   "seedling",
+   "forest_stalker",
+   "worldsprout"
+  ],
+  "statuses": [],
+  "macros": [
+   "channel_growth",
+   "launch_boulder"
+  ]
+ },
+ "holy": {
+  "name": "Holy",
+  "elements": [
+   "Holy"
+  ],
+  "skills": [
+   "strike.holy",
+   "smash.holy",
+   "charge.holy",
+   "riposte.holy",
+   "rage.holy",
+   "shot.holy",
+   "snipe.holy",
+   "trap.holy",
+   "maneuver.holy",
+   "companion.holy",
+   "bolt.holy",
+   "blast.holy",
+   "consume.holy",
+   "summon.holy",
+   "channel.holy",
+   "stab.holy",
+   "ravage.holy",
+   "mislead.holy",
+   "stun.holy",
+   "dance.holy",
+   "heal.holy",
+   "bless.holy",
+   "curse.holy",
+   "smite.holy",
+   "prayer.holy",
+   "cleave.holy",
+   "shout.holy",
+   "withstand.holy",
+   "taunt.holy",
+   "titan.holy",
+   "lion_roar",
+   "lion_claws",
+   "blessing_from_above"
+  ],
+  "minions": [
+   "sacred_lion",
+   "divine_blessing"
+  ],
+  "statuses": [
+   "anointed",
+   "condemned"
+  ],
+  "macros": []
+ },
+ "unholy": {
+  "name": "Unholy",
+  "elements": [
+   "Unholy"
+  ],
+  "skills": [
+   "strike.unholy",
+   "smash.unholy",
+   "charge.unholy",
+   "riposte.unholy",
+   "rage.unholy",
+   "shot.unholy",
+   "snipe.unholy",
+   "trap.unholy",
+   "maneuver.unholy",
+   "companion.unholy",
+   "bolt.unholy",
+   "blast.unholy",
+   "consume.unholy",
+   "summon.unholy",
+   "channel.unholy",
+   "stab.unholy",
+   "ravage.unholy",
+   "mislead.unholy",
+   "stun.unholy",
+   "dance.unholy",
+   "heal.unholy",
+   "bless.unholy",
+   "curse.unholy",
+   "smite.unholy",
+   "prayer.unholy",
+   "cleave.unholy",
+   "shout.unholy",
+   "withstand.unholy",
+   "taunt.unholy",
+   "titan.unholy",
+   "hellhound_jaws",
+   "imp_firebolt",
+   "imp_gleeful_torment"
+  ],
+  "minions": [
+   "hellhound",
+   "imp"
+  ],
+  "statuses": [
+   "horrified",
+   "immortal",
+   "soul_fragment",
+   "lifesteal"
+  ],
+  "macros": [
+   "mirage_reward"
+  ]
+ },
+ "shadow": {
+  "name": "Shadow",
+  "elements": [
+   "Shadow"
+  ],
+  "skills": [
+   "strike.shadow",
+   "smash.shadow",
+   "charge.shadow",
+   "riposte.shadow",
+   "rage.shadow",
+   "shot.shadow",
+   "snipe.shadow",
+   "trap.shadow",
+   "maneuver.shadow",
+   "companion.shadow",
+   "bolt.shadow",
+   "blast.shadow",
+   "consume.shadow",
+   "summon.shadow",
+   "channel.shadow",
+   "stab.shadow",
+   "ravage.shadow",
+   "mislead.shadow",
+   "stun.shadow",
+   "dance.shadow",
+   "heal.shadow",
+   "bless.shadow",
+   "curse.shadow",
+   "smite.shadow",
+   "prayer.shadow",
+   "cleave.shadow",
+   "shout.shadow",
+   "withstand.shadow",
+   "taunt.shadow",
+   "titan.shadow",
+   "raven_fel_swoop",
+   "raven_blackwing",
+   "shade_shadow_choke"
+  ],
+  "minions": [
+   "spirit_raven",
+   "shade",
+   "shadow_mockery"
+  ],
+  "statuses": [
+   "stealth",
+   "blinded"
+  ],
+  "macros": [
+   "gain_stealth"
+  ]
+ },
+ "dragon": {
+  "name": "Dragon",
+  "elements": [
+   "Fire",
+   "Fire"
+  ],
+  "skills": [
+   "strike.dragon",
+   "smash.dragon",
+   "charge.dragon",
+   "riposte.dragon",
+   "rage.dragon",
+   "shot.dragon",
+   "snipe.dragon",
+   "trap.dragon",
+   "maneuver.dragon",
+   "companion.dragon",
+   "bolt.dragon",
+   "blast.dragon",
+   "consume.dragon",
+   "summon.dragon",
+   "channel.dragon",
+   "stab.dragon",
+   "ravage.dragon",
+   "mislead.dragon",
+   "stun.dragon",
+   "dance.dragon",
+   "heal.dragon",
+   "bless.dragon",
+   "curse.dragon",
+   "smite.dragon",
+   "prayer.dragon",
+   "cleave.dragon",
+   "shout.dragon",
+   "withstand.dragon",
+   "taunt.dragon",
+   "titan.dragon",
+   "drake_claw",
+   "wyrmling_bite"
+  ],
+  "minions": [
+   "drake",
+   "dragon_egg",
+   "wyrmling"
+  ],
+  "statuses": [
+   "dragonfire",
+   "wyrm_heart",
+   "hoard",
+   "burning_wake",
+   "warming_wings",
+   "elder_wyrm",
+   "banked_fire"
+  ],
+  "macros": [
+   "dragonfire_it",
+   "ignite_or_dragonfire_it",
+   "breath"
+  ]
+ },
+ "apocalypse": {
+  "name": "Apocalypse",
+  "elements": [
+   "Fire",
+   "Ice"
+  ],
+  "skills": [
+   "strike.apocalypse",
+   "smash.apocalypse",
+   "charge.apocalypse",
+   "riposte.apocalypse",
+   "rage.apocalypse",
+   "shot.apocalypse",
+   "snipe.apocalypse",
+   "trap.apocalypse",
+   "maneuver.apocalypse",
+   "companion.apocalypse",
+   "bolt.apocalypse",
+   "blast.apocalypse",
+   "consume.apocalypse",
+   "summon.apocalypse",
+   "channel.apocalypse",
+   "stab.apocalypse",
+   "ravage.apocalypse",
+   "mislead.apocalypse",
+   "stun.apocalypse",
+   "dance.apocalypse",
+   "heal.apocalypse",
+   "bless.apocalypse",
+   "curse.apocalypse",
+   "smite.apocalypse",
+   "prayer.apocalypse",
+   "cleave.apocalypse",
+   "shout.apocalypse",
+   "withstand.apocalypse",
+   "taunt.apocalypse",
+   "titan.apocalypse"
+  ],
+  "minions": [
+   "rimeflame_salamander",
+   "twilight_jotunn"
+  ],
+  "statuses": [
+   "frostfire",
+   "thermal_shocked",
+   "thermal_shock"
+  ],
+  "macros": [
+   "thermal_shock",
+   "thermal_check",
+   "frostfire_shock_check"
+  ]
+ },
+ "alchemy": {
+  "name": "Alchemy",
+  "elements": [
+   "Fire",
+   "Water"
+  ],
+  "skills": [
+   "strike.alchemy",
+   "smash.alchemy",
+   "charge.alchemy",
+   "riposte.alchemy",
+   "rage.alchemy",
+   "shot.alchemy",
+   "snipe.alchemy",
+   "trap.alchemy",
+   "maneuver.alchemy",
+   "companion.alchemy",
+   "bolt.alchemy",
+   "blast.alchemy",
+   "consume.alchemy",
+   "summon.alchemy",
+   "channel.alchemy",
+   "stab.alchemy",
+   "ravage.alchemy",
+   "mislead.alchemy",
+   "stun.alchemy",
+   "dance.alchemy",
+   "heal.alchemy",
+   "bless.alchemy",
+   "curse.alchemy",
+   "smite.alchemy",
+   "prayer.alchemy",
+   "cleave.alchemy",
+   "shout.alchemy",
+   "withstand.alchemy",
+   "taunt.alchemy",
+   "titan.alchemy",
+   "alembic_brew"
+  ],
+  "minions": [
+   "homunculus",
+   "alembic"
+  ],
+  "statuses": [
+   "catalyst",
+   "catalyst_debuff"
+  ],
+  "macros": [
+   "give_catalyst"
+  ]
+ },
+ "plasma": {
+  "name": "Plasma",
+  "elements": [
+   "Fire",
+   "Lightning"
+  ],
+  "skills": [
+   "strike.plasma",
+   "smash.plasma",
+   "charge.plasma",
+   "riposte.plasma",
+   "rage.plasma",
+   "shot.plasma",
+   "snipe.plasma",
+   "trap.plasma",
+   "maneuver.plasma",
+   "companion.plasma",
+   "bolt.plasma",
+   "blast.plasma",
+   "consume.plasma",
+   "summon.plasma",
+   "channel.plasma",
+   "stab.plasma",
+   "ravage.plasma",
+   "mislead.plasma",
+   "stun.plasma",
+   "dance.plasma",
+   "heal.plasma",
+   "bless.plasma",
+   "curse.plasma",
+   "smite.plasma",
+   "prayer.plasma",
+   "cleave.plasma",
+   "shout.plasma",
+   "withstand.plasma",
+   "taunt.plasma",
+   "titan.plasma",
+   "ball_lightning_detonate"
+  ],
+  "minions": [
+   "ball_lightning",
+   "jumper_spark"
+  ],
+  "statuses": [
+   "heat",
+   "plasma_core",
+   "breaker_arc"
+  ],
+  "macros": [
+   "meltdown",
+   "vent"
+  ]
+ },
+ "mechanic": {
+  "name": "Mechanic",
+  "elements": [
+   "Fire",
+   "Wind"
+  ],
+  "skills": [
+   "strike.mechanic",
+   "smash.mechanic",
+   "charge.mechanic",
+   "riposte.mechanic",
+   "rage.mechanic",
+   "shot.mechanic",
+   "snipe.mechanic",
+   "trap.mechanic",
+   "maneuver.mechanic",
+   "companion.mechanic",
+   "bolt.mechanic",
+   "blast.mechanic",
+   "consume.mechanic",
+   "summon.mechanic",
+   "channel.mechanic",
+   "stab.mechanic",
+   "ravage.mechanic",
+   "mislead.mechanic",
+   "stun.mechanic",
+   "dance.mechanic",
+   "heal.mechanic",
+   "bless.mechanic",
+   "curse.mechanic",
+   "smite.mechanic",
+   "prayer.mechanic",
+   "cleave.mechanic",
+   "shout.mechanic",
+   "withstand.mechanic",
+   "taunt.mechanic",
+   "titan.mechanic"
+  ],
+  "minions": [
+   "turret",
+   "paired_turret",
+   "mortar",
+   "clockwork_hound",
+   "dummy",
+   "decoy"
+  ],
+  "statuses": [
+   "contraption",
+   "upgraded"
+  ],
+  "macros": [
+   "upgrade",
+   "upgrade_random",
+   "upgrade_all"
+  ]
+ },
+ "brimstone": {
+  "name": "Brimstone",
+  "elements": [
+   "Fire",
+   "Poison"
+  ],
+  "skills": [
+   "strike.brimstone",
+   "smash.brimstone",
+   "charge.brimstone",
+   "riposte.brimstone",
+   "rage.brimstone",
+   "shot.brimstone",
+   "snipe.brimstone",
+   "trap.brimstone",
+   "maneuver.brimstone",
+   "companion.brimstone",
+   "bolt.brimstone",
+   "blast.brimstone",
+   "consume.brimstone",
+   "summon.brimstone",
+   "channel.brimstone",
+   "stab.brimstone",
+   "ravage.brimstone",
+   "mislead.brimstone",
+   "stun.brimstone",
+   "dance.brimstone",
+   "heal.brimstone",
+   "bless.brimstone",
+   "curse.brimstone",
+   "smite.brimstone",
+   "prayer.brimstone",
+   "cleave.brimstone",
+   "shout.brimstone",
+   "withstand.brimstone",
+   "taunt.brimstone",
+   "titan.brimstone"
+  ],
+  "minions": [
+   "belching_toad",
+   "stoker"
+  ],
+  "statuses": [
+   "sulfur"
+  ],
+  "macros": [
+   "erupt",
+   "ignite_tick"
+  ]
+ },
+ "sun": {
+  "name": "Sun",
+  "elements": [
+   "Fire",
+   "Earth"
+  ],
+  "skills": [
+   "strike.sun",
+   "smash.sun",
+   "charge.sun",
+   "riposte.sun",
+   "rage.sun",
+   "shot.sun",
+   "snipe.sun",
+   "trap.sun",
+   "maneuver.sun",
+   "companion.sun",
+   "bolt.sun",
+   "blast.sun",
+   "consume.sun",
+   "summon.sun",
+   "channel.sun",
+   "stab.sun",
+   "ravage.sun",
+   "mislead.sun",
+   "stun.sun",
+   "dance.sun",
+   "heal.sun",
+   "bless.sun",
+   "curse.sun",
+   "smite.sun",
+   "prayer.sun",
+   "cleave.sun",
+   "shout.sun",
+   "withstand.sun",
+   "taunt.sun",
+   "titan.sun",
+   "sunflower_scatter_seeds",
+   "sunseed_brighten"
+  ],
+  "minions": [
+   "sunstone",
+   "sunflower",
+   "sunseed"
+  ],
+  "statuses": [
+   "corona",
+   "sun_heart",
+   "high_noon_shut"
+  ],
+  "macros": [
+   "gain_corona",
+   "solar_flare"
+  ]
+ },
+ "phoenix": {
+  "name": "Phoenix",
+  "elements": [
+   "Fire",
+   "Holy"
+  ],
+  "skills": [
+   "strike.phoenix",
+   "smash.phoenix",
+   "charge.phoenix",
+   "riposte.phoenix",
+   "rage.phoenix",
+   "shot.phoenix",
+   "snipe.phoenix",
+   "trap.phoenix",
+   "maneuver.phoenix",
+   "companion.phoenix",
+   "bolt.phoenix",
+   "blast.phoenix",
+   "consume.phoenix",
+   "summon.phoenix",
+   "channel.phoenix",
+   "stab.phoenix",
+   "ravage.phoenix",
+   "mislead.phoenix",
+   "stun.phoenix",
+   "dance.phoenix",
+   "heal.phoenix",
+   "bless.phoenix",
+   "curse.phoenix",
+   "smite.phoenix",
+   "prayer.phoenix",
+   "cleave.phoenix",
+   "shout.phoenix",
+   "withstand.phoenix",
+   "taunt.phoenix",
+   "titan.phoenix",
+   "phoenix_chick_peck",
+   "firebird_peck",
+   "ember_spirit_waver"
+  ],
+  "minions": [
+   "phoenix_chick",
+   "firebird",
+   "ember_spirit"
+  ],
+  "statuses": [
+   "rebirth",
+   "ashes"
+  ],
+  "macros": [
+   "rise",
+   "kindle"
+  ]
+ },
+ "devil": {
+  "name": "Devil",
+  "elements": [
+   "Fire",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.devil",
+   "smash.devil",
+   "charge.devil",
+   "riposte.devil",
+   "rage.devil",
+   "shot.devil",
+   "snipe.devil",
+   "trap.devil",
+   "maneuver.devil",
+   "companion.devil",
+   "bolt.devil",
+   "blast.devil",
+   "consume.devil",
+   "summon.devil",
+   "channel.devil",
+   "stab.devil",
+   "ravage.devil",
+   "mislead.devil",
+   "stun.devil",
+   "dance.devil",
+   "heal.devil",
+   "bless.devil",
+   "curse.devil",
+   "smite.devil",
+   "prayer.devil",
+   "cleave.devil",
+   "shout.devil",
+   "withstand.devil",
+   "taunt.devil",
+   "titan.devil",
+   "imp_notary_offer",
+   "imp_notary_sealing_wax",
+   "imp_captain_ember_whip"
+  ],
+  "minions": [
+   "imp_notary",
+   "imp_captain"
+  ],
+  "statuses": [
+   "hellfire",
+   "contract",
+   "devils_tab",
+   "devils_ledger"
+  ],
+  "macros": []
+ },
+ "ritual": {
+  "name": "Ritual",
+  "elements": [
+   "Fire",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.ritual",
+   "smash.ritual",
+   "charge.ritual",
+   "riposte.ritual",
+   "rage.ritual",
+   "shot.ritual",
+   "snipe.ritual",
+   "trap.ritual",
+   "maneuver.ritual",
+   "companion.ritual",
+   "bolt.ritual",
+   "blast.ritual",
+   "consume.ritual",
+   "summon.ritual",
+   "channel.ritual",
+   "stab.ritual",
+   "ravage.ritual",
+   "mislead.ritual",
+   "stun.ritual",
+   "dance.ritual",
+   "heal.ritual",
+   "bless.ritual",
+   "curse.ritual",
+   "smite.ritual",
+   "prayer.ritual",
+   "cleave.ritual",
+   "shout.ritual",
+   "withstand.ritual",
+   "taunt.ritual",
+   "titan.ritual",
+   "acolyte_chant",
+   "acolyte_flame_lash"
+  ],
+  "minions": [
+   "shadow_acolyte",
+   "tended_wick",
+   "effigy"
+  ],
+  "statuses": [
+   "rite"
+  ],
+  "macros": [
+   "clear_rite",
+   "rite_step",
+   "rite_finish"
+  ]
+ },
+ "crystal": {
+  "name": "Crystal",
+  "elements": [
+   "Ice",
+   "Ice"
+  ],
+  "skills": [
+   "strike.crystal",
+   "smash.crystal",
+   "charge.crystal",
+   "riposte.crystal",
+   "rage.crystal",
+   "shot.crystal",
+   "snipe.crystal",
+   "trap.crystal",
+   "maneuver.crystal",
+   "companion.crystal",
+   "bolt.crystal",
+   "blast.crystal",
+   "consume.crystal",
+   "summon.crystal",
+   "channel.crystal",
+   "stab.crystal",
+   "ravage.crystal",
+   "mislead.crystal",
+   "stun.crystal",
+   "dance.crystal",
+   "heal.crystal",
+   "bless.crystal",
+   "curse.crystal",
+   "smite.crystal",
+   "prayer.crystal",
+   "cleave.crystal",
+   "shout.crystal",
+   "withstand.crystal",
+   "taunt.crystal",
+   "titan.crystal",
+   "golem_shard_slam",
+   "sentinel_glint"
+  ],
+  "minions": [
+   "crystal_golem",
+   "sentinel",
+   "crystal_effigy"
+  ],
+  "statuses": [
+   "brittle",
+   "diamond"
+  ],
+  "macros": [
+   "shatter_bearer",
+   "shatter_it",
+   "crystallize_it"
+  ]
+ },
+ "glacier": {
+  "name": "Glacier",
+  "elements": [
+   "Ice",
+   "Water"
+  ],
+  "skills": [
+   "strike.glacier",
+   "smash.glacier",
+   "charge.glacier",
+   "riposte.glacier",
+   "rage.glacier",
+   "shot.glacier",
+   "snipe.glacier",
+   "trap.glacier",
+   "maneuver.glacier",
+   "companion.glacier",
+   "bolt.glacier",
+   "blast.glacier",
+   "consume.glacier",
+   "summon.glacier",
+   "channel.glacier",
+   "stab.glacier",
+   "ravage.glacier",
+   "mislead.glacier",
+   "stun.glacier",
+   "dance.glacier",
+   "heal.glacier",
+   "bless.glacier",
+   "curse.glacier",
+   "smite.glacier",
+   "prayer.glacier",
+   "cleave.glacier",
+   "shout.glacier",
+   "withstand.glacier",
+   "taunt.glacier",
+   "titan.glacier",
+   "walrus_tusk",
+   "walrus_haul_out"
+  ],
+  "minions": [
+   "walrus_bull",
+   "ice_tongue"
+  ],
+  "statuses": [
+   "icebound",
+   "meltwater"
+  ],
+  "macros": []
+ },
+ "aurora": {
+  "name": "Aurora",
+  "elements": [
+   "Ice",
+   "Lightning"
+  ],
+  "skills": [
+   "strike.aurora",
+   "smash.aurora",
+   "charge.aurora",
+   "riposte.aurora",
+   "rage.aurora",
+   "shot.aurora",
+   "snipe.aurora",
+   "trap.aurora",
+   "maneuver.aurora",
+   "companion.aurora",
+   "bolt.aurora",
+   "blast.aurora",
+   "consume.aurora",
+   "summon.aurora",
+   "channel.aurora",
+   "stab.aurora",
+   "ravage.aurora",
+   "mislead.aurora",
+   "stun.aurora",
+   "dance.aurora",
+   "heal.aurora",
+   "bless.aurora",
+   "curse.aurora",
+   "smite.aurora",
+   "prayer.aurora",
+   "cleave.aurora",
+   "shout.aurora",
+   "withstand.aurora",
+   "taunt.aurora",
+   "titan.aurora",
+   "aurora_fox_foxfire"
+  ],
+  "minions": [
+   "aurora_fox",
+   "stray_aurora"
+  ],
+  "statuses": [
+   "shimmer",
+   "dazzled"
+  ],
+  "macros": []
+ },
+ "winter": {
+  "name": "Winter",
+  "elements": [
+   "Ice",
+   "Wind"
+  ],
+  "skills": [
+   "strike.winter",
+   "smash.winter",
+   "charge.winter",
+   "riposte.winter",
+   "rage.winter",
+   "shot.winter",
+   "snipe.winter",
+   "trap.winter",
+   "maneuver.winter",
+   "companion.winter",
+   "bolt.winter",
+   "blast.winter",
+   "consume.winter",
+   "summon.winter",
+   "channel.winter",
+   "stab.winter",
+   "ravage.winter",
+   "mislead.winter",
+   "stun.winter",
+   "dance.winter",
+   "heal.winter",
+   "bless.winter",
+   "curse.winter",
+   "smite.winter",
+   "prayer.winter",
+   "cleave.winter",
+   "shout.winter",
+   "withstand.winter",
+   "taunt.winter",
+   "titan.winter",
+   "great_yeti_maul",
+   "snow_sprite_flurry"
+  ],
+  "minions": [
+   "great_yeti",
+   "snow_sprite"
+  ],
+  "statuses": [
+   "snowbound"
+  ],
+  "macros": []
+ },
+ "stasis": {
+  "name": "Stasis",
+  "elements": [
+   "Ice",
+   "Poison"
+  ],
+  "skills": [
+   "strike.stasis",
+   "smash.stasis",
+   "charge.stasis",
+   "riposte.stasis",
+   "rage.stasis",
+   "shot.stasis",
+   "snipe.stasis",
+   "trap.stasis",
+   "maneuver.stasis",
+   "companion.stasis",
+   "bolt.stasis",
+   "blast.stasis",
+   "consume.stasis",
+   "summon.stasis",
+   "channel.stasis",
+   "stab.stasis",
+   "ravage.stasis",
+   "mislead.stasis",
+   "stun.stasis",
+   "dance.stasis",
+   "heal.stasis",
+   "bless.stasis",
+   "curse.stasis",
+   "smite.stasis",
+   "prayer.stasis",
+   "cleave.stasis",
+   "shout.stasis",
+   "withstand.stasis",
+   "taunt.stasis",
+   "titan.stasis",
+   "ice_spider_frost_web",
+   "ice_spider_frozen_fang"
+  ],
+  "minions": [
+   "ice_spider",
+   "cryo_sprite"
+  ],
+  "statuses": [
+   "suspended",
+   "suspended_ally",
+   "frozen_instant_hit"
+  ],
+  "macros": [
+   "thaw",
+   "suspend"
+  ]
+ },
+ "myth": {
+  "name": "Myth",
+  "elements": [
+   "Ice",
+   "Earth"
+  ],
+  "skills": [
+   "strike.myth",
+   "smash.myth",
+   "charge.myth",
+   "riposte.myth",
+   "rage.myth",
+   "shot.myth",
+   "snipe.myth",
+   "trap.myth",
+   "maneuver.myth",
+   "companion.myth",
+   "bolt.myth",
+   "blast.myth",
+   "consume.myth",
+   "summon.myth",
+   "channel.myth",
+   "stab.myth",
+   "ravage.myth",
+   "mislead.myth",
+   "stun.myth",
+   "dance.myth",
+   "heal.myth",
+   "bless.myth",
+   "curse.myth",
+   "smite.myth",
+   "prayer.myth",
+   "cleave.myth",
+   "shout.myth",
+   "withstand.myth",
+   "taunt.myth",
+   "titan.myth",
+   "mammoth_trample",
+   "troll_club",
+   "rime_giant_frost_maul"
+  ],
+  "minions": [
+   "mammoth",
+   "troll",
+   "rime_giant"
+  ],
+  "statuses": [
+   "legend",
+   "mythic",
+   "saga"
+  ],
+  "macros": [
+   "gain_legend",
+   "become_mythic"
+  ]
+ },
+ "prism": {
+  "name": "Prism",
+  "elements": [
+   "Ice",
+   "Holy"
+  ],
+  "skills": [
+   "strike.prism",
+   "smash.prism",
+   "charge.prism",
+   "riposte.prism",
+   "rage.prism",
+   "shot.prism",
+   "snipe.prism",
+   "trap.prism",
+   "maneuver.prism",
+   "companion.prism",
+   "bolt.prism",
+   "blast.prism",
+   "consume.prism",
+   "summon.prism",
+   "channel.prism",
+   "stab.prism",
+   "ravage.prism",
+   "mislead.prism",
+   "stun.prism",
+   "dance.prism",
+   "heal.prism",
+   "bless.prism",
+   "curse.prism",
+   "smite.prism",
+   "prayer.prism",
+   "cleave.prism",
+   "shout.prism",
+   "withstand.prism",
+   "taunt.prism",
+   "titan.prism",
+   "lumen_elk_antler_glow",
+   "lumen_elk_gore"
+  ],
+  "minions": [
+   "lumen_elk",
+   "hovering_prism"
+  ],
+  "statuses": [
+   "lens"
+  ],
+  "macros": [
+   "gain_lens"
+  ]
+ },
+ "lich": {
+  "name": "Lich",
+  "elements": [
+   "Ice",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.lich",
+   "smash.lich",
+   "charge.lich",
+   "riposte.lich",
+   "rage.lich",
+   "shot.lich",
+   "snipe.lich",
+   "trap.lich",
+   "maneuver.lich",
+   "companion.lich",
+   "bolt.lich",
+   "blast.lich",
+   "consume.lich",
+   "summon.lich",
+   "channel.lich",
+   "stab.lich",
+   "ravage.lich",
+   "mislead.lich",
+   "stun.lich",
+   "dance.lich",
+   "heal.lich",
+   "bless.lich",
+   "curse.lich",
+   "smite.lich",
+   "prayer.lich",
+   "cleave.lich",
+   "shout.lich",
+   "withstand.lich",
+   "taunt.lich",
+   "titan.lich",
+   "frost_wight_rime_claw",
+   "skeletal_mage_bone_chill"
+  ],
+  "minions": [
+   "phylactery",
+   "frost_wight",
+   "skeletal_mage"
+  ],
+  "statuses": [
+   "soulfrost",
+   "phylactery_bond"
+  ],
+  "macros": [
+   "make_phylactery",
+   "feed_phylactery"
+  ]
+ },
+ "night": {
+  "name": "Night",
+  "elements": [
+   "Ice",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.night",
+   "smash.night",
+   "charge.night",
+   "riposte.night",
+   "rage.night",
+   "shot.night",
+   "snipe.night",
+   "trap.night",
+   "maneuver.night",
+   "companion.night",
+   "bolt.night",
+   "blast.night",
+   "consume.night",
+   "summon.night",
+   "channel.night",
+   "stab.night",
+   "ravage.night",
+   "mislead.night",
+   "stun.night",
+   "dance.night",
+   "heal.night",
+   "bless.night",
+   "curse.night",
+   "smite.night",
+   "prayer.night",
+   "cleave.night",
+   "shout.night",
+   "withstand.night",
+   "taunt.night",
+   "titan.night",
+   "snow_owl_silent_talons"
+  ],
+  "minions": [
+   "snow_owl",
+   "rime_revenant"
+  ],
+  "statuses": [
+   "dusk",
+   "frozen_sleep",
+   "first_light",
+   "dormant",
+   "dormant_enemy"
+  ],
+  "macros": [
+   "midnight",
+   "dusk",
+   "deepen_dusk",
+   "crescent_cut"
+  ]
+ },
+ "ocean": {
+  "name": "Ocean",
+  "elements": [
+   "Water",
+   "Water"
+  ],
+  "skills": [
+   "strike.ocean",
+   "smash.ocean",
+   "charge.ocean",
+   "riposte.ocean",
+   "rage.ocean",
+   "shot.ocean",
+   "snipe.ocean",
+   "trap.ocean",
+   "maneuver.ocean",
+   "companion.ocean",
+   "bolt.ocean",
+   "blast.ocean",
+   "consume.ocean",
+   "summon.ocean",
+   "channel.ocean",
+   "stab.ocean",
+   "ravage.ocean",
+   "mislead.ocean",
+   "stun.ocean",
+   "dance.ocean",
+   "heal.ocean",
+   "bless.ocean",
+   "curse.ocean",
+   "smite.ocean",
+   "prayer.ocean",
+   "cleave.ocean",
+   "shout.ocean",
+   "withstand.ocean",
+   "taunt.ocean",
+   "titan.ocean",
+   "kraken_tentacles",
+   "jellyfish_stinging_bell"
+  ],
+  "minions": [
+   "kraken",
+   "jellyfish"
+  ],
+  "statuses": [
+   "brimming",
+   "brimming_shield",
+   "slack_water_calm",
+   "swell_of_the_deep"
+  ],
+  "macros": []
+ },
+ "current": {
+  "name": "Current",
+  "elements": [
+   "Water",
+   "Lightning"
+  ],
+  "skills": [
+   "strike.current",
+   "smash.current",
+   "charge.current",
+   "riposte.current",
+   "rage.current",
+   "shot.current",
+   "snipe.current",
+   "trap.current",
+   "maneuver.current",
+   "companion.current",
+   "bolt.current",
+   "blast.current",
+   "consume.current",
+   "summon.current",
+   "channel.current",
+   "stab.current",
+   "ravage.current",
+   "mislead.current",
+   "stun.current",
+   "dance.current",
+   "heal.current",
+   "bless.current",
+   "curse.current",
+   "smite.current",
+   "prayer.current",
+   "cleave.current",
+   "shout.current",
+   "withstand.current",
+   "taunt.current",
+   "titan.current",
+   "electric_eel_shock",
+   "electric_eel_static_coil",
+   "galvanic_elemental_static_lash"
+  ],
+  "minions": [
+   "electric_eel",
+   "galvanic_elemental"
+  ],
+  "statuses": [
+   "soaked",
+   "current_conductor",
+   "arc_lash"
+  ],
+  "macros": [
+   "conduct"
+  ]
+ },
+ "mist": {
+  "name": "Mist",
+  "elements": [
+   "Water",
+   "Wind"
+  ],
+  "skills": [
+   "strike.mist",
+   "smash.mist",
+   "charge.mist",
+   "riposte.mist",
+   "rage.mist",
+   "shot.mist",
+   "snipe.mist",
+   "trap.mist",
+   "maneuver.mist",
+   "companion.mist",
+   "bolt.mist",
+   "blast.mist",
+   "consume.mist",
+   "summon.mist",
+   "channel.mist",
+   "stab.mist",
+   "ravage.mist",
+   "mislead.mist",
+   "stun.mist",
+   "dance.mist",
+   "heal.mist",
+   "bless.mist",
+   "curse.mist",
+   "smite.mist",
+   "prayer.mist",
+   "cleave.mist",
+   "shout.mist",
+   "withstand.mist",
+   "taunt.mist",
+   "titan.mist",
+   "mist_heron_spear_beak"
+  ],
+  "minions": [
+   "mist_heron",
+   "mist_double"
+  ],
+  "statuses": [
+   "fog"
+  ],
+  "macros": []
+ },
+ "serum": {
+  "name": "Serum",
+  "elements": [
+   "Water",
+   "Poison"
+  ],
+  "skills": [
+   "strike.serum",
+   "smash.serum",
+   "charge.serum",
+   "riposte.serum",
+   "rage.serum",
+   "shot.serum",
+   "snipe.serum",
+   "trap.serum",
+   "maneuver.serum",
+   "companion.serum",
+   "bolt.serum",
+   "blast.serum",
+   "consume.serum",
+   "summon.serum",
+   "channel.serum",
+   "stab.serum",
+   "ravage.serum",
+   "mislead.serum",
+   "stun.serum",
+   "dance.serum",
+   "heal.serum",
+   "bless.serum",
+   "curse.serum",
+   "smite.serum",
+   "prayer.serum",
+   "cleave.serum",
+   "shout.serum",
+   "withstand.serum",
+   "taunt.serum",
+   "titan.serum",
+   "giant_leech_latch",
+   "giant_leech_bloodletting",
+   "spriggan_nurse_titrate"
+  ],
+  "minions": [
+   "giant_leech",
+   "spriggan_nurse"
+  ],
+  "statuses": [
+   "dose"
+  ],
+  "macros": [
+   "overdose"
+  ]
+ },
+ "slime": {
+  "name": "Slime",
+  "elements": [
+   "Water",
+   "Earth"
+  ],
+  "skills": [
+   "strike.slime",
+   "smash.slime",
+   "charge.slime",
+   "riposte.slime",
+   "rage.slime",
+   "shot.slime",
+   "snipe.slime",
+   "trap.slime",
+   "maneuver.slime",
+   "companion.slime",
+   "bolt.slime",
+   "blast.slime",
+   "consume.slime",
+   "summon.slime",
+   "channel.slime",
+   "stab.slime",
+   "ravage.slime",
+   "mislead.slime",
+   "stun.slime",
+   "dance.slime",
+   "heal.slime",
+   "bless.slime",
+   "curse.slime",
+   "smite.slime",
+   "prayer.slime",
+   "cleave.slime",
+   "shout.slime",
+   "withstand.slime",
+   "taunt.slime",
+   "titan.slime",
+   "ooze_slap",
+   "great_ooze_swallow",
+   "slime_mother_gloop"
+  ],
+  "minions": [
+   "ooze",
+   "great_ooze",
+   "slime_mother"
+  ],
+  "statuses": [
+   "engulfed",
+   "gel_coat"
+  ],
+  "macros": [
+   "make_ooze",
+   "engulf_new"
+  ]
+ },
+ "anointment": {
+  "name": "Anointment",
+  "elements": [
+   "Water",
+   "Holy"
+  ],
+  "skills": [
+   "strike.anointment",
+   "smash.anointment",
+   "charge.anointment",
+   "riposte.anointment",
+   "rage.anointment",
+   "shot.anointment",
+   "snipe.anointment",
+   "trap.anointment",
+   "maneuver.anointment",
+   "companion.anointment",
+   "bolt.anointment",
+   "blast.anointment",
+   "consume.anointment",
+   "summon.anointment",
+   "channel.anointment",
+   "stab.anointment",
+   "ravage.anointment",
+   "mislead.anointment",
+   "stun.anointment",
+   "dance.anointment",
+   "heal.anointment",
+   "bless.anointment",
+   "curse.anointment",
+   "smite.anointment",
+   "prayer.anointment",
+   "cleave.anointment",
+   "shout.anointment",
+   "withstand.anointment",
+   "taunt.anointment",
+   "titan.anointment",
+   "sacred_koi_golden_leap",
+   "sacred_koi_tail_slap",
+   "baptismal_font_pour"
+  ],
+  "minions": [
+   "sacred_koi",
+   "baptismal_font",
+   "holy_spring"
+  ],
+  "statuses": [
+   "unction",
+   "chrism",
+   "submission"
+  ],
+  "macros": []
+ },
+ "blood": {
+  "name": "Blood",
+  "elements": [
+   "Water",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.blood",
+   "smash.blood",
+   "charge.blood",
+   "riposte.blood",
+   "rage.blood",
+   "shot.blood",
+   "snipe.blood",
+   "trap.blood",
+   "maneuver.blood",
+   "companion.blood",
+   "bolt.blood",
+   "blast.blood",
+   "consume.blood",
+   "summon.blood",
+   "channel.blood",
+   "stab.blood",
+   "ravage.blood",
+   "mislead.blood",
+   "stun.blood",
+   "dance.blood",
+   "heal.blood",
+   "bless.blood",
+   "curse.blood",
+   "smite.blood",
+   "prayer.blood",
+   "cleave.blood",
+   "shout.blood",
+   "withstand.blood",
+   "taunt.blood",
+   "titan.blood",
+   "bloodbound_familiar_bite",
+   "blood_elemental_lash"
+  ],
+  "minions": [
+   "bloodbound_familiar",
+   "blood_elemental"
+  ],
+  "statuses": [
+   "hemorrhage"
+  ],
+  "macros": []
+ },
+ "mirror": {
+  "name": "Mirror",
+  "elements": [
+   "Water",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.mirror",
+   "smash.mirror",
+   "charge.mirror",
+   "riposte.mirror",
+   "rage.mirror",
+   "shot.mirror",
+   "snipe.mirror",
+   "trap.mirror",
+   "maneuver.mirror",
+   "companion.mirror",
+   "bolt.mirror",
+   "blast.mirror",
+   "consume.mirror",
+   "summon.mirror",
+   "channel.mirror",
+   "stab.mirror",
+   "ravage.mirror",
+   "mislead.mirror",
+   "stun.mirror",
+   "dance.mirror",
+   "heal.mirror",
+   "bless.mirror",
+   "curse.mirror",
+   "smite.mirror",
+   "prayer.mirror",
+   "cleave.mirror",
+   "shout.mirror",
+   "withstand.mirror",
+   "taunt.mirror",
+   "titan.mirror",
+   "doppelganger_mimicry",
+   "mirror_shade_glass_shard"
+  ],
+  "minions": [
+   "doppelganger",
+   "mirror_shade"
+  ],
+  "statuses": [],
+  "macros": []
+ },
+ "thunder": {
+  "name": "Thunder",
+  "elements": [
+   "Lightning",
+   "Lightning"
+  ],
+  "skills": [
+   "strike.thunder",
+   "smash.thunder",
+   "charge.thunder",
+   "riposte.thunder",
+   "rage.thunder",
+   "shot.thunder",
+   "snipe.thunder",
+   "trap.thunder",
+   "maneuver.thunder",
+   "companion.thunder",
+   "bolt.thunder",
+   "blast.thunder",
+   "consume.thunder",
+   "summon.thunder",
+   "channel.thunder",
+   "stab.thunder",
+   "ravage.thunder",
+   "mislead.thunder",
+   "stun.thunder",
+   "dance.thunder",
+   "heal.thunder",
+   "bless.thunder",
+   "curse.thunder",
+   "smite.thunder",
+   "prayer.thunder",
+   "cleave.thunder",
+   "shout.thunder",
+   "withstand.thunder",
+   "taunt.thunder",
+   "titan.thunder",
+   "thunderbird_wingclap"
+  ],
+  "minions": [
+   "thunderbird",
+   "thunderhead"
+  ],
+  "statuses": [
+   "deafened",
+   "resound_echo",
+   "resound_echo_wide",
+   "resound_echo_fork",
+   "resound_echo_stun",
+   "overcapacity"
+  ],
+  "macros": [
+   "resound_it"
+  ]
+ },
+ "storm": {
+  "name": "Storm",
+  "elements": [
+   "Lightning",
+   "Wind"
+  ],
+  "skills": [
+   "strike.storm",
+   "smash.storm",
+   "charge.storm",
+   "riposte.storm",
+   "rage.storm",
+   "shot.storm",
+   "snipe.storm",
+   "trap.storm",
+   "maneuver.storm",
+   "companion.storm",
+   "bolt.storm",
+   "blast.storm",
+   "consume.storm",
+   "summon.storm",
+   "channel.storm",
+   "stab.storm",
+   "ravage.storm",
+   "mislead.storm",
+   "stun.storm",
+   "dance.storm",
+   "heal.storm",
+   "bless.storm",
+   "curse.storm",
+   "smite.storm",
+   "prayer.storm",
+   "cleave.storm",
+   "shout.storm",
+   "withstand.storm",
+   "taunt.storm",
+   "titan.storm",
+   "storm_roc_gale_wing",
+   "storm_roc_thunder_talon",
+   "squall_cloud_rumble"
+  ],
+  "minions": [
+   "storm_roc",
+   "squall_cloud"
+  ],
+  "statuses": [
+   "tempest",
+   "eye_of_the_storm",
+   "storm_heart"
+  ],
+  "macros": [
+   "gain_tempest"
+  ]
+ },
+ "battery": {
+  "name": "Battery",
+  "elements": [
+   "Lightning",
+   "Poison"
+  ],
+  "skills": [
+   "strike.battery",
+   "smash.battery",
+   "charge.battery",
+   "riposte.battery",
+   "rage.battery",
+   "shot.battery",
+   "snipe.battery",
+   "trap.battery",
+   "maneuver.battery",
+   "companion.battery",
+   "bolt.battery",
+   "blast.battery",
+   "consume.battery",
+   "summon.battery",
+   "channel.battery",
+   "stab.battery",
+   "ravage.battery",
+   "mislead.battery",
+   "stun.battery",
+   "dance.battery",
+   "heal.battery",
+   "bless.battery",
+   "curse.battery",
+   "smite.battery",
+   "prayer.battery",
+   "cleave.battery",
+   "shout.battery",
+   "withstand.battery",
+   "taunt.battery",
+   "titan.battery",
+   "bombardier_beetle_acid_jet",
+   "voltaic_wasps_arc_sting"
+  ],
+  "minions": [
+   "bombardier_beetle",
+   "voltaic_wasps"
+  ],
+  "statuses": [
+   "cell",
+   "corroded",
+   "battery_core"
+  ],
+  "macros": [
+   "discharge"
+  ]
+ },
+ "magnet": {
+  "name": "Magnet",
+  "elements": [
+   "Lightning",
+   "Earth"
+  ],
+  "skills": [
+   "strike.magnet",
+   "smash.magnet",
+   "charge.magnet",
+   "riposte.magnet",
+   "rage.magnet",
+   "shot.magnet",
+   "snipe.magnet",
+   "trap.magnet",
+   "maneuver.magnet",
+   "companion.magnet",
+   "bolt.magnet",
+   "blast.magnet",
+   "consume.magnet",
+   "summon.magnet",
+   "channel.magnet",
+   "stab.magnet",
+   "ravage.magnet",
+   "mislead.magnet",
+   "stun.magnet",
+   "dance.magnet",
+   "heal.magnet",
+   "bless.magnet",
+   "curse.magnet",
+   "smite.magnet",
+   "prayer.magnet",
+   "cleave.magnet",
+   "shout.magnet",
+   "withstand.magnet",
+   "taunt.magnet",
+   "titan.magnet",
+   "lodestone_golem_magnetize",
+   "lodestone_golem_iron_fist",
+   "iron_filings_grind"
+  ],
+  "minions": [
+   "lodestone_golem",
+   "iron_filings"
+  ],
+  "statuses": [
+   "rebound_mark",
+   "opposite_pole"
+  ],
+  "macros": []
+ },
+ "vengeance": {
+  "name": "Vengeance",
+  "elements": [
+   "Lightning",
+   "Holy"
+  ],
+  "skills": [
+   "strike.vengeance",
+   "smash.vengeance",
+   "charge.vengeance",
+   "riposte.vengeance",
+   "rage.vengeance",
+   "shot.vengeance",
+   "snipe.vengeance",
+   "trap.vengeance",
+   "maneuver.vengeance",
+   "companion.vengeance",
+   "bolt.vengeance",
+   "blast.vengeance",
+   "consume.vengeance",
+   "summon.vengeance",
+   "channel.vengeance",
+   "stab.vengeance",
+   "ravage.vengeance",
+   "mislead.vengeance",
+   "stun.vengeance",
+   "dance.vengeance",
+   "heal.vengeance",
+   "bless.vengeance",
+   "curse.vengeance",
+   "smite.vengeance",
+   "prayer.vengeance",
+   "cleave.vengeance",
+   "shout.vengeance",
+   "withstand.vengeance",
+   "taunt.vengeance",
+   "titan.vengeance",
+   "storm_griffin_righteous_strike",
+   "herald_of_vengeance_denounce"
+  ],
+  "minions": [
+   "storm_griffin",
+   "herald_of_vengeance"
+  ],
+  "statuses": [
+   "vow",
+   "wrath",
+   "vengeance_ledger"
+  ],
+  "macros": []
+ },
+ "reanimation": {
+  "name": "Reanimation",
+  "elements": [
+   "Lightning",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.reanimation",
+   "smash.reanimation",
+   "charge.reanimation",
+   "riposte.reanimation",
+   "rage.reanimation",
+   "shot.reanimation",
+   "snipe.reanimation",
+   "trap.reanimation",
+   "maneuver.reanimation",
+   "companion.reanimation",
+   "bolt.reanimation",
+   "blast.reanimation",
+   "consume.reanimation",
+   "summon.reanimation",
+   "channel.reanimation",
+   "stab.reanimation",
+   "ravage.reanimation",
+   "mislead.reanimation",
+   "stun.reanimation",
+   "dance.reanimation",
+   "heal.reanimation",
+   "bless.reanimation",
+   "curse.reanimation",
+   "smite.reanimation",
+   "prayer.reanimation",
+   "cleave.reanimation",
+   "shout.reanimation",
+   "withstand.reanimation",
+   "taunt.reanimation",
+   "titan.reanimation",
+   "flesh_golem_slam",
+   "patchwork_revenant_gnash"
+  ],
+  "minions": [
+   "flesh_golem",
+   "patchwork_revenant"
+  ],
+  "statuses": [
+   "galvanized",
+   "reanimating",
+   "reanimated",
+   "deadhand_reprieve"
+  ],
+  "macros": [
+   "reanimate"
+  ]
+ },
+ "ion": {
+  "name": "Ion",
+  "elements": [
+   "Lightning",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.ion",
+   "smash.ion",
+   "charge.ion",
+   "riposte.ion",
+   "rage.ion",
+   "shot.ion",
+   "snipe.ion",
+   "trap.ion",
+   "maneuver.ion",
+   "companion.ion",
+   "bolt.ion",
+   "blast.ion",
+   "consume.ion",
+   "summon.ion",
+   "channel.ion",
+   "stab.ion",
+   "ravage.ion",
+   "mislead.ion",
+   "stun.ion",
+   "dance.ion",
+   "heal.ion",
+   "bless.ion",
+   "curse.ion",
+   "smite.ion",
+   "prayer.ion",
+   "cleave.ion",
+   "shout.ion",
+   "withstand.ion",
+   "taunt.ion",
+   "titan.ion",
+   "shadow_drone_scramble",
+   "shadow_drone_needle_arc",
+   "jammer_static_hiss"
+  ],
+  "minions": [
+   "shadow_drone",
+   "jammer"
+  ],
+  "statuses": [
+   "suppressed",
+   "blackout",
+   "blacked_out"
+  ],
+  "macros": [
+   "blackout"
+  ]
+ },
+ "cloud": {
+  "name": "Cloud",
+  "elements": [
+   "Wind",
+   "Wind"
+  ],
+  "skills": [
+   "strike.cloud",
+   "smash.cloud",
+   "charge.cloud",
+   "riposte.cloud",
+   "rage.cloud",
+   "shot.cloud",
+   "snipe.cloud",
+   "trap.cloud",
+   "maneuver.cloud",
+   "companion.cloud",
+   "bolt.cloud",
+   "blast.cloud",
+   "consume.cloud",
+   "summon.cloud",
+   "channel.cloud",
+   "stab.cloud",
+   "ravage.cloud",
+   "mislead.cloud",
+   "stun.cloud",
+   "dance.cloud",
+   "heal.cloud",
+   "bless.cloud",
+   "curse.cloud",
+   "smite.cloud",
+   "prayer.cloud",
+   "cleave.cloud",
+   "shout.cloud",
+   "withstand.cloud",
+   "taunt.cloud",
+   "titan.cloud",
+   "whale_rain_down",
+   "whale_breach",
+   "cloudling_drizzle"
+  ],
+  "minions": [
+   "sky_whale",
+   "cloudling"
+  ],
+  "statuses": [
+   "aloft",
+   "drifting_hit",
+   "gathering_storm",
+   "idle_updraft",
+   "low_ceiling",
+   "squall_marked",
+   "cloud_titan_mark"
+  ],
+  "macros": []
+ },
+ "faerie": {
+  "name": "Faerie",
+  "elements": [
+   "Wind",
+   "Poison"
+  ],
+  "skills": [
+   "strike.faerie",
+   "smash.faerie",
+   "charge.faerie",
+   "riposte.faerie",
+   "rage.faerie",
+   "shot.faerie",
+   "snipe.faerie",
+   "trap.faerie",
+   "maneuver.faerie",
+   "companion.faerie",
+   "bolt.faerie",
+   "blast.faerie",
+   "consume.faerie",
+   "summon.faerie",
+   "channel.faerie",
+   "stab.faerie",
+   "ravage.faerie",
+   "mislead.faerie",
+   "stun.faerie",
+   "dance.faerie",
+   "heal.faerie",
+   "bless.faerie",
+   "curse.faerie",
+   "smite.faerie",
+   "prayer.faerie",
+   "cleave.faerie",
+   "shout.faerie",
+   "withstand.faerie",
+   "taunt.faerie",
+   "titan.faerie",
+   "pixie_befuddle",
+   "sprite_pinch"
+  ],
+  "minions": [
+   "pixie",
+   "sprite"
+  ],
+  "statuses": [
+   "charmed"
+  ],
+  "macros": []
+ },
+ "nomad": {
+  "name": "Nomad",
+  "elements": [
+   "Wind",
+   "Earth"
+  ],
+  "skills": [
+   "strike.nomad",
+   "smash.nomad",
+   "charge.nomad",
+   "riposte.nomad",
+   "rage.nomad",
+   "shot.nomad",
+   "snipe.nomad",
+   "trap.nomad",
+   "maneuver.nomad",
+   "companion.nomad",
+   "bolt.nomad",
+   "blast.nomad",
+   "consume.nomad",
+   "summon.nomad",
+   "channel.nomad",
+   "stab.nomad",
+   "ravage.nomad",
+   "mislead.nomad",
+   "stun.nomad",
+   "dance.nomad",
+   "heal.nomad",
+   "bless.nomad",
+   "curse.nomad",
+   "smite.nomad",
+   "prayer.nomad",
+   "cleave.nomad",
+   "shout.nomad",
+   "withstand.nomad",
+   "taunt.nomad",
+   "titan.nomad",
+   "pack_camel_kick"
+  ],
+  "minions": [
+   "pack_camel",
+   "pack_mule"
+  ],
+  "statuses": [
+   "trek",
+   "nomad_trek",
+   "mirage",
+   "mirage_lull",
+   "rolling_dune",
+   "haboob_trail"
+  ],
+  "macros": [
+   "gain_trek",
+   "reset_trek"
+  ]
+ },
+ "angel": {
+  "name": "Angel",
+  "elements": [
+   "Wind",
+   "Holy"
+  ],
+  "skills": [
+   "strike.angel",
+   "smash.angel",
+   "charge.angel",
+   "riposte.angel",
+   "rage.angel",
+   "shot.angel",
+   "snipe.angel",
+   "trap.angel",
+   "maneuver.angel",
+   "companion.angel",
+   "bolt.angel",
+   "blast.angel",
+   "consume.angel",
+   "summon.angel",
+   "channel.angel",
+   "stab.angel",
+   "ravage.angel",
+   "mislead.angel",
+   "stun.angel",
+   "dance.angel",
+   "heal.angel",
+   "bless.angel",
+   "curse.angel",
+   "smite.angel",
+   "prayer.angel",
+   "cleave.angel",
+   "shout.angel",
+   "withstand.angel",
+   "taunt.angel",
+   "titan.angel",
+   "cherub_shelter",
+   "cherub_holy_arrow",
+   "lesser_angel_soothe"
+  ],
+  "minions": [
+   "cherub",
+   "lesser_angel"
+  ],
+  "statuses": [
+   "warded",
+   "halo",
+   "vigil_mark"
+  ],
+  "macros": [
+   "halo_save"
+  ]
+ },
+ "ghost": {
+  "name": "Ghost",
+  "elements": [
+   "Wind",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.ghost",
+   "smash.ghost",
+   "charge.ghost",
+   "riposte.ghost",
+   "rage.ghost",
+   "shot.ghost",
+   "snipe.ghost",
+   "trap.ghost",
+   "maneuver.ghost",
+   "companion.ghost",
+   "bolt.ghost",
+   "blast.ghost",
+   "consume.ghost",
+   "summon.ghost",
+   "channel.ghost",
+   "stab.ghost",
+   "ravage.ghost",
+   "mislead.ghost",
+   "stun.ghost",
+   "dance.ghost",
+   "heal.ghost",
+   "bless.ghost",
+   "curse.ghost",
+   "smite.ghost",
+   "prayer.ghost",
+   "cleave.ghost",
+   "shout.ghost",
+   "withstand.ghost",
+   "taunt.ghost",
+   "titan.ghost",
+   "poltergeist_rattle",
+   "wraith_cold_grasp"
+  ],
+  "minions": [
+   "poltergeist",
+   "wraith"
+  ],
+  "statuses": [
+   "spectral",
+   "haunt",
+   "vanished",
+   "spirit_mark",
+   "beckoner"
+  ],
+  "macros": [
+   "haunt_drift"
+  ]
+ },
+ "ninja": {
+  "name": "Ninja",
+  "elements": [
+   "Wind",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.ninja",
+   "smash.ninja",
+   "charge.ninja",
+   "riposte.ninja",
+   "rage.ninja",
+   "shot.ninja",
+   "snipe.ninja",
+   "trap.ninja",
+   "maneuver.ninja",
+   "companion.ninja",
+   "bolt.ninja",
+   "blast.ninja",
+   "consume.ninja",
+   "summon.ninja",
+   "channel.ninja",
+   "stab.ninja",
+   "ravage.ninja",
+   "mislead.ninja",
+   "stun.ninja",
+   "dance.ninja",
+   "heal.ninja",
+   "bless.ninja",
+   "curse.ninja",
+   "smite.ninja",
+   "prayer.ninja",
+   "cleave.ninja",
+   "shout.ninja",
+   "withstand.ninja",
+   "taunt.ninja",
+   "titan.ninja",
+   "ninken_snap",
+   "ninken_track"
+  ],
+  "minions": [
+   "shadow_clone",
+   "ninken"
+  ],
+  "statuses": [
+   "ninja_flurry",
+   "substitution"
+  ],
+  "macros": [
+   "make_clone"
+  ]
+ },
+ "evolution": {
+  "name": "Evolution",
+  "elements": [
+   "Poison",
+   "Poison"
+  ],
+  "skills": [
+   "strike.evolution",
+   "smash.evolution",
+   "charge.evolution",
+   "riposte.evolution",
+   "rage.evolution",
+   "shot.evolution",
+   "snipe.evolution",
+   "trap.evolution",
+   "maneuver.evolution",
+   "companion.evolution",
+   "bolt.evolution",
+   "blast.evolution",
+   "consume.evolution",
+   "summon.evolution",
+   "channel.evolution",
+   "stab.evolution",
+   "ravage.evolution",
+   "mislead.evolution",
+   "stun.evolution",
+   "dance.evolution",
+   "heal.evolution",
+   "bless.evolution",
+   "curse.evolution",
+   "smite.evolution",
+   "prayer.evolution",
+   "cleave.evolution",
+   "shout.evolution",
+   "withstand.evolution",
+   "taunt.evolution",
+   "titan.evolution",
+   "parasite_feed",
+   "larva_nibble"
+  ],
+  "minions": [
+   "parasite",
+   "larva"
+  ],
+  "statuses": [
+   "telltale_venom",
+   "delirium",
+   "hormesis",
+   "exoskeleton",
+   "parasite_host"
+  ],
+  "macros": []
+ },
+ "spore": {
+  "name": "Spore",
+  "elements": [
+   "Poison",
+   "Earth"
+  ],
+  "skills": [
+   "strike.spore",
+   "smash.spore",
+   "charge.spore",
+   "riposte.spore",
+   "rage.spore",
+   "shot.spore",
+   "snipe.spore",
+   "trap.spore",
+   "maneuver.spore",
+   "companion.spore",
+   "bolt.spore",
+   "blast.spore",
+   "consume.spore",
+   "summon.spore",
+   "channel.spore",
+   "stab.spore",
+   "ravage.spore",
+   "mislead.spore",
+   "stun.spore",
+   "dance.spore",
+   "heal.spore",
+   "bless.spore",
+   "curse.spore",
+   "smite.spore",
+   "prayer.spore",
+   "cleave.spore",
+   "shout.spore",
+   "withstand.spore",
+   "taunt.spore",
+   "titan.spore",
+   "sporeling_infecting_lash",
+   "bloater_rancid_spit"
+  ],
+  "minions": [
+   "mushroom",
+   "sporeling",
+   "bloater"
+  ],
+  "statuses": [
+   "spores",
+   "mushroom_puff",
+   "sporeling_feed",
+   "humus_wall",
+   "infest",
+   "fungal_colossus"
+  ],
+  "macros": [
+   "sprout"
+  ]
+ },
+ "antidote": {
+  "name": "Antidote",
+  "elements": [
+   "Poison",
+   "Holy"
+  ],
+  "skills": [
+   "strike.antidote",
+   "smash.antidote",
+   "charge.antidote",
+   "riposte.antidote",
+   "rage.antidote",
+   "shot.antidote",
+   "snipe.antidote",
+   "trap.antidote",
+   "maneuver.antidote",
+   "companion.antidote",
+   "bolt.antidote",
+   "blast.antidote",
+   "consume.antidote",
+   "summon.antidote",
+   "channel.antidote",
+   "stab.antidote",
+   "ravage.antidote",
+   "mislead.antidote",
+   "stun.antidote",
+   "dance.antidote",
+   "heal.antidote",
+   "bless.antidote",
+   "curse.antidote",
+   "smite.antidote",
+   "prayer.antidote",
+   "cleave.antidote",
+   "shout.antidote",
+   "withstand.antidote",
+   "taunt.antidote",
+   "titan.antidote",
+   "serpent_cure",
+   "serpent_kiss",
+   "apothecary_milk_venom"
+  ],
+  "minions": [
+   "asclepian_serpent",
+   "apothecary"
+  ],
+  "statuses": [
+   "inoculated",
+   "immunity",
+   "antivenom",
+   "find_the_wound",
+   "shared_absolution"
+  ],
+  "macros": [
+   "purge_one_to_primary",
+   "purge_one_to_random",
+   "purge_all_to_random"
+  ]
+ },
+ "blight": {
+  "name": "Blight",
+  "elements": [
+   "Poison",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.blight",
+   "smash.blight",
+   "charge.blight",
+   "riposte.blight",
+   "rage.blight",
+   "shot.blight",
+   "snipe.blight",
+   "trap.blight",
+   "maneuver.blight",
+   "companion.blight",
+   "bolt.blight",
+   "blast.blight",
+   "consume.blight",
+   "summon.blight",
+   "channel.blight",
+   "stab.blight",
+   "ravage.blight",
+   "mislead.blight",
+   "stun.blight",
+   "dance.blight",
+   "heal.blight",
+   "bless.blight",
+   "curse.blight",
+   "smite.blight",
+   "prayer.blight",
+   "cleave.blight",
+   "shout.blight",
+   "withstand.blight",
+   "taunt.blight",
+   "titan.blight",
+   "rats_plague_bite",
+   "rats_scurry",
+   "imp_rotbolt"
+  ],
+  "minions": [
+   "plague_rats",
+   "plague_imp"
+  ],
+  "statuses": [
+   "withered",
+   "imp_bitten"
+  ],
+  "macros": []
+ },
+ "assassin": {
+  "name": "Assassin",
+  "elements": [
+   "Poison",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.assassin",
+   "smash.assassin",
+   "charge.assassin",
+   "riposte.assassin",
+   "rage.assassin",
+   "shot.assassin",
+   "snipe.assassin",
+   "trap.assassin",
+   "maneuver.assassin",
+   "companion.assassin",
+   "bolt.assassin",
+   "blast.assassin",
+   "consume.assassin",
+   "summon.assassin",
+   "channel.assassin",
+   "stab.assassin",
+   "ravage.assassin",
+   "mislead.assassin",
+   "stun.assassin",
+   "dance.assassin",
+   "heal.assassin",
+   "bless.assassin",
+   "curse.assassin",
+   "smite.assassin",
+   "prayer.assassin",
+   "cleave.assassin",
+   "shout.assassin",
+   "withstand.assassin",
+   "taunt.assassin",
+   "titan.assassin",
+   "viper_venom_fang",
+   "viper_seek_the_mark",
+   "blade_shank"
+  ],
+  "minions": [
+   "shadow_viper",
+   "hired_blade"
+  ],
+  "statuses": [
+   "death_mark",
+   "subcontract",
+   "whispered_names"
+  ],
+  "macros": [
+   "place_mark",
+   "mark_if_none"
+  ]
+ },
+ "life": {
+  "name": "Life",
+  "elements": [
+   "Earth",
+   "Earth"
+  ],
+  "skills": [
+   "strike.life",
+   "smash.life",
+   "charge.life",
+   "riposte.life",
+   "rage.life",
+   "shot.life",
+   "snipe.life",
+   "trap.life",
+   "maneuver.life",
+   "companion.life",
+   "bolt.life",
+   "blast.life",
+   "consume.life",
+   "summon.life",
+   "channel.life",
+   "stab.life",
+   "ravage.life",
+   "mislead.life",
+   "stun.life",
+   "dance.life",
+   "heal.life",
+   "bless.life",
+   "curse.life",
+   "smite.life",
+   "prayer.life",
+   "cleave.life",
+   "shout.life",
+   "withstand.life",
+   "taunt.life",
+   "titan.life",
+   "treant_slam",
+   "acorn_crush",
+   "dryad_mend"
+  ],
+  "minions": [
+   "treant",
+   "acorn",
+   "dryad"
+  ],
+  "statuses": [
+   "life_grove",
+   "bloom_timer",
+   "wild_growth"
+  ],
+  "macros": [
+   "flourish_it",
+   "bloom_it"
+  ]
+ },
+ "sanctuary": {
+  "name": "Sanctuary",
+  "elements": [
+   "Earth",
+   "Holy"
+  ],
+  "skills": [
+   "strike.sanctuary",
+   "smash.sanctuary",
+   "charge.sanctuary",
+   "riposte.sanctuary",
+   "rage.sanctuary",
+   "shot.sanctuary",
+   "snipe.sanctuary",
+   "trap.sanctuary",
+   "maneuver.sanctuary",
+   "companion.sanctuary",
+   "bolt.sanctuary",
+   "blast.sanctuary",
+   "consume.sanctuary",
+   "summon.sanctuary",
+   "channel.sanctuary",
+   "stab.sanctuary",
+   "ravage.sanctuary",
+   "mislead.sanctuary",
+   "stun.sanctuary",
+   "dance.sanctuary",
+   "heal.sanctuary",
+   "bless.sanctuary",
+   "curse.sanctuary",
+   "smite.sanctuary",
+   "prayer.sanctuary",
+   "cleave.sanctuary",
+   "shout.sanctuary",
+   "withstand.sanctuary",
+   "taunt.sanctuary",
+   "titan.sanctuary",
+   "warden_stone_fist",
+   "warden_bless_the_ground",
+   "stonemason_carve"
+  ],
+  "minions": [
+   "wardstone",
+   "temple_warden",
+   "stonemason"
+  ],
+  "statuses": [
+   "sanctum",
+   "sanctum_steady",
+   "living_temple",
+   "stately_might",
+   "shieldbearer"
+  ],
+  "macros": [
+   "raise_sanctum",
+   "lower_sanctum"
+  ]
+ },
+ "grave": {
+  "name": "Grave",
+  "elements": [
+   "Earth",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.grave",
+   "smash.grave",
+   "charge.grave",
+   "riposte.grave",
+   "rage.grave",
+   "shot.grave",
+   "snipe.grave",
+   "trap.grave",
+   "maneuver.grave",
+   "companion.grave",
+   "bolt.grave",
+   "blast.grave",
+   "consume.grave",
+   "summon.grave",
+   "channel.grave",
+   "stab.grave",
+   "ravage.grave",
+   "mislead.grave",
+   "stun.grave",
+   "dance.grave",
+   "heal.grave",
+   "bless.grave",
+   "curse.grave",
+   "smite.grave",
+   "prayer.grave",
+   "cleave.grave",
+   "shout.grave",
+   "withstand.grave",
+   "taunt.grave",
+   "titan.grave",
+   "skeleton_rattle_blade",
+   "ghoul_gnaw",
+   "gravedigger_gnaw",
+   "gravedigger_unearth"
+  ],
+  "minions": [
+   "skeleton",
+   "ghoul",
+   "ghoul_gravedigger"
+  ],
+  "statuses": [
+   "grave_keeper"
+  ],
+  "macros": [
+   "dig",
+   "spend_1",
+   "spend_2",
+   "raise_spent"
+  ]
+ },
+ "moon": {
+  "name": "Moon",
+  "elements": [
+   "Earth",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.moon",
+   "smash.moon",
+   "charge.moon",
+   "riposte.moon",
+   "rage.moon",
+   "shot.moon",
+   "snipe.moon",
+   "trap.moon",
+   "maneuver.moon",
+   "companion.moon",
+   "bolt.moon",
+   "blast.moon",
+   "consume.moon",
+   "summon.moon",
+   "channel.moon",
+   "stab.moon",
+   "ravage.moon",
+   "mislead.moon",
+   "stun.moon",
+   "dance.moon",
+   "heal.moon",
+   "bless.moon",
+   "curse.moon",
+   "smite.moon",
+   "prayer.moon",
+   "cleave.moon",
+   "shout.moon",
+   "withstand.moon",
+   "taunt.moon",
+   "titan.moon",
+   "wolf_moonfang",
+   "moth_flutter"
+  ],
+  "minions": [
+   "lunar_wolf",
+   "moon_moth"
+  ],
+  "statuses": [
+   "lunar_cycle",
+   "moonshard",
+   "wolf_howl",
+   "face_of_the_moon",
+   "shared_dream",
+   "moonglare"
+  ],
+  "macros": [
+   "advance_moon"
+  ]
+ },
+ "divine": {
+  "name": "Divine",
+  "elements": [
+   "Holy",
+   "Holy"
+  ],
+  "skills": [
+   "strike.divine",
+   "smash.divine",
+   "charge.divine",
+   "riposte.divine",
+   "rage.divine",
+   "shot.divine",
+   "snipe.divine",
+   "trap.divine",
+   "maneuver.divine",
+   "companion.divine",
+   "bolt.divine",
+   "blast.divine",
+   "consume.divine",
+   "summon.divine",
+   "channel.divine",
+   "stab.divine",
+   "ravage.divine",
+   "mislead.divine",
+   "stun.divine",
+   "dance.divine",
+   "heal.divine",
+   "bless.divine",
+   "curse.divine",
+   "smite.divine",
+   "prayer.divine",
+   "cleave.divine",
+   "shout.divine",
+   "withstand.divine",
+   "taunt.divine",
+   "titan.divine",
+   "seraph_burning_light",
+   "harbinger_trumpet"
+  ],
+  "minions": [
+   "seraph",
+   "harbinger"
+  ],
+  "statuses": [
+   "exalted"
+  ],
+  "macros": [
+   "lightray_enemy_it",
+   "lightray_ally_it",
+   "scales_enemy_it",
+   "scales_ally_it",
+   "intervention_enemy_it",
+   "intervention_ally_it",
+   "awe_enemy_it",
+   "awe_ally_it",
+   "consecrate_ally_it",
+   "consecrate_enemy_it",
+   "anathema_enemy_it",
+   "anathema_ally_it"
+  ]
+ },
+ "zealot": {
+  "name": "Zealot",
+  "elements": [
+   "Holy",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.zealot",
+   "smash.zealot",
+   "charge.zealot",
+   "riposte.zealot",
+   "rage.zealot",
+   "shot.zealot",
+   "snipe.zealot",
+   "trap.zealot",
+   "maneuver.zealot",
+   "companion.zealot",
+   "bolt.zealot",
+   "blast.zealot",
+   "consume.zealot",
+   "summon.zealot",
+   "channel.zealot",
+   "stab.zealot",
+   "ravage.zealot",
+   "mislead.zealot",
+   "stun.zealot",
+   "dance.zealot",
+   "heal.zealot",
+   "bless.zealot",
+   "curse.zealot",
+   "smite.zealot",
+   "prayer.zealot",
+   "cleave.zealot",
+   "shout.zealot",
+   "withstand.zealot",
+   "taunt.zealot",
+   "titan.zealot",
+   "flagellant_self_scourge",
+   "flagellant_blood_whip",
+   "initiate_take_the_blow"
+  ],
+  "minions": [
+   "flagellant",
+   "initiate"
+  ],
+  "statuses": [
+   "fervor",
+   "fervent_chant",
+   "take_the_blow",
+   "unction_shield"
+  ],
+  "macros": [
+   "martyr",
+   "martyr_payout"
+  ]
+ },
+ "vigilante": {
+  "name": "Vigilante",
+  "elements": [
+   "Holy",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.vigilante",
+   "smash.vigilante",
+   "charge.vigilante",
+   "riposte.vigilante",
+   "rage.vigilante",
+   "shot.vigilante",
+   "snipe.vigilante",
+   "trap.vigilante",
+   "maneuver.vigilante",
+   "companion.vigilante",
+   "bolt.vigilante",
+   "blast.vigilante",
+   "consume.vigilante",
+   "summon.vigilante",
+   "channel.vigilante",
+   "stab.vigilante",
+   "ravage.vigilante",
+   "mislead.vigilante",
+   "stun.vigilante",
+   "dance.vigilante",
+   "heal.vigilante",
+   "bless.vigilante",
+   "curse.vigilante",
+   "smite.vigilante",
+   "prayer.vigilante",
+   "cleave.vigilante",
+   "shout.vigilante",
+   "withstand.vigilante",
+   "taunt.vigilante",
+   "titan.vigilante",
+   "bloodhound_run_down",
+   "bloodhound_scent",
+   "informant_tip_off"
+  ],
+  "minions": [
+   "bloodhound",
+   "informant"
+  ],
+  "statuses": [
+   "exposed",
+   "informant_watch",
+   "patrol_watch",
+   "setup_watch",
+   "swept"
+  ],
+  "macros": []
+ },
+ "evil": {
+  "name": "Evil",
+  "elements": [
+   "Unholy",
+   "Unholy"
+  ],
+  "skills": [
+   "strike.evil",
+   "smash.evil",
+   "charge.evil",
+   "riposte.evil",
+   "rage.evil",
+   "shot.evil",
+   "snipe.evil",
+   "trap.evil",
+   "maneuver.evil",
+   "companion.evil",
+   "bolt.evil",
+   "blast.evil",
+   "consume.evil",
+   "summon.evil",
+   "channel.evil",
+   "stab.evil",
+   "ravage.evil",
+   "mislead.evil",
+   "stun.evil",
+   "dance.evil",
+   "heal.evil",
+   "bless.evil",
+   "curse.evil",
+   "smite.evil",
+   "prayer.evil",
+   "cleave.evil",
+   "shout.evil",
+   "withstand.evil",
+   "taunt.evil",
+   "titan.evil",
+   "fiend_rend_soul",
+   "fiend_feast",
+   "tormentor_barbed_whip",
+   "tormentor_false_mercy"
+  ],
+  "minions": [
+   "fiend",
+   "tormentor"
+  ],
+  "statuses": [
+   "unhallowed"
+  ],
+  "macros": [
+   "drain_it",
+   "tithe"
+  ]
+ },
+ "curse": {
+  "name": "Curse",
+  "elements": [
+   "Unholy",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.curse",
+   "smash.curse",
+   "charge.curse",
+   "riposte.curse",
+   "rage.curse",
+   "shot.curse",
+   "snipe.curse",
+   "trap.curse",
+   "maneuver.curse",
+   "companion.curse",
+   "bolt.curse",
+   "blast.curse",
+   "consume.curse",
+   "summon.curse",
+   "channel.curse",
+   "stab.curse",
+   "ravage.curse",
+   "mislead.curse",
+   "stun.curse",
+   "dance.curse",
+   "heal.curse",
+   "bless.curse",
+   "curse.curse",
+   "smite.curse",
+   "prayer.curse",
+   "cleave.curse",
+   "shout.curse",
+   "withstand.curse",
+   "taunt.curse",
+   "titan.curse",
+   "cat_scratch",
+   "shade_whisper"
+  ],
+  "minions": [
+   "black_cat",
+   "hex_shade"
+  ],
+  "statuses": [
+   "hex_pain",
+   "hex_silence",
+   "hex_ruin",
+   "cat_curse",
+   "evil_eye"
+  ],
+  "macros": [
+   "random_hex",
+   "curse_pass_hex"
+  ]
+ },
+ "dimension": {
+  "name": "Dimension",
+  "elements": [
+   "Shadow",
+   "Shadow"
+  ],
+  "skills": [
+   "strike.dimension",
+   "smash.dimension",
+   "charge.dimension",
+   "riposte.dimension",
+   "rage.dimension",
+   "shot.dimension",
+   "snipe.dimension",
+   "trap.dimension",
+   "maneuver.dimension",
+   "companion.dimension",
+   "bolt.dimension",
+   "blast.dimension",
+   "consume.dimension",
+   "summon.dimension",
+   "channel.dimension",
+   "stab.dimension",
+   "ravage.dimension",
+   "mislead.dimension",
+   "stun.dimension",
+   "dance.dimension",
+   "heal.dimension",
+   "bless.dimension",
+   "curse.dimension",
+   "smite.dimension",
+   "prayer.dimension",
+   "cleave.dimension",
+   "shout.dimension",
+   "withstand.dimension",
+   "taunt.dimension",
+   "titan.dimension",
+   "void_stalker_tether",
+   "void_stalker_rend",
+   "rift_shunt"
+  ],
+  "minions": [
+   "void_stalker",
+   "rift"
+  ],
+  "statuses": [
+   "banished",
+   "banished_ally",
+   "entangled",
+   "entangled_buffs"
+  ],
+  "macros": []
+ }
+}

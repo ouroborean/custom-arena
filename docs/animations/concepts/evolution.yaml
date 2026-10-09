@@ -1,0 +1,340 @@
+group: evolution
+# Evolution is Poison turned up. Both parents are Poison, so the fusion shows in the layering: an old,
+# dark carapace (`element` at `tone: dark`) under fresh pale growth (`element2` at `tone: light`).
+# Poison's splatters, smoke and slime stay, but they're heavier, stacked, and organic: fangs, egg sacs,
+# chitin plates. Evolution's own motif is the husk. frost_mage_6 at `tone: dark` is a lobed, cell-like shell
+# that cracks along white veins and falls away. It plays wherever something is shed or a shell gives: Molt,
+# Slough Off, Chrysalis's emergence, and a broken Exoskeleton. The brood has one hatch look everywhere: a
+# jellyfish-like egg sac splitting (symmetrical_explosion_003).
+# Evolve skills (Stage I → II → III by times used) grow with their stage: scale every cue of the skill
+# ×1.0 / ×1.15 / ×1.3. Mutant Fang and Plague Strain cycle I → II → III → I, each stage replacing the last, so they
+# skip that scaling: their notes say what each stage shows.
+
+statuses:
+  telltale_venom:
+    # their scent made visible: pale motes rise off every enemy (it lands on the whole side at once)
+    apply:  [ { fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.6, stagger: 80 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6 } ]
+  delirium:
+    # a fever-dream puff of sparkles over the head, beside Confusion's '?'
+    apply:  [ { fx: round_sparkle_burst_002, size: small, tint: element2, tone: light, scale: 0.5, offset: [0, 0.55], speed: 1.3 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6 } ]
+  hormesis:
+    note: "Its effect shows on Toxin's tick: Poison's toxin default already swaps the tick for a heal (spell_heal_002) on a bearer with Hormesis."
+    # venom bubbles rising light, like a tonic; the art's few off-hue (blue) bubbles read as the change
+    apply:  [ { fx: directional_bubble_burst_001, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.5, frames: [0, 30] } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.45, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.45, opacity: 0.6 } ]
+  exoskeleton:
+    # a faceted jade carapace closes around the bearer and hardens; skip the sparkle wind-up and the leftover outline ring
+    apply:  [ { fx: spell_ice_001, tone: dark, scale: 0.9, opacity: 0.65, speed: 1.6, frames: [11, 31] } ]
+    # each turn start it grows 10: a few more plates snap on (cut before the panel shatters)
+    tick:   [ { fx: fanfx_barrier, tone: dark, scale: 0.45, opacity: 0.85, speed: 1.5, frames: [4, 12], note: "fade out on the full panel" } ]
+    # broken or stripped: the husk cracks and falls away
+    remove: [ { fx: frost_mage_6, tint: element, tone: dark, scale: 0.6, speed: 1.3 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.5, opacity: 0.7 } ]
+  parasite_host:
+    # hooked barbs sink in where the Parasite feeds; the art is faint, so it takes the light tone
+    apply:  [ { fx: fanfx_pain, tint: element2, tone: light, scale: 0.8, speed: 1.5, frames: [8, 30] } ]
+    remove: [ { fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.4, opacity: 0.7 } ]
+  # Minion passives.
+  parasite_lodged:   # its host died: the Parasite shrivels with them (the death default follows)
+    trigger: [ { fx: symmetrical_smoke_burst_001, size: small, tone: dark, scale: 0.5 } ]
+
+macros: {}
+
+skills:
+  strike.evolution:
+    beat: A jagged pale fang rakes through the target; at Stage III it wrings their Toxin twice.
+    note: "Stage I's 20 Piercing plays the fang at scale 1.0; Stages II and III (10 damage) play it at 0.8."
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: element2, tone: light, face: fromActor, note: "the direct hit only; Stage III's two indirect Toxin hits play the next cue instead" }
+      - { on: hit, fx: status_poison_001, scale: 0.75, speed: 1.5, note: "Stage III only: each of the two indirect hits from their Toxin, about 150 ms apart (Toxin's own bubbles, made to tick twice)" }
+
+  smash.evolution:
+    beat: A clawed foot crashes down on the target, venom spikes burst from the ground, and the target's venom wells up in front of each ally.
+    cues:
+      - { on: hit, only: primary, fx: warrior_5, tint: element, tone: dark, face: fromActor, scale: 1.1 }
+      # behind the portrait but larger than it: the spike crown and its flung tips flare past the top and sides
+      - { on: hit, only: primary, fx: directional_impact_004, tint: element2, tone: light, scale: 1.3, layer: under, delay: 100 }
+      # over the portrait, since it's the allies' only sign of their 5-25 damage. It's the target's own Toxin,
+      # so it grows with it: about 0.5 at 5 damage up to 0.9 at 25
+      - { on: hit, only: others, fx: directional_splatter_005, scale: 0.7, delay: 250, stagger: 90 }
+
+  charge.evolution:
+    beat: The user streaks along a lime scent cloud and bursts into the target; at Stage III the scent drifts on to a second enemy.
+    cues:
+      # palette smoke, so the whole cloud takes the lime (not a white frost gust); its C-shaped front leads
+      - { on: travel, fx: directional_smoke_burst_003, tint: element, scale: 0.8, note: "the portrait lunges along the cloud and snaps back" }
+      - { on: hit, fx: slime_4, face: fromActor, scale: 0.7 }
+      # Stage III's random other enemy; Toxin's default follows on them. The user's Focus plays its own default.
+      - { on: apply, status: debuff, only: others, fx: directional_smoke_burst_003, size: small, face: fromActor, scale: 0.5, delay: 150 }
+
+  riposte.evolution:
+    beat: The user draws tight under their skin; when struck, the old husk cracks away and fresh growth gleams beneath.
+    cues:
+      - { on: cast, fx: spell_absorb_001, size: small, tone: dark, scale: 0.6, speed: 1.5, opacity: 0.75 }   # Invisible: owner only
+      # the opponent's first sight of it: the husk splitting reads on its own
+      - { on: trigger, status: molt, fx: frost_mage_6, tint: element, tone: dark, scale: 0.9 }
+      - { on: trigger, status: molt_iii, fx: frost_mage_6, tint: element, tone: dark, scale: 1.1, note: "the counter default follows: the attacker's skill hits only the empty husk" }
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.8 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.5, stagger: 80 }   # Stage II+: each Debuff flakes off with the skin
+
+  rage.evolution:
+    beat: A dark venom geyser erupts behind the user; for three turns each enemy they hit is nicked and marked as Prey.
+    cues:
+      # the plume's skull-like top reads as the apex predator rearing
+      - { on: cast, fx: directional_fire_burst_001, tone: dark, scale: 1.4, layer: under }
+      - { on: cast, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.6, delay: 200 }
+      - { on: trigger, status: apex_predator, fx: directional_impact_001, at: target, size: small, tone: dark, face: fromActor, scale: 0.45, note: "on each enemy the user's hit marks; Prey's reticle follows" }
+
+  shot.evolution:
+    beat: A glowing bead of venom flies at the target and pops into glowing droplets; every enemy starts giving off a telltale glow.
+    cues:
+      - { on: travel, fx: fire_looping_001, size: small, tint: element2, tone: light, scale: 0.35, speed: 1.5, flip: y, note: "flipped so its white core leads and the flames trail" }
+      - { on: hit, fx: round_firework_burst_002, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.5, frames: [0, 18] }   # cut the long fizzle
+      # Toxin's skull, then Telltale Venom's motes on every enemy
+
+  snipe.evolution:
+    beat: The user draws a hooked quill and next turn flicks it skyward; it drops onto the hidden target and twists deeper each turn.
+    cues:
+      # HiddenTarget: the wind-up and the throw stay on the user and point up, never at the target.
+      - { on: cast, fx: starcaller_7, tint: element2, tone: light, face: up, scale: 0.6 }
+      - { on: trigger, status: barbed_quill, fx: scifi_muzzle_flash_001, tint: element2, tone: light, face: up, scale: 0.5, note: "fires when the aim ends (its onExpire): the quill is flung straight up" }
+      # the barb lands with no hit: Barbed Quill is public, so this is where the target is revealed. An apply
+      # cue at the reveal, not a travel, so nothing points at them before it lands.
+      - { on: apply, status: barbed_quill_barb, fx: frost_mage_5, tint: element2, tone: light, scale: 0.75, delay: 150, frames: [0, 7], note: "the pale quill falls point-first onto them and stabs in with a white splash; frames cut its grey-smoke tail" }
+      - { on: trigger, status: barbed_quill_barb, fx: directional_splatter_001, face: up, scale: 0.7 }   # each applier turn end: venom wells from the wound
+      - { on: hit, fx: burst_splatter_003, size: small, tone: dark, scale: 0.5, note: "grows with the barb: 0.5, 0.65, 0.8 for its 10, 15 and 20 damage" }
+
+  trap.evolution:
+    beat: Eggs drop one by one into a pit at the enemy's feet; each Strategic skill they use makes the pit spit up a glob and a Larva hatches for the user.
+    cues:
+      # Invisible: the pit is seen by the owner only; the opponent first sees the glob and the hatch.
+      # Over the portrait (its drops and landing rings sit in the canvas middle, so under they'd be hidden),
+      # faded so the portrait still reads: the rings land on its lower half, at their feet.
+      - { on: apply, status: nesting_pit, fx: spell_forge_001, tone: dark, scale: 1.0, opacity: 0.75, note: "its small spark streaks may keep a yellow cast under the tint: they read as the eggs' glint" }
+      # the opponent's first sight of the trap: a mid-tone glob spat up in front of their own unit
+      - { on: trigger, status: nesting_pit, fx: directional_splatter_002, size: small, scale: 0.7, note: "on its skillUsed trigger (a Larva follows); at its onExpire, play it only when the 2 Toxin follow (no Larva hatched), so the no-hatch payoff reads; otherwise its expiry shows nothing" }
+      - { on: summon, fx: symmetrical_explosion_003, scale: 0.7, delay: 150 }   # the brood's hatch: an egg sac splits
+      # no hatch by the end: Toxin's default (2 stacks) on the bearer
+
+  maneuver.evolution:
+    beat: The user's husk cracks and they slip out of it untouchable; their Debuffs flake away and the empty skin spatters their last attacker.
+    cues:
+      # the husk motif, but as the empty shell left behind, and the slip out of it is the Maneuver's blink
+      - { on: cast, fx: frost_mage_6, tint: element, tone: dark, scale: 0.9, opacity: 0.75, note: "the shed husk stays where they stood; the portrait slides a half-step back out of it and returns" }
+      - { on: cast, fx: directional_sparkle_burst_002, size: small, tint: element2, tone: light, scale: 0.8, delay: 150 }   # the blink arrival: a puff and stars at their feet
+      # each Debuff flicked off (Molt's are smoke wisps; these are flecks)
+      - { on: remove, status: debuff, fx: directional_splatter_001, size: small, tone: dark, face: up, scale: 0.6, stagger: 80 }
+      - { on: apply, status: debuff, only: others, fx: directional_splatter_004, tone: dark, face: fromActor, scale: 0.6, delay: 200 }   # the last attacker; Toxin's default follows
+      # Invulnerable's default closes over the user
+
+  companion.evolution:
+    beat: A Parasite claws up from a ring in the user's row and a feeding tendril latches it onto the target.
+    cues:
+      # over the new minion, faded, so the ring and its columns show as the Parasite claws up through them
+      - { on: summon, fx: dark_mage_3, tint: element, tone: dark, scale: 0.9, opacity: 0.8, frames: [3, 12] }
+      # native colors: its crimson pulse runs back along the beam, host to Parasite, as a drain
+      - { on: travel, fx: necromancer_6, from: minion, path: beam, opacity: 0.8, speed: 1.5, note: "from the new Parasite (its summon lands first); fall back to the user if the minion can't be resolved yet" }
+      # Parasite Host's barbs follow on the target
+
+  bolt.evolution:
+    beat: A dark acid glob streaks into the target and bursts in a jagged spray; it fizzes through their Armor and, at Stage III, their Shield.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: element, tone: dark, scale: 0.7, frames: [0, 6], note: "cut its own low-contrast smudge and red sparks: the hit burst lands instead" }
+      - { on: hit, fx: necromancer_5, tint: element, face: fromActor, scale: 0.85, frames: [0, 4], note: "stop before its crimson residue" }
+      # Armor and (Stage III) Shield eaten away; Vulnerable's and Toxin's defaults follow
+      - { on: remove, status: buff, fx: round_bubble_burst_001, size: small, tone: dark, scale: 0.5, delay: 150 }
+
+  blast.evolution:
+    beat: A toxic pall rolls over the whole board and a skull cloud erupts under every weakened unit, friend and foe; those it kills crumble as lime skulls.
+    cues:
+      # the board-wide wind-up: the pall rolls in first, over both sides (the user's included), even when no one is weak enough to hit
+      - { on: cast, fx: symmetrical_smoke_burst_003, at: field, tone: dark, scale: 3.5, opacity: 0.6, layer: under }
+      # the skull clouds erupt under the pall once it has spread
+      - { on: hit, fx: spell_poison_001, scale: 1.1, delay: 250, stagger: 70 }
+      - { on: death, fx: deathbringer_3, scale: 0.8, speed: 1.4, frames: [4, 20] }
+
+  consume.evolution:
+    beat: Their venom is whirled out of them; if it was enough, a reaper's crescent cuts across a skull, otherwise its worth spirals into the user.
+    cues:
+      # replaces Toxin's remove default for this skill: all the stacks go at once
+      - { on: remove, status: toxin, fx: slime_5, tint: element, scale: 0.8, speed: 1.3 }
+      - { on: death, fx: deathbringer_5, scale: 1.0, speed: 1.3, frames: [4, 22] }
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.7, speed: 1.5 }
+
+  summon.evolution:
+    beat: Two egg sacs split open in the user's row and Larvae wriggle out of bubbling goo.
+    cues:
+      - { on: summon, fx: symmetrical_explosion_003, scale: 0.75, stagger: 120 }
+      - { on: summon, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.5, delay: 100, stagger: 120 }   # over the new Larva: the goo it wriggles out of
+      - { on: apply, status: larva_venom, fx: round_sparkle_burst_001, size: small, tone: dark, scale: 0.45, offset: [0, 0.4] }   # Stage II+: a glint on the brood-mother
+      - { on: trigger, status: larva_venom, fx: burst_splatter_001, at: target, size: small, tone: dark, scale: 0.55 }   # a killed Larva's venom bursts on its killer; Toxin's default follows
+
+  channel.evolution:
+    beat: Two venom strands twist around each other over the user; each turn end the strain mutates, and at its damaging stage a plague gas bursts over every enemy.
+    note: "Stage I lands Toxin on every enemy and Stage III Weakness on the Toxined ones: their defaults carry those turns."
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, scale: 1.1 }
+      - { on: trigger, status: plague_strain, fx: starcaller_4, tint: element, scale: 0.6, opacity: 0.85, note: "the strain visibly mutates: tone dark at Stage I, none at II, light at III" }
+      # Stage II's 10 Affliction to every enemy: the plague's own gas cloud with its diseased core and veins
+      # (the pale rising motes stay Telltale Venom's)
+      - { on: hit, fx: stylized_explosion_006, size: small, scale: 0.7, stagger: 80 }
+
+  stab.evolution:
+    beat: A pale fang punches through the target in a spray of shards; at Stage III a hunted, failing target is torn by a finishing fang and their pulse flatlines.
+    note: "On Prey the user gains a random energy, shown in the energy bar (no board event). Stage II's 15 Piercing (target at or below 40 HP) plays both hit cues about 1.4x larger."
+    cues:
+      - { on: hit, fx: directional_impact_001, size: small, tint: element2, tone: light, face: fromActor, scale: 0.6 }
+      - { on: hit, fx: warrior_3, tint: element, tone: dark, face: fromActor, scale: 0.4, delay: 40 }   # the thin fang streak under the shards
+      # the execute branch: no damage, just the kill. A claw flurry ending in a big hooked fang (sweep-arc art:
+      # mirrored only), then a flatline over them, echoing Stalking Mark's heartbeat
+      - { on: death, fx: warrior_7, tint: element2, tone: light, face: fromActor, scale: 0.9 }
+      - { on: death, fx: scifi_heartbeat_flatline_001, size: small, tint: element2, tone: light, scale: 0.4, offset: [0, 0.6], speed: 1.5, delay: 300, note: "fade it out as the line exits" }
+
+  ravage.evolution:
+    beat: The target's venom is wrenched into a point, then hooked claws rake them and a spiked gout of it erupts from the wound.
+    note: >-
+      Each Toxin torn adds 10 damage: grow both claw cues about 0.1 scale per stack torn (20, 30 or 40 damage).
+      Torn = (damage − 20) / 10. The Toxin is torn one stack at a time (removeStacks), which raises no board
+      event until a count reaches 0, so the wrench rides on the hit, not on a remove.
+    cues:
+      - { on: hit, fx: dark_mage_1, tint: element, tone: dark, face: fromActor, scale: 1.0, delay: 250, note: "delay only when torn > 0 (behind the wrench); at 0 it lands at once" }
+      - { on: hit, fx: round_sparkle_burst_003, size: small, tone: dark, scale: 0.5, speed: 1.5, note: "the wrench: once per Toxin torn, so 0, 1 or 2 plays about 120 ms apart; none when 0" }
+      - { on: hit, fx: blood_knight_3, tint: element2, tone: light, face: fromActor, scale: 0.8, delay: 400, note: "delay 150 when torn = 0" }
+      # the wrench already shows the stacks going: silence Toxin's remove default when the last one is torn out
+      - { on: remove, status: toxin, fx: none }
+
+  mislead.evolution:
+    beat: Bright warning colors flicker over the target unseen; when they attack, the colors blaze and the skill seizes up.
+    cues:
+      # Stages I-II are hidden (owner only); Stage III paints the whole enemy side in plain view
+      - { on: apply, status: warning_colors, fx: round_sparkle_burst_001, variant: rainbow, size: small, scale: 0.55, opacity: 0.8 }
+      - { on: apply, status: warning_colors_iii, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.6, stagger: 100 }
+      # the counter default's X, then Toxin's default, follow each trigger
+      - { on: trigger, status: warning_colors, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.85, speed: 1.3 }
+      - { on: trigger, status: warning_colors_iii, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.85, speed: 1.3 }
+      - { on: remove, status: warning_colors_iii, fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6, stagger: 80 }   # spent: the colors fade off the rest of the side
+
+  stun.evolution:
+    beat: Venom jaws clamp shut around the target in a dark ring; next turn, if the venom is still in them, it seizes them rigid.
+    cues:
+      # bound to the bite landing, so a countered or refused bite clamps no one; Toxin's skull follows
+      - { on: apply, status: paralytic_bite, fx: dark_mage_2, tint: element, tone: dark, scale: 0.8, frames: [0, 9], note: "drop its crimson last frames" }
+      - { on: trigger, status: paralytic_bite, fx: scifi_spark_burst_002, tint: element2, tone: light, scale: 0.8, speed: 1.5, frames: [0, 20], note: "as it ends (its onExpire), only when the Stun follows (they still have Toxin); Stun's default then plays" }
+
+  dance.evolution:
+    beat: A ring of scales circles the user and their hide ripples; each turn it ripples again as they shift.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: element, tone: dark, scale: 1.0 }
+      - { on: cast, fx: necromancer_2, tint: element2, tone: light, scale: 0.8, flip: x, delay: 150 }
+      - { on: trigger, status: adaptive_hide, fx: necromancer_2, tint: element2, tone: light, scale: 0.5, speed: 1.3 }   # each turn start; Swiftness's default follows
+
+  heal.evolution:
+    beat: A ring of fresh cells blooms over the ally and pale crosses rise; at Stage II their Toxin is drawn out first, and at III it all grows back next turn.
+    cues:
+      - { on: heal, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.9, frames: [7, 16] }   # skip the faint converging sparkles
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, speed: 1.5, delay: 150 }
+      - { on: remove, status: toxin, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.5 }   # Stage II+: the venom rises out of them before the healing
+      - { on: trigger, status: regenerate, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # Stage III, their next turn start: the heal cues replay after it
+
+  bless.evolution:
+    beat: A pale drop of venom falls onto the ally and splashes up around their feet as a tonic.
+    cues:
+      # the drop falls with its wavy wake trailing; frames stop at the ringed goo ball, before the flat puddle
+      # with speed lines (which a drop path would stand on end)
+      - { on: travel, fx: slime_3, path: drop, tint: element2, tone: light, scale: 0.5, frames: [0, 7] }
+      # it lands and splashes up at their feet, over the portrait. This replaces Might's default here, so
+      # Might's sword icon is re-added after it
+      - { on: apply, status: might, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.5 }
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, scale: 0.4, speed: 1.3, delay: 300 }
+      # Hormesis's default (rising venom bubbles) follows
+
+  curse.evolution:
+    beat: A dark fever haze rolls down over the target's head and settles on them, leaving them confused and seeing things.
+    note: When Immune refuses the Confusion, no haze falls; only the effectBlocked default plays.
+    cues:
+      # flipped so it rolls down from over the head and its specks drift down as it settles; over the portrait,
+      # faded. Frames start once the main hue has taken over: its opening puff stays white under any tint.
+      - { on: apply, status: confusion, fx: directional_smoke_burst_001, tone: dark, scale: 0.9, flip: y, opacity: 0.7, offset: [0, 0.2], frames: [9, 19], note: "fade it in over its first two frames: it opens at full size" }
+      # Confusion's default, re-added once the haze has settled (this skill's own apply cue replaces it); Delirium's default follows
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.5, delay: 350 }
+
+  smite.evolution:
+    beat: A venom comet plunges onto the target and splashes up; a pulse trace over them quickens each time the pack lands a hit.
+    cues:
+      - { on: hit, fx: starcaller_2, tint: element, face: down, scale: 0.8, offset: [0, 0.3] }
+      # the comet has no impact of its own: the splash lands over the portrait so it shows
+      - { on: hit, fx: directional_impact_003, scale: 0.6, delay: 150 }
+      - { on: apply, status: stalking_mark, fx: scifi_heartbeat_slow_001, tint: element2, tone: light, scale: 0.5, offset: [0, 0.75] }
+      - { on: trigger, status: stalking_mark, fx: scifi_heartbeat_fast_001, tint: element2, tone: light, scale: 0.5, offset: [0, 0.75] }   # each counted hit (a silent trigger): just the quickened beat
+      # when it ends, Toxin's default lands with the stacks it counted
+
+  prayer.evolution:
+    beat: A lilting chorus rises over the user's side while sour notes settle on every enemy; each time their Toxin ticks, an ally is healed.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, at: allySide, tint: element2, tone: light, scale: 1.4 }
+      - { on: apply, status: symbiotic_song, fx: directional_music_burst_001, tone: dark, scale: 0.7, stagger: 100 }
+      - { on: trigger, status: symbiotic_song, fx: round_music_burst_001, size: small, tone: dark, scale: 0.5 }   # a sour chord pops off the ticking enemy
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.6, speed: 1.5 }
+      # Toxin's default is the sting on each enemy
+
+  cleave.evolution:
+    beat: A whip-thin tail lashes four times across random enemies, flicking venom off each one it strikes.
+    cues:
+      - { on: hit, fx: paladin_9, tint: element, face: fromActor, scale: 0.85, speed: 1.3, note: "alternate flip: x on successive hits so the tail thrashes back and forth" }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.45, delay: 80 }
+      # an enemy struck twice or more gets Toxin's default after the last lash
+
+  shout.evolution:
+    beat: The user howls out a festering ring that washes a miasma over every enemy, cowing them.
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: element, scale: 1.3 }
+      # the howl's wave of miasma pushes on past each enemy, over the portrait so it shows
+      - { on: apply, status: debuff, only: primary, fx: directional_smoke_burst_003, size: small, tone: dark, face: fromActor, scale: 0.6, delay: 150, stagger: 80 }
+      # Toxin's skull on the user, Intimidated's eye on each enemy
+
+  withstand.evolution:
+    beat: Chitin spines jut up around the user as a jade carapace closes over them.
+    cues:
+      # behind the user but taller and wider than the portrait, so the spines jut past its top and sides
+      - { on: cast, fx: directional_particle_burst_002, tone: dark, scale: 1.5, layer: under }
+      # Exoskeleton's default is the carapace; its tick adds plates each turn
+
+  taunt.evolution:
+    beat: The user's hood flares with a bright eyespot flash and a hypnotic spiral settles over the target's head.
+    cues:
+      - { on: cast, fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.8, offset: [0, 0.35] }
+      - { on: apply, status: hypnotic_hood, fx: slime_5, tint: element, scale: 0.5, offset: [0, 0.55], speed: 1.3, opacity: 0.8 }
+      # its dealtDamage trigger fires whenever they damage anyone, and its onExpire is the Sleep: show nothing there
+      - { on: trigger, status: hypnotic_hood, fx: none }
+      # the trance breaks: bound to its removeSelf, which only runs when they damaged the user
+      - { on: remove, status: hypnotic_hood, fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.45, note: "only when its removeSelf consumes it (they damaged the user); not when it runs out, where Sleep's default is the payoff" }
+      # Taunt's '!' and Prey's reticle follow; if the trance holds, Sleep's default when it ends
+
+  titan.evolution:
+    beat: A dark chrysalis closes over the user; when it ends the husk cracks open and the new form erupts in a pale fountain.
+    cues:
+      # the cocoon is the Invulnerable shell, so it closes when that lands (a countered Chrysalis closes nothing);
+      # it replaces Invulnerable's default here
+      - { on: apply, status: invulnerable, fx: blood_knight_5, tint: element, tone: dark, scale: 1.5, speed: 0.7, note: "the portrait dims inside the cocoon" }
+      # the Stun is chosen: silence its apply default (its aura still shows)
+      - { on: apply, status: stun, fx: none }
+      - { on: trigger, status: chrysalis, fx: frost_mage_6, tint: element, tone: dark, scale: 1.6, note: "fires as it ends (its onExpire), just before Armor, Might and Immune land" }
+      - { on: trigger, status: chrysalis, fx: epic_explosion_002, tint: element2, tone: light, scale: 1.3, layer: under, delay: 150 }
+
+  parasite_feed:
+    beat: The Parasite sucks at its host, essence streaming back to it, and the weakest ally is healed.
+    cues:
+      - { on: hit, fx: directional_particle_burst_001, size: small, face: toActor, scale: 0.7 }
+      - { on: hit, fx: burst_splatter_001, size: small, tone: dark, scale: 0.4 }
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.55, speed: 1.5 }
+
+  larva_nibble:
+    beat: The Larva gives the target a tiny snapping chomp.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tone: dark, scale: 0.5 }
+      # Toxin's default follows

@@ -1,0 +1,286 @@
+group: winter
+# Winter (Ice + Wind) is snow on the wind. Its body color is `duo`: Ice's blue shadow under Wind's white
+# body, which reads as packed snow. Plain Ice (`element`, the default tint for palette art here) is kept
+# for hard ice (blades, shards, icicles), and Wind (`element2`) for bare air. Native Frost Knight / Frost
+# Mage art stays native where it is ice or the gust, and is tinted `duo` where it has to read as snow.
+# Signature: the blizzard carries snow in, the snow bursts into powder, and the powder heaps into a drift.
+# The gust is frost_knight_5 (the one class animation that is already both parents: white cloud and blue
+# streaks with snowflakes). The powder is round_sparkle_burst_002 in duo, a white clump that blooms and
+# erodes into glitter. The drift is Snowbound's default, a glinting snow mound at the feet. Snowbound
+# lands from about twenty skills, so the drift shows up across the whole kit.
+#
+# Portraits are opaque squares: `layer: under` cues are scaled past the frame, or they wouldn't show.
+
+statuses:
+  snowbound:
+    note: >-
+      No trigger key: its effectGained trigger is the strip itself, so each mobility buff it takes plays
+      its own remove default (Rushing's puff, Leaping's landing, Swiftness's fade) as the drift lands. No
+      aura: Winter puts it on whole sides at once; the drift and the status icon carry it.
+    apply:
+      - { fx: directional_sparkle_burst_002, tint: duo, scale: 0.8, frames: [0, 11], note: "the drift heaps up over their feet, glints and crumbles to powder; cut before the stars rise (they read as a buff)" }
+    remove:
+      - { fx: symmetrical_smoke_burst_001, tint: duo, size: small, scale: 0.5, offset: [0, -0.3] }   # broken, moved or cleansed: the drift bursts off their feet
+    expire:
+      - { fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.45, offset: [0, -0.3], opacity: 0.6 }   # ran out: the drift sinks away
+  great_yeti_hunger:   # the Yeti, at the start of its owner's turns: its player pays 1 random energy, or it leaves
+    trigger:
+      - { fx: spell_absorb_001, tint: duo, size: small, scale: 0.5, speed: 2, note: "only when an energy is paid: motes spiral into the Yeti as it eats. When none is, it leaves instead and base's death default plays" }
+
+macros: {}   # Winter defines none; Snowslide and Powder Leap use Wind's leap macro, which plays its own cues
+
+skills:
+  strike.winter:
+    beat: A biting crescent of frost rips up through the target and bursts into powder.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, scale: 0.85 }
+      - { on: hit, fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.5, delay: 100 }
+      # Against a moving target, Snowbound's drift lands and their mobility buffs blow off through their defaults.
+
+  smash.winter:
+    beat: The user springs up; next turn they ride a snow front down onto the target, and the slide crashes over them and sprays out under their allies.
+    note: "The cast is Wind's leap macro (takeoff dust, Leaping's updraft). Snowslide fires at expiry either way and only then checks Leaping, so every cue rides its damage: a lost Leap shows nothing."
+    cues:
+      - { on: hit, only: primary, fx: directional_smoke_burst_005, at: actor, tint: duo, face: toTarget, scale: 0.8, layer: under, note: "origin corner at the user's feet: the snow front blasts out from under them toward the target as they ride down" }
+      - { on: hit, only: primary, fx: deathbringer_1, tint: duo, face: fromActor, scale: 1.1, delay: 200, note: "line its bottom-right crash (bottom-left when mirrored) up on the target; a short screen shake as it lands" }   # the avalanche crashes over them
+      - { on: hit, only: primary, fx: symmetrical_smoke_burst_003, tint: duo, opacity: 0.85, delay: 350 }   # the powder cloud billows off the crash
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, delay: 400, stagger: 80 }   # snow sprays up under each ally
+      # Leaping's remove default (the landing) follows on the user.
+
+  charge.winter:
+    beat: The user's skates carve a crescent of ice under their feet; their next attack kicks up ice as the speed is spent.
+    cues:
+      - { on: cast, fx: necromancer_2, tint: element, scale: 0.9, offset: [0, -0.35], speed: 1.3, note: "laid along the ground under the user, its sweep running toward the enemy side: a skate's carve" }
+      - { on: trigger, status: ice_skate, fx: none }   # fires once per enemy damaged and again on skillResolved: the Swiftness remove below carries it
+      - { on: remove, status: swiftness, only: primary, fx: directional_impact_003, size: small, scale: 0.5, note: "the speed spent, on the user: Ice Skate's skillResolved firing strips Swiftness once per boosted skill (its dealtDamage firings, one per enemy damaged, show as Snowbound's drift on each)" }
+      # Swiftness's clock plays on the user. The boosted skill's own hits carry the extra damage, and
+      # Snowbound's drift lands on every enemy it damages.
+
+  riposte.winter:
+    beat: A hidden lattice of ice assembles before the user; when struck it shatters, and every frost on the attacker cracks off and explodes into them.
+    note: "With no Frost debuff on the attacker the engine emits a 0-damage hit: skip the impact; only the lattice shatter and base's counter X play."
+    cues:
+      - { on: cast, fx: fanfx_barrier, tint: duo, scale: 1.2, opacity: 0.85, layer: under, frames: [0, 11], note: "hold the full panel a beat, then fade" }   # Invisible: only the owner sees the guard
+      - { on: trigger, status: shatterguard, fx: fanfx_barrier, tint: duo, opacity: 0.85, frames: [13, 25] }   # the opponent's first sight: the lattice shatters
+      - { on: remove, status: debuff, fx: symmetrical_impact_001, size: small, scale: 0.45, stagger: 80 }   # each Frost debuff cracks off the attacker; its own remove default follows
+      - { on: hit, fx: symmetrical_impact_006, scale: 0.9, note: "play only when amount > 0: a 0-amount damage event arrives when the attacker had no Frost debuff. 15 per Frost debuff: about 0.7 at 15 up to 1.3 at 60+" }
+
+  rage.winter:
+    beat: Shards of cold close in on the user's chest and burst out as a frozen heart, and a frost reticle settles on every enemy.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, scale: 1.1, frames: [6, 25], speed: 1.5, note: "its pink and yellow edge accents don't take the palette swap: put them on the ramp's light stop" }
+      - { on: apply, status: heart_of_winter, fx: frost_knight_7, tint: duo, scale: 0.55, opacity: 0.8, delay: 300, stagger: 80 }   # watched: anyone who moves will be pinned
+      - { on: trigger, status: heart_of_winter, fx: symmetrical_impact_001, size: small, scale: 0.5 }   # a cold flash as they move; Snowbound's drift follows
+      # Might and Immune play their own defaults on the user.
+
+  shot.winter:
+    beat: A snowball is lobbed across and bursts into powder on the target.
+    note: "Damage grows with the streak (10, 15, 20, 25...): play the burst about 0.5 at 10 up to 0.9 at 25+. From the third in a row, Snowbound's drift follows."
+    cues:
+      - { on: travel, fx: scifi_charge_up_001, path: arc, tint: duo, size: small, scale: 0.3, speed: 1.5 }   # a white ball tumbling through the air
+      - { on: hit, fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.6 }
+
+  snipe.winter:
+    beat: Frost glints flicker around the user as the cold gathers; next turn the enemy line vanishes in a whiteout and ice needles burst out of it into everyone still moving.
+    note: "Only the enemies who aren't Immobile are hit (all of them if none are): the whiteout covers every enemy, the needles pick out the moving."
+    cues:
+      - { on: cast, fx: stylized_explosion_004, tint: duo, tone: light, scale: 1.0, frames: [0, 9], repeat: 2, note: "only the diamond glints twinkling round the user: the charge. Frame 10 is empty and 11 starts the dome, so the detonation is left for next turn's whiteout" }
+      - { on: trigger, status: whiteout, fx: round_sparkle_burst_002, at: enemies, tint: duo, scale: 1.4, opacity: 0.85, stagger: 40, note: "on every enemy as the shot fires: the overlapping clouds are the whiteout" }
+      - { on: hit, fx: starcaller_1, tint: duo, face: fromActor, scale: 0.8, delay: 150, stagger: 80, note: "its lower-left origin on the target. 60 split: about 0.7 at 20 each up to 1.2 at 60" }
+
+  trap.winter:
+    beat: A loop of snow-wind lies unseen at the target's feet; when they try to move it snaps shut and ice spikes stab up through it.
+    cues:
+      - { on: apply, status: snare_of_frost, fx: dark_mage_2, tint: duo, scale: 0.8, offset: [0, -0.4], opacity: 0.6, frames: [0, 4] }   # Invisible: only the owner sees the loop settle
+      - { on: trigger, status: snare_of_frost, fx: dark_mage_2, tint: duo, frames: [4, 9] }   # the loop snaps tight around them; base's counter X follows
+      - { on: hit, fx: directional_impact_003, scale: 0.8 }
+      # Snowbound's drift then lands on them.
+
+  maneuver.winter:
+    beat: The user crouches in a cloud of powder and every enemy is marked by a faint glint; the first one to strike at them sees the user spring clear, and the glints burst away.
+    note: "Powder Leap's trigger fires on every Harmful skill its bearer uses and only then checks whether the user is a target, so it is silent. The payoff is the leap macro on the user and Snowbound's drift on the attacker, with the remove cue clearing the watch from every enemy."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_002, tint: duo, scale: 0.9, opacity: 0.85 }
+      - { on: apply, status: powder_leap, fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.4, opacity: 0.7, stagger: 60 }
+      - { on: trigger, status: powder_leap, fx: none }
+      - { on: remove, status: powder_leap, fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.45, stagger: 60 }
+
+  companion.winter:
+    beat: A snowbank erupts in a dome of white and a Great Yeti stands in the falling powder.
+    cues:
+      - { on: summon, fx: stylized_explosion_003, tint: duo, scale: 1.1, frames: [0, 5], note: "a short screen shake as the dome bursts; cut before its slate smoke arch takes over (frames 6+), fading over the last frame" }
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.6, delay: 250 }
+
+  bolt.winter:
+    beat: A blizzard gust carries an ice bolt into the target, where it shatters, and a second gust glances off another enemy.
+    cues:
+      - { on: travel, fx: frost_knight_5, path: straight, scale: 0.6, speed: 1.3 }   # one gust per target: the random extra gets its own
+      - { on: hit, only: primary, fx: symmetrical_impact_006, scale: 0.8 }
+      - { on: hit, only: others, fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.5 }
+      # Snowbound's drift follows on the glanced enemy.
+
+  blast.winter:
+    beat: A polar gale tears down the enemy line and bursts into powder around each of them.
+    cues:
+      - { on: hit, fx: frost_knight_5, at: enemySide, face: down, scale: 2.6, opacity: 0.9, note: "once, with the first hit: laid along the enemy column so the gust runs through every portrait" }
+      - { on: hit, fx: round_sparkle_burst_002, tint: duo, scale: 0.8, delay: 120, stagger: 80 }
+      # Rushing or Leaping, the user's buffs play their remove defaults as the momentum is spent, then
+      # Snowbound's drift lands on every enemy.
+
+  consume.winter:
+    beat: Warm motes are drawn out of the target into the user while the user's frost blows off onto them.
+    note: "Warmth is the one warm color in the kit: Fire at its lightest, so it reads as a glow, not a Fire attack."
+    cues:
+      - { on: hit, fx: directional_particle_burst_001, tint: Fire, tone: light, face: toActor, size: small, scale: 0.6 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_003, tint: duo, face: toTarget, size: small, scale: 0.6, stagger: 80 }   # each Frost debuff blows off the user toward the target
+      - { on: heal, fx: spell_absorb_001, tint: Fire, tone: light, scale: 0.7, speed: 1.6, note: "10 + 10 per Frost debuff moved: about 0.6 at 10 up to 1.0 at 40+" }
+      # The moved debuffs play their own remove defaults on the user and apply defaults on the target.
+
+  summon.winter:
+    beat: Glints of snow converge, flash, and pop into a little Snow Sprite.
+    note: "When the Sprite melts (killed, or its time runs out), its onDeath Snowbinds every enemy: base's death default on the Sprite, then Snowbound's drift on each enemy, about 70 ms apart."
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, tint: duo, scale: 0.8, frames: [3, 16] }
+      - { on: summon, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, delay: 300 }
+
+  channel.winter:
+    beat: A pale storm-eye opens behind the user; at the end of each of their turns its rings pulse out round them and snow falls harder on every enemy.
+    note: "Behind the portrait, not over the head: an orb over the head reads as Stun's aura."
+    cues:
+      - { on: apply, status: long_winter, fx: scifi_charge_up_001, tint: duo, scale: 1.3, layer: under, opacity: 0.85, repeat: 2 }
+      - { on: trigger, status: long_winter, fx: scifi_charge_up_001, tint: duo, scale: 1.3, layer: under, speed: 1.5, note: "grows each pulse: about 1.3, 1.4, 1.5" }
+      - { on: hit, fx: spell_forge_001, tint: duo, scale: 0.7, stagger: 70, note: "5, then 10, then 15: about 0.6, 0.8, 1.0" }   # snow falling onto a ring at their feet
+      # The third pulse leaves Snowbound's drift on every enemy.
+
+  stab.winter:
+    beat: A glinting icicle streaks through the target, cracks a ring of frost at the wound and spits snow out behind them.
+    note: "20 against an Immobile target: play every cue about 1.3x."
+    cues:
+      - { on: hit, fx: starcaller_2, tint: element, tone: light, face: fromActor, scale: 0.7, speed: 1.4 }   # tinted, the violet comet becomes a white-cyan icicle
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.4, delay: 80 }
+      - { on: hit, fx: directional_splatter_003, tint: duo, face: fromActor, size: small, scale: 0.45, delay: 100, note: "its lower-left origin on the target" }
+      # Rushing: Snowbound's drift follows on the target.
+
+  ravage.winter:
+    beat: Frozen claws rake up through the target, the wound shatters into ice, and the cold bites back into the user.
+    note: "The user's portrait lunges in for the rake and snaps back as Frostbitten's crust and Frostborn's ring play on them."
+    cues:
+      - { on: hit, fx: dark_mage_1, tint: duo, face: fromActor }
+      - { on: hit, fx: symmetrical_impact_003, scale: 0.8, delay: 80 }
+
+  mislead.winter:
+    beat: Wisps of wind hide around the target; when they attack, a gale tears the skill from them and carries it to the user, who flings it back with their next blow.
+    cues:
+      - { on: apply, status: snatching_gale, fx: starcaller_4, tint: element2, scale: 0.7, opacity: 0.8 }   # Invisible: only the owner sees the wisps
+      - { on: trigger, status: snatching_gale, fx: frost_knight_5, face: toActor, scale: 0.8, note: "its puff origin on the bearer, blowing toward the user" }   # base's counter X follows on them
+      - { on: apply, status: snatched_skill, fx: spell_absorb_001, tint: duo, size: small, scale: 0.5, speed: 1.6 }   # the stolen skill spirals into the user
+      - { on: trigger, status: snatched_skill, fx: scifi_muzzle_flash_003, tint: duo, face: toTarget, size: small, scale: 0.5 }   # flung back out; the stolen skill's own cues follow
+
+  stun.winter:
+    beat: A squall bursts on the target in whirling rings of wind and snow, buries their feet and leaves a grey cloud hanging over them.
+    note: "The squall has no trigger: when it runs out with Snowbound still on them, Stun's default carries the payoff."
+    cues:
+      - { on: hit, fx: stylized_impact_001, tint: duo, scale: 0.9, note: "knock the portrait back a few pixels and let it settle (the stagger)" }
+      - { on: hit, fx: directional_smoke_burst_003, tint: duo, face: fromActor, size: small, scale: 0.6, delay: 80 }
+      - { on: apply, status: squall, fx: symmetrical_smoke_burst_001, tint: element2, tone: dark, size: small, scale: 0.4, offset: [0, 0.6], delay: 200 }
+      # Snowbound's drift lands between them.
+
+  dance.winter:
+    beat: A blizzard spins open around the user and scatters a ring of snow-stars; a Stun thrown at them is answered with a faceful of powder.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.4, opacity: 0.85, layer: under }
+      - { on: cast, fx: round_sparkle_burst_001, tint: duo, scale: 0.9, delay: 250 }
+      - { on: trigger, status: snow_dance, fx: round_sparkle_burst_002, at: target, tint: duo, size: small, scale: 0.55 }   # on the Stun's user; Snowbound's drift follows
+      - { on: apply, status: rushing, fx: none }   # the blizzard already is the speed: silence Rushing's side streaks here
+      # Might and Swiftness play their own defaults on the user.
+
+  heal.winter:
+    beat: The frost lifts off the ally in two streams of glints that meet and rise, meltwater beads drift up, and a breeze curls around them.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, scale: 0.8, speed: 1.3 }
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, size: small, scale: 0.5, delay: 150 }
+      - { on: apply, status: thawing_wind, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.5, delay: 250 }
+      - { on: trigger, status: thawing_wind, fx: none }   # fires on every hit the ally deals and only then checks for Frost: Rushing's default carries the payoff
+
+  bless.winter:
+    beat: A spray of rime bursts over the ally's head and drapes down around them; anyone who strikes them gets a spit of frost back.
+    cues:
+      - { on: apply, status: rime_mantle, fx: round_firework_burst_001, tint: duo, scale: 0.9, offset: [0, 0.35] }
+      - { on: trigger, status: rime_mantle, fx: directional_impact_001, tint: duo, face: toTarget, size: small, scale: 0.5 }   # toward the attacker; Chilled's snowflake follows on them
+      # Frostborn's ring plays on the ally.
+
+  curse.winter:
+    beat: Bands of driven snow wrap the target into a cage; every skill they use pulls the bands tighter.
+    note: "The snowbind trigger fires on every skill they use and only then checks Snowbound: play it only when Snowbound is extended."
+    cues:
+      - { on: apply, status: snowbind, fx: frost_knight_9, tint: duo, scale: 0.9, opacity: 0.85 }
+      - { on: trigger, status: snowbind, fx: frost_knight_9, tint: duo, scale: 0.6, opacity: 0.7, speed: 1.5 }
+      # Snowbound's drift lands under the cage.
+
+  smite.winter:
+    beat: A quill of rime falls on the target and splashes into a crown of frost, and frost feathers drift down onto them; the next blow shatters them.
+    note: "Frostfeather's 10 Piercing is this skill's hit too: there, play paladin_7 at about 0.5 after the shatter. The shatter is the remove cue: removeSelf runs only on the second hit, just before its 10 Piercing and the Frostbitten (it isn't played when Frostfeather simply runs out)."
+    cues:
+      - { on: hit, fx: paladin_7, tint: duo, scale: 0.9, note: "its last frame holds as a dark patch: fade it out" }
+      - { on: apply, status: frostfeather, fx: directional_particle_burst_001, tint: duo, face: down, size: small, scale: 0.5, offset: [0, 0.4] }
+      - { on: trigger, status: frostfeather, fx: none }   # fires on both hits (the first only sets its flag): the remove cue carries the shatter
+      - { on: remove, status: frostfeather, fx: symmetrical_impact_006, size: small, scale: 0.6 }
+      # Frostbitten's crust follows the shatter.
+
+  prayer.winter:
+    beat: Snowdrifts heap up behind the team and snow glitters down over the whole board while cloud-puffs rise into halos over each ally.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, at: allySide, tint: duo, scale: 2.4, opacity: 0.8, layer: under }
+      - { on: cast, fx: status_sparkling_001, at: field, tint: duo, scale: 4, opacity: 0.5, delay: 150, repeat: 2 }   # every unit on both sides is about to be snowed in
+      - { on: heal, fx: directional_sparkle_burst_003, tint: duo, scale: 0.7, speed: 1.5, stagger: 100 }
+      # Shield's bubble plays on each ally, then Snowbound's drift on every unit, allies first.
+
+  cleave.winter:
+    beat: A crest of wind-driven snow breaks over the target and rolls on through each of their allies.
+    note: "The others take 10 (already Immobile) or 5 plus Snowbound: play the 10s at about 0.7 and the 5s at 0.55."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, tint: duo, face: fromActor, scale: 1.0, note: "the slash enters from the user's side and the snow wave crests and breaks past the target" }
+      - { on: hit, only: others, fx: frost_knight_8, tint: duo, face: fromActor, scale: 0.6, delay: 150, stagger: 70 }
+
+  shout.winter:
+    beat: A nova of cold bursts from the user, a wider ring of it howls out behind, and the howl breaks on every enemy in a blast of wind.
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 1.3 }
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 2.4, opacity: 0.5, delay: 200 }   # the echo: the howl rolling outward
+      - { on: apply, status: debuff, fx: scifi_muzzle_flash_003, tint: duo, face: fromActor, size: small, scale: 0.5, stagger: 70, note: "its ring on the user's side of each enemy, the gust jetting on past them" }   # the howl breaks on each enemy as its status lands
+      # Snowbound's drift lands on the moving ones, Intimidated's eye on the Immobile ones.
+
+  withstand.winter:
+    beat: Snow billows up behind the user into a drift that heaps higher each turn and blows apart the moment they strike.
+    note: "The trigger cue is the turn-start growth only; on its dealtDamage trigger only the remove cue plays."
+    cues:
+      - { on: apply, status: deepening_drift, fx: directional_smoke_burst_001, tint: duo, scale: 1.3, opacity: 0.85, layer: under }
+      - { on: trigger, status: deepening_drift, fx: directional_smoke_burst_001, tint: duo, scale: 1.2, opacity: 0.7, layer: under, speed: 1.5 }
+      - { on: remove, status: deepening_drift, fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.8 }
+
+  taunt.winter:
+    beat: The user huffs a puff of frost at the target and a hooked thread of cold curls from them back toward the user.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: toTarget, tint: duo, scale: 0.5 }
+      - { on: apply, status: call_of_the_cold, fx: starcaller_7, tint: duo, face: toActor, scale: 0.7 }   # its hook curls back toward the user: come here
+      - { on: apply, status: call_of_the_cold, fx: symbol_alert_001, tint: duo, size: small, scale: 0.5, delay: 200 }   # base Taunt's '!', in snow
+      # Snowbound's drift lands on them.
+
+  titan.winter:
+    beat: The user erupts in a fountain of snow and a blizzard whites out the whole board, freezing every heartbeat flat.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.6, frames: [0, 7], note: "a short screen shake as the fountain peaks; cut before its slate smoke trails take over (frames 8+), fading over the last 2 frames" }
+      - { on: apply, status: dead_of_winter, fx: symmetrical_smoke_burst_003, at: field, tint: duo, scale: 4, opacity: 0.5, layer: under, note: "once, with the first Dead of Winter" }
+      - { on: apply, status: dead_of_winter, fx: scifi_heartbeat_flatline_001, tint: duo, size: small, scale: 0.4, opacity: 0.8, delay: 300, stagger: 40, note: "once through, not looped: no unit can be healed" }
+      # Armor and Immune play their own defaults on the user.
+
+  great_yeti_maul:
+    beat: The Yeti's claws come down on the target in a ground-shaking slam.
+    cues:
+      - { on: hit, fx: warrior_5, tint: duo, face: fromActor }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.6, delay: 120 }
+
+  snow_sprite_flurry:
+    beat: A puff of glittering flakes pops on each enemy.
+    cues:
+      - { on: hit, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.45, stagger: 60 }

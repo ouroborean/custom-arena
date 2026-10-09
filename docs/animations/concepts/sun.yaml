@@ -1,0 +1,307 @@
+group: sun
+# Sun (Fire + Earth) is sunlight on baked ground. The light is the Fire ramp turned up (`tone: light`:
+# white-gold); the ground it bakes is `duo` (Fire's scorched-red rims on Earth's sand body: fired clay,
+# sandstone, cracked crust); molten rock is plain Fire. Where Fire erupts and Earth heaves, Sun shines
+# down: its heaviest blows fall from straight overhead (Zenith Spear, Pillar of Noon) or swell out of
+# the user like a star (Solar Maximum, Red Giant).
+# Signature: the sun itself. A small rayed disc (symmetrical_impact_002) kindles over a unit for every
+# Corona and pulses when it shines; spending Corona flares as a white-gold lens glare
+# (round_light_burst_001, the solar_flare macro); a Corona that goes out is eclipsed
+# (symmetrical_explosion_001's crescent, toned dark). Bright horizon lines (directional_impact_002) mark the
+# dawn-and-dusk skills, and the two song skills (Hymn, Chorus) sing in literal notes.
+
+statuses:
+  corona:
+    note: >-
+      No aura: Corona sits on the user and every Sun minion for most of a match, and its icon carries the
+      stack count. Tick: `enemies`/`allies` are the bearer's. Scale the tick with stacks (5 per stack),
+      double the enemy sear under Long Summer on an Ignited enemy, and when several bearers tick at the
+      same turn end, chain them about 250 ms apart.
+    apply:  [ { fx: symmetrical_impact_002, tone: light, size: small, scale: 0.4, offset: [0, 0.6], speed: 1.3 } ]   # a little rayed sun kindles over the head
+    tick:
+      - { fx: symmetrical_impact_002, tone: light, scale: 1.3, layer: under, opacity: 0.85 }   # the bearer's sun pulses out past the portrait's edges
+      - { fx: spell_forge_001, at: enemies, scale: 0.6, delay: 150, stagger: 50 }   # heat rains onto each enemy (5 Affliction per stack)
+      - { fx: directional_particle_burst_001, at: allies, tone: light, size: small, scale: 0.45, delay: 150, stagger: 50 }   # warm motes rise through each ally (5 heal per stack)
+    remove: [ { fx: symmetrical_explosion_001, tone: dark, scale: 0.4, offset: [0, 0.6], frames: [2, 7], speed: 0.8 } ]   # spent, cleansed or stolen: a dark red crescent eats the little white sun and dots out (dark, so it reads as going out beside the Flare's white-gold glare)
+    expire: [ { fx: symmetrical_explosion_001, tone: dark, scale: 0.35, offset: [0, 0.6], frames: [2, 7], opacity: 0.7 } ]
+  sun_heart:
+    note: Bookkeeping only (it remembers the turn its bearer last dealt direct damage, for Upwelling Magma). Nothing plays; Upwelling Magma's hit carries the payoff.
+  high_noon_shut:
+    apply:  [ { fx: directional_smoke_burst_001, tone: light, size: small, scale: 0.55, opacity: 0.6 } ]   # a noon heat haze billows up over them: the High Noon user is lost in the glare
+    remove: [ { fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.4, opacity: 0.6 } ]
+
+macros:
+  # Corona's own apply carries every gain. A gain at the cap is trimmed straight back (removeStacks), so
+  # nothing extra should play for it.
+  gain_corona: []
+  # The Flare: played on the user (the unit it acts on) with the effectRemoved of their Corona, so it only
+  # shows when Corona is actually spent; Corona's eclipse plays over the head at the same time.
+  solar_flare:
+    - { fx: round_light_burst_001, tone: light, note: "scale about 0.85 + 0.15 per Corona spent; at 3 or more, a brief warm white tint over the board" }
+    - { fx: round_firework_burst_001, size: small, scale: 0.6, delay: 100 }   # the spent corona droops off in sparks
+
+skills:
+  strike.sun:
+    beat: A white-gold blade of daybreak rises through the target and throws up hot grit.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: element, tone: light, scale: 0.9 }   # the arc climbs and crests like the sun over a horizon
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, size: small, scale: 0.5, delay: 80, note: "its origin corner on the target, so the grit sprays on past them" }
+      # Corona's default kindles over the user.
+
+  smash.sun:
+    beat: The ground under the target bakes and blows apart, cracks heave up under each of their allies, a white-hot flash skips along the enemy line, and any Shield on them cracks in half.
+    note: "Every enemy is either Scorched or has their Shield halved first. scaleShields raises no event, so the Shield branch is read off the blow: a unit whose damage event from this skill has absorbed > 0 had its Shield halved. If scaleShields later gets an event, rebind the crack cues to it."
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_003, tint: duo }   # a dome of red-hot clay and slate smoke
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, scale: 0.6, delay: 120, stagger: 80 }   # the 10-damage splash
+      - { on: hit, fx: directional_impact_002, tone: light, size: small, scale: 0.7, layer: under, delay: 60, stagger: 90 }   # a white-hot flash at each enemy's feet, one after another, so it runs down the side in either layout
+      - { on: hit, fx: symmetrical_impact_006, tint: duo, size: small, scale: 0.5, frames: [0, 4], opacity: 0.8, note: "only on a unit whose damage event has absorbed > 0: its Shield was halved before the blow (no Scorched for them)" }
+      - { on: blocked, fx: symmetrical_impact_006, tint: duo, size: small, scale: 0.5, frames: [0, 4], opacity: 0.8, note: "only when the blow was fully absorbed by the halved Shield (a damage event with absorbed > 0), so the crack still shows; replaces base's blocked flicker" }
+      # Scorched's default lands on every unshielded enemy.
+
+  charge.sun:
+    beat: The user rolls in as a glowing stone and spatters the target with molten rock; a Sunstone heaves up beside them and, next turn, tumbles across and crashes into the target.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.8, note: "portrait lunges along it: the crescent head leads, a trail of baked dust behind" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, scale: 0.6 }   # molten spatter past them, the 10 now and the crash later
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.8 }   # the Sunstone heaves up out of the baked ground
+      - { on: summon, fx: fire_looping_001, tone: light, size: small, scale: 0.4, opacity: 0.85, delay: 150 }   # a sun-hot core kindles in it
+      - { on: trigger, status: rolling_sunstone, fx: directional_impact_002, tint: duo, size: small, scale: 0.6, layer: under }   # next turn: the Sunstone kicks off its slot
+      - { on: trigger, status: rolling_sunstone, fx: symmetrical_impact_004, at: target, tint: duo, delay: 250, note: "the Sunstone portrait tumbles along the line into the target and crashes (damage = its remaining HP: scale with it); its death then plays fire.yaml's explode macro on every enemy" }
+
+  riposte.sun:
+    beat: A dark ring of solar fire closes quietly around the user; when struck, the sunspot bursts and a flare arcs over and crashes down on the attacker.
+    note: "With no Corona the counter deals nothing: the burst and the counter default still play, the arc doesn't."
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: element, tone: dark, scale: 0.8, opacity: 0.8, frames: [0, 9] }   # Invisible: owner only. Cut before its crimson last frames
+      - { on: trigger, status: sunspot, fx: symmetrical_impact_003, tone: light, size: small, scale: 0.6 }   # the sunspot bursts on the user
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: element, scale: 0.8, note: "a prominence: it whips up off the user's side and crests over the attacker; 15 per Corona, so about +0.1 scale per Corona" }
+
+  rage.sun:
+    beat: A sun swells behind the user until its corona blows out around them; each turn after, a crown of sunfire climbs up them.
+    note: "When Solar Maximum ends, Corona trims to 3 through removeStacks, which raises no event (stacks remain): the drawback is shown by the remove cue below, on Solar Maximum's own effectRemoved."
+    cues:
+      - { on: cast, fx: scifi_warp_002, tone: light, scale: 1.6, layer: under }   # past the portrait: the disc swells, then the spiky corona ring blows out
+      - { on: cast, fx: round_firework_burst_002, size: small, scale: 0.8, speed: 1.5, delay: 200 }   # prominences fling off as it peaks
+      - { on: trigger, status: solar_maximum, fx: directional_particle_burst_002, tone: light, scale: 0.8, opacity: 0.85, note: "turn-start firing only (a Corona apply follows it); not at its expiry" }   # over, not under: the portrait would hide it. Corona's default follows
+      - { on: remove, status: solar_maximum, fx: symmetrical_explosion_001, tone: dark, scale: 0.4, offset: [0, 0.6], frames: [2, 7], note: "Solar Maximum's expiry (not a cleanse: only expiry runs the trim). Corona trims to 3 with no event of its own: play this eclipse, Corona's own, once per stack above 3, about 120 ms apart. The renderer knows the count from its tally of their Corona (the last Corona effectApplied's stacks, capped at 5: a gain at the cap is trimmed silently). Play nothing if they hold 3 or fewer" }
+      # Immune's default plays on the user.
+
+  shot.sun:
+    beat: A ray of white-gold light lances from the user into the target.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: beam, tone: light, size: small, scale: 0.5, speed: 1.5 }
+      - { on: hit, fx: symmetrical_impact_001, tone: light, size: small, scale: 0.6, note: "Flare branch (the user had Corona; solar_flare's glare has just played on them): 15 + 10 per Corona spent, so scale up about 0.15 per Corona" }
+      # No Corona: Corona's default kindles over the user instead.
+
+  snipe.sun:
+    beat: The user hurls a spear of light straight up; next turn it drops from the zenith onto the hidden target and the baked ground heaves around it.
+    note: >-
+      HiddenTarget: the throw goes straight up and the turn-later glint stays over the user; nothing
+      points at the target until the spear lands. While it is up, a faint white-gold glint hangs high
+      over the user (round_sparkle_burst_001, small, scale 0.3, offset [0, 0.9], opacity 0.5) so there is
+      something to interrupt.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: up, tone: light, scale: 0.6 }
+      - { on: trigger, status: zenith_spear, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.5, offset: [0, 0.9] }   # it turns at the zenith
+      - { on: hit, fx: scifi_warp_003, tone: light, scale: 1.3 }   # and falls straight down onto them
+      - { on: hit, fx: directional_impact_004, tint: duo, scale: 0.9, delay: 150 }
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 0.7, stagger: 100 }   # Flare: every ally warmed, 10 per Corona spent
+
+  trap.sun:
+    beat: Sunlit soil glints unseen at the target's feet; each time they attack, the furrow splits with light, bursts up under them, and a Seedling sprouts on the user's side.
+    cues:
+      - { on: apply, status: sunlit_furrow, fx: directional_sparkle_burst_002, tint: duo, scale: 0.7, opacity: 0.7, speed: 1.3 }   # Invisible: owner only
+      - { on: trigger, status: sunlit_furrow, fx: directional_impact_002, tone: light, size: small, scale: 0.7, layer: under }
+      - { on: hit, fx: directional_splatter_002, tint: duo, size: small, scale: 0.7 }   # a crown of sun-baked clods
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 0.6 }   # only while the user has fewer than 3
+
+  maneuver.sun:
+    beat: A bright horizon line spreads under the user and they set behind it like the sun; whoever attacks meanwhile is marked by a glint.
+    cues:
+      - { on: cast, fx: directional_impact_002, tone: light, scale: 1.3, layer: under }
+      - { on: cast, fx: scifi_warp_001, tone: light, scale: 0.9, offset: [0, -0.35], opacity: 0.9, delay: 100, note: "the sun sets on the horizon: a slit of light opens on the line at their feet, swells into a white disc and bursts into a ring; the portrait sinks a little toward the line as it does, then Invulnerable's shell closes over them. Over, not under: under the square portrait the slit and disc would be hidden" }   # not round_light_burst_001: that glare is the Flare, and Horizon spends no Corona
+      - { on: trigger, status: horizon_watch, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.35, offset: [0, 0.55], note: "no event of its own (the trigger only sets a flag): infer it when a unit bearing horizon_watch uses a Harmful skill (its skillUsed), and play it then, owner only. Don't replay it at Horizon's end: Ignite's default marks the ones who struck" }   # hidden: owner only
+      # At the start of the user's next turn, Corona's default plays on them and Ignite's on each enemy who attacked.
+
+  companion.sun:
+    beat: A stalk shoots up out of the soil and its head bursts open into drooping golden petals.
+    cues:
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 0.9 }
+      - { on: summon, fx: round_firework_burst_001, tone: light, scale: 0.8, offset: [0, 0.3], delay: 250 }
+      # Corona's default kindles over the Sunflower (it always has 1).
+
+  bolt.sun:
+    beat: A sun-ripened seed arcs over and bursts, and vines whip up over the target; the user's Seedlings spend themselves feeding the user, or a new one sprouts.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, tint: element, tone: light, scale: 0.6, frames: [0, 5], note: "tone light turns its navy tail orange: a white-gold seed on a streaming tail. Cut before its dark impact smudge" }
+      - { on: hit, only: primary, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, only: primary, fx: round_firework_burst_002, size: small, scale: 0.6, speed: 1.6, delay: 100 }   # the pod scatters glowing seeds
+      # Each Seedling first plays earth.yaml's seedling_channel_earth cues, then pays 5 HP:
+      - { on: hit, only: others, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.4 }
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 0.6 }   # no Seedling: one sprouts instead
+
+  blast.sun:
+    beat: Light gathers over the user, then a dome of sun-baked ground blows up across the whole enemy row.
+    note: "Flare: 10 more to each per Corona spent: scale the per-enemy burst up about 0.1 per Corona. The user's own Scorched (per Corona spent) plays its default."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tone: light, scale: 0.8, offset: [0, 0.4] }
+      - { on: hit, fx: epic_explosion_002, at: enemySide, tint: duo, scale: 2.0, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy. Tinted duo, its fireballs fly as sun-baked clods with scorched-red rims; its smoke trails are fixed slate (outside the palette swap) and stay slate, like Scorched Earth's dome" }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.8, delay: 150, stagger: 80 }
+
+  consume.sun:
+    beat: A pinprick of glare on the target, their light jets off toward the user, and it winds into them.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, tone: light, size: small, scale: 0.45 }
+      - { on: hit, fx: scifi_muzzle_flash_003, face: toActor, tone: light, size: small, scale: 0.6, delay: 60 }   # the ring on the target, the jet toward the user
+      - { on: heal, fx: starcaller_4, tint: element, tone: light, scale: 0.8, speed: 1.4, note: "an Ignited target gives 10 more: play it about 1.25x larger" }
+      # Corona's default kindles over the user.
+
+  summon.sun:
+    beat: A seed of sunlight falls and splashes into a ring of sunfire, and the Sunseed pushes up through glinting dust.
+    cues:
+      - { on: summon, fx: paladin_7, tint: element, tone: light, scale: 0.8, note: "fade its held dark last frame" }
+      - { on: summon, fx: directional_sparkle_burst_002, tint: duo, size: small, scale: 0.6, speed: 1.4, delay: 200 }
+      # Corona's default kindles over it. When it dies or expires, its Corona plays Corona's default on the user.
+
+  channel.sun:
+    beat: A steady summer sun burns up behind the user; at each turn's end its light gathers into one more star.
+    cues:
+      - { on: cast, fx: fire_looping_001, tone: light, scale: 1.3, repeat: 2, layer: under, opacity: 0.75 }   # past the portrait's edges
+      - { on: trigger, status: long_summer, fx: round_sparkle_burst_003, tone: light, size: small, scale: 0.6, speed: 1.4 }   # Corona's default follows
+
+  stab.sun:
+    beat: A spike of fired clay drives through the target and flint sparks catch on both of them.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 0.7, speed: 1.3, note: "offset along the blow so the slanted head ends just past the target's far side" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.6, delay: 60 }
+      # Ignite's default catches on the target and on the user.
+
+  ravage.sun:
+    beat: The crust under the target cracks open and magma geysers up through them in molten tendrils.
+    note: "+10 per turn the user went without dealing direct damage (max +30): scale the hit cues up about 0.1 per 10; at the max add a short screen shake."
+    cues:
+      - { on: hit, fx: directional_impact_004, tint: duo }
+      - { on: hit, fx: directional_fire_burst_001, scale: 1.1, delay: 80 }
+      - { on: hit, fx: burst_splatter_002, tone: dark, scale: 0.8, delay: 200 }
+
+  mislead.sun:
+    beat: A bright haze hangs unseen over the target; the moment they attack, noon glare bursts across their eyes.
+    cues:
+      - { on: apply, status: blinding_noon, fx: round_sparkle_burst_002, tone: light, scale: 0.7, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: blinding_noon, fx: round_light_burst_001, tone: light, scale: 1.1, offset: [0, 0.3] }
+      # The counter default, then Blinded's dark flare (shadow.yaml): the dazzle, then the dark.
+
+  stun.sun:
+    beat: The noon heat wheels over the target's head and they reel, alight.
+    note: "Flare: 1 more turn of Stun per 2 Corona spent; solar_flare's glare on the user is the tell."
+    cues:
+      - { on: apply, status: stun, fx: slime_5, tint: element, tone: light, scale: 0.6, offset: [0, 0.5], speed: 1.4 }
+      # Stun's default, re-added after the swirl (this skill's own Stun cue replaces it). Its aura shows as usual.
+      - { on: apply, status: stun, fx: toon_impact_001, tint: element, size: small, scale: 0.7, delay: 300, note: "portrait staggers back a step" }
+      # Ignite's default catches on them.
+
+  dance.sun:
+    beat: Rings of sunlight wheel around the basking user and sun-dappled glints settle over them.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tone: light, scale: 1.5, layer: under }   # the tilted rings orbit like a gyroscope, showing around the portrait
+      - { on: cast, fx: status_sparkling_001, tone: light, scale: 1.1, opacity: 0.7, speed: 1.5, delay: 200 }
+      # Swiftness's and Corona's defaults play on the user; each later Corona tick plays Might's.
+
+  heal.sun:
+    beat: Columns of sunlight rise through the ally from a ring at their feet; any burns on them gather into small suns.
+    cues:
+      - { on: heal, fx: dark_mage_3, tint: element, tone: light, scale: 0.9, frames: [2, 12], speed: 1.3 }   # starts on the ring, past its thin wind-up
+      - { on: remove, status: debuff, fx: round_sparkle_burst_003, size: small, scale: 0.5, speed: 1.6, stagger: 150, note: "once per Ignite or Scorch taken off (their own remove defaults play too): the embers gather into a star, then Corona's default kindles over the ally" }
+
+  bless.sun:
+    beat: A mote of sunlight drifts down and rings the ally as a small sun; each turn it turns toward whichever ally is weakest.
+    note: "Each start of the user's turn the Heliotrope moves (moveEffects): its remove cue plays on the old bearer and its apply cue on the new one."
+    cues:
+      - { on: travel, fx: directional_particle_burst_001, path: drop, tone: light, size: small, scale: 0.5 }
+      - { on: apply, status: heliotrope, fx: frost_mage_1, tint: element, tone: light, scale: 0.7, note: "fade out the dim ghost ring of its last frame" }   # two motes circle the little sun
+      - { on: remove, status: heliotrope, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.4 }
+      - { on: trigger, status: heliotrope_turn, fx: none }   # the move itself (remove, then apply) is the tell
+      - { on: trigger, status: heliotrope, fx: none }   # its 5 heal is the heal cue below
+      - { on: heal, fx: spell_heal_002, tone: light, size: small, scale: 0.4, speed: 1.5 }
+
+  curse.sun:
+    beat: Parched clods crack up around the target's feet; healing that reaches them steams away and wells up in one of the user's allies.
+    cues:
+      - { on: apply, status: drought, fx: frost_mage_4, tint: duo, scale: 0.9 }
+      - { on: trigger, status: drought, fx: directional_smoke_burst_004, tone: light, size: small, scale: 0.5 }
+      - { on: heal, fx: directional_splatter_005, tone: light, size: small, scale: 0.5 }
+      # Scorched's default lands on the target.
+
+  smite.sun:
+    beat: A pillar of noon light drives down onto the target; when it Flares, a sundial dial turns at their feet and pays Corona to the user's allies who strike them.
+    cues:
+      - { on: hit, fx: paladin_5, tint: duo, tone: light, note: "duo, not element: the pillar comes out pale sun-baked sandstone, not Holy's gold. The dark spire stays black under the tint: noon's gnomon, its shadow-star spreading on the ground. Fade its held spire sparkle" }
+      - { on: hit, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.4, offset: [0, 0.2], delay: 250 }   # the white-gold noon glint as the spire lands
+      - { on: apply, status: pillar_of_noon, fx: scifi_charge_up_001, tone: light, size: small, scale: 0.5, offset: [0, -0.35], opacity: 0.8 }   # its needle sweeps once like a sundial's shadow
+      - { on: trigger, status: pillar_of_noon, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.4 }   # an ally strikes them: Corona's default plays on that ally
+
+  prayer.sun:
+    beat: A sunrise climbs behind the whole team and a hymn of light lifts over each ally.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: allySide, tone: light, scale: 2.6, layer: under, opacity: 0.9 }
+      - { on: heal, fx: directional_music_burst_002, tone: light, scale: 0.6, delay: 150, stagger: 100 }   # the hymn's notes
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 0.7, speed: 1.8, stagger: 100 }
+      # Flare: Corona's default kindles over each ally per Corona gained.
+
+  cleave.sun:
+    beat: A low sweep of burning stubble rakes the target and a second enemy, and the healthier of them flares up.
+    note: "The healthier one takes a second damage event (the extra 10): don't replay the sweep on a unit's second hit from this skill; Ignite's catch and the flare below carry it."
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, only: others, fx: warrior_4, face: fromActor, tint: duo, scale: 0.65, delay: 120 }   # the random second enemy
+      - { on: apply, status: debuff, fx: directional_fire_burst_001, tone: light, size: small, scale: 0.55, delay: 100 }   # the stubble flares up white-hot over Ignite's own catch (adds to it; Ignite is the only debuff this applies)
+
+  shout.sun:
+    beat: Dawn breaks along the ground from the user and their chorus rings out; every Sun minion's corona shines at once.
+    cues:
+      - { on: cast, fx: directional_impact_002, tone: light, scale: 1.5, layer: under }
+      - { on: cast, fx: round_music_burst_001, tone: light, delay: 100 }   # notes burst out on rings of sound
+      # Intimidated's default lands on each enemy, Corona's on each minion. Then each minion's corona ticks
+      # once, in the same look as Corona's tick: one round per minion.
+      - { on: hit, fx: spell_forge_001, scale: 0.6, stagger: 60 }
+      - { on: heal, fx: directional_particle_burst_001, tone: light, size: small, scale: 0.45, stagger: 60 }
+
+  withstand.sun:
+    beat: A dome of fired clay rises around the user and glows like a kiln; every blow it takes knocks sparks off its wall.
+    cues:
+      - { on: apply, status: kiln_wall, fx: blood_knight_5, tint: duo, scale: 1.3, layer: under, note: "past the portrait's edges, so its rim shows and its inner pattern stays hidden; it crumbles from the bottom" }
+      - { on: apply, status: kiln_wall, fx: directional_particle_burst_001, size: small, scale: 0.6, delay: 200 }   # embers rise inside
+      - { on: trigger, status: kiln_wall, fx: scifi_spark_burst_001, tone: light, scale: 0.6 }   # Corona's default follows
+
+  taunt.sun:
+    beat: At high noon the sun glints straight over the user's head and a sundial ring snaps out around them.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.45, offset: [0, 0.75] }   # a small glint straight overhead: not the Flare's glare (High Noon spends no Corona) nor Corona's rayed disc
+      - { on: apply, status: high_noon, fx: frost_knight_7, tint: element, tone: light, scale: 1.1, opacity: 0.9 }   # four compass points: one challenger only; the ring carries the challenge
+      # Taunt's '!' marks the target; High Noon's heat haze washes over the other enemies.
+
+  titan.sun:
+    beat: The user swells into a glowing red-orange star that churns larger every turn, then collapses and rains fire on every enemy.
+    note: "Cast: the portrait swells about 15% and takes a red cast while Red Giant lasts. At the end it shrinks back with a red flash and a short screen shake: the collapse is the hit cues (damage = the max HP gained, up to 45: scale with it)."
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: element, scale: 2.2, layer: under }   # the shell swells out past the portrait: a glowing orange-red star with a gold rim, not a dark blood nova
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.8, layer: under, delay: 250 }   # a ring of baked rubble bursts out under its weight
+      - { on: trigger, status: red_giant, fx: blood_knight_6, tint: element, scale: 1.5, layer: under, opacity: 0.8, frames: [2, 5], note: "turn-start firings only (its heal follows); not at its end, where the hit cues carry the collapse" }   # each turn start the same shell re-swells, larger
+      - { on: heal, fx: directional_particle_burst_001, size: small, scale: 0.6 }
+      - { on: hit, fx: epic_explosion_001, scale: 1.1, stagger: 120 }
+      - { on: hit, fx: blood_knight_6, at: enemySide, tint: element, scale: 2.4, layer: under, note: "once, with the first hit: the shed shell rolls over the enemy side" }
+      # Immune's default plays on the user.
+
+  sunflower_scatter_seeds:
+    beat: The Sunflower's head flings out its seeds and one sprouts beside it.
+    cues:
+      - { on: cast, fx: round_firework_burst_002, tint: duo, size: small, scale: 0.6, offset: [0, 0.3], speed: 1.5 }
+      - { on: hit, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.4 }   # it spends 10 HP
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 0.6 }
+
+  sunseed_brighten:
+    beat: Light gathers into the Sunseed.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tone: light, size: small, scale: 0.6, speed: 1.4 }   # Corona's default follows

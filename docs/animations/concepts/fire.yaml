@@ -1,0 +1,255 @@
+group: fire
+# Fire is made of flame and what it leaves behind: jets and geysers erupting from the feet, fireballs
+# and bursting fire bubbles, embers and sparks, and dark slate smoke as aftermath (`gray` variants for
+# ash). Class slashes and drops are colorized to Fire. Ivory Step and Wraith in White burn white-hot
+# (`tone: light` on the Fire ramp). Ignite catches as a small fire geyser; Explosions are comic
+# fireball bursts. The fireball in flight is fire_looping_001 flipped so its white-hot core leads.
+
+statuses:
+  ignite:
+    apply:  [ { fx: directional_fire_burst_002, scale: 0.7 } ]   # flame catches at the feet
+    tick:   [ { fx: fire_looping_001, size: small, scale: 0.45 } ]   # the 5-damage burn, at either turn edge
+    remove: [ { fx: directional_smoke_burst_004, variant: white, scale: 0.5, opacity: 0.7 } ]   # snuffed out: a pale wisp
+  scorched:
+    apply:
+      - { fx: symmetrical_impact_005, size: small, scale: 0.6 }   # a searing flash
+      - { fx: symmetrical_smoke_burst_002, variant: gray, scale: 0.6, delay: 100 }   # leaves a ring of soot
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: white, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, variant: white, scale: 0.4, opacity: 0.6 } ]
+  flameborn:
+    apply:   [ { fx: directional_particle_burst_002, scale: 0.9, opacity: 0.85 } ]   # flame spikes rise over the bearer (over, not under: the opaque portrait would hide them)
+    trigger: [ { fx: directional_particle_burst_001, scale: 0.5 } ]   # heals 10 when its side Explodes: embers rise into them
+    remove:  [ { fx: round_firework_burst_001, size: small, scale: 0.4, opacity: 0.8 } ]   # embers droop and fizzle
+    expire:  [ { fx: round_firework_burst_001, size: small, scale: 0.4, opacity: 0.8 } ]
+  dragon_breath:   # Dragon Hatchling, end of its owner's turn: 10 Affliction to a random enemy, then Ignite
+    trigger:
+      - { fx: scifi_muzzle_flash_001, face: toTarget, scale: 0.5 }   # the hatchling breathes
+      - { fx: symmetrical_explosion_002, at: target, size: small, scale: 0.6, delay: 120 }
+  cinder_burst:    # each Cinderling, end of its owner's turn: 5 Affliction to every enemy
+    trigger:
+      - { fx: round_firework_burst_001, size: small, scale: 0.5 }
+      - { fx: burst_splatter_001, at: target, size: small, scale: 0.4, delay: 200, stagger: 60 }
+
+macros:
+  burn_aftermath:   # after an Ignite burns: plays on each unit it heals or feeds (the Flameborn applier, Warming Wings' weakest ally, a Hoard gained); a Sulfur Erupt plays Brimstone's own macro
+    - { fx: directional_particle_burst_001, scale: 0.45 }   # embers rise into them
+  explode:          # per enemy hit by the Explosion: 10 damage each, so small; the art's own slate puffs are the aftermath
+    - { fx: stylized_explosion_001, size: small, scale: 0.75, stagger: 60, note: "One light shake per Explosion, not per unit; space chained Explosions ~300 ms so each wave's flash finishes before the next." }
+
+skills:
+  strike.fire:
+    beat: A torch-hot slash cuts through the target and leaves them alight.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: element }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, scale: 0.5, delay: 80 }   # embers spray past them
+      # Ignite's default catches on them.
+
+  smash.fire:
+    beat: A heavy blow lands like a detonator, and every burning enemy goes up.
+    cues:
+      - { on: hit, fx: directional_impact_004, scale: 0.8 }
+      - { on: hit, fx: stylized_impact_001, size: small, scale: 0.8, delay: 60 }
+      # Each Ignited enemy then plays the explode macro.
+
+  charge.fire:
+    beat: The user streaks in on a trail of flame and kicks the target; one already burning stokes the user's Might.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, tint: element, scale: 0.6, note: "portrait lunges along it; the pale cloud head leads, the streaks burn Fire" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.7 }
+      # Ignite's default (not burning) or Might's on the user (burning) plays after.
+
+  riposte.fire:
+    beat: Heat shimmers along the user's raised guard; whoever strikes is met with a blistering cross-cut.
+    cues:
+      - { on: cast, fx: warrior_2, tint: element, scale: 0.7, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: blisterblade, fx: symmetrical_impact_002, size: small, scale: 0.6 }   # the guard flashes on the user
+      - { on: trigger, status: blisterblade, fx: warrior_1, at: source, tint: element, delay: 100 }   # the cross-cut on the attacker
+      # Ignite's or Scorched's default then lands on the attacker.
+
+  rage.fire:
+    beat: The user erupts in a roaring column of flame.
+    cues:
+      - { on: cast, fx: directional_fire_burst_001, scale: 1.4 }
+      - { on: cast, fx: symmetrical_impact_002, scale: 1.6, layer: under, delay: 150 }   # the ring flares out around the portrait
+      # Might's and Flameborn's defaults play on the user.
+
+  shot.fire:
+    beat: A flickering flare darts into the target; if they were already burning, a spark jumps to another enemy.
+    cues:
+      - { on: travel, fx: directional_fire_burst_002, size: small, scale: 0.5, speed: 2 }   # the fiery head leads
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.6 }
+      # Ignite's default catches on every enemy it reaches; the bonus one also gets the jump and this flicker.
+      - { on: apply, status: debuff, only: others, fx: round_firework_burst_001, size: small, scale: 0.5, offset: [0, 0.4], note: "the jump: a smaller copy of the flare (directional_fire_burst_002, size small, scale 0.35, head leading) arcs from the primary target to this enemy as it catches" }
+
+  snipe.fire:
+    beat: The user stokes a seeking flame; next turn it shoots skyward and comes down on the hidden target as a comet.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, scale: 0.7, repeat: 2 }
+      - { on: trigger, status: heat_seeker, fx: scifi_muzzle_flash_001, face: up, scale: 0.6 }   # launched straight up: never points at the target
+      - { on: hit, fx: paladin_6, face: fromActor, tint: element, scale: 1.2 }   # the comet dives in from the user's side and strikes white
+      - { on: hit, fx: epic_explosion_001, scale: 1.0, delay: 200 }   # the ground erupts in a fire column under them
+      # Scorched's default follows.
+
+  trap.fire:
+    beat: A charge is quietly planted under the target, its glints ticking; their next attack sets it off.
+    cues:
+      - { on: apply, status: hidden_explosives, fx: stylized_explosion_004, size: small, scale: 0.7, opacity: 0.7, offset: [0, -0.3], layer: under, note: "Invisible: owner only. Play only the wind-up glints (about the first 11 frames) and fade: the armed charge at their feet. Cut before the dome bursts; the Explosion is the payoff" }
+      - { on: trigger, status: hidden_explosives, fx: scifi_spark_burst_001, size: small, scale: 0.7, offset: [0, -0.25] }   # the fuse sparks at their feet
+      # The Explosion then plays the explode macro across the bearer's team.
+
+  maneuver.fire:
+    beat: The user vanishes in a flare of flame and reappears wreathed in heat.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, scale: 0.9, note: "portrait blinks out under the burst and back in with the warp" }
+      - { on: cast, fx: scifi_warp_001, size: small, scale: 0.6, delay: 350 }
+      # Flameborn's and Invulnerable's defaults play on the user.
+
+  companion.fire:
+    beat: An egg of flame rises and cracks, and a dragon hatchling bursts out.
+    cues:
+      - { on: summon, fx: blood_knight_5, tint: element, scale: 0.8 }   # the cocoon's flame pattern reads as a fiery egg
+      - { on: summon, fx: symmetrical_impact_003, size: small, scale: 0.6, delay: 450 }   # the shell shatters
+      # Flameborn's default plays on the owner.
+
+  bolt.fire:
+    beat: A roaring fireball arcs in and bursts; a target already burning blows up.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: arc, flip: y, scale: 0.7, note: "flipped so the white-hot core leads and the flames stream behind it" }
+      - { on: hit, fx: symmetrical_explosion_002 }
+      # The bonus Explosion plays the explode macro.
+
+  blast.fire:
+    beat: The user flings out a spray of sparks, and a wave of fire rolls across the enemy side and leaves every enemy burning.
+    cues:
+      - { on: cast, fx: round_firework_burst_002, size: small, scale: 0.6 }
+      - { on: apply, status: ignite, fx: directional_impact_002, at: enemySide, scale: 1.4, opacity: 0.85, layer: under, note: "once, with the first Ignite: the side anchor doesn't repeat per enemy" }
+      - { on: apply, status: ignite, fx: directional_fire_burst_001, delay: 120, stagger: 80 }   # Inferno's taller Ignite, flaring after the wave (replaces Ignite's default here)
+
+  consume.fire:
+    beat: The user tears the flames off a burning target and drinks them in.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.6 }
+      - { on: remove, status: ignite, fx: directional_smoke_burst_003, face: toActor, scale: 0.7 }   # the fire streams toward the user
+      - { on: heal, fx: spell_absorb_001, scale: 0.8, speed: 1.5 }
+      # Not burning: Ignite's default plays instead.
+
+  summon.fire:
+    beat: Cinders rain onto two glowing rings and kindle into little fire sprites.
+    cues:
+      - { on: summon, fx: spell_forge_001, scale: 0.8, stagger: 150 }
+      - { on: summon, fx: fire_looping_001, size: small, scale: 0.35, delay: 400, stagger: 150 }
+
+  channel.fire:
+    beat: The user braces and hoses the enemy side with a roaring jet of flame, turn after turn.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, size: small, scale: 0.6 }   # heat gathers to a point as the user braces
+      - { on: trigger, status: flamethrower, fx: scifi_muzzle_flash_002, face: toTarget, scale: 1.2 }   # each pulse, toward the enemy side's center
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, scale: 0.8, stagger: 60 }   # the flame washes over and past each enemy
+      # Ignited enemies Explode: the explode macro.
+
+  stab.fire:
+    beat: A white-hot needle of flame punches through the target; one already burning sears again from within.
+    note: "The bonus 10 Affliction is a second hit, so on a burning target the needle flashes twice; that double sear is the tell."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, size: small, tint: element, tone: light, scale: 0.6 }   # the entry ring on their near side, the thin jet out the far side
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.4, delay: 60 }   # embers droop from the wound: Unholy's stab bleeds, this one smolders
+
+  ravage.fire:
+    beat: The target's own heat is wrenched out of them in a violent, molten blaze.
+    note: "Against an Ignited or Scorched target the same hit deals 40: play the hit cues about 1.25x larger with a short screen shake. Judge it by the target's statuses as it lands, not by the amount (Might and Armor shift that)."
+    cues:
+      - { on: hit, fx: symmetrical_impact_003, scale: 0.9 }
+      - { on: hit, fx: burst_splatter_002, delay: 60 }   # molten tendrils burst out of them
+
+  mislead.fire:
+    beat: A heat haze settles unseen over the target; the moment they act, it flashes into flame.
+    cues:
+      - { on: apply, status: heat_haze, fx: directional_smoke_burst_001, scale: 0.8, opacity: 0.5 }   # Invisible: owner only
+      - { on: trigger, status: heat_haze, fx: symmetrical_explosion_002, size: small, scale: 0.7 }   # the shimmer flashes into flame
+      # Ignite's and Scorched's defaults follow.
+
+  stun.fire:
+    beat: A blinding orange-white flash bursts in the target's face, sparks fly, and they reel back.
+    cues:
+      - { on: hit, fx: round_light_burst_001, tint: element, tone: light, scale: 0.8 }   # the flash
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.6, delay: 100, note: "portrait staggers back a step" }
+      # stun_ns's default (the sword crossed out) follows.
+
+  dance.fire:
+    beat: White-hot blades of flame whirl a full circle around the user, then blow outward as an Explosion.
+    note: "Base Dance's blades, burned ivory: they sit behind the portrait and larger than a hit, so only their arcs show around the user."
+    cues:
+      - { on: cast, fx: warrior_4, tint: element, tone: light, scale: 1.4, layer: under }   # Ivory: white-hot fire
+      - { on: cast, fx: warrior_2, tint: element, tone: light, scale: 1.4, layer: under, delay: 250 }   # both sweep counterclockwise: one full circle together
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.2, delay: 450 }   # the whirl blows out as the second blade crests
+      # Immune's default plays on the user, the explode macro on each enemy.
+
+  heal.fire:
+    beat: Warm flame rises through the ally and kindles a thirst to burn.
+    cues:
+      - { on: apply, status: flamethirst, fx: directional_sparkle_burst_001, scale: 0.9 }
+      - { on: trigger, status: flamethirst, fx: round_firework_burst_002, size: small, scale: 0.5, speed: 1.5 }
+      # Flameborn's default plays on the ally; the Ignites the thirst lands play Ignite's.
+
+  bless.fire:
+    beat: A white-hot spark falls onto the ally and sets their blood boiling.
+    cues:
+      - { on: travel, fx: starcaller_2, path: drop, tint: element, scale: 0.5 }   # the white star head leads, a fiery tail behind
+      - { on: apply, status: buff, fx: directional_splatter_005, tint: element, tone: light, scale: 0.55 }   # bright droplets boil up through them; layers with Might's default
+
+  curse.fire:
+    beat: Glowing heat sinks into the target's armor until it sags and stings.
+    cues:
+      - { on: apply, status: debuff, fx: spell_forge_001, scale: 0.9, note: "once, with the first debuff: molten drops fall onto them and flare white-hot as the metal overheats. Weakness's and Vulnerable's defaults layer over it" }
+
+  smite.fire:
+    beat: A white-cored fireball drops from above and sears a ring into the ground at the target's feet.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: drop, flip: y, size: small, scale: 0.5, note: "flipped so the white-hot core leads downward and the flames stream up behind it" }
+      - { on: hit, fx: stylized_explosion_003, scale: 0.7 }   # the shockwave ring is the brand; fire and slate smoke arch over it
+      # On a burning target, Weakness's default follows.
+
+  prayer.fire:
+    beat: A ring of flame flares around the team and lifts a fiery halo over every ally.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, at: allySide, scale: 2.0, layer: under }
+      - { on: apply, status: buff, fx: directional_sparkle_burst_003, scale: 0.9, speed: 1.5, stagger: 100, note: "once per ally, with its first buff (the Shield); layers with the Shield and Flameborn defaults" }
+
+  cleave.fire:
+    beat: A blastwave of flame rolls over the target and a second enemy.
+    cues:
+      - { on: hit, only: primary, fx: directional_smoke_burst_005, face: fromActor, scale: 0.8, note: "a fan of flame: its narrow origin (the art's lower corner) sits on the target's near side so the blast rolls over and past them" }
+      - { on: hit, only: others, fx: directional_smoke_burst_005, face: fromActor, scale: 0.65 }   # the random second enemy: the wave, smaller
+      - { on: hit, fx: symmetrical_impact_004, size: small, scale: 0.6, delay: 60 }
+      # Burning targets Explode: the explode macro.
+
+  shout.fire:
+    beat: The user's roar rolls out as a wave of heat that sets the target alight.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.0 }   # the shared Shout ring; its empty center frames the user
+      - { on: travel, fx: scifi_muzzle_flash_003, scale: 0.8 }
+      # Ignite's default lands; on a burning target, Flameborn's plays on the user.
+
+  withstand.fire:
+    beat: Hot ash billows up and rings the user in embers; whoever strikes it catches fire.
+    cues:
+      - { on: apply, status: ashen_barrier, fx: directional_smoke_burst_002, variant: gray, scale: 1.5, layer: under }   # ash billows past the portrait's edges
+      - { on: apply, status: ashen_barrier, fx: frost_mage_1, tint: element, scale: 0.9, delay: 100, note: "fade out the held ghost-ring last frame" }
+      - { on: trigger, status: ashen_barrier, fx: round_firework_burst_001, scale: 0.6 }   # embers spit off the barrier
+      # The attacker then catches Ignite's default.
+
+  taunt.fire:
+    beat: The user crowns themself the target and a ring of fire closes around the enemy.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, scale: 0.4, speed: 2 }   # base Taunt's crown on the user; Taunt's '!' marks the enemy
+      - { on: apply, status: ring_of_fire, fx: dark_mage_2, tint: element, offset: [0, -0.3] }
+      # Fires when they attack (then Ignite's default) or when it ends unfought (then Scorched's).
+      - { on: trigger, status: ring_of_fire, fx: directional_impact_003, scale: 0.7 }
+
+  titan.fire:
+    beat: A white-hot column of flame swallows the user, crowned by a skull-like plume, and every enemy goes up in fire.
+    cues:
+      - { on: cast, fx: directional_fire_burst_001, tint: element, tone: light, scale: 1.8, note: "the column climbs from the feet and swallows the portrait; its skull-like plume is the wraith. White board flash as the plume crowns" }
+      - { on: apply, status: debuff, fx: epic_explosion_002, at: enemySide, scale: 2.4, layer: under, note: "once, with the first Ignite: the side anchor doesn't repeat per enemy. Ignite's default still catches on each enemy" }
+      - { on: resolve, fx: fire_looping_001, tint: element, tone: light, scale: 1.6, repeat: 2, layer: under, opacity: 0.8 }   # a white corona keeps flickering around the portrait
+      # Immune's and Flameborn's defaults play on the user.

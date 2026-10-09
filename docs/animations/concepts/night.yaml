@@ -1,0 +1,312 @@
+# Night (Ice + Shadow) animation concepts. Spec: docs/animations/README.md; brief: briefs/night.md.
+# Night is the long winter dark. Three materials carry it across the kit:
+#   black ice  — Ice's frost art (Frost Knight / Frost Mage, shards, crescents, rings) tinted `duo`: ice-blue
+#                rims around slate bodies with pale highlights. Night's blows, blades and prisons are made of it.
+#   starlight  — Starcaller art and sparkle bursts in the Ice ramp at `tone: light`; snow is the art's own
+#                drawn `white` where the catalog has it.
+#   nightfall  — Shadow's smoke and wisps in `element2`: the dark rolling in around the cold.
+# Its signature is the moon. Dusk is a pale moon over the bearer's head (symmetrical_explosion_001, drawn
+# white), bitten into a crescent and bitten further every turn it counts down; Midnight eats it whole, a
+# four-pointed ring chimes out, and Frozen Sleep seals the bearer in a block of black ice. Night's other
+# half, Dormant, is sleep under snow: a drift heaps at the feet, a frost cocoon closes over the sleeper
+# (blood_knight_5), and light snowfall glitters on them while they're out of reach.
+# Dusk is hidden: its cues and deepen_dusk's are seen only by the side that applied it, so the opponent
+# first meets the moon at Midnight.
+group: night
+
+statuses:
+  dusk:
+    note: "Hidden: only the applier's side sees these. No aura: on that side the status icon carries the count."
+    apply:  [ { fx: symmetrical_explosion_001, variant: white, scale: 0.45, offset: [0, 0.7], speed: 0.6, frames: [1, 6], note: "a full moon swells over the head and a crescent of night bites into it from below; fade out on the crescent" } ]
+    # The countdown at the bearer's turn start: the crescent thins toward Midnight.
+    tick:   [ { fx: symmetrical_explosion_001, variant: white, scale: 0.4, offset: [0, 0.7], speed: 0.6, frames: [4, 7], opacity: 0.85, note: "Only on a turn start that removes a stack (addStacksSelf, which raises no event yet: it needs a stacks event, see unholy's Soul Fragment note). Skip the first turn start, which only arms the count, and the last, where the midnight macro plays instead." } ]
+    # Ended: a wisp of night where the moon hung.
+    remove: [ { fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.4, offset: [0, 0.45], opacity: 0.7, note: "Plays for Crescent Cleave and cleanses. Skip it when the midnight macro takes the Dusk: the moon eaten whole replaces the wisp." } ]
+  frozen_sleep:
+    note: >-
+      One status that counts as Sleep, Frostbitten, Chilled and Numb, with a look of its own rather than
+      theirs. Not Sleep's Zs: the black-ice block and the slowed pulse say asleep and frozen through.
+    apply:  [ { fx: spell_ice_001, tint: duo, scale: 1.9, speed: 1.5, frames: [11, 30], note: "the orb snaps into a block of black ice that hides the portrait (the crystal fills only the middle half of the canvas, hence the scale); hold frame 30 a beat and fade it out. Don't play 31-34 (the flash and shatter): that is the remove. The portrait then stays frosted and greyed while Frozen Sleep lasts" } ]
+    aura:   { fx: scifi_heartbeat_slow_001, size: small, scale: 0.4, offset: [0, 0.7], opacity: 0.8 }   # a slowed pulse over the head: blows won't wake them
+    remove: [ { fx: spell_ice_001, tint: duo, scale: 1.9, speed: 1.5, frames: [31, 36] } ]   # the same block flashes white and breaks to an outline; damage never plays this
+    expire: [ { fx: spell_ice_001, tint: duo, scale: 1.9, speed: 1.5, frames: [31, 36] } ]   # First Light's default follows
+  first_light:
+    note: "No aura: it only keeps Dusk off, and the status icon carries it."
+    apply:  [ { fx: directional_particle_burst_001, tone: light, scale: 0.6, opacity: 0.85 } ]   # the thaw: pale motes of morning rise off them
+    expire: [ { fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.4, opacity: 0.6 } ]
+  dormant:
+    note: "No tick: the 10 Shield at each of their turn ends plays Shield's default, and waking plays Focus's."
+    apply:
+      - { fx: directional_sparkle_burst_002, scale: 0.8, speed: 1.4 }   # snow heaps up at their feet, glinting
+      - { fx: blood_knight_5, tint: duo, delay: 150, frames: [0, 4], note: "a cocoon of black frost rises and closes over them into a plain oval; fade out from frame 4 instead of playing the art's bat-faced pattern (5-8) and its melt to a top arc. The portrait stays slightly dimmed while Dormant" }
+    aura:   { fx: status_sparkling_001, tone: light, scale: 0.9, opacity: 0.45 }   # light snowfall glitters over the sleeper while they're out of reach
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.6, opacity: 0.8 } ]   # woken early or cleansed: the snow shaken off
+    expire: [ { fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.6, opacity: 0.8 } ]
+  dormant_enemy:
+    note: "The same state forced on an enemy: the same cocoon and snowfall so it reads as Dormant, minus the snowdrift of a chosen rest."
+    apply:  [ { fx: blood_knight_5, tint: duo, speed: 1.3, frames: [0, 4], note: "closes faster, like a lid; the portrait staggers into it. Fade out from frame 4, as Dormant's does" } ]
+    aura:   { fx: status_sparkling_001, tone: light, scale: 0.9, opacity: 0.45 }
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.6, opacity: 0.8 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.6, opacity: 0.8 } ]
+  # Minion passives.
+  snow_owl_watch:   # the Snow Owl, end of its owner's turn: a random enemy without Dusk gains Dusk 4
+    trigger: [ { fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.4, offset: [0, 0.2], note: "on the owl only: its eyes glint. Only when the passive actually applies Dusk this turn end (an effectApplied dusk from the owl); with no enemy eligible, nothing. That event is hidden, so the opponent never sees the glint. Nothing points at the enemy; Dusk's own default shows the owner where it went" } ]
+  rime_revenant_vengeance:   # the Rime Revenant, end of its owner's turn: 15 to the last enemy who hit its summoner (or a random one)
+    trigger:
+      - { fx: directional_smoke_burst_003, tint: element2, tone: light, face: toTarget, size: small, scale: 0.5 }   # it lunges out of its own cold mist
+      - { fx: necromancer_2, at: target, tint: duo, face: fromActor, scale: 0.6, delay: 150 }   # a spectral crescent of black ice rakes the one it holds the grudge against
+
+macros:
+  midnight:   # per unit Midnight takes (Dusk running out, False Dawn, a deepen at 1): everyone sees this
+    - { fx: symmetrical_explosion_001, variant: white, scale: 0.75, offset: [0, 0.7], speed: 0.8, note: "the whole moon, eaten to its last arc and gone: the opponent's first sight of the Dusk it was" }
+    - { fx: frost_knight_7, tint: element2, tone: light, scale: 1.3, delay: 300, note: "Midnight chimes: the four-pointed ring rings out once from the bearer, with a short screen pulse" }
+    # Frozen Sleep's black ice seals them right after; Moonfall's trigger follows if they carry it.
+  dusk: []   # pass-through: Dusk's apply default, or deepen_dusk's bite, carries it
+  deepen_dusk:   # owner only, like Dusk itself: the moon over them loses another bite
+    - { fx: symmetrical_explosion_001, variant: white, scale: 0.4, offset: [0, 0.7], speed: 0.8, frames: [4, 7], note: "Dusk is hidden: play only for the side that applied it, and only when it actually removes a stack (the unit has Dusk at 2+). No Dusk (a fresh target, after Midnight, under First Light): nothing. At 1: nothing; it calls midnight, whose cues carry it. removeStacks emits no event while stacks remain: it needs a stacks event (see unholy's Soul Fragment note)" }
+  crescent_cut:   # Crescent Cleave, per enemy it cuts (the target, then the random one): 15, +5 per turn of Dusk left
+    - { fx: frost_knight_4, tint: duo, face: fromActor, scale: 0.9, note: "the crescent moon as a black-ice blade. Grow it with the damage, about 0.8 at 15 up to 1.2 at 35+. A Dusk it cuts plays Dusk's remove; with none, Dusk's apply lands (both owner only)" }
+    - { fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.5, delay: 100 }   # black-ice chips spray out past them
+
+skills:
+  strike.night:
+    beat: A thin crescent of dusk-light cuts up through the target and frost chips spray out past them.
+    note: >-
+      35 against Frozen Sleep (the same hit event): play the crescent about 1.25x and the frost chips at 0.6, and
+      add { fx: symmetrical_impact_005, variant: white, size: small, scale: 0.4, delay: 100 }: the blow rings off
+      the black ice, which holds. Damage doesn't end Frozen Sleep, so keep its aura and frosted portrait and never
+      show its break here. (deepen_dusk usually does nothing on a sleeper: Midnight already took their Dusk,
+      unless another skill has given them a fresh one.)
+    cues:
+      - { on: hit, fx: paladin_9, tint: duo, face: fromActor, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_003, tone: light, face: fromActor, size: small, scale: 0.5, delay: 100 }
+      # Deepening their Dusk plays deepen_dusk (owner only).
+
+  smash.night:
+    beat: A shard of black ice drops straight onto the target; when Midnight later takes them, the moon bursts over them and its shards burst up under their allies.
+    cues:
+      - { on: hit, only: primary, fx: frost_mage_5, tint: duo, scale: 0.85 }   # the shard drops and shatters at their feet: the 15 now, and the 20 when the moon falls
+      - { on: trigger, status: moonfall, fx: symmetrical_impact_004, tint: duo, scale: 1.3, note: "hidden until it fires, which is the moment Frozen Sleep lands: the moon bursts over the forming ice block, with one heavy screen shake; the 20 damage then replays the falling shard" }
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, scale: 0.65, delay: 150, stagger: 80 }   # shards of it burst up under each ally (10 each)
+      # Dusk's apply or deepen_dusk's bite follows on the target (owner only).
+
+  charge.night:
+    beat: The user glides over on a hush of dark snow and drops claws-first onto the target.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so only the owner sees the glide. The dive and the snow puff read on their own."
+    cues:
+      - { on: travel, fx: frost_knight_5, path: arc, tint: element2, tone: light, scale: 0.6, opacity: 0.85 }
+      - { on: hit, fx: warrior_5, tint: duo, face: fromActor, scale: 0.75 }   # claws of black ice dive down into them
+      - { on: hit, fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.5, delay: 120 }   # a soft puff of snow
+      # Focus's default follows on a Stealthed user; Dusk's lands on the target (owner only).
+
+  riposte.night:
+    beat: Snow drifts quietly around the user; a blow aimed at them vanishes into a burst of snow, and their weakest ally is tucked under a drift.
+    cues:
+      - { on: cast, fx: directional_impact_002, variant: white, scale: 0.6, speed: 0.6, frames: [2, 6], layer: under, opacity: 0.8, note: "Invisible: owner only. Snow spills slowly out to either side of their feet, about 1.7 portraits wide, so it stays on the ally column; the opening flash is skipped, and the art's yellow flecks (frames 2-4, in every variant) are drawn white" }
+      - { on: trigger, status: snowdrift_shelter, fx: symmetrical_smoke_burst_003, variant: white, scale: 0.9 }   # the drift bursts up in four billows and swallows the blow
+      # The counter's X marks the attacker (base); Dormant's snowdrift and cocoon follow on the weakest ally.
+
+  rage.night:
+    beat: Night billows up around the user and pale aurora curtains shimmer up through it.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: element2, tone: light, scale: 1.6, layer: under, opacity: 0.85, note: "past the frame, so the dark rolls up around the portrait; tone light keeps the slate billow visible on the dark board" }
+      - { on: cast, fx: directional_particle_burst_002, tone: light, scale: 1.1, opacity: 0.85, delay: 150 }   # tall pale spikes rising like aurora
+      # Might's and Immune's defaults follow. Polar Night has no look of its own: the Stealth it keeps keeps its own.
+
+  shot.night:
+    beat: The evening star arcs over and bursts on the target in a willow of falling starlight.
+    cues:
+      - { on: travel, fx: starcaller_2, path: arc, tint: duo, scale: 0.45 }   # its white head leads; the violet tail turns slate
+      - { on: hit, fx: round_firework_burst_001, tone: light, size: small, scale: 0.7 }
+      # Dusk's apply or deepen_dusk's bite follows (owner only).
+
+  snipe.night:
+    beat: The last light of day circles the user and streams up into the sky; next turn it falls on the target as a pale shaft with a blade of night inside.
+    note: >-
+      HiddenTarget: nothing points at the target before the shaft lands. 70 Piercing on a Frozen Sleeper (the
+      same hit event): play the second burst about 1.3x, a harder hit. The ice holds (damage doesn't break
+      Frozen Sleep), so keep its aura and frosted portrait.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, tone: light, scale: 0.7 }   # two star-wisps of the last light curl around the user
+      - { on: trigger, status: last_light, fx: directional_sparkle_burst_001, tone: light, scale: 0.7 }   # it streams straight up off the user, never toward the target
+      - { on: hit, fx: paladin_5, tint: element, tone: light, scale: 1.2, note: "its black sword shape stays black: a blade of night inside the last light" }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.7, delay: 300 }
+
+  trap.night:
+    beat: Thin ice glints at the ally's feet; the first enemy to strike at them breaks it, and black ice spears up under the attacker.
+    cues:
+      - { on: apply, status: breaking_ice, fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.5, offset: [0, -0.4], speed: 0.8 }   # Invisible: owner only. Frost glints skate over the ice
+      - { on: trigger, status: breaking_ice, fx: directional_impact_003, tint: duo, size: small, scale: 0.6 }   # the ice cracks open under the ally
+      - { on: hit, fx: directional_impact_004, tint: duo, scale: 0.9 }   # and bursts up under the attacker
+      # Stun's default follows on the attacker.
+
+  maneuver.night:
+    beat: The user breathes out a long frosty breath, snow heaps up around them, and a cocoon of black frost seals them in for two turns.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, variant: white, scale: 0.6, offset: [0, 0.3], opacity: 0.8 }   # the slow breath out
+      # Dormant's default, larger and slower for a long sleep (this skill's own apply cues replace it).
+      - { on: apply, status: dormant, fx: directional_sparkle_burst_002, scale: 1.1 }
+      - { on: apply, status: dormant, fx: blood_knight_5, tint: duo, scale: 1.3, speed: 0.8, delay: 150, frames: [0, 4], note: "fade out from frame 4 (the closed oval), as Dormant's does" }
+
+  companion.night:
+    beat: A pair of pale wings sweeps open out of the dark and the Snow Owl settles in a puff of snow.
+    cues:
+      - { on: summon, fx: paladin_8, tint: element, tone: light, scale: 0.9 }   # banded strokes curl up and over like wings unfolding
+      - { on: summon, fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.6, delay: 250 }
+
+  bolt.night:
+    beat: A lance of black ice flies across and bursts on the target in a flash of crossed blades and rings, spitting grey flecks of night.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.6, frames: [3, 5], note: "the slanted blade at full length as the flying lance: frames 3-4 are the full bright blade (0-2 grow it from a stub, 5-7 grey it out), so hold them in flight" }
+      - { on: hit, fx: stylized_impact_001, tint: duo, scale: 0.8 }
+      - { on: hit, fx: burst_splatter_003, variant: gray, size: small, scale: 0.5, delay: 80 }
+      - { on: trigger, status: rime_lance, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.4, note: "hidden, owner only: the next blow they take sets the rime biting again (deepen_dusk follows). Play only when the bearer holds Dusk as it fires" }
+
+  blast.night:
+    beat: Dusk rolls down the enemy line like a tide, billowing up behind each enemy as a wave of black frost crests over them.
+    cues:
+      - { on: hit, fx: frost_knight_8, tint: duo, face: fromActor, scale: 0.9, stagger: 80 }
+      - { on: hit, fx: directional_smoke_burst_001, tint: element2, tone: light, scale: 1.4, layer: under, opacity: 0.7, stagger: 80 }   # per enemy, since a side is a column: the dusk billows up behind each portrait
+      # Dusk's apply (the moon overhead) or deepen_dusk's bite follows on each (owner only).
+
+  consume.night:
+    beat: Pale motes of the target's hours drift out to the user, the target's time unspools as two star-wisps, and the user glints as they arrive.
+    note: "The Debuffs shortened on the user's side and lengthened on the target raise no events: their status icons' turn counters carry it."
+    cues:
+      - { on: travel, fx: directional_particle_burst_001, from: target, to: actor, path: arc, tone: light, scale: 0.45 }
+      - { on: hit, fx: starcaller_4, tint: duo, scale: 0.5 }
+      - { on: heal, fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.45 }
+
+  summon.night:
+    beat: A skull of black frost kindles in a cold flame and crumbles away into the Rime Revenant.
+    cues:
+      - { on: summon, fx: deathbringer_3, tint: duo, scale: 0.8, speed: 1.3, frames: [3, 20], note: "its dark fade-in skipped; it crumbles bottom-up into the Revenant's portrait, which is the arrival" }
+
+  channel.night:
+    beat: The user sleeps through the longest night; at the end of each of their turns a ring of cold rolls out from them and black frost cracks over every enemy.
+    cues:
+      - { on: trigger, status: winter_solstice, fx: symmetrical_explosion_004, tint: duo, scale: 1.3, layer: under }   # past the frame around the sleeping user
+      - { on: hit, fx: frost_mage_6, tint: duo, scale: 0.5, delay: 150, stagger: 70 }
+      # Dormant's default seals the user in on the cast.
+
+  stab.night:
+    beat: A sliver of black ice slips through the target without a sound, and a sleeper doesn't stir.
+    note: "25 against a sleeper (the same hit event): play it about 1.3x with no flinch, and leave the Sleep or Frozen Sleep aura running, since it doesn't wake them."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_002, tint: duo, face: fromActor, scale: 0.55, speed: 1.3, frames: [1, 6] }   # a thin jet of black-ice streaks drives through from the entry ring; cut before it frays
+      - { on: hit, fx: directional_splatter_001, tone: light, face: fromActor, size: small, scale: 0.6, delay: 60 }   # a flick of frost out the far side: the small drawing scaled up reads chunkier
+
+  ravage.night:
+    beat: Frozen claws rake the target and a crescent jaw of black-ice fangs bursts shut through them.
+    cues:
+      - { on: hit, fx: blood_knight_3, tint: duo, face: fromActor, delay: 100 }   # the fangs: a crescent ringed with spikes
+      - { on: hit, fx: dark_mage_1, tint: element, face: fromActor, scale: 0.9 }   # Shadow's claw rake, frozen
+      # With Dusk, deepen_dusk plays (owner only); without, Frostbitten's and Numb's defaults land.
+
+  mislead.night:
+    beat: A grey false dawn glows faintly over the enemy; when they strike, it flares and burns out black, their skill dies with it, and any Dusk on them turns to Midnight.
+    cues:
+      - { on: apply, status: false_dawn, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, opacity: 0.8 }   # Invisible: owner only. A pale halo of cloud rises over them, a dawn that never comes
+      - { on: trigger, status: false_dawn, fx: stylized_explosion_004, tint: duo, scale: 0.9, frames: [12, 22] }   # the false sun flashes and burns out around a black core
+      # The counter's X follows; with Dusk on them, the midnight macro and Frozen Sleep's ice.
+
+  stun.night:
+    beat: A soft burst of snow falls over the target's head and they slump into a frost cocoon.
+    note: "Stagger: the portrait sways, then sinks as Dormant's cocoon closes."
+    cues:
+      - { on: hit, fx: round_sparkle_burst_002, variant: white, size: small, scale: 0.7, offset: [0, 0.3] }
+      - { on: hit, fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.4, offset: [0, 0.3], delay: 60 }   # the blow under the snow
+      # Dormant's (forced) default follows.
+
+  dance.night:
+    beat: Two crescent blades of black frost circle in around the user and join in a spinning ring as snow whirls up; a blow that would drop them low is caught, and they sink into sleep.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_001, tone: light, scale: 0.8 }   # snow glints swirl up as they turn
+      - { on: apply, status: drowsing_waltz, fx: dark_mage_2, tint: duo, scale: 1.3, layer: under, frames: [0, 10] }   # past the frame; its dark-red last frame dropped
+      - { on: remove, status: drowsing_waltz, fx: symmetrical_impact_002, tint: duo, size: small, scale: 0.6, note: "reason consumed only (its own removeSelf at 30 HP or less): the hit that would drop them below 30 stops at 30 with this flash, then Dormant's cocoon follows. Not expired, cleansed or stolen: the waltz simply running out plays nothing" }
+      - { on: trigger, status: drowsing_waltz, fx: none }   # it fires on every hit and only acts at 30 HP or less; the remove above is the visible catch
+      # Might's and Swiftness's defaults follow.
+
+  heal.night:
+    beat: Starlight rises through the ally, soft crosses drift up, and they're tucked under the snow to rest.
+    cues:
+      - { on: heal, fx: directional_star_burst_001, tone: light, scale: 0.8, speed: 1.5 }
+      - { on: heal, fx: spell_heal_002, tint: element2, tone: light, size: small, scale: 0.45, delay: 150, speed: 1.5 }
+      # Dormant's default follows.
+
+  bless.night:
+    beat: A pale star opens over the ally and settles on them as a single twinkle; two turns on, dawn breaks there.
+    cues:
+      - { on: apply, status: promise_of_dawn, fx: starcaller_1, tint: element, tone: light, face: down, scale: 0.5, offset: [0, 0.65] }   # its spray turned down onto the ally, ending on one lone twinkle: the promise
+      - { on: trigger, status: promise_of_dawn, fx: round_sparkle_burst_003, tone: light, scale: 0.9, note: "the promise kept, as it ends: four glints gather into a morning star that bursts into a ring. Might's, Swiftness's and Renew's defaults follow" }
+
+  curse.night:
+    beat: A dark crescent drifts down over the target, and the stars above them prick out and go dark one by one.
+    note: "Dusk and Starless Sky are both hidden, so the opponent sees only the dark crescent arrive; everything after it is the owner's."
+    cues:
+      - { on: travel, fx: deathbringer_6, path: arc, tint: duo, scale: 0.5 }   # a crescent-fronted dark moon trailing smoke
+      - { on: apply, status: starless_sky, fx: stylized_explosion_004, tone: light, scale: 0.8, offset: [0, 0.5], frames: [0, 9], note: "only the wind-up glints: small white diamonds wink in over them and go out, the stars pricking out and going dark. Never the blast (12+), which is False Dawn's" }
+      - { on: trigger, status: starless_sky, fx: none }   # each skill they use: deepen_dusk's bite (owner only), or midnight's cues at 1, carries it; with no Dusk left, nothing shows
+
+  smite.night:
+    beat: A pale star of moonlight drops out of the dark onto the target and the user slips behind the clouds.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted; the falling star reads on its own."
+    cues:
+      - { on: hit, fx: starcaller_2, tint: element, tone: light, face: down, scale: 0.9, offset: [0, 0.3], note: "turned to fall straight down onto them, white head leading. The comet ends low in its canvas, so the offset lands it at the center, where the impact plays. Shot flies the same star across on an arc; here it only ever drops" }
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, size: small, scale: 0.55, delay: 250 }   # where it lands
+      # Sanctify's default lands on the target and Stealth's on the user.
+
+  prayer.night:
+    beat: Pale columns of light rise behind each ally like vigil candles, crosses of light rise through them, and they all sleep under the snow.
+    cues:
+      - { on: heal, fx: dark_mage_3, tint: element, tone: light, scale: 1.2, layer: under, opacity: 0.8, stagger: 90 }   # per ally, since a side is a column: one vigil candle behind each portrait
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 0.6, speed: 1.5, stagger: 90 }
+      # Dormant's default follows on each ally.
+
+  cleave.night:
+    beat: The user's blade draws a crescent moon out of the dark, and it sweeps through the target and one more enemy, cutting any Dusk short.
+    note: "Every hit and Dusk change happens inside the crescent_cut macro, which plays per enemy cut: the target, then the random one."
+    cues:
+      - { on: cast, fx: frost_knight_2, tint: duo, scale: 0.7 }   # the uppercut crescent rises on the user
+
+  shout.night:
+    beat: The user's howl rings out in a spiked double ring and a widening cone of black frost rolls over every enemy like a wave of dread.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.1 }
+      - { on: travel, fx: necromancer_3, path: beam, tint: duo, scale: 0.75, stagger: 70, note: "one cone per enemy, widening from the user. Duo maps the art's near-black mist to the ice-blue stop and its highlights to slate, so it stays visible without tone and reads as Night's frost rather than Shadow's grey mist (Shadow's Shout flies the same cone)" }
+      - { on: trigger, status: hoarfrost_howl, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.35 }   # each Frost debuff they gain meanwhile: a glint of hoarfrost as it's lengthened
+      # Intimidated's default lands on each enemy.
+
+  withstand.night:
+    beat: Black-frost arcs wrap the user like a cloak; blows shake snow off it, and an enemy who tears it away loses the user in the falling snow.
+    cues:
+      - { on: apply, status: frostfall_cloak, fx: frost_knight_9, tint: duo, scale: 1.3, layer: under, speed: 0.8, opacity: 0.85, note: "past the frame: the arcs wrap the portrait as a cloak" }
+      - { on: trigger, status: frostfall_cloak, fx: symmetrical_smoke_burst_002, variant: white, size: small, scale: 0.5, opacity: 0.85 }   # each blow to the cloak shakes snow off it
+      - { on: remove, status: stealth, fx: none, note: "only the removeEffect inside frostfall_cloak's trigger (reason consumed, immediately followed by the new Stealth's apply), which clears an older Stealth before granting the new one. The granted Stealth's later end plays Stealth's own remove/expire" }
+      # Base's shieldBreak plays as it breaks; Stealth's default shows the vanish.
+
+  taunt.night:
+    beat: The user hums a mocking lullaby at the target, then curls up under the snow with one eye open, leaving the taunted enemy no one to hit.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, tone: light, scale: 0.7 }   # the hummed notes rise off the user
+      # The lullaby reaches the target, then Taunt's '!' (this skill's apply cues replace Taunt's default).
+      - { on: apply, status: taunt, fx: directional_music_burst_002, tone: light, size: small, scale: 0.5, offset: [0, 0.3] }
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, scale: 0.5, delay: 300 }
+      # Dormant's default then seals the user in.
+
+  titan.night:
+    beat: Black ice heaves up into a glacier over the user and a frost cocoon seals the sleeping giant inside; it breathes frost each turn, and when it wakes the ice bursts away.
+    note: "Sleeping Giant counts as Dormant: show Dormant's snowfall aura while it lasts. The Dusk every enemy gains on waking plays Dusk's default, owner side only."
+    cues:
+      - { on: cast, fx: frost_knight_3, tint: duo, scale: 1.2, speed: 1.3 }   # a row of black-ice spikes ruptures around the user
+      - { on: apply, status: sleeping_giant, fx: frost_mage_3, tint: duo, scale: 1.7, delay: 150, note: "a glacier towers up over them with a heavy screen shake; it ends on its brightest frame, so hold it a beat, then fade" }
+      - { on: apply, status: sleeping_giant, fx: blood_knight_5, tint: duo, scale: 1.6, delay: 500, frames: [0, 4], note: "Dormant's cocoon at giant size; fade out from frame 4 (the closed oval), as Dormant's does" }
+      - { on: trigger, status: sleeping_giant, fx: directional_smoke_burst_004, variant: white, scale: 0.8, offset: [0, 0.3], opacity: 0.85, note: "each turn end: a slow breath of frost; Shield's default follows. turnEnd firings only (the 20 Shield): the onExpire wake plays the remove cue instead" }
+      - { on: remove, status: sleeping_giant, fx: frost_mage_6, tint: duo, scale: 1.3, note: "reason expired only, the onExpire wake: the giant wakes and the ice cracks and bursts away. Focus's default follows, then Dusk's apply or deepen_dusk's bite on every enemy (owner only). Nothing on death" }
+
+  snow_owl_silent_talons:
+    beat: Pale talons rake silently through the target.
+    note: "30 against Frozen Sleep (the same hit event): play the rake about 1.3x."
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: element, tone: light, face: fromActor, scale: 0.6 }
+      - { on: hit, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.4, delay: 80 }

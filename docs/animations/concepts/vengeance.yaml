@@ -1,0 +1,283 @@
+group: vengeance
+# Vengeance (Lightning + Holy) is judgment as lightning. Three materials: `duo` is the fusion's own,
+# gold bodies edged in deep violet (Paladin art takes it too, its ochre outlines turning violet); plain
+# palette art keeps the default `element` tint for violet crackle; `element2` (Holy gold, `tone: light`
+# for mercy) carries heals and grace.
+# Signature motif, the Answer: a wrong is paid back from above. Every retaliation drops a gilded bolt
+# onto the offender: the full strike (lightning_strike_003A) for the big reckonings (Spear of Reprisal,
+# Found Wanting, Chastening Shock's sentence, the Avenger's descent) and a thin bolt (lightning_strike_003B)
+# for every small reactive answer (Heaven's Rebuke's second sentence, Karmic Debt, Karmic Spark, Call for
+# Vengeance, Avenger), always dropping from above the offender's head. Vow is an oath-ring of two blades
+# locking around the bearer; Wrath is fury rising off them in gilded spikes, and spending it bursts into
+# glowing orbs before Charged's crackle takes over.
+
+statuses:
+  vow:
+    note: >-
+      No trigger cue: Vow's answer is the Wrath it grants, and Wrath's apply plays for it. No aura: Vow sits
+      on most of this kit's users at once, and the status icon carries it. The Storm Griffin's and
+      Herald's Vow is a passive, but summoning applies it (an effectApplied right after `summoned`), so the
+      ring plays on them too; Storm Griffin and Herald of Vengeance replace it with a delayed copy that
+      locks on once the minion has landed.
+    apply:  [ { fx: dark_mage_2, tint: duo, scale: 0.8, speed: 1.3, opacity: 0.9, frames: [0, 10] } ]   # two blades swing in and lock into a ring around the bearer; frame 11 (a dark-red jump) cut
+    expire: [ { fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4, opacity: 0.7 } ]       # the ring breaks into stars
+    remove: [ { fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4, opacity: 0.7 } ]
+  wrath:
+    note: >-
+      Kept until spent, up to 3: the status icon carries the count, so no aura. Its triggers only keep
+      the books (the struck flag); the spend shows as its remove, then Charged's crackle once per Charge.
+    apply:  [ { fx: directional_particle_burst_002, size: small, tint: duo, scale: 0.55, speed: 1.5, layer: under } ]   # gilded spikes of fury flick up from the bearer's feet, one burst per gain
+    remove: [ { fx: round_firework_burst_002, size: small, tint: duo, scale: 0.55, speed: 1.6, frames: [0, 14] } ]   # spent: the stored fury bursts out in glowing orbs (not base Focus's willow pop); cut before the long fizzle so Charged's crackle follows
+  vengeance_ledger:
+    note: >-
+      The fusion passive only remembers damage for Found Wanting; nothing on the board changes, so it plays
+      nothing. Found Wanting's bolts, sized by each debt, are where the ledger shows.
+    trigger: []
+
+macros: {}   # Vengeance defines none
+
+skills:
+  strike.vengeance:
+    beat: A gilded crescent cuts into the target with a violet crackle; striking back at the last attacker stokes Wrath.
+    cues:
+      - { on: hit, fx: warrior_6, face: fromActor, tint: duo, scale: 0.85, note: "the impact star sits ~70% across the art: offset it so the star lands on the target" }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.45, delay: 100 }
+      # The conditional Wrath reads through Wrath's default.
+
+  smash.vengeance:
+    beat: A gilded comet of judgment slams onto the target and forked bolts burst up under each of their allies; a second sentence falls on any of them whose Condemnation fires.
+    cues:
+      - { on: hit, only: primary, fx: paladin_6, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, scale: 0.8, delay: 120 }   # the slam's violet shock ring
+      - { on: hit, only: others, fx: lightning_strike_001, size: small, tint: duo, scale: 0.6, delay: 200, stagger: 100 }
+      - { on: apply, status: heavens_rebuke, fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.35, offset: [0, 0.55], delay: 350, stagger: 80 }   # a glint of judgment hangs over each enemy
+      - { on: trigger, status: heavens_rebuke, fx: lightning_strike_003B, size: small, tint: duo, scale: 0.8, offset: [0, 0.45], note: "it checks after every skill the bearer uses: play only when the second Debuff lands (that Debuff's default follows)" }   # the thin bolt runs from above their head down to the chest
+
+  charge.vengeance:
+    beat: The user rides a gilded bolt into the target and drives through them like a lance.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, path: beam, tint: duo, speed: 1.6, note: "the user's portrait dashes along the bolt" }
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 0.8, note: "the blade grows from the art's left: put that edge on the target so the thrust carries on past them" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.5, delay: 80 }
+      # Focus's default marks the next skill (more stacks per Wrath spent); spent Wrath plays its own remove.
+
+  riposte.vengeance:
+    beat: A ring of hallowed feedback pulses quietly around the user; the first attacker's skill shorts out against it as it rings out.
+    cues:
+      - { on: apply, status: hallowed_feedback, fx: symmetrical_impact_005, tint: duo, scale: 0.8, opacity: 0.85 }   # Invisible: owner only
+      - { on: trigger, status: hallowed_feedback, fx: symmetrical_explosion_004, tint: duo, scale: 1.0 }   # the feedback rings out; its empty center frames the user
+      - { on: trigger, status: hallowed_feedback, fx: lightning_burst_002, at: source, size: small, scale: 0.5, delay: 100 }   # the stopped skill shorts out; base's counter X follows
+      # Charged's crackle follows; at 3 Charge its discharge and Anointed's halo show the swap.
+
+  rage.vengeance:
+    beat: Jagged power gathers into a gilded orb on the user and bursts outward as the ground cracks under them; the oath-ring locks around them.
+    cues:
+      - { on: apply, status: sworn_vengeance, fx: stylized_explosion_005, tint: duo, scale: 1.2, speed: 1.2, frames: [13, 23] }   # from the orb forming: skips the sparse wind-up and the faint last outline
+      - { on: apply, status: sworn_vengeance, fx: directional_impact_004, tint: element2, scale: 1.2, layer: under, delay: 180 }   # the ground cracks as the burst lands
+      # Vow's ring follows. When Sworn Vengeance ends, Wrath's spend and Charged's crackle show the conversion.
+
+  shot.vengeance:
+    beat: A tiny gilded comet flicks to the target and pops in a spray of sparks; later, each heal its Sanctify gives spits a spark back to the user.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: toTarget, size: small, tint: duo, scale: 0.35 }
+      - { on: travel, fx: starcaller_2, path: straight, tint: duo, scale: 0.35, speed: 1.4 }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.5 }
+      - { on: trigger, status: answering_spark, fx: scifi_muzzle_flash_001, face: toActor, size: small, tint: duo, scale: 0.4, note: "play only when the bearer still has Sanctify (when the Charge is given); Charged's default follows on the user" }
+
+  snipe.vengeance:
+    beat: The user's raised hand hums with a spear of light pointed at no one; next turn, or the moment the target strikes an ally, a gilded bolt falls on them.
+    note: >-
+      HiddenTarget: nothing marks the target before the hit. The 40-damage path (the aim running out) has
+      no trigger, so the spear simply falls; the reprisal path launches it skyward first.
+    cues:
+      - { on: apply, status: spear_of_the_fallen, fx: scifi_charge_up_001, tint: duo, scale: 0.7, speed: 1.3 }   # on the user only
+      - { on: trigger, status: spear_of_reprisal, fx: scifi_muzzle_flash_002, at: actor, face: up, tint: duo, scale: 0.6, offset: [0, 0.5] }   # the spear launches straight up, never toward anyone
+      - { on: hit, fx: lightning_strike_003A, tint: duo, scale: 1.4 }   # the Answer, full size
+      - { on: hit, fx: symmetrical_impact_003, scale: 0.8, delay: 150, note: "if the renderer can tell, scale up ~20% for the 60 Piercing reprisal" }
+
+  trap.vengeance:
+    beat: A gilded seal of warrant settles unseen on the target; when they attack, it bursts beneath them and every ally of the user swears a Vow.
+    cues:
+      - { on: apply, status: warrant, fx: deathbringer_2, tint: duo, scale: 0.6, opacity: 0.75, speed: 1.5, frames: [0, 15], note: "fade out on the glowing seal: the late frames melt into a solid blob" }   # Invisible: owner only
+      - { on: trigger, status: warrant, fx: directional_impact_003, tint: duo, scale: 0.8 }   # the warrant is served; Vow's ring then locks on every ally
+
+  maneuver.vengeance:
+    beat: The user blinks out in a flash and keeps watch from inside an untouchable shell; a watchful glint hangs over each ally.
+    cues:
+      - { on: cast, fx: round_light_burst_001, tint: duo, scale: 0.9, note: "the portrait blinks out with the flare; Invulnerable's shell follows" }
+      - { on: apply, status: vigilant_step, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.45, offset: [0, 0.5], stagger: 80 }
+      - { on: trigger, status: vigilant_step, fx: scifi_muzzle_flash_003, face: toActor, size: small, tint: duo, scale: 0.4, offset: [0, 0.5] }   # a spark leaves the struck ally's head for the user, where Wrath's spikes then land
+
+  companion.vengeance:
+    beat: The Storm Griffin dives out of the sky in a gilded arc, lands in a splash of gilded dust and sparks, and its oath-ring locks on.
+    cues:
+      - { on: summon, fx: frost_knight_10, tint: duo, scale: 1.0, note: "the impact corner (bottom-right as drawn) on the griffin's slot, mirrored on the other side" }
+      - { on: summon, fx: directional_impact_002, tint: duo, scale: 0.9, layer: under, delay: 350 }   # the landing throws dust and sparks out both ways; no orb burst here, since that is Wrath's spend
+      - { on: apply, status: vow, fx: dark_mage_2, tint: duo, scale: 0.8, speed: 1.3, opacity: 0.9, frames: [0, 10], delay: 450 }   # its passive Vow, applied on summon: replaces the default so the ring locks on after the landing
+
+  bolt.vengeance:
+    beat: A gilded orb with a violet crescent front flies at the target and bursts into rings of judgment.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.7 }   # the crescent head leads
+      - { on: hit, fx: symmetrical_impact_002, tint: duo }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.5, delay: 100 }
+      # Mark's lock-on and, when Wrath added, Stun_ns's sword-and-X follow.
+
+  blast.vengeance:
+    beat: The ledger opens; forked bolts erupt under the whole enemy row and each enemy is struck from above, harder the more they owe.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, speed: 1.3, frames: [0, 9] }   # sparks gather on the user: the converge, without the burst
+      - { on: hit, fx: lightning_strike_001, at: enemySide, tint: duo, scale: 2.6, layer: under, note: "once, with the first hit" }
+      - { on: hit, fx: lightning_strike_003A, tint: duo, delay: 120, stagger: 90, note: "scale with each enemy's damage: ~0.7 at the base 10, up to ~1.5 at 50" }
+
+  consume.vengeance:
+    beat: The user's stored Wrath cools into a bloom of light, a small jolt pops on the target, and a jet of gold streams back and spirals into the user as grace.
+    cues:
+      - { on: remove, status: wrath, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.6 }   # replaces Wrath's spark burst here: this Wrath turns to healing, not Charge
+      - { on: hit, fx: lightning_burst_002, size: small, tint: duo, scale: 0.45 }
+      - { on: hit, fx: scifi_muzzle_flash_002, face: toActor, size: small, tint: element2, tone: light, scale: 0.5, delay: 100 }
+      - { on: heal, fx: spell_absorb_001, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.8, delay: 200, note: "scale with the heal: ~0.5 at 10, ~1.0 at 55" }   # the jet's gold arrives: orbs spiral inward on the user
+
+  summon.vengeance:
+    beat: Forked bolts erupt from a ring of stars, the Herald rises between them, and its oath-ring locks on.
+    cues:
+      - { on: summon, fx: lightning_strike_001, tint: duo, scale: 1.1 }
+      - { on: summon, fx: directional_sparkle_burst_002, tint: element2, scale: 0.8, layer: under, delay: 250 }
+      - { on: apply, status: vow, fx: dark_mage_2, tint: duo, scale: 0.8, speed: 1.3, opacity: 0.9, frames: [0, 10], delay: 450 }   # its passive Vow, applied on summon: replaces the default so the ring locks on after it has risen
+
+  channel.vengeance:
+    beat: A ring of vigil lights under the user; at each turn's end it flares and a gilded needle drops onto every enemy, ringing out along the ground.
+    cues:
+      - { on: apply, status: vigil_of_wrath, fx: dark_mage_3, tint: duo, scale: 1.2, layer: under }
+      - { on: trigger, status: vigil_of_wrath, fx: dark_mage_3, tint: duo, scale: 1.0, layer: under, opacity: 0.8, speed: 1.4 }
+      - { on: hit, fx: scifi_warp_003, size: small, tint: duo, scale: 0.6, speed: 1.3, stagger: 80, note: "the canvas bottom at each enemy's feet. Scale up with the Wrath added: ~0.6 at the base 5, ~1.0 at 35" }   # a needle from above, then a ground ring and crackling tendrils
+      # Vow's ring locks on with the channel; spent Wrath and the Charge it becomes show through their defaults.
+
+  stab.vengeance:
+    beat: A needle of gilded lightning punches straight through the target.
+    cues:
+      - { on: hit, fx: lightning_strike_002B, face: fromActor, size: small, tint: duo, scale: 0.6, speed: 1.5, note: "centered on the target so the needle runs through them along the thrust" }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.4, delay: 60 }
+      # Point of Reckoning only banks a Wrath: Wrath's default plays when it lands at the turn's end.
+
+  ravage.vengeance:
+    beat: A dome of gilded slashes tears into the target and a violet crackle rips through; a few hearts of clemency float up, kept if they stay their hand.
+    cues:
+      - { on: hit, fx: paladin_8, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: lightning_burst_003, scale: 0.8, delay: 150 }   # Piercing: the crackle passes through
+      - { on: apply, status: clemency, fx: directional_heart_burst_002, tint: element2, tone: light, scale: 0.6, speed: 1.5, delay: 300 }
+      - { on: trigger, status: clemency, fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: dark, scale: 0.5 }   # they attacked: mercy withdrawn
+      - { on: heal, fx: spell_heal_002, tint: element2, tone: light, scale: 0.7, speed: 1.5 }   # clemency honored at the turn's end
+
+  mislead.vengeance:
+    beat: A faint gilded haze settles on the target unseen; when they attack, it tears open like a portal and the reprisal strikes them.
+    cues:
+      - { on: apply, status: swift_reprisal, fx: directional_smoke_burst_001, tint: duo, tone: light, scale: 0.7, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: swift_reprisal, fx: scifi_warp_001, tint: duo, scale: 0.9 }   # base's counter X marks the stopped skill
+      - { on: hit, fx: stylized_impact_001, tint: duo, scale: 0.9, delay: 80 }
+      # Spent Wrath and the Charge it becomes play their defaults on the user.
+
+  stun.vengeance:
+    beat: A gilded shock jolts the target under a warning of judgment; when they next act, the sentence falls on them as a bolt and pins them.
+    cues:
+      - { on: hit, fx: lightning_burst_003, tint: duo, scale: 0.9, note: "the target's portrait shudders" }
+      - { on: trigger, status: chastening_shock, fx: lightning_strike_003A, tint: duo, scale: 1.1 }   # the Answer; Condemned's flare, its Debuff and Stun's default follow
+
+  dance.vengeance:
+    beat: A gilded tempest spirals open around the user; reaching full Wrath, forked bolts erupt and seal them untouchable.
+    cues:
+      - { on: apply, status: heavens_tempest, fx: slime_5, tint: duo, scale: 1.3, layer: under, opacity: 0.85, speed: 1.2 }   # a vortex growing past the portrait; under it, so the Might, Swiftness and Vow icons stay readable
+      - { on: trigger, status: heavens_tempest, fx: lightning_strike_001, tint: duo, scale: 1.3, note: "it checks on every Wrath gained: play only when Invulnerable lands (its default follows)" }
+      # Might, Swiftness and Vow show through their defaults.
+
+  heal.vengeance:
+    beat: Sparks converge on the ally into a gilded star that pops, and light rises through them; each Charge they spend later sparks into a smaller heal.
+    cues:
+      - { on: heal, fx: round_sparkle_burst_003, tint: duo, scale: 0.9, speed: 1.2, frames: [5, 16] }   # skips the faint converge for an immediate star
+      - { on: heal, fx: spell_heal_003, tint: element2, tone: light, scale: 0.9, speed: 1.8, delay: 150, note: "the later 10-heals replay these heal cues: about 0.6 scale if the renderer can tell" }
+      - { on: trigger, status: spark_of_mercy, fx: lightning_burst_002, size: small, tint: duo, scale: 0.45 }   # the spent Charge sparks into healing
+
+  bless.vengeance:
+    beat: A gilded tether binds the user and the ally, sealing a shared oath on both; a blow on either flares the bond.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, speed: 1.5, opacity: 0.8 }
+      - { on: apply, status: oathbond, fx: round_sparkle_burst_002, size: small, tint: duo, scale: 0.5 }   # on both bearers
+      - { on: trigger, status: oathbond, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45 }   # Wrath's default then lands on both
+
+  curse.vengeance:
+    beat: Gilded coins of debt spray over the target and settle at their feet; each time they deal damage, a thin bolt collects half of it back.
+    cues:
+      - { on: apply, status: karmic_debt, fx: directional_coin_burst_001, tint: duo, scale: 0.9, speed: 1.6 }
+      - { on: trigger, status: karmic_debt, fx: lightning_strike_003B, size: small, tint: duo, scale: 0.8, offset: [0, 0.45] }   # from above their head down to the chest
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.45, delay: 60 }
+      # Confusion's default lands with the coins.
+
+  smite.vengeance:
+    beat: A gilded bolt leans down onto the target from the user's side and leaves them sputtering; each ally they hit calls a thin bolt down on them again.
+    cues:
+      - { on: hit, fx: lightning_strike_002A, face: fromActor, tint: duo, scale: 1.0, note: "the impact corner (lower-left as drawn) on the target" }
+      - { on: hit, fx: lightning_burst_003, size: small, tint: element2, scale: 0.5, delay: 120 }
+      - { on: trigger, status: karmic_spark, fx: lightning_strike_003B, size: small, tint: duo, scale: 0.8, offset: [0, 0.45] }   # the gilded Answer from above their head; Sapped's default follows
+
+  prayer.vengeance:
+    beat: A wave of gold light rolls under the team and stars rise through every ally; then their Charge streams across into the user.
+    cues:
+      - { on: cast, fx: directional_impact_002, at: allySide, tint: element2, tone: light, scale: 1.6, layer: under }
+      - { on: heal, fx: directional_star_burst_001, tint: element2, tone: light, scale: 0.9, speed: 1.5, stagger: 80 }
+      - { on: remove, status: charged, fx: scifi_muzzle_flash_002, face: toActor, size: small, scale: 0.5 }   # replaces Charged's discharge: each ally's Charge leaves toward the user
+      - { on: apply, status: charged, fx: spell_absorb_001, scale: 0.8, speed: 1.6 }   # Lightning's take-in look, on the user
+      # Shield's bubble lands on every ally through its default.
+
+  cleave.vengeance:
+    beat: A gilded crescent sweeps through the target and a violet bolt leaps into every Condemned enemy, their Condemnation flaring as it strikes.
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, only: others, fx: warrior_2, face: fromActor, tint: duo, scale: 0.6, delay: 150, stagger: 120 }   # each Condemned enemy, or the random one
+      - { on: hit, only: others, fx: lightning_strike_003B, size: small, scale: 0.8, offset: [0, 0.45], delay: 100, stagger: 120 }   # the violet bolt drops onto each from above
+      - { on: remove, status: condemned, fx: round_light_burst_001, size: small, tint: element2, scale: 0.6 }   # Condemned's trigger flare in place of its quiet remove: it fires now; the random Debuff's default follows
+
+  shout.vengeance:
+    beat: A gold-white thunderclap bursts off the user and a flare sweeps the team as every ally swears a Vow; an enemy who strikes them is answered with a thin bolt.
+    cues:
+      - { on: cast, fx: lightning_burst_003, tint: element2, tone: light, scale: 1.3 }
+      - { on: cast, fx: round_light_burst_001, at: allySide, tint: duo, scale: 2.0, delay: 150 }
+      - { on: trigger, status: call_for_vengeance, fx: lightning_strike_003B, at: source, size: small, tint: duo, scale: 0.8, offset: [0, 0.45] }   # from above the striker's head; Intimidated's gaze follows
+      # Vow's ring locks on every ally.
+
+  withstand.vengeance:
+    beat: A gilded ring-ward settles behind the user with a glint; if it's broken, it shatters and its shards flare up as three Wrath at once; left unbroken, it just fades.
+    cues:
+      - { on: apply, status: shield_of_retribution, fx: symmetrical_impact_002, tint: duo, scale: 1.3, layer: under, opacity: 0.8 }
+      - { on: apply, status: shield_of_retribution, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.5, offset: [0, 0.3], delay: 250 }
+      - { on: remove, status: shield_of_retribution, fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.8, note: "only when it breaks (effectRemoved reason 'depleted'), the one case that pays the Wrath: the ward shatters, in place of base's shieldBreak" }
+      - { on: remove, status: shield_of_retribution, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.5, opacity: 0.6, note: "only when it runs out or is stripped (any reason but 'depleted'): nothing is owed, so no shatter" }   # the ward fades
+      - { on: trigger, status: shield_of_retribution_watch, fx: directional_particle_burst_002, tint: duo, scale: 1.1, layer: under, delay: 150 }   # fires only on a break: Wrath's spikes, three at once, after the shatter
+      - { on: apply, status: wrath, fx: none }   # the trigger above already shows it
+
+  taunt.vengeance:
+    beat: The user raises crossed blades in challenge and a gilded reticle snaps onto the target; each blow they land on the user stokes double Wrath.
+    cues:
+      - { on: cast, fx: paladin_2, tint: duo, scale: 0.7, frames: [0, 4], note: "fade out the solid crossed-blades badge" }   # the blades swing in and cross, stopping before the plus signs (base's stat-raised language: Might)
+      - { on: apply, status: debuff, fx: frost_knight_7, tint: duo, scale: 0.7 }   # adds to Taunted's '!'; the user's Vow ring locks on too
+      - { on: trigger, status: come_and_face_me, fx: symbol_alert_002, size: small, tint: duo, scale: 0.4, offset: [0.4, 0.55], speed: 1.5, note: "only when the hit came from the Taunted enemy (the extra Wrath); fade the held glyph" }
+
+  titan.vengeance:
+    beat: A sword of gilded light drives down behind the user, the heavens' bolt strikes them and they rise as the Avenger in a ring of thunder.
+    note: The portrait swells about 15% as the bolt strikes. Armor, Immune and Vow show through their defaults; Sanctify's on each enemy the Avenger marks.
+    cues:
+      - { on: apply, status: avenger, fx: paladin_5, tint: duo, scale: 2.0, layer: under }
+      - { on: apply, status: avenger, fx: lightning_strike_003A, tint: duo, scale: 1.8, delay: 150 }
+      - { on: resolve, fx: symmetrical_explosion_004, scale: 2.2, layer: under }   # violet thunder ring
+      - { on: trigger, status: avenger, fx: lightning_strike_003B, at: source, size: small, tint: duo, scale: 0.8, offset: [0, 0.45] }   # whoever hurts the Avenger is answered from above; Sanctify's cross follows
+
+  storm_griffin_righteous_strike:
+    beat: The griffin rakes the target with crossed gilded talons and a violet crackle.
+    cues:
+      - { on: hit, fx: warrior_1, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.4, delay: 120 }
+
+  herald_of_vengeance_denounce:
+    beat: The herald flings a quick gilded flash at the target.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, size: small, tint: duo, scale: 0.4 }
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.55 }

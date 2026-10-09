@@ -1,0 +1,300 @@
+group: faerie
+# Faerie (Wind + Poison) is poison carried on fae air: pollen, thistledown, thorns and glamour-dust. Its
+# house color is `duo`: Wind's grey-blue shadow under Poison's lime body, so everything glows lime with a
+# pale steel edge. Plain Wind (`element`, the default for palette art) is bare air: a breath, a horn blast,
+# gossamer. Plain Poison (`element2`) is the venom underneath: thorn spokes, splashes, Toxin's bubbles.
+# From Wind it keeps the gust (frost_knight_5 carries thistledown and the Dust Storm); from Poison the
+# thorn and the splash. What is its own is the glamour, and four tells run through the kit:
+#   charm    Charmed is the kit's central status (about twenty skills apply it). It lands as a puff of
+#            glittering dust over the head with lime hearts drifting out of it (round_sparkle_burst_002 +
+#            directional_heart_burst_002, duo). No skill uses either asset, so the puff always means Charmed:
+#            it re-flashes when a Charm turns its bearer's aim, and crumbles away when the Charm wears off.
+#   wings    fae wings unfold as a mirrored pair of paladin_8 sweeps in duo: the Pixie, Fairy Wings, the Queen.
+#   shed     touch the fae and be charmed: glamour-dust flicks off into the attacker's face
+#            (directional_smoke_burst_003 at the source, fromActor): Gossamer Veil, the Sprite's mischief.
+#   seal     a charm that spreads to the bearer's allies: a lime fae seal (deathbringer_2): Enthrall, Fey Mark.
+
+statuses:
+  charmed:
+    note: >-
+      No aura, like Confusion: Dust Storm and Midsummer Revel put it on whole sides, and the status icon
+      carries it. Only the Charms that last until the bearer's next skill (Thorned Kiss, Dust Storm,
+      Glamoured Feint) end at that skill, through remove; every other Charm (Fairy Ring, Prank, Pixie Dust,
+      Toadstool Circle, a lost Fae Wager, Fey Reel, Fairy Tonic, Fairy Wings, Enthrall and its spread, Fey
+      Mark, Midsummer Revel, Gossamer Veil, Befuddle, the Sprite's mischief) is a plain duration and ends
+      through expire at turn end. The engine re-rolls a Charmed unit's target silently (no event), so the
+      trigger below is inferred by the renderer.
+    apply:
+      - { fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.5, offset: [0, 0.5], speed: 1.3 }   # the glamour puffs over the head...
+      - { fx: directional_heart_burst_002, tint: duo, size: small, scale: 0.5, offset: [0, 0.15], speed: 1.6, delay: 120 }   # ...and hearts drift out of it
+    trigger:
+      # the glamour puffs again as it turns their aim: the tell for why their skill lands on a random unit
+      - { fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.4, offset: [0, 0.5], speed: 1.8, note: "no engine trigger: play on the bearer at their skillUsed whenever they use a single-target skill while Charmed (its target was re-rolled), before that skill's cues; an until-skillUsed Charm then plays remove after the skill resolves" }
+    remove: [ { fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.45, offset: [0, 0.5], opacity: 0.8 } ]   # the glamour breaks into scattering motes
+    # it wears off: the apply puff's own crumble (speckles and fading twinkles), not a wisp that reads as a Toxin tick
+    expire: [ { fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.45, offset: [0, 0.5], frames: [10, 17], opacity: 0.7 } ]
+  # pixie_hide is a passive Untargetable with no action: nothing to play (the targeting UI carries it).
+  sprite_mischief:
+    # Damaged by an enemy: the Sprite flicks glamour-dust into the attacker's face (the shed tell); Charmed's default follows on them.
+    trigger:
+      - { fx: directional_smoke_burst_003, at: source, face: fromActor, tint: duo, size: small, scale: 0.45, note: "sprays from the Sprite's side past the attacker" }
+
+macros: {}   # Faerie defines none; Thistledown Hop and Petal Step use Wind's leap macro, which plays its own cues
+
+skills:
+  strike.faerie:
+    beat: A lime briar lashes the target and bursts into thorn spokes where it kissed, and the glamour takes them.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, fx: burst_splatter_003, tint: element2, size: small, scale: 0.45, delay: 90 }   # the thorns
+      # Charmed's default on the target, Toxin's on the user.
+
+  smash.faerie:
+    beat: A ring of toadstool spikes bursts up around the target in a clover of spores, smaller rings erupt under each ally, and anyone in flight is cinched to the ground.
+    cues:
+      - { on: hit, only: primary, fx: directional_impact_004, tint: duo, scale: 1.2 }
+      - { on: hit, only: primary, fx: symmetrical_smoke_burst_003, tint: element2, size: small, scale: 0.8, opacity: 0.85, delay: 120 }
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, delay: 160, stagger: 90 }
+      - { on: remove, status: buff, fx: dark_mage_2, tint: duo, scale: 0.8, frames: [0, 10], note: "once per unit that loses mobility buffs, however many go; each buff's own remove default and Charmed's default follow" }
+
+  charge.faerie:
+    beat: A gust thick with thistledown carries the user into the target, spines spraying past them, and the seeds lift the user off again into a Leap.
+    cues:
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.6, speed: 1.4, note: "the portrait lunges along the gust and snaps back" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, scale: 0.7 }
+      - { on: trigger, status: thistledown_hop, fx: directional_particle_burst_001, tint: duo, size: small, scale: 0.6 }   # as it ends: the seeds lift off with the user
+      # The leap macro's takeoff and Leaping's updraft follow.
+
+  riposte.faerie:
+    beat: A giggle of stars hides on the user; the first attack on them is spun around in a glamour whirl and blows up in a friend's face.
+    cues:
+      - { on: cast, fx: directional_star_burst_001, tint: duo, size: small, scale: 0.5, opacity: 0.8, speed: 1.6 }   # Invisible: owner only
+      - { on: trigger, status: prank, fx: slime_5, tint: duo, scale: 0.7, speed: 1.5 }   # the opponent's first sight of it: their skill is spun round
+      - { on: hit, fx: symmetrical_explosion_002, tint: duo, size: small, scale: 0.75 }   # the 15 lands on the attacker's ally
+      # Base's counter X marks the attacker, then Charmed's default.
+
+  rage.faerie:
+    beat: The Hunt is called with a horn blast over a ring of lime round the user; each turn the user draws blood, the horn sounds again and spectral hounds rake another enemy.
+    note: "The trigger fires on every direct hit the user deals; play it only when the once-per-turn check passes (a damage event follows)."
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.0 }   # framing the user, not a shockwave sent out
+      - { on: cast, fx: scifi_muzzle_flash_003, face: up, scale: 0.7, offset: [0, 0.4], delay: 120 }   # plain Wind: the hunting horn rising off them, the same horn as the trigger
+      - { on: trigger, status: wild_hunt, fx: scifi_muzzle_flash_003, face: toTarget, size: small, scale: 0.5 }   # the horn, from the user toward the hunted enemy
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.75 }
+      # Toxin's default follows on the hunted enemy.
+
+  shot.faerie:
+    beat: The user blows a pinch of glittering dust off their palm; it drifts over and pops into glitter on the target.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_003, face: toTarget, size: small, scale: 0.35 }   # a breath of plain air
+      - { on: travel, fx: round_sparkle_burst_001, path: arc, tint: duo, size: small, scale: 0.4 }
+      - { on: hit, fx: round_firework_burst_002, tint: duo, size: small, scale: 0.5, speed: 1.6 }
+      # Confusion's default, or Charmed's when they were already Confused.
+
+  snipe.faerie:
+    beat: Sparkles gather into a star-dart in the user's hand; next turn it is loosed with a glint and falls out of the sky on its mark, or on a random enemy carrying more Toxin than them, in a puff of elf-sickness.
+    cues:
+      # HiddenTarget: the wind-up and the release stay on the user and point nowhere; the dart falls straight down.
+      - { on: cast, fx: round_sparkle_burst_003, tint: duo, size: small, scale: 0.6 }
+      - { on: trigger, status: elfshot, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.4, offset: [0, 0.55] }
+      - { on: hit, fx: starcaller_2, face: down, tint: duo, scale: 0.9 }
+      - { on: hit, fx: stylized_explosion_006, tint: element2, size: small, scale: 0.6, delay: 250 }   # blooms as the comet lands (it slides for ~5 of its 8 frames)
+
+  trap.faerie:
+    beat: Glittering spores settle into a toadstool ring at the enemy's feet; each Helpful skill they use bursts a toadstool in a little mushroom of spores.
+    cues:
+      - { on: apply, status: toadstool_circle, fx: directional_sparkle_burst_002, tint: duo, scale: 0.8, opacity: 0.85 }   # Invisible: owner only
+      - { on: trigger, status: toadstool_circle, fx: epic_explosion_003, tint: duo, size: small, scale: 0.6, frames: [0, 8] }   # the opponent's first sight of it: cream mushroom and lime dome, cut before the dark crumbling smoke so Toxin's and Charmed's tells stay clear
+      # Toxin's and Charmed's defaults follow each spring.
+
+  maneuver.faerie:
+    beat: The user steps up onto the air, and petal-puffs whirl up around them into a ring.
+    cues:
+      # No cast of its own: the leap macro's takeoff, Leaping's updraft and Invulnerable's shell play first,
+      # and the petal ring is Faerie's mark on the Leap.
+      - { on: apply, status: petal_step, fx: directional_sparkle_burst_003, tint: duo, size: small, scale: 0.6, speed: 1.5 }
+
+  companion.faerie:
+    beat: Sparkles converge into a star that pops into a puff, and a Pixie unfolds her wings in it.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, tint: duo, scale: 0.85 }
+      - { on: summon, fx: paladin_8, tint: duo, scale: 0.8, offset: [-0.35, 0.1], layer: under, delay: 350 }   # the wings tell: behind the portrait, spilling past its sides
+      - { on: summon, fx: paladin_8, tint: duo, scale: 0.8, offset: [0.35, 0.1], layer: under, flip: x, delay: 350 }
+
+  bolt.faerie:
+    beat: A will-o'-the-wisp streaks into the target and bursts into a skull-lit flare; it clings, and flares again each time they act.
+    note: "The wisp_bolt tick's 10 Affliction replays the hit cue on the bearer: play it there at about 0.6 scale, after the trigger flare."
+    cues:
+      - { on: travel, fx: fire_looping_001, flip: y, tint: duo, scale: 0.45, speed: 1.3 }   # flipped so the white core leads and the flames trail
+      - { on: hit, fx: necromancer_5, face: fromActor, tint: duo, scale: 0.8, frames: [0, 5] }   # cut before its red end frames
+      - { on: apply, status: wisp_bolt, fx: fire_looping_001, tint: duo, size: small, scale: 0.3, offset: [0, 0.55], repeat: 2, speed: 1.4, opacity: 0.8, delay: 200 }   # it clings: the same wisp gutters over their head as it settles
+      - { on: trigger, status: wisp_bolt, fx: fire_looping_001, tint: duo, size: small, scale: 0.4 }
+
+  blast.faerie:
+    beat: A gale of glittering dust rolls down through the whole enemy column and showers down on each of them in falling sparks.
+    cues:
+      - { on: hit, fx: round_firework_burst_001, tint: duo, scale: 0.8, delay: 150, stagger: 70 }
+      - { on: hit, fx: frost_knight_5, at: enemySide, face: down, tint: duo, scale: 2.4, opacity: 0.85, note: "once, with the first hit: laid along the enemy column, the gale rolls down through every portrait" }
+      # Charmed's default follows on each.
+
+  consume.faerie:
+    beat: A fleck of essence is plucked from the target into the user, and twin wisps trade a curse for a blessing between them.
+    cues:
+      - { on: hit, fx: directional_splatter_001, face: toActor, tint: duo, scale: 0.9 }   # sparse art: upscaled so the fleck flicking out toward the user reads before the absorb
+      - { on: heal, fx: spell_absorb_001, tint: duo, size: small, scale: 0.55, speed: 1.6 }
+      - { on: remove, status: any, fx: starcaller_4, tint: duo, scale: 0.6, stagger: 100 }   # the swap: on the user as its Debuff leaves, on the target as its Buff leaves
+      # The moved statuses play their own apply defaults on their new holders.
+
+  summon.faerie:
+    beat: Two clusters of glowing motes rise like fireflies and pop into Sprites.
+    cues:
+      - { on: summon, fx: directional_particle_burst_001, tint: duo, scale: 0.7, stagger: 150 }
+      - { on: summon, fx: symmetrical_smoke_burst_001, tint: duo, size: small, scale: 0.55, opacity: 0.8, delay: 150, stagger: 150 }
+
+  channel.faerie:
+    beat: Lime notes rise around the user as the revel starts; at each of their turn ends a verse plays, one more enemy is swept in, and everyone Charmed is danced dizzy.
+    cues:
+      - { on: apply, status: midsummer_revel, fx: directional_music_burst_001, tint: duo, scale: 0.9 }
+      - { on: trigger, status: midsummer_revel, fx: directional_music_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.85 }
+      - { on: hit, fx: directional_star_burst_001, tint: duo, size: small, scale: 0.55, speed: 1.6, stagger: 80 }
+      # Charmed's default lands on the random enemy before the hits.
+
+  stab.faerie:
+    beat: Nettle needles prick the target, and their Toxin starts stinging at both ends of the turn.
+    note: "The nettle_prick tick (5 per Toxin) replays the hit cue on the bearer after the trigger's bubbles."
+    cues:
+      - { on: hit, fx: fanfx_pain, tint: duo, tone: light, scale: 0.7, speed: 2, frames: [2, 30] }   # sparse art: lightened so the needles read
+      - { on: trigger, status: nettle_prick, fx: status_poison_001, tint: element2, scale: 0.6 }   # Toxin's bubbles, one extra time at their turn start
+      # Toxin's default follows.
+
+  ravage.faerie:
+    beat: The user's speed peels off in a jet as they dive like a wasp, crashing into the target with a crack and a gout of venom.
+    note: "Each Swiftness stack spent adds 10: grow the three hit cues about 0.1 per stack."
+    cues:
+      - { on: remove, status: swiftness, fx: scifi_muzzle_flash_002, face: toTarget, size: small, scale: 0.7 }   # replaces Swiftness's fade: the speed spent as one jet
+      - { on: hit, fx: paladin_6, face: fromActor, tint: duo }
+      - { on: hit, fx: symmetrical_impact_003, size: small, scale: 0.5, delay: 80 }   # the sting cracks through in plain air
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: element2, scale: 0.6, delay: 150 }
+
+  mislead.faerie:
+    beat: The user tosses a glittering wager at the target's feet; if they attack, their skill falls through a slit in the glamour, and if they don't, the stake spills dark over the user and the glamour takes them instead.
+    cues:
+      - { on: apply, status: fae_wager, fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.55, speed: 1.6 }   # Invisible: owner only
+      - { on: trigger, status: fae_wager, fx: scifi_warp_001, tint: duo, size: small, scale: 0.7, note: "only on the counter (its skillUsed trigger, alongside skillCountered); not on its expiry" }   # the won wager: the opponent's first sight of it
+      - { on: trigger, status: fae_wager, fx: directional_coin_burst_001, at: actor, tint: duo, tone: dark, size: small, scale: 0.45, speed: 1.6, note: "only on its expiry (onExpire, the lost wager): the stake spills on the user just before Charmed's default; not on the counter" }
+      # Won: the warp on the bearer, the counter X, then Swiftness's and Focus's defaults on the user.
+      # Lost: the spilled stake on the user, then Charmed's default on them.
+
+  stun.faerie:
+    beat: A lullaby of lime notes arches over the target and they slump asleep; each blow only draws a fainter verse of it, and they sleep on.
+    note: >-
+      Stagger: the portrait sways and droops. Enchanted Slumber counts as Sleep under its own id, so Sleep's
+      defaults don't fire for it: hold Sleep's Z aura (base's status_sleep_001) over the bearer while it lasts.
+    cues:
+      - { on: apply, status: enchanted_slumber, fx: directional_music_burst_002, tint: duo, size: small, scale: 0.7 }
+      # Deliberately not Sleep's wake bubble (round_bubble_burst_001): a hit doesn't wake them. A dimmer reprise of
+      # the lullaby, started past its white flash so it doesn't pop like an impact: the spell thins but holds.
+      - { on: trigger, status: enchanted_slumber, fx: directional_music_burst_002, tint: duo, tone: dark, size: small, scale: 0.45, offset: [0, 0.35], speed: 1.8, frames: [3, 16], opacity: 0.85 }
+
+  dance.faerie:
+    beat: Two lime ribbons twirl over the user in opposite directions, a reel they can't stop dancing.
+    note: "Might, Swiftness, Focus and Charmed all land on the user at once: stagger their defaults about 100 ms apart after the ribbons."
+    cues:
+      - { on: cast, fx: paladin_9, tint: duo, speed: 1.3 }
+      - { on: cast, fx: paladin_9, tint: duo, flip: x, speed: 1.3, delay: 120 }
+
+  heal.faerie:
+    beat: A lime tonic fizzes up through the drinker in spinning crosses; an ally bubbles out their poison, an enemy is left giddy.
+    cues:
+      - { on: heal, fx: spell_heal_003, tint: duo, scale: 0.9, speed: 2 }
+      - { on: remove, status: toxin, fx: directional_splatter_005, tint: element2, size: small, scale: 0.6, delay: 150 }   # replaces Toxin's fade: the poison bubbles up out of them
+      # On an enemy, Charmed's default.
+
+  bless.faerie:
+    beat: A glittering mote drops onto the ally and opens a pair of fae wings on their back; a Stun that lands sheds off them in petals.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: drop, tint: duo, size: small, scale: 0.5 }
+      - { on: apply, status: fairy_wings, fx: paladin_8, tint: duo, scale: 0.9, offset: [-0.4, 0.1], layer: under, note: "only the first application: the trigger's addStacksSelf top-up shows nothing" }
+      - { on: apply, status: fairy_wings, fx: paladin_8, tint: duo, scale: 0.9, offset: [0.4, 0.1], layer: under, flip: x }
+      - { on: trigger, status: fairy_wings, fx: directional_impact_001, face: up, tint: duo, size: small, scale: 0.5, note: "replaces the generic effectBlocked default for this negation (the effectBlocked whose reason is 'negated by Fairy Wings', emitted just before this trigger), as Swiftness's trigger does" }
+      # Charmed's default follows in place of the Stun.
+
+  curse.faerie:
+    beat: A lime fae seal forms over the enemy and melts down onto them; whenever they strike an ally while Charmed, it flares and the charm spreads.
+    cues:
+      - { on: apply, status: enthrall, fx: deathbringer_2, tint: duo, scale: 0.55, opacity: 0.85, speed: 1.5 }   # the seal tell; its last frames melt down over them
+      - { on: trigger, status: enthrall, fx: deathbringer_2, tint: duo, scale: 0.35, offset: [0, 0.6], speed: 2, frames: [2, 14], note: "only when the charm actually spreads (the bearer Charmed, the damaged unit their ally)" }
+      # Charmed's default lands with the seal, and on each ally it spreads to.
+
+  smite.faerie:
+    beat: A thorn of lime crystal drops onto the target and shatters, and a small fae seal flashes over them; when an ally tends them, the seal flares and the charm spreads to that ally.
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.9 }
+      - { on: apply, status: fey_mark, fx: deathbringer_2, tint: duo, scale: 0.35, offset: [0, 0.6], speed: 2, frames: [2, 14], delay: 150 }   # the seal tell, flashed rather than settled
+      - { on: trigger, status: fey_mark, fx: deathbringer_2, at: bearer, tint: duo, scale: 0.3, offset: [0, 0.6], speed: 2, frames: [2, 14], note: "on the marked unit, as an ally's Helpful skill reaches them; skip when they targeted themselves (nothing happens)" }   # the seal flares, as Enthrall's does
+      # Charmed's default follows on that ally.
+
+  prayer.faerie:
+    beat: The user's song rings out in lime notes over the whole team, sparkles lift every ally, and their poison drifts off to settle on the enemies.
+    cues:
+      - { on: cast, fx: round_music_burst_001, at: allySide, tint: duo, scale: 2.0, opacity: 0.75 }   # once, over the whole column: the team uplifted, not the singer
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, scale: 0.75, stagger: 100 }
+      - { on: remove, status: toxin, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.5, delay: 150, stagger: 100 }   # replaces Toxin's fade
+      # Toxin's default lands on each random enemy the stacks go to.
+
+  cleave.faerie:
+    beat: A phantom sweep flickers past the target, who swallows the feint, while the real crescent of glamour carves through every other enemy.
+    cues:
+      - { on: apply, only: primary, status: debuff, fx: starcaller_5, face: fromActor, tint: duo, scale: 0.85, opacity: 0.35 }   # the feint: a ghost of the sweep; Charmed's default follows
+      - { on: hit, fx: starcaller_5, face: fromActor, tint: duo, scale: 0.85, stagger: 80, note: "with no other enemy, this lands on the target: the feint turns real" }
+
+  shout.faerie:
+    beat: A peal of giggles bursts off the user in bubbles and a giggle pops beside every enemy's head; whenever one of them acts, their friends start giggling into Confusion.
+    cues:
+      - { on: cast, fx: round_bubble_burst_001, tint: duo, scale: 1.2 }
+      - { on: apply, status: fae_laughter, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.4, offset: [0.3, 0.5], delay: 150, stagger: 80 }   # the giggle pop: Fae Laughter's own tell, the same as its trigger (laughter, not song)
+      - { on: trigger, status: fae_laughter, fx: symmetrical_explosion_001, at: target, tint: duo, size: small, scale: 0.35, offset: [0.3, 0.5], note: "a giggle beside the head: on each ally who starts Giggling (the bearer acted), and on the bearer when it turns to Confusion; skip a turn end that changes nothing" }
+      # Confusion's default follows at the user's turn end.
+
+  withstand.faerie:
+    beat: A gauzy lime ring closes over the user and glittering threads hang in it; whoever strikes the veil gets a face full of glamour.
+    note: "Gossamer Veil is a Shield under its own id, so Shield's bubble doesn't play: this is its look. Hits it absorbs use base's blocked and shieldBreak defaults."
+    cues:
+      - { on: apply, status: gossamer_veil, fx: frost_mage_1, tint: duo, scale: 1.1, opacity: 0.6 }   # over the portrait: a veil, seen through
+      - { on: apply, status: gossamer_veil, fx: status_sparkling_001, opacity: 0.8, delay: 150 }   # the threads glitter in plain white air
+      - { on: trigger, status: gossamer_veil, fx: directional_smoke_burst_003, at: source, face: fromActor, tint: duo, size: small, scale: 0.55, note: "the shed tell; only for an enemy attacker" }
+      # Charmed's default follows on them.
+
+  taunt.faerie:
+    beat: The user winks and blows a pale kiss; it drifts flat onto the target, and a ring of glamour closes on the one ally their fickle heart now fixes on.
+    cues:
+      # No hearts: in this kit hearts rising off a unit mean that unit is Charmed.
+      - { on: cast, fx: round_light_burst_001, tint: duo, size: small, scale: 0.4, offset: [0, 0.2], speed: 1.5 }   # the wink: an eye-shaped flare opens at the face and collapses to a line
+      - { on: travel, fx: round_sparkle_burst_001, path: straight, tint: duo, tone: light, size: small, scale: 0.3, speed: 0.9 }   # slow, flat and pale: not Pixie Dust's lobbed arc
+      - { on: apply, status: debuff, at: source, fx: frost_knight_7, tint: duo, scale: 0.55, speed: 0.7, delay: 200, note: "on the ally the Taunt fixes them on (the effectApplied's source, set by from:), not the user: the reticle names who they must target" }
+      # Taunt's '!' default marks the target; the forced-target UI shows which ally holds them.
+
+  titan.faerie:
+    beat: Great lime wings unfold behind the user and a crown flashes over her head; a Sprite pops up at her side now and at each of her turns.
+    note: "Swell the portrait about 10% as the wings open."
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.3, offset: [-0.35, 0.1], layer: under }
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.3, offset: [0.35, 0.1], layer: under, flip: x }
+      - { on: cast, fx: symbol_crown_001, tint: duo, size: small, scale: 0.5, offset: [0, 0.7], speed: 2, frames: [0, 30], delay: 250 }
+      - { on: summon, fx: directional_particle_burst_001, tint: duo, scale: 0.6 }   # the same arrival as Sprite Swarm's
+      - { on: summon, fx: symmetrical_smoke_burst_001, tint: duo, size: small, scale: 0.5, opacity: 0.8, delay: 150 }
+      - { on: trigger, status: faerie_queen, fx: symbol_crown_001, tint: duo, size: small, scale: 0.35, offset: [0, 0.7], speed: 2, frames: [0, 30] }   # each turn start: the crown glints, then the summon cues play on the new Sprite
+      # Immune's default plays on the user.
+
+  pixie_befuddle:
+    beat: The Pixie flicks a curling wisp of glamour onto the target.
+    note: "On Prey the Charm lasts 2 turns; nothing extra shows."
+    cues:
+      - { on: travel, fx: starcaller_4, path: arc, tint: duo, scale: 0.45, speed: 1.4 }
+      # Charmed's default follows.
+
+  sprite_pinch:
+    beat: The Sprite darts in with a tiny lime pop and a flick of venom.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.35 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: element2, scale: 0.4, delay: 50 }

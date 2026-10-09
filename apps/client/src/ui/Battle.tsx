@@ -5,6 +5,7 @@ import { assignBench, delayFor } from '../match/playback.js';
 import { useStore } from '../store.js';
 import { CommitDialog } from './CommitDialog.js';
 import { ActionPopup } from './ActionPopup.js';
+import { VfxLayer } from './VfxLayer.js';
 import { Announcer } from './Announcer.js';
 import { Coach } from './Coach.js';
 import { GameOverOverlay, HandoffOverlay, Toast } from './Overlays.js';
@@ -127,6 +128,7 @@ export function Battle() {
 
   return (
     <div className="battle">
+      <VfxLayer view={view} />
       <TopBar match={match} view={view} viewer={viewer} myTurn={myTurn} />
 
       <main className="arena">

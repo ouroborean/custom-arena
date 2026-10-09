@@ -1,0 +1,291 @@
+# Lich (Ice + Unholy) animation concepts. Spec: docs/animations/README.md; brief: briefs/lich.md.
+# Lich is frozen blood. Its matter is Ice's Frost Knight / Frost Mage shapes and Unholy's necromancy
+# (Necromancer, Deathbringer, Blood Knight art) tinted `duo`: ice-blue outlines around a crimson body with
+# rose highlights. Where both parents show at once they keep their own colors on separate layers (Winter of
+# Souls: Ice's glacier, then Unholy's blood bursting up out of it). Two tells run through the kit:
+#   - the soul crystal (spell_ice_001, duo): a crimson-hearted crystal. Small, it is Soulfrost seeding in a
+#     victim; large, it is the Phylactery forming or refilling (make_phylactery, feed_phylactery, Retreat to
+#     the Vessel) and Hoarded Life's shell around the user.
+#   - the soul mote (directional_particle_burst_001, element2 + tone light, small): a rose mote lifting off a
+#     body whenever the Lich takes a soul (Soulfrost paying out, a kill by Death's Icicle, Touch of the
+#     Grave, the user's own soul going into the Phylactery). Unholy's Soul Fragment spiral then lands on
+#     whoever gained it; it is the same mote Unholy's spent Soul Fragment drifts off as.
+group: lich
+
+statuses:
+  soulfrost:
+    note: >-
+      Winter of Souls (smash.lich) and Heart of Ice (stun.lich) are inline statuses that count as Soulfrost.
+      Each plays these defaults (match on countsAs) for any key its skill doesn't cue itself: both skills cue
+      their own `apply` (this same crystal) and `trigger`, so countsAs only supplies what no skill can name,
+      their `remove` (ended by Soul Siphon, Doomfrost or a cleanse) and their `expire`. (This per-key countsAs
+      fallback isn't in the README yet: proposed as a rule for it.) The trigger fires on every direct hit
+      but pays only once a turn: play it only on a paying hit (a soul_fragment apply on the applier follows);
+      the other hits play nothing here.
+    apply:  [ { fx: spell_ice_001, size: small, tint: duo, scale: 0.45, speed: 2, note: "the soul crystal, small: it seeds on the chest, holds a moment and breaks to its outline" } ]
+    trigger: [ { fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.55 } ]   # the soul mote lifts off them; Soul Fragment's spiral lands on the applier
+    remove: [ { fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.5 } ]   # consumed or cleansed: the crystal shatters
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.5, opacity: 0.6 } ]   # ran out: it thaws off in a faint wisp
+  phylactery_bond:
+    note: >-
+      Applied to the creator by the Phylactery's onSummon and ended when it dies. No aura: the Phylactery
+      standing on the board shows it. The blow its HP floor stops (left at 1) is an ordinary damage event; once
+      the engine marks floored damage (see maneuver.unholy), the Phylactery's crystal could flash then.
+    apply:  [ { fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.6 } ]   # the soul mote: a piece of the user's own soul lifts out, bound for the Phylactery
+    remove: [ { fx: frost_mage_6, tint: duo, scale: 0.5, speed: 1.3 } ]   # the Phylactery is gone: the cold around their soul cracks apart, and they're mortal again
+  # Minion passives.
+  phylactery_jar:
+    note: >-
+      Fires on every hit to the Phylactery. What it does plays elsewhere: Retreat to the Vessel ending on the
+      creator (maneuver.lich's remove cue), and during Archlich Soulfrost's crystal on the attacker.
+    trigger: [ { fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45 } ]   # the crystal rings under the blow
+  frost_wight_soul:
+    trigger: [ { fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.55, speed: 1.5, frames: [6, 16], note: "only when the hit leaves it at 1 HP (a Soul Fragment spent instead of its life): glints rush into the wound and hold it together. Its other hits play nothing here" } ]
+  skeletal_mage_chill:
+    trigger: [ { fx: fanfx_slow, size: small, tint: duo, scale: 0.4, offset: [0, 0.6], speed: 2, note: "only when an enemy holds a Frost debuff it holds back: the clock over the mage stalls" } ]
+
+macros:
+  make_phylactery:
+    - { fx: spell_ice_001, tint: duo, scale: 1.1, speed: 2, note: "on the Phylactery, created or restored to full: the soul crystal forms over it, and its portrait appears (or its HP fills) as the crystal clears" }
+    - { fx: frost_knight_7, scale: 0.9, delay: 450, layer: under }   # a frost ring snaps out as it seals
+  feed_phylactery:
+    # One cue that reads for both branches (macro cues can't tell a heal from a summon): smite.lich and
+    # withstand.lich may heal an existing Phylactery or create one; channel.lich and taunt.lich call it only to create one.
+    - { fx: spell_ice_001, tint: duo, scale: 0.8, speed: 2, note: "on the Phylactery: the soul crystal, smaller than make_phylactery's, forms over it and clears; as it clears a new Phylactery's portrait appears, or an existing one's HP fills" }
+
+skills:
+  strike.lich:
+    beat: A scythe of frozen blood reaps through the target and spits ice out behind them; the weakest enemy's soul frosts over.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.9 }   # the counter-clockwise scythe: both parents' Strikes use frost_knight_4's clockwise crescent
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, tint: duo, scale: 0.45, delay: 80 }
+      # Soulfrost's crystal seeds on whichever enemy has the lowest HP, the target or not.
+
+  smash.lich:
+    beat: A glacier slams up around the target and a mass of frozen blood bursts up out of it; each time their frozen soul is harvested, the cold cracks out under their allies.
+    note: "winter_of_souls fires on every direct hit but pays (and splashes) once a turn: play its trigger only on a paying hit."
+    cues:
+      - { on: hit, only: primary, fx: frost_mage_3, scale: 1.2, note: "native ice; it ends on its brightest frame: hold a beat, then fade. A light screen shake" }
+      - { on: hit, only: primary, fx: symmetrical_explosion_003, tint: element2, scale: 0.9, delay: 120 }   # Unholy's blood bursting up out of Ice's glacier (Titan keeps the four-lobed nova)
+      - { on: apply, status: winter_of_souls, fx: spell_ice_001, size: small, tint: duo, scale: 0.45, speed: 2 }   # Soulfrost's crystal seeds in them: named here, so it is this skill's own cue
+      - { on: trigger, status: winter_of_souls, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.55 }   # Soulfrost's soul mote, re-added (this skill names the status)
+      - { on: trigger, status: winter_of_souls, fx: directional_impact_002, tint: duo, scale: 1.1, layer: under }   # the crack runs out along the ground both ways
+      - { on: hit, only: others, fx: directional_impact_004, size: small, tint: duo, scale: 0.7, stagger: 80 }   # the 10 bursts up over each ally: in front of the portrait, or the square portrait hides it
+
+  charge.lich:
+    beat: The user streaks across on a crimson-flecked frost gust and bursts against the target, leaving their own soul frosted as bait.
+    note: "The portrait lunges along the travel and snaps back."
+    cues:
+      - { on: travel, fx: frost_knight_5, path: straight, tint: duo, scale: 0.7 }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.6 }
+      # Soulfrost's crystal seeds on the user: enemy hits on them now feed them souls.
+
+  riposte.lich:
+    beat: Rime glints settle unseen over the user and their minions; a skill aimed at any of them is caught by a flaring ring of ice and its sender's soul frosts over.
+    cues:
+      - { on: apply, status: hidden_vessel, fx: status_sparkling_001, tint: duo, opacity: 0.6, speed: 1.5 }   # Invisible: owner only; on the user and each allied minion
+      - { on: trigger, status: hidden_vessel, fx: frost_knight_7, tint: duo, scale: 0.9 }   # on whichever vessel was targeted
+      # base counter's X marks the attacker, then Soulfrost's crystal seeds in them.
+
+  rage.lich:
+    beat: Crimson ice spikes tower up around the user and a frozen heart starts to pulse in their chest, harder the closer they are to death.
+    cues:
+      - { on: cast, fx: directional_impact_004, tint: duo, scale: 1.7, speed: 0.8, layer: under }   # large enough that the ring and spikes stand clear of the portrait's sides and head
+      - { on: apply, status: frozen_undeath, fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.5, repeat: 2, note: "the frozen heart on the chest; at 50+ HP missing (2+ Might) play it about 1.3x" }
+      # Immortal's default (crimson pillars, then its heartbeat) follows on the user.
+
+  shot.lich:
+    beat: A soul-cored icicle streaks to the target and bursts in frozen blood; spending a Soul Fragment drives it deeper and frosts their soul.
+    note: "removeStacks emits no event while stacks remain, so the spent fragment shows only when it was the last (Soul Fragment's remove default); otherwise the bigger burst carries it."
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.45 }   # a crescent head trailing frost-smoke: Unholy's soul bolt, frozen
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.55, note: "the 25-damage branch (a Soul Fragment spent), same hit event: about 1.4x; Soulfrost's crystal follows" }
+
+  snipe.lich:
+    beat: Shards of ice gather unseen into a point over the user; next turn it is loosed skyward and drops as a great crimson-cored icicle on the victim, whose soul fills the Phylactery if it dies.
+    note: "HiddenTarget: the wind-up and release stay on the user and point nowhere. Interrupted, base's interrupted default plays."
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, scale: 0.8, offset: [0, 0.5], speed: 0.7, frames: [10, 16], note: "only the last shards closing in, the orb they pack into and its flash: frames 2-9 carry the art's fixed pink and yellow shards, which don't tint, and 17 on is the burst" }
+      - { on: trigger, status: deaths_icicle, fx: scifi_muzzle_flash_001, face: up, tint: duo, scale: 0.5 }   # loosed straight up (fires from onExpire)
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 1.4 }   # the great icicle drops; it shatters on frame 6, about 300 ms in
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 300 }   # its crimson core bursts as the shard shatters
+      - { on: death, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.9 }   # the soul mote, whole: make_phylactery's crystal follows on the user's Phylactery
+
+  trap.lich:
+    beat: A rime-shackle closes unseen around the enemy's feet; their first attack sets it biting into their soul, their second locks them fast.
+    cues:
+      - { on: apply, status: frozen_shackle, fx: necromancer_1, tint: duo, scale: 0.8, opacity: 0.7, layer: under }   # Invisible: owner only. base Trap's snare-ring grammar, rimed in frozen blood
+      - { on: trigger, status: frozen_shackle, fx: directional_impact_003, tint: duo, scale: 0.85, note: "the second time (the Stun) about 1.3x; Soulfrost's crystal follows the first, Stun's default the second" }
+
+  maneuver.lich:
+    beat: The user slips through a slit of crimson ice into the Phylactery, which crystallizes if it wasn't there; a blow on the jar drags them back out.
+    cues:
+      - { on: apply, status: vessel_retreat, fx: scifi_warp_001, tint: duo, tone: dark, scale: 0.8, note: "the portrait thins to a translucent ghost while it lasts" }
+      - { on: summon, fx: spell_ice_001, tint: duo, scale: 1.1, speed: 2, note: "the soul crystal, as make_phylactery's: the Phylactery's portrait appears as it clears" }
+      - { on: remove, status: vessel_retreat, fx: scifi_warp_001, size: small, tint: duo, scale: 0.5, speed: 1.5, note: "the Phylactery was hit (its phylactery_jar passive ends this) or it ran out: the slit snaps shut and the portrait turns solid" }
+      # Phylactery's bond plays its soul mote on the user as the jar appears.
+
+  companion.lich:
+    beat: The ground heaves in a row of crimson ice spikes and the Frost Wight claws its way out inside a ring of frost.
+    cues:
+      - { on: summon, fx: frost_knight_3, tint: duo, note: "the Wight's portrait rises as the spikes crumble" }
+      - { on: summon, fx: symmetrical_explosion_004, scale: 0.8, delay: 250 }   # Ice-tinted; its empty center frames the Wight
+
+  bolt.lich:
+    beat: A crimson-hearted comet trailing ice-blue smoke streaks in and bursts into a frozen skull-seal; their haste and focus are frozen out of them and dread fills the gap.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.6, frames: [0, 5] }   # the orb and its tail only, cut before its own low-contrast splat; duo turns Shadow's blue orb crimson-cored with an ice-blue tail
+      - { on: hit, fx: necromancer_7, tint: duo, scale: 0.85 }   # Ice's cracking frost sphere (Ice's Bolt) with Unholy's skull inside it
+      # Swiftness's and Focus's remove defaults show what was stripped; Horrified's skull follows when any was.
+
+  blast.lich:
+    beat: A blizzard of crimson-flecked snow rolls down the enemy column and a sphere of frozen blood cracks open in every enemy.
+    cues:
+      - { on: hit, fx: frost_knight_5, at: enemySide, face: down, tint: duo, scale: 2.2, opacity: 0.85, note: "once, with the first hit: laid along the enemy column so the snow front rolls down through every portrait (Titan keeps the vortex)" }
+      - { on: hit, fx: frost_mage_6, tint: duo, scale: 0.7, delay: 150, stagger: 80 }
+      # Those left below 50 HP play Soulfrost's crystal.
+
+  consume.lich:
+    beat: A stream of cold mist pours out of the target into the user, dragging a soul with it; a Soulfrosted soul cracks free of its crystal and a second follows.
+    cues:
+      - { on: travel, fx: frost_mage_7, from: target, to: actor, path: straight, tint: duo, tone: light, scale: 0.6 }   # its frost cloud leads: cold mist streams out of the victim and arrives on the Lich
+      - { on: hit, fx: directional_splatter_003, face: toActor, size: small, tint: duo, scale: 0.45, note: "line its lower-left origin up on the target" }
+      # Soul Fragment's spiral lands on the user (twice when the target was Soulfrosted), and Soulfrost's shatter plays on the target.
+
+  summon.lich:
+    beat: Frost glints gather and burst into a pale dome, and a Skeletal Mage stands in the cold cloud with soul-flames flickering at its feet.
+    cues:
+      - { on: summon, fx: stylized_explosion_004, tint: duo, scale: 0.9, speed: 1.5, note: "the mage's portrait appears in the cloud" }
+      - { on: summon, fx: directional_particle_burst_002, size: small, tint: duo, scale: 0.6, delay: 350, layer: under }
+
+  channel.lich:
+    beat: At the end of each of the user's turns a breath of cold rolls from them onto the target, warmth steams off the victim, and the Phylactery glows fuller.
+    cues:
+      - { on: trigger, status: drain_warmth, fx: directional_smoke_burst_003, face: toTarget, tint: duo, scale: 0.6 }   # each pulse, on the user
+      - { on: hit, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.7 }   # the 10: crimson warmth rises off them
+      - { on: heal, fx: round_sparkle_burst_003, tint: duo, scale: 0.6, frames: [6, 16], note: "on the Phylactery: glints of stolen warmth gather into it; its max HP grows too (the HP bar stretches). With none, feed_phylactery's crystal makes one instead" }
+
+  stab.lich:
+    beat: A white needle of cold streaks into the target and the color drains out of them; healing past the pallor steams off.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_003, path: straight, size: small, tint: duo, scale: 0.6, speed: 2 }   # the needle: on the use only, so the claw-back never seems to come from the Lich
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.5, note: "a pale disc eaten by a crimson crescent: the color drains. The 20-damage branch (target at or below 60 HP), same hit event: about 1.3x. Also deathly_pallor's claw-back (Affliction down to 60 HP), after the trigger's vapor" }
+      - { on: apply, status: deathly_pallor, fx: directional_smoke_burst_001, variant: white, scale: 0.8, opacity: 0.55, note: "the portrait desaturates a little while it lasts" }
+      - { on: trigger, status: deathly_pallor, fx: directional_smoke_burst_004, variant: white, scale: 0.6, opacity: 0.8, note: "only when a heal went past 60" }
+
+  ravage.lich:
+    beat: Crimson claws rake the target and every frost on them is torn out at once, bursting off them in shards and leaving dread behind.
+    note: "Damage is 25 + 10 per Frost debuff, in one event (its amount also moves with Might, Armor and the like, so it can't tell the branch); each Frost debuff torn out is its own effectRemoved, and the frost burst hangs off those."
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.85, delay: 100 }
+      - { on: remove, status: debuff, fx: frost_mage_6, scale: 0.7, delay: 100, stagger: 80, note: "native ice bursting off them, once per Frost debuff torn out (adds to each debuff's own remove default); with several, successive ones about 80 ms apart so they read as one rolling burst" }
+      # Each torn-out debuff plays its own remove default (Soulfrost's crystal shatters); Horrified's skull follows.
+
+  mislead.lich:
+    beat: Two crimson wraiths circle the enemy unseen; when they attack, the mirage of ice shatters around them, the blow is lost and dread takes them, and the user is warded from the horrified.
+    cues:
+      - { on: apply, status: nightmare_of_ice, fx: starcaller_4, tint: duo, tone: dark, scale: 0.8, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: nightmare_of_ice, fx: symmetrical_impact_006, tint: duo, scale: 0.9 }   # on the countered enemy; base counter's X and Horrified's skull follow
+      - { on: apply, status: nightmare_ward, fx: starcaller_4, tint: duo, tone: light, scale: 0.7, opacity: 0.85 }   # on the user, as the Nightmare springs: the two wraiths, pale now, wind round them as a guard (the opponent's first sight of them)
+
+  stun.lich:
+    beat: A frozen heart is struck into the target's chest; the first time their soul is harvested, the heart stops and they lock up.
+    cues:
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.75 }   # no stagger yet: the Stun lands later, on the first paying hit
+      - { on: apply, status: heart_of_ice, fx: spell_ice_001, size: small, tint: duo, scale: 0.45, speed: 2 }   # Soulfrost's crystal seeds in them: named here, so it is this skill's own cue
+      - { on: trigger, status: heart_of_ice, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.55 }   # Soulfrost's soul mote, re-added; paying hits only (it pays once a turn)
+      # The Stun is applied only in the first paying hit's branch, so its own apply event carries the heart stopping:
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, note: "Stun's default, re-added (this skill names stun): the portrait staggers back a step here" }
+      - { on: apply, status: stun, fx: scifi_heartbeat_flatline_001, tint: duo, scale: 0.5, offset: [0, 0.6], delay: 150 }   # the line runs flat over their head
+
+  dance.lich:
+    beat: Two crimson-rimmed crescents circle in and lock into a spinning ring around the user; whenever anyone dies, an hourglass over them shatters and every cooldown resets.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 1.3, layer: under, frames: [0, 10] }   # the waltz behind the portrait; trimmed before its last-frame color jump
+      - { on: trigger, status: deathwaltz, fx: fanfx_stop, variant: white, size: small, scale: 0.5, offset: [0, 0.6], speed: 2 }   # on the user, at every death
+      # Swiftness's and Focus's defaults play on the user.
+
+  heal.lich:
+    beat: Crimson-and-frost sparkles rise through the ally and a cold puff of glitter closes over the wound; a minion drinks twice as deep.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, scale: 0.8, speed: 1.3, note: "40 on a minion (the same heal event): about 1.3x; Armor's default follows" }
+      - { on: heal, fx: round_sparkle_burst_002, size: small, tint: duo, tone: light, scale: 0.4, delay: 300 }   # the puff of crimson-frost sparkles that seals it (not an impact: base's hit default is symmetrical_impact_005)
+
+  bless.lich:
+    beat: A pale glint falls onto the ally and bands of frost wrap them like grave-cloths, keeping their gifts from thawing away.
+    cues:
+      - { on: travel, fx: starcaller_2, path: drop, tint: duo, tone: light, scale: 0.45 }
+      - { on: apply, status: embalm, fx: frost_knight_9, tint: duo, tone: light, scale: 1.3, opacity: 0.8, layer: under, speed: 1.2, note: "behind the portrait, so only the bands' arcs show round the ally's edges: they wrap them rather than slash across them. Hold a beat, then fade" }
+      - { on: trigger, status: embalm, fx: round_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.35, offset: [0, 0.55], note: "each turn end, only when it kept another Buff from counting down" }
+      # Might's default plays on the ally.
+
+  curse.lich:
+    beat: A grave-maw of frozen blood closes over the enemy; every blessing aimed at them goes cold and its soul slips to the user.
+    cues:
+      - { on: apply, status: touch_of_the_grave, fx: necromancer_8, tint: duo, scale: 0.9, speed: 1.3 }
+      - { on: trigger, status: touch_of_the_grave, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.5, note: "the soul mote, only while it pays (3 at most); Soul Fragment's spiral lands on the user. A Buff the help tried to give plays the effectBlocked default" }
+
+  smite.lich:
+    beat: A needle of cold light drops onto the target and wriggling souls rise from the impact; while they're Sanctified, every blow on them pays the Phylactery its due.
+    cues:
+      - { on: hit, fx: scifi_warp_003, tint: duo, scale: 1.1 }
+      - { on: trigger, status: vessels_due, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4, note: "only while Sanctified (the payout): a crimson glint on the bearer; feed_phylactery's crystal follows on the Phylactery" }
+      # Sanctify's default plays on the target.
+
+  prayer.lich:
+    beat: A row of cold candle-flames rises behind the user's team and crimson-and-frost crosses lift through every ally.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: allySide, tint: duo, scale: 2.4, opacity: 0.8, layer: under }   # the team-wide wind-up, behind the portraits
+      - { on: heal, fx: spell_heal_003, tint: duo, scale: 0.6, speed: 2, stagger: 100 }
+      # Frostborn's ring follows on each ally; frostborn_litany only widens it and shows nothing of its own.
+
+  cleave.lich:
+    beat: A many-banded sweep of rime tears round the target and its tail lashes a second enemy, who frosts over with every chill the target carries.
+    cues:
+      - { on: hit, only: primary, fx: paladin_8, face: fromActor, tint: duo }
+      - { on: hit, only: others, fx: paladin_8, face: fromActor, tint: duo, tone: dark, scale: 0.7, delay: 150 }   # the tail reaches the random second enemy
+      # Each copied Frost debuff plays its own default on the second enemy.
+
+  shout.lich:
+    beat: A double ring of grave-cold booms out from the user and rings round every enemy; three turns later the tomb echoes and it rings again.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.3, layer: under }
+      - { on: apply, status: debuff, fx: stylized_impact_001, tint: duo, scale: 0.6, stagger: 80 }   # with each Intimidated, now and at the echo; Intimidated's eye follows
+      - { on: trigger, status: echo_from_the_tomb, fx: symmetrical_impact_002, tint: duo, tone: dark, scale: 1.1, layer: under }   # on the user (fires from onExpire)
+
+  withstand.lich:
+    beat: A crimson-hearted crystal closes around the user and drinks each blow; when it melts, what it drank pours into the Phylactery.
+    note: "Broken before it ends, it plays base's shieldBreak default; the store still pays out when the Shield is gone."
+    cues:
+      - { on: apply, status: hoarded_life, fx: spell_ice_001, tint: duo, scale: 2.2, opacity: 0.85, layer: under, speed: 2, note: "the soul crystal, large, behind the portrait so it frames the user; fade it before it breaks to the outline" }
+      - { on: trigger, status: hoarded_life, fx: burst_splatter_001, size: small, tint: duo, scale: 0.45 }   # each absorbed blow splashes into the crystal
+      - { on: trigger, status: hoarded_life_store, fx: directional_smoke_burst_004, tint: duo, scale: 0.6 }   # the crystal thaws off; feed_phylactery's crystal follows on the Phylactery
+
+  taunt.lich:
+    beat: The Phylactery flares under a crimson crown and the enemy's eyes are dragged to it, their blows on it blunted.
+    cues:
+      - { on: apply, status: taunt, fx: symbol_crown_001, at: source, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], speed: 2, note: "over the Phylactery the Taunt comes from (its `from`), not the user: base Taunt's crown names the urn as the one to hit" }
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, tint: duo, scale: 0.5, delay: 200 }   # Taunt's '!', re-added on the target (this skill's own apply cue replaces it)
+      # With no Phylactery, feed_phylactery's crystal makes one first. guarded_urn is a quiet modifier.
+
+  titan.lich:
+    beat: A blizzard vortex howls up around the user and bursts in a nova of frozen blood as they rise as the Archlich, their Phylactery blazing whole.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.6, layer: under, speed: 1.3 }
+      - { on: cast, fx: dark_mage_4, tint: duo, scale: 1.8, delay: 300, note: "a screen shake as it bursts; the portrait swells about 10% and frosts at its edges while Archlich lasts" }
+      # make_phylactery's crystal plays on the Phylactery; Armor's and Frostborn's defaults on the user. Archlich's
+      # Soulfrost on whoever hits the Phylactery shows through phylactery_jar and Soulfrost's crystal.
+
+  frost_wight_rime_claw:
+    beat: The Wight rakes with hooked claws of rime and frozen blood flicks out behind the target.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, scale: 0.6 }   # native: dark-blue claws with ice-white edges
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, tint: duo, scale: 0.45, delay: 60 }
+      # Soulfrost's crystal seeds on the target, on the summoner's behalf.
+
+  skeletal_mage_bone_chill:
+    beat: The mage flicks a mote of grave-cold that pops in a small frost ring.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: straight, size: small, tone: light, scale: 0.35 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.45 }

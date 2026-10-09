@@ -1,0 +1,305 @@
+group: storm
+
+# Storm (Lightning + Wind) is the thunderstorm. `element` is Lightning violet (the default on palette art), `element2`
+# Wind white, and `duo` (a white body with violet shading) the storm cloud itself. Most Storm hits are two layers: a
+# white gust (element2) and the violet bolt it carries (element), so the wind always brings the lightning.
+# Signature motif, the thundercloud: a `duo` puff (round_sparkle_burst_002, or round_sparkle_burst_003 for the small
+# gathering) that billows over a unit and the bolts that fall out of it. Tempest gathers as a little cloud over the
+# head, one notch per point; the Eye of the Storm is that cloud topped out; Thunderhead, the Squall Cloud and the
+# Djinn are the same cloud at other sizes, and Supercell's storm cell billows up behind the enemy side. Bolts that fall
+# straight down (lightning_strike_003A) come out of the sky; bolts the wind flings come in slanted
+# (lightning_strike_002A, leaning in from the user's side); a bolt hopping unit to unit is the splash-less 002B.
+# A small duo starcaller_4 wisp is the tell that a skill was swept into the storm (counts as a Storm skill).
+
+statuses:
+  tempest:
+    note: >-
+      Tempest only rises through gain_tempest, one effectApplied per point, on every Storm character each time the
+      team uses a Storm skill, so its rise stays small and quick. At 5 (max) a further gain still sends effectApplied
+      (the engine clamps the stacks to 5 and emits it anyway), so the gather plays only when the event's stacks exceed
+      what the bearer had before; a gain at the cap (Song of the Storm holding it at 5, the Djinn's turn start, a
+      Charged Noose or Rod of the Storm spring) shows nothing. It falls silently (removeStacks emits no event until the
+      last point goes). No aura: the status icon carries the count, and at 5 Eye of the Storm's aura takes over.
+    apply:  [ { fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.4, offset: [0, 0.65], speed: 1.6, note: "only when the event's stacks exceed the bearer's Tempest before it; at the cap the engine still sends effectApplied with stacks 5, so play nothing" } ]   # sparks converge over the head and pop into a little ringed cloud: the storm gathers a notch
+    remove: [ { fx: round_sparkle_burst_002, frames: [9, 17], size: small, tint: duo, scale: 0.45, offset: [0, 0.65], opacity: 0.8 } ]   # the last of it spent: the cloud over the head crumbles to specks
+  eye_of_the_storm:
+    apply:
+      - { fx: round_sparkle_burst_002, tint: duo, scale: 0.9, offset: [0, 0.75] }   # the storm tops out: a full thundercloud billows over the head (right after Tempest's gather)
+      - { fx: lightning_burst_003, size: small, scale: 0.45, offset: [0, 0.75], delay: 200 }   # and lightning cracks inside it
+    aura: { fx: scifi_charge_up_001, tint: duo, scale: 1.2, layer: under, opacity: 0.4, speed: 0.7, note: "the eye wall: rings turn slowly behind the portrait and spill past its edges while the white needle sweeps round like a radar" }
+    remove: [ { fx: symmetrical_smoke_burst_001, tint: duo, scale: 0.9 } ]   # spent, or cleared by Stormfront: the eye wall blows out into a ring of cloud and breaks up
+  storm_heart:
+    note: >-
+      The fusion passive. Its signal and turnEnd triggers only move Tempest: a gain plays Tempest's gather, a fall
+      plays nothing. These cues are for its skillResolved trigger alone, when it spends Eye of the Storm (the Eye's
+      remove plays on the bearer first) and 15 lands on every enemy the skill didn't target. The bolts lean in from
+      the bearer's side.
+    trigger:
+      - { fx: lightning_strike_002A, at: target, face: fromActor, size: small, scale: 0.7, stagger: 80, note: "skillResolved branch only: play on each enemy the Eye's 15 damages, never on the bearer or an ally (the signal and turnEnd branches and the Eye's own removal land on the bearer); anchor the art's impact corner (lower-left as drawn) on each enemy struck" }
+      - { fx: directional_smoke_burst_003, at: target, face: fromActor, size: small, tint: element2, scale: 0.5, delay: 60, stagger: 80, note: "skillResolved branch only: play on each enemy the Eye's 15 damages, never on the bearer or an ally (the signal and turnEnd branches and the Eye's own removal land on the bearer)" }   # the gust that flung it blows on past them
+
+macros:
+  # +1 Tempest, and the Eye at 5. No cue of its own: Tempest's and Eye of the Storm's apply defaults play when it grants them.
+  gain_tempest: []
+
+skills:
+  strike.storm:
+    beat: A squall whips through the target and curls over them like a breaking wave, a violet crack running through its crest.
+    note: "+5 per Tempest (max +15) arrives in the one hit event: grow both cues from their listed scale with no Tempest to about 1.4x at 3 or more."
+    cues:
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.45, delay: 120 }   # the bolt the gust carries cracks in its crest
+
+  smash.storm:
+    beat: A forked claw of storm crashes onto the target, then lightning skitters off them on spider legs of sparks, leaping ally to ally and growing with each leap.
+    note: "Each leap is its own damage event, one ally at a time while the user has Tempest to spend (10 on the target, then 20, then 30): scale each leap's bolt with its damage, about 0.65 at 20 and 0.85 at 30."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, tint: duo, scale: 0.8, frames: [0, 7], note: "align the art's impact corner (bottom-right as drawn) on the target" }   # the cut ends on the violet-white crash, before the blue ice clump settles
+      - { on: hit, only: others, fx: lightning_strike_002B, scale: 0.65, stagger: 200, note: "the hop, one leap at a time: stretch it as a beam from the previously struck unit (the target, then the last ally hit) to this ally; 0.65 at 20, 0.85 at 30" }
+      - { on: hit, fx: scifi_spark_burst_001, scale: 0.7, delay: 120, stagger: 200 }   # thin sparks arc off every unit struck and droop like spider legs
+
+  charge.storm:
+    beat: The user rides a white gust across the board and bursts into the target in a violet crackle; the wind stays at their back, ready to fling a bolt at another enemy.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, tint: duo, scale: 0.8, note: "the user's portrait dashes along behind the cloud head and snaps back" }
+      - { on: hit, only: primary, fx: lightning_burst_003, scale: 0.8, note: "Charge's own 15 only; Ride the Wind's later damage never replays it, even on the same unit" }
+      - { on: apply, status: ride_the_wind, fx: directional_smoke_burst_004, tint: element2, scale: 0.6 }   # a wisp of the wind curls up the user and stays with them
+      - { on: trigger, status: ride_the_wind, fx: scifi_muzzle_flash_003, face: toTarget, tint: element2, scale: 0.5, note: "on the user's next Harmful skill, aimed at the random enemy its damage lands on; skip it when no damage follows (no Tempest: the wind is spent for nothing)" }
+      - { on: trigger, status: ride_the_wind, fx: lightning_strike_002A, at: target, face: fromActor, size: small, scale: 0.6, delay: 100, note: "target = the random enemy the triggered damage lands on (it can be Charge's own first target: this still plays, not the primary burst); nothing when no damage follows (0 Tempest); anchor the impact corner (lower-left as drawn) on them" }   # the flung bolt, 5 per Tempest
+
+  riposte.storm:
+    beat: A thin bolt runs down through the user into the ground and holds there; the first attacker's blow is grounded in a flash and the arc leaps back into them.
+    cues:
+      - { on: apply, status: grounded_arc, fx: lightning_strike_003B, size: small, scale: 0.8, opacity: 0.8, speed: 1.4 }   # Invisible: only the owner sees the arc set
+      - { on: apply, status: grounded_arc, fx: directional_impact_002, tint: duo, size: small, scale: 0.6, layer: under, delay: 150 }   # it spreads into the ground at their feet
+      - { on: trigger, status: grounded_arc, fx: symmetrical_impact_002, tint: duo, scale: 0.8 }   # the blow is grounded: a flash and a settling ring on the user
+      - { on: trigger, status: grounded_arc, fx: lightning_strike_002A, at: source, face: fromActor, scale: 0.85, delay: 120, note: "anchor the impact corner (lower-left as drawn) on the countered attacker" }
+      # Base's counter default marks the stopped skill; Sapped's default lands on the attacker (one stack per energy).
+
+  rage.storm:
+    beat: The storm is drawn into the user in jagged streaks and bursts inside them over a white surge; each Storm attack after spills violet starbursts onto every enemy it missed.
+    cues:
+      - { on: apply, status: storm_within, fx: stylized_explosion_005, tint: duo, scale: 1.2, speed: 1.5 }   # zigzag shards converge on the user and the charged sphere bursts (~frame 18)
+      - { on: apply, status: storm_within, fx: directional_particle_burst_002, tint: element2, scale: 1.2, layer: under, delay: 550 }   # white surge spikes shoot up behind them as it bursts
+      - { on: trigger, status: storm_within, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.6, note: "only when it spends a Tempest (its damage follows): the storm spills out of the user" }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.5, delay: 80, stagger: 70, note: "10 on every enemy the skill didn't target; anchor the burst's origin (lower-left as drawn) on each so the fan sprays on past them" }   # a violet starburst fans past each enemy it missed: its own look, never the Eye's slanting bolts
+
+  shot.storm:
+    beat: A white spark-comet zips across and pops into a ring of stars on the target; static settles over the user's allies, and each blow they take spits a spark back to the user.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: duo, scale: 0.45, speed: 1.5 }
+      - { on: hit, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.6 }
+      - { on: apply, status: shared_static, fx: status_sparkling_001, size: small, scale: 0.6, opacity: 0.8, stagger: 100 }   # one pass of static twinkle over each other ally
+      - { on: trigger, status: shared_static, fx: scifi_muzzle_flash_001, face: toActor, size: small, scale: 0.4 }   # hurt: a spark spits off them toward the user, whose Charged default follows
+
+  snipe.storm:
+    beat: Clouds mass over the user while they hold the front; at the next turn's end a squall line rolls down the enemy side and drops a bolt through each of them.
+    note: "15 Piercing plus 5 per Tempest, all of it spent: scale the bolts from about 0.9 with none to 1.4 at 5. Tempest's and the Eye's remove defaults follow. Interrupted, base's interrupted default plays and no front comes."
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_003, tint: duo, speed: 1.4, frames: [0, 27] }   # puffs of cloud climb and ring over the user's head: the front masses (the channel); the cut drops two near-empty frames
+      - { on: trigger, status: stormfront, fx: frost_mage_7, at: enemySide, face: down, tint: duo, scale: 1.8, opacity: 0.85, note: "fires from onExpire: laid along the enemy column, the curling cloud front rolls down through every portrait" }   # white cloud head and violet speed streaks, no snowflakes
+      - { on: hit, fx: lightning_strike_003A, scale: 1.1, delay: 100, stagger: 80 }   # Piercing: a bolt drops out of the front through each enemy
+
+  trap.storm:
+    beat: A loop of charged air lies coiled at the target's feet; each time they act it snaps up round them and jolts them, harder for every Tempest it feeds the user.
+    cues:
+      - { on: apply, status: charged_noose, fx: dark_mage_2, tint: duo, scale: 0.8, offset: [0, -0.4], opacity: 0.75, layer: under, frames: [0, 10] }   # owner only (Invisible); the cut drops its dark-red last frame
+      - { on: trigger, status: charged_noose, fx: directional_impact_003, tint: element2, scale: 0.8 }   # the loop snaps up off the ground round them
+      - { on: hit, fx: lightning_burst_002, scale: 0.7, delay: 80, note: "5 Piercing per Tempest, counted after the gain: scale from about 0.5 at 1 Tempest to 0.9 at 5" }
+      # The user's Tempest gather plays with each spring.
+
+  maneuver.storm:
+    beat: The storm's wall rings out around the user and leaves them standing in its calm eye, out of reach of any single strike.
+    note: "No aura: Into the Eye only shields them while Tempest is 3 or more, which the status icon and the targeting lock carry. Eye Wall, hidden on every enemy, shows nothing."
+    cues:
+      - { on: apply, status: into_the_eye, fx: symmetrical_explosion_004, tint: element2, scale: 1.3, layer: under, speed: 0.7, opacity: 0.8, frames: [0, 7] }   # a white wall of cloud puffs rings out slowly behind them from an empty centre and holds; the cut drops the olive fade
+      - { on: apply, status: into_the_eye, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.6, delay: 300 }   # a calm twinkle where they stand
+      # Raising Tempest to 3 plays Tempest's gather once per point gained.
+
+  companion.storm:
+    beat: The Storm Roc stoops in on a slanting bolt and spreads wings of cloud over the spot it lands.
+    cues:
+      - { on: summon, fx: paladin_8, tint: duo, scale: 1.1, delay: 150 }   # banded wings sweep round into a dome of cloud
+      - { on: summon, fx: lightning_strike_002A, note: "the bolt it rides in on: anchor the impact corner (lower-left as drawn) at the Roc's feet" }
+
+  bolt.storm:
+    beat: A thundercloud blooms over the target and darkens with every Storm skill the team uses; when it ends, the cloud breaks apart, a short bolt drops out of it and bursts on them.
+    note: "Thunderhead sits on the user, but its cloud plays over its target (the skill's primary, which the status remembers), and its charges and bolt land there."
+    cues:
+      - { on: apply, status: thunderhead, fx: round_sparkle_burst_002, at: target, tint: duo, scale: 0.8, offset: [0, 0.85] }
+      - { on: trigger, status: thunderhead, fx: round_sparkle_burst_002, at: target, size: small, tint: duo, tone: dark, scale: 0.55, offset: [0, 0.85], note: "the signal trigger only, when a Storm skill adds a charge (up to 3): the cloud over the target rumbles darker. Not on its onExpire" }
+      - { on: hit, fx: round_sparkle_burst_002, frames: [9, 17], tint: duo, tone: dark, scale: 0.8, offset: [0, 0.85], note: "fires from onExpire: the thundercloud over them breaks into speckles" }
+      - { on: hit, fx: lightning_strike_003B, size: small, scale: 0.8, offset: [0, 0.45], delay: 60 }   # a short splash-less bolt from the cloud down to the head
+      - { on: hit, fx: lightning_burst_003, scale: 1.0, delay: 120, note: "fires from onExpire: 20 plus 10 per charge; scale from 1.0 with no charge to 1.4 at 3" }   # the bursting impact
+
+  blast.storm:
+    beat: A dark supercell billows up behind the enemy side and forked bolts slam down on every enemy, splashing white off the ground under each.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_002, at: enemySide, tint: duo, tone: dark, scale: 2.2, layer: under, opacity: 0.9, note: "once, with the first hit: the storm cell billows up behind the column as the bolts fall" }
+      - { on: hit, fx: lightning_strike_001, delay: 100, stagger: 80 }   # its own ground splash is the downdraft
+      # Charged's default plays on each ally; the Tempest spent falls silently.
+
+  consume.storm:
+    beat: A thin pale arc draws the last of the storm out of the target and home into the user, where it spirals in and settles as healing.
+    cues:
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45 }
+      - { on: travel, fx: lightning_strike_002B, from: target, to: actor, path: beam, size: small, tint: duo, speed: 1.4, opacity: 0.85 }
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.8, speed: 1.6, note: "the damage dealt plus 10 per Tempest spent: scale from about 0.6 with none to 1.0 at 2" }
+      # If it spends the last of the user's Tempest, Tempest's remove plays over their head.
+
+  summon.storm:
+    beat: A white storm cloud blooms out of nothing and spits sparks; when it breaks, it rains streaks of storm on every enemy.
+    note: >-
+      The Squall Cloud's onDeath (it expires or falls) deals 5 per Tempest to every enemy: base's death default plays
+      on the cloud, then the hit cue here on each enemy, if minion onDeath damage can carry the summoning skill's cues;
+      until then base's hit default plays.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo }
+      - { on: summon, fx: scifi_spark_burst_001, size: small, scale: 0.6, delay: 300 }
+      - { on: hit, fx: round_firework_burst_001, tint: duo, scale: 0.7, stagger: 70 }   # the cloud breaking: streaks spray out and droop like rain over each enemy
+
+  channel.storm:
+    beat: A hurricane spins up around the user; at each of their turn ends it whirls and its bands wrap every enemy with bolts flickering inside, until Tempest reaches 5 and it blows itself out.
+    note: "10 plus 5 per Tempest, and Tempest rises each tick: grow the hit cues a notch every turn (about 0.7 to 1.0)."
+    cues:
+      - { on: apply, status: hurricane, fx: slime_5, tint: duo, scale: 1.3, layer: under }
+      - { on: trigger, status: hurricane, fx: slime_5, tint: duo, opacity: 0.8, layer: under }   # each tick the spiral whirls up on the user
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: duo, scale: 0.8, stagger: 60 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.4, delay: 120, stagger: 60 }
+      - { on: remove, status: hurricane, fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.7, opacity: 0.8, note: "at 5 Tempest it removes itself: the storm blows out" }
+
+  stab.storm:
+    beat: A needle of violet-edged lightning drives into the target, and the gale flicks a second sliver of air into whichever enemy is weakest.
+    note: "Skip a 0-amount damage event: with no Tempest the second op still runs and deals 0, so play nothing for it. When it does deal damage and the weakest enemy is the target itself, the second hit lands on them too and plays the primary cue again."
+    cues:
+      - { on: hit, only: primary, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.7, note: "skip a 0-amount damage event: with no Tempest the second op deals 0, so play nothing for it" }
+      - { on: hit, only: others, fx: scifi_muzzle_flash_001, face: fromActor, tint: element2, scale: 0.45, note: "5 per Tempest (max 10) on the enemy with the least HP; skip a 0-amount damage event: with no Tempest the second op deals 0, so play nothing for it" }
+
+  ravage.storm:
+    beat: A needle of lightning drops from the top of the sky onto the strongest enemy, bursts violet through them, and the downdraft blasts dust off the ground.
+    note: "+15 against a Stunned enemy is in the one hit: play every cue about 1.25x larger."
+    cues:
+      - { on: hit, fx: scifi_warp_003, tint: duo, scale: 1.3 }
+      - { on: hit, fx: symmetrical_impact_003, delay: 120 }
+      - { on: hit, fx: directional_smoke_burst_002, tint: element2, scale: 0.9, layer: under, opacity: 0.85, delay: 150 }
+
+  mislead.storm:
+    beat: A harmless-looking bank of cloud settles at the target's feet; when they attack, the false front breaks into a squall that swallows the blow.
+    cues:
+      - { on: apply, status: false_front, fx: directional_sparkle_burst_002, tint: duo, scale: 0.8, opacity: 0.8 }   # owner only (Invisible)
+      - { on: trigger, status: false_front, fx: symmetrical_smoke_burst_003, tint: element2, scale: 0.9 }   # the front breaks in four billowing lobes
+      - { on: trigger, status: false_front, fx: lightning_burst_003, size: small, scale: 0.6, delay: 120 }
+      # Base's counter default marks the stopped skill; Sapped's default follows.
+
+  stun.storm:
+    beat: Jagged static converges on the target and bursts, leaving their pulse racing; each skill they use crackles, and when it ends the stored charge drops through them as a Stun.
+    cues:
+      - { on: hit, fx: stylized_explosion_005, tint: duo, scale: 0.8, speed: 1.4, frames: [12, 25], note: "the portrait staggers back as the sphere bursts (~frame 18)" }
+      - { on: apply, status: static_buildup, fx: scifi_heartbeat_fast_001, scale: 0.4, offset: [0, 0.6], speed: 1.4, delay: 250 }   # their pulse races with the static
+      - { on: trigger, status: static_buildup, fx: lightning_burst_002, size: small, scale: 0.4, note: "each skill they use: a crackle, a notch larger per stored turn of Stun (to 3), then held there" }
+      - { on: trigger, status: static_buildup, fx: lightning_strike_003B, note: "fires from onExpire, only with Stun stored: the charge drops down through them, then Stun's default" }
+
+  dance.storm:
+    beat: Gyring rings of storm spin up around the user and shed sparks as they mount the wind.
+    cues:
+      - { on: apply, status: storm_rider, fx: stylized_impact_001, tint: duo, scale: 1.3 }   # two tilted rings of cloud spin open round them like a gyroscope
+      - { on: apply, status: storm_rider, fx: scifi_spark_burst_001, scale: 0.9, delay: 200 }
+      - { on: trigger, status: storm_rider, fx: starcaller_4, tint: duo, scale: 0.5, note: "only when it signals (a non-Storm skill used while Rushing): the skill is swept into the storm and the team's Tempest rises" }
+      # Might's and Rushing's defaults play on the user.
+
+  heal.storm:
+    beat: A soft pale arc sets the target ally glowing with rising crosses, then hops to the weakest other ally and on through the rest, fainter each time.
+    cues:
+      - { on: heal, only: primary, fx: spell_heal_002, tint: duo, speed: 1.5 }
+      - { on: heal, only: others, fx: spell_heal_002, tint: duo, scale: 0.7, speed: 1.5, delay: 120, stagger: 120, note: "the 15 on the weakest other ally first at about 0.75, then each 5 at about 0.5" }
+      - { on: heal, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.4, stagger: 120 }   # the arc touching down on each ally: pale, not a shock
+
+  bless.storm:
+    beat: Two streams of pale sparkles shower down onto the ally and meet over them, then a tailwind streams off their back.
+    cues:
+      - { on: apply, status: tailwind, fx: directional_sparkle_burst_001, face: down, tint: duo, scale: 0.8 }   # turned over, its two sparkle clusters fall from the top corners and converge onto them: a gift descending, no impact splash
+      - { on: apply, status: tailwind, fx: directional_smoke_burst_005, tint: duo, scale: 0.7, layer: under, delay: 250, note: "spray backward, away from the enemy side, its origin corner at their feet: the tailwind streaming off behind them" }
+      - { on: trigger, status: tailwind, fx: starcaller_4, tint: duo, scale: 0.5, note: "only when it signals (a non-Storm skill): a wisp curls off them and the team's Tempest rises" }
+      # Swiftness's default plays.
+
+  curse.storm:
+    beat: A dark crosswind bears down on the target and blows their Charge off toward the user; any Charge they gain is torn away the same way.
+    cues:
+      - { on: apply, status: crosswind, fx: directional_smoke_burst_003, face: down, tint: duo, tone: dark, scale: 0.8 }   # turned to blow straight down across them: the cloud front bears down and settles
+      - { on: remove, status: charged, fx: scifi_muzzle_flash_003, face: toActor, size: small, tint: element2, scale: 0.6, note: "replaces Charged's discharge here: no Charge, no gust" }
+      - { on: trigger, status: crosswind, fx: scifi_spark_burst_001, size: small, scale: 0.4 }   # each Charge they'd gain sparks once before the crosswind takes it; the user's Tempest gather follows
+
+  smite.storm:
+    beat: A bolt falls out of the sky onto the target and a thin rod of lightning stays standing in them, spitting sparks each time an ally hits them.
+    cues:
+      - { on: hit, fx: lightning_strike_003A, scale: 1.3 }   # tall enough that the bolt falls from above the head
+      - { on: hit, fx: directional_impact_004, size: small, tint: element2, scale: 0.6, layer: under, delay: 80 }   # a white crown of wind kicks up at their feet
+      - { on: apply, status: rod_of_the_storm, fx: lightning_strike_003B, size: small, scale: 0.8, opacity: 0.65, delay: 250 }   # the rod: a thin bolt left standing in them
+      - { on: trigger, status: rod_of_the_storm, fx: round_firework_burst_001, size: small, scale: 0.45 }   # each allied hit makes the rod spit sparks; the user's Tempest gather follows
+
+  prayer.storm:
+    beat: A rolling chord of thunder rings out over the team, and notes ride rising sound-waves up through each ally.
+    cues:
+      - { on: cast, fx: round_music_burst_001, at: allySide, tint: duo, scale: 2.4, opacity: 0.8 }
+      - { on: heal, fx: directional_music_burst_001, tint: duo, scale: 0.8, stagger: 100 }
+      # Shield's default plays on each ally; Song of the Storm shows through its status icon.
+
+  cleave.storm:
+    beat: A shearing crescent of gale cuts through the target and on through the rest of their side, a thin bolt riding each cut.
+    note: "Tempest moves damage from the target to the others (25 and 5, down to 10 and 20): shrink the primary cut and grow the others' to match."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.55, delay: 120, stagger: 70 }
+      - { on: hit, fx: lightning_strike_002B, face: fromActor, size: small, scale: 0.5, delay: 60, stagger: 70 }
+
+  shout.storm:
+    beat: A thunderclap bursts off the user and a gust front rolls past every enemy; from then on each Storm hit on them short-circuits them.
+    cues:
+      - { on: cast, fx: scifi_warp_002, tint: duo, scale: 1.2 }
+      - { on: apply, status: storm_warning, fx: directional_smoke_burst_003, face: fromActor, size: small, tint: element2, scale: 0.6, stagger: 80 }   # the gust front reaches each enemy; the debuff icon carries the warning
+      - { on: trigger, status: storm_warning, fx: none }   # when a Storm skill's damage sets it off, Sapped's own default is the tell: no extra layer per warned enemy on an area hit
+
+  withstand.storm:
+    beat: A ring opens under every ally and walls of white light rise round them into a storm cellar, while the user's own spark gutters to pay for it.
+    cues:
+      - { on: apply, status: buff, fx: dark_mage_3, tint: duo, scale: 0.9, layer: under, stagger: 90 }   # each ally given Shield; Shield's own bubble plays on top
+      - { on: apply, status: buff, fx: directional_impact_002, size: small, tint: element2, scale: 0.6, layer: under, delay: 300, stagger: 90 }   # the hatch slams: dust blown out along the ground
+      # Sapped's default (three stacks) plays on the user.
+
+  taunt.storm:
+    beat: A spark of static spits off the user toward the target and a crackling line is cast out at them; static pops round them after.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, size: small, tint: duo, scale: 0.45 }
+      - { on: travel, fx: necromancer_6, path: beam, flip: x, tint: duo, scale: 0.6, opacity: 0.85, note: "the crackling line is cast out at them: flipped, its pulse runs from the user to the target" }
+      - { on: apply, status: static_lure, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.45, delay: 100, speed: 1.5 }   # static pops round them; sped up for its long fizzle tail
+      # Taunt's default (!) marks the target.
+
+  titan.storm:
+    beat: The storm billows out of the user and towers into a cloud-bodied djinn, forked bolts bursting up as its arms.
+    note: "The Armor (1 per 2 Tempest) is a modifier with no event: the status icon carries it."
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: element2, scale: 1.6, layer: under }
+      - { on: apply, status: djinn_of_the_tempest, fx: round_sparkle_burst_002, tint: duo, scale: 2.0, offset: [0, 0.5], layer: under, note: "swell the portrait about 10% as the cloud body rises behind it" }
+      - { on: apply, status: djinn_of_the_tempest, fx: lightning_strike_001, scale: 1.6, delay: 250 }
+      - { on: trigger, status: djinn_of_the_tempest, fx: round_sparkle_burst_002, size: small, tint: duo, scale: 0.9, offset: [0, 0.4], layer: under, opacity: 0.7 }   # each turn start the djinn's cloud billows; Tempest's gather follows (none at the cap)
+      # Immune's default plays on the user.
+
+  storm_roc_gale_wing:
+    beat: The Roc beats a wing and a crescent of wind cuts the target.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: element2, scale: 0.55 }
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, size: small, tint: element2, scale: 0.4, delay: 80 }
+
+  storm_roc_thunder_talon:
+    beat: The Roc rakes the target with crackling talons and a slanting bolt crashes into the wound.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: duo, scale: 0.75 }
+      - { on: hit, fx: lightning_strike_002A, face: fromActor, size: small, scale: 0.7, delay: 120, note: "anchor the impact corner (lower-left as drawn) on the target" }
+      # Sapped's default follows.
+
+  squall_cloud_rumble:
+    beat: The cloud darkens and spits a small crack of lightning at the target.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_002, size: small, tint: duo, tone: dark, scale: 0.6 }
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, speed: 1.6 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.45 }

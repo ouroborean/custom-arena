@@ -1,0 +1,285 @@
+group: prism
+# Prism (Ice + Holy) is light passing through ice. Whole light is `duo`: Ice's blue rims under Holy's gold
+# body, sunlight caught in a crystal. Frost Knight / Frost Mage ice and Paladin gold are the materials;
+# facets, gems and glints are the shapes.
+# Signature: the split. Wherever a skill Refracts, the share that splits off plays as a pair: the same art
+# once in `element` (Ice blue) and once in `element2` (Holy gold), offset ±0.05 and 50 ms apart, white
+# light broken into its colors. Damage splits as thin rays (starcaller_7, cut before its hook), healing as
+# rising crosses. A refracted status has no art of its own to split, so it gets the library's one
+# rainbow-drawn asset, round_sparkle_burst_001 `variant: rainbow`.
+# Lens is a small faceted gem (spell_ice_001) forming over the bearer; spending it focuses the light, as
+# glints converge into one star (round_sparkle_burst_003). Colorless Nova is the one skill drawn in white.
+# Palette art defaults to `element` (Ice), so the Ice half of a palette pair carries no tint field.
+# `tone: light` only where whiteness is the point: heals and glows, halos, columns and surges of light, and
+# flashes of pure light (the beacon, the burning glass's flame, the focal point, a blinding star, a Lens
+# spent). Hits, travels and debuff flashes stay full `duo`, so the blue rims show under the gold.
+
+statuses:
+  lens:
+    note: >-
+      No aura: Halo of Ice and Antler Glow keep Lens up for long stretches, and its icon carries it. Every gain
+      comes through gain_lens, so this apply is the Lens look everywhere.
+    apply:  [ { fx: spell_ice_001, tint: duo, size: small, scale: 0.35, offset: [0, 0.45], frames: [4, 26], speed: 1.6, note: "glints, a flash orb, then the little faceted gem: fade out on the held gem instead of playing its shatter" } ]
+    remove: [ { fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.45, offset: [0, 0.45], frames: [3, 13], speed: 1.3 } ]   # spent on a skill (or stolen): glints converge into one star and pop
+
+macros:
+  gain_lens: []   # Lens's own apply carries every gain: one gem per unit
+
+skills:
+  strike.prism:
+    beat: A crescent of sunlit ice slashes the target; without Lens, a blue ray and a gold ray split off into a second enemy.
+    note: "The refracted hit deals 20 instead of 10 on a Frostbitten enemy: play its pair about 1.3x larger."
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, tint: duo, face: fromActor, scale: 0.9 }
+      - { on: hit, only: others, fx: starcaller_7, tint: element, face: fromActor, scale: 0.55, offset: [-0.05, -0.05], frames: [1, 5] }
+      - { on: hit, only: others, fx: starcaller_7, tint: element2, face: fromActor, scale: 0.55, offset: [0.05, 0.05], frames: [1, 5], delay: 50 }
+
+  smash.prism:
+    beat: A slanting shaft of light crashes onto the target and bursts into ice, light splashes up under each of their allies, and next turn it falls again on whoever is still frosted.
+    note: >-
+      Lightfall's later 10 replays these hit cues: on the primary play only paladin_6 at about 0.7 and skip
+      frost_mage_6; on every unit that takes it, add frost_knight_7 (tint duo, scale 0.6) as the frost catches
+      the light.
+    cues:
+      - { on: hit, only: primary, fx: paladin_6, tint: duo, face: fromActor, scale: 1.1 }
+      - { on: hit, only: primary, fx: frost_mage_6, tint: duo, scale: 0.7, delay: 150 }   # the light bursts into a cracking sphere of ice
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, delay: 150, stagger: 80 }
+      # No trigger cue: Lightfall's onExpire runs on every bearer, but only the frosted ones take the 10,
+      # and that damage plays the hit cues above exactly when the light falls again.
+
+  charge.prism:
+    beat: The user flashes across as a stretched lens flare and lands in a flat flash of light that splits into sparks along the ground; a glow of speed clings to them.
+    cues:
+      - { on: travel, fx: round_light_burst_001, path: beam, tint: duo, scale: 0.8, speed: 1.4, note: "the portrait blurs along the flare to the target and snaps back" }
+      - { on: hit, fx: directional_impact_002, tint: duo, scale: 0.8, layer: under }   # the dash's arrival; its fixed yellow sparks suit the gold
+      - { on: apply, status: lightspeed, fx: directional_particle_burst_001, tint: duo, scale: 0.55 }
+
+  riposte.prism:
+    beat: A ward flashes around the user unseen; a blow that lands on it is caught between two rings and bent away into one of the attacker's allies as a blue and a gold spray.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, tone: light, scale: 0.7 }   # Invisible: only the owner sees the ward
+      - { on: trigger, status: spectrum_ward, fx: stylized_impact_001, tint: duo, scale: 0.8 }   # base's counter X marks the attacker
+      - { on: hit, fx: directional_impact_001, face: fromActor, scale: 0.6, offset: [-0.05, -0.05] }
+      - { on: hit, fx: directional_impact_001, tint: element2, face: fromActor, scale: 0.6, offset: [0.05, 0.05], delay: 50 }
+
+  rage.prism:
+    beat: Spikes of light surge up from the ground around the user and kindle a white-gold flame above their head, over the Lens; each skill they use through a Lens stokes it.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, tone: light, scale: 1.0, layer: under, speed: 1.3 }   # the power surge
+      - { on: resolve, fx: fire_looping_001, tint: duo, tone: light, size: small, scale: 0.3, offset: [0, 0.65], opacity: 0.9 }   # the burning glass's focal point, a votive flame over the Lens gem
+      - { on: trigger, status: burning_glass, fx: none }   # fires on every skill they use; the heat stack below shows the ones that count
+      - { on: apply, status: burning_glass_heat, fx: fire_looping_001, tint: duo, tone: light, size: small, scale: 0.4, offset: [0, 0.65], speed: 1.5 }   # used through a Lens: the focal flame flares
+      # Immune's burst and Lens's gem land through their defaults.
+
+  shot.prism:
+    beat: A bright mote streaks over and pops in a glint; if the target then helps an ally, the glint flashes again and numbs them.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.45, frames: [0, 6] }   # just the comet: cut before its dark splat
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.6 }
+      - { on: trigger, status: glint_shot, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.5 }   # Numb's default follows
+
+  snipe.prism:
+    beat: An aperture of light flares on the user; next turn a ray shoots skyward, the light comes to a point on the hidden target and detonates, and sparks scatter onto every other enemy.
+    note: "HiddenTarget: nothing points at the target before the hit; the ray goes straight up."
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, tone: light, scale: 0.8, speed: 0.7 }
+      - { on: trigger, status: focal_point, fx: scifi_muzzle_flash_002, tint: duo, tone: light, face: up, scale: 0.7, offset: [0, 0.4], note: "fires when the aim runs out (its onExpire)" }
+      - { on: hit, only: primary, fx: stylized_explosion_004, tint: duo, tone: light, scale: 1.3, frames: [11, 22], speed: 1.3, note: "the dome detonates on the hit (the skyward ray was its wind-up); a short screen shake" }
+      - { on: hit, only: primary, fx: symmetrical_impact_001, tint: duo, tone: light, size: small, scale: 0.5 }   # a white-gold star over the dome's near-black crater core
+      - { on: hit, only: others, fx: symmetrical_impact_001, tint: duo, size: small, scale: 0.7, delay: 150, stagger: 60 }
+
+  trap.prism:
+    beat: A faceted panel of light assembles unseen before the target; when they attack, a sword of judgment drives down on them, and the refracted decree glints rainbow on one of their allies.
+    cues:
+      - { on: apply, status: standing_decree, fx: fanfx_barrier, tint: duo, scale: 0.9, opacity: 0.55, speed: 1.4, note: "Invisible: owner only. Stop on the full panel and fade it before its shatter" }
+      - { on: trigger, status: standing_decree, fx: paladin_5, tint: duo }   # the decree enforced; Frostbitten's crust follows
+      - { on: apply, status: debuff, only: others, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.6 }   # the Refract: the random ally's Frostbitten
+
+  maneuver.prism:
+    beat: The user bursts into a cloud of sparkling light and Invulnerable's shell closes over them; next turn an afterglow rises off them as their next skill comes free.
+    note: "The reset of their last skill's cooldown shows on the skill bar; nothing plays on the board for it."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.9, note: "the portrait blinks out under the puff" }
+      - { on: trigger, status: afterglow, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.7, note: "fires as it runs out (its onExpire), when the free skill is primed" }
+
+  companion.prism:
+    beat: Columns of light rise from a ring on the ground and the Lumen Elk steps out of a sparkling mound.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: duo, tone: light, scale: 1.0, layer: under, frames: [3, 12] }   # skip the thin-ring wind-up; Titan's columns stand larger (1.8)
+      - { on: summon, fx: directional_sparkle_burst_002, tint: duo, scale: 1.4, layer: under, delay: 150, speed: 1.3 }
+
+  bolt.prism:
+    beat: A splinter of light flies in and lodges in a spray of glints; next turn it bursts, stabbing them again and throwing a shard into an ally, unless a heal draws it out first.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.5, speed: 1.4 }   # the splinter
+      - { on: hit, only: primary, fx: starcaller_1, tint: duo, face: fromActor, scale: 0.6 }   # also the bearer's 15 when it bursts
+      - { on: hit, only: others, fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.5 }   # the shard thrown into a random ally
+      - { on: trigger, status: splinter_of_light, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.6, note: "the burst: only the expiry firing (its onExpire, after the 'expired' removal, followed by the 15 and 10), never the healed trigger, where the remove cue below plays instead" }
+      - { on: remove, status: splinter_of_light, fx: scifi_muzzle_flash_001, tint: duo, face: up, size: small, scale: 0.4, note: "only when a heal draws it out: effectRemoved with reason consumed (its healed trigger's removeSelf). Not when it runs out (reason expired, emitted just before the burst) and not on its bearer's death" }   # a sliver of light flicked out of them
+
+  blast.prism:
+    beat: Color drains into the user, then a white nova of crystal shards sweeps the enemy line and flares on every enemy, stripping a Buff off each.
+    note: "Colorless: the one Prism skill drawn without gold, in white and pale ice."
+    cues:
+      - { on: cast, fx: spell_absorb_001, tone: light, scale: 0.8, frames: [4, 26], speed: 1.8 }
+      - { on: hit, fx: symmetrical_impact_006, at: enemySide, variant: white, scale: 2.4, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: dark_mage_4, tint: element, tone: light, scale: 0.9, delay: 120, stagger: 70 }
+      # Each lost Buff ends through its own remove default where it has one (its icon leaves either way): no
+      # wisp of ours on top, since the white smoke wisp is Ignite's and Sapped's ending.
+
+  consume.prism:
+    beat: A pinprick of light pops on the target; every Sanctify on their side is torn loose toward the user, and the harvest spirals into them.
+    note: "One heal of 15 per Sanctify ended: scale the spiral about 0.6 + 0.15 per Sanctify. With none to harvest, Sanctify's default lands on the target instead."
+    cues:
+      - { on: hit, fx: round_firework_burst_001, tint: duo, size: small, scale: 0.45 }
+      - { on: remove, status: sanctify, fx: scifi_muzzle_flash_001, tint: duo, face: toActor, scale: 0.5, stagger: 80 }
+      - { on: heal, fx: spell_absorb_001, tint: duo, tone: light, scale: 0.8, frames: [6, 28], speed: 1.6, delay: 150 }
+
+  summon.prism:
+    beat: A jagged crystal of sunlit ice grows in midair and throws a rainbow; while it stands, each direct hit of the user's splits a blue ray and a gold ray off into another enemy.
+    note: >-
+      The Prism's power is an onSummon status on the user (`hovering_prism`), not a minion passive, so no cue can
+      name it: the apply cue catches it as the one Buff this skill gives, and the hit cues play on its refracted
+      half-strength hits (about 0.1 larger per 10 damage). If the renderer gets a cause link, flash the Prism
+      minion with a small frost_knight_7 (tint duo) as each hit splits.
+    cues:
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.8, offset: [0, 0.15], note: "lifted off the ground: it hovers. Hold its brightest last frame a beat, then fade" }
+      - { on: summon, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.7, delay: 250 }
+      - { on: apply, status: buff, fx: frost_knight_7, tint: duo, scale: 0.5 }   # the user, linked to the Prism
+      - { on: hit, fx: starcaller_7, tint: element, face: fromActor, scale: 0.5, offset: [-0.05, -0.05], frames: [1, 5] }
+      - { on: hit, fx: starcaller_7, tint: element2, face: fromActor, scale: 0.5, offset: [0.05, 0.05], frames: [1, 5], delay: 50 }
+
+  channel.prism:
+    beat: Wisps of light circle over the user; at each of their turn ends the light disperses on the target in a burst of orbs, splitting off blue and gold rays onto one more enemy each time.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 0.8, offset: [0, 0.5] }
+      - { on: trigger, status: dispersion, fx: starcaller_4, tint: duo, scale: 0.6, offset: [0, 0.5], speed: 1.5 }
+      - { on: hit, only: primary, fx: round_firework_burst_002, tint: duo, scale: 0.7, speed: 1.5 }
+      - { on: hit, only: others, fx: starcaller_7, tint: element, face: fromActor, scale: 0.45, offset: [-0.05, -0.05], frames: [1, 5], stagger: 100 }
+      - { on: hit, only: others, fx: starcaller_7, tint: element2, face: fromActor, scale: 0.45, offset: [0.05, 0.05], frames: [1, 5], delay: 50, stagger: 100 }
+      # Sanctify's cross follows on each unit hit.
+
+  stab.prism:
+    beat: A needle of focused light punches through the target; when it only grazes for 10, a Lens forms on the user.
+    note: "20 against a Condemned or Frostbitten target (the same single hit): play both cues about 1.3x."
+    cues:
+      - { on: hit, fx: warrior_3, tint: duo, face: fromActor, scale: 0.55, frames: [1, 5], speed: 1.3 }   # the Refract ray's template, unsplit: focused light stays whole
+      - { on: hit, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.4, delay: 80 }
+
+  ravage.prism:
+    beat: Shards of light converge on the target from every side and erupt, then golden bands wrap them in a dome of blows.
+    note: "+10 for each Condemned or Sanctified ally of the target (the same single hit): grow both cues about 0.1 per such ally."
+    cues:
+      - { on: hit, fx: stylized_explosion_005, variant: yellow, frames: [13, 24], speed: 1.5 }   # two frames of convergence, then the burst about 70 ms after the hit. Drawn yellow: a gold body with pale ice-blue accents (tinted, its spike bands keep a fixed pink)
+      - { on: hit, fx: paladin_8, tint: duo, face: fromActor, scale: 0.9, delay: 250 }
+
+  mislead.prism:
+    beat: Diamond glints hang unseen around the target; when they attack, a slit of light opens and swallows the skill, and the light passes on as a Lens to everyone it was aimed at.
+    cues:
+      - { on: apply, status: caught_light, fx: stylized_explosion_004, tint: duo, scale: 0.8, frames: [0, 10], opacity: 0.8 }   # Invisible: owner only; just its diamond glints
+      - { on: trigger, status: caught_light, fx: scifi_warp_001, tint: duo, scale: 0.9 }   # base's counter X, then a Lens gem on each of its targets
+
+  stun.prism:
+    beat: A blinding star bursts on the target; any frost on them breaks (a Frostbitten crust shatters into gold-lit shards) and leaves them stunned and condemned; otherwise frost takes their feet.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, tone: light, scale: 0.6 }   # the star flash, not the frost shatter
+      - { on: remove, status: frostbitten, fx: symmetrical_impact_003, tint: duo, size: small, scale: 0.6, delay: 100 }   # replaces Frostbitten's Ice shatter with a gold-lit one; the other Frost debuffs end through their own defaults
+      # Stun's stagger and Condemned's warning, or with no frost Frostbitten's crust, follow through their defaults.
+
+  dance.prism:
+    beat: Bands of ice-light whirl around the user and settle into a spinning halo over their head; each turn the halo turns and a fresh Lens forms.
+    note: "While the user has Lens the halo also makes them Invulnerable, through modifiers with no event: the halo and Lens icons carry it."
+    cues:
+      - { on: cast, fx: frost_knight_9, tint: duo, scale: 1.3, layer: under }   # past the portrait's edges, so only the whirling bands show around them
+      - { on: apply, status: halo_of_ice, fx: dark_mage_2, tint: duo, tone: light, scale: 0.55, offset: [0, 0.6], frames: [0, 10] }   # trim its last frame (it jumps to dark red)
+      - { on: trigger, status: halo_of_ice, fx: dark_mage_2, tint: duo, tone: light, scale: 0.45, offset: [0, 0.6], frames: [3, 10], speed: 1.4 }   # each turn start; Lens's gem follows
+      # Immune's burst lands through its default.
+
+  heal.prism:
+    beat: Crosses of white-gold light rise through the ally; without Lens the light splits, and the same crosses rise again through the weakest other ally, once in blue and once in gold.
+    cues:
+      - { on: heal, only: primary, fx: spell_heal_002, tint: duo, tone: light, scale: 1.0, frames: [0, 24], speed: 1.5 }   # whole light; the pair below is it split
+      - { on: heal, only: others, fx: spell_heal_002, scale: 0.65, offset: [-0.05, -0.05], frames: [0, 24], speed: 1.6 }
+      - { on: heal, only: others, fx: spell_heal_002, tint: element2, scale: 0.65, offset: [0.05, 0.05], frames: [0, 24], speed: 1.6, delay: 50 }
+
+  bless.prism:
+    beat: A star of white-gold light falls onto the ally and sets as their Lens; when they spend it, the light refracts and a rainbow glint sets a Lens on another ally.
+    cues:
+      - { on: travel, fx: starcaller_2, path: drop, tint: duo, tone: light, scale: 0.5 }
+      - { on: apply, status: lens_of_favor, fx: round_sparkle_burst_001, variant: rainbow, size: small, scale: 0.4, opacity: 0.8 }   # on the user, who holds the refraction
+      - { on: trigger, status: lens_of_favor, fx: round_sparkle_burst_001, at: target, variant: rainbow, scale: 0.6, note: "only when the new Lens follows (it was the blessed ally's Lens that was spent)" }
+
+  curse.prism:
+    beat: Dim stars settle onto the target as the verdict; without Lens it splits, and a rainbow glint carries Sanctify onto one of their allies.
+    cues:
+      - { on: apply, status: condemned, fx: directional_star_burst_001, tint: duo, tone: dark, face: down, scale: 0.9, speed: 1.5 }
+      # Condemned's default, re-added after the stars (this skill's own apply cue replaces it); Holy's ramp, as in its own default.
+      - { on: apply, status: condemned, fx: symbol_warning_001, tint: element2, size: small, scale: 0.4, speed: 2, delay: 350 }
+      - { on: apply, status: debuff, only: others, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.6 }   # the Refract; Sanctify's cross follows
+
+  smite.prism:
+    beat: A shard of gold-lit ice drops from the sky and shatters on the target, and frost glitter settles on the user's weakest ally; the first enemy to strike that ally is rebuked by ice spikes erupting under them, and the ally heals.
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: duo }
+      - { on: apply, status: glacial_rebuke, fx: status_sparkling_001, tint: duo, tone: light, size: small, scale: 0.7, opacity: 0.8, speed: 1.5 }
+      - { on: trigger, status: glacial_rebuke, fx: directional_impact_004, at: source, tint: duo, scale: 0.8 }   # under the attacker it answers; Frostbitten's crust then lands on them
+      - { on: heal, fx: spell_heal_002, tint: duo, tone: light, size: small, scale: 0.55, speed: 1.6, delay: 100 }
+
+  prayer.prism:
+    beat: A beacon flares on the user and crosses of light rise through each ally in turn down the line; then a drop of mercy falls on the weakest unit on the board, friend or foe.
+    note: "The 40 mercy heal is a second heal event. On an ally it replays the team heal cue: play that one about 1.3x and add the paladin_7 drop as on an enemy."
+    cues:
+      - { on: cast, fx: round_light_burst_001, tint: duo, tone: light, scale: 1.2 }   # the beacon; the staggered heals carry the sweep down the column
+      - { on: heal, only: primary, fx: directional_sparkle_burst_001, tint: duo, tone: light, scale: 0.7, speed: 1.3, stagger: 80 }
+      - { on: heal, only: others, fx: paladin_7, tint: duo, tone: light, scale: 0.9, frames: [0, 5], opacity: 0.85 }   # the mercy landing on an enemy: the drop and its splash, cut before the blaze darkens to ochre
+      # Shield's bubble follows on each ally.
+
+  cleave.prism:
+    beat: A wide crescent of gold light sweeps through the target and splits, a blue half and a gold half carrying on into a second enemy; the first of them to act is chilled.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, tint: duo, face: fromActor, scale: 0.9 }
+      - { on: hit, only: others, fx: warrior_4, tint: element, face: fromActor, scale: 0.6, offset: [-0.05, -0.05] }   # Split Beam isn't a Refract, but it is a split: the same pair
+      - { on: hit, only: others, fx: warrior_4, tint: element2, face: fromActor, scale: 0.6, offset: [0.05, 0.05], delay: 50 }
+      - { on: trigger, status: split_beam, fx: none }   # Chilled's snowflake is the tell
+
+  shout.prism:
+    beat: A ring of harsh light blasts out from the user, a Lens forms on every ally, and the glare stabs into each frosted or sanctified enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, tone: light, scale: 1.2, frames: [0, 6] }   # a donut shockwave, its empty center framing the user; cut before its fade turns to olive specks
+      - { on: apply, status: debuff, fx: scifi_muzzle_flash_001, tint: duo, face: fromActor, scale: 0.5, stagger: 60 }   # with each Condemned; its warning plays too
+
+  withstand.prism:
+    beat: A great faceted crystal of sunlit ice closes around the user; when it breaks, it flashes out to an outline and leaves a small Lens behind.
+    cues:
+      - { on: apply, status: ice_aegis, fx: spell_ice_001, tint: duo, scale: 1.4, frames: [11, 30], speed: 1.5, opacity: 0.7, note: "hold the crystal a beat and fade it to a faint shell: it would hide the portrait" }
+      - { on: trigger, status: ice_aegis_watch, fx: spell_ice_001, tint: duo, scale: 1.4, frames: [30, 37], note: "fires when the Aegis breaks: the crystal flashes white and breaks to an outline; Lens's small gem (and Immune's burst, if Anointed) follow" }
+
+  taunt.prism:
+    beat: A cold gleam sparks off the user and flashes in the target's eyes; without Lens it splits, and a rainbow glint draws one of their allies in too.
+    cues:
+      - { on: cast, fx: scifi_spark_burst_001, tint: duo, scale: 0.7 }
+      - { on: apply, status: debuff, only: primary, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.5 }
+      - { on: apply, status: debuff, only: others, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.6 }   # the Refract
+      # Taunt's '!' lands on both through its default.
+
+  titan.prism:
+    beat: Columns of light rise around the user and blaze out in a rose window of light; the colossus splits every blow, sending half of it off as a blue and a gold ray into a random enemy.
+    note: "The portrait swells about 15% with a brief screen brighten as the window blazes. Scale the refracted pair with the amount split off (about 0.1 per 5)."
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, tone: light, scale: 1.8, layer: under }   # the wind-up
+      - { on: apply, status: immune, fx: lightning_burst_001, tint: duo, scale: 1.7, delay: 250 }   # Immune's own filigree, turned up into the rose window, replacing its default: it blazes only if Immune lands (a Numb user's Buffs are refused). Armor's icon pops through its default
+      - { on: trigger, status: colossus_of_light, fx: stylized_impact_001, tint: duo, scale: 0.6 }   # each direct hit caught and split, as on Spectrum Ward
+      - { on: hit, fx: starcaller_7, tint: element, face: fromActor, scale: 0.6, offset: [-0.05, -0.05], frames: [1, 5] }
+      - { on: hit, fx: starcaller_7, tint: element2, face: fromActor, scale: 0.6, offset: [0.05, 0.05], frames: [1, 5], delay: 50 }
+
+  lumen_elk_antler_glow:
+    beat: A glowing wisp curls off the elk and drifts over to set a Lens on the ally.
+    cues:
+      - { on: travel, fx: starcaller_4, path: arc, tint: duo, scale: 0.45 }   # the Lens's gem lands through its default
+
+  lumen_elk_gore:
+    beat: The elk tosses the target on an upswept hook of ice-light.
+    cues:
+      - { on: hit, fx: frost_knight_8, tint: duo, face: fromActor, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, size: small, scale: 0.45, delay: 100 }
+      # Sanctify's cross follows.

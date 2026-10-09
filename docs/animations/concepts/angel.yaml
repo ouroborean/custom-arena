@@ -1,0 +1,299 @@
+# Angel (Wind + Holy) animation concepts. Spec: docs/animations/README.md; brief: briefs/angel.md.
+# Angel is gilded air: `duo` is the house look (Wind's silver-blue outline around Holy's gold body and
+# pale-gold highlights). Plain `element` (Wind white) is air and feathers; `element2` (Holy gold) is light;
+# `tone: light` on element2 for heals. Class art is colorized; nothing plays native.
+# Signature motifs, used across the kit:
+#   wing     — paladin_8 in `duo` behind a unit. One wing folding over an ally is a Ward (Warded's default);
+#              a pair opening behind the Angel is their own (Spread Wings, Seraphic Form), always larger than
+#              an ally's Ward wing; Under My Wing's long Ward is larger and slower too. It never plays on an
+#              enemy (Sweeping Wings rakes with a comb of feathers instead). Wings of Respite curls a
+#              thinner white wing (frost_knight_2) behind each ally.
+#   halo     — dark_mage_2 in `element2`, small and over the head (frames 0-10: its last frame jumps to dark
+#              red). Halo and everything that counts as one (Lay on Hands, Heavenly Host; Watchful Eye in
+#              faint white, owner only) wears it, and it breaks into a ring of dashes when spent.
+#   feathers — directional_impact_001 in white: a fan of feathers peels off a unit toward the Angel whenever a
+#              blow or an enemy's attention is pulled onto them (a Ward redirect, Martyr's Wings), and off a
+#              unit's back when the Angel strikes.
+group: angel
+
+statuses:
+  warded:
+    note: Applied constantly (most of the kit Wards someone), so it is one quick wing behind the portrait and no aura; the status icon carries it.
+    apply:  [ { fx: paladin_8, tint: duo, scale: 1.6, offset: [-0.2, 0.2], layer: under, opacity: 0.8, speed: 1.3 } ]   # a gilded wing sweeps up behind them and spills past the head and one shoulder
+    trigger:
+      - { fx: directional_impact_001, face: toActor, scale: 0.6, note: "plays on the redirect, just before the redirected skill's own cues land on the Angel: white feathers peel off the bearer toward the Angel who Warded them. Needs the redirect surfaced as an event naming the warded bearer, the warder, the attacker and the skill (today only the internal ward_redirect signal exists, and it omits the bearer). When the redirected skill is HiddenTarget (its skillUsed carries secretFrom this viewer), don't play this at the redirect for that viewer: hold it until that skill's first damage/apply lands on the Angel, or skip it" }
+    remove: [ { fx: round_firework_burst_001, size: small, tint: duo, scale: 0.5, opacity: 0.8 } ]   # cleansed or stolen: the wing sheds a few drooping feathers
+    expire: [ { fx: directional_particle_burst_001, size: small, scale: 0.4, opacity: 0.6 } ]
+  halo:
+    note: No aura (the status icon carries it) and no trigger art. Its trigger runs on every hit to the bearer and acts only on the killing one; that save shows as this status's remove followed by the halo_save macro.
+    apply:  [ { fx: dark_mage_2, tint: element2, scale: 0.45, offset: [0, 0.6], frames: [0, 10] } ]   # two crescents spin together into a gold ring over the head
+    remove: [ { fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.5, offset: [0, 0.6] } ]   # spent or cleansed: the ring breaks into dashes
+    expire: [ { fx: directional_particle_burst_001, size: small, tint: element2, scale: 0.45, offset: [0, 0.45], opacity: 0.6 } ]
+  vigil_mark:
+    apply:  [ { fx: frost_knight_7, tint: duo, scale: 0.6, speed: 0.6, note: "applied at the redirect: when the redirected skill is HiddenTarget (its skillUsed carries secretFrom this viewer), hold it for that viewer until that skill's first damage/apply lands on the Angel" } ]   # the vigil's reticle locks onto the enemy who struck a Warded ally (slowed: 5 frames)
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, opacity: 0.6 } ]
+
+macros:
+  halo_save:   # the killing blow is caught: back up to 25 HP
+    - { fx: directional_impact_004, tint: element2, tone: light, scale: 1.6, layer: under, note: "spikes of light burst up from under them; the portrait snaps back from grey" }
+    - { fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.9, frames: [6, 16], delay: 80 }   # a star bursts into a ring over them (converging wind-up skipped)
+
+skills:
+  strike.angel:
+    beat: A gilded wing-edge sweeps up through the target and sheds a spray of gold sparks; Warded's wing folds over the weakest ally.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: element2, scale: 0.6, delay: 100 }
+
+  smash.angel:
+    beat: A shaft of light drops from the sky onto the target and white air bursts out from under them in four gusts; gusts blow past each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: scifi_warp_003, tint: duo, scale: 1.3 }
+      - { on: hit, only: primary, fx: symmetrical_smoke_burst_003, tint: element, scale: 1.6, layer: under, opacity: 0.7, delay: 150 }   # four lobes past the portrait's corners (not a dome: that is Stealth's)
+      - { on: hit, only: others, fx: directional_smoke_burst_005, face: fromActor, size: small, tint: duo, scale: 0.7, delay: 200, stagger: 90 }
+      # Each kill: Halo's default settles on a random ally.
+
+  charge.angel:
+    beat: The user swoops to the ally's side on a gilded gust and the wing folds over them; catching a blow sends the user surging.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: arc, tint: duo, scale: 0.7, note: "the portrait swoops along the arc to the ally and back" }
+      - { on: trigger, status: swoop, fx: directional_particle_burst_002, at: actor, size: small, tint: duo, scale: 0.7, note: "it fires on every Ward redirect on this side: play it only on the first one taken by the user. When the redirected skill is HiddenTarget (its skillUsed carries secretFrom this viewer), don't play it at the redirect for that viewer: hold it until that skill's first damage/apply lands on the user, or skip it. Rushing's default follows on them (or on the ally when the Ward ends uncaught)" }
+
+  riposte.angel:
+    beat: A ring of gilded light circles the user (owner only); a blow aimed at them flares off the guard and a gust of feathers throws the attacker back.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.8 }   # Invisible: owner only. The Wards on every ally play Warded's default for the owner too
+      - { on: trigger, status: intercession, fx: symmetrical_impact_002, tint: duo, scale: 0.8 }
+      - { on: trigger, status: intercession, fx: directional_impact_001, at: source, face: fromActor, scale: 0.7, delay: 100 }   # then the counter default on the attacker
+
+  rage.angel:
+    beat: Spikes of white air rise round the user and a spray of feathers bursts upward off them; if the Halo saves them, the wings burst open in a gyre of light.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.8, layer: under }   # the spikes flank both sides and climb well above the head
+      - { on: cast, fx: directional_impact_001, face: up, scale: 0.9, delay: 120 }
+      # Might, Immune and Halo play their defaults on the user.
+      - { on: trigger, status: unbroken_wings, fx: stylized_impact_001, tint: duo, scale: 1.2, note: "only on the swell (the firing where the Halo saved them this turn and the 2 Might lands); its other firings change nothing, so nothing plays" }
+
+  shot.angel:
+    beat: A gilded quill flies to the target and lodges with a puff of feathers; when they next attack, it flares, and light rises through whoever they struck.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.45, speed: 1.5 }   # the flame prongs trailing the blade read as a quill's vanes
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.6 }
+      - { on: apply, status: quill_of_light, fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.35, delay: 100 }
+      # The flare; its 10 damage replays the hit above and each healed target plays the heal.
+      - { on: trigger, status: quill_of_light, fx: round_firework_burst_001, size: small, tint: element2, scale: 0.6 }
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.55, stagger: 60 }
+
+  snipe.angel:
+    beat: The user hurls a spear of light straight up out of sight; next turn it plunges onto the hidden target, or, if the Angel took blows for their allies, rains down on them as healing.
+    note: HiddenTarget. Nothing points at anyone before the strike lands; the launch goes straight up from the user.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_002, face: up, tint: element2, tone: light, scale: 0.7, offset: [0, 0.5] }
+      - { on: trigger, status: descending_spear, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.5, offset: [0, 0.6], note: "it fires on every Ward redirect on this side: play it only when the redirected hit went to the user, one glint per hit caught. When the redirected skill is HiddenTarget (its skillUsed carries secretFrom this viewer), don't play it at the redirect for that viewer: hold it until that skill's first damage/apply lands on the user, or skip it" }
+      - { on: hit, fx: paladin_5, tint: duo, scale: 1.3 }
+      - { on: hit, fx: directional_impact_002, layer: under, delay: 250 }   # a white shock rolls out along the ground
+      # Fully absorbed by Shield: the spear still falls.
+      - { on: blocked, fx: paladin_5, tint: duo, scale: 1.1 }
+      - { on: heal, fx: directional_star_burst_001, face: down, tint: element2, tone: light, scale: 0.9, speed: 1.5 }   # the caught branch: the spear's light falls on the user as stars
+
+  trap.angel:
+    beat: A faint white halo settles over every ally (owner only); when one saves them it blazes up, and the attacker falls under judgment.
+    cues:
+      - { on: apply, status: watchful_eye, fx: dark_mage_2, tint: element, scale: 0.45, offset: [0, 0.6], frames: [0, 10], opacity: 0.6, stagger: 80 }   # Invisible: owner only
+      # What the opponent sees: this flare, then halo_save on the ally and Condemned's default on the attacker.
+      - { on: trigger, status: watchful_eye, fx: starcaller_1, face: up, tint: duo, scale: 0.8, offset: [0, 0.3], note: "only on the firing that saves the bearer; it runs on every hit and acts only on the killing one" }
+
+  maneuver.angel:
+    beat: A puff of white air and stars kicks up as the user lifts off, and a gilded puff blooms over the weakest ally as the user's shelter passes to them.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_002, scale: 1.6, layer: under, speed: 1.3 }
+      - { on: apply, status: buff, only: others, fx: symmetrical_smoke_burst_001, size: small, tint: duo, tone: light, scale: 0.6 }   # the other ally's Invulnerable; its default shell follows
+      # Leaping's updraft plays on the user (and Invulnerable's shell too, with no other ally).
+
+  companion.angel:
+    beat: A star falls straight down out of the sky and the Cherub lands in a splash of gold.
+    cues:
+      - { on: summon, fx: starcaller_2, face: down, tint: duo, scale: 0.9 }
+      - { on: summon, fx: directional_impact_003, tint: element2, scale: 1.4, layer: under, delay: 250 }   # the gold crown splashes up past both sides and over the head
+
+  bolt.angel:
+    beat: An orb of white-gold light falls from above onto the target and bursts into clouds of light; sparkles of it rise through the weakest ally.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: drop, tint: element2, tone: light, scale: 0.6 }   # the crescent head leads it down
+      - { on: hit, fx: paladin_4, tint: duo, scale: 0.9 }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: element2, tone: light, scale: 0.8 }
+
+  blast.angel:
+    beat: A gale of gilded wind pours down the enemy column and a needle of light drives through each enemy; dim embers of the verdict settle at their feet.
+    cues:
+      - { on: hit, fx: frost_knight_5, at: enemySide, face: down, tint: duo, scale: 2.4, opacity: 0.9, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: scifi_muzzle_flash_003, face: down, tint: element2, tone: light, scale: 0.6, delay: 150, stagger: 70 }   # Piercing: a ring snaps round each and the jet drives through
+      - { on: apply, status: endless_verdict, fx: spell_forge_001, size: small, tint: element2, tone: dark, scale: 0.7, offset: [0, -0.3], opacity: 0.8, delay: 300, stagger: 70 }   # over the portrait: embers fall onto a ring at their feet
+
+  consume.angel:
+    beat: A starry puff pops on the target and white feathers peel off them toward the user, who draws the light in.
+    cues:
+      - { on: hit, fx: round_sparkle_burst_002, size: small, tint: element2, scale: 0.5 }
+      - { on: hit, fx: directional_impact_001, face: toActor, scale: 0.6, delay: 100 }
+      - { on: heal, fx: spell_absorb_001, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.6 }
+      # Stolen Swiftness: its remove default on the target, its apply default on the user.
+
+  summon.angel:
+    beat: Two stars converge and burst into Lesser Angels, and a faint halo settles over every ally; when one would die, a Lesser Angel takes the blow and dissolves in gold.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, tint: element2, scale: 0.9, stagger: 150 }
+      - { on: apply, status: heavenly_host, fx: dark_mage_2, tint: element2, scale: 0.4, offset: [0, 0.6], frames: [0, 10], opacity: 0.7, delay: 300, stagger: 80 }   # it counts as a Halo
+      - { on: trigger, status: heavenly_host, fx: starcaller_4, tint: element2, tone: light, scale: 0.8, note: "only on the save (the bearer at 1 HP with a Lesser Angel left): two wisps of light wrap the ally, then the Lesser Angel's death and halo_save on the ally" }
+      - { on: death, fx: symmetrical_smoke_burst_001, tint: element2, tone: light, scale: 0.8 }   # the Lesser Angel who died in their place
+      - { on: remove, status: heavenly_host, fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.4, offset: [0, 0.6], opacity: 0.7, stagger: 60 }
+
+  channel.angel:
+    beat: A watch-light kindles before the user and a reticle locks onto each enemy whose blow they catch; at each turn's end the watch-light pulses and shards of light drop on every marked enemy.
+    cues:
+      - { on: apply, status: vigil, fx: scifi_charge_up_001, tint: duo, scale: 0.8, opacity: 0.85 }
+      # The turn-end firing only (before the drops and the new Ward). Its ward_redirect firings play nothing here:
+      # Vigil's mark locks its reticle onto the attacker when the user caught the hit, and other redirects do nothing.
+      - { on: trigger, status: vigil, fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.5, opacity: 0.85, note: "only on the turnEnd firing (the 15 damage drops and the new Ward); on ward_redirect firings play nothing, because vigil_mark's apply default already locks the reticle onto the attacker" }
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.8, stagger: 80 }
+
+  stab.angel:
+    beat: A gilded quill stabs through the target in a thin flash, and a tiny white feather stays pinned in them.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.75 }
+      - { on: apply, status: piercing_feather, fx: scifi_muzzle_flash_001, face: down, scale: 0.4, offset: [0.15, 0.45], delay: 120 }
+
+  ravage.angel:
+    beat: The user springs skyward; at their next turn they plummet talons-first onto the target and feathery tufts of air blast out of the impact.
+    note: The cast shows through the leap macro, Leaping's updraft and Invulnerable's shell on the user; the hit lands when Plummet ends at the start of the user's next turn.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 1.2, note: "the portrait drops onto the target and snaps back" }
+      - { on: hit, fx: symmetrical_impact_004, scale: 0.9, delay: 100 }
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.6, delay: 180 }
+
+  mislead.angel:
+    beat: A glittering veil of gold sparkles settles on the target (owner only); when they attack, feathers peel off them toward the Angel, who gains a Halo as the enemy is drawn to them.
+    cues:
+      - { on: apply, status: martyrs_wings, fx: status_sparkling_001, tint: element2, scale: 0.9, opacity: 0.7, speed: 1.5, note: "one cycle, then fade (owner only)" }   # Invisible: owner only
+      # What the opponent sees: the feathers, then Halo's default on the Angel and Taunt's on the enemy.
+      - { on: trigger, status: martyrs_wings, fx: directional_impact_001, face: toActor, tint: element2, scale: 0.7 }
+
+  stun.angel:
+    beat: A slit of light opens before the target into a blinding white flash that staggers them, and a halo settles on them.
+    cues:
+      - { on: apply, status: stun, fx: scifi_warp_001, tint: element2, tone: light, note: "the portrait jolts back from the flash" }
+      # Stun's default, re-added once the flash bursts (the cue above replaces it). Halo's default follows.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, delay: 300 }
+
+  dance.angel:
+    beat: A white whirlwind spins up behind the user while gold wisps curl round them, and a thin white wing curls up behind each ally to guard them; a Stun aimed at one is batted aside by a flick of gold.
+    cues:
+      - { on: cast, fx: slime_5, tint: element, scale: 1.8, layer: under, opacity: 0.85 }
+      - { on: cast, fx: starcaller_4, tint: element2, scale: 0.9, delay: 150 }
+      - { on: apply, status: wings_of_respite, fx: frost_knight_2, tint: element, scale: 1.6, offset: [0, 0.15], layer: under, opacity: 0.75, delay: 200, stagger: 80 }   # only the arc curling past the head shows: a guarding wing
+      # A Stun prevented: the same wing flicks gold and bats it aside, and a puff of Swiftness is spent off the user.
+      # Then the effectBlocked default on the ally; Swiftness's remove default on the user follows only on the last stack.
+      - { on: trigger, status: wings_of_respite, fx: frost_knight_2, tint: duo, scale: 1.6, offset: [0, 0.15], layer: under, speed: 1.4 }
+      - { on: trigger, status: wings_of_respite, at: actor, fx: directional_smoke_burst_003, size: small, tint: element, scale: 0.5, delay: 150, note: "the Angel spends 1 Swiftness (removeStacks emits no event until the last stack goes); skip it when the Angel had no Swiftness and another ally's Swiftness kept the negation alive" }
+
+  heal.angel:
+    beat: Columns of white-gold light rise through the ally from a ring at their feet and a halo settles over them; unspent, it fades into a second rise of light.
+    note: The unspent Halo's 20 on fading replays the heal cue.
+    cues:
+      - { on: heal, fx: dark_mage_3, tint: duo, tone: light, scale: 1.1, frames: [3, 12] }
+      - { on: apply, status: lay_on_hands, fx: dark_mage_2, tint: element2, scale: 0.45, offset: [0, 0.6], frames: [0, 10], delay: 250 }   # it counts as a Halo, so it wears one
+      - { on: trigger, status: lay_on_hands, fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.6, offset: [0, 0.6], note: "only on the save; it runs on every hit and acts only on the killing one. Then this remove and halo_save" }
+      - { on: remove, status: lay_on_hands, fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.5, offset: [0, 0.6] }
+
+  bless.angel:
+    beat: White feathers drift down onto the ally and the Angel's wing folds over them, larger and slower for the long Ward.
+    cues:
+      - { on: apply, status: warded, fx: round_firework_burst_001, scale: 0.8, offset: [0, 0.3] }
+      # Warded's wing, re-added after the feathers (this skill's own apply cue replaces it). Swiftness plays its default.
+      - { on: apply, status: warded, fx: paladin_8, tint: duo, scale: 1.9, offset: [-0.2, 0.25], layer: under, opacity: 0.85, delay: 200 }   # larger than an ordinary Ward, and at speed 1.0 slower than the default's 1.3
+
+  curse.angel:
+    beat: Dim gold motes of grace drift slowly down off the enemy; each time they gain speed again, a fan of feathers is torn away and judgment settles on them.
+    cues:
+      - { on: apply, status: fallen_grace, fx: directional_particle_burst_001, face: down, tint: element2, tone: dark, scale: 0.9, speed: 0.8, offset: [0, 0.2] }
+      # Each mobility buff torn away: its own remove default, these feathers, then Condemned's default.
+      - { on: trigger, status: fallen_grace, fx: directional_impact_001, face: down, size: small, tint: element2, tone: dark, scale: 0.6 }
+      # The mobility buffs stripped on cast play their own remove defaults.
+
+  smite.angel:
+    beat: A drop of gold light falls on the target and splashes into a wide blaze, leaving a ring pinging over them; an ally who strikes them gets the Angel's wing.
+    cues:
+      - { on: hit, fx: paladin_7, tint: duo, note: "fade its held last frame" }
+      - { on: apply, status: heavenly_mark, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45, offset: [0, 0.55], delay: 200 }
+      - { on: trigger, status: heavenly_mark, fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.5, offset: [0, 0.55], note: "only when the Ward lands (the damager is an ally other than the user); Warded's wing then plays on that ally" }
+
+  prayer.angel:
+    beat: Light lifts off the user's hands and opens over the whole board in a vast willow of gold that drifts down on friend and foe alike.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.8 }   # the wind-up
+      # The willow is the arrival, so it binds to the first Renew (the `buff` filter adds to Renew's and Armor's
+      # defaults, which still play on every unit).
+      - { on: apply, status: buff, at: field, fx: round_firework_burst_001, tint: element2, tone: light, scale: 3.0, opacity: 0.7, note: "once, on the first Renew: its streaks droop onto every unit" }
+
+  cleave.angel:
+    beat: A gilded wing rakes through the target in a sweeping comb of hooked feathers, and the other, white, rakes back through the next enemy.
+    note: "Not the Ward's wing (paladin_8), which would read as Warding the enemy. The rake is the parents' claw art (Wind's Eagle talons, Holy's Lion claws) grown into a wing."
+    cues:
+      - { on: hit, only: primary, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.95 }
+      - { on: hit, only: others, fx: dark_mage_1, face: fromActor, flip: x, tint: element, scale: 0.75, delay: 150, stagger: 70, note: "the last-attacker branch is one 20-damage hit: play it at about 0.9" }
+
+  shout.angel:
+    beat: A ring of gilded air bursts from the user like a trumpet blast and its notes ring out over every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.4 }   # its empty centre frames the user
+      - { on: apply, status: taunt, fx: round_music_burst_001, size: small, tint: element2, scale: 0.7, stagger: 80 }
+      # Taunt's default, re-added after the notes (this skill's own apply cue replaces it).
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, scale: 0.5, tint: source, delay: 200, stagger: 80 }
+
+  withstand.angel:
+    beat: Both wings spread wide behind the user and fold into a sphere of feathered light; whatever is left of it scatters to the allies.
+    note: The leftover split arrives as base Shield on each ally, which plays Shield's default.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.8, layer: under, offset: [-0.2, 0.15] }   # larger than an ally's Ward wing
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.8, layer: under, offset: [0.2, 0.15], flip: x }
+      - { on: apply, status: spread_wings, fx: frost_knight_9, tint: duo, scale: 1.2, opacity: 0.8, delay: 150 }   # the user's own Shield
+      # The Wards on every ally play Warded's default.
+
+  taunt.angel:
+    beat: A star flares off the user and a gilded crescent flies to catch the target; each blow they land on the Angel sends light to the Angel's allies.
+    cues:
+      - { on: cast, fx: symmetrical_impact_001, tint: element2, tone: light, scale: 0.8 }
+      - { on: travel, fx: paladin_10, path: straight, tint: duo, scale: 0.6 }
+      - { on: trigger, status: radiant_challenge, fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.5, note: "only when the hit landed on the user" }
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.6, speed: 1.8, stagger: 60 }
+      - { on: remove, status: taunt, fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.4, opacity: 0.7 }   # the second blow answers the challenge
+
+  titan.angel:
+    beat: A shaft of light falls on the user and two pairs of wings unfold behind them, gold above and white below, as they become a seraph.
+    note: Swell the portrait about 12% as the wings open. Armor and Immune play their defaults.
+    cues:
+      - { on: cast, fx: scifi_warp_003, tint: element2, tone: light, scale: 2.0, layer: under }
+      - { on: cast, fx: paladin_8, tint: duo, scale: 2.1, layer: under, offset: [-0.25, 0.25], delay: 200 }   # the kit's largest wings
+      - { on: cast, fx: paladin_8, tint: duo, scale: 2.1, layer: under, offset: [0.25, 0.25], flip: x, delay: 200 }
+      - { on: cast, fx: paladin_8, tint: element, scale: 1.6, layer: under, offset: [-0.3, -0.1], delay: 320 }
+      - { on: cast, fx: paladin_8, tint: element, scale: 1.6, layer: under, offset: [0.3, -0.1], flip: x, delay: 320 }
+      - { on: trigger, status: seraphic_form, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, note: "only when a single-target Helpful skill resolves; each copy cast on the other allies then plays that skill's own cues" }
+
+  cherub_shelter:
+    beat: The Cherub beats its little wing and a mote of gold arcs to the ally.
+    cues:
+      - { on: cast, fx: paladin_9, tint: duo, scale: 0.6, speed: 1.3 }
+      - { on: travel, fx: scifi_charge_up_001, path: arc, size: small, tint: element2, tone: light, scale: 0.3 }   # a loopable orb that holds its shape in flight
+      # Warded's wing lands on the ally.
+
+  cherub_holy_arrow:
+    beat: The Cherub looses a little fletched arrow of light that pops on the target.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: element2, tone: light, scale: 0.35, speed: 1.6 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, scale: 0.5 }
+      # Sanctify's default follows.
+
+  lesser_angel_soothe:
+    beat: Two drifts of white sparkles converge on the ally and rise through them.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, scale: 0.6, speed: 1.5 }

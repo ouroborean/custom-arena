@@ -1,0 +1,312 @@
+group: serum
+# Serum (Water + Poison) is medicine with a sting: a lime serum in a navy-edged vial. Its bodies are `duo`
+# (Water's deep navy outline around Poison's lime), clean Water (`element`, the palette default) is the
+# carrier for relief and purging, and Poison (`element2`) marks the active agent (Toxin, Prey).
+# The signature is the pulse, an ECG trace over the bearer: Dose quickens it (scifi_heartbeat_fast_001,
+# faster as the stacks climb), it settles to one slow beat when Dose leaves, an Overdose races it into a
+# lumpy burst, and a Serum execution flatlines it. Nothing else in the kit uses the traces. Around that,
+# Serum delivers by needle and drop rather than smoke: thin streaks, darts, drips and vials that inject,
+# and duo splashes where the dose lands.
+#
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  dose:
+    note: >-
+      Merging stacks on many units at once, so no aura: the icon carries the count. Several stacks in one
+      apply play the beat once. Under Fermenting the tick adds a stack instead of healing: skip the tick
+      cue there (Dose's apply plays for the new stack). Inside an Overdose the macro shows the loss, so
+      skip `remove` there. Skip `remove` too when the Dose leaves because its bearer died (effectRemoved
+      reason 'died'): a heartbeat over a fallen unit contradicts the death. Its effectGained trigger only
+      checks for an Overdose: the macro is its cue. A Pressurized bearer (bolt.serum) who held no Dose
+      counts as Prey again once this apply lands: play Prey's apply default (Poison's reticle) after the beat.
+    apply:  [ { fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.35, offset: [0, 0.75], speed: 1.5, note: "the bearer's pulse quickens: play it faster as their Dose climbs (speed 1.3 at 1 stack, 1.6 at 2, 2 at 3) so a unit near Overdose visibly races" } ]
+    tick:   [ { fx: spell_heal_002, size: small, tint: duo, scale: 0.45, speed: 1.5 } ]   # the dose does its work: lime crosses rise as it heals 5 per stack
+    remove: [ { fx: scifi_heartbeat_slow_001, tint: duo, scale: 0.35, offset: [0, 0.75], opacity: 0.75 } ]   # cleared, drawn off or moved: the pulse settles to one slow beat
+
+macros:
+  overdose:   # per unit: 10 Affliction per Dose, all of it spent
+    - { fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.45, offset: [0, 0.75], speed: 2 }   # the pulse races
+    - { fx: symmetrical_explosion_003, tint: duo, scale: 1.2, delay: 250, note: "scale with the stacks spent: about 1.1 at 4 Dose up to 1.5 at 7+. One short screen shake. If it kills, the line goes flat: scifi_heartbeat_flatline_001 (tint duo, scale 0.45, offset [0, 0.75]) replaces the death default" }   # the overloaded body bursts in a lumpy crown of serum
+    - { fx: directional_smoke_burst_004, size: small, tint: duo, tone: dark, scale: 0.5, opacity: 0.8, delay: 550 }   # a sour wisp after
+
+skills:
+  strike.serum:
+    beat: A needle-thin lash hooks through the target and flicks a bead of serum out the far side.
+    note: The hit grows with the target's Dose (+5 each); play it about 0.1 larger per stack they held.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.8, note: "its impact star sits at the lower-left (~30%, 70%): shift the art so the star lands on the target" }
+      - { on: hit, fx: directional_splatter_001, size: large, face: fromActor, tint: element2, scale: 0.7, delay: 80 }   # sparse art: at 0.7 the streak still reads past the star
+      # Dose's beat follows over them (2 stacks).
+
+  smash.serum:
+    beat: The user takes a swig, then a heavy slosh of serum bursts over the target and sprays on across each of their allies.
+    note: Both hits grow with the user's Dose (+5 each); play them about 0.1 larger per stack.
+    cues:
+      - { on: hit, only: primary, fx: blood_knight_3, face: fromActor, tint: duo, scale: 1.1, note: "origin at ~40%/65% of the canvas: put it on the target so the spiked crown splays past them" }
+      - { on: hit, only: primary, fx: directional_impact_002, tint: duo, scale: 0.6, layer: under, delay: 100 }   # the slosh slaps the ground under them
+      - { on: hit, only: others, fx: directional_splatter_004, face: fromActor, tint: duo, scale: 0.55, delay: 200, stagger: 80 }   # spray carries on over each ally
+      # The swig is Dose's beat on the user, before the swing.
+
+  charge.serum:
+    beat: The user rushes in behind a fizzing jet and jabs; froth bursts out the far side, and every enemy starts to ferment.
+    cues:
+      - { on: travel, fx: frost_mage_7, tint: duo, scale: 0.6, note: "portrait lunges along it; the cloud stays pale, the streaks take the lime" }
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.75, note: "origin at the lower-left (~20%, 75%): put it on the target so the froth fans out past them" }
+      - { on: apply, status: fermenting, fx: round_bubble_burst_001, size: small, tint: element2, tone: dark, scale: 0.45, opacity: 0.75, stagger: 80 }   # each enemy's blood begins to fizz
+      # Dose's beat on the target.
+
+  riposte.serum:
+    beat: A primed dose gathers unseen at the user's side; when struck, it flashes and spits back into the attacker.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.6, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: reactive_serum, fx: symmetrical_impact_001, size: small, tone: light, scale: 0.6 }   # the guard flashes on the user, clean Water
+      - { on: trigger, status: reactive_serum, fx: burst_splatter_003, at: source, tint: duo, scale: 0.65, delay: 100 }   # the counter-splash lands on the attacker
+      # The counter's X, then Dose's beat (3 stacks) on the attacker: flash and splash read without the cast.
+
+  rage.serum:
+    beat: A stimulant jolt sparks off the user and serum surges up through them; a turn spent without striking crashes them in a sour plume.
+    note: >-
+      stimulant_binge triggers at every turn start, every damaging skill and every turn end, but only the
+      turn-start top-up (Might's default follows) and the crash change the board: play its trigger cue
+      only with those. Immune here is a modifier, not the Immune status, so no Immune default plays. The
+      surge rides the binge landing, so a countered binge shows only the jolt and the counter's X.
+    cues:
+      - { on: cast, fx: scifi_spark_burst_001, tint: duo, scale: 1.1 }   # the jolt (wind-up)
+      - { on: apply, status: stimulant_binge, fx: directional_splatter_005, tint: duo, scale: 1.0, delay: 120 }   # plumes of serum surge up through the user as the binge takes hold
+      - { on: trigger, status: stimulant_binge, fx: scifi_spark_burst_001, size: small, tint: duo, scale: 0.5, speed: 1.5 }   # each turn the stimulant jolts again
+      - { on: hit, fx: directional_smoke_burst_001, tint: duo, tone: dark, scale: 0.7, note: "the crash (20 Affliction on the user): portrait sags" }
+
+  shot.serum:
+    beat: A thin dart flies at the target and pops in a small lime flash, and whatever ailed the user rinses away.
+    note: Each purged Debuff adds 10 damage; play the hit about 0.15 larger per Debuff.
+    cues:
+      - { on: travel, fx: starcaller_2, tint: duo, scale: 0.4 }   # white tip, lime tail
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.5 }
+      - { on: remove, status: debuff, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.45, stagger: 60 }   # each purged Debuff rinses off the user in clean Water
+
+  snipe.serum:
+    beat: Dye ribbons coil into the user's dart as they take aim; next turn it is flung skyward and drops onto the hidden target as a vial of dye that shatters.
+    note: "HiddenTarget: nothing points at the target before the hit. The shot grows with the healing tallied: about 1.0 at 25 damage, +0.1 per 10 healed (max 1.6)."
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 0.7 }   # radial, on the user only
+      - { on: trigger, status: tracer_dye_trace, fx: none }   # silent and hidden: the tally shows only in the shot's size
+      - { on: trigger, status: tracer_dye, fx: scifi_muzzle_flash_002, size: small, face: up, tint: duo, scale: 0.6 }   # fires from onExpire: launched straight up, never toward the target
+      - { on: hit, fx: frost_mage_5, tint: duo, note: "anchor its bottom at the target's feet; the falling shard reads as the vial" }
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: element2, scale: 0.6, delay: 150 }
+
+  trap.serum:
+    beat: A tainted glimmer settles at the target's feet; every heal they take afterwards curdles up in a lime spurt.
+    cues:
+      - { on: apply, status: tainted_supply, fx: directional_sparkle_burst_002, size: small, tint: duo, tone: dark, scale: 0.6, opacity: 0.7, speed: 1.3 }   # Invisible: owner only
+      - { on: trigger, status: tainted_supply, fx: directional_splatter_002, tint: duo, scale: 0.6 }   # the opponent's first sight: the heal curdles at their feet
+      # Dose's beat follows each spring.
+
+  maneuver.serum:
+    beat: The user jabs a stimulant and vanishes in a lime puff behind a sealed shell, flicking their Dose onto a random enemy.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_001, tint: duo, scale: 0.9, speed: 1.3 }
+      - { on: apply, status: buff, only: others, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.55 }   # the moved Dose splashes onto the enemy who catches it
+      # Invulnerable's default seals the user. Dose's slow beat as it leaves them and its quick beat on the enemy (or on the user, 2 stacks, if they had none).
+
+  companion.serum:
+    beat: A lime splash erupts and a fat leech surfaces in a burst of bubbles.
+    cues:
+      - { on: summon, fx: directional_splatter_002, tint: duo, scale: 0.9 }
+      - { on: summon, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.55, delay: 200 }
+
+  bolt.serum:
+    beat: A pressurized orb of serum streaks into the target and bursts into a spray of droplets, and a Prey reticle locks onto them.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.6, note: "its own dark smudge lands as it arrives, under the burst" }
+      - { on: hit, fx: round_firework_burst_002, tint: duo, scale: 0.9, speed: 1.5 }
+      # Pressurized makes them count as Prey while they hold Dose: Prey's own reticle (Poison's default), so it reads as Prey.
+      - { on: apply, status: pressurized, fx: frost_knight_7, tint: element2, scale: 0.6, delay: 300, note: "play only if the bearer still holds Dose when Pressurized lands. If Bolt's 2 Dose tipped them into an Overdose first, skip the reticle: they are Pressurized but not Prey" }
+      - { on: apply, status: pressurized, fx: symmetrical_impact_005, size: small, tint: element2, scale: 0.45, delay: 550, note: "only with the reticle: skip it when the Overdose emptied their Dose first" }
+      # Dose's beat (2 stacks) between the burst and the reticle; on a target already at 2-3 Dose the Overdose macro plays there instead.
+      # Regaining Dose later makes a Pressurized unit Prey again: Dose's apply default covers it (see its note).
+
+  blast.serum:
+    beat: Acid rain sweeps down the enemy row, fizzing on each of them, then the doses lift off and run together onto one.
+    note: >-
+      The pooled Dose plays Dose's slow beat on each enemy it leaves (with the lift-off below) and its quick
+      beat on the one it runs to; at 4 or more the Overdose macro follows there. The receiver is the enemy
+      that gets a second Dose apply in this skill use (each donor's Dose arrives as its own apply, paired
+      with an effectRemoved, reason 'removed', on that donor).
+    cues:
+      - { on: hit, fx: spell_forge_001, tint: duo, scale: 1.2, stagger: 90, note: "drops land in turn along the row so the shower sweeps it; its yellow spark streaks may keep their color, which sits fine beside the lime" }
+      - { on: hit, fx: round_bubble_burst_001, tint: duo, scale: 0.8, delay: 250, stagger: 90 }   # the acid fizzes over each of them
+      - { on: remove, status: buff, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.5, delay: 350, stagger: 70, note: "the pooled Dose lifts off each enemy it leaves (Dose is the only Buff this skill removes)" }
+      - { on: apply, status: buff, fx: slime_5, tint: duo, scale: 1.8, layer: under, opacity: 0.85, note: "only on the receiver, once, with its second Dose apply in this skill use: the puddles swirl together under them. Scaled past the opaque portrait so the vortex shows around it" }
+      # Dose's beat on each enemy.
+
+  consume.serum:
+    beat: A drawline strings from the user to the target and pulls every drop of Dose out; an enemy is seared by it, an ally gets all of its healing at once.
+    note: It counts at least 2 stacks; with no Dose to draw, the remove cue doesn't play, but the hit or heal still does.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, scale: 0.6, note: "native, so its red pulse keeps the drain read. No flip when the art's left end sits on the actor: the pulse already runs target→user. Use flip: x only if the renderer lays it target→actor" }
+      - { on: remove, status: dose, fx: directional_particle_burst_001, size: small, face: toActor, tint: duo, scale: 0.6 }   # the Dose streams off toward the user (replaces Dose's slow beat here)
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.9, delay: 100 }   # enemy: 10 Affliction per stack, torn out
+      - { on: heal, fx: spell_heal_002, tint: duo, scale: 0.9, speed: 1.5 }   # ally: Dose's own healing crosses, cashed in all at once
+
+  summon.serum:
+    beat: Lime shoots spring from a ground arc as a spriggan nurse comes up among them, a small healing cross over her.
+    cues:
+      - { on: summon, fx: directional_particle_burst_002, tint: duo, scale: 0.9 }   # the shoots spring up and drift off as she arrives
+      - { on: summon, fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.4, delay: 250 }   # the nurse's cross, a small tell (Heal plays this art big)
+
+  channel.serum:
+    beat: The user hangs a drip; at the end of each of their turns a fat drop of serum falls onto the target and hisses through them.
+    note: Drip's signal trigger (an Overdose ending it) is no pulse and gets no cue; the Overdose macro shows it.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.6 }   # the drip chamber fills
+      - { on: trigger, status: drip, fx: paladin_7, at: target, tint: duo, scale: 0.7, note: "fade its held last frame" }   # the drop falls and splashes
+      - { on: hit, fx: directional_smoke_burst_004, size: small, tint: duo, tone: dark, scale: 0.5, delay: 150 }   # 5 Affliction per Dose hisses off them
+      # Dose's beat on the target each pulse, a little quicker each time.
+
+  stab.serum:
+    beat: A pinprick of lime, and fine needles lodge in the target to prick again each turn.
+    note: At or below 60 HP each prick deals 15 instead of 5; play the hit about 1.3x.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, tint: duo, scale: 0.5 }   # its origin on the target, the fan out the far side
+      - { on: apply, status: microdose, fx: fanfx_pain, size: small, tint: duo, tone: light, scale: 0.6, speed: 2, frames: [2, 24] }   # the needles lodge
+      - { on: trigger, status: microdose, fx: fanfx_pain, size: small, tint: duo, tone: light, scale: 0.6, speed: 2, frames: [2, 24] }   # and flare at each of their turn starts; the pinprick follows
+
+  ravage.serum:
+    beat: A hypodermic lance drives through the target and a thick gout of serum bursts from the wound; their Toxin keeps bubbling at each turn start.
+    note: >-
+      warrior_8 and burst_splatter_002 play only on the cast's direct 25 Piercing hit. toxic_injection's
+      turn-start damage (indirect Affliction) plays only the trigger cue, and only when the bearer holds
+      Toxin, i.e. the tick's damage is above 0. With no Toxin the trigger still fires and a 0-amount damage
+      event arrives: play nothing.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, note: "content spans ~10-68% across the canvas: place the leading point about 0.3 portraits past the target's far side (offset along fromActor) so the lance passes through them, with the gout centred on the target. The direct hit only" }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 150, note: "the direct hit only, not the toxic_injection tick" }
+      - { on: apply, status: toxic_injection, fx: status_poison_001, size: small, tint: element2, scale: 0.5, opacity: 0.8, delay: 300 }   # a few bubbles: their Toxin is armed to tick again
+      - { on: trigger, status: toxic_injection, fx: status_poison_001, tint: element2, scale: 0.75, speed: 1.5, note: "only when the bearer holds Toxin (the tick's damage is above 0); with no Toxin, play nothing" }   # Toxin's own tick bubbles, an extra time
+
+  mislead.serum:
+    beat: A placebo glitters into the target unseen; when they reach for help, the pills fizz up and dissolve, and the help turns to Dose.
+    cues:
+      - { on: apply, status: placebo, fx: directional_star_burst_001, tint: duo, scale: 0.6, speed: 1.5, opacity: 0.75 }   # Invisible: owner only. Its capsule shapes are the pills
+      - { on: trigger, status: placebo, fx: directional_star_burst_001, tint: duo, scale: 0.8, speed: 1.5 }   # the opponent's first sight: the pills fizz up as the skill fails
+      - { on: trigger, status: placebo, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.6, delay: 300 }
+      # The counter's X, then Dose's beat (2 stacks) on each of the skill's targets.
+
+  stun.serum:
+    beat: A sedative dart sinks in, a drowsy lime haze blooms around the target and they slump.
+    note: >-
+      The haze and the slump hang off the Stun landing, not the hit: when Immune blocks it or Swiftness
+      negates it, only the dart plays. A 2- or 3-turn Stun (from their Dose) plays the haze about 1.2x / 1.4x.
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, scale: 0.6, note: "its shock ring sits right of centre: shift it so the ring lands on the target and the shards spray on past" }   # the dart's impact, apart from Stab's pinprick
+      - { on: apply, status: stun, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.8, delay: 80 }
+      # Stun's default, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: duo, scale: 0.7, delay: 300, note: "portrait slumps back a step" }
+
+  dance.serum:
+    beat: Two currents circle the user and lock into one ring; Toxin on allies rinses clean while Renew on enemies sours.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 1.7, offset: [0, -0.4], layer: under, frames: [0, 9] }   # a ground ring round the feet: the front arc dips below the portrait, the sides clear it. Stops before its two crimson frames (indices 10-11)
+      - { on: remove, status: toxin, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.5, stagger: 80 }   # each ally's Toxin rinses off in clean Water (Shot's purge)
+      - { on: remove, status: renew, fx: directional_smoke_burst_004, size: small, tint: element2, tone: dark, scale: 0.55, stagger: 80 }   # each enemy's Renew sours
+      # Renew's and Toxin's defaults follow on each converted unit.
+
+  heal.serum:
+    beat: Lime crosses well up around the ally and a little valve hisses on; if their Dose ever boils over, it vents onto an enemy instead.
+    note: relief_valve fires on every Dose they gain but only vents at 4 or more; play its trigger cue only when the vented damage follows.
+    cues:
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, scale: 0.85, speed: 1.8 }
+      - { on: apply, status: relief_valve, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.4, offset: [0.35, 0.3], delay: 300 }   # the valve hisses once at their shoulder
+      - { on: trigger, status: relief_valve, fx: directional_smoke_burst_005, face: toTarget, tint: duo, scale: 0.9, note: "origin on the bearer. Face toward the enemy this trigger's damage lands on (the vent's random enemy, the trigger's target), not the skill's primary, which is the bearer itself" }   # the valve blows; their Dose's slow beat follows
+      - { on: hit, fx: symmetrical_explosion_003, tint: duo, scale: 1.1 }   # the Overdose's own burst, landing on the enemy instead
+
+  bless.serum:
+    beat: A tolerance comes down onto the ally in converging glints; any Debuff that reaches them sparkles into Dose instead.
+    cues:
+      - { on: apply, status: mithridate, fx: directional_sparkle_burst_001, face: down, tint: duo, tone: light, scale: 0.75, offset: [0, 0.2] }   # turned down: two glitter clusters start at the top corners, close into a V and settle onto the ally
+      - { on: trigger, status: mithridate, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.5 }   # the Debuff turns over; Dose's beat follows
+
+  curse.serum:
+    beat: Two doses go in and a murky lime spiral closes over the target; every skill they use after makes them twitch with another.
+    cues:
+      - { on: apply, status: side_effects, fx: slime_5, tint: duo, tone: dark, scale: 0.8, speed: 1.4, opacity: 0.85 }
+      - { on: trigger, status: side_effects, fx: scifi_spark_burst_002, size: small, tint: duo, scale: 0.55, speed: 2, frames: [0, 20] }   # a twitch as they act; Dose's beat follows
+      # Dose's beat (2 stacks) lands first.
+
+  smite.serum:
+    beat: A lime dose streaks down onto the target like a falling star; if an ally then leaves them low, the dose stops their heart.
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, tint: duo, scale: 0.8 }   # dives in from the user's side, a star flash and ring where it lands
+      - { on: apply, status: mercy_dose, fx: symbol_warning_001, size: small, tint: duo, scale: 0.35, offset: [0.35, 0.6], speed: 2, delay: 350 }   # a small danger tell beside the head, clear of Sanctify's cross: the execute is armed
+      - { on: trigger, status: mercy_dose, fx: none }   # fires on every allied hit; only the execution matters, and it plays on death
+      - { on: death, fx: deathbringer_5, frames: [3, 22] }   # native: the skull is slashed and flashes lime (skip its near-black opening)
+      - { on: death, fx: scifi_heartbeat_flatline_001, tint: duo, scale: 0.45, offset: [0, 0.75], delay: 400 }   # and the pulse goes flat
+      # Sanctify's default on the target.
+
+  prayer.serum:
+    beat: A fizz of tonic rises up through the team; each ally's Dose pays out in lime crosses, and the dregs are flicked onto every enemy.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, at: allySide, tint: duo, scale: 2.4, opacity: 0.6, speed: 1.3 }   # over the row: the art is sparse enough not to bury the portraits
+      - { on: heal, fx: spell_heal_002, tint: duo, scale: 0.8, speed: 1.5, stagger: 100 }   # Dose's own crosses, bigger: 10 per stack
+      - { on: apply, status: buff, only: others, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.5, delay: 200, stagger: 80 }   # the dregs land on each enemy; Dose's beat follows
+
+  cleave.serum:
+    beat: A fan of serum lashes across the target; the first two times they're healed, it sprays off them over each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: paladin_8, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: apply, status: lashing_spray, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.45, opacity: 0.7, delay: 250 }   # a small echo of the spray to come: it's armed
+      - { on: trigger, status: lashing_spray, fx: round_firework_burst_001, tint: duo, scale: 0.8 }   # the heal sets it off: streams spray out of the bearer
+      - { on: hit, only: others, fx: burst_splatter_002, size: small, tint: duo, scale: 0.5, delay: 150, stagger: 70 }   # and splatter onto each of their allies
+      # Dose's beat on the target.
+
+  shout.serum:
+    beat: A blue-and-lime nova bursts off the user and every dose on the board goes bad, allies' included.
+    cues:
+      - { on: cast, fx: deathbringer_4, scale: 1.9, layer: under }   # native indigo with a lime rim: Serum's own colors. At 1.9 the lime lobed ring clears the opaque portrait and the outer ring reaches ~1.8
+      - { on: apply, status: buff, fx: stylized_explosion_006, size: small, tint: duo, scale: 0.5, delay: 150, stagger: 60 }   # an olive gas puff on each unit whose Dose grows: the dose going bad; Dose's beat follows
+
+  withstand.serum:
+    beat: Strands of serum wind around the user and set into a clot lattice; each blow that lands flashes it and their Dose heals them at once.
+    cues:
+      - { on: apply, status: clotting_agent, fx: frost_knight_9, tint: duo, scale: 1.4, layer: under, opacity: 0.85 }   # the strands wind into a ball behind them
+      - { on: apply, status: clotting_agent, fx: fanfx_barrier, tint: duo, opacity: 0.5, speed: 1.3, delay: 300, note: "an opaque panel on its canvas: keep it translucent over the portrait" }   # and set
+      - { on: trigger, status: clotting_agent, fx: fanfx_barrier, size: small, tint: duo, scale: 0.8, opacity: 0.6, speed: 2, note: "play only when the bearer holds Dose (a heal follows); with 0 Dose the trigger fires but nothing heals" }
+      - { on: heal, fx: spell_heal_002, size: small, tint: duo, scale: 0.5, speed: 1.5 }   # Dose's own crosses, early
+      # Dose's beat (2 stacks) lands first.
+
+  taunt.serum:
+    beat: The user downs a bitter tonic and spits a gob of it at the target; each time that enemy strikes back, a dose spits back at them.
+    note: bitter_tonic fires on every enemy hit on the user but moves Dose only onto the Taunted enemy while the user has some; play its trigger cue only then.
+    cues:
+      - { on: travel, fx: slime_3, path: arc, tint: duo, scale: 0.5, note: "its own splat lands as it arrives" }
+      - { on: trigger, status: bitter_tonic, fx: directional_splatter_004, at: source, face: fromActor, tint: duo, scale: 0.6 }   # the dose lands on the attacker and sprays past; their quick beat follows
+      # Dose's beat on the user (2 stacks), Taunt's '!' on the target.
+
+  titan.serum:
+    beat: The user draws a mutagen in, swells inside a cracking lime orb, and bursts out of it transformed.
+    cues:
+      - { on: cast, fx: spell_absorb_001, tint: duo, speed: 1.6 }
+      - { on: apply, status: mutagen, fx: frost_mage_6, tint: duo, scale: 1.4, note: "the portrait swells about 15% inside it" }
+      - { on: resolve, fx: burst_splatter_002, tint: duo, scale: 1.6, note: "short screen shake" }   # the shell bursts once Dose, Might and Armor are on
+      - { on: trigger, status: mutagen, fx: symmetrical_smoke_burst_002, tint: duo, scale: 0.8, opacity: 0.8 }   # fires as it wears off: the mutation sloughs away; at 4+ Dose the Overdose macro follows
+      # Dose's beat and Might's and Armor's defaults play between the orb and the burst.
+
+  giant_leech_latch:
+    beat: The leech clamps on with a raking bite and leaves a smear of serum.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.55 }
+      # Dose's beat follows.
+
+  giant_leech_bloodletting:
+    beat: The leech draws the excess serum out of the ally and they ease.
+    note: Losing 2 of several Dose emits no event, so the draw rides the heal; if it takes their last Dose, Dose's slow beat plays too.
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, size: small, face: toActor, tint: duo, scale: 0.6, note: "only if the ally held Dose before the draw" }   # the serum drifts off toward the leech
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.5, speed: 1.5, delay: 200 }   # clean Water relief
+
+  spriggan_nurse_titrate:
+    beat: The nurse measures out a drop that splashes onto the ally, or onto a random enemy once the ally holds 3.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.45 }   # a droplet lifts off the nurse
+      - { on: apply, status: buff, fx: burst_splatter_003, size: small, tint: duo, scale: 0.4 }   # the measured drop lands wherever it goes; Dose's beat follows

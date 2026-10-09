@@ -1,0 +1,274 @@
+group: poison
+
+statuses:
+  toxin:
+    note: "Its tick heals instead of damaging when the bearer has Hormesis (Evolution/Assassin). Pick the tick cues by the event the tick produced: on a heal, play { fx: spell_heal_002, at: bearer, size: small, scale: 0.6 } in place of status_poison_001 and the smoke wisp."
+    # small skull puff above the head: a tell that sits clear of the hit art it usually lands with
+    apply:  [ { fx: stylized_skull_smoke_burst_001, at: bearer, size: small, scale: 0.55, offset: [0, 0.35] } ]
+    tick:
+      - { fx: status_poison_001, at: bearer, scale: 0.75 }
+      - { fx: directional_smoke_burst_004, at: bearer, size: small, scale: 0.6, delay: 150 }
+    remove: [ { fx: symmetrical_smoke_burst_002, at: bearer, size: small, scale: 0.6, opacity: 0.7 } ]
+    # no aura: the status icon already carries the stack count, and Toxin is on many units at once
+  prey:
+    # a spiked lock-on reticle snaps onto the hunted unit, then a ping; staggered so Lunge marks the side one by one.
+    # Not an eye: fanfx_gaze is Intimidated's default and Condemned's apply, and Antidote/Evolution apply Prey beside them
+    apply:
+      - { fx: frost_knight_7, at: bearer, tint: element, scale: 0.6, stagger: 100 }
+      - { fx: symmetrical_impact_005, at: bearer, size: small, scale: 0.45, delay: 250, stagger: 100 }
+    remove: [ { fx: directional_smoke_burst_004, at: bearer, size: small, scale: 0.4, opacity: 0.6 } ]
+    expire: [ { fx: directional_smoke_burst_004, at: bearer, size: small, scale: 0.4, opacity: 0.6 } ]
+
+macros: {}
+
+skills:
+  strike.poison:
+    beat: A lime fang-wave snaps across the target and spits venom out the far side.
+    cues:
+      - { on: hit, fx: slime_1, at: target, face: fromActor, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_003, at: target, face: fromActor, scale: 0.5, delay: 120 }
+
+  smash.poison:
+    beat: A stomp bursts a toxic mushroom cloud under the target, and a venom splash rolls out under each of their allies.
+    cues:
+      - { on: hit, fx: epic_explosion_003, at: target, scale: 1.1 }
+      # the splash rides Toxin's apply, so it lands on each ally whether or not the stomp's damage gets through;
+      # this replaces Toxin's default for this skill, so the skull is added back after it
+      - { on: apply, status: toxin, fx: directional_impact_002, at: bearer, scale: 0.6, layer: under, delay: 120, stagger: 100 }
+      - { on: apply, status: toxin, fx: stylized_skull_smoke_burst_001, at: bearer, size: small, scale: 0.55, offset: [0, 0.35], delay: 220, stagger: 100 }
+
+  charge.poison:
+    beat: The user lunges like a viper in a lime streak, and a small venom splash leaves every enemy marked as Prey.
+    cues:
+      - { on: travel, fx: warrior_8, tint: element, scale: 0.7, note: "portrait lunges toward the target along the streak" }
+      - { on: hit, fx: directional_splatter_004, at: target, face: fromActor, size: small, scale: 0.6 }
+      # Prey's default reticle locks onto every enemy, staggered
+
+  riposte.poison:
+    beat: A faint scaly sheen settles on the user; when struck, the old skin bursts away and green healing rises.
+    cues:
+      - { on: cast, fx: status_sparkling_001, at: actor, scale: 0.8, opacity: 0.7 }   # Invisible: owner only
+      - { on: trigger, status: shed_skin, fx: symmetrical_explosion_003, at: bearer, scale: 0.8 }
+      - { on: heal, fx: spell_heal_003, at: target, scale: 0.8, speed: 2 }
+      # Renew's default follows
+
+  rage.poison:
+    beat: The user rears up in a surge of venom spikes; every Might in the battle is splashed and soured into Weakness.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: actor, scale: 0.9 }
+      - { on: remove, status: might, fx: burst_splatter_003, at: bearer, scale: 0.6, delay: 200, stagger: 100 }
+      # Weakness's default follows on each converted unit
+
+  shot.poison:
+    beat: A quick spit of venom flies at the target and pops in a small green splash.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, at: actor, face: toTarget, scale: 0.35 }
+      - { on: travel, fx: slime_3, scale: 0.5 }
+      - { on: hit, fx: burst_splatter_001, at: target, size: small, scale: 0.5 }
+
+  snipe.poison:
+    beat: Venom spirals into the user's banewood javelin as they take aim; next turn it is hurled skyward and plunges onto the hidden target in a burst of venom.
+    cues:
+      # HiddenTarget: the wind-up and the throw stay on the user and point up, never at the target.
+      # Not a ring with orbiting dots (scifi_charge_up_003): that is Stun's aura.
+      - { on: cast, fx: spell_absorb_001, at: actor, size: small, scale: 0.6, speed: 1.5 }
+      - { on: trigger, status: banewood_javelin, fx: scifi_muzzle_flash_003, at: bearer, face: up, scale: 0.7 }
+      - { on: hit, fx: scifi_warp_003, at: target }
+      - { on: hit, fx: directional_splatter_002, at: target, scale: 0.6, delay: 150 }
+
+  trap.poison:
+    beat: A glob of venom is lobbed to the enemy's feet and settles into a ring of dark coils; each Strategic skill they use makes fangs snap up from the ground.
+    cues:
+      # Invisible: the lob and the coils are seen by the owner only; the opponent first sees the fangs
+      - { on: travel, fx: slime_2, path: arc, scale: 0.6, speed: 1.3, note: "its own splash frames land as the travel arrives, at the target's feet" }
+      - { on: apply, status: snake_pit, fx: dark_mage_2, at: bearer, tint: element, tone: dark, scale: 0.7, offset: [0, -0.4], layer: under, opacity: 0.85, delay: 100, note: "a flat ring at the feet; drop its last (crimson) frame" }
+      - { on: trigger, status: snake_pit, fx: directional_impact_003, at: bearer, scale: 0.8 }
+      # Toxin's default follows each spring
+
+  maneuver.poison:
+    beat: The user dissolves into a billow of green smoke and blinks out of reach through a slit in the air.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, at: actor, scale: 0.9 }
+      - { on: cast, fx: scifi_warp_001, at: actor, size: small, scale: 0.7, delay: 250 }
+      # Invulnerable and Focus defaults follow on the user
+
+  companion.poison:
+    beat: A venom puddle bubbles up and an emerald-glinting asp rises out of it.
+    cues:
+      - { on: summon, fx: directional_splatter_005, at: minion, scale: 0.7 }
+      - { on: summon, fx: round_sparkle_burst_001, at: minion, size: small, scale: 0.5, delay: 250 }
+
+  bolt.poison:
+    beat: A lime-cored orb trailing smoke streaks into the target and bursts in thick acid goo.
+    cues:
+      - { on: travel, fx: deathbringer_6, scale: 0.8 }
+      - { on: hit, fx: burst_splatter_002, at: target, scale: 0.9 }
+      # on Prey, Mark's and Vulnerable's defaults land after the burst, so the bonus reads as extra
+
+  blast.poison:
+    beat: A pool of acid floods under the whole enemy side, fizzing up into foam over each enemy and bursting up under them.
+    cues:
+      - { on: hit, fx: round_bubble_burst_001, at: target, scale: 1.2, opacity: 0.85, delay: 80, stagger: 70 }
+      - { on: hit, fx: burst_splatter_002, at: enemySide, tint: element, tone: dark, scale: 2.4, layer: under, opacity: 0.8, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: directional_splatter_002, at: target, scale: 0.6, delay: 180, stagger: 70 }
+      # Vulnerable's default follows on each
+
+  consume.poison:
+    beat: The user hisses at the target; if they are weak enough, a green fanged maw swallows them and their essence streams into the user.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_003, at: actor, face: toTarget, size: small, scale: 0.6 }
+      - { on: death, fx: necromancer_8, at: target, scale: 1.1 }
+      - { on: death, fx: directional_particle_burst_001, at: target, face: toActor, scale: 0.8, delay: 300 }
+      - { on: death, fx: spell_absorb_001, at: actor, scale: 0.7, speed: 1.5, delay: 500 }
+
+  summon.poison:
+    beat: Thorny green crystals sprout from the ground and a spriggan pops up in a sparkling puff.
+    cues:
+      - { on: summon, fx: frost_mage_4, at: minion, tint: element, scale: 1.3, offset: [0, -0.3], opacity: 0.9 }
+      - { on: summon, fx: directional_sparkle_burst_002, at: minion, scale: 0.8, delay: 150 }
+
+  channel.poison:
+    beat: A plague vortex opens around the user; at the end of each of their turns it pulses, a sickly drizzle falls on every enemy, and a skull marks the one who catches Toxin.
+    cues:
+      - { on: cast, fx: slime_5, at: actor, scale: 1.1 }
+      - { on: trigger, status: nine_plagues, fx: slime_5, at: bearer, scale: 0.6, opacity: 0.8 }
+      # falling drops, not a skull or bubbles: Toxin's tick (bubbles and a rising wisp) can fire on these enemies at the same turn end
+      - { on: hit, fx: spell_forge_001, at: target, size: small, scale: 0.8, stagger: 80 }
+      # Toxin's default marks the random enemy each pulse
+
+  stab.poison:
+    beat: A fang-quick puncture; thin venom shards punch straight through the target.
+    note: On Prey the user gains a random energy, which shows in the energy bar (no board event); otherwise Toxin's default lands.
+    cues:
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, size: small, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_001, at: target, face: fromActor, scale: 0.7, delay: 80 }
+
+  ravage.poison:
+    beat: Twin fangs tear into the target, a sharp crack punches through any guard, and a spiky gout of venom erupts from the wound.
+    cues:
+      - { on: hit, fx: warrior_7, at: target, face: fromActor, tint: element }
+      - { on: hit, fx: symmetrical_impact_003, at: target, size: small, scale: 0.5, delay: 60 }
+      - { on: hit, fx: slime_4, at: target, face: fromActor, scale: 0.8, delay: 150 }
+      # the 2 Toxin (Prey or Invulnerable targets) show through Toxin's default
+
+  mislead.poison:
+    beat: Fine green needles slip into the target unseen; when they attack, the needles flare, their arm goes numb and the skill fizzles out in a puff.
+    cues:
+      - { on: apply, status: numbing_needle, fx: fanfx_pain, at: bearer, scale: 0.7, speed: 1.5 }   # Invisible: owner only
+      # the opponent's first sight of the needles: they flare as the skill seizes up, so the counter reads on its own
+      - { on: trigger, status: numbing_needle, fx: fanfx_pain, at: bearer, scale: 0.8, speed: 2 }
+      - { on: trigger, status: numbing_needle, fx: symmetrical_smoke_burst_002, at: bearer, scale: 0.7, delay: 200 }
+      # the counter default's X, then Toxin, Weakness and Vulnerable defaults follow
+
+  stun.poison:
+    beat: Hooked venom claws rake the target and leave them reeling; on Prey a second rake crosses the first.
+    cues:
+      # bound to the Stun landing, not cast, so a countered, reflected or refused Stun doesn't rake the original target
+      - { on: apply, status: stun, fx: dark_mage_1, at: bearer, face: fromActor, tint: element, scale: 0.9, note: "when the stun's effectApplied has duration 2 (the Prey branch), play dark_mage_1 a second time with flip: x, 200 ms later, so the longer stun reads as a double rake" }
+      # Stun's default, re-added (this skill's own apply cue replaces it): the stagger
+      - { on: apply, status: stun, fx: toon_impact_001, at: bearer, size: small, scale: 0.7, delay: 200, note: "portrait staggers back a step" }
+
+  dance.poison:
+    beat: Twin lime wisps sway around the user like dancing cobras, and every Armor in the battle shreds into Vulnerable.
+    cues:
+      - { on: cast, fx: starcaller_4, at: actor, tint: element }
+      - { on: remove, status: armor, fx: symmetrical_impact_004, at: bearer, scale: 0.6, delay: 200, stagger: 100 }
+      # Vulnerable's default follows on each converted unit
+
+  heal.poison:
+    beat: Green restorative crosses rise from the drinker, then the mixture's sting sets in.
+    cues:
+      - { on: heal, fx: spell_heal_002, at: target, scale: 0.9, speed: 1.4 }
+      - { on: heal, fx: directional_particle_burst_001, at: target, scale: 0.7 }
+      # Toxin's default (2 stacks) is the sting
+
+  bless.poison:
+    beat: The user's crest gleams and drops onto the ally's brow, crowning them with Might and Swiftness.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, at: actor, size: small, scale: 0.5 }
+      - { on: travel, fx: symbol_crown_001, path: drop, size: small, scale: 0.5, speed: 2 }
+      # after the crown has landed and both buffs are on
+      - { on: resolve, fx: directional_sparkle_burst_001, at: target, scale: 0.7 }
+      # Might and Swiftness defaults follow
+
+  curse.poison:
+    beat: A bubble of swamp gas swells and bursts over the enemy's head, leaving them muddled and sickened.
+    note: When Immune refuses the Confusion, no gas bubble bursts; only the effectBlocked default plays.
+    cues:
+      - { on: apply, status: confusion, fx: stylized_explosion_006, at: bearer, scale: 0.8, offset: [0, 0.55] }
+      # Confusion's default, re-added once the gas has burst (this skill's own apply cue replaces it). Toxin's skull follows as usual.
+      - { on: apply, status: confusion, fx: symbol_question_001, at: bearer, size: small, scale: 0.5, tint: element, speed: 1.5, delay: 350 }
+
+  smite.poison:
+    beat: A fat drop of venom falls on the target and splashes into a spiky lime blaze, marking them for the pack.
+    cues:
+      - { on: hit, fx: paladin_7, at: target, tint: element, scale: 0.8, note: "fade its held last frame" }
+      - { on: apply, status: preymark, fx: symbol_warning_001, at: bearer, size: small, scale: 0.4, speed: 2, delay: 200 }
+      - { on: trigger, status: preymark, fx: symmetrical_impact_005, at: bearer, size: small, scale: 0.5 }
+      # each trigger is followed by Vulnerable's default
+
+  prayer.poison:
+    beat: The user sings a lilting serpent song; green notes rise around every ally while its sour echo poisons the enemies.
+    cues:
+      - { on: cast, fx: round_music_burst_001, at: actor, scale: 0.8 }
+      # the notes ride each ally's Renew, so they only rise where the song lands
+      - { on: apply, status: renew, fx: directional_music_burst_001, at: bearer, scale: 0.8, delay: 100, stagger: 100 }
+      # Renew's default, re-added after the notes (this skill's own apply cue replaces it)
+      - { on: apply, status: renew, fx: spell_heal_001, at: bearer, size: small, scale: 0.5, tint: element, delay: 450, stagger: 100 }
+      # Toxin's default is the sour echo on the enemies
+
+  cleave.poison:
+    beat: A scaly tail lashes across each enemy in turn, flicking venom off every one it strikes.
+    note: Striking Prey resets the cooldown, which shows on the skill bar (no board event).
+    cues:
+      - { on: hit, fx: necromancer_2, at: target, face: fromActor, tint: element, scale: 0.9, stagger: 100 }
+      - { on: hit, fx: directional_splatter_003, at: target, face: fromActor, scale: 0.5, delay: 120, stagger: 100 }
+
+  shout.poison:
+    beat: The user heaves out a gassy green shockwave; with no Toxin yet it sickens only them, otherwise every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, at: actor }
+      - { on: cast, fx: directional_smoke_burst_001, at: actor, scale: 0.7, delay: 120 }
+      # Toxin's default lands wherever the branch puts it
+
+  withstand.poison:
+    beat: The user curls into a scaled lime cocoon that hardens around them.
+    cues:
+      - { on: cast, fx: blood_knight_5, at: actor, tint: element, opacity: 0.8 }
+      # Shield and Armor defaults follow
+
+  taunt.poison:
+    beat: A lime crown flashes over the user and a wavering green tether locks onto the target, who is called out and marked as Prey.
+    cues:
+      # base Taunt's grammar: the crown names the user as the one to hit (an eye over a unit would read as Intimidated)
+      - { on: cast, fx: symbol_crown_001, at: actor, tint: element, size: small, scale: 0.45, speed: 2 }
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, opacity: 0.8, flip: x, note: "mirrored so its pulse runs from the user to the target (as drawn it runs back toward the caster, a drain)" }
+      # Taunt's '!' and Prey's reticle defaults follow on the target
+
+  titan.poison:
+    beat: The user swells into a vast constrictor in a lime nova over erupting venom spikes, coils wrap the user, then every Focused unit is squeezed into Confusion.
+    cues:
+      - { on: cast, fx: deathbringer_4, at: actor, tint: element, scale: 1.5, speed: 0.6, note: "the user's portrait swells briefly with the nova" }
+      - { on: cast, fx: directional_impact_004, at: actor, scale: 2.0, speed: 0.6, layer: under }
+      - { on: cast, fx: frost_knight_9, at: actor, tint: element, scale: 1.4, delay: 200 }
+      - { on: remove, status: focus, fx: frost_knight_9, at: bearer, tint: element, scale: 0.8, delay: 300, stagger: 100 }
+      # Confusion's default follows on each converted unit
+
+  asp_fang:
+    beat: The asp darts in with a quick crossing double bite.
+    cues:
+      - { on: hit, fx: warrior_1, at: target, face: fromActor, tint: element, scale: 0.6, speed: 1.3 }
+
+  asp_constrict:
+    beat: The asp's body loops into a squeezing ring around the target.
+    cues:
+      # the coil lands with the Weakness, so a countered or refused Constrict squeezes no one
+      - { on: apply, status: weakness, fx: dark_mage_2, at: bearer, tint: element, scale: 0.9, note: "drop its last (crimson) frame" }
+      # Weakness's default, re-added once the coil has closed (this skill's own apply cue replaces it). Vulnerable's follows as usual.
+      - { on: apply, status: weakness, fx: spell_attack_up_001, at: bearer, size: small, scale: 0.4, tint: element, speed: 1.3, delay: 300 }
+      - { on: apply, status: weakness, fx: spell_debuff_001, at: bearer, size: small, scale: 0.5, tint: element, speed: 1.8, delay: 450 }
+
+  spriggan_sting:
+    beat: The spriggan flicks a thin thorn that pricks the target with a tiny green flash.
+    cues:
+      - { on: hit, fx: starcaller_7, at: target, face: fromActor, tint: element, scale: 0.5 }

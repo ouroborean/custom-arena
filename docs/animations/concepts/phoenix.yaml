@@ -1,0 +1,310 @@
+# Phoenix (Fire + Holy) animation concepts. Spec: docs/animations/README.md; brief: briefs/phoenix.md.
+# Phoenix is fire that burns down to gold: `duo` is the house look (Fire's red-orange outline around
+# Holy's gold body and pale-gold highlights). Plain `Fire` marks a burn on an enemy, `tone: light` the
+# mending side of Radiant skills. Class art is colorized to `duo`; no art plays native.
+# Signature motifs, used across the kit:
+#   wings  — paladin_9 in a mirrored pair behind a unit means "has Rebirth or something that counts as
+#            it" (Rebirth, Rising Dive, Phoenix Blessing). The Chick, which comes back as a Firebird,
+#            wears them tiny; the Titan spreads them at full span over its own rise column and crown.
+#            Nothing else wears them: a unit rising from Ashes has spent its Rebirth, so the rise gets
+#            paladin_8's single wingbeat instead. Other wing-shaped arcs (frost_knight_4 guard,
+#            paladin_8 wingbeat) are the same idea in other moods.
+#   ash    — symmetrical_smoke_burst_002 `variant: gray`: whatever Phoenix burns away (a Rebirth spent,
+#            Buffs and Debuffs stripped, the ash heap blown off at a rise, a sprung Nest's cover, a
+#            Cocoon broken with nothing left to give) leaves a puff of grey ash.
+group: phoenix
+
+statuses:
+  rebirth:
+    note: No trigger art. It fires on every hit to the bearer and only acts on the killing one; that save shows as this status's remove followed by Ashes's apply.
+    apply:
+      - { fx: paladin_9, tint: duo, scale: 1.2, layer: under, offset: [0.2, 0.15] }   # two thin wings of gold fire rise behind the bearer and cross over the head
+      - { fx: paladin_9, tint: duo, flip: x, scale: 1.2, layer: under, offset: [-0.2, 0.15] }
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5 } ]   # spent or cleansed: the wings crumble to ash
+    expire: [ { fx: directional_particle_burst_001, tint: duo, scale: 0.5, opacity: 0.7 } ]   # unspent: the embers drift off
+  ashes:
+    note: The rise at the bearer's turn start plays the rise macro; Ashes has no trigger or remove art of its own, so the rebirth isn't shown twice.
+    apply:
+      - { fx: symmetrical_explosion_001, tint: duo, tone: light, scale: 0.7 }   # the phoenix flares white-gold one last time...
+      - { fx: directional_smoke_burst_002, variant: gray, scale: 1.1, delay: 100, note: "...snuffs out and collapses into a heap of ash: the portrait greys out and stays dimmed while Ashes lasts" }
+    # Untargetable and unkillable: worth seeing at a glance. A single coal smoulders at the foot of the heap.
+    aura: { fx: fire_looping_001, size: small, tint: duo, scale: 0.35, offset: [0, -0.45], opacity: 0.6, layer: under }
+
+macros:
+  rise:   # out of Ashes at turn start, back up to 25 HP
+    - { fx: symmetrical_smoke_burst_002, variant: gray, scale: 0.8 }   # the ash heap blows apart
+    - { fx: dark_mage_3, tint: duo, scale: 1.1, frames: [2, 12], delay: 100 }   # columns of gold fire climb out of the ground ring (wind-up frames skipped)
+    - { fx: paladin_8, tint: duo, scale: 1.3, layer: under, delay: 250 }   # one great wingbeat lifts them up; not Rebirth's paired wings, since that Rebirth is spent
+  kindle:   # one list for both branches: Ignite's default follows on an enemy, Renew's on an ally
+    - { fx: starcaller_1, tint: duo, face: up, scale: 0.8 }   # a spiky flare bursts up off them, shedding sparkles
+    - { fx: directional_particle_burst_001, tint: duo, scale: 0.5, delay: 120 }
+
+skills:
+  strike.phoenix:
+    beat: Gold-fire talons rake the target and leave a smouldering brand; on an ally the brand glows warm and mends them.
+    note: The brand's later burns and mends replay this skill's hit and heal cues, so the small talon doubles as the brand flaring.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.7 }
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.6 }
+      - { on: apply, status: firebrand, fx: symmetrical_impact_005, size: small, tint: Fire, tone: dark, scale: 0.4, delay: 120 }   # the brand sears in
+      - { on: apply, status: firebrand_mend, fx: symmetrical_impact_005, size: small, tint: duo, tone: light, scale: 0.4, delay: 120 }   # the same brand, bright
+      - { on: trigger, status: firebrand, fx: round_firework_burst_001, size: small, tint: Fire, scale: 0.45 }   # the brand spits sparks as they act
+      - { on: trigger, status: firebrand_mend, fx: round_firework_burst_001, size: small, tint: duo, tone: light, scale: 0.45 }
+
+  smash.phoenix:
+    beat: The user burns their own life for fuel and plunges onto the target, which erupts in gold fire; flames burst up under each of their allies.
+    note: "The user's self-burn is a hit too (only: others) and lands first, so the flame spikes on the user read as the fuel catching. The eruption scales with what burned: under 15, play it ~0.7x. Rebirth's default then folds its wings on the user."
+    cues:
+      - { on: hit, only: primary, fx: directional_impact_004, tint: duo, scale: 1.3, note: "the user's portrait dips toward the target as it plunges" }   # a heavy ground eruption (Fire's Smash motion) made gold
+      - { on: hit, only: primary, fx: directional_impact_002, tint: duo, scale: 1.1, layer: under, delay: 120 }   # the shock rolls out along the ground
+      - { on: hit, only: others, fx: directional_particle_burst_002, tint: duo, scale: 0.7, delay: 180, stagger: 80 }
+
+  charge.phoenix:
+    beat: The user rises and dives on the target in a hooked arc of talons, landing in a splash of fire or of mending light, and keeps the dive's wings as Rebirth.
+    cues:
+      - { on: travel, fx: deathbringer_1, path: beam, tint: duo, scale: 0.8, note: "the claws rise up and over and crash at the target end; the portrait lunges along the same arc and snaps back. On an ally, stop before the crash splash (about the first 7 frames) so the dive lands softly" }
+      - { on: hit, fx: directional_impact_003, size: small, tint: duo, scale: 0.7 }
+      - { on: heal, fx: round_sparkle_burst_001, tint: duo, tone: light, scale: 0.6 }
+      # Rising Dive counts as Rebirth, so it wears Rebirth's wings.
+      - { on: apply, status: rising_dive, fx: paladin_9, tint: duo, scale: 1.2, layer: under, offset: [0.2, 0.15] }
+      - { on: apply, status: rising_dive, fx: paladin_9, tint: duo, flip: x, scale: 1.2, layer: under, offset: [-0.2, 0.15] }
+      - { on: trigger, status: rising_dive, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.5, note: "only for the skillResolved firing: the stored dive spent on the next skill (its +15 then replays the hit or heal above). The damaged firing that sends the user to Ashes shows through Ashes's default" }
+      - { on: remove, status: rising_dive, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5 }   # spent either way: Rebirth's ash
+
+  riposte.phoenix:
+    beat: Burning wings close over the user like a guard; a blow on it makes the feathers flare and a talon lashes back at the attacker.
+    cues:
+      - { on: cast, fx: frost_knight_4, tint: duo, scale: 0.9, opacity: 0.8 }   # Invisible: owner only. Two crescents close round the portrait
+      - { on: cast, fx: frost_knight_4, tint: duo, flip: x, scale: 0.9, opacity: 0.8 }
+      - { on: trigger, status: searing_rebuttal, fx: symmetrical_impact_001, tint: duo, scale: 0.7 }   # the guard flares in a solid star flash
+      - { on: trigger, status: searing_rebuttal, fx: warrior_6, at: source, face: fromActor, tint: duo, scale: 0.8, delay: 100 }   # crescent waves lash into the attacker and burst
+      # Countered, then (if they burn) the ignite_tick macro on them and Anointed's halo on the user.
+
+  rage.phoenix:
+    beat: A heart of fire flares in the user's chest and a column of gold flame surges up through them.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: duo, scale: 0.9, frames: [6, 16] }   # the heart: faint converge skipped, straight to the star popping into a ring
+      - { on: cast, fx: directional_fire_burst_001, tint: duo, scale: 1.4, delay: 150 }   # Fire's Rage column, in gold; no wings, so it can't read as Rebirth
+      - { on: trigger, status: pyreheart_fury, fx: round_firework_burst_001, size: small, tint: Fire, scale: 0.4 }   # sparks leap off the user with each direct hit; Ignite's default catches on the target
+
+  shot.phoenix:
+    beat: A glowing ember darts into the target and lodges there, pulsing until the next blow fans it into flame.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.45, speed: 1.5, frames: [0, 5] }   # a gold ember trailing dark-red smoke, cut before its own smudge impact
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.45 }
+      - { on: apply, status: lodged_ember, fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.3, offset: [0.15, 0.05], repeat: 2 }
+      - { on: trigger, status: lodged_ember, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.6 }   # the ember bursts; its +10 replays the hit, then Ignite's default
+
+  snipe.phoenix:
+    beat: A small sun gathers over the user; next turn it lifts away and comes down on the hidden target as a lance of light, splashing molten gold over their allies.
+    cues:
+      - { on: cast, fx: fire_looping_001, tint: duo, scale: 0.6, offset: [0, 0.65], repeat: 2 }   # the sun kindles above the head
+      # HiddenTarget: it leaves straight up and falls from above, never pointing at anyone.
+      - { on: trigger, status: sunfall_lance, fx: scifi_muzzle_flash_002, face: up, tint: duo, scale: 0.7, offset: [0, 0.5] }
+      - { on: hit, only: primary, fx: paladin_5, tint: duo, scale: 1.3 }   # the dark sword silhouette reads as the lance's core
+      - { on: hit, only: primary, fx: stylized_explosion_003, tint: duo, scale: 0.9, delay: 250 }
+      - { on: hit, only: others, fx: paladin_7, tint: duo, scale: 0.6, delay: 350, stagger: 80, note: "fade its held last frame" }
+
+  trap.phoenix:
+    beat: A nest of banked coals is laid unseen under the target; when they fell someone, its ash cover blows off and it bursts up through them as a pillar of fire.
+    cues:
+      - { on: apply, status: smoldering_nest, fx: directional_sparkle_burst_002, tint: Fire, scale: 0.7, offset: [0, -0.2], opacity: 0.85 }   # Invisible: owner only. A glinting mound of coals at the foot of the portrait
+      - { on: trigger, status: smoldering_nest, fx: none, note: "fires on every damage the bearer deals and only acts on a kill or a send to Ashes; the spring shows as the remove + hit. Engine: this trigger currently reveals the hidden Nest before its if is checked, so the opponent learns of it on the bearer's first hit; it should stay hidden until it springs (e.g. a silent trigger with an explicit reveal in the then branch)" }
+      - { on: remove, status: smoldering_nest, fx: symmetrical_smoke_burst_002, variant: gray, scale: 0.6 }   # sprung (removed just before the 25 lands): its ash cover blows off
+      - { on: hit, fx: epic_explosion_001, tint: duo, scale: 0.9 }
+      # Ignite's default follows.
+
+  maneuver.phoenix:
+    beat: The user's flames sink into a smouldering bank of coals under a veil of smoke, untouchable until their turn comes round.
+    cues:
+      - { on: apply, status: banked_embers, fx: directional_smoke_burst_001, tint: Fire, tone: dark, scale: 1.0, opacity: 0.85, note: "the portrait dims to a dark silhouette with a coal-red rim while Banked Embers lasts (Ashes's look, without the grey)" }
+      - { on: trigger, status: banked_embers, fx: round_sparkle_burst_002, tint: duo, scale: 0.7 }   # turn start: the coals flare and the user steps back out
+
+  companion.phoenix:
+    beat: A falling spark strikes the ground and hatches into a chick that shakes out two tiny burning wings.
+    note: "The Chick's first death leaves a Firebird Egg on its owner; when the egg hatches (its summon), play these cues at the Firebird 1.4x, led by the rise macro's column (dark_mage_3, duo, scale 1.2): the chick reborn as a firebird."
+    cues:
+      - { on: summon, fx: scifi_warp_003, tint: duo, scale: 0.8 }
+      - { on: summon, fx: paladin_9, tint: duo, scale: 0.5, offset: [0.1, 0], speed: 1.5, delay: 350 }
+      - { on: summon, fx: paladin_9, tint: duo, flip: x, scale: 0.5, offset: [-0.1, 0], speed: 1.5, delay: 350 }
+
+  bolt.phoenix:
+    beat: A crescent flare of gold fire streaks to the target and kindles there, a burn on an enemy, a mending flame on an ally that also burns one Debuff off as ash.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.6 }   # the crescent head leads its long flame tail
+      - { on: remove, status: debuff, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5, delay: 200 }
+      # The damage or healing, Ignite or Renew happen inside Kindle: its macro cues are the burst.
+
+  blast.phoenix:
+    beat: A great wingbeat of gold fire sweeps over the enemy side and burns their Buffs to ash, then the same fire clears every ally's Debuffs.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.0, offset: [0, 0.35], layer: under }   # the wing lifts over the user's head (raised so the arc clears the portrait)
+      - { on: hit, fx: paladin_8, at: enemySide, face: fromActor, tint: duo, scale: 2.4, layer: under, note: "once, with the first hit: the wingbeat itself crosses the enemy row; the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8, delay: 120, stagger: 60 }
+      - { on: remove, status: any, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5, stagger: 60 }   # each Buff on an enemy, each Debuff on an ally, burns to ash
+
+  consume.phoenix:
+    beat: Molten flame is torn out of the target toward the user and, if the target is the stronger, pours into the user as healing.
+    cues:
+      - { on: hit, fx: directional_splatter_004, face: toActor, tint: duo, scale: 0.6 }   # tendrils ripped out toward the user
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.45 }
+      - { on: heal, fx: round_sparkle_burst_003, tint: duo, scale: 0.7, speed: 1.4 }   # on the user: the flame converges into them
+
+  summon.phoenix:
+    beat: Two wisps of gold flame curl around each other and settle into a flickering Ember Spirit.
+    cues:
+      - { on: summon, fx: starcaller_4, tint: duo, scale: 1.0 }
+      - { on: summon, fx: directional_particle_burst_001, tint: duo, scale: 0.5, delay: 350 }
+
+  channel.phoenix:
+    beat: A pyre kindles under the user and flares higher each turn, raining embers on every enemy.
+    note: "Scale the trigger and hit cues with the pulse: about 0.8x, 1x, 1.2x for the 5, 10 and 15."
+    cues:
+      - { on: apply, status: eternal_pyre, fx: directional_particle_burst_002, tint: duo, scale: 1.3, layer: under }   # a ring of flame spikes around the user
+      - { on: trigger, status: eternal_pyre, fx: round_firework_burst_002, tint: duo, scale: 0.8, offset: [0, 0.5] }   # each pulse: the pyre throws embers skyward
+      - { on: hit, fx: spell_forge_001, tint: duo, scale: 0.7, stagger: 60 }   # and they rain down on each enemy
+
+  stab.phoenix:
+    beat: A white-hot needle of flame punches through the target and sears the wound shut; on an ally it cauterizes their afflictions away, at a price in HP.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, tone: light, scale: 0.6 }   # on an ally, once per Debuff burned out
+      - { on: hit, fx: directional_smoke_burst_004, variant: white, size: small, scale: 0.4, offset: [0, 0.3], opacity: 0.7, delay: 120 }   # a curl of smoke from the wound
+      - { on: apply, status: seared_shut, fx: symmetrical_smoke_burst_001, variant: black, size: small, scale: 0.45, opacity: 0.8, delay: 200 }   # charred shut
+      - { on: remove, status: debuff, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.45 }
+
+  ravage.phoenix:
+    beat: A storm of burning talon-strokes shreds the target and a spike of fire bursts out their far side.
+    note: "The bonus for the user's missing HP has no event of its own: when the hit lands for 35 or more, play both cues about 1.25x with a short shake."
+    cues:
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: duo, scale: 1.0 }
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 0.8, delay: 200 }   # Piercing: it bursts out the far side
+
+  mislead.phoenix:
+    beat: A faint false flare hangs unseen before the target; when they strike, it blazes in their face, the skill fizzles and their flames burn three times over.
+    cues:
+      - { on: apply, status: flaring_feint, fx: round_light_burst_001, size: small, tint: duo, scale: 0.6, opacity: 0.5 }   # Invisible: owner only
+      - { on: trigger, status: flaring_feint, fx: round_light_burst_001, tint: duo, tone: light, scale: 1.2 }   # the dazzle the opponent sees
+      # The counter's default, then the ignite_tick macro three times.
+
+  stun.phoenix:
+    beat: A burst of cinders staggers the target and a band of embers cinches round them, holding them still and untouchable.
+    cues:
+      - { on: hit, fx: stylized_impact_001, tint: duo, scale: 0.8, note: "the portrait staggers back a step" }
+      - { on: apply, status: cinder_shroud, fx: dark_mage_2, tint: Fire, tone: dark, scale: 0.9, frames: [0, 10] }   # the last frame jumps palette: trimmed
+      # Stun's default follows.
+
+  dance.phoenix:
+    beat: Two embers circle the user in a fiery orbit, gaining a spark with each skill; when it ends, the sparks rain on every enemy and warm every ally, once per spark.
+    note: "The payout repeats the hit and heal cues once per stack, about 250 ms apart; before the first, replay the orbit (frost_mage_1, duo, 1.9, under) on the user so the burst reads as the dance ending."
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 1.9, layer: under }   # two embers orbiting a ring of flame; at 1.9 the ring (~60% of the canvas) circles the portrait frame
+      - { on: trigger, status: dance_of_embers, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.3], note: "the stack-adding firing: a spark joins the orbit" }
+      - { on: hit, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.5, stagger: 60 }
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.5, stagger: 60 }
+      # Swiftness's default plays on the user.
+
+  heal.phoenix:
+    beat: The user's own flame flares and burns down, and the life it gave rises through the ally as white-gold fire.
+    cues:
+      - { on: hit, fx: fire_looping_001, tint: duo, tone: light, scale: 1.5, layer: under }   # on the user: the HP they burn, a white-gold corona framing the portrait (larger and paler than an Ignite tick)
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, scale: 1.1, speed: 1.6 }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6, delay: 150 }
+
+  bless.phoenix:
+    beat: A drop of phoenix fire falls onto the ally and splashes up into two burning wings that fold around them.
+    cues:
+      - { on: apply, status: phoenix_blessing, fx: paladin_7, tint: duo, tone: light, scale: 0.8, note: "fade its held last frame" }
+      # It counts as Rebirth: Rebirth's wings, once the drop has landed. Might's default plays as usual.
+      - { on: apply, status: phoenix_blessing, fx: paladin_9, tint: duo, scale: 1.2, layer: under, offset: [0.2, 0.15], delay: 300 }
+      - { on: apply, status: phoenix_blessing, fx: paladin_9, tint: duo, flip: x, scale: 1.2, layer: under, offset: [-0.2, 0.15], delay: 300 }
+      - { on: trigger, status: phoenix_blessing, fx: none, note: "fires on every hit but only acts on the killing one; Ashes's default shows the save" }
+      - { on: remove, status: phoenix_blessing, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5 }   # spent on a save or cleansed: Rebirth's ash
+      - { on: heal, fx: spell_heal_002, tint: duo, scale: 0.7, speed: 1.5 }   # unused at the end: the wings open into warmth
+
+  curse.phoenix:
+    beat: Glowing cinders drift down over the burning target and cling as dark smoke settles on them; each turn they still burn, doubt smoulders up out of them.
+    cues:
+      - { on: apply, status: cinders_of_doubt, fx: round_firework_burst_001, tint: Fire, scale: 1.0, offset: [0, 0.4] }   # ember-bright cinders burst over the head and droop round them
+      - { on: apply, status: cinders_of_doubt, fx: directional_smoke_burst_004, tint: Fire, tone: dark, scale: 0.6, delay: 200 }   # the darkness settling
+      - { on: trigger, status: cinders_of_doubt, fx: directional_smoke_burst_004, size: small, tint: Fire, tone: dark, scale: 0.5, note: "fires every turn end; kept faint because nothing follows once they stop burning. When they do burn, Weakness's, Vulnerable's or Confusion's default follows" }
+      # Ignite's default lands first.
+
+  smite.phoenix:
+    beat: The phoenix stoops from the sky talons-first onto the target and leaves a votive flame over them that counts every blow until it ends in a searing burn.
+    note: When it ends, the Affliction burn (15 per hit counted) replays the hit; scale it with the count, and skip it at zero.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: apply, status: sanctified_pyre, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.35, offset: [0, 0.65] }   # the votive flame over the head
+      - { on: trigger, status: sanctified_pyre, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.35, offset: [0, 0.65] }   # it flares for each hit counted
+
+  prayer.phoenix:
+    beat: Dawn breaks across the user's side; the fallen rise from their ashes on columns of gold fire with wings spread, and starlight lifts every ally.
+    cues:
+      - { on: cast, fx: round_light_burst_001, at: allySide, tint: duo, tone: light, scale: 2.4 }
+      # Each revival is the rise from Ashes, larger, with the great wingbeat.
+      - { on: revive, fx: symmetrical_smoke_burst_002, variant: gray, scale: 0.8 }
+      - { on: revive, fx: dark_mage_3, tint: duo, scale: 1.3, frames: [2, 12], delay: 100 }
+      - { on: revive, fx: paladin_8, tint: duo, scale: 1.6, layer: under, delay: 250 }
+      - { on: heal, fx: directional_star_burst_001, tint: duo, tone: light, scale: 0.8, speed: 1.4, stagger: 80 }
+
+  cleave.phoenix:
+    beat: A feathered crescent of flame sweeps through the target and on into a second enemy, leaving the two bound by a thread of fire.
+    note: The link's 5 damage replays the hit cues on the partner; play them at about half scale there.
+    cues:
+      - { on: hit, only: primary, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.9 }   # its scale-like flecks read as feathers
+      - { on: hit, only: others, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.7, delay: 150 }   # the random second enemy: the sweep carrying on
+      - { on: apply, status: fanned_flames, fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.45 }   # a ribbon of flame curls up off each of the pair
+      - { on: trigger, status: fanned_flames, fx: directional_splatter_003, face: toTarget, tint: duo, scale: 0.6 }   # a spray of fire from the struck bearer at its linked partner (the trigger's target)
+
+  shout.phoenix:
+    beat: The user's cry bursts out as a ring of gold fire that washes over every enemy; whoever then strikes the user's side catches fire, and their victim is renewed.
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 1.3 }
+      - { on: apply, status: phoenix_cry, fx: directional_impact_001, face: fromActor, size: small, tint: duo, scale: 0.6, stagger: 60 }   # the cry's shock sprays past each enemy
+      - { on: trigger, status: phoenix_cry, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.5 }   # it echoes on them as they strike; Ignite's default on them, Renew's on the ally hurt
+
+  withstand.phoenix:
+    beat: Flame folds up around the user into a cocoon; when it breaks open, whatever it still held pours out as healing over the whole team.
+    cues:
+      - { on: apply, status: cocoon_of_flame, fx: blood_knight_5, tint: duo, scale: 1.1 }   # the oval of flame closes over the portrait, then dissolves to a thin arc
+      - { on: trigger, status: cocoon_of_flame, fx: symmetrical_impact_004, tint: duo, scale: 0.9, note: "the onExpire firing: the cocoon breaks open and its heals follow" }
+      - { on: remove, status: cocoon_of_flame, fx: symmetrical_smoke_burst_002, variant: gray, scale: 0.7, note: "broken (depleted) or stripped: no heal follows, so it burns down to ash instead of bursting open; Shield-break's default also plays when depleted" }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6, stagger: 80 }
+
+  taunt.phoenix:
+    beat: The user flings a jet of gold fire at the enemy as a challenge; every blow the Taunted enemy then lands on the user sends warmth to the user's allies.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, tint: duo, scale: 0.9 }   # the challenge, thrown from the user toward the taunted enemy
+      - { on: trigger, status: blazing_challenge, fx: round_firework_burst_002, tint: duo, scale: 0.6, note: "play only when its heals follow (the striker holds this user's Taunt); other enemies' hits on the user show nothing" }
+      - { on: heal, fx: spell_heal_002, size: small, tint: duo, scale: 0.5, stagger: 60 }
+      # Taunt's default marks the enemy.
+
+  titan.phoenix:
+    beat: The user rises as the Undying Phoenix; columns of white-gold fire climb through them, great wings of gold flame unfurl behind, and a crown of white-gold flame spikes flares up around them.
+    note: The portrait swells about 15% with a brief white board flash as the wings open. Immune's default plays on the user.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, tone: light, scale: 1.8, frames: [3, 12], layer: under }   # the kit's rise column at Titan scale (wind-up ring skipped)
+      - { on: cast, fx: paladin_9, tint: duo, scale: 2.2, layer: under, offset: [0.3, 0.2], delay: 200 }   # the phoenix's wings at full span; with the rise column and the crown it reads as the Titan, not a plain Rebirth
+      - { on: cast, fx: paladin_9, tint: duo, flip: x, scale: 2.2, layer: under, offset: [-0.3, 0.2], delay: 200 }
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, tone: light, scale: 1.4, delay: 300 }
+      - { on: trigger, status: undying_phoenix, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.5 }   # embers rise off each hit; Renew's default follows
+
+  phoenix_chick_peck:
+    beat: The chick hops in and pecks a quick spark into the target.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.5, note: "the chick's portrait bobs forward" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.3, delay: 80 }
+      # Ignite's default catches.
+
+  firebird_peck:
+    beat: The grown Firebird strikes with a burning beak, the chick's peck reborn twice the size.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.85 }   # starcaller_7's template, larger and heavier
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.55, delay: 80 }
+
+  ember_spirit_waver:
+    beat: The Ember Spirit gutters and a wavering wisp of flame drifts to the target and kindles there.
+    cues:
+      - { on: cast, fx: fire_looping_001, size: small, tint: duo, scale: 0.4, speed: 1.5 }
+      - { on: travel, fx: starcaller_2, path: arc, tint: duo, scale: 0.45 }
+      # Kindle's macro cues are the burst.

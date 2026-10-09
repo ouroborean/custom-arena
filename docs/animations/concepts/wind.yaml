@@ -1,0 +1,278 @@
+group: wind
+
+# Wind is made of white air: gust streams, puff rings, feathered blade-fans, whirls and crescents.
+# Its two mobility states split the motifs: Rushing is horizontal (streaks of wind blowing off both
+# sides of the body), Leaping is vertical (an updraft rushing up the body, landing in dust when spent).
+
+statuses:
+  rushing:
+    # Streaks of wind blow off both sides of the body. Behind the portrait, so the muzzle rings start hidden
+    # and only the jets show, streaming out past its left and right edges (~0.7 portrait each side).
+    apply:
+      - { fx: scifi_muzzle_flash_002, at: bearer, size: small, scale: 0.8, face: left, offset: [-0.6, 0], opacity: 0.8, layer: under }
+      - { fx: scifi_muzzle_flash_002, at: bearer, size: small, scale: 0.8, face: right, offset: [0.6, 0], opacity: 0.8, layer: under }
+    remove: [ { fx: symmetrical_smoke_burst_002, at: bearer, size: small, scale: 0.6, opacity: 0.8 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, at: bearer, size: small, scale: 0.5, opacity: 0.7 } ]
+  leaping:
+    # An updraft: white wind streaks rush up the body from the feet and the cloud head billows off the top of the
+    # head, greying as it hangs. Over the portrait: the turned draft is only ~0.5 portrait wide, so under it would be hidden.
+    apply:  [ { fx: frost_mage_7, at: bearer, tint: element, face: up, scale: 0.8, opacity: 0.85 } ]
+    remove: [ { fx: directional_smoke_burst_002, at: bearer, size: small, scale: 0.6, layer: under, opacity: 0.8 } ]   # spent: they land in a dust cloud
+    expire: [ { fx: directional_smoke_burst_001, at: bearer, size: small, scale: 0.5, opacity: 0.7 } ]                  # unused: drifts back down
+
+macros:
+  # Runs on gaining Rushing and at each of the bearer's turn starts. No cue of its own: Swiftness and Focus play their
+  # defaults when it grants them, and when the bearer already holds both nothing changes, so nothing should play.
+  rush_upkeep: []
+  # The takeoff: a one-unit dust kick along the ground. Leaping's updraft and Invulnerable's default layer on top.
+  leap:
+    - { fx: directional_impact_002, at: target, variant: white, size: small, scale: 0.55, layer: under }
+  # The speed goes out of them: a sluggish clock overhead. Each stripped buff also plays its own remove default.
+  remove_mobility:
+    - { fx: fanfx_slow, at: target, scale: 0.6, speed: 1.5, note: "play once per unit, only if at least one effectRemoved for swiftness/rushing/leaping on that unit follows; skip on a target that had none" }
+
+skills:
+  strike.wind:
+    beat: A white crescent of air scoops through the target, shedding a trail of flecks, and a fan of wind-feathers sprays past them.
+    cues:
+      - { on: hit, fx: necromancer_2, at: target, face: fromActor, tint: element, scale: 0.85 }
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, scale: 0.7, delay: 60 }
+      # The Leaping bonus reads through stun_ns's default; the spent Leap lands through Leaping's remove default.
+
+  smash.wind:
+    beat: The user corkscrews down onto the target and the crash bursts into a gyre of wind blades and kicked-up dust.
+    note: "When Leaping, the extra 10 hits every enemy, the target included, as a second wave: the target's second hit plays the small gyre (the only: others cue), not the crash again."
+    cues:
+      - { on: hit, only: primary, fx: stylized_impact_001, at: target, scale: 1.2 }
+      - { on: hit, fx: directional_smoke_burst_002, at: target, size: small, scale: 0.8, layer: under, opacity: 0.8, stagger: 90 }   # dust kicked up under every unit struck
+      - { on: hit, only: others, fx: stylized_impact_001, at: target, size: small, scale: 0.6, delay: 120, stagger: 90 }   # the Leaping wave: the gyre echoes out to each ally
+      # Not Leaping: the leap macro's takeoff plays on the user.
+
+  charge.wind:
+    beat: The user kicks off into a sprint, spraying a wedge of dust out behind them, and the wind starts wrapping around them.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_005, at: actor, scale: 0.8, layer: under, note: "spray backward, away from the enemy side: the kick-up behind a sprint start, its origin corner at the user's feet" }
+      # Rushing's default (streaks of wind off both sides) carries the rest.
+
+  riposte.wind:
+    beat: A glint of guarding wind on the user, then thin zephyr crescents nick the target, or carve deep into whoever counters it.
+    note: "The onCountered 25 Piercing is this skill's hit on the countering enemy: play that hit at about 1.4 scale with a short portrait recoil, so the punishment reads far bigger than the 5-damage nick."
+    cues:
+      - { on: cast, fx: frost_knight_7, at: actor, tint: element, scale: 0.6 }
+      - { on: hit, fx: warrior_6, at: target, face: fromActor, tint: element, scale: 0.7 }
+
+  rage.wind:
+    beat: The bonds burst as a nova of wind blows outward from the user, and every Debuff unravels upward as a wisp.
+    cues:
+      - { on: cast, fx: dark_mage_4, at: actor, tint: element, scale: 1.0 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, at: bearer, scale: 0.7, stagger: 100 }
+      # Immune's default plays on the user.
+
+  shot.wind:
+    beat: A puff at the user's hand fires a small streak of compressed air that bursts into a puff past the target.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, at: actor, face: toTarget, scale: 0.4 }
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, size: small, scale: 0.4 }
+      - { on: hit, fx: directional_smoke_burst_003, at: target, face: fromActor, size: small, scale: 0.5 }
+      # Not Leaping: the leap macro plays on the user; Leaping: the bonus is in the number and the Leap lands.
+
+  snipe.wind:
+    beat: A glint of the coming line holds on the user; next turn one streak of wind tears down the enemy line and cuts each of them.
+    cues:
+      - { on: cast, fx: round_light_burst_001, at: actor, size: small, scale: 0.7 }
+      - { on: trigger, status: elegant_sweep, fx: scifi_muzzle_flash_002, at: enemySide, face: down, scale: 2.4, note: "laid along the enemy column: the ring opens past the first enemy and the streaks run through every portrait" }
+      - { on: hit, fx: starcaller_7, at: target, face: fromActor, tint: element, scale: 0.8, stagger: 60 }
+
+  trap.wind:
+    beat: A loop of air settles at the target's feet; each time they act it snaps up around them, cutting them off.
+    cues:
+      - { on: apply, status: float_noose, fx: necromancer_1, at: bearer, tint: element, scale: 0.9, layer: under }
+      - { on: trigger, status: float_noose, fx: dark_mage_2, at: bearer, tint: element, scale: 0.9 }   # the loop snaps up into a ring of air cinched around them
+      - { on: hit, fx: symmetrical_impact_001, at: target, size: small, scale: 0.5 }
+      # Isolated's default plays with each spring.
+
+  maneuver.wind:
+    beat: The user bounds out of a billowing puff of air.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, at: actor, scale: 0.9, layer: under }
+      # The leap macro (takeoff dust), Leaping's updraft and Invulnerable carry the rest.
+
+  companion.wind:
+    beat: The Grand Eagle dives in on a streak of wind and lands in a spray of feathers.
+    cues:
+      - { on: summon, fx: paladin_6, at: minion, tint: element }
+      - { on: summon, fx: directional_impact_001, at: minion, face: up, scale: 0.6, delay: 200 }
+
+  bolt.wind:
+    beat: An orb of compressed air with a crescent front streaks to the target, trailing wisps, and bursts into pellets of air.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: element, scale: 0.5, speed: 1.4 }
+      - { on: hit, fx: round_firework_burst_002, at: target, size: small, scale: 0.8, speed: 1.5 }
+      # Immobile targets: stun_ns's default shows the bonus.
+
+  blast.wind:
+    beat: A great spiral of wind spins open behind the enemy row and tears through each of them in feathered rings.
+    cues:
+      - { on: hit, fx: slime_5, at: enemySide, tint: element, scale: 2.4, opacity: 0.9, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: symmetrical_impact_004, at: target, delay: 150, stagger: 80 }
+      # Not Leaping: Rushing's default plays on the user.
+
+  consume.wind:
+    beat: The air is dragged out of the target toward the user, then spirals into the user as stolen speed.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_003, at: target, face: toActor, size: small, scale: 0.7 }
+      - { on: apply, status: swiftness, fx: spell_absorb_001, at: bearer, scale: 0.6, speed: 1.6 }
+      # Swiftness's default, re-added once the stolen air has spiralled in (this skill's own apply cue replaces it).
+      - { on: apply, status: swiftness, fx: spell_haste_001, at: bearer, size: small, scale: 0.45, tint: element, speed: 1.5, delay: 400 }
+      # If it strips any Mobility buff, remove_mobility's slowed clock and each buff's remove default play on the target.
+
+  summon.wind:
+    beat: Two little wisps of wind curl around each other and pop into Wind Sprites.
+    cues:
+      - { on: summon, fx: starcaller_4, at: minion, tint: element, scale: 0.8, stagger: 150 }
+      - { on: summon, fx: symmetrical_smoke_burst_002, at: minion, size: small, scale: 0.5, layer: under, stagger: 150 }
+
+  channel.wind:
+    beat: Wisps of wind start to orbit the user; at each of their turn ends the wisps whirl and a gust front is flung across the enemy row, scouring each of them.
+    note: "When a tick extends the Vortex (user Leaping or Rushing, first time only; extendSelf has no event), replay the apply cue (starcaller_4 on the user, scale 0.9) right after that tick's hits, so the extra turn reads as the wind winding up again."
+    cues:
+      - { on: apply, status: vortex, fx: starcaller_4, at: bearer, tint: element, scale: 0.9, opacity: 0.8 }
+      # Each tick: the wisps whirl on the user (the bearer) as the gust is thrown across the row.
+      - { on: trigger, status: vortex, fx: starcaller_4, at: bearer, tint: element, scale: 0.6, opacity: 0.8 }
+      - { on: trigger, status: vortex, fx: directional_smoke_burst_003, at: enemySide, face: fromActor, scale: 1.6, opacity: 0.85 }
+      - { on: hit, fx: symmetrical_smoke_burst_001, at: target, size: small, scale: 0.6, stagger: 60 }
+
+  stab.wind:
+    beat: A needle of compressed air punctures the target, snapping a ring of air around the wound, and puffs out behind them.
+    note: "The 20-damage branch (user Rushing, signal stab_bonus) emits no event of its own; if the renderer can tell it from the damage amount, play both hit cues about 1.25x larger."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, at: target, face: fromActor, scale: 0.8 }   # a ring of air snaps round the wound as the jet drives out the back
+      - { on: hit, fx: directional_smoke_burst_003, at: target, face: fromActor, size: small, scale: 0.5, delay: 80 }   # the air spits out the far side
+      # Not Rushing: Rushing's default plays on the user.
+
+  ravage.wind:
+    beat: A sonic boom leaves the user and punches through the target, blasting out of their back.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_003, at: target, scale: 1.2 }
+      - { on: hit, fx: directional_smoke_burst_005, at: target, face: fromActor, scale: 0.9, delay: 50 }   # the boom blows out of their back in a wedge of streaks
+      # Not Rushing: Stun's default lands on the user as the recoil.
+
+  mislead.wind:
+    beat: A glittering eddy teases around the target; when they attack they lunge into an empty puff of air.
+    cues:
+      - { on: apply, status: wind_step, fx: round_sparkle_burst_002, at: bearer, scale: 0.7, opacity: 0.85 }
+      - { on: trigger, status: wind_step, fx: symmetrical_smoke_burst_001, at: bearer, scale: 0.8 }
+      # The trigger's Mark (on the bearer) and Rushing (on the actor, who set the step) play their own defaults.
+
+  stun.wind:
+    beat: A gust whips into the target and curls over them like a breaking wave, knocking them off balance.
+    cues:
+      - { on: hit, fx: frost_knight_8, at: target, face: fromActor, tint: element, scale: 0.7, note: "knock the portrait back a few pixels and let it settle (the stagger)" }
+      # stun_s's default follows.
+
+  dance.wind:
+    beat: Two counter-spinning flurries of wind streaks wrap the user at top speed.
+    cues:
+      - { on: cast, fx: frost_knight_9, at: actor, tint: element, scale: 1.3, opacity: 0.85, layer: under }
+      - { on: cast, fx: frost_knight_9, at: actor, tint: element, scale: 1.0, opacity: 0.6, flip: x, delay: 150 }
+      # The flurries already are the wind wrap: silence Rushing's side streaks for this skill.
+      - { on: apply, status: rushing, fx: none }
+      # Might and Ghosted (and the Swiftness/Focus Rushing grants) play their own defaults on the user.
+
+  heal.wind:
+    beat: A fresh breeze curls up from the ally's feet as white crosses of air rise through them and scatter.
+    cues:
+      - { on: heal, fx: spell_heal_002, at: target, tint: element, scale: 0.9, speed: 1.5 }
+      - { on: heal, fx: directional_smoke_burst_004, at: target, size: small, scale: 0.6, delay: 100 }
+      # Above 60 HP: Rushing's default plays on the ally.
+
+  bless.wind:
+    beat: Motes of air drift down onto the ally and whirl up off a ring at their feet, then rising arrows lift them.
+    cues:
+      # Swiftwind's own take on Swiftness (replaces its default for this skill). Not the ground splash: that is the leap macro's takeoff.
+      - { on: apply, status: swiftness, fx: spell_forge_001, at: bearer, tint: element, scale: 0.9, layer: under }
+      - { on: apply, status: swiftness, fx: spell_buff_001, at: bearer, scale: 0.6, speed: 1.6, delay: 250 }
+      # Swiftness's default, re-added as the arrows rise.
+      - { on: apply, status: swiftness, fx: spell_haste_001, at: bearer, size: small, scale: 0.45, tint: element, speed: 1.5, delay: 400 }
+
+  curse.wind:
+    beat: A widening headwind streams from the user into the target and a grey bank of air presses down on them.
+    note: "When Immune refuses the Weakness, only the headwind plays, then the effectBlocked default: nothing settles."
+    cues:
+      - { on: travel, fx: necromancer_3, path: beam, tint: element, scale: 0.8 }   # a cone of air widening toward the target
+      - { on: apply, status: weakness, fx: directional_smoke_burst_002, at: bearer, size: small, scale: 0.7, tint: element, tone: dark, layer: under }
+      # Weakness's default, re-added once the air has settled (this skill's own apply cue replaces it).
+      - { on: apply, status: weakness, fx: spell_attack_up_001, at: bearer, size: small, scale: 0.4, tint: element, speed: 1.3, delay: 250 }
+      - { on: apply, status: weakness, fx: spell_debuff_001, at: bearer, size: small, scale: 0.5, tint: element, speed: 1.8, delay: 400 }
+      # If it strips any Mobility buff, remove_mobility's slowed clock (and each buff's remove default) plays first.
+
+  smite.wind:
+    beat: A needle of wind drops from the sky onto the target, wisps curl up, and feathers drift down to mark them.
+    cues:
+      - { on: hit, fx: scifi_warp_003, at: target }
+      - { on: apply, status: feathermark, fx: round_firework_burst_001, at: bearer, scale: 0.7, offset: [0, 0.3] }
+      - { on: trigger, status: feathermark, fx: directional_impact_001, at: bearer, face: up, scale: 0.6 }
+      # The trigger's source (the ally who damaged them) Leaps: the leap macro's own cues play on them.
+
+  prayer.wind:
+    beat: A verse of white notes rises from the user, the notes lift each ally, and every unit on the board springs into the air in a wave.
+    note: "The leap macro then plays on every unit, enemies included (its takeoff, Leaping's updraft and Invulnerable's shell): stagger it per unit (~70 ms, allies first, then enemies) so the board springs up as a wave."
+    cues:
+      - { on: cast, fx: directional_music_burst_002, at: actor, scale: 0.8 }
+      - { on: heal, fx: round_music_burst_001, at: target, size: small, scale: 0.6, speed: 1.4, stagger: 100 }
+
+  cleave.wind:
+    beat: A crescent of wind sweeps down the enemy row, carving each of them in turn, and bursts up under them.
+    cues:
+      - { on: hit, fx: warrior_4, at: target, face: fromActor, tint: element, scale: 0.8, stagger: 70 }   # staggered down the row so the one sweep reads as passing through them all
+      - { on: hit, fx: directional_impact_003, at: target, size: small, scale: 0.6, layer: under, delay: 100, stagger: 70 }
+
+  shout.wind:
+    beat: A spiky flash of sound-wind bursts from the user and echoes outward in double rings, and every unit's clock quickens in a ripple behind it.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, at: actor, scale: 1.3 }
+      - { on: cast, fx: symmetrical_impact_002, at: actor, scale: 2.2, opacity: 0.5, delay: 250 }
+      # Echoing Voice's take on Swiftness: the default clock, rippling out unit by unit after the ring.
+      - { on: apply, status: swiftness, fx: spell_haste_001, at: bearer, size: small, scale: 0.45, speed: 1.5, delay: 250, stagger: 80 }
+
+  withstand.wind:
+    beat: Air billows up behind the user and swells into a sphere of swirling wind streaks around them.
+    cues:
+      # Large enough behind the opaque portrait that the dome of air spills past its top and sides (at 0.7 it was hidden).
+      - { on: cast, fx: directional_smoke_burst_002, at: actor, scale: 1.3, opacity: 0.8, layer: under }
+      # Shield's default (stylized_explosion_002 in white: a banded sphere of swirling streaks, the slipstream) plays on the user.
+
+  taunt.wind:
+    beat: A shrill cry blasts from the user and lances across to the target as a streak of wind.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, size: small, scale: 0.5 }
+      - { on: travel, fx: scifi_muzzle_flash_002, path: beam, scale: 0.6 }
+      # Taunt's default marks the target.
+
+  titan.wind:
+    beat: Pillars of air tower up behind the user and a whirlwind opens around them as they swell into a djinn.
+    cues:
+      - { on: cast, fx: dark_mage_3, at: actor, tint: element, scale: 1.8, layer: under }
+      - { on: cast, fx: slime_5, at: actor, tint: element, scale: 1.4, layer: under, opacity: 0.85, delay: 200, note: "swell the portrait about 10% as the whirl opens" }
+      # Shield, Immune and the leap macro play their own defaults.
+
+  eagle_talon_rake:
+    beat: The Eagle's talons rake through the target in streaks of wind, scattering feathers.
+    cues:
+      - { on: hit, fx: dark_mage_1, at: target, face: fromActor, tint: element, scale: 0.7 }
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, size: small, scale: 0.5, delay: 80 }
+
+  eagle_soar:
+    beat: The Eagle beats both wings and it and the ally spring into the air.
+    cues:
+      - { on: cast, fx: paladin_9, at: actor, tint: element, scale: 0.9 }
+      - { on: cast, fx: paladin_9, at: actor, tint: element, scale: 0.9, flip: x }
+      # The leap macro plays on the Eagle and on the ally.
+
+  sprite_bother:
+    beat: The Sprite darts in with a tiny jab of air.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, at: actor, size: small, scale: 0.4 }
+      - { on: hit, fx: scifi_muzzle_flash_001, at: target, face: fromActor, scale: 0.4 }
+      # Countered: Stun's default lands on the countering enemy.

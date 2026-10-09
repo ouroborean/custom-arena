@@ -1,0 +1,293 @@
+group: plasma
+# Plasma (Fire + Lightning) is flame and current fused into one matter, in three materials: flame layers are
+# plain palette art (the default `element` tint, Fire); arcs and crackle take `element2` (Lightning violet);
+# plasma itself takes `duo`, violet bodies edged in burnt orange, with `tone: light` where it runs white-hot.
+# Signature motif, the contained star: Heat glows as a reactor core in the bearer (scifi_charge_up_001, a core
+# in its rings whose white needle swings like a gauge), Vent blows it out as twin white-hot exhaust jets, and a
+# Meltdown is that core going critical, a white disc swelling and bursting. Overload Burst and Reactor Core spin
+# the same core up at full size. Plasma's own Ignite add-ons (Coronal Slam, Superheated, Shimmering Burn) burn
+# violet-white beside Ignite's orange tick.
+
+statuses:
+  heat:
+    note: No remove, expire or aura. Heat only leaves through Vent and Meltdown, whose macros show it; the status icon carries the stack count.
+    apply: [ { fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.4, speed: 1.6 } ]   # the core flares a notch: streaks pull in, the needle swings. Once per Heat actually gained: an apply at the 5 cap adds none and shows nothing
+  plasma_core:
+    note: >-
+      The fusion passive. No cue of its own: Charge turning into Heat reads as Charged's crackle followed by
+      Heat's core, and the turn-end check plays the meltdown macro when it Melts Down. A check that finds under
+      5 Heat should show nothing.
+    trigger: []
+  breaker_arc:
+    apply:
+      - { fx: lightning_burst_002, size: small, tint: element2, scale: 0.4 }   # the circuit snaps; the status icon carries the lockout (base's interrupted default shows a channel actually broken)
+    expire: [ { fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.35, opacity: 0.8 } ]   # the circuit closes again
+    remove: [ { fx: round_sparkle_burst_001, size: small, tint: element2, scale: 0.35, opacity: 0.8 } ]
+  ball_lightning_arc:   # end of its owner's turn: 10 to a random enemy, 1 Heat to the summoner
+    trigger:
+      - { fx: round_firework_burst_001, size: small, tint: duo, scale: 0.5 }   # the ball spits sparks
+      - { fx: lightning_strike_002A, at: target, face: fromActor, size: small, tint: element2, scale: 0.6, delay: 100, note: "on the damaged enemy only, never on the summoner who receives the Heat (Heat's default plays there). Leans in from the Ball Lightning's side; anchor the art's impact corner (lower-left as drawn) on the enemy" }
+      # Heat's default then plays on the summoner.
+  jumper_spark_arc:     # each Jumper Spark, end of its owner's turn: 10 to a random enemy, 1 Charge to a random ally
+    trigger:
+      - { fx: scifi_muzzle_flash_001, face: toTarget, tint: duo, tone: light, scale: 0.4, note: "aimed at the enemy it hits" }
+      - { fx: symmetrical_explosion_001, at: target, size: small, tint: duo, scale: 0.45, delay: 120, note: "on the damaged enemy only; the ally's Charge reads through Charged's default" }
+
+macros:
+  vent:       # on the user, only when Vent actually removes Heat (its effectRemoved): a Vent at 0 Heat shows nothing
+    - { fx: scifi_muzzle_flash_002, face: left, tint: duo, tone: light, scale: 0.45, offset: [-0.95, 0.1], note: "the ring end (the art's origin, at the canvas edge) sits on the user's flank and the jet blows outward. Offset each jet by ±(0.5 + its scale) so the rings land on the flanks instead of overlapping on the face. Both jets scale with the Heat removed, about 0.35 at 1 Heat to 0.6 at 5, and their offsets with them (±0.85 to ±1.1)" }
+    - { fx: scifi_muzzle_flash_002, face: right, tint: duo, tone: light, scale: 0.45, offset: [0.95, 0.1] }
+  meltdown:   # per unit: the user, every enemy, and every ally when Heat Exchange turns the user's share into healing
+    - { fx: scifi_warp_002, at: actor, tint: duo, tone: light, scale: 1.8, note: "once per Meltdown, not once per unit: the user's core swells to a white disc and bursts. A short board shake" }
+    - { fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 200, stagger: 80, note: "on each unit it damages (every enemy, and the user unless Heat Exchange spares them). On each ally Heat Exchange heals, play spell_heal_003 (tone: light, scale 0.6) instead" }
+    # Sapped's default lands on every enemy.
+
+skills:
+  strike.plasma:
+    beat: A white-hot lash whips into the target and flashes a star, and a violet jolt snaps through them.
+    note: "In the Vent branch (4+ Heat: the vent macro's jets play first, 60–70 damage against 20–35 otherwise), play starcaller_7 about 1.3x and the jolt at size large (lightning_strike_003B, scale 0.8)."
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.85, note: "the starburst end (about 30%/70% of the canvas) on the target" }
+      - { on: hit, fx: lightning_strike_003B, size: small, tint: element2, scale: 0.5, speed: 1.6, delay: 80 }   # the jolt
+      # At 4+ Heat the vent macro's jets fire on the user first; otherwise Heat's default follows.
+
+  smash.plasma:
+    beat: A loop of plasma arcs off the user like a solar prominence and crashes onto the target; flares burst under their allies, and every burn on the enemy side runs violet-hot.
+    note: "Coronal Slam's turn-end tick is a later 5 Affliction hit of this skill: for it play only the trigger cue, not the crash or the flare. The trigger plays only when it deals that damage."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, tint: duo, scale: 1.1, note: "the impact corner (bottom-right as drawn) on the target, mirrored so the loop arcs in from the user's side" }
+      - { on: hit, only: others, fx: stylized_explosion_003, scale: 0.6, delay: 150, stagger: 100 }   # a Fire flare dome erupts under each ally
+      - { on: apply, status: coronal_slam, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.4, delay: 250, stagger: 60 }   # each burning enemy's flame flares violet-white
+      - { on: trigger, status: coronal_slam, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.45 }   # a corona sprays off the burn
+
+  charge.plasma:
+    beat: The user rides a white-hot streak along a violet arc into the target and knocks a fan of plasma shards through them, then vents the heat of the run.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, tint: duo, tone: light, scale: 0.7, speed: 1.5, note: "the portrait dashes behind the white head" }
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, tint: element2, layer: under, opacity: 0.6 }   # the arc it rides
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, tone: light, scale: 0.75 }   # the shock ring lands on their near side and the shards fly on past them
+      # +2 Heat (Heat's default), then the vent macro; Focus's default marks the cheaper next skill.
+
+  riposte.plasma:
+    beat: A ring of current closes around the user unseen; the first attacker is countered as the user dumps their Heat down an arc into them.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, tint: duo, scale: 0.8, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: discharge_ward, fx: stylized_impact_001, size: small, tint: duo, scale: 0.7 }   # the ward snaps open on the user; the vent macro's jets follow
+      - { on: hit, fx: lightning_strike_002A, face: fromActor, tint: duo, scale: 0.8, note: "the impact corner (lower-left as drawn) on the attacker, mirrored so the arc leans in from the user's side. Only when Heat was vented: no Heat, no damage" }
+      # Ignite's default then catches on the attacker; base's counter default marks the stopped skill.
+
+  rage.plasma:
+    beat: Shards of current collapse into the user's core, it flares supercritical and a ring of flame blows out around them.
+    cues:
+      - { on: apply, status: critical_mass, fx: stylized_explosion_005, tint: duo, scale: 1.4, speed: 1.6, frames: [8, 25], note: "starts late in the wind-up, so the last shards converge and the sphere bursts (about frame 18) a third of a second in" }
+      - { on: apply, status: critical_mass, fx: symmetrical_explosion_004, scale: 1.3, layer: under, delay: 300, frames: [0, 6], note: "fade its last frame: cut before the olive specks of the fade" }   # the Fire ring frames the portrait as the sphere bursts
+      - { on: trigger, status: critical_mass, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.5, note: "only when it actually adds Heat (the bearer was below 5); at the cap it plays nothing" }   # each turn start heat rises in them; Heat's default follows
+      # +2 Heat plays Heat's default; at 5 Heat when it ends, the meltdown macro.
+
+  shot.plasma:
+    beat: A bead of plasma zips into the target and crackles, then arcs on into a second enemy.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: straight, flip: y, size: small, tint: duo, tone: light, scale: 0.35, speed: 2, note: "flipped so the white core leads. Fly it to the primary target only: the arc target gets the hop below" }
+      - { on: hit, only: primary, fx: lightning_burst_002, size: small, tint: duo, scale: 0.55 }
+      - { on: hit, only: others, fx: lightning_burst_002, size: small, tint: duo, scale: 0.45, delay: 120, note: "the hop: a thin arc (lightning_strike_002B, beam, size small, element2) first snaps from the primary target to this enemy" }
+      # +1 Heat: Heat's default on the user.
+
+  snipe.plasma:
+    beat: Magnetic coils wind tighter around the user each turn; when the channel ends, a slug fires and punches through the hidden target.
+    note: >-
+      HiddenTarget: everything before the hit stays on the user and points nowhere. When 3 turns pass the shot
+      fires from Coilgun's expiry: the remove cue on Coilgun (reason expired) is the shot leaving the user, then the
+      hit cues. The hit grows with the turns held (30 + 15 each): symmetrical_impact_001 from 0.7 at 30 to about 1.1
+      at 75, the muzzle flash from 0.75 to at most 1.0, with a short screen shake from 60.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.8 }   # a coil ring with four rails snaps around the user
+      - { on: trigger, status: coilgun, fx: frost_knight_7, tint: duo, scale: 0.6, speed: 1.3, opacity: 0.8 }   # each turn held, another coil winds
+      - { on: trigger, status: coilgun_release, fx: round_light_burst_001, tint: duo, tone: light, scale: 0.8, note: "only when it fires (a turn or more held): the rails discharge in a level flare on the user, aimed at no one" }
+      - { on: remove, status: coilgun, fx: round_light_burst_001, tint: duo, tone: light, scale: 0.9, note: "on expiry only (reason expired): the engine removes Coilgun just before its onExpire shot. The same level rail flare as the release trigger, on the user, aimed at no one. Coilgun interrupted by a skill use or a stun plays nothing here" }
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tint: duo, tone: light, scale: 0.75, note: "shift the canvas along the shot line so the ring (the art's left edge) sits on the target's near edge as the entry hole, the streaks blowing out past them: Piercing" }
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, scale: 0.7, delay: 60 }
+
+  trap.plasma:
+    beat: A thermite seal is welded unseen onto the target; the first time they're healed it flares white and melts down over them, and they Explode.
+    cues:
+      - { on: apply, status: thermite_seal, fx: deathbringer_2, tint: duo, scale: 0.6, opacity: 0.6, frames: [0, 12], note: "Invisible: owner only. The pentagon seal glows on, then fade it out; cut before the melt" }
+      - { on: trigger, status: thermite_seal, fx: deathbringer_2, tint: duo, tone: light, scale: 0.8, speed: 1.4, frames: [10, 22], note: "the seal flares white-hot and melts down over them: reads on its own to an opponent who never saw it set" }
+      # Scorched's default and the explode macro follow.
+
+  maneuver.plasma:
+    beat: The user dissolves into a violet-white puff of plasma and reforms out of reach, venting their Heat into a shield.
+    note: The puff is the skill's only cue; Invulnerable's default, the vent macro's jets and (with Heat vented) Shield's default follow it.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: duo, tone: light, scale: 0.9, note: "the portrait blinks out in the puff and back as Invulnerable's shell closes" }
+
+  companion.plasma:
+    beat: Sparks spiral in and fuse into a crackling ball of plasma.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, tint: duo, tone: light, scale: 0.9, frames: [3, 16] }   # the sparks converge into a star and pop into a ring holding the ball
+      - { on: summon, fx: lightning_burst_002, size: small, tint: element2, scale: 0.5, delay: 400 }   # the ball crackles alive
+
+  bolt.plasma:
+    beat: A violet comet trailing smoke bursts on the target and leaves their burn running white-hot.
+    note: "Superheated's turn-end tick is a later hit of this skill: for it play only the trigger cue, not the comet's burst."
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.6 }   # the crescent head leads, a smoky tail behind
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.9 }   # the orb bursts into a spiky fan thrown on past them
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.5, delay: 100 }   # Fire embers droop off them
+      - { on: apply, status: superheated, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.4, delay: 250, note: "only when its value is above 0 (the user had Heat): the fresh Ignite flares violet-white beside Ignite's own catch" }
+      - { on: trigger, status: superheated, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.45, note: "only when it deals damage (they still burn) and only when its value is above 0: a violet-white flame beside Ignite's own orange tick" }
+      # Ignite's default catches; +1 Heat on the user.
+
+  blast.plasma:
+    beat: The user's core spins past its limit and a plasma nova floods the enemy side, flame jetting up under every enemy; the user is left to Melt Down.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: duo, scale: 1.0, speed: 1.6 }   # Heat's core at full size, over-spinning
+      - { on: hit, fx: dark_mage_4, at: enemySide, tint: duo, scale: 2.4, note: "once, with the first hit: the four-lobed nova and its white crackle rim wash across the row" }
+      - { on: hit, fx: directional_fire_burst_001, scale: 0.8, delay: 120, stagger: 80 }   # a Fire jet erupts under each enemy
+      - { on: apply, status: overload_burst, fx: symbol_alert_002, size: small, tint: duo, scale: 0.4, offset: [0.4, 0.55], note: "the '!!' beside the user's head: a Meltdown is coming this turn. Fade its held last frame" }
+      # The meltdown macro plays when Overload ends.
+
+  consume.plasma:
+    beat: The user vents and runs a cooling arc into the target, drawing their power home in a splash of sparks.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, from: target, to: actor, path: beam, size: small, tint: duo, opacity: 0.85 }   # the arc that draws it home
+      - { on: hit, fx: burst_splatter_001, tint: duo, scale: 0.6 }   # their power splashes off them
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, speed: 1.7 }   # cool violet crosses rise in the user
+      # The vent macro's jets come first and Sapped's default lands on the target; with no Heat to vent, Heat's default replaces the heal.
+
+  summon.plasma:
+    beat: Two bolts drop into empty slots and a spark jumps out of each.
+    cues:
+      - { on: summon, fx: lightning_strike_003A, size: small, tint: duo, scale: 0.7, stagger: 150 }
+      - { on: summon, fx: round_sparkle_burst_002, size: small, tint: duo, tone: light, scale: 0.5, delay: 250, stagger: 150 }
+
+  channel.plasma:
+    beat: A furnace of plasma kindles at the user's feet and flares white-hot each turn as arcs crackle over the enemy side, every burn there flaring at once.
+    cues:
+      - { on: apply, status: arc_furnace, fx: spell_forge_001, tint: duo, scale: 1.1, layer: under }   # the furnace kindles under the user
+      - { on: trigger, status: arc_furnace, fx: spell_forge_001, tint: duo, tone: light, scale: 0.9, speed: 1.5, frames: [4, 12], layer: under }   # each turn the furnace flares: drops land and white-hot sparks shoot up
+      - { on: hit, fx: lightning_burst_003, size: small, tint: duo, scale: 0.55, delay: 150, stagger: 80, note: "both waves: the 10 on every enemy, then the 5 on each Ignited one as their burns flare together (play that second wave at 0.4 with tint: Fire)" }
+      # Ignite's default catches on the random enemy; Charged's default on the user.
+
+  stab.plasma:
+    beat: A white-hot wire thrusts through the target and molten droplets spray out behind them.
+    note: "The 20 (target at or below the threshold) plays both cues about 1.25x larger."
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, tone: light, scale: 0.6, note: "the blade's leading edge (about 68% across the canvas) on the target, so it punches through" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: duo, scale: 0.45, delay: 60 }
+      # The vent macro's jets fire on the user first when there's Heat to vent.
+
+  ravage.plasma:
+    beat: A plasma cutter sweeps through the target in a dome of violet bands, white-hot sparks spraying out behind them.
+    note: "It grows with the Charge spent (+10 each): play the hit cues about 1.15x larger per Charge, judged by Charged's remove on the user just before."
+    cues:
+      - { on: hit, fx: paladin_8, face: fromActor, tint: duo }
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, tint: duo, tone: light, scale: 0.7, delay: 100, note: "the narrow origin (the art's lower corner) on the target's near side, so the cutting sparks spray along the ground past them" }
+      - { on: hit, fx: symmetrical_explosion_002, size: small, scale: 0.5, delay: 180 }   # a Fire blowout as the cut opens
+      # Charged's discharge plays on the user (the spend), then Heat's default for the Heat it becomes.
+
+  mislead.plasma:
+    beat: A heat shimmer swirls unseen around the target; when they act it surfaces, whirls and unravels into flame, and the burn keeps flaring violet-white at the start of their turns.
+    cues:
+      - { on: apply, status: heat_shimmer, fx: slime_5, tint: duo, tone: light, scale: 0.7, opacity: 0.45 }   # Invisible: owner only. The air warps in a slow swirl
+      - { on: trigger, status: heat_shimmer, fx: slime_5, tint: duo, tone: light, scale: 0.9, speed: 1.3, frames: [4, 9] }   # the shimmer surfaces round them at its peak and unravels as their skill is countered; Ignite's default is the flame
+      - { on: trigger, status: heat_shimmer_burn, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.45, note: "only when it deals its 5" }   # violet-white beside Ignite's orange, like Coronal Slam and Superheated
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.4 }   # that extra 5: a small Fire pop
+
+  stun.plasma:
+    beat: The target's circuits blow in a white-violet flash and smoke curls off them; with enough Heat vented, the overload jumps to other enemies.
+    cues:
+      - { on: hit, fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.75, note: "the target's portrait shudders" }
+      - { on: hit, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.45, offset: [0, 0.35], delay: 150 }   # burnt out: a wisp of dark Fire smoke rises off them
+      - { on: apply, status: debuff, only: others, fx: lightning_burst_002, size: small, tint: element2, scale: 0.5, note: "each extra enemy stunned by the vented Heat: a thin arc (lightning_strike_002B, beam, size small) first jumps from the target to them" }
+      # stun_ns's default lands on each; the vent macro's jets fire on the user first.
+
+  dance.plasma:
+    beat: Orbs of plasma whirl inward around the user and collapse into a dense star core; forked arcs crackle up from their feet.
+    cues:
+      - { on: apply, status: star_core, fx: spell_absorb_001, tint: duo, tone: light, scale: 1.3, speed: 1.6, layer: under }   # the orbs spiral in behind the portrait and fuse into a glowing core
+      # Might's default and Stormborn's forked bolts play on the user: Stormborn carries the crackle.
+
+  heal.plasma:
+    beat: A searing flash seals the ally's wounds shut and warmth rises through them.
+    cues:
+      - { on: heal, fx: round_light_burst_001, size: small, tint: duo, tone: light, scale: 0.6 }   # the cauterizing flash: a bright seam that collapses to a thin line
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tone: light, scale: 0.6, speed: 1.5, delay: 150 }   # Fire warmth rises
+      # The vent macro's jets on the user; Charged's default on the ally per 2 Heat vented.
+
+  bless.plasma:
+    beat: A bolt drops onto the ally and dumps a full charge into them at once.
+    cues:
+      - { on: apply, status: charged, fx: scifi_warp_003, tint: duo }   # replaces Charged's default here: one strike carries all three
+      - { on: apply, status: charged, fx: scifi_charge_up_002, tint: element2, scale: 0.8, repeat: 3, speed: 1.8, delay: 300 }   # Charged's own crackle, once per Charge
+      # Might's default plays; Supercharged shows on its icon.
+
+  curse.plasma:
+    beat: Two wisps of current wind into the target; every skill they use then shorts back through them.
+    note: "The backfire scales with the skill's cost (5 per energy): play its cues about 0.8x for a 1-energy skill up to 1.3x for 4."
+    cues:
+      - { on: apply, status: power_surge, fx: starcaller_4, tint: duo, scale: 0.8 }
+      - { on: trigger, status: power_surge, fx: starcaller_4, tint: duo, tone: light, scale: 0.6, speed: 1.6, frames: [3, 9] }   # the two wisps wound into them flare as they act
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.45, delay: 60 }   # the Affliction: a Fire sting
+
+  smite.plasma:
+    beat: A drop of plasma falls onto the target and splashes into flame, and a ring of current brands them; each allied hit makes it flare.
+    note: "When the brand ends it deals its Affliction as another hit of this skill: for that one, play the trigger's ring flare at 0.8 instead of the drop."
+    cues:
+      - { on: hit, fx: paladin_7, tint: duo, scale: 0.85, frames: [0, 6] }   # cut the held flame patch of the last frame
+      - { on: apply, status: arc_brand, fx: dark_mage_2, tint: duo, scale: 0.55, frames: [0, 10], delay: 150 }   # the brand: a ring of current closes around them (trim the dark-red last frame)
+      - { on: trigger, status: arc_brand, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.4 }   # each allied hit feeds it
+
+  prayer.plasma:
+    beat: A ring of heat rises under the team and warm plasma lifts through every ally; warmth gathers in the user, ready to turn a Meltdown into healing.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: allySide, tint: duo, tone: light, scale: 1.6, layer: under }   # white-cored flame spikes lift off a curved ground line under the team
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.7, speed: 1.5, stagger: 100 }
+      - { on: apply, status: heat_exchange, fx: round_sparkle_burst_003, size: small, tone: light, scale: 0.5 }   # Fire warmth gathers into the user
+      # Shield's default plays on each ally.
+
+  cleave.plasma:
+    beat: A crescent of plasma cuts through the target and a second enemy, snapping the circuits of their channels.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, only: others, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.65, delay: 150 }   # the cut carries on, smaller, into the random second enemy
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, tint: duo, scale: 0.45, delay: 80 }   # molten droplets fan out past each
+      # Broken Circuit's default, and base's interrupted default on any channel broken.
+
+  shout.plasma:
+    beat: An electromagnetic pulse bursts off the user and rolls across the enemy side; every unit it reaches jolts as the grid goes dark, minions on both sides included.
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: duo, scale: 1.3 }   # the pulse
+      - { on: apply, status: debuff, fx: directional_impact_002, at: enemySide, tint: duo, scale: 1.8, layer: under, note: "once, with the first debuff: the pulse rolls along the enemy row" }
+      - { on: apply, status: debuff, fx: lightning_strike_003B, size: small, tint: element2, scale: 0.45, speed: 1.6, opacity: 0.85, stagger: 60 }   # each unit jolts, the user's own minions too
+      # Intimidated's and Stun's defaults land after.
+
+  withstand.plasma:
+    beat: A containment field rises around the user in columns of plasma; the charge it holds crackles over them and makes their next skill cost more.
+    cues:
+      - { on: apply, status: buff, fx: dark_mage_3, tint: duo, scale: 1.2, layer: under, frames: [2, 12] }   # once, with the Shield: a ground ring closes and light columns rise around them; layers with Shield's default
+      - { on: apply, status: overcharge_surge, fx: lightning_burst_003, size: small, tint: element2, scale: 0.7, delay: 350 }   # the Surge lands: the held charge crackles, their next skill costs 2 more
+
+  taunt.plasma:
+    beat: The user fires a flare skyward and it bursts over the target, marking them as the one to fight.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: up, tint: duo, tone: light, scale: 0.5 }   # the flare launches straight up
+      - { on: apply, status: taunt, fx: round_firework_burst_002, tint: duo, scale: 0.7, offset: [0, 0.75] }   # and bursts over them, hanging and fizzling (replaces Taunt's default here)
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, tint: source, scale: 0.5, delay: 300 }   # Taunt's own '!', restated under the flare
+      # The vent macro's jets fire on the user first; Sapped's default lands per 2 Heat vented.
+
+  titan.plasma:
+    beat: A plasma column erupts through the user, a white flash ignites the reactor, and a giant core keeps spinning behind them.
+    cues:
+      - { on: apply, status: reactor_core, fx: epic_explosion_001, tint: duo, scale: 1.6, frames: [0, 5], note: "fade its last frame: cut the slate smoke cap that would hang over the head" }   # the column climbs from the feet and swallows the portrait
+      - { on: apply, status: reactor_core, fx: scifi_warp_001, tint: duo, tone: light, scale: 1.5, delay: 250 }   # the reactor ignites in a white ring
+      - { on: resolve, fx: scifi_charge_up_001, tint: duo, scale: 1.8, repeat: 2, layer: under, opacity: 0.8 }   # Heat's core at Titan size, spinning behind the portrait
+      # Heat's and Immune's defaults play on the user.
+
+  ball_lightning_detonate:
+    beat: The Ball Lightning swells, flickers and bursts, and a crackling star lands on every enemy.
+    cues:
+      - { on: cast, fx: stylized_explosion_004, tint: duo, scale: 0.9, frames: [6, 11], note: "on the Ball Lightning (the actor): its glints gather and it flickers. The burst waits for the hits: a counter can stop Detonate and leave the ball alive" }
+      - { on: hit, fx: stylized_explosion_004, at: actor, tint: duo, scale: 0.9, frames: [12, 22], note: "once, with the first hit: the ball bursts into its pale dome" }
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.7, delay: 150, stagger: 80 }
+      - { on: death, fx: directional_smoke_burst_004, tint: duo, scale: 0.5, opacity: 0.7, note: "on the Ball Lightning only, replacing the death default there: a wisp where it was. Enemies it kills keep the death default" }
+      # Sapped's default lands on each enemy.

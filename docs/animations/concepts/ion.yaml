@@ -1,0 +1,312 @@
+group: ion
+
+# Ion (Lightning + Shadow) is black current: Lightning's bolts and crackle carrying Shadow's dark instead of
+# light. Three materials: the black current itself is `duo` (slate bodies, violet edges, white-hot cores),
+# and most of the kit is made of it; bright violet sparks and anything powering back on take the default
+# `element` (Lightning); the dark that switches things off is `element2` (Shadow).
+# Signature motif, the power cut: whatever Ion shuts down goes dark in one language. Suppressed clamps a ring
+# of black current round the bearer (their Buffs locked off) and relights with a violet twinkle; Blackout
+# eats the light over the head (a white disc swallowed by a crescent of dark); anything taken offline (a
+# blacked-out minion, Go Dark, Shutdown's recoil, Hard Reboot) runs a flat violet trace over its head, and
+# coming back online (or booting up, like the Drone) the trace kicks twice. Ion's two EMPs (EMP Mine, EMP)
+# share one blast: a pale flash with a black heart (stylized_explosion_004).
+# Charged, Sapped, Stealth, Numb and the base statuses keep their own defaults.
+
+statuses:
+  suppressed:
+    note: No aura. The status icon carries it, and the bearer's Buff icons grey out while it lasts.
+    apply:  [ { fx: dark_mage_2, tint: duo, scale: 0.75, frames: [0, 10] } ]   # two crescents of black current close into a ring round the bearer (its dark-red last frame cut)
+    expire: [ { fx: round_sparkle_burst_001, size: small, scale: 0.4, opacity: 0.8 } ]   # power back on: the Buffs relight in a violet twinkle
+    remove: [ { fx: round_sparkle_burst_001, size: small, scale: 0.4, opacity: 0.8 } ]
+  blackout:
+    note: >-
+      No aura. The status icon carries it; the bearer's minions show their own (blacked_out). On a minion
+      bearer, play nothing for apply, expire or remove: blacked_out's default carries a minion. Minions often
+      get both (the Jammer gives Blackout to every enemy unit, minions included, and Dark Current, Blackspark
+      and EMP Mine can land on a minion, whose macro then gives it blacked_out too), and on a minion Blackout
+      does nothing. The cues below are for characters.
+    apply:  [ { fx: symmetrical_explosion_001, size: small, tint: element2, scale: 0.55, offset: [0, 0.55] } ]   # lights out over their head: a white disc swallowed by a crescent of dark
+    expire: [ { fx: symmetrical_impact_005, size: small, scale: 0.4, offset: [0, 0.55], opacity: 0.8 } ]   # the signal pings back
+    remove: [ { fx: symmetrical_impact_005, size: small, scale: 0.4, offset: [0, 0.55], opacity: 0.8 } ]   # cleansed, or the Jammer it was bound to fell
+  blacked_out:
+    note: >-
+      No aura. While it lasts the minion's portrait is dimmed to grey; that and the icon carry it. The apply
+      plays once per minion per skill use: Lights Out runs the blackout macro once per enemy character, and
+      each run re-applies it to the same minions (a refresh, which emits effectApplied again). Skip the repeats.
+    apply:
+      - { fx: symmetrical_explosion_001, size: small, tint: element2, scale: 0.5 }   # its light is swallowed, as Blackout's
+      - { fx: scifi_heartbeat_flatline_001, size: small, scale: 0.4, offset: [0, 0.5], delay: 150 }   # and its trace runs flat: offline
+    expire: [ { fx: scifi_heartbeat_fast_001, size: small, scale: 0.4, offset: [0, 0.5] } ]   # back online: the trace kicks twice
+    remove: [ { fx: scifi_heartbeat_fast_001, size: small, scale: 0.4, offset: [0, 0.5] } ]
+
+macros:
+  # Per unit it reaches: the character gains Blackout and every enemy minion is blacked out. Those two
+  # statuses' defaults carry it, so the macro adds no layer of its own. Lights Out runs it once per enemy
+  # character, re-applying blacked_out to the same minions each time: see blacked_out's note (play it once).
+  blackout: []
+
+skills:
+  strike.ion:
+    beat: Two strokes of black current cut an X through the target and a violet crackle snaps where the line went dead.
+    cues:
+      - { on: hit, fx: warrior_1, tint: duo, face: fromActor, scale: 0.85 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.45, delay: 120 }
+      # Numb's own default follows.
+
+  smash.ion:
+    beat: The allies' Charge spirals into the user out of the dark, then black current erupts from the floor under the target and, smaller, under each of their allies.
+    note: "Every hit is 5 bigger per Charge given: scale the eruptions up about a tenth per Charge."
+    cues:
+      - { on: apply, status: charged, fx: spell_absorb_001, tint: duo, scale: 0.9, speed: 1.6 }   # replaces Charged's crackle here; no Charge given, nothing drawn in
+      - { on: remove, status: charged, fx: scifi_muzzle_flash_002, tint: duo, size: small, scale: 0.5, face: toActor, note: "on each giver, replacing Charged's discharge (this Charge is handed over, not spent): its ring (left edge as drawn) on the giver, so the jet streaks off toward the user, whose absorb takes it in" }
+      - { on: hit, only: primary, fx: lightning_strike_001, tint: duo, scale: 1.3 }
+      - { on: hit, only: primary, fx: lightning_burst_003, scale: 0.8, delay: 150 }
+      - { on: hit, only: others, fx: lightning_strike_001, tint: duo, size: small, scale: 0.8, delay: 200, stagger: 100 }
+
+  charge.ion:
+    beat: The user runs as black current along the floor and surges up through the target in a fan of dark smoke and white streaks.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so only the owner sees the travel. The hit has to read on its own."
+    cues:
+      - { on: travel, fx: lightning_strike_002B, path: beam, tint: duo, tone: light, layer: under, offset: [0, -0.35], opacity: 0.9, note: "laid along the floor from the user's feet to the target's, on bare board where duo's slate body would vanish (hence tone light); the portrait lunges" }
+      - { on: hit, fx: directional_smoke_burst_005, tint: duo, face: fromActor, size: small, scale: 0.55, note: "its origin corner on the target, so the streaks and smoke blast on out past them" }
+      # Blackout's defaults on the target and every enemy minion; Focus's on the user.
+
+  riposte.ion:
+    beat: Four poles of black current snap out round the user unseen; the first attack shorts out against them and a dark crescent lashes back across the attacker.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.8, opacity: 0.8, speed: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: null_guard, fx: lightning_burst_002, tint: duo, scale: 0.8 }   # the attack shorts out on the user
+      - { on: trigger, status: null_guard, fx: necromancer_2, at: source, tint: duo, face: fromActor, scale: 0.75, delay: 120 }
+      # The counter default marks the stopped skill; Suppressed's default clamps the attacker if they had Buffs.
+
+  rage.ion:
+    beat: Jagged black static collapses into the user and bursts off them as dark spikes roar up behind; while it lasts, static jumps onto every enemy they hit.
+    cues:
+      - { on: apply, status: static_fury, fx: stylized_explosion_005, tint: duo, scale: 1.3, speed: 1.6, frames: [8, 25], note: "the shards converge, then the sphere bursts (about frame 18). If its pink and yellow shard accents survive the swap, take them to the ramp's light stop" }
+      - { on: apply, status: static_fury, fx: directional_particle_burst_002, tint: duo, scale: 1.8, layer: under, delay: 300 }   # behind the portrait but 1.35 portraits wide and 0.8 over the head, so the spikes ring it (over it, it would read as Hard Reboot's heal)
+      - { on: trigger, status: static_fury, fx: round_firework_burst_001, at: target, size: small, scale: 0.4 }   # static spits onto the enemy hit; Suppressed's default follows
+      # Might's default plays on the user.
+
+  shot.ion:
+    beat: A tiny seeker orb curves out and finds the target, or homes in on every hidden enemy and tears their Stealth away, bursting in a spray of black current.
+    cues:
+      - { on: travel, fx: scifi_charge_up_001, path: arc, tint: duo, tone: light, size: small, scale: 0.35, speed: 1.5, note: "one seeker to each unit this skill damages, launched before that unit's first effect (its Stealth tearing away). In the Stealth branch every Stealthed enemy gets one, and the declared target, who isn't hit, gets none" }   # its needle sweeps like a radar
+      - { on: hit, fx: starcaller_1, tint: duo, face: fromActor, scale: 0.5, note: "its origin (lower-left as drawn) on the target, so the spikes fan on past them" }
+      # Stealth's remove default tears each shroud away first.
+
+  snipe.ion:
+    beat: The user's cannon spins up; next turn it fires straight up into the sky and a column of black current falls out of it onto the target.
+    note: >-
+      HiddenTarget: nothing points at the target until the column lands. The shot leaves the user straight
+      upward, aimed at no one. While Ion Cannon is up, the user keeps a faint spin of the cannon
+      (scifi_charge_up_001, duo, small, scale 0.45, opacity 0.5) so the opponent can see there is something
+      to interrupt. Suppressed is applied just before the damage, so its ring is held back a beat and clamps
+      after the column lands.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: duo, scale: 0.9 }
+      - { on: trigger, status: ion_cannon, fx: scifi_muzzle_flash_002, tint: duo, face: up, scale: 0.7, offset: [0, 0.75], speed: 1.3 }   # fired straight up: its ring at the user's head, the jet blasting skyward, aimed at no one
+      - { on: apply, status: suppressed, fx: dark_mage_2, tint: duo, scale: 0.75, frames: [0, 10], delay: 250 }   # Suppressed's default, restated a beat late so the effect follows its cause
+      - { on: hit, fx: lightning_strike_003A, tint: duo, scale: 1.6 }   # its foot at the target's feet, the column towering past the frame
+      - { on: hit, fx: symmetrical_impact_004, scale: 1.1, delay: 100 }
+      - { on: blocked, fx: lightning_strike_003A, tint: duo, scale: 1.3 }   # fully absorbed by Shield: the column still falls
+
+  trap.ion:
+    beat: A dark ring settles unseen under the target; when they summon or start a channel it flares into view and blows in a pale flash with a black heart.
+    cues:
+      - { on: apply, status: emp_mine, fx: necromancer_1, tint: duo, scale: 1.0, opacity: 0.6, offset: [0, -0.25] }   # Invisible: owner only. Over the portrait (behind it, a ring this size is hidden): a faint ring at the lower body, wisps curling up
+      - { on: trigger, status: emp_mine, fx: necromancer_1, tint: duo, scale: 1.0, offset: [0, -0.25], speed: 1.6 }   # the mine shows itself as it springs
+      - { on: hit, fx: stylized_explosion_004, tint: duo, scale: 0.8, frames: [11, 22] }   # the EMP, its long glint wind-up skipped; 15 to one unit, so smaller than EMP's
+      # Blackout's defaults on the bearer and every enemy minion.
+
+  maneuver.ion:
+    beat: The user's glow sputters out in drooping violet sparks, their trace runs flat, and a sealed shell closes over them.
+    note: "Stealthy: used from Stealth, only the owner sees it. The portrait stays dimmed while Gone Dark lasts."
+    cues:
+      - { on: cast, fx: round_firework_burst_001, scale: 0.7, note: "the portrait dims as the sparks fall" }
+      - { on: apply, status: go_dark, fx: scifi_heartbeat_flatline_001, size: small, scale: 0.4, offset: [0, 0.6], delay: 200 }   # offline: no Harmful skills
+      # Invulnerable's default shell closes over them.
+
+  companion.ion:
+    beat: A dark orb swells and bursts on the minion row, the Shadow Drone boots up with a violet kick of its trace, and smoke folds it into Stealth.
+    cues:
+      - { on: summon, fx: scifi_warp_002, tint: duo, scale: 0.7 }
+      - { on: summon, fx: scifi_heartbeat_fast_001, size: small, scale: 0.35, offset: [0, 0.5], delay: 300 }   # online
+      # Stealth's apply default follows on the Drone.
+
+  bolt.ion:
+    beat: A black spark, white-hot at its head, streaks into the target and bursts into a crackling ring of dark current.
+    note: "35 when the target is channeling or the enemy side has a minion: play the hit about a third larger."
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.6, frames: [0, 6] }   # Shadow's comet in black current: the white-hot head leads, the slate tail streams behind; cut before its own low-contrast splat, the hit is the impact
+      - { on: hit, fx: lightning_burst_003, tint: duo }
+      # Blackout's defaults on the target and every enemy minion.
+
+  blast.ion:
+    beat: The pulse leaves the user in a gyroscopic burst and every enemy blows in a pale flash with a black heart, crackling after.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.2 }
+      - { on: hit, fx: stylized_explosion_004, tint: duo, scale: 1.1, speed: 1.3, frames: [11, 22], stagger: 80 }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.5, delay: 200, stagger: 80 }
+      # Charged's discharge on the user for the Charge spent (none spent, none shown); Suppressed's default on each enemy.
+
+  consume.ion:
+    beat: A thin violet arc taps the target and each enemy minion, dark current sprays out of them toward the user, and the power converges into the user as healing.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, from: target, to: actor, path: beam, size: small, opacity: 0.8, stagger: 60, note: "one tap to each unit this skill damages (the targeted enemy, then each enemy minion), each before that unit's hit; the minions are reached by a filter, not targeted, so play it per damaged unit, not per declared target" }
+      - { on: hit, fx: necromancer_3, tint: duo, tone: light, face: toActor, scale: 0.55, stagger: 60, note: "its origin (left edge as drawn) on the drained unit, so the tendrils fan out toward the user" }
+      - { on: heal, fx: round_sparkle_burst_003, scale: 0.8, speed: 1.4 }   # sparks converge on the user and pop
+      # Blackout's default (blacked_out) on each enemy minion.
+
+  summon.ion:
+    beat: A dark mast with a dish at its head shoots up from the floor and sprays violet static, and every enemy goes dark while it stands.
+    cues:
+      - { on: summon, fx: directional_fire_burst_002, tint: duo }   # a narrow column with a round head: the Jammer's mast
+      - { on: summon, fx: round_firework_burst_002, scale: 0.7, speed: 1.4, delay: 300 }
+      # Blackout's defaults on every enemy and their minions; they end with the Jammer.
+
+  channel.ion:
+    beat: A ring of black static rolls off the user and keeps humming; at the end of each of their turns another ring rolls out and crackles through every enemy.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted; the pulses on the enemies read on their own."
+    cues:
+      - { on: apply, status: dark_hum, fx: symmetrical_explosion_004, tint: duo, scale: 1.1, frames: [0, 8] }   # its fade cut before the olive specks show
+      - { on: trigger, status: dark_hum, fx: symmetrical_explosion_004, tint: duo, scale: 0.8, frames: [0, 8], note: "each turn-end pulse" }
+      - { on: hit, fx: lightning_burst_002, tint: duo, size: small, scale: 0.55, stagger: 70, note: "a little larger for each time Charge has turned into energy since it began (10 more damage each)" }
+
+  stab.ion:
+    beat: A needle of black current jabs straight through the target; if a Buff of theirs trips off, sparks spit from where it was.
+    cues:
+      - { on: hit, fx: lightning_strike_002B, tint: duo, face: fromActor, size: small, scale: 0.7, speed: 1.5 }   # the bolt laid along the blow, passing through them
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.4, delay: 60 }
+      - { on: remove, status: buff, fx: round_firework_burst_002, size: small, scale: 0.4, offset: [0, 0.4], note: "only the removeRandom removal (reason 'removed'), not a Shield the hit depleted (that plays shieldBreak)" }   # the breaker trips and its spark is skimmed into Charge (adds to the lost Buff's own remove); Charged's default on the user follows
+
+  ravage.ion:
+    beat: Arcs of black current lash in from every side, wrap the target in a striped knot and burst, spattering black spokes.
+    note: "Against a Sleeping target nothing flinches: no wake, Sleep's aura keeps running, and Sapped's default follows (two stacks)."
+    cues:
+      - { on: hit, fx: frost_knight_9, tint: duo, face: fromActor }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8, delay: 150 }
+      - { on: hit, fx: burst_splatter_003, variant: black, scale: 0.6, delay: 250 }
+
+  mislead.ion:
+    beat: A band of interference quietly ripples over the target and each enemy minion; when one of them acts, the command collapses into a black slit and bursts, and every minion of theirs goes dark.
+    cues:
+      - { on: apply, status: signal_jam, fx: necromancer_6, tint: duo, scale: 0.45, offset: [0, 0.6], opacity: 0.8, stagger: 80, note: "Invisible: owner only. One ripple over the head, then fade" }
+      - { on: trigger, status: signal_jam, fx: scifi_warp_001, tint: duo, scale: 0.7 }   # on the unit whose skill is countered; the counter default follows
+      # Blackout's default (blacked_out) on every enemy minion.
+
+  stun.ion:
+    beat: A spark of black current darts at the target and a heavy bolt slams in behind it, locking them down, and the user's own trace runs flat with the effort.
+    note: "No damage, so the arrival is the travel: it plays whether or not the Stun lands. If Swiftness negates it or Immune blocks it, the spark still reaches them, then the sidestep or block, then Suppressed's ring; the slam and stars only follow a Stun that lands."
+    cues:
+      - { on: travel, fx: lightning_strike_003B, path: straight, tint: duo, size: small, scale: 0.6, speed: 1.8 }   # a short zigzag spark laid along its flight (Smite's drops from above)
+      - { on: apply, status: stun, fx: lightning_strike_002A, tint: duo, face: fromActor, note: "its impact corner (lower-left as drawn) on the target; the portrait shudders" }
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, delay: 150 }   # Stun's own default, restated: the cue above replaces it for this skill
+      - { on: apply, status: powered_down, fx: scifi_heartbeat_flatline_001, size: small, scale: 0.4, offset: [0, 0.6], delay: 300 }   # the user offline for a turn
+      # Suppressed's default follows on the target.
+
+  dance.ion:
+    beat: Two motes of black current whirl round the user, slip into a buffed enemy's system and carry copies of their Buffs home.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 1.2, repeat: 2, speed: 1.8 }   # two star-headed wisps of black current whirl round the user (Lightning's Dance motion, in Ion's matter)
+      - { on: apply, status: buff, fx: round_sparkle_burst_001, size: small, scale: 0.4, stagger: 80 }   # each Buff the user gains: Swiftness, then each copy
+      - { on: apply, status: debuff, fx: directional_particle_burst_001, tint: duo, tone: light, face: toActor, scale: 0.6, speed: 1.5, delay: 120, note: "on the robbed enemy, adding to Suppressed's ring: motes peel off them and stream toward the user, their Buffs carried home. Suppressed is the only Debuff this applies, so it plays once, on that enemy (a random one, not the skill's target, so no travel can reach them). copyEffects runs just before it, so keep it quick" }
+      # Suppressed's default on the enemy robbed; Swiftness's and each copied Buff's defaults on the user.
+
+  heal.ion:
+    beat: The ally goes offline for a turn, their trace flat; then a jolt reboots them, the trace kicks back and power surges up through them.
+    cues:
+      - { on: heal, fx: directional_particle_burst_002, tone: light, scale: 0.9 }
+      - { on: heal, fx: scifi_heartbeat_fast_001, size: small, scale: 0.4, offset: [0, 0.6], delay: 200 }   # back online
+      - { on: apply, status: hard_reboot, fx: scifi_heartbeat_flatline_001, size: small, scale: 0.4, offset: [0, 0.6], note: "the portrait dims while Rebooting lasts" }
+      - { on: trigger, status: hard_reboot, fx: lightning_strike_003B, size: small, scale: 0.6, speed: 1.6 }   # the reboot jolt as it runs out, just before the heal
+
+  bless.ion:
+    beat: A shard of black current falls onto the ally and breaks into grey dead air round them; each enemy who reaches in is cut off and feeds the ally a Charge.
+    cues:
+      - { on: apply, status: dead_zone, fx: frost_mage_5, tint: duo, scale: 0.9 }
+      - { on: trigger, status: dead_zone, fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.6 }   # the zone pings on the ally; Suppressed's default on the enemy, Charged's on the ally
+
+  curse.ion:
+    beat: The user flicks a jamming signal and a seal of black current settles over the target, cutting their line to their allies.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, tint: duo, face: toTarget, size: small, scale: 0.4 }
+      - { on: apply, status: signal_loss, fx: deathbringer_2, tint: duo, scale: 0.7, frames: [0, 14], note: "lower it from just over the head onto the body as it forms, then fade it out: cut before it turns to a melting solid" }
+      # Confusion's default follows.
+
+  smite.ion:
+    beat: A spike of black current drops onto the target and burns a ring at their feet that throws up sparks; allies who strike them skim sparks off it.
+    cues:
+      - { on: travel, fx: lightning_strike_003B, path: drop, tint: duo, size: small, scale: 0.8, speed: 1.6 }
+      - { on: hit, fx: spell_forge_001, tint: duo, note: "its yellow spark streaks sit outside the four-color swap: remap them to the duo light stop (or drop them), or a Holy/Fire yellow creeps into the brand" }   # the brand burns in at their feet
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.45, delay: 60 }
+      - { on: trigger, status: null_brand, fx: round_firework_burst_002, size: small, scale: 0.45, note: "only when the bearer has Buffs (no Buffs, no Charge); Charged's default then plays on the ally who hit them" }
+      # Suppressed's default on the target.
+
+  prayer.ion:
+    beat: Pale motes and crosses rise through every ally, and every light on the enemy side goes out.
+    note: "Allies heal 10 more for each enemy minion or channel the Blackout pauses: scale the heal cues up with it."
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.9, speed: 1.3, stagger: 80 }
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.5, speed: 1.6, delay: 150, stagger: 80 }
+      - { on: heal, at: enemySide, fx: symmetrical_explosion_001, tint: element2, scale: 1.6, opacity: 0.75, delay: 100, note: "once, with the first heal: one big eclipse over the enemy row as every light there goes out (Blackout's own eclipse, at team scale). Blackout comes through the blackout macro, whose statuses play their own defaults rather than this skill's apply cues, so this can't hang off them; it rides the heals, which come first, and the per-unit Blackout defaults follow" }
+      # Blackout's defaults on every enemy and their minions.
+
+  cleave.ion:
+    beat: A wave of black current arcs over and breaks on the target, then rolls on and breaks again on a buffed enemy, crackling on each.
+    cues:
+      - { on: hit, only: primary, fx: deathbringer_1, tint: duo, face: fromActor, scale: 0.85, note: "its crash corner (bottom-right as drawn) on the target: the streaks rise on the user's side, arc over and break on them" }
+      - { on: hit, only: others, fx: deathbringer_1, tint: duo, face: fromActor, scale: 0.65, delay: 150 }   # the 15 on the second enemy, crash corner on them
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.4, delay: 80, stagger: 150 }
+      # Suppressed's default on the second enemy.
+
+  shout.ion:
+    beat: A jamming frequency rings off the user and rolls out over every enemy as a front of pale static; their clocks stall.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, scale: 1.3 }
+      - { on: travel, fx: frost_mage_7, path: straight, tint: duo, tone: light, scale: 0.6, speed: 1.5, stagger: 60, note: "a rolling front, not a tether: its cloud head (right edge as drawn) leads, so the leading edge lands on each enemy with the streaks behind it" }
+      - { on: apply, status: debuff, fx: fanfx_slow, tint: duo, size: small, scale: 0.4, offset: [0.45, 0.5], speed: 1.5, delay: 200, note: "every skill of theirs one turn further onto cooldown, which has no event of its own: it rides the Intimidated apply, beside the head (Intimidated's eye takes the spot above)" }
+      # Intimidated's default on each enemy.
+
+  withstand.ion:
+    beat: Bars of black current shoot up round the user into a cage that crackles along its bars; a Sap that reaches them grounds out through the floor as Charge.
+    cues:
+      - { on: apply, status: faraday_cage, fx: dark_mage_3, tint: duo, scale: 1.2, opacity: 0.85 }   # over the portrait, so the bars rise across it
+      - { on: apply, status: faraday_cage, fx: lightning_strike_003B, size: small, scale: 0.8, speed: 1.6, offset: [-0.4, 0], delay: 250 }   # current crawling the bars: the left bar
+      - { on: apply, status: faraday_cage, fx: lightning_strike_003B, size: small, scale: 0.8, speed: 1.6, offset: [0.4, 0], delay: 400 }   # then the right
+      - { on: trigger, status: faraday_cage, fx: lightning_burst_002, size: small, scale: 0.45, offset: [0, -0.4] }   # the Sap grounds out; Charged's default follows
+      - { on: remove, status: sapped, fx: none }   # grounded, not fried: the trigger shows it
+
+  taunt.ion:
+    beat: The user lashes a live line of current out to the target and hooks them in; every blow the target lands on the user skims a spark off the line.
+    cues:
+      - { on: apply, status: taunt, fx: starcaller_7, tint: duo, tone: light, face: fromActor, scale: 0.8, note: "its strike end (lower-left as drawn) on the target: the line lashes in from the user's side, flashes on them and curls into a hook" }
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, scale: 0.5, tint: source, delay: 250 }   # Taunt's own '!', restated after the hook: the cue above replaces its default for this skill
+      - { on: trigger, status: open_channel_feed, fx: round_firework_burst_002, size: small, scale: 0.4, note: "only when the damage was to the user; Charged's default then plays on the user" }
+      - { on: trigger, status: open_channel, fx: directional_smoke_burst_004, tint: duo, tone: light, size: small, scale: 0.4, offset: [0, 0.35], opacity: 0.8 }   # the user strikes and the line goes dead: a pale wisp of current off the shoulder (not Stealth's black wisp at the feet); the Taunt and the feed end with it
+
+  titan.ion:
+    beat: Black current erupts from under the user in a towering dark plume and hardens into a jagged monolith over them, and a nova of dead power rolls over the board, clamping every other unit's Buffs.
+    cues:
+      - { on: cast, fx: epic_explosion_001, tint: duo, scale: 1.8, layer: under }   # from the user's feet: its dark mushroom cap (the smoke stays dark under tint) towers over and past the frame
+      - { on: apply, status: buff, fx: frost_mage_3, tint: duo, scale: 1.5, opacity: 0.85, note: "with Armor, the only Buff this applies: a jagged dark monolith with lit edges hardens over the user. It ends at its brightest, so fade it in code. The portrait stays darkened with a violet rim while the Titan lasts" }
+      - { on: apply, status: debuff, fx: deathbringer_4, at: field, tint: duo, scale: 3.0, opacity: 0.8, note: "once, with the first Suppressed: the nova rolls out over the whole board as every other unit's ring clamps. A short board dim" }
+      # Armor's default on the user; Suppressed's default on every other unit, allies included.
+
+  shadow_drone_scramble:
+    beat: The Drone flickers a burst of scrambling static over the target and their Buffs clamp off.
+    note: "Stealthy: from Stealth the opponent only learns that a Stealthed unit acted; the static on the target reads on its own."
+    cues:
+      - { on: apply, status: debuff, fx: fanfx_pain, tone: light, scale: 0.8, speed: 2, frames: [2, 30] }   # pins of static prickle over them, adding to Suppressed's default
+
+  shadow_drone_needle_arc:
+    beat: The Drone spits a needle of black current through the target, dropping out of Stealth to do it.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.45, speed: 1.6 }
+      - { on: hit, fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.55 }
+      # Stealth's remove default plays on the Drone.
+
+  jammer_static_hiss:
+    beat: The Jammer hisses a thin crackle of static at the target and it breaks over them in a noisy burst.
+    cues:
+      - { on: travel, fx: lightning_strike_003B, path: beam, size: small, opacity: 0.75, speed: 1.6 }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.55 }

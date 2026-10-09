@@ -1,0 +1,334 @@
+group: curse
+# Curse (Unholy + Shadow) is the evil eye and the written malediction: ash-grey shroud and charcoal ink
+# veined with crimson. Three materials:
+#   shroud — palette smoke, ink and bursts tinted `duo` (Unholy's crimson in the shading under Shadow's grey
+#            body and pale highlights). `tone: light` where a mostly-dark body would sink into the board: it
+#            turns the shroud ashen (crimson shade, pale body, white crests). Bright art whose darkness is the
+#            point (Smash's comet, Dance's crescents, Titan's storm) stays untoned, so its golds and whites
+#            fall to charcoal with pale crests and crimson outlines;
+#   blood  — crimson `element` layers for what the curse takes: pins, beads, sprays, the motes the user drinks;
+#   sorcery — class art from both parents, tinted `duo`, or left native where the two parents' own colors
+#            meet (Ravage's navy Dark Mage claw raking across the crimson Blood Knight claw).
+# Signature motifs, Curse's own:
+#   the eclipse — a pale moon bitten away by a black crescent rimmed in crimson (symmetrical_explosion_001
+#     in duo). It is the tell of every Hex as it lands (each Hex's apply default opens with it), its last
+#     sliver dots out when a Hex runs out, and it swells to full size where Hexes do the work: Soul Eclipse,
+#     the Hex Ward's rebound, The Accursed's retribution, and Doom tearing Hexes away;
+#   the death-glyph — spell_death_001's brushed kanji in duo, always cut before its baked yellow skull. It
+#     inks the grand maledictions: Doom, Bane, The Accursed.
+# Each Hex then adds its own mark: Pain is pins (fanfx_pain), Silence a stitched mouth (necromancer_6's
+# crossing tendrils over a thin thread), Ruin a drooping willow of sparks, its fortune falling
+# (round_firework_burst_001). Unholy's flaming skull (Horrified) and Shadow's dark flare (Blinded) keep their
+# own shapes beside them. Skulls are rationed: Doom's reaper skull is the payoff, and Rage's skull surfaces
+# once out of Lifesteal's cocoon.
+
+statuses:
+  hex_pain:
+    note: >-
+      No aura on any Hex: they sit on many units at once, and the icons carry them. A Hex that Lingers
+      (cleansed, or its bearer died) plays its remove here, then its apply on the ally it jumps to. The 10
+      Affliction a Hex deals after its trigger plays the board's default hit.
+    apply:
+      - { fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.55] }   # the eclipse: a Hex has landed
+      - { fx: fanfx_pain, tint: element, tone: light, scale: 0.8, speed: 2, frames: [4, 26], delay: 150 }   # crimson pins stuck in all over
+    # the bearer deals direct damage: the pins drive in and blood beads up
+    trigger:
+      - { fx: fanfx_pain, tint: element, tone: light, scale: 0.7, speed: 2, frames: [12, 26] }
+      - { fx: burst_splatter_001, size: small, tint: element, scale: 0.35, delay: 100 }
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.55], opacity: 0.7 } ]
+    # ran out: the eclipse's last sliver dots out where it landed
+    expire: [ { fx: symmetrical_explosion_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.55], frames: [4, 7], speed: 0.6, opacity: 0.8 } ]
+  hex_silence:
+    apply:
+      - { fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.55] }
+      - { fx: necromancer_6, tint: duo, tone: light, scale: 0.4, offset: [0, 0.1], frames: [4, 13], delay: 150, note: "one pass of the crossing tendrils along the thread, laid across the mouth: the lips stitched shut. tone: light lifts the tendrils (drawn as dark as the thread) to crimson over a pale thread; its near-black halo lifts to crimson with them" }
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.55], opacity: 0.7 } ]
+    expire: [ { fx: symmetrical_explosion_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.55], frames: [4, 7], speed: 0.6, opacity: 0.8 } ]
+  hex_ruin:
+    apply:
+      - { fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.55] }
+      - { fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.2], delay: 150 }   # a willow of grey sparks droops down the bearer
+    # the bearer gains a Buff: it withers in crimson as it lands
+    trigger:
+      - { fx: round_firework_burst_001, tint: element, scale: 0.55, offset: [0, 0.2], speed: 1.5, frames: [2, 12] }
+      - { fx: burst_splatter_001, size: small, tint: element, scale: 0.35, delay: 100 }
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.55], opacity: 0.7 } ]
+    expire: [ { fx: symmetrical_explosion_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.55], frames: [4, 7], speed: 0.6, opacity: 0.8 } ]
+  cat_curse:
+    note: The Black Cat's own Bad Luck, taken on as it arrives. No aura; the Cat and its status icon carry it.
+    apply: [ { fx: round_sparkle_burst_001, size: small, tint: element, tone: light, scale: 0.3, offset: [0, 0.15], speed: 1.5 } ]   # a crimson glint in the Cat's eyes
+    # struck: the Cat's fur bristles; the Hex it hands the attacker plays that Hex's own default on them
+    trigger: [ { fx: burst_splatter_003, size: small, tint: duo, tone: light, scale: 0.55 } ]
+  evil_eye:
+    note: No aura. Stun's own aura holds over the head while it lasts.
+    # a crimson eye opens across the eyes: dark_mage_2's ring and white core read as an eye, below Stun's
+    # ring over the head and the Hex eclipse slot
+    apply: [ { fx: dark_mage_2, tint: element, tone: light, scale: 0.4, offset: [0, 0.3], speed: 1.3, frames: [0, 9] } ]
+    # it closes: the ring flares and sinks into its dark last frames; the next victim's Stun and Evil Eye follow
+    expire: [ { fx: dark_mage_2, tint: element, scale: 0.4, offset: [0, 0.3], frames: [8, 11] } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: element, scale: 0.4, offset: [0, 0.3], opacity: 0.7 } ]
+
+macros:
+  # Each unit it Hexes plays that Hex's own default (the eclipse, then its mark), so a random Hex looks
+  # exactly like a chosen one; the macro adds nothing of its own.
+  random_hex: []
+  curse_pass_hex:
+    - { fx: directional_smoke_burst_003, size: small, tint: duo, tone: light, face: fromActor, scale: 0.5, note: "on the target that receives the Hex only: a puff of the user's curse thrown into them, then that Hex's apply default. On the user, the Hex's remove default shows it leaving" }
+
+skills:
+  strike.curse:
+    beat: A grey blade whips through the target and crests into a curling wave of woe that flicks ink off its edge, and a Hex settles over them.
+    cues:
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: duo, tone: light, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_003, size: small, tint: duo, face: fromActor, scale: 0.5, delay: 80, note: "its origin corner on the target" }
+      # The random Hex plays its own default.
+
+  smash.curse:
+    beat: A dark comet dives onto the target and a pale dome of crimson-veined smoke bursts up under them; while their Hex of Pain bites, a ring of crimson spikes bursts on each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_003, tint: duo, tone: light, scale: 1.2, delay: 120, note: "short screen shake as the dome flares. tone: light gives a pale body with crimson veins against the art's fixed slate smoke" }
+      - { on: hit, only: primary, fx: paladin_6, face: fromActor, tint: duo, scale: 1.1 }   # the comet lands first, the dome after it; untoned, so its gold falls to charcoal with pale crests
+      - { on: trigger, status: crushing_malediction, fx: none, note: "fires on every direct hit the bearer deals for 2 turns, but only splashes while they still bear Hex of Pain and have a living ally. The ring and splatter on each ally (hit, only: others) show the splash, and only when it happens; Hex of Pain's own trigger plays on the bearer" }
+      # the 10 Affliction on each ally: a ring of crimson spikes, then the splatter
+      - { on: hit, only: others, fx: symmetrical_explosion_004, size: small, tint: element, scale: 0.5, frames: [0, 6], stagger: 80, note: "cut before the art's fixed olive specks in its last frames, which read as Poison" }
+      - { on: hit, only: others, fx: burst_splatter_003, tint: element, size: small, scale: 0.5, delay: 100, stagger: 80 }
+      # Hex of Pain's default lands on the target.
+
+  charge.curse:
+    beat: The user rides a grey gust across the target's path and cuts a crimson X through them; two wisps twine round the user, waiting to Hex whoever their next attack finds.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: beam, tint: duo, scale: 0.8, note: "the portrait lunges along it. Untoned, so the cloud lands on Shadow's pale grey rather than white" }
+      - { on: hit, fx: warrior_1, face: fromActor, tint: element, tone: light, scale: 0.7 }   # the crossed paths: two crimson crescents crossing into an X
+      - { on: apply, status: crossed_path, fx: starcaller_4, tint: duo, tone: light, scale: 0.6 }   # on the user
+      - { on: trigger, status: crossed_path, fx: round_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.45, note: "on the user as their next Harmful skill starts: the wisps let go. The Hexes it hands out play their own defaults on each enemy" }
+
+  riposte.curse:
+    beat: Unseen, a double ring flares round the user; a Hexed attacker's own Hex flares and lashes back at them, and anyone else's first blow is turned aside.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, tone: light, scale: 0.9, opacity: 0.7 }   # Invisible: seen by the owner only
+      - { on: trigger, status: hex_ward, fx: symmetrical_explosion_001, at: source, tint: duo, scale: 0.9 }   # the attacker's Hex flares on their body at full size, not over the head where a Hex lands
+      - { on: trigger, status: hex_ward, fx: blood_knight_2, at: source, face: fromActor, scale: 0.7, delay: 120 }   # and lashes them in crimson
+      - { on: trigger, status: hex_ward_first, fx: symmetrical_impact_003, tint: duo, tone: light, scale: 0.6 }   # on the user: the blow is turned aside, once
+      # The counter's X follows each.
+
+  rage.curse:
+    beat: Blood wells up around the user and closes into a fanged crimson cocoon; as it recedes a pale skull leers out of it, hungering for every Hexed enemy.
+    cues:
+      - { on: cast, fx: directional_splatter_005, tint: element, scale: 0.8, speed: 1.5 }
+      # Lifesteal's default (blood_knight_5, the crimson cocoon) is the maw; only the skull rises out of it.
+      - { on: apply, status: cursed_hunger, fx: necromancer_8, tint: duo, tone: light, scale: 0.9, frames: [8, 11], delay: 350, note: "the skull surfaces out of Lifesteal's crimson cocoon as it recedes; same template, so keep the scale equal to the cocoon's 0.9 so the rims register; fade out the end smear" }
+
+  shot.curse:
+    beat: A pale needle flicks into the target and a bead of crimson spits out behind it; their Hexes are pinned on longer, or a fresh one settles.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, tone: light, scale: 0.35, speed: 1.5 }
+      - { on: hit, fx: directional_splatter_001, tint: element, tone: light, face: fromActor, scale: 0.8, note: "a sparse two-tone streak on its canvas: it needs this size to read" }
+      # Without a Hex, the random Hex plays its own default.
+    note: "Lengthening their Hexes sends no event; only the icons' durations change. If one is added, each lengthened Hex could replay its mark."
+
+  snipe.curse:
+    beat: The user brushes a death-glyph in the air over their own head, aimed at no one; next turn it burns out, a reaper's crescent cleaves a skull over the victim, and every Hex on them is torn away into it.
+    cues:
+      - { on: cast, fx: spell_death_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.6], speed: 2, frames: [0, 30], note: "the stroke is painted and holds; cut before the yellow skull. On the user only (HiddenTarget)" }
+      - { on: trigger, status: doom, fx: spell_death_001, tint: element, tone: light, scale: 0.6, offset: [0, 0.6], speed: 0.5, frames: [46, 49] }   # fires from onExpire, on the user: the glyph burns to an outline and crumbles in visible crimson (these frames are drawn only in the art's dark stops)
+      - { on: remove, status: debuff, fx: symmetrical_explosion_001, tint: element, scale: 0.5, offset: [0, 0.55], stagger: 100 }   # each consumed Hex's eclipse snaps shut in crimson (adds to its remove default)
+      - { on: hit, fx: deathbringer_5, tint: duo, tone: light, scale: 1.1, speed: 1.5, frames: [4, 22], note: "skips the near-black opening. Grow it with the payout: about 1.0 at 40 damage up to 1.4 at 85 (three Hexes consumed)" }
+
+  trap.curse:
+    beat: Unseen, barbs of crimson spark prickle in the enemy's aura; if a cleanse plucks them out, a hex seal flashes up and melts down onto them, staggering them and leaving them Ruined.
+    cues:
+      - { on: apply, status: cleansers_snare, fx: scifi_spark_burst_002, tint: element, tone: light, scale: 0.8, opacity: 0.8, speed: 1.5, frames: [0, 20] }   # seen by the owner only (hidden)
+      - { on: trigger, status: cleansers_snare_watch, fx: deathbringer_2, at: target, tint: duo, tone: light, scale: 0.8, speed: 2, frames: [6, 22], note: "on the cleansed enemy: the seal snaps into being, flashes white and melts down onto them. The opponent's first sight of the Snare" }
+      - { on: trigger, status: cleansers_snare_watch, fx: symmetrical_impact_003, at: target, tint: element, size: small, scale: 0.55, delay: 250 }
+      # Stun's and Hex of Ruin's defaults follow on them.
+
+  maneuver.curse:
+    beat: The user's own curses converge on them in a star as a void shell seals them in, and all three Hexes settle on them, untouchable and wretched.
+    cues:
+      # On the first thing that lands, not the cast (a countered Wretched Haven shows nothing). Invulnerable is
+      # the only Buff, so this plays once, beside Invulnerable's default (the void shell).
+      - { on: apply, status: buff, fx: round_sparkle_burst_003, tint: duo, tone: light, scale: 0.9, speed: 1.5, frames: [3, 16] }
+      # The three Hexes land together, so their marks replace their defaults here: the converging star stands for
+      # the three eclipses. They wait until the void has lifted off the portrait (about 500 ms).
+      - { on: apply, status: hex_pain, fx: fanfx_pain, tint: element, tone: light, scale: 0.8, speed: 2, frames: [4, 26], delay: 550 }
+      - { on: apply, status: hex_silence, fx: necromancer_6, tint: duo, tone: light, scale: 0.4, offset: [0, 0.1], frames: [4, 13], delay: 650 }
+      - { on: apply, status: hex_ruin, fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.2], speed: 1.5, delay: 750 }
+
+  companion.curse:
+    beat: A mound of dark dust heaves up with crimson glints and the Black Cat slinks out of it, a wisp of smoke curling up like its tail.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, tint: duo, scale: 0.9 }
+      - { on: summon, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.7, delay: 250 }
+      # Bad Luck's default (the glint in its eyes) follows as the Cat takes it on.
+
+  bolt.curse:
+    beat: A pale orb trailing a crimson-shot tail streaks into the target and blooms into a hex seal that cracks and shatters; any Buffs they hold curdle under Ruin for more.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, tone: light, scale: 0.8, frames: [0, 5] }   # Shadow's orb and its tail only: cut before the head smears into its own impact smudge
+      - { on: hit, fx: frost_mage_6, tint: duo, tone: light, scale: 0.8 }   # the seal: necromancer_7's template without its skull, which would blunt Doom's reaper skull on a cooldown-1 Bolt
+      # Hex of Ruin's default lands on the target.
+    note: "The Affliction for their Buffs (10 each) is a second damage event, so the hit cues would replay for it: play Hex of Ruin's trigger default (the crimson willow) for that one instead, since each Buff counts as gained."
+
+  blast.curse:
+    beat: An ashen nova swells over the enemy row and a moon is eaten away over every enemy; the Hexed go blind, the rest are Hexed.
+    cues:
+      - { on: hit, fx: deathbringer_4, at: enemySide, tint: duo, tone: light, scale: 2.4, opacity: 0.7, note: "once, with the first hit; over the portraits" }
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, scale: 1.0, delay: 150, stagger: 80 }   # the eclipse at full size over each enemy
+      # Then Blinded's default on each Hexed one, a Hex's default on each other one.
+
+  consume.curse:
+    beat: A cone of misery is wrung out of the target toward the user, who drinks it in as crimson crosses; each Hex on the target shrinks as it's fed on.
+    cues:
+      - { on: travel, fx: necromancer_3, from: target, to: actor, path: beam, tint: duo, tone: light, scale: 0.9 }   # its origin on the target, so the mist fans out toward the user
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.45 }
+      - { on: heal, fx: spell_heal_003, tint: element, tone: light, scale: 0.7, speed: 2, note: "on the user; grows with the Hexes fed on (5, +10 each)" }
+    note: "Shortening the Hexes sends no event. A Hex shortened to 0 ends at this turn's countdown as 'expired' and plays its expire default then."
+
+  summon.curse:
+    beat: A hex seal forms and glows where the Shade will stand, and the Shade wells up before it out of a puddle of shroud.
+    cues:
+      - { on: summon, fx: deathbringer_2, tint: duo, tone: light, scale: 0.9, speed: 1.5, frames: [2, 16], layer: under, note: "the seal forms and glows behind the arriving Shade, whose portrait fades in over it; cut before the white flash and melt, which stay the Cleanser's Snare springing" }
+      - { on: summon, fx: directional_splatter_005, tint: duo, size: small, scale: 0.5, delay: 400 }
+
+  channel.curse:
+    beat: Grey censer smoke curls up around the user as the litany begins; at each of their turn ends a curse is spat at a random enemy, Hexing them, or bursting on them if they bore that Hex already.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, tint: duo, tone: light, scale: 1.0 }
+      - { on: trigger, status: litany_of_curses, fx: scifi_muzzle_flash_003, tint: duo, tone: light, face: toTarget, size: small, scale: 0.6 }   # on the user: the curse spat at the enemy it rolled
+      - { on: hit, fx: burst_splatter_003, tint: element, scale: 0.6 }   # a repeated Hex bursts on them instead (20 Affliction)
+      # A new Hex plays its own default.
+
+  stab.curse:
+    beat: A sliver of pale steel punches through the target and crimson sprays out behind them; a Hexed user drives one of their own Hexes in with it, and it bites deeper.
+    cues:
+      - { on: hit, fx: directional_splatter_004, tint: element, face: fromActor, scale: 0.7, delay: 50, note: "its origin corner on the target, so the spray fans out past them" }
+      - { on: hit, fx: directional_impact_001, size: small, tint: duo, tone: light, face: fromActor, scale: 0.55, note: "off-center: its shock ring on the target, the shards spraying away from the user" }
+    note: "At 25 damage (the user was Hexed) scale the hit cues up by about a third; curse_pass_hex's puff and the moved Hex's defaults show the transfer."
+
+  ravage.curse:
+    beat: The target's ward shatters, or Ruin takes hold, then a navy claw and a crimson claw rake across each other through them and gore bursts out.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, scale: 1.0 }   # native navy: Shadow's claw
+      - { on: hit, fx: blood_knight_2, face: fromActor, flip: y, scale: 1.0, delay: 100 }   # native crimson: Unholy's claw, flipped to rake down across the first
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 220 }
+      - { on: remove, status: buff, fx: symmetrical_impact_006, size: small, tint: duo, tone: light, scale: 0.8 }   # the torn-off Buff shatters (adds to its own remove default)
+      # With no Buff to tear, Hex of Ruin's default lands instead.
+
+  mislead.curse:
+    beat: Unseen, a spiral knots itself at the enemy's mouth while the user is eclipsed from sight; when they try to strike, the knot chokes the skill off in a sputter of ink and their Hexes cling on longer.
+    cues:
+      - { on: apply, status: tongue_tied, fx: slime_5, tint: duo, tone: light, scale: 0.45, offset: [0, 0.1], opacity: 0.8, speed: 1.5, frames: [0, 6] }   # the knot spins tight: seen by the owner only (hidden)
+      - { on: trigger, status: tongue_tied, fx: burst_splatter_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.1] }   # on the bearer: ink sputters out where the words should be, crimson-rimmed and pale (flat two-tone art, so untoned it sinks); the counter's X follows
+      # Untargetable's default plays on the user.
+    note: "Lengthening their Hexes sends no event; only the icons change."
+
+  stun.curse:
+    beat: A glint flashes in the user's eye and the target reels as a crimson eye opens across their face; when it closes, it opens on another enemy.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tint: element, tone: light, scale: 0.3, offset: [0, 0.25] }   # the glint, in the user's eye
+      - { on: apply, status: stun, fx: stylized_impact_001, size: small, tint: duo, tone: light, scale: 0.5, note: "the stagger: the portrait jolts back. On the body, clear of Evil Eye's ring across the eyes, which opens at the same moment" }
+      # Stun's default, re-added after the jolt (this skill's own apply cue replaces it). Evil Eye's default follows.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: source, scale: 0.7, delay: 120 }
+    note: "Each later pass comes from Evil Eye ending (a named status), so it plays Stun's and Evil Eye's defaults alone, without the jolt."
+
+  dance.curse:
+    beat: Crescents of black and crimson twirl round the user in a mocking jig while a wisp of envy curls off every enemy; each Buff they gain is pulled toward the user.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.0 }   # untoned: the gold bands fall to charcoal with pale crests and crimson outlines
+      - { on: apply, status: envious_jig, fx: directional_smoke_burst_004, size: small, tint: duo, tone: light, scale: 0.5, stagger: 60 }
+      - { on: trigger, status: envious_jig, fx: directional_smoke_burst_003, size: small, tint: duo, tone: light, face: toActor, scale: 0.6, offset: [0, 0.3] }   # on the bearer: their new Buff drawn off toward the user, whose copy plays that Buff's default
+      # Swiftness's default plays on the user.
+
+  heal.curse:
+    beat: Rose-lit clouds rise through the ally into a halo as their Hexes and other Debuffs peel off in grey wisps and fly to a random enemy.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element, tone: light, scale: 0.9 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.6, stagger: 80 }   # each Debuff peels off the ally (adds to its own remove default)
+      - { on: apply, status: debuff, only: others, fx: directional_smoke_burst_003, size: small, tint: element2, tone: light, face: fromActor, scale: 0.5, delay: 150, stagger: 80, note: "on the enemy each moved Debuff lands on, inline ones included; delayed to follow the wisp peeling off the ally (the engine applies before it removes)" }
+      # Each one then lands on the enemy with its own apply default (a Hex: the eclipse and its mark).
+    note: "moveEffects applies each Debuff to the enemy before removing it from the ally, so the enemy's apply events arrive first. Hold the receiver's apply cues and defaults until the matching remove has played on the ally, so the wisp peels off before anything lands."
+
+  bless.curse:
+    beat: A pale tear of shroud falls onto the ally, sealing power and a thirst for blood at the price of being cut off.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: drop, tint: duo, tone: light, scale: 0.6 }
+      # Might's, Lifesteal's and Isolated's defaults carry the Pact; the death-glyph stays the grand maledictions'.
+
+  curse.curse:
+    beat: A death-glyph is brushed over the enemy and all three Hexes sink in at once, pins, a stitched mouth and a drooping willow of ruin.
+    cues:
+      # The three Hexes land together, so their marks replace their defaults here: the glyph stands for the three eclipses.
+      - { on: apply, status: hex_pain, fx: spell_death_001, tint: duo, tone: light, scale: 0.8, offset: [0, 0.2], speed: 2, frames: [4, 30], note: "cut before the yellow skull. Refused by Immune, nothing lands" }
+      - { on: apply, status: hex_pain, fx: fanfx_pain, tint: element, tone: light, scale: 0.8, speed: 2, frames: [4, 26], delay: 400 }
+      - { on: apply, status: hex_silence, fx: necromancer_6, tint: duo, tone: light, scale: 0.4, offset: [0, 0.1], frames: [4, 13], delay: 500 }
+      - { on: apply, status: hex_ruin, fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.2], speed: 1.5, delay: 600 }
+
+  smite.curse:
+    beat: A claw of night arcs over and crashes down on the target, putting out their eyes; while they grope about blind, each skill they use lets a soul slip from them to the user.
+    cues:
+      - { on: hit, fx: deathbringer_1, face: fromActor, tint: duo, tone: light, scale: 1.0, note: "its crash sits at the bottom-right of the canvas (bottom-left once mirrored): offset so the crash lands on the unit" }
+      - { on: trigger, status: blind_mans_toll, fx: none, note: "fires on every skill the bearer uses for 2 turns but only drains while they're Blinded; drain_it's own cue (motes torn off them toward the user) and Soul Fragment's default on the user show the drain, and only when it happens" }
+      # Blinded's default follows the hit.
+
+  prayer.curse:
+    beat: A low hymn of grey notes rises behind the team and drowsy bubbles drift up through every ally; a killing blow later leaves only a faint heartbeat, and sleep.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, at: allySide, tint: duo, tone: light, scale: 2.0, opacity: 0.7, layer: under }   # the vespers, behind the portraits
+      - { on: heal, fx: directional_bubble_burst_001, tint: duo, tone: light, scale: 0.8, speed: 2, offset: [0, -0.3], stagger: 80, note: "anchored low, since its content drifts to the top third: the bubbles rise through the ally, not above the head. Its blue bubbles and pale yellow sparkles stay untinted: a dreamlike touch" }
+      - { on: trigger, status: vespers_of_slumber, fx: none, note: "fires on every hit to the bearer but only acts on the blow it floors at 1 HP; the Sleep it gives shows that" }
+      # The floored blow: a single faint beat over them (barely alive), then Sleep's default (re-added: this skill's own apply cue replaces it).
+      - { on: apply, status: sleep, fx: scifi_heartbeat_slow_001, tint: element, scale: 0.5, speed: 1.5, offset: [0, 0.6] }
+      - { on: apply, status: sleep, fx: spell_sleep_001, size: small, tint: source, scale: 0.6, speed: 2, delay: 450 }
+
+  cleave.curse:
+    beat: A pale crescent sweeps up through the target and carries on in crimson into the healthiest other enemy, where the grudge bursts in ragged spite.
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, tint: duo, tone: light, scale: 1.0 }   # a sweeping crescent, white blade with a crimson wake
+      - { on: hit, only: others, fx: warrior_2, face: fromActor, tint: element, tone: light, scale: 0.6, delay: 150 }   # the cut sweeps on into the grudge's target, in crimson
+      - { on: hit, only: others, fx: symmetrical_impact_003, size: small, tint: element, scale: 0.5, delay: 220, note: "grows with the grudge: about 0.4 at 5 damage up to 0.8 at 25" }
+
+  shout.curse:
+    beat: The user breathes out wedges of grey ash that roll into every enemy and stitch their mouths; the first Strategic skill each forces out leaves them cowed.
+    cues:
+      - { on: travel, fx: directional_smoke_burst_005, tint: duo, tone: light, scale: 0.8, stagger: 60, note: "one wedge per enemy rolling out from the user: its origin corner trails at the user's feet and the smoke front leads into the enemy. Crimson-shaded ash, not Charge's pale gust" }
+      - { on: trigger, status: ill_wind, fx: directional_smoke_burst_003, size: small, tint: duo, tone: light, face: fromActor, scale: 0.5 }   # on the bearer as their Strategic skill starts: the ill wind gusts through them; Intimidated's default follows
+      # Hex of Silence's default lands on each enemy.
+
+  withstand.curse:
+    beat: A grey ring closes round the user with two crimson-edged orbs circling it like watching eyes; whoever strikes it gets a puff of shroud in the face.
+    cues:
+      - { on: apply, status: shrouded_ward, fx: frost_mage_1, tint: duo, tone: light, scale: 1.1, opacity: 0.85, note: "the inline Shield has no default, so this is its look; its last frame is a dim ghost ring: fade it out" }
+      - { on: trigger, status: shrouded_ward_eyes, fx: directional_smoke_burst_003, size: small, tint: element2, tone: light, face: toTarget, scale: 0.6 }   # on the user, toward the attacker it Blinds; Blinded's default follows on them
+      # Absorbed blows play the board's blocked flicker, a broken ward its shieldBreak.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted; the Blinds it hands out read on their own."
+
+  taunt.curse:
+    beat: The user's oath rings out and a spiked crimson reticle locks onto every Hexed enemy, a red '!' over each; they must face the user.
+    cues:
+      - { on: cast, fx: starcaller_1, tint: duo, tone: light, face: toTarget, scale: 0.6, note: "its origin corner on the user, so the spikes fan toward the target: the oath flares off them" }
+      - { on: apply, status: taunt, fx: frost_knight_7, tint: element, tone: light, scale: 0.7, speed: 0.7, stagger: 80 }   # the geas locks on (only 5 frames, so slowed)
+      - { on: apply, status: taunt, fx: symbol_alert_001, size: small, tint: source, scale: 0.5, delay: 200, stagger: 80 }   # Taunt's '!', re-added (this skill's own apply cue replaces it)
+      # The random Hex plays its own default on the target first.
+
+  titan.curse:
+    beat: Every curse converges on the user and bursts in a black-and-crimson storm, a death-glyph brands them, and every enemy is Hexed; whoever strikes the Accursed has their own Hexes burst on them.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, scale: 1.8, speed: 1.3, frames: [4, 25], note: "the shards converge into an orb, then it bursts; the board dims. Untoned: a charcoal storm with crimson shading and white spikes" }
+      # The brand binds to the inline status (no default to replace), not the cast: a countered Accursed brands no one.
+      - { on: apply, status: the_accursed, fx: spell_death_001, tint: duo, tone: light, scale: 1.2, speed: 2, frames: [4, 30], note: "the glyph brands the user; cut before the yellow skull. It is the last op, after Immune and the enemies' Hexes: let the cast's burst spend first (about 700 ms after the cast). The portrait keeps a faint crimson rim while the_accursed is on them" }
+      - { on: trigger, status: the_accursed, fx: symmetrical_explosion_004, size: small, tint: element, scale: 0.6, frames: [0, 6] }   # on the user as they're hit: a ring of spite (cut before the olive specks)
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, scale: 0.8, note: "on the attacker: their Hexes burst (10 per Hex). Skip on a 0-damage event (the attacker bears no Hex and takes nothing); otherwise scale with the count, about 0.5 + 0.15 per Hex" }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: element, scale: 0.5, delay: 100, note: "skip on a 0-damage event (the attacker bears no Hex and takes nothing); otherwise scale with the count, about 0.5 + 0.15 per Hex" }
+      # Immune's default on the user; each enemy's random Hex plays its own default.
+
+  cat_scratch:
+    beat: The Cat rakes the target with a quick comb of grey claws.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, tone: light, scale: 0.55 }
+      - { on: hit, fx: directional_splatter_001, tint: element, tone: light, face: fromActor, scale: 0.7, delay: 60 }
+
+  shade_whisper:
+    beat: A thin twist of whisper drifts from the Shade to the target and a Hex settles over them.
+    cues:
+      - { on: travel, fx: starcaller_4, tint: duo, tone: light, scale: 0.4, speed: 1.3 }
+      # The random Hex plays its own default on the target.

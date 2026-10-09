@@ -1,0 +1,274 @@
+group: lightning
+
+# Lightning is the violet ramp: palette art takes the default `element` tint (`tone: light` for pale
+# glints); Starcaller art is already violet and stays native; other class art is tinted `element`. Kit
+# motifs: Charge gathers as a crackling ring (scifi_charge_up_002) and leaves as a spark spray; Sapped
+# sputters and its pulse slows; "taking in" Charge is always spell_absorb_001; the tech skills read their
+# target's vital signs (Defibrillate, System Shock, Sapped).
+# A skill that spends Charge binds the spend to `remove: charged` (or to an event that happens only when Charge
+# is spent), so it never shows when there was no Charge to spend.
+
+statuses:
+  charged:
+    apply:  [ { fx: scifi_charge_up_002, at: bearer, scale: 0.8, speed: 1.5 } ]   # a crackle gathers — one per Charge gained
+    remove: [ { fx: scifi_spark_burst_001, at: bearer, scale: 0.7 } ]               # discharge: spent at 3, consumed or stolen
+  sapped:
+    apply:
+      - { fx: scifi_spark_burst_002, at: bearer, scale: 0.9, speed: 1.6 }   # the bearer short-circuits
+      - { fx: scifi_heartbeat_slow_001, at: bearer, scale: 0.4, offset: [0, 0.6], speed: 1.3, delay: 200 }   # and their pulse slows: one weak beat crosses over the head (no down-arrows: those are Weakness's)
+    remove: [ { fx: directional_smoke_burst_004, at: bearer, size: small, variant: white, scale: 0.5 } ]   # fried: a wisp of smoke at 3 or when cleansed
+  stormborn:
+    apply:   [ { fx: lightning_strike_001, at: bearer, scale: 1.1 } ]   # forked bolts erupt from the bearer's feet
+    trigger: [ { fx: lightning_strike_003B, at: bearer, size: small, scale: 0.5, speed: 1.5, opacity: 0.7 } ]   # a small bolt feeds them; Charge's own apply follows
+    expire:  [ { fx: directional_particle_burst_001, at: bearer, size: small, scale: 0.6 } ]
+    remove:  [ { fx: directional_particle_burst_001, at: bearer, size: small, scale: 0.6 } ]
+  conduit:
+    apply:   [ { fx: frost_mage_1, at: bearer, tint: element, scale: 0.8, note: "fade out the dim ghost ring of its last frame" } ]   # two motes orbit a ring: a live conductor
+    trigger: [ { fx: spell_absorb_001, at: bearer, size: small, scale: 0.7, speed: 1.8 } ]   # stolen or donated Charge spirals in
+    expire:  [ { fx: directional_particle_burst_001, at: bearer, size: small, scale: 0.5 } ]
+    remove:  [ { fx: directional_particle_burst_001, at: bearer, size: small, scale: 0.5 } ]
+
+macros: {}   # Lightning defines none
+
+skills:
+  strike.lightning:
+    beat: A violet lash of current snaps across the target.
+    cues:
+      - { on: hit, fx: starcaller_7, at: target, face: fromActor, scale: 0.8 }
+      - { on: hit, fx: lightning_burst_002, at: target, size: small, scale: 0.5, delay: 120 }
+
+  smash.lightning:
+    beat: The user slams down a crackling blow; if Charged, the shock rolls along the ground into the target's allies.
+    cues:
+      - { on: hit, only: primary, fx: warrior_5, at: target, face: fromActor, tint: element, scale: 1.1 }
+      - { on: hit, only: primary, fx: lightning_burst_002, at: target, size: small, scale: 0.6, delay: 120 }
+      - { on: hit, fx: directional_impact_002, at: target, scale: 0.55, layer: under, delay: 100, stagger: 120 }   # ~1.5 portraits wide: stays under each unit struck
+      - { on: hit, only: others, fx: lightning_burst_002, at: target, size: small, scale: 0.45, delay: 220, stagger: 120 }   # the Charged splash: the shock rolls out to each ally, smaller
+
+  charge.lightning:
+    beat: The user streaks to the target as a bolt and bursts through them.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_002, at: actor, face: toTarget, scale: 0.7 }
+      - { on: travel, fx: lightning_strike_002B, path: beam, speed: 1.5, note: "the user's portrait dashes along the bolt" }
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, size: small, scale: 0.7 }
+
+  riposte.lightning:
+    beat: A loop of current coils around the user and lashes back at the first attacker.
+    cues:
+      - { on: apply, status: feedback_loop, fx: dark_mage_2, at: bearer, tint: element }
+      - { on: trigger, status: feedback_loop, fx: scifi_warp_002, at: bearer, size: small, scale: 0.7 }   # the loop snaps outward
+      - { on: trigger, status: feedback_loop, fx: paladin_9, at: source, face: fromActor, tint: element, scale: 0.8, delay: 120 }   # the lash lands on the countered attacker
+      # The Charge it consumes plays Charged's discharge.
+
+  rage.lightning:
+    beat: The user overloads, forked bolts and rising current erupting around them.
+    cues:
+      - { on: apply, status: stormborn, fx: lightning_strike_001, at: bearer, scale: 1.5 }   # Stormborn's own look, turned up
+      - { on: apply, status: stormborn, fx: directional_particle_burst_002, at: bearer, scale: 1.2, layer: under }
+
+  shot.lightning:
+    beat: A tiny ball of static zips across and pops on the target.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, at: actor, face: toTarget, scale: 0.4 }
+      - { on: travel, fx: scifi_charge_up_002, path: straight, size: small, scale: 0.6, speed: 1.5 }   # near 1:1 pixels, so the crackle survives
+      - { on: hit, fx: symmetrical_impact_001, at: target, size: small, scale: 0.6 }
+
+  snipe.lightning:
+    beat: The user spins up a particle accelerator and locks on; next turn a beam pierces the target and every Sapped enemy.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, at: actor, scale: 0.9 }   # the accelerator spins up
+      - { on: apply, status: particle_beam, fx: frost_knight_7, at: target, tint: element, scale: 0.8 }   # lock-on reticle on the skill's target once the beam is set: a countered cast shows none
+      - { on: trigger, status: particle_beam, fx: scifi_muzzle_flash_002, at: bearer, face: toTarget, scale: 1.3 }   # the beam fires
+      - { on: hit, only: primary, fx: round_light_burst_001, at: target, scale: 1.4 }   # the beam passing through: Piercing
+      - { on: hit, only: primary, fx: symmetrical_impact_002, at: target, scale: 0.8, delay: 80 }
+      - { on: hit, only: others, fx: round_light_burst_001, at: target, scale: 1.0, delay: 100, stagger: 100 }   # every Sapped enemy it also pierces
+
+  trap.lightning:
+    beat: A hidden coil hums at the target's feet; when they act, it springs and a shock bursts through them.
+    cues:
+      - { on: apply, status: tesla_coil, fx: spell_forge_001, at: bearer, size: small, scale: 0.6, layer: under, opacity: 0.7 }   # owner only (Invisible)
+      - { on: trigger, status: tesla_coil, fx: directional_impact_004, at: bearer, scale: 0.8 }   # the coil's ground ring snaps and its spikes fling up
+      - { on: hit, fx: lightning_burst_003, at: target, scale: 0.8, delay: 60 }   # the shock it carries
+
+  maneuver.lightning:
+    beat: The user blinks out, zaps the target in passing and fizzes back untouchable.
+    cues:
+      - { on: cast, fx: scifi_warp_001, at: actor, scale: 0.9 }
+      - { on: hit, fx: scifi_spark_burst_001, at: target, size: small, scale: 0.5 }
+      - { on: resolve, fx: directional_sparkle_burst_002, at: actor, size: small, scale: 0.8, speed: 1.5 }
+
+  companion.lightning:
+    beat: A storm hawk stoops in on a falling streak, shedding crackling feathers.
+    cues:
+      - { on: summon, fx: scifi_warp_003, at: minion, scale: 1.1 }
+      - { on: summon, fx: round_firework_burst_001, at: minion, scale: 0.9, delay: 300 }
+
+  bolt.lightning:
+    beat: A violet comet of lightning flies at the target and bursts into a crackling ring.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, scale: 0.8 }   # native violet comet, white star head leading
+      - { on: hit, fx: lightning_burst_003, at: target }
+
+  blast.lightning:
+    beat: Static converges on the user, then the whole enemy side bursts in jagged bands — harder for every Charge spent.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, at: actor, scale: 0.8, speed: 1.4 }   # sparks converge on the user and pop: the wind-up
+      - { on: remove, status: charged, fx: scifi_spark_burst_001, at: bearer, scale: 1.1, speed: 1.4 }   # the spent Charge dumps out of the user (replaces Charged's discharge here); no Charge, no spray
+      - { on: hit, fx: stylized_explosion_005, at: enemySide, scale: 2.4, speed: 1.5, variant: violet, note: "once, with the first hit. Start at frame ~12 so the last zigzag shards converge and the sphere bursts (frame ~18) with the damage" }   # the drawn violet keeps its shard accents in key
+      - { on: hit, fx: lightning_burst_003, at: target, scale: 0.9, delay: 150, stagger: 80 }   # each enemy jolts
+
+  consume.lightning:
+    beat: A violet tether siphons the target's spark home into the user.
+    cues:
+      - { on: travel, fx: necromancer_6, from: target, to: actor, path: beam, tint: element, opacity: 0.75 }   # the tether (colorized, its pulse no longer shows direction)
+      - { on: travel, fx: scifi_charge_up_002, from: target, to: actor, path: straight, size: small, scale: 0.5, speed: 1.4, delay: 150 }   # the Charge glyph rides the tether home
+      - { on: hit, fx: symmetrical_impact_005, at: target, size: small, scale: 0.5 }
+      - { on: apply, status: charged, fx: spell_absorb_001, at: bearer, scale: 0.8, speed: 1.6 }
+
+  summon.lightning:
+    beat: Pillars of current rise from a ground ring and spark a static elemental to life.
+    note: >-
+      The validator flags cues[3] (spell_attack_up_001, Might's signature) because this skill's own ops
+      only summon. It does apply Might, through the Elemental's onSummon, and cues[3] is Might's default
+      restated: the spend cue on the Might apply replaces that default for this skill.
+    cues:
+      - { on: summon, fx: dark_mage_3, at: minion, tint: element }
+      - { on: summon, fx: round_firework_burst_002, at: minion, scale: 0.7, speed: 1.5, delay: 300 }
+      - { on: apply, status: might, fx: scifi_spark_burst_001, at: actor, scale: 0.7, note: "the summoner's spent Charge" }
+      - { on: apply, status: might, fx: spell_attack_up_001, at: bearer, size: small, scale: 0.4, speed: 1.3 }   # Might's own look, kept on the Elemental
+      - { on: remove, status: charged, fx: none }   # the spend already shows on the Might apply
+      # onSummon spends the Charge with removeStacks, which emits no event unless it was the summoner's last
+      # Charge. Might is applied if and only if a Charge was spent, so the spend rides on that apply.
+
+  channel.lightning:
+    beat: The user raises a rod and bolts strike it again and again.
+    cues:
+      - { on: apply, status: lightningrod, fx: lightning_strike_003B, at: bearer, scale: 1.3, repeat: 3, speed: 1.6 }
+      - { on: apply, status: lightningrod, fx: scifi_charge_up_001, at: bearer, scale: 0.9, layer: under, repeat: 2 }   # the rod hums: a channel, not Charge
+      - { on: apply, status: stormborn, fx: none }   # the rod strikes already say it
+
+  stab.lightning:
+    beat: A quick electric baton jab; a fan of sparks spits out past the target.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, at: target, face: fromActor, scale: 0.7, speed: 1.2, note: "put the art's left edge (its shock ring) on the target, so the ring marks the point of contact and the spark fan sprays on past them" }
+      - { on: hit, fx: lightning_burst_002, at: target, size: small, scale: 0.45, delay: 60 }
+      # Its conditional Charge and Sapped read through those statuses' defaults.
+
+  ravage.lightning:
+    beat: A bolt from above seizes the target, burst on burst, sparks raining off them.
+    cues:
+      - { on: hit, fx: lightning_strike_002A, at: target, face: fromActor, scale: 1.2, note: "anchor the art's impact corner (lower-left as drawn) on the target" }
+      - { on: hit, fx: stylized_impact_001, at: target, delay: 120 }
+      - { on: hit, fx: round_firework_burst_001, at: target, scale: 0.9, delay: 250 }
+
+  mislead.lightning:
+    beat: The user projects a flickering hologram and a shimmer of static settles over each enemy; each attack that hits the decoy blinks it out.
+    cues:
+      - { on: cast, fx: round_light_burst_001, at: actor, scale: 1.0, speed: 1.2, note: "the portrait flickers and a translucent offset copy blinks in beside it" }   # the hologram switches on like a screen
+      - { on: apply, status: hologram, fx: round_sparkle_burst_002, at: bearer, size: small, scale: 0.8, tint: element, tone: light, speed: 1.4, stagger: 100 }   # Sapped enemies: fooled by every attack
+      - { on: apply, status: hologram_decoy, fx: round_sparkle_burst_002, at: bearer, size: small, scale: 0.6, tint: element, tone: light, opacity: 0.75, speed: 1.4, stagger: 100 }   # the rest: fooled once
+      - { on: trigger, status: hologram, fx: round_light_burst_001, at: actor }   # the decoy switches off like a screen; the counter and Untargetable defaults follow
+      - { on: trigger, status: hologram_decoy, fx: round_light_burst_001, at: actor }
+      - { on: remove, status: hologram_decoy, fx: round_light_burst_001, at: bearer, size: small, scale: 0.5, opacity: 0.7 }   # every Decoy switches off after the first counter
+
+  stun.lightning:
+    beat: A heavy shock locks up the target and their vital signs flatline.
+    cues:
+      - { on: hit, fx: lightning_burst_002, at: target, scale: 0.9, note: "the target's portrait shudders" }
+      - { on: hit, fx: scifi_heartbeat_flatline_001, at: target, scale: 0.4, delay: 200 }
+
+  dance.lightning:
+    beat: Three quick storm breaths swirl around the user.
+    cues:
+      - { on: cast, fx: starcaller_4, at: actor, scale: 1.2, repeat: 3, speed: 2 }
+      # Stormborn's and Conduit's defaults land on top.
+
+  heal.lightning:
+    beat: A defibrillator jolt, then the ally's pulse returns and light rises.
+    cues:
+      - { on: heal, fx: spell_heal_003, at: target, speed: 1.7, delay: 150 }
+      - { on: heal, fx: lightning_burst_002, at: target, size: small, scale: 0.6 }
+      - { on: heal, fx: scifi_heartbeat_fast_001, at: target, scale: 0.4, delay: 250 }
+
+  bless.lightning:
+    beat: A drop of current falls onto the ally and pulses in twice.
+    cues:
+      - { on: apply, status: charged, fx: paladin_7, at: bearer, tint: element, note: "fade out its last frame (a held flame patch)" }
+      - { on: apply, status: charged, fx: scifi_charge_up_002, at: bearer, scale: 0.9, repeat: 2, speed: 1.6, delay: 250 }   # one pulse per Charge
+      # Conduit's default plays after.
+
+  curse.lightning:
+    beat: The target's power shorts out in a shower of sparks and their pulse slows.
+    cues:
+      - { on: apply, status: sapped, fx: scifi_spark_burst_002, at: bearer, scale: 1.4, speed: 1.6 }   # Sapped's sputter, turned up: this skill does nothing else
+      - { on: apply, status: sapped, fx: scifi_heartbeat_slow_001, at: bearer, scale: 0.5, offset: [0, 0.6], speed: 1.3, delay: 200 }
+      # These replace Sapped's default for this skill, so its slow-pulse layer is restated here.
+
+  smite.lightning:
+    beat: A bolt drops onto the target and leaves them polarized.
+    cues:
+      - { on: hit, fx: lightning_strike_003A, at: target, size: small, scale: 0.8, offset: [0, 0.45] }   # raised so the bolt falls from above the head and splashes on the body
+      - { on: apply, status: polarity, fx: frost_knight_7, at: bearer, tint: element, scale: 0.5, delay: 150 }   # a ring with four poles: polarized
+      - { on: trigger, status: polarity, fx: symmetrical_impact_005, at: bearer, size: small, scale: 0.45 }   # Charged's default then plays on the ally who hit them
+
+  prayer.lightning:
+    beat: A boosted signal pings across the team and every Charged ally lights up with healing.
+    cues:
+      - { on: cast, fx: symmetrical_impact_005, at: allySide, scale: 2.2 }   # the signal pings out across the team
+      - { on: heal, only: primary, fx: spell_heal_002, at: target, speed: 1.6 }
+      - { on: heal, only: others, fx: spell_heal_002, at: target, scale: 0.75, speed: 1.6, delay: 150, stagger: 120 }   # each other Charged ally lights up
+
+  cleave.lightning:
+    beat: An arc of violet current sweeps through the target and leaps on into every Marked enemy.
+    cues:
+      - { on: hit, only: primary, fx: starcaller_5, at: target, face: fromActor, scale: 0.75 }
+      - { on: hit, only: others, fx: starcaller_5, at: target, face: fromActor, scale: 0.55, delay: 150, stagger: 120 }   # the arc carries on, smaller, into each Marked enemy
+      - { on: hit, fx: lightning_burst_002, at: target, size: small, scale: 0.45, delay: 80, stagger: 120 }
+
+  shout.lightning:
+    beat: A thunderclap bursts off the user and thin arcs of static crackle out to every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, at: actor, scale: 1.3 }   # the thunderclap
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, speed: 1.6, opacity: 0.85, stagger: 80 }   # one thin arc to each enemy
+      # Sapped's default lands on each.
+
+  withstand.lightning:
+    beat: Arcs of current wrap the user into a crackling cage that sparks with every blow it takes.
+    cues:
+      - { on: apply, status: lightning_cage, fx: frost_knight_9, at: bearer, tint: element, scale: 1.1 }   # the arcs wrapping the user
+      - { on: apply, status: lightning_cage, fx: symmetrical_impact_002, at: bearer, scale: 1.2, opacity: 0.7, layer: under, delay: 250 }   # the cage closes: a double ring settling to one behind the portrait
+      - { on: trigger, status: lightning_cage, fx: symmetrical_impact_002, at: bearer, size: small, scale: 0.7 }   # the ring pulses per absorbed hit; Charged's apply follows as the only Charge read
+
+  taunt.lightning:
+    beat: The user fires a signal at the target, who is flagged with a warning; their next attack rebounds.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, scale: 0.6 }
+      - { on: apply, status: aggro_signal, fx: symbol_warning_001, at: bearer, size: small, scale: 0.45, offset: [0, 0.6], speed: 2 }   # flagged: the triangle glitches out in scanlines like a signal
+      - { on: trigger, status: aggro_signal, fx: stylized_impact_001, at: bearer, scale: 0.9 }   # the attack rebounds into them; Intimidated's default follows
+
+  titan.lightning:
+    beat: The user draws in every Charge, the storm strikes and an exo-suit powers on in a burst.
+    cues:
+      - { on: remove, status: charged, fx: spell_absorb_001, at: bearer, scale: 1.2, speed: 1.6 }   # the Charge drawn into the suit (replaces Charged's discharge here); no Charge, no absorb
+      - { on: resolve, fx: scifi_warp_002, at: actor, scale: 1.7 }
+      - { on: resolve, fx: symmetrical_impact_002, at: actor, scale: 2.2, layer: under, delay: 100 }
+      - { on: apply, status: stormborn, fx: lightning_strike_003A, at: bearer, scale: 1.8 }   # the storm strikes the suit
+      # Armor and Swiftness defaults play once each (stacks = Charge spent), and not at all with no Charge.
+
+  hawk_stormfeather:
+    beat: The hawk rakes the target with crackling talons.
+    cues:
+      - { on: hit, fx: blood_knight_2, at: target, face: fromActor, tint: element, scale: 0.8 }
+      - { on: hit, fx: lightning_burst_002, at: target, size: small, scale: 0.4, delay: 100 }
+
+  hawk_glowing_down:
+    beat: Glowing down drifts onto the ally and charges them.
+    cues:
+      - { on: apply, status: charged, fx: round_firework_burst_001, at: bearer, scale: 0.8 }
+      - { on: apply, status: charged, fx: scifi_charge_up_002, at: bearer, scale: 0.8, speed: 1.5, delay: 300 }
+
+  static_zap:
+    beat: The elemental spits a thin crackle at the target.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, speed: 1.6 }
+      - { on: hit, fx: lightning_burst_002, at: target, size: small, scale: 0.5 }

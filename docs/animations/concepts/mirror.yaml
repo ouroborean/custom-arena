@@ -1,0 +1,274 @@
+# Mirror (Water + Shadow) animation concepts. Spec: docs/animations/README.md; brief: briefs/mirror.md.
+# Mirror is still black water that gives back whatever it is shown. Two materials carry it, and they must
+# not collapse into one pale steel (`element2` + `tone: light` renders almost exactly like `duo` + `tone: light`):
+#   silvered glass: palette shards, rings, crescents and panes in `duo` (Water's deep-blue rims around Shadow's
+#                   slate body and silver highlights). Thin or sparse art (crescents, sparkles, panes, cracks)
+#                   takes `tone: light` so the silver catches on the dark board; big impacts that carry their
+#                   own white flash stay plain `duo`, so Water's deep-blue rim shows. The shatter of the glass
+#                   is symmetrical_impact_006 in its drawn `variant: white` (icy silver): its tinted colors keep
+#                   pink or yellow shards outside the palette swap.
+#   black water:    Water's splashes, ripples and waves in plain `element2` (the Shadow ramp, no tone: a slate
+#                   body under pale edges), or the drawn `variant: black` (blue-black) where the catalog has it
+#                   (burst_splatter_002). The still pool at the feet is a ripple settling there, not a wide band.
+# Signature: the reflection, in three forms.
+#   TWIN:  Mirror's own blows strike with their reflection: the same art again with `flip`, in plain
+#          `element2` (no tone, so it is the dark image of the silver blow) at about 0.75 opacity, about 90 ms
+#          behind (Silvered Blade, Foiled Ambush, Rippling Shards, Contrary Fury upside down, Changing Places
+#          on the unit that gains, Glintbolt on the last attacker).
+#   PANE:  the silvered pane, fanfx_barrier in `duo` `tone: light` at about 0.6 opacity, is the glass that
+#          catches things. It builds (frames 0-12) where a reflecting ward goes up and breaks (frames 9-25)
+#          where something strikes it: every Reflect, every counter, every blow Mirror throws back. It is
+#          never held: the opaque lattice would cover the portrait.
+#   MIMIC: a Mimic (castSkill) emits a fresh skillUsed for the copied skill, which plays that skill's own
+#          concept. Mirror marks the copy with the mirror opening first: scifi_warp_001 in `duo` `tone:
+#          light`, small (a slit widens into a white oval and bursts into a ring), on the copier. Where an
+#          inline trigger does the Mimic it is that trigger's cue; elsewhere the skill's note asks for it.
+# Neither parent's look is reused whole: Water's rising bubbles (Flow's tell) and Shadow's smoke dome (Stealth)
+# and black flare (Blinded) stay those statuses' own and appear here only where those statuses do.
+group: mirror
+
+statuses: {}   # Mirror owns no named statuses; Blinded is Shadow's, the rest are base
+
+macros: {}
+
+skills:
+  strike.mirror:
+    beat: A silver crescent cuts the target and its dark reflection cuts back across it; a Blinded target is left holding a sliver of glass that throws their next attack back at them.
+    cues:
+      - { on: hit, fx: warrior_2, tint: duo, tone: light, face: fromActor, scale: 0.9, frames: [1, 8] }   # its cream core stays white: a silver edge
+      - { on: hit, fx: warrior_2, tint: element2, face: fromActor, flip: x, scale: 0.9, opacity: 0.75, frames: [1, 8], delay: 90 }   # TWIN: the dark arc crosses the silver one
+      - { on: apply, status: silvered_blade, fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.45, offset: [0, 0.3], delay: 200 }   # a glint of glass lodges in them
+      - { on: trigger, status: silvered_blade, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.6, frames: [4, 25], speed: 1.8, note: "PANE: their Harmful skill strikes the glass and rebounds; its own cues then play on them" }
+
+  smash.mirror:
+    beat: The target's likeness shatters like a struck mirror and black water bursts out behind it; the shards fly into each healthier ally and cut them by the difference.
+    cues:
+      - { on: hit, only: primary, fx: symmetrical_impact_006, variant: white, scale: 1.0, note: "the portrait jolts down a step: a heavy landing" }   # drawn white: icy silver shards, none off-palette
+      - { on: hit, only: primary, fx: burst_splatter_002, variant: black, scale: 0.8, delay: 120 }   # blue-black water bursts out behind the glass
+      - { on: hit, only: others, fx: directional_impact_001, tint: duo, tone: light, face: fromActor, size: small, scale: 0.55, delay: 250, stagger: 80 }   # only allies with more HP take it, so the shards pick them out
+
+  charge.mirror:
+    beat: The user glides across the floor like a reflection on still water and surfaces through the target in a ring of ripples; a still pool spreads at their feet.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so only the owner sees the glide. The ripples on the target read on their own."
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, tone: light, scale: 0.7, opacity: 0.85, note: "the portrait glides low along the travel and snaps back" }
+      - { on: hit, fx: symmetrical_impact_002, tint: element2, size: small, scale: 0.7 }   # concentric ripples of black water break out of them
+      - { on: apply, status: stillwater_step, fx: dark_mage_3, frames: [0, 3], scale: 0.9, opacity: 0.7, note: "native navy ring only: a ripple at their feet contracts and settles to still water (helpful skills now leave no ripple). Cut before the columns rise; over the portrait, so the ring isn't hidden behind its bottom edge" }
+
+  riposte.mirror:
+    beat: Unseen, a pane of silvered glass settles before the user; when an enemy's Debuff touches it, the glass flashes and the Debuff flies back onto whoever sent it.
+    cues:
+      - { on: apply, status: looking_glass, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.45, frames: [0, 12], note: "PANE up, then fade it where it stands. Invisible: only the owner sees it" }
+      # Looking Glass reacts on effectGained, which never reveals it, so its trigger is owner-only. The throw-back rides
+      # the public events instead (both players see them): the copied Debuff landing on its sender, and the original
+      # leaving the user. The Debuffs' own apply and remove defaults still play alongside.
+      - { on: trigger, status: looking_glass, fx: none, note: "nothing of its own: the apply and remove cues below carry the reflection for both players" }
+      - { on: apply, status: debuff, fx: directional_impact_001, tint: duo, tone: light, face: fromActor, size: small, scale: 0.6, note: "a Debuff Looking Glass threw back, landing on its sender: shards spray on past them, away from the user. Looking Glass is a Buff, so only reflected Debuffs match" }
+      - { on: remove, status: debuff, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.6, frames: [6, 12], speed: 1.5 }   # the PANE flashes on the user as the Debuff leaves them
+
+  rage.mirror:
+    beat: Silver spikes surge up around the user while their dark reflection plunges upside down across them toward the feet; whatever weakens them only feeds the fury.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, tone: light, scale: 1.9, layer: under }   # about 1.4 portraits wide: the spikes show on both sides and about 0.9 above the head
+      - { on: cast, fx: directional_particle_burst_002, tint: element2, flip: y, scale: 0.9, offset: [0, -0.15], opacity: 0.45, frames: [0, 7], delay: 90, note: "TWIN, contrary: over the lower portrait, its spikes sprouting downward toward the feet like the surge reflected in the pool there (below the feet would sit behind the HP bar and the next ally). Cut as the spikes detach" }
+      # Might's default follows; Contrary Fury itself has no event to show until Weakness or Vulnerable lands.
+
+  shot.mirror:
+    beat: A sliver of glass flicks into the target and a hairline crack runs down them; when a heavy blow lands, the crack splits and the blow lands again.
+    note: "The echoed blow (Hairline Crack's 30+ second hit) plays this skill's hit cue again: play it at about 1.4x so it reads as the heavy one."
+    cues:
+      - { on: travel, fx: starcaller_2, tint: duo, tone: light, scale: 0.35, speed: 1.4 }   # a glint of glass, no tail to speak of at this size
+      - { on: hit, fx: frost_mage_6, tint: duo, scale: 0.4, speed: 1.3 }   # a bead of glass cracks with white veins
+      - { on: apply, status: hairline_crack, fx: lightning_strike_003B, tint: duo, tone: light, size: small, scale: 0.55, opacity: 0.8, frames: [0, 2], speed: 0.7, delay: 150, note: "a thin jagged crack down the portrait that opens slightly: stop before frame 3, where the bolt takes a pink outline the swap doesn't map" }
+      - { on: trigger, status: hairline_crack, fx: symmetrical_impact_006, variant: white, scale: 0.8, note: "only when the second hit follows (a 30+ blow, which also ends it): the crack splits wide" }
+
+  snipe.mirror:
+    beat: Silver glints gather on the user as they study the target's last move; next turn the mirror opens and throws that skill back at them.
+    cues:
+      - { on: cast, fx: status_sparkling_001, tint: duo, tone: light, scale: 0.8, opacity: 0.8, note: "once, not looped" }
+      - { on: trigger, status: return_to_sender, fx: scifi_warp_001, tint: duo, tone: light, scale: 0.8, speed: 1.3, note: "MIMIC, full size: fires as Return to Sender runs out; the copied skill's own cues follow at the target. Broken by a stun: base's interrupted default instead" }
+
+  trap.mirror:
+    beat: Unseen, splinters of silvered glass are set at the enemy's feet; when they reach to help a friend, the glass catches it and the help lands on the trapper's side instead.
+    cues:
+      - { on: apply, status: false_reflection, fx: frost_mage_4, tint: duo, scale: 0.8, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: false_reflection, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.6, frames: [4, 25], speed: 1.8 }   # PANE: their skill strikes the glass; base's counter X follows
+      - { on: trigger, status: false_reflection, fx: round_sparkle_burst_001, at: target, tint: duo, tone: light, size: small, scale: 0.5, delay: 250 }   # it surfaces on the trapper's side, then the stolen skill's own cues play there
+
+  maneuver.mirror:
+    beat: The user blinks behind the glass in a puff of silver, leaving their likeness to take the blows; when the turn is over they step back out whole.
+    cues:
+      - { on: apply, status: through_the_glass, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.8, opacity: 0.85, frames: [0, 8], note: "the user steps behind the glass: the silver cloud blooms over them and is gone; the portrait wavers slightly, as if seen through water, until it ends" }
+      - { on: trigger, status: through_the_glass, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.8, frames: [8, 17] }   # it runs out: the cloud crumbles into twinkles as they step back out
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.8, delay: 200 }   # only if they were hurt: silver motes rise as the lost HP returns
+
+  companion.mirror:
+    beat: Black water heaves up beside the user and their silver-edged double rises out of it, a glint running down its surface.
+    cues:
+      - { on: summon, fx: symmetrical_explosion_003, tint: element2, scale: 0.9 }   # the black water swells and breaks over the Doppelganger as it arrives
+      - { on: summon, fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.5, delay: 300 }
+
+  bolt.mirror:
+    beat: A crescent glint flies into the target and bursts, then glances off into whoever last hurt the user and bursts again in the reflection's colors, or strikes the target a second time.
+    note: "The travel goes to the target only (the last attacker isn't one of the skill's targets). With no one to answer, the target takes the second 15 as well, so its hit plays twice."
+    cues:
+      - { on: travel, fx: paladin_10, tint: duo, tone: light, scale: 0.6, speed: 1.3 }   # its own star lands as it arrives
+      - { on: hit, only: primary, fx: symmetrical_impact_003, tint: duo, size: small, scale: 0.65 }   # plain duo: its white flash with Water's deep-blue rim
+      - { on: hit, only: others, fx: symmetrical_impact_003, tint: element2, size: small, scale: 0.65, delay: 100, note: "TWIN on the last attacker: the dark reflection of the first burst, a beat late, so it reads as the glint glancing on" }
+
+  blast.mirror:
+    beat: A tide of black water rolls into every enemy and bursts up around them; then the user reaches into the water and uses one of their skills.
+    note: "Then MIMIC: open the mirror on the user (scifi_warp_001, duo, tone light, small, scale 0.6) just before the copied skill's own cues."
+    cues:
+      - { on: hit, fx: slime_1, tint: element2, face: fromActor, scale: 1.1, stagger: 80, note: "its crash sits about 70% across the canvas: shift it back so the crest breaks on the unit" }
+      - { on: hit, fx: directional_splatter_002, tint: duo, scale: 0.8, delay: 180, stagger: 80 }
+
+  consume.mirror:
+    beat: Two star-headed wisps circle between the user and the target and trade places, and each comes away wearing the other's health.
+    note: "Whoever had more HP takes the swap as a hit and the other gains it as a heal, so the same swirl plays on both: once in silver, once as its reflection."
+    cues:
+      - { on: hit, fx: starcaller_4, tint: duo, tone: light, scale: 0.8, frames: [7, 14] }   # the 5 and the swap loss; skip its faint first half
+      - { on: heal, fx: starcaller_4, tint: element2, flip: x, scale: 0.8, opacity: 0.85, frames: [7, 14] }   # TWIN on whoever gains: the same swirl, dark
+
+  summon.mirror:
+    beat: A jagged shard of silvered glass grows up out of the floor and stands as the Mirror Shade.
+    note: "When the Shade is killed, its onDeath turns the killing skill back on its user: base's death default on the Shade, then MIMIC (scifi_warp_001, duo, tone light, small, scale 0.6) where it fell, then the copied skill's own cues."
+    cues:
+      - { on: summon, fx: frost_mage_3, tint: duo, tone: light, scale: 0.7, note: "ends on its brightest frame: hold it a beat and fade" }
+      - { on: summon, fx: symmetrical_impact_005, tint: duo, tone: light, size: small, scale: 0.45, delay: 300 }   # light pings across its facets
+
+  channel.mirror:
+    beat: Panes of glass rise on either side of the user like a hall of mirrors; at the end of each of their turns the hall flashes and glints stab out of every enemy, and attacks aimed at the user bounce off the glass.
+    cues:
+      - { on: apply, status: hall_of_mirrors, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.75, offset: [-0.55, 0], opacity: 0.65, frames: [0, 12] }
+      - { on: apply, status: hall_of_mirrors, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.75, offset: [0.55, 0], opacity: 0.65, frames: [0, 12], flip: x, delay: 90, note: "the two panes fade on their last frame; the hall itself is the Channel's status icon from then on" }
+      - { on: trigger, status: hall_of_mirrors, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.8, opacity: 0.6, frames: [6, 12], speed: 1.5, note: "both triggers: the end-of-turn pulse, and a Harmful skill Reflected off the user (whose own cues then play back at its user)" }
+      - { on: hit, fx: scifi_spark_burst_001, tint: duo, tone: light, size: small, scale: 0.7, delay: 150, stagger: 60 }
+
+  stab.mirror:
+    beat: A thin splinter of glass is driven straight through the target; against a healthier foe it only nicks them and leaves them staring at their own reflection.
+    note: "The 10-damage branch (target had at least as much HP) plays the same cues at about 0.7x; Confusion's default follows."
+    cues:
+      - { on: hit, fx: warrior_3, tint: duo, tone: light, face: fromActor, scale: 0.7, frames: [0, 5], note: "cut before it curls into a hook; its burst sits at about (30%, 70%) of the canvas, so shift it to land on the target" }
+      - { on: hit, fx: directional_impact_001, tint: duo, tone: light, face: fromActor, size: small, scale: 0.4, delay: 60 }   # glass dust sprays out past them
+
+  ravage.mirror:
+    beat: The target lunges at a reflection while the real user tears into them from the other side, a flurry of silver slashes and its dark twin closing on them until the glass bursts.
+    note: "At 50 (the target is Confused or Blinded) scale the hit cues up by about a third."
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: duo, tone: light, face: fromActor, note: "off-center (lower-left to upper-right): center the rake on the target" }
+      - { on: hit, fx: blood_knight_2, tint: element2, face: fromActor, flip: x, opacity: 0.75, delay: 90 }   # TWIN: the dark rake from the other side, crossing it
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.8, delay: 220 }   # the glass bursts between them: plain duo, so its white tufts carry Water's deep-blue rim
+
+  mislead.mirror:
+    beat: Unseen, glints flicker over the user and the marked enemy; when someone attacks the user they strike a mirror instead, and the blow comes out of the glass at the marked enemy.
+    cues:
+      - { on: apply, status: mirror_feint, fx: stylized_explosion_004, tint: duo, tone: light, scale: 0.7, frames: [0, 8] }   # Invisible: owner only. Just the lens glints, not the blast
+      - { on: resolve, fx: stylized_explosion_004, at: target, tint: duo, tone: light, size: small, scale: 0.5, opacity: 0.6, frames: [0, 8] }   # owner only: the marked enemy
+      - { on: trigger, status: mirror_feint, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.6, frames: [4, 25], speed: 1.8 }   # PANE on the user; base's counter X marks the attacker
+      - { on: trigger, status: mirror_feint, fx: scifi_warp_001, at: target, tint: duo, tone: light, size: small, scale: 0.6, delay: 200 }   # MIMIC at the marked enemy: the turned skill's own cues follow there
+
+  stun.mirror:
+    beat: A burst of silver catches the target's eye and glints spiral into it, holding them spellbound; the spell cracks the moment the user is hurt.
+    cues:
+      - { on: hit, fx: starcaller_1, tint: duo, tone: light, face: fromActor, scale: 0.7 }
+      # Added to Stun's own default (status: debuff adds, it doesn't replace): plays only when the Stun lands.
+      - { on: apply, status: debuff, fx: spell_absorb_001, tint: duo, tone: light, size: small, scale: 0.6, offset: [0, 0.35], speed: 1.6 }
+      - { on: trigger, status: hypnotic_reflection, fx: symmetrical_impact_003, tint: duo, tone: light, size: small, scale: 0.5 }   # the user is hurt: the glass between them cracks
+      - { on: remove, status: stun, fx: symmetrical_smoke_burst_002, tint: element2, tone: light, size: small, scale: 0.5, offset: [0, 0.35] }   # and the trance clears off the enemy
+
+  dance.mirror:
+    beat: The user spins inside a ring of two crescents, one silver and one its dark reflection; when a Stun slides off them, the mirror opens and they answer with the stunner's own skill.
+    cues:
+      - { on: cast, fx: starcaller_5, tint: duo, tone: light, scale: 1.4, layer: under }   # along the bottom, past the frame
+      - { on: cast, fx: starcaller_5, tint: element2, flip: y, scale: 1.4, opacity: 0.75, layer: under, delay: 100 }   # TWIN along the top, dark: together they chase around the user
+      - { on: trigger, status: dance_of_reflections, fx: scifi_warp_001, tint: duo, tone: light, size: small, scale: 0.6, note: "MIMIC: only for the incomingNegated trigger (Swiftness stopped a Stun), after Swiftness's own sidestep; the turn-start trigger is just the Swiftness gain, which its default carries" }
+
+  heal.mirror:
+    beat: Black water wells up under the ally and silver light rises through them; unseen, the enemy's next kindness is caught in the glass and poured onto that ally instead.
+    cues:
+      - { on: heal, fx: directional_splatter_002, tint: element2, size: small, scale: 0.6, opacity: 0.85 }   # black water wells up
+      - { on: heal, fx: directional_sparkle_burst_003, tint: duo, tone: light, scale: 0.8, delay: 120 }
+      - { on: trigger, status: mirrored_mending, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.9, opacity: 0.6, frames: [4, 25], speed: 1.8 }   # PANE on the enemy who used it; base's counter X follows, then the skill's own cues on the ally
+      # Mirrored Mending is hidden on every enemy: no apply cue, and the rest are cleared silently.
+
+  bless.mirror:
+    beat: Fine silver streams burst over the ally's head and fall down around them like a veil; whoever raises a hand against them is dazzled by the glare.
+    cues:
+      - { on: apply, status: silvered_veil, fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.9, offset: [0, 0.35] }   # its trails droop down the sides: the veil falling
+      - { on: apply, status: silvered_veil, fx: status_sparkling_001, tint: duo, tone: light, scale: 0.8, opacity: 0.6, delay: 250, note: "once, not looped: the sheen settles" }
+      - { on: trigger, status: silvered_veil, fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.55 }   # the veil glints on the ally; Blinded's default lands on the attacker
+      # Every Harmful skill aimed at the ally springs it (it isn't consumed), so it stays small.
+
+  curse.mirror:
+    beat: A ring of glass settles around the enemy's head with their own reflections circling inside it; every skill they try while blind adds another.
+    cues:
+      - { on: apply, status: maddening_glass, fx: frost_mage_1, tint: duo, tone: light, scale: 0.5, offset: [0, 0.35], delay: 250 }   # after Blinded's flare and Confusion's mark
+      - { on: trigger, status: maddening_glass, fx: symmetrical_impact_005, tint: duo, tone: light, size: small, scale: 0.35, offset: [0, 0.35], note: "only when the Confusion follows (the bearer is still Blinded); Confusion's default then plays" }
+
+  smite.mirror:
+    beat: A jagged crack of silver splits down through the target from above and leaves a brand; the first time an ally hits them, the brand flares and the user throws the target's own last skill at them.
+    cues:
+      - { on: hit, fx: lightning_strike_003A, tint: duo, tone: light, scale: 1.2, opacity: 0.85, frames: [0, 2], note: "only the crack: it flickers down from above the head and thickens, then stops before frame 3, where the bolt takes a pink outline the swap doesn't map. A crack running down a mirror, not a bolt: no screen flash" }
+      - { on: hit, fx: symmetrical_impact_006, variant: white, size: small, scale: 0.55, delay: 120 }   # it lands as glass: the strike breaks into silver shards, not an electric splash
+      - { on: apply, status: brand_in_the_glass, fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.45, offset: [0, 0.2], frames: [6, 16], delay: 250 }   # skip the faint converging glints
+      - { on: trigger, status: brand_in_the_glass, fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.55, offset: [0, 0.2], frames: [6, 16] }   # the brand flares on the bearer
+      - { on: trigger, status: brand_in_the_glass, fx: scifi_warp_001, at: actor, tint: duo, tone: light, size: small, scale: 0.6, delay: 150 }   # MIMIC on the user, then the copied skill's own cues
+
+  prayer.mirror:
+    beat: A still black pool opens at every ally's feet and silver light wells up out of it; those left untouched at a turn's end sink into their reflection.
+    cues:
+      - { on: heal, fx: directional_impact_003, tint: element2, size: small, scale: 0.7, opacity: 0.85, stagger: 80, note: "the still pool at each ally's feet: a flat dark ellipse that crowns into shards, the pool with glass in it. Over the portrait: under it, art this size would be hidden" }
+      - { on: heal, fx: directional_sparkle_burst_002, tint: duo, tone: light, scale: 0.8, speed: 1.3, delay: 120, stagger: 80 }   # silver light rises out of it
+      - { on: trigger, status: reflecting_pool, fx: symmetrical_impact_002, tint: element2, size: small, scale: 0.6, opacity: 0.8, note: "only on the turn-end trigger that grants Stealth (the damaged trigger only sets a flag): a ripple closes over them, then Stealth's default" }
+
+  cleave.mirror:
+    beat: A silver slash crests through the target like a wave and breaks into shards, and its dark reflection ripples on into a second enemy; allies' Renew drains into the shards.
+    note: "Renew stacks given up emit no event unless it was the ally's last; the +5s show in the damage numbers."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, tint: duo, tone: light, face: fromActor, scale: 1.0, note: "a slash that crests into a wave and breaks into fragments. Its content migrates from the lower-left to the right half: center it on the target" }
+      - { on: hit, only: others, fx: frost_knight_8, tint: element2, face: fromActor, flip: x, scale: 0.8, opacity: 0.75, delay: 150 }   # TWIN, dark: the ripple breaks on the random second enemy
+      - { on: remove, status: renew, fx: directional_particle_burst_001, tint: duo, tone: light, face: toTarget, size: small, scale: 0.45 }   # an ally's last Renew drifts off toward the target
+
+  shout.mirror:
+    beat: The user's cry bursts out as two crossing rings, rolls out to every enemy and comes back inverted, turning their ready skills and spent skills around.
+    note: "invertCooldowns has no event of its own: the mirrored clock rides each enemy's Intimidated apply. If Intimidated is refused (Immune) the clock doesn't play, though the cooldowns still turn; the skill bar shows it."
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, tone: light, scale: 1.1 }
+      - { on: travel, fx: scifi_muzzle_flash_003, path: return, tint: duo, tone: light, scale: 0.6, stagger: 60 }   # out and back: the echo returns inverted
+      # Added to Intimidated's default (status: debuff adds, it doesn't replace).
+      - { on: apply, status: debuff, fx: fanfx_slow, tint: duo, tone: light, size: small, scale: 0.4, offset: [0.45, 0.5], flip: x, speed: 2, delay: 200, note: "the clock face mirrored, its hands sweeping backward: ready and spent skills trade places. Beside the head; Intimidated's eye takes the spot above" }
+
+  withstand.mirror:
+    beat: Silver water rises around the user and closes into a mirrored shell; every blow it catches flashes on the glass and is struck back through the attacker.
+    cues:
+      - { on: apply, status: silvered_guard, fx: blood_knight_5, tint: duo, tone: light, scale: 1.7, opacity: 0.9, layer: under, note: "behind the portrait and past its frame (its oval is about 0.67 of the canvas wide, so it needs this size to clear the card), so only the silver rim rings the card and the fanged interior stays hidden; it dissolves bottom-up and the shell stays as the Shield bar" }
+      - { on: trigger, status: silvered_guard, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.8, opacity: 0.6, frames: [6, 12], speed: 1.5 }   # PANE flashes on the user as the blow lands
+      - { on: hit, fx: directional_impact_001, tint: duo, tone: light, face: fromActor, scale: 0.7 }   # the absorbed damage, back through the attacker
+
+  taunt.mirror:
+    beat: The user raises a mirror to the enemy, and the two can see only each other; every blow the enemy lands on the user cuts its own reflection too.
+    cues:
+      - { on: cast, fx: fanfx_barrier, tint: duo, tone: light, scale: 0.7, opacity: 0.6, frames: [0, 12] }   # PANE up on the user; Taunt's '!' then lands on both of them
+      - { on: trigger, status: face_in_the_glass, fx: fanfx_barrier, at: actor, tint: duo, tone: light, scale: 0.7, opacity: 0.6, frames: [6, 12], speed: 1.5 }   # the user's mirror flashes as the enemy's blow lands
+      - { on: hit, fx: necromancer_2, tint: element2, face: fromActor, scale: 0.6, opacity: 0.85, delay: 100 }   # half of it cuts the bearer: the blow's dark reflection
+
+  titan.mirror:
+    beat: The user bursts into black water that sets into a full-length mirror; the target's image streams into it and its Buffs shine back from the glass, then the mirror opens and throws their own last skill at them.
+    note: "Then MIMIC: open the mirror on the user (scifi_warp_001, duo, tone light, small, scale 0.7) just before the copied skill's own cues. Armor's own default plays for the 2 Armor, and the copied Buffs (an Armor among them included) play their own apply defaults on the user. For a lasting look while the Titan lasts, give the portrait a cool silver tint (a portrait treatment, not a held sprite)."
+    cues:
+      - { on: cast, fx: burst_splatter_002, variant: black, scale: 1.4 }   # the user bursts into blue-black water
+      - { on: cast, fx: fanfx_barrier, tint: duo, tone: light, scale: 1.4, opacity: 0.75, frames: [0, 25], speed: 1.0, delay: 250, note: "PANE at full height, past the frame: the water sets into a mirror over the portrait, shimmers, and shatters off as the Mimic opens. Not held: the lattice would cover the face and the copied Buffs' icons" }
+      - { on: travel, fx: necromancer_3, path: beam, from: target, to: actor, tint: duo, tone: light, opacity: 0.85, note: "mostly dark art, kept light: the target's image streams into the mirror. Play it straight after cast, before Armor and the copied Buffs: it is the copy, not the Mimic. Don't hold it for the target's first effect, which belongs to the copied skill (and never comes if that skill is self- or ally-targeted, or the target hasn't used one yet)" }
+
+  doppelganger_mimicry:
+    beat: The Doppelganger's surface opens like a mirror and it repeats its summoner's last move.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tint: duo, tone: light, size: small, scale: 0.6, speed: 1.4 }   # MIMIC on the Doppelganger; the copied skill's own cues follow at a random enemy
+
+  mirror_shade_glass_shard:
+    beat: The Shade flicks a splinter of glass that cracks against the target.
+    cues:
+      - { on: travel, fx: starcaller_2, tint: duo, tone: light, scale: 0.3, speed: 1.6 }
+      - { on: hit, fx: symmetrical_impact_006, variant: white, size: small, scale: 0.35 }
+      # Confusion's default follows.

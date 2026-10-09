@@ -1,0 +1,311 @@
+group: spore
+# Spore (Poison + Earth) is fungus: mold, rot and the things that fruit from it. `duo` is the house look on
+# anything that is the fungus itself (Poison's deep-green shading under Earth's tan body and pale-sand
+# highlights: mushroom flesh). `element` (Poison lime) tints loose spores, haze and rot gas; `element2`
+# (Earth brown) the soil, dust and compost. Class art is never native here.
+# Signature motifs, used across the kit:
+#   the puff   — round_sparkle_burst_002, a little cloud blooming and settling into motes: every Spore
+#                gained (Spores' default), turned up only for Puffball Stomp, where it lands with the Spores.
+#   the cap    — directional_fire_burst_002 cut before it crumbles, a stalk shooting up under a swelling
+#                round cap: every Mushroom that appears (sprout, Carrion Bloom, Stinkhorn).
+#   the thread — necromancer_6, a wavering hyphal strand: the links (Binding Hypha, Mycorrhizal Bond) and
+#                the Mycelial Network.
+
+statuses:
+  spores:
+    note: >-
+      Two triggers. `trigger` is the sprout: it fires each time the bearer gains Spores, but only plays when
+      they reach 3 and a Mushroom sprouts (sprout's cap then rises on the new Mushroom, on the applier's
+      side). `tick` is the turn-end pass: only when the bearer holds 2+ and passes 1 to an ally, whose own
+      apply puff follows. No aura: the icon carries the stack count, and Spores sit on many units at once.
+    apply:   [ { fx: round_sparkle_burst_002, size: small, tint: duo, scale: 0.5, offset: [0, 0.3], speed: 1.5 } ]   # the puff
+    tick:    [ { fx: directional_smoke_burst_004, size: small, scale: 0.45, opacity: 0.8 } ]   # a wisp of spores drifts off them
+    trigger: [ { fx: directional_splatter_002, tint: duo, scale: 0.8 } ]   # the cluster ruptures up out of them in a mushroom-shaped spray
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.6 } ]   # consumed, cleansed or spent: they fall away as dust
+  mushroom_puff:   # Mushroom passive: at each of its side's turn ends, 1 Spore to a random enemy
+    trigger: [ { fx: directional_smoke_burst_001, size: small, scale: 0.6, opacity: 0.85, note: "the Mushroom puffs a cloud up off its cap; the Spores puff then lands on the random enemy" } ]
+  sporeling_feed:   # Sporeling passive: +10 max HP and a 10 heal whenever a Mushroom sprouts for its side
+    trigger:
+      - { fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 1.5, note: "the colony's motes spiral into it; its portrait swells a touch (the +10 max HP)" }
+      - { fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.8, delay: 250 }   # the 10 heal
+  humus_wall:
+    apply:
+      - { fx: directional_sparkle_burst_002, tint: element2, scale: 1.5, layer: under, opacity: 0.9, note: "past the frame, so the loam heaps up around the portrait's sides and top, glinting with spore specks" }
+      - { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.5, opacity: 0.8, delay: 300 }   # a wisp of rot rises off the fresh mound
+    tick:    [ { fx: directional_impact_002, size: small, tint: element2, scale: 0.6, layer: under, note: "only on its applier's later turn ends (the first only settles it): 10 of it slumps off as dirt; the Spores puff lands on the random enemy" } ]
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.7, opacity: 0.8 } ]   # broken or cleansed: the mound crumbles
+    expire:  [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.45, opacity: 0.6 } ]
+  infest:
+    # fine hyphae needle through the bearer; it lands on every enemy at once, so it stays faint
+    apply:   [ { fx: fanfx_pain, tint: duo, scale: 0.6, speed: 1.6, opacity: 0.85 } ]
+    remove:  [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.6 } ]
+    expire:  [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.6 } ]
+  fungal_colossus:
+    # its puffs rise and spread into a ring over the head: a cap closing over the Colossus
+    apply:   [ { fx: directional_sparkle_burst_003, tint: duo, scale: 0.9, offset: [0, -0.2] } ]
+    tick:    [ { fx: directional_particle_burst_001, size: small, scale: 0.5, note: "at each of the bearer's turn ends spores drift off them; sprout's cap then rises on the new Mushroom" } ]
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.6, opacity: 0.6 } ]
+    expire:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.6, opacity: 0.6 } ]
+
+macros:
+  sprout:   # played once, on the new Mushroom (its summon); the signal raises no event of its own
+    - { fx: directional_fire_burst_002, at: minion, tint: duo, frames: [0, 13], note: "the cap: a stalk shoots up and a round cap swells and holds. Fade it as the Mushroom portrait appears; cut before the stalk crumbles (frame 14 on)" }
+    - { fx: directional_impact_002, at: minion, size: small, tint: element2, scale: 0.5, layer: under }   # the soil splits at its base
+
+skills:
+  strike.spore:
+    beat: A mold-furred fist bursts into a crown of fungal spikes on the target and blows a puff of spores out past them.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 0.8, note: "its origin is lower-left of centre (~40%, 65%): set that point on the target so the spikes splay out past them" }
+      - { on: hit, fx: directional_smoke_burst_003, size: small, face: fromActor, scale: 0.5, delay: 100 }
+      # When a Mushroom sprouts, Spores' rupture and sprout's cap play; Might's and Armor's defaults then show on the user.
+
+  smash.spore:
+    beat: An earthen stomp comes down on the target; if they carry Spores they burst like a puffball and the cloud settles over each of their allies.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: element2, note: "a short screen shake" }
+      - { on: hit, fx: directional_impact_002, tint: element2, scale: 0.9, layer: under, delay: 60 }   # dust rolls out along the ground
+      - { on: remove, status: spores, fx: stylized_explosion_006, tint: duo, scale: 1.1, delay: 120 }   # the puffball bursts
+      # replaces Spores' default here: a bigger puff, since each ally gains as many as the target lost
+      - { on: apply, status: spores, fx: round_sparkle_burst_002, tint: duo, scale: 0.7, delay: 300, stagger: 100 }
+
+  charge.spore:
+    beat: The user rushes in on a rolling wake of spore dust, splats into the target, and keeps shedding spores onto whoever they hit next.
+    cues:
+      - { on: travel, fx: directional_smoke_burst_005, tint: duo, scale: 0.7, flip: x, note: "flipped so the hot narrow origin leads and the billow trails behind as a wake; the user's portrait lunges along it" }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.6 }
+      - { on: apply, status: spore_trail, fx: directional_particle_burst_001, size: small, scale: 0.5, delay: 150 }   # motes keep streaming off the user
+      # later: a wisp rises off each enemy the user damages, then the Spores puff lands on them
+      - { on: trigger, status: spore_trail, fx: directional_smoke_burst_004, at: target, size: small, scale: 0.45 }
+
+  riposte.spore:
+    beat: Faint spore bubbles cling to the user; when attacked, a gilled cap bursts out of them and its cloud rolls over the attacker.
+    cues:
+      - { on: cast, fx: status_poison_001, size: small, tint: duo, scale: 0.6, opacity: 0.6 }   # Invisible: owner only
+      # the opponent's first sight: the cap swells out of the user and bursts upward, swallowing the blow
+      - { on: trigger, status: bursting_cap, fx: symmetrical_explosion_003, tint: duo, scale: 0.9 }
+      - { on: trigger, status: bursting_cap, fx: directional_smoke_burst_003, at: source, face: fromActor, scale: 0.7, delay: 150 }   # the cloud rolls on over the attacker
+      # the counter default's X, then the Spores puff (1 per target their skill had) on the attacker
+
+  rage.spore:
+    beat: A towering amanita plume bursts up through the user and a lime haze swims over their eyes.
+    cues:
+      - { on: cast, fx: directional_fire_burst_001, tint: duo, scale: 1.4, note: "its skull-like crown is the frenzy; the portrait shudders" }
+      - { on: cast, fx: directional_smoke_burst_001, scale: 0.9, opacity: 0.8, delay: 250 }
+      # Blinded's, Might's and Immune's defaults follow on the user
+
+  shot.spore:
+    beat: A seed pod trailing spores flicks across and pops into a drooping spray on the target.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.6, frames: [0, 5], note: "the pod and its streaming tail; cut before its own smudge: the hit is the pop" }
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.5 }
+      # the 1 or 2 Spores show through Spores' default
+
+  snipe.spore:
+    beat: The user sinks roots into the soil; two turns later a ridge of rotten roots heaves up under the hidden target and rot bubbles up under their infected allies.
+    cues:
+      # HiddenTarget: the wind-up and the surge stay on the user and point nowhere
+      - { on: cast, fx: directional_impact_002, size: small, tint: element2, scale: 0.6, layer: under }   # dirt kicks out as the roots plunge
+      - { on: trigger, status: root_rot, fx: symmetrical_explosion_004, size: small, tint: element2, scale: 0.6, layer: under }   # fires at expiry: a jolt of dirt round the user as the rot surges
+      - { on: hit, only: primary, fx: frost_knight_3, tint: duo, scale: 1.3, note: "a ridge of root spikes; its grey haze at the end reads as rot dust settling" }
+      - { on: hit, only: primary, fx: epic_explosion_001, scale: 0.9, delay: 120 }   # rot gas geysers up through the roots
+      - { on: hit, only: others, fx: directional_splatter_005, scale: 0.6, delay: 250, stagger: 80 }   # the 15 to each ally with Spores
+
+  trap.spore:
+    beat: Spore dust glitters unseen over the enemy's hands; each Helpful skill they use froths it off onto everyone it touches.
+    cues:
+      - { on: apply, status: tainted_hands, fx: scifi_spark_burst_002, scale: 0.6, opacity: 0.75, speed: 1.5 }   # Invisible: owner only
+      # the opponent's first sight: as their Helpful skill resolves, spores froth off their hands
+      - { on: trigger, status: tainted_hands, fx: round_bubble_burst_001, tint: duo, scale: 0.7 }
+      # Spores' puff follows on them and on every ally the skill touched
+
+  maneuver.spore:
+    beat: The user bursts out of a husk of spore dust, untouchable, and each shed Debuff drifts off as a mote toward the enemy.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: duo }
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, size: small, scale: 0.5, stagger: 100 }
+      # Invulnerable's default on the user; a Spores puff on a random enemy per Debuff shed
+
+  companion.spore:
+    beat: Fungal stalks spear up out of the ground and a Sporeling pushes up through them in a glint of spore dust.
+    cues:
+      - { on: summon, fx: directional_particle_burst_002, tint: duo }
+      - { on: summon, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.5, delay: 250 }
+
+  bolt.spore:
+    beat: A spore trailing hyphae flies into the target and bursts in fungal tufts; rings of hyphae bind them to one of their allies.
+    cues:
+      - { on: travel, fx: blood_knight_4, tint: duo, scale: 0.8, frames: [14, 17], note: "only the launched comet and its trailing tendrils: skip the draw-in and vortex, and its crescent splash (the hit is the burst)" }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.8 }
+      - { on: apply, status: binding_hypha, fx: dark_mage_2, tint: duo, scale: 0.7, frames: [0, 10], stagger: 150, note: "on the target, then the linked ally; cut the crimson last frame" }
+      # later: when either takes direct damage, a strand twitches out of them; the partner's Spores puff follows
+      - { on: trigger, status: binding_hypha, fx: necromancer_6, tint: duo, scale: 0.6, opacity: 0.8, speed: 1.5, note: "if the renderer can, stretch it from this bearer toward the linked partner" }
+
+  blast.spore:
+    beat: The user's side exhales, a vast cloud of spore haze billows over the whole enemy side, and a wave of spore goo crashes onto each enemy.
+    cues:
+      # the colony puffs: only the rising puff cluster, cut before its halo ring forms (the Seedlings' Spores land as puffs on random enemies)
+      - { on: cast, fx: directional_sparkle_burst_003, at: allySide, tint: duo, scale: 1.5, opacity: 0.85, frames: [0, 10], speed: 1.3, note: "fade it over the last few frames so the cluster doesn't pop off" }
+      # the storm: rounded clover lobes of haze, not the puff (that stays Spores' own tell, on whoever actually gains one)
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tint: element, scale: 2.4, opacity: 0.85, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 0.8, delay: 150, stagger: 70, note: "its impact star lands ~70% across the canvas: set that point on the target so the goo wave crashes onto them from the user's side" }
+
+  consume.spore:
+    beat: A nip of rot flicks back toward the user; the target's Spores stream out of them and the user draws the decay in.
+    cues:
+      - { on: hit, fx: directional_splatter_001, face: toActor, tint: duo, scale: 0.6 }
+      - { on: remove, status: spores, fx: directional_particle_burst_001, face: toActor, scale: 0.7 }   # replaces the dust: the spores stream toward the user
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.5 }
+      # without Spores, the 2-Spore puff shows on the target instead
+
+  summon.spore:
+    beat: A belch of rot gas puffs up and a Bloater squats in the cloud.
+    note: >-
+      The Bloater's death payoff (every enemy gains 1 Spore) is its onDeath, not a skill or passive, so it has
+      no slot here: base's death default plays on the Bloater, then Spores' puff on each enemy.
+    cues:
+      - { on: summon, fx: stylized_explosion_006, tint: duo, scale: 0.9 }
+      - { on: summon, fx: directional_smoke_burst_004, size: small, scale: 0.5, delay: 300 }   # a gassy wisp rises off it
+
+  channel.spore:
+    beat: A ring of hyphae spreads into the ground around the user; at each of their turn ends a glowing strand flickers under the feet of every enemy the network reaches.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 0.9 }
+      # per enemy the pulse reaches (every infected enemy, or the one random enemy), so it works whether the side is a column or a row
+      - { on: trigger, status: mycelial_network, fx: necromancer_6, at: target, tint: duo, scale: 0.6, offset: [0, -0.45], opacity: 0.75, layer: under, speed: 1.5, stagger: 80 }
+      # the Spores puffs then land on those same enemies
+
+  stab.spore:
+    beat: A thorn of rot spears through the target and its tendrils curl out behind them in a spray of grit.
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.7, note: "its origin is the canvas's lower-left corner: set that corner on the target so the thorn spears out past them" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: element2, scale: 0.45, delay: 60 }   # grit chips off where it enters
+      # an armored target's Vulnerable shows through its default before the thorn lands
+
+  ravage.spore:
+    beat: A corkscrew of rot drills into the target, chips of earth fly, and goo bursts out around them.
+    cues:
+      - { on: hit, fx: slime_5, tint: duo, scale: 0.9, speed: 1.5 }
+      - { on: hit, fx: directional_impact_001, size: small, face: fromActor, tint: element2, scale: 0.6, delay: 100 }
+      - { on: hit, fx: burst_splatter_002, scale: 0.7, delay: 200 }
+      # a Spore-carrier's Spores fall off (Spores' remove) and Might's and Armor's defaults land on the user; otherwise 2 Spores puff on
+
+  mislead.spore:
+    beat: The ground under the target goes soft with rot unseen; when they attack, they sink into it and the skill fizzles.
+    cues:
+      - { on: apply, status: soft_ground, fx: directional_splatter_005, size: small, tint: duo, scale: 0.6, layer: under, opacity: 0.8 }   # Invisible: owner only
+      # the opponent's first sight: the ground gives under them as the counter lands
+      - { on: trigger, status: soft_ground, fx: burst_splatter_001, tint: duo, scale: 0.8, offset: [0, -0.4], layer: under, note: "mud squelches up round the ankles as the portrait dips as if sinking; the counter default's X, then Stun's or Spores' default" }
+
+  stun.spore:
+    beat: A fungal shroud closes over the target and holds them; if they're thick with Spores when it ends, it bursts open and a Mushroom sprouts.
+    cues:
+      # bound to the Stun landing, not cast, so a refused Stun doesn't shroud anyone
+      - { on: apply, status: stun, fx: blood_knight_5, tint: duo, scale: 0.9, speed: 1.3, note: "the shroud closes over them and dissolves bottom-up as Stun's aura shows" }
+      # Stun's default, re-added once the shroud has closed (this skill's own apply cue replaces it)
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: source, scale: 0.7, delay: 350, note: "portrait staggers back a step" }
+      # the shroud's end checks for 2+ Spores inside its ops, so bind the burst to that branch (it spends the Spores),
+      # not to the shroud firing; with fewer it falls away unseen. Replaces Spores' dust here: they become the Mushroom.
+      - { on: remove, status: spores, fx: stylized_explosion_006, size: small, tint: duo, scale: 0.7, note: "Fungal Shroud's end spends the Spores: the shroud bursts open, then sprout's cap rises on the new Mushroom" }
+
+  dance.spore:
+    beat: A ring of roots with two spore pods circles the user, roots grip at the feet of the user and each minion, and blows shake loose dust and mend them.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, opacity: 0.85 }
+      - { on: apply, status: rooted_rhythm, fx: directional_impact_003, size: small, tint: duo, scale: 0.55, layer: under, stagger: 100 }
+      # later: each time a bearer takes damage
+      - { on: trigger, status: rooted_rhythm, fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.45 }
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.6 }
+      # Swiftness's and Focus's defaults on the user now; Armor's on the user with each trigger
+
+  heal.spore:
+    beat: Warm compost wells up under the ally in rising plumes, and a Debuff rots away as a wisp.
+    cues:
+      - { on: heal, fx: directional_splatter_005, tint: element2, tone: light, scale: 0.8 }
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.6, delay: 150 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.5 }
+      # a Spores puff on a random enemy when a Debuff was lost
+
+  bless.spore:
+    beat: A hyphal thread runs from the user to the ally and two strands knot around them; a blow on either makes the other brace.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, opacity: 0.85, flip: x, note: "mirrored so its pulse runs out from the user to the ally (as drawn it runs back toward the caster)" }
+      - { on: apply, status: mycorrhizal_bond, fx: starcaller_4, tint: duo, scale: 0.7 }
+      # later: an enemy damages one of the pair, the other (target) braces; Armor's default follows there
+      # the bond's knot flickers on the partner (not a hit spark: they weren't struck)
+      - { on: trigger, status: mycorrhizal_bond, fx: starcaller_4, at: target, tint: duo, scale: 0.45, speed: 1.5 }
+      - { on: trigger, status: mycorrhizal_bond_root, fx: starcaller_4, at: target, tint: duo, scale: 0.45, speed: 1.5 }
+      # Might's default on the ally and on the user
+
+  curse.spore:
+    beat: Spores gather in the user's hand and a skull-faced rot cloud bursts up under the target; fine hyphae needle through every enemy.
+    cues:
+      - { on: cast, fx: spell_absorb_001, size: small, scale: 0.5, speed: 1.5 }
+      - { on: apply, status: spores, fx: spell_poison_001, tint: duo, scale: 0.9 }   # replaces the puff here: the 2 Spores land as a rot cloud
+      # Infested's default on every enemy
+
+  smite.spore:
+    beat: A spore comet plunges onto the target and a pale stalk pushes up out of their crown; healing they receive wisps off it to the user's side.
+    cues:
+      - { on: hit, fx: starcaller_2, face: down, tint: duo, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_002, size: small, tint: element2, scale: 0.6, delay: 150 }   # it has no impact of its own
+      - { on: apply, status: cordyceps_brand, fx: directional_splatter_005, size: small, tint: duo, scale: 0.45, offset: [0, 0.5], delay: 250 }
+      # later: each heal they receive; half of it wisps off up the stalk and lands on a random ally of the user
+      - { on: trigger, status: cordyceps_brand, fx: directional_smoke_burst_004, size: small, scale: 0.45, offset: [0, 0.5] }
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.6 }
+
+  prayer.spore:
+    beat: A psalm of notes rises over the user and pale crosses of light rise through each ally before the spores fruit on them.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, size: small, tint: duo, scale: 0.6 }
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, scale: 0.8, frames: [1, 30], speed: 1.6, stagger: 100 }   # the kit's heal tell, turned up: the team uplifted
+      # the 2 Spores then show through Spores' puff on each ally, a separate gain
+
+  cleave.spore:
+    beat: A dusty crescent whirls through the target and curls round onto an infected enemy, scattering spores off each.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.6, delay: 150 }   # the whirl comes round onto the 10-damage target
+      - { on: hit, fx: round_sparkle_burst_001, size: small, scale: 0.45, delay: 120, stagger: 150 }
+
+  shout.spore:
+    beat: A ring of spore dust bursts out from the user, a Mushroom shoots up beside them, and the carrion wind reaches every enemy.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.3, opacity: 0.9 }
+      - { on: summon, fx: directional_fire_burst_002, tint: duo, frames: [0, 13], note: "the cap (as in sprout): fade it as the Mushroom portrait appears" }
+      # adds to Spores' puff on each enemy
+      - { on: apply, status: debuff, fx: directional_smoke_burst_003, size: small, face: fromActor, scale: 0.5, delay: 150, stagger: 80 }
+
+  withstand.spore:
+    beat: Earth and spore dust spiral in to the user and heap up into a mound of humus around them.
+    cues:
+      - { on: cast, fx: spell_absorb_001, size: small, tint: element2, scale: 0.6, speed: 1.5 }
+      # Humus Wall's default is the mound
+
+  taunt.spore:
+    beat: A Stinkhorn shoots up beside the user and its stench wafts over the target.
+    cues:
+      - { on: summon, fx: directional_fire_burst_002, tint: duo, frames: [0, 13], note: "the cap (as in sprout): fade it as the Mushroom portrait appears" }
+      - { on: apply, status: stinkhorn, fx: directional_smoke_burst_001, scale: 0.6, opacity: 0.8, delay: 200 }
+      # later: only when the bearer damages a Mushroom; their Spores puff follows
+      - { on: trigger, status: stinkhorn, fx: directional_smoke_burst_004, size: small, scale: 0.45 }
+      # Taunt's '!' on the target
+
+  titan.spore:
+    beat: Spores converge on the user, then a vast mushroom cloud erupts up through them over a ground blast as they become the Colossus.
+    cues:
+      - { on: cast, fx: epic_explosion_003, tint: duo, scale: 2.2, delay: 200, note: "the user's portrait swells with the dome" }
+      - { on: cast, fx: round_sparkle_burst_003, size: small, scale: 0.6, frames: [2, 10] }   # the spores converge on them and flash
+      - { on: cast, fx: stylized_explosion_003, tint: element2, scale: 1.6, layer: under, delay: 200 }
+      # Immune's and Fungal Colossus's defaults follow on the user
+
+  sporeling_infecting_lash:
+    beat: The Sporeling's hooked tendrils rake across the target.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.6 }
+
+  bloater_rancid_spit:
+    beat: The Bloater hawks a wavering glob of rancid goo that splats on the target.
+    cues:
+      - { on: travel, fx: slime_3, tint: duo, scale: 0.45, frames: [0, 6], note: "the wavering streak and its ringed glob; cut before its own splat: the hit is the splat" }
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, tint: duo, scale: 0.5 }

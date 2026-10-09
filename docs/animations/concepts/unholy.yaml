@@ -1,0 +1,278 @@
+group: unholy
+
+# Unholy is the crimson ramp, built from three families: blood (Blood Knight art, splatters), souls
+# (crimson wisps, inward spirals) and dread (skulls, sigils, skull seals). Class art in other colors is
+# tinted `element`; Blood Knight art is already crimson and stays native. `tone: light` where a dark body
+# would sink into the board, `tone: dark` for voids and murk.
+
+statuses:
+  horrified:
+    # A solid flaming fear-skull: Toxin (poison.yaml) keeps the skull-smoke puff, so the two differ in shape, not just color.
+    apply:  [ { fx: deathbringer_3, tint: element, scale: 0.5, offset: [0, 0.35], speed: 1.5 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5 } ]
+  immortal:
+    apply:   [ { fx: dark_mage_3, tint: element, layer: under } ]
+    trigger: [ { fx: scifi_heartbeat_fast_001, scale: 0.6 } ]
+    # Ends in the same small fade as Horrified: the rising wisp is Wraithwalk's.
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.8 } ]
+    expire:  [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.8 } ]
+    aura:    { fx: scifi_heartbeat_slow_001, scale: 0.4, opacity: 0.7 }
+    note: "Its trigger is the blow its 5-Health floor stops (needs the cause link): the heartbeat over the head spikes instead of flatlining."
+  soul_fragment:
+    apply:  [ { fx: spell_absorb_001, size: small, scale: 0.6, speed: 1.8 } ]          # souls spiral into the bearer
+    remove:   # a spent soul drifts up and away
+      - { fx: directional_particle_burst_001, size: small, scale: 0.6, note: "removeStacks emits no event while stacks remain. The engine should emit one per spent stack (e.g. effectRemoved with remaining `stacks`, or a stacksChanged event), or the renderer must diff stacks between checkpoints, so this plays for every spent fragment." }
+  lifesteal:
+    apply:   [ { fx: blood_knight_5, scale: 0.9 } ]                                     # blood cocoon with a fanged, bat-winged pattern
+    trigger: [ { fx: directional_heart_burst_002, size: small, scale: 0.5, speed: 1.5 } ]
+    remove:  [ { fx: burst_splatter_001, size: small, scale: 0.4, opacity: 0.7 } ]
+    expire:  [ { fx: burst_splatter_001, size: small, scale: 0.4, opacity: 0.7 } ]
+    note: "Its trigger is each heal it grants from damage the bearer deals (needs the cause link)."
+
+macros:
+  mirage_reward:
+    - { fx: round_sparkle_burst_002, scale: 0.8 }   # the user melts into the nightmare; Untargetable, Might and Swiftness defaults follow
+
+skills:
+  strike.unholy:
+    beat: A tall witch's crescent sweeps down the target's far side, shatters into shards and flicks blood off its edge.
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: element }   # clockwise sweep; Oathbreaker Strike keeps the counter-clockwise warrior_4 arc
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.5, delay: 80 }
+      # The +10 against Horrified arrives as one larger hit, so there is nothing separate to bind.
+
+  smash.unholy:
+    beat: A soul-crushing blow dives onto the target and cracks the ground, and dread spreads to their allies.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: element, scale: 1.2 }
+      - { on: hit, fx: directional_impact_004, scale: 1.4, layer: under }
+      # The splash is fear, not damage: Horrified's skull plays on each of the target's allies only (the primary isn't Horrified).
+
+  charge.unholy:
+    beat: The user rakes across in a wave of blood claws that crashes onto the target, and a crimson wraith rises around the user to feed on their next blow.
+    cues:
+      - { on: travel, fx: blood_knight_1, from: actor, to: target, path: beam, scale: 0.8, note: "the dash is drawn in, so span it user to target with its lower-right impact on the target; the portrait lunges along it" }
+      - { on: hit, fx: blood_knight_3, face: fromActor, scale: 0.5 }
+      - { on: apply, status: wraithwalk, fx: directional_smoke_burst_004, tint: element, tone: light, scale: 0.6 }   # on the user
+      - { on: trigger, status: wraithwalk, fx: none, note: "the wraith is spent when the next Harmful skill resolves; Soul Fragment's default on the user shows the drain" }
+
+  riposte.unholy:
+    beat: A spectral guard-arc sweeps unseen round the user; the first attacker is met by a spray of spite, lashed and left Horrified.
+    cues:
+      - { on: cast, fx: necromancer_2, tint: element, scale: 0.9, speed: 1.5, layer: under }   # seen by the owner only (Invisible)
+      - { on: trigger, status: spiteful_retort, fx: burst_splatter_003, scale: 0.9 }   # crimson spikes of spite spray off the bearer as it catches the skill (not a Shield flicker)
+      - { on: apply, status: horrified, fx: blood_knight_2, face: fromActor, scale: 0.8 }   # the counter-lash, on the countered attacker
+      - { on: apply, status: horrified, fx: deathbringer_3, tint: element, scale: 0.5, offset: [0, 0.35], speed: 1.5, delay: 150 }   # this skill replaces the default, so it keeps the skull
+
+  rage.unholy:
+    beat: Blood-flame surges up around the user and lashes out at random enemies, more often the closer the user is to death.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.2, layer: under }
+      - { on: hit, fx: blood_knight_2, face: fromActor, scale: 0.6, stagger: 120 }
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, scale: 0.6, delay: 80, stagger: 120 }
+      # No travel: the skill targets the user, and the random enemies aren't skill targets. Each repeat is its own
+      # damage event, so every lash lands on whichever enemy it hit, including repeats on the same enemy.
+      # Immortal's default (crimson pillars, then the heartbeat) follows on the user.
+
+  shot.unholy:
+    beat: A bone-white shard streaks to the target and pops in crimson.
+    cues:
+      - { on: travel, fx: starcaller_2, tint: neutral, tone: light, scale: 0.4 }   # bone white; the crimson pop carries the element
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.5 }
+
+  snipe.unholy:
+    beat: Souls gather around the user without a hint of where they're aimed; next turn a lance of them drops onto the victim.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, scale: 0.7 }   # wind-up on the user only (HiddenTarget)
+      - { on: trigger, status: soul_lance, fx: scifi_warp_002, size: small, scale: 0.5 }   # release, still on the user (fires from onExpire)
+      - { on: hit, fx: scifi_warp_003, scale: 1.4 }
+      - { on: hit, fx: stylized_impact_001, scale: 0.9, delay: 120 }
+
+  trap.unholy:
+    beat: Needles of soul prick in unseen around the enemy; when they act, the needles converge on them and the shackle bursts shut.
+    cues:
+      - { on: apply, status: soul_shackle, fx: fanfx_pain, tint: element, scale: 0.8, opacity: 0.8, speed: 2 }   # seen by the owner only (hidden)
+      - { on: trigger, status: soul_shackle, fx: stylized_explosion_005, tint: element, scale: 0.9, speed: 1.5 }   # on the bearer: the needles converge, then burst; Stun and Weakness defaults follow
+
+  maneuver.unholy:
+    beat: Grave-light pillars rise unseen around the user while a heartbeat that won't stop shows over their head.
+    cues:
+      - { on: apply, status: grave_step, fx: dark_mage_3, tint: element, scale: 0.9, layer: under }   # Immortal's pillars: Grave Step is a hidden Immortal (owner only)
+      - { on: apply, status: grave_step, fx: scifi_heartbeat_slow_001, scale: 0.4, repeat: 2, delay: 200 }
+      - { on: trigger, status: grave_step, fx: scifi_heartbeat_fast_001, scale: 0.6 }
+    note: "grave_step has no triggers, only an hpFloor modifier: damage.ts clamps the blow and emits an ordinary damage event, so nothing binds the trigger cue and the hidden status is never revealed. The engine must mark a damage event cut by an hpFloor (e.g. `floored: true` on the damage event) and reveal grave_step (effectRevealed) when its floor engages, so this cue binds and plays for both players. Until then, infer it from: bearer holds grave_step, event hp == 5, and amount < base + bonus + armor − absorbed."
+
+  companion.unholy:
+    beat: A crimson skull seal swells where the Hellhound will stand, shatters, and the Hound lands in a crown of spikes.
+    cues:
+      - { on: summon, fx: necromancer_7, tint: element, scale: 0.9, note: "the Hound's portrait appears as the seal shatters" }
+      - { on: summon, fx: directional_impact_003, tint: element, size: small, scale: 0.7, layer: under, delay: 200 }
+
+  bolt.unholy:
+    beat: A smoking fel orb flies to the target and bursts into a crown of crimson spikes around a skull.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: element, scale: 0.8 }
+      - { on: hit, fx: necromancer_5, tint: element, scale: 0.8, note: "off-center: the orb and skull sit in the lower-left quarter and the spikes spray up-right. Put the skull on the target and mirror it per side instead of rotating, so the spikes spray away from the caster and the skull stays upright" }
+      # Horrified's skull follows on the target and carries the dread on its own.
+
+  blast.unholy:
+    beat: A huge crimson skull-cloud billows over the enemy row and every enemy bursts inside it.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_003, delay: 150, stagger: 80 }
+      - { on: hit, fx: spell_poison_001, at: enemySide, scale: 2.4, opacity: 0.6, note: "once, with the first hit: the side anchor doesn't repeat per enemy. Over the portraits, so the skull face isn't hidden behind the middle one" }
+
+  consume.unholy:
+    beat: A blood tendril reaches out, coils a soul loose from the target and drags it home to the user.
+    cues:
+      - { on: travel, fx: blood_knight_4, from: target, to: actor, path: beam, speed: 1.4 }   # reach, rip, return: its vortex end sits on the target
+      - { on: hit, fx: directional_splatter_001, size: small, face: toActor, scale: 0.5 }
+      # Soul Fragment's default lands on the user (one event with 2 stacks when the target was Horrified).
+
+  summon.unholy:
+    beat: Brimstone smoke bursts open in a crimson clover and the Imp tumbles out in a crackle of sparks.
+    cues:
+      - { on: summon, fx: symmetrical_smoke_burst_003, tint: element, scale: 0.7 }
+      - { on: summon, fx: scifi_spark_burst_001, size: small, scale: 0.5, delay: 150 }
+
+  channel.unholy:
+    beat: A crimson tether binds the user to the target, and each turn life pulses along it into the user.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, tone: light }   # its pulse runs right to left, so laid user to target it flows home; the light tone keeps the darker baked pulse visible
+      - { on: trigger, status: drain_life, fx: necromancer_6, tint: element, tone: light, opacity: 0.8, speed: 1.5, note: "replay the tether as a beam from the bearer (the user) to target (the drained enemy), laid like the travel so the pulse flows home" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: toActor, scale: 0.6 }   # blood sprays out of the target toward the drainer
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.6, speed: 2 }
+      - { on: trigger, status: drained, fx: none, note: "fires on every hit to the bearer but only pays out if it dies; Soul Fragment's default shows that payout" }
+
+  stab.unholy:
+    beat: A thin blighted blade streaks clean through the target and blood fans out behind them.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: element, scale: 0.7 }
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, scale: 0.5, delay: 60 }   # a goopy fan of blood out the back; Fire's Stab keeps the thin directional_splatter_003 spray
+      # A healthy target's Soul Fragment plays its own default on the user, so it reads as the extra.
+
+  ravage.unholy:
+    beat: A frenzy of crimson claws tears into the target, then gore bursts out in layers.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: element, scale: 1.2 }
+      - { on: hit, fx: burst_splatter_002, delay: 120 }
+      - { on: hit, fx: blood_knight_3, face: fromActor, scale: 0.9, delay: 220 }
+
+  mislead.unholy:
+    beat: Nightmare-mist seeps unseen around the enemy; their next Strategic skill folds into a crimson slit and is gone.
+    cues:
+      - { on: apply, status: mirage_of_nightmares, fx: directional_smoke_burst_001, tint: element, tone: dark, scale: 0.8, layer: under, speed: 1.3 }   # seen by the owner only (hidden)
+      - { on: trigger, status: mirage_of_nightmares, fx: scifi_warp_001, tint: element, tone: dark, scale: 0.8 }   # on the countered enemy (bearer); mirage_reward plays on the user
+
+  stun.unholy:
+    beat: Crimson claws rake down the enemy's body, something cracks, and they buckle with their guard broken.
+    cues:
+      - { on: apply, status: vulnerable, fx: dark_mage_1, face: down, tint: element }
+      - { on: apply, status: vulnerable, fx: symmetrical_impact_003, size: small, scale: 0.5, delay: 180, note: "portrait drops a few pixels and shakes: the stagger" }
+      # Vulnerable's default, re-added (this skill's own apply cues replace it). The Horrified extra's Weakness plays its own default.
+      - { on: apply, status: vulnerable, fx: spell_defense_up_001, size: small, scale: 0.4, tint: element, speed: 1.3, delay: 350 }
+      - { on: apply, status: vulnerable, fx: spell_debuff_001, size: small, scale: 0.5, tint: element, speed: 1.8, delay: 500 }
+
+  dance.unholy:
+    beat: A blood whirlpool spins around the user as a flurry of crimson arcs strikes the target.
+    cues:
+      - { on: cast, fx: slime_5, tint: element, layer: under }
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: element, scale: 0.8 }
+    note: "Extending Horrify sends no event. If one is added, each Horrified unit could replay its skull. Confusion's default plays on the user."
+
+  heal.unholy:
+    beat: An ally's blood is wrenched out toward the user, and crimson crosses rise around the user.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: toActor, scale: 0.7 }
+      - { on: heal, fx: spell_heal_003, speed: 2 }
+
+  bless.unholy:
+    beat: A drop of blood falls onto the ally and splashes into a crimson blaze, then the vampire's cocoon forms.
+    cues:
+      - { on: apply, status: lifesteal, fx: paladin_7, tint: element }
+      # Lifesteal's default, re-added once the splash settles (this skill's own apply cue replaces it).
+      - { on: apply, status: lifesteal, fx: blood_knight_5, scale: 0.9, delay: 300 }
+
+  curse.unholy:
+    beat: A crimson seal forms over the enemy and melts down onto them, leaving them Horrified.
+    cues:
+      - { on: apply, status: horrified, fx: deathbringer_2, tint: element, scale: 0.8, speed: 1.5 }
+      # Horrified's skull, re-added as the seal melts (this skill's own apply cue replaces it). Refused by Immune, nothing lands.
+      - { on: apply, status: horrified, fx: deathbringer_3, tint: element, scale: 0.5, offset: [0, 0.35], speed: 1.5, delay: 550 }
+
+  smite.unholy:
+    beat: A black blade drives down in a crimson pillar and lands in a burst of blood; loosened spirits swirl around the target, ready to leak to whoever strikes them.
+    cues:
+      - { on: hit, fx: paladin_5, tint: element }
+      - { on: hit, fx: blood_knight_3, face: up, scale: 0.6, offset: [0, -0.25], delay: 150 }   # blood spurts up where the blade drives in, unlike Shadow's Smite
+      - { on: apply, status: soul_sickness, fx: starcaller_4, tint: element, scale: 0.5 }   # two wisps curl round the target, then drift apart
+      - { on: trigger, status: soul_sickness, fx: directional_splatter_005, size: small, scale: 0.5 }   # on the bearer; Soul Fragment's default follows on the source (the ally who hit)
+
+  prayer.unholy:
+    beat: Incense smoke billows up behind the user's chanting team, and a crimson burst shatters over every enemy.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, at: allySide, scale: 2.2, opacity: 0.7, layer: under }   # the team-wide wind-up, behind the portraits
+      - { on: hit, fx: scifi_warp_002, scale: 0.8, stagger: 100 }
+      # No skull: this applies Weakness, not Horrify. Weakness's default follows on each enemy.
+
+  cleave.unholy:
+    beat: A broad crimson arc cuts the target, then the oath-broken blade sweeps back through the user's own allies.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: element }   # the 25 Piercing, then the 10 replays it
+      - { on: hit, only: others, fx: warrior_4, face: fromActor, tint: element, tone: dark, scale: 0.7, delay: 150, stagger: 100 }   # the backswing through each of the user's allies
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.4, delay: 60 }
+
+  shout.unholy:
+    beat: A shriek ring bursts from the user and a wail of crimson ghosts washes over the target.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004 }
+      - { on: travel, fx: necromancer_3, path: beam, tint: element, tone: light, scale: 1.1 }   # the light tone lifts the dark smoke off the board
+      - { on: hit, fx: symmetrical_impact_002, scale: 0.9 }
+      # The fed shriek's Horrify plays on the target. The spent Soul Fragment plays its remove default on the user
+      # only when it was the last stack (see note).
+    note: "removeStacks emits no event while stacks remain. The engine should emit one per spent stack (e.g. effectRemoved with remaining `stacks`, or a stacksChanged event), or the renderer must diff stacks between checkpoints, so this plays for every spent fragment. Until that exists, don't rely on Soul Fragment's remove default to show Soulshriek's cost: a user with 2+ fragments pays it with nothing visible."
+
+  withstand.unholy:
+    beat: Blood is wrung up out of each ally and flicks toward the user, and the ward it feeds closes around them.
+    cues:
+      - { on: hit, fx: directional_splatter_002, size: small, scale: 0.7, stagger: 120 }
+      - { on: hit, fx: directional_splatter_001, size: small, face: toActor, scale: 0.6, delay: 100, stagger: 120 }
+      # Shield's default forms the ward on the user.
+
+  taunt.unholy:
+    beat: A crimson crown flares over the user to claim the target's attention, and the transfixed target flashes a crimson '!!'.
+    cues:
+      # base Taunt's grammar: the crown names the user as the one to hit (an eye over the user would read as Intimidated)
+      - { on: cast, fx: symbol_crown_001, tint: element, tone: light, size: small, scale: 0.45, speed: 2 }   # the light tone keeps the crown's detail
+      - { on: apply, status: taunt, fx: symbol_alert_002, scale: 0.4 }   # replaces Taunt's '!' for this skill with the louder '!!'
+      # When the target was Horrified, Lifesteal's default follows on the user.
+
+  titan.unholy:
+    beat: A soul-pyre erupts beneath the user and a blood nova blasts out as they swell into the Colossus.
+    cues:
+      - { on: cast, fx: epic_explosion_001, scale: 1.8, layer: under }
+      - { on: cast, fx: blood_knight_6, scale: 1.6, delay: 250, note: "native crimson; portrait swells about 10% and holds it while Soul Colossus lasts" }
+      - { on: trigger, status: soul_colossus, fx: none, note: "fires on every enemy hit; only the first each turn pays, shown by the soul_fragment apply" }
+      - { on: apply, status: soul_fragment, fx: symmetrical_impact_004, size: small, scale: 0.6 }
+      - { on: apply, status: soul_fragment, fx: spell_absorb_001, size: small, scale: 0.6, speed: 1.8, delay: 100 }   # this replaces Soul Fragment's default here, so it keeps the inward spiral
+      # Armor's and Immortal's defaults follow on the user.
+
+  hellhound_jaws:
+    beat: Crimson spikes flare at the Hound's feet as it locks on, and each turn spectral jaws snap shut on the target.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, size: small, scale: 0.5 }
+      - { on: trigger, status: jaws_of_hell, fx: directional_particle_burst_002, size: small, scale: 0.5 }   # on the Hound (bearer); the jaws follow on the target
+      - { on: hit, fx: necromancer_8, tint: element, scale: 0.8, speed: 1.3 }
+
+  imp_firebolt:
+    beat: The Imp flicks a crimson fireball that pops in a spiky splash on the target.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: element, scale: 0.5 }
+      - { on: hit, fx: slime_4, face: fromActor, tint: element, scale: 0.5 }
+
+  imp_gleeful_torment:
+    beat: A spray of crimson sparks crackles in the target's face, and the horror sets in.
+    cues:
+      - { on: apply, status: horrified, fx: round_firework_burst_001, size: small, scale: 0.6 }
+      # Horrified's skull, re-added after the sparks (this skill's own apply cue replaces it).
+      - { on: apply, status: horrified, fx: deathbringer_3, tint: element, scale: 0.5, offset: [0, 0.35], speed: 1.5, delay: 200 }

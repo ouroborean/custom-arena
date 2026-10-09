@@ -1,0 +1,332 @@
+# Ghost (Wind + Unholy) animation concepts. Spec: docs/animations/README.md; brief: briefs/ghost.md.
+# Ghost is the dead carried on the wind. Its matter is Wind's pale air (puffs, gusts, wisps, crescents)
+# carrying Unholy's souls and dread (Necromancer, Deathbringer and Dark Mage spirit art: rings, skull
+# seals, claws). `duo` reads as crimson spirit-flesh shaded in Wind's grey-blue mist; `element` (Wind)
+# layers are the pale ectoplasm. Two tells run through the kit:
+#   - the phantom echo: a Ghost blow lands twice. The solid stroke in `duo`, then its own pale afterimage
+#     (same art, `tint: element` + `tone: light`, ~1.25x, ~0.4 opacity, ~120 ms behind) passing through
+#     after it. Strikes, slashes, lances and claws all leave one; so does Phantom Pain's streak in flight.
+#     The Wraith, all phantom, strikes with the afterimage alone.
+#   - the drifting wisp (directional_smoke_burst_004): a spirit leaving a body. The Haunt and the
+#     Beckoning Spirit lifting off one enemy to drift to the next (their remove defaults), Fade's colour
+#     draining off the user, a Buff torn out by the Noose.
+# Spectral units are drawn translucent (see spectral's note), so the kit's main defence reads at a glance.
+group: ghost
+
+statuses:
+  spectral:
+    note: >-
+      While Spectral the portrait is drawn at about 65% opacity (no aura art): the status that matters most
+      for this kit reads on the unit itself. The Poltergeist is always Spectral, so it always looks like a
+      ghost. Walk Through Walls and Fade count as Spectral; their skills name them, so this apply doesn't
+      play for them, but the translucency does. Translucency follows the viewer's visible effects. A
+      Spectral the opponent can't see (Vengeful Spirit's, from an Invisible skill) leaves the portrait
+      solid in their view until it is revealed.
+    apply:  [ { fx: round_sparkle_burst_002, scale: 0.75, opacity: 0.8 } ]   # a pale puff engulfs them and crumbles away, leaving the translucent portrait
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.7, note: "the portrait turns solid again" } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.7, note: "the portrait turns solid again" } ]
+  haunt:
+    note: >-
+      Steal Breath's Haunt counts as one. breath_haunt takes Haunt's apply/remove/expire but not its
+      tick: its turn-end damage plays Steal Breath's trigger, hit and heal cues, so only one impact lands.
+      When it drifts (moveEffects inside haunt_drift: an effectApplied on the new bearer, then an
+      effectRemoved on the old), the old bearer plays this remove (the wisp lifting off) and the new one
+      plays this apply.
+    apply:  [ { fx: frost_mage_1, tint: duo, scale: 0.75, opacity: 0.85 } ]   # two crimson spirits wheel round them on a pale ring
+    tick:   [ { fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.55 } ]   # the 10 Affliction at the end of its applier's turn: the spirit bursts through their chest; a drift follows (this remove on them, this apply on the next)
+    remove: [ { fx: directional_smoke_burst_004, tint: duo, scale: 0.65, opacity: 0.85 } ]   # drifted off (or cleansed): the spirit lets go of them and drifts off upward
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.5, opacity: 0.7 } ]   # ran out: the spirit thins and disperses where it is, so it doesn't read as a drift
+  vanished:
+    apply:
+      - { fx: scifi_heartbeat_flatline_001, tint: duo, scale: 0.6, offset: [0, 0.7] }   # the blow that should have killed them: the line runs flat
+      - { fx: symmetrical_smoke_burst_003, tint: duo, scale: 1.1, delay: 250, note: "the portrait bursts into the cloud and is gone: an empty place on the board until it returns" }
+    # Its turn-start return (its one firing); removeSelf follows at once, so there is no remove cue.
+    tick:   [ { fx: round_sparkle_burst_003, tint: duo, scale: 0.9, note: "pale motes drift back in and pop into a ring; the portrait re-forms inside it at 30 HP" } ]
+  spirit_mark:
+    note: >-
+      Rides with the Haunt: it moves when the Haunt drifts, so this apply plays again on each new bearer,
+      inside the Haunt's ring, and Horrified's skull follows there. No remove or expire: it goes and ends
+      with its Haunt, whose cues carry that.
+    apply:  [ { fx: necromancer_7, tint: duo, scale: 0.45, speed: 1.3 } ]   # a small crimson skull-seal brands their chest, then shatters
+  beckoner:
+    note: >-
+      Counts as a Taunt; its own defaults replace Taunt's '!'. When it moves (at the end of the applier's
+      later turns), the old bearer plays remove (the wisp lifting off) and the new bearer plays apply. A
+      cleanse plays the same remove. The turn-end trigger that moves it has no cue of its own.
+    apply:
+      - { fx: symbol_alert_002, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.6] }   # the taunt tell, as Unholy's louder '!!'
+      - { fx: directional_smoke_burst_003, face: toActor, size: small, tint: duo, scale: 0.55, delay: 150 }   # a crimson curl of mist drawn off them toward whoever beckons
+    remove: [ { fx: directional_smoke_burst_004, tint: duo, scale: 0.55 } ]   # moved on (or cleansed): the spirit lifts off them
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.45, opacity: 0.7 } ]
+
+macros:
+  # Runs on the Haunted unit at its tick. No cue of its own: a drift shows as Haunt's remove on the old
+  # bearer and Haunt's apply on the new one (the `signal` op sends no event, and a macro cue would also play
+  # on the new bearer). Pinned by Phantom Blade, or with no un-Haunted ally to go to, it stays and nothing
+  # plays. The engine sends the new bearer's applies first (Stun, Horrified, then Haunt, Steal Breath's
+  # Haunt and Spirit Mark) and the old bearer's effectRemoveds last. Within one haunt_drift run, hold the
+  # new bearer's applies until the old bearer's effectRemoved has played, so it reads wisp off, then ring
+  # on, then Spirit Mark's seal, Horrified's skull and Frozen with Fear's Stun ~150 ms apart.
+  haunt_drift: []
+
+skills:
+  strike.ghost:
+    beat: A crimson blade-stroke cuts down through the target and its pale phantom follows through a beat behind.
+    note: "Already Haunted: the second damage event (10 Affliction, not direct) is that Haunt ticking now. Play Haunt's tick default there, not these hit cues; the pin that stops it drifting sends no event."
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo }
+      - { on: hit, fx: warrior_3, face: fromActor, tint: element, tone: light, scale: 1.25, opacity: 0.4, delay: 120 }   # the phantom echo
+      # Not yet Haunted: Haunt's ring settles on them.
+
+  smash.ghost:
+    beat: An unseen force slams the target in a shredding crash, pale ectoplasm bursts over their allies, and the Haunt takes hold; if it already had, a spirit is flung onward into one of them.
+    cues:
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tint: duo, scale: 1.2, note: "a short screen shake" }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tone: light, scale: 1.6, opacity: 0.4, delay: 120, frames: [0, 3] }   # the phantom echo; ends before its outer ring reaches the canvas edge
+      - { on: hit, only: others, fx: symmetrical_smoke_burst_001, size: small, tint: element, scale: 0.5, delay: 150, stagger: 90, note: "the 10 on each ally: their portraits rattle a few pixels" }   # a pale puff ring of ectoplasm
+      - { on: apply, status: debuff, only: others, fx: directional_smoke_burst_003, face: fromActor, size: small, tint: duo, scale: 0.5, note: "only the bonus Haunt (target already Haunted): a crimson spirit-curl is flung off onto this ally, then Haunt's ring settles" }
+      # Haunt's ring on the target, and on the bonus ally with the curl above (a debuff filter adds to the default).
+
+  charge.ghost:
+    beat: A pale slit opens in the air and the user steps through it, coming out the far side as a translucent shade.
+    cues:
+      - { on: apply, status: walk_through_walls, fx: scifi_warp_001, scale: 0.75, frames: [0, 3], note: "the slit opens into the white oval and is cut before the spiky burst (frame 4 on); fade the oval out over ~100 ms. The portrait lunges a step into it and slides back out translucent; leave a pale copy of it standing where it was, fading over ~400 ms (the echo, on the user)" }
+      - { on: remove, status: walk_through_walls, fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.7, note: "spent by their next skill, which Bypasses: the portrait turns solid as it acts" }
+
+  riposte.ghost:
+    beat: A crimson spirit winds round the user unseen; the first enemy to strike at them is broken over by its wave.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, opacity: 0.8, layer: under, frames: [0, 9] }   # Invisible: owner only. Trimmed before its last-frames palette jump
+      - { on: trigger, status: vengeful_spirit, fx: directional_smoke_burst_003, face: toTarget, size: small, tint: duo, scale: 0.6 }   # on the user: the spirit bursts out at the attacker
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: duo, scale: 0.8 }   # the 15 Affliction, on the attacker
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: element, tone: light, scale: 1.0, opacity: 0.4, delay: 120 }   # the phantom echo
+      # Spectral's default on the user.
+
+  rage.ghost:
+    beat: A fanged death-shroud rises over the user; every enemy who strikes them is marked with a grudge, and when it ends the grudges come home as Haunts.
+    cues:
+      - { on: cast, fx: necromancer_8, tint: duo, scale: 1.1, opacity: 0.85, speed: 1.3 }
+      - { on: apply, status: grudge, fx: round_light_burst_001, size: small, tint: duo, scale: 0.5, offset: [0, 0.55] }   # on the attacker: an eye-shaped glare flares over them; the ghost remembers
+      - { on: trigger, status: unfinished_business, fx: none, note: "fires on every enemy hit; only an enemy's first (up to 3) pays: the grudge glare on them and Might's default on the user show it" }
+      # When it ends (its onExpire is this skill's only Haunt), each grudged enemy's glare flares again and
+      # the Haunt settles on them; the grudge's removal plays nothing.
+      - { on: apply, status: haunt, fx: round_light_burst_001, size: small, tint: duo, scale: 0.5, offset: [0, 0.55] }   # the grudge comes home
+      # Haunt's default, re-added after the glare (this skill's own apply cue replaces it).
+      - { on: apply, status: haunt, fx: frost_mage_1, tint: duo, scale: 0.75, opacity: 0.85, delay: 150 }
+
+  shot.ghost:
+    beat: A crimson streak of pain and its pale phantom fly to the target and pop in, and needles of phantom pain pin each of their allies to them.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, size: small, tint: duo, scale: 0.4, speed: 1.3 }   # Wind's air-streak, turned crimson
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, size: small, tint: element, tone: light, scale: 0.45, opacity: 0.5, delay: 90 }   # its phantom, a beat behind
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.5, note: "the 5 each pang deals plays this too, smaller (about 0.35)" }
+      - { on: apply, status: phantom_pain, fx: fanfx_pain, tint: duo, tone: light, scale: 0.6, opacity: 0.8, speed: 2, stagger: 80, frames: [4, 34] }   # on each of the target's allies; skips its empty first and last frames
+      - { on: trigger, status: phantom_pain, fx: scifi_muzzle_flash_002, face: toTarget, size: small, tint: duo, tone: light, scale: 0.35 }   # on the struck ally: the pang streaks over to the target, a small copy of the Shot
+
+  snipe.ghost:
+    beat: An hourglass of blood-sand turns over the user as they fade; next turn it shatters and a lance of the grave punches through the victim.
+    note: "HiddenTarget: the hourglass and its shattering stay on the user and point nowhere; nothing reaches the victim until the hit. Interrupted, base's interrupted default plays."
+    cues:
+      - { on: cast, fx: fanfx_stop, tint: duo, tone: light, size: small, scale: 0.5, offset: [0, 0.7], frames: [0, 18], note: "forms and holds; cut before the crack. Tinted, so it reads as a pale glass of blood-sand rather than the drawn wood-and-gold stun hourglass. Hold it faintly (~0.4 opacity) over the user while Grave Omen lasts, so the opponent sees something to interrupt" }
+      - { on: trigger, status: grave_omen, fx: fanfx_stop, tint: duo, tone: light, size: small, scale: 0.5, offset: [0, 0.7], frames: [19, 33] }   # fires from onExpire: the glass cracks and shatters, still on the user
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.7, delay: 80 }
+      - { on: hit, fx: warrior_8, face: fromActor, tint: element, tone: light, scale: 1.4, opacity: 0.4, delay: 120 }   # the phantom echo
+      # Spectral's default on the user at the cast; its remove default when it lands.
+
+  trap.ghost:
+    beat: A ghostly loop slips unseen under the enemy's chin; the first gift they receive, it whips tight, tears the Buff out of them and leaves them Haunted.
+    cues:
+      - { on: apply, status: hangmans_noose, fx: necromancer_2, tint: duo, scale: 0.5, offset: [0, 0.3], opacity: 0.7 }   # Invisible: owner only. Its counter-clockwise sweep along the canvas bottom draws the U of a noose under the jaw
+      - { on: trigger, status: hangmans_noose, fx: frost_knight_2, tint: duo, scale: 0.6, offset: [0, 0.3] }   # the loop whips up tight round the neck
+      - { on: remove, status: buff, fx: directional_smoke_burst_004, scale: 0.6, delay: 150 }   # the stolen Buff is torn out of them as a pale wisp; Haunt's ring follows
+
+  maneuver.ghost:
+    beat: The user's colour drains up off them in three thin wisps and they stand there translucent; the moment they strike, the fade tears.
+    cues:
+      - { on: apply, status: fade, fx: directional_smoke_burst_004, scale: 0.7, offset: [-0.3, 0] }
+      - { on: apply, status: fade, fx: directional_smoke_burst_004, scale: 0.8, offset: [0.3, 0], delay: 120 }
+      - { on: apply, status: fade, fx: directional_smoke_burst_004, tint: duo, scale: 0.9, delay: 240, note: "the portrait thins to Spectral's translucency as the wisps rise (this replaces Spectral's apply for Fade)" }
+      - { on: trigger, status: fade, fx: none, note: "fires as they deal damage; its removeSelf plays the remove cue below, so the tear plays once" }
+      - { on: remove, status: fade, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.55, note: "the fade tears (they dealt damage, or it was cleansed): the portrait turns solid. This replaces Spectral's remove for Fade; running out still plays Spectral's expire" }
+
+  companion.ghost:
+    beat: A crimson whirl spins up out of nothing and flings pale debris in every direction, and the Poltergeist hangs in the middle of it.
+    cues:
+      - { on: summon, fx: slime_5, tint: duo, scale: 0.9, note: "the Poltergeist's portrait appears translucent in the whirl (it is always Spectral)" }
+      - { on: summon, fx: round_firework_burst_001, size: small, scale: 0.7, delay: 200 }   # pale debris flung out and dropping
+
+  bolt.ghost:
+    beat: A pale-headed crimson comet streaks to the target and a reaper's crescent slashes through a skull of their soul; if the Haunt slips off them, a piece of soul is plucked home.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: duo, scale: 0.55, speed: 1.3 }
+      - { on: hit, fx: deathbringer_5, tint: duo, scale: 0.9, speed: 1.5, frames: [4, 21] }   # skips the near-black skull wind-up
+      - { on: trigger, status: reaping_bolt, fx: none, note: "fires at the user's turn end whether or not it pays; the payoff is the Soul Fragment apply below, the one event that happens only when the Haunt drifted off them" }
+      - { on: apply, status: soul_fragment, fx: directional_particle_burst_001, face: toTarget, flip: y, size: small, tint: duo, tone: light, scale: 0.6, note: "on the user: flipped, then turned toward the bolted enemy (reaping_bolt's remembered target), so the soul motes stream in from that enemy's side" }
+      # Soul Fragment's default, re-added as the motes arrive (this skill's own apply cue replaces it; Unholy owns it).
+      - { on: apply, status: soul_fragment, fx: spell_absorb_001, size: small, tint: Unholy, scale: 0.6, speed: 1.8, delay: 100 }
+      # Haunt's ring settles on the target.
+
+  blast.ghost:
+    beat: A pale gale howls across the enemy row and a crimson nova bursts in each of them, wilder for every soul already fallen.
+    cues:
+      - { on: hit, fx: frost_mage_7, face: fromActor, tint: element, scale: 1.2, opacity: 0.85, stagger: 80, note: "the gale passes through each enemy in turn; the cloud head ends just past the portrait" }
+      - { on: hit, fx: deathbringer_4, tint: duo, scale: 0.9, delay: 150, stagger: 80, note: "bursts as its gust passes. +10 per fallen character (up to +40), same hit event: about 10% larger per fallen, and with any fallen a faint pale wisp (directional_smoke_burst_004, 0.4 opacity) rises from each dead unit's place as the gale passes" }
+
+  consume.ghost:
+    beat: The user draws breath and a pale stream of the target's own breath is pulled out of them; each turn the Haunt pulls more and the user breathes it in.
+    cues:
+      - { on: travel, fx: frost_knight_5, from: target, to: actor, path: straight, tint: element, scale: 0.6 }   # its curling cloud head leads, from the target to the user
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.45 }
+      - { on: trigger, status: breath_haunt, fx: frost_knight_5, face: toActor, tint: element, scale: 0.5, opacity: 0.8, note: "each end of the user's turn, on whoever holds it: the breath streams off toward the user; the 10 Affliction (this skill's hit, not Haunt's tick) and the heal follow, then the drift (Haunt's remove and apply)" }
+      - { on: heal, fx: round_sparkle_burst_003, size: small, tone: light, scale: 0.6, frames: [3, 10] }   # on the user: the glints converge, breath drawn in
+      # Haunt's ring settles on the target (Steal Breath's Haunt counts as one).
+
+  summon.ghost:
+    beat: Two columns of crimson grave-fire flare up out of the ground and each leaves a Wraith standing in the smoke.
+    cues:
+      - { on: summon, fx: directional_particle_burst_002, tint: duo, scale: 0.9, stagger: 150 }
+      - { on: summon, fx: directional_sparkle_burst_002, size: small, scale: 0.6, speed: 1.6, layer: under, delay: 150, stagger: 150 }
+      # When a Wraith dies, Haunt's ring settles on its killer.
+
+  channel.ghost:
+    beat: A crimson grave-ring spins up at the user's feet; at each of their turn ends it flares and a dead hand claws up through one enemy after another.
+    cues:
+      - { on: apply, status: restless_dead, fx: dark_mage_2, tint: duo, scale: 0.9, layer: under, offset: [0, -0.4], frames: [0, 10] }   # its flat torus laid as a ground ring; cut before the last-frame palette jump
+      - { on: trigger, status: restless_dead, fx: dark_mage_2, tint: duo, scale: 0.6, speed: 1.3, layer: under, offset: [0, -0.4], frames: [0, 10] }   # each turn end, on the user: the ring flares again
+      - { on: hit, fx: dark_mage_1, face: up, tint: duo, scale: 0.8, offset: [0, -0.1] }   # the claws rake up out of the ground through them
+      - { on: hit, fx: directional_impact_003, size: small, tint: duo, scale: 0.6, layer: under }
+      # Horrified's skull follows on each one; restless_struck is bookkeeping and shows nothing.
+
+  stab.ghost:
+    beat: A crimson needle pierces the target and its pale phantom passes on through the veil into an ally behind them.
+    cues:
+      - { on: hit, only: primary, fx: directional_impact_001, face: fromActor, tint: duo, scale: 0.7 }
+      - { on: hit, only: others, fx: directional_impact_001, face: fromActor, tone: light, scale: 0.8, opacity: 0.6, delay: 150 }   # the random ally takes the phantom of the same needle
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tint: duo, scale: 0.5, delay: 60 }
+
+  ravage.ghost:
+    beat: A flurry of spectral slashes tears into the target, its pale afterimage rips through again, and their soul is wrenched half out in a burst of spikes.
+    cues:
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: frost_knight_9, face: fromActor, tint: element, tone: light, scale: 1.4, opacity: 0.4, delay: 120 }   # the phantom echo
+      - { on: hit, fx: necromancer_5, tint: duo, scale: 0.7, delay: 200, note: "off-center (skull lower-left, spikes up-right): mirror it per side rather than rotating, so the skull stays upright and the spikes spray away from the user" }
+      # Rend the Living is a quiet modifier: its status icon carries it.
+
+  mislead.ghost:
+    beat: Glints like watching eyes gather unseen round the enemy; when they attack, the nightmare bursts over them, their blow passes through mist and terror takes them.
+    cues:
+      - { on: apply, status: night_terror, fx: stylized_explosion_004, tint: duo, scale: 0.8, opacity: 0.8, frames: [0, 11] }   # Invisible: owner only. Only the glints
+      - { on: trigger, status: night_terror, fx: stylized_explosion_004, tint: duo, scale: 0.9, frames: [12, 22] }   # on the attacker: the burst
+      # Spectral's default on each of their targets; Horrified's skull on them.
+
+  stun.ghost:
+    beat: A wave of terror washes over the target and pins them rigid; the Haunt coils on, and its first drift freezes the next one too.
+    note: "Refused by Immune or negated by Swiftness, the wave doesn't play: only Haunt's ring, then the block or the sidestep."
+    cues:
+      - { on: apply, status: stun, fx: necromancer_3, face: fromActor, tint: duo, tone: light, scale: 0.9 }
+      - { on: apply, status: stun, fx: necromancer_3, face: fromActor, tint: element, tone: light, scale: 1.2, opacity: 0.4, delay: 120 }   # the phantom echo
+      # Stun's default, re-added (this skill's own apply cues replace it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: duo, scale: 0.7, delay: 200, note: "the portrait staggers back a step and holds rigid" }
+      # Haunt's ring settles on them; the drift's Stun plays Stun's default on the next one.
+
+  dance.ghost:
+    beat: Pale and crimson phantoms whirl round the user in sweeping bands, waltzing them into mist.
+    note: "Spectral, Might and Swiftness land together: Spectral's puff plays on the portrait, and this skill fans the two icons out to either side over the head."
+    cues:
+      - { on: apply, status: ghostly_waltz, fx: paladin_8, tint: duo, scale: 1.4, layer: under }
+      - { on: apply, status: ghostly_waltz, fx: paladin_8, tint: element, tone: light, scale: 1.2, opacity: 0.6, flip: x, layer: under, delay: 150 }   # the pale partner, turning the other way
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, tint: duo, scale: 0.4, speed: 1.3, offset: [-0.35, 0.6] }
+      - { on: apply, status: swiftness, fx: spell_haste_001, size: small, tint: duo, scale: 0.45, speed: 1.5, offset: [0.35, 0.6], delay: 150 }
+
+  heal.ghost:
+    beat: Souls rise up through the ally in pale-crimson motes and white crosses lift with them.
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.9, note: "+10 per Soul Fragment spent, same heal event: about 1.2x per fragment" }
+      - { on: heal, fx: spell_heal_003, size: small, tone: light, scale: 0.6, speed: 2, delay: 150 }
+      # Spent fragments drift off the user through Soul Fragment's remove default; with two spent, the leap macro lifts the ally.
+
+  bless.ghost:
+    beat: A small pale soul-wisp falls onto the ally and crimson glints settle over them as they turn to mist; every blow aimed at them sheds a soul to the user.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: drop, tint: element, tone: light, scale: 0.35, speed: 1.3 }   # a small pale soul-wisp falls onto them, orb first with its tendrils trailing; Taunt's wisp is crimson and flies out and back
+      - { on: apply, status: spirit_form, fx: status_sparkling_001, tint: duo, opacity: 0.8, speed: 1.5 }   # one cycle; Spectral's default plays with it
+      - { on: trigger, status: spirit_form, fx: directional_splatter_005, size: small, tint: duo, scale: 0.5 }   # on the ally: a crimson drop wells up and splits away; Soul Fragment's spiral lands on the user
+
+  curse.ghost:
+    beat: Two pale-crimson wraiths spiral down onto the enemy and lock into orbit round them, and a skull-seal brands the Haunt.
+    cues:
+      - { on: apply, status: haunt, fx: starcaller_4, tint: duo, scale: 0.9 }
+      # Haunt's and Spirit Mark's defaults, re-added in sequence (this skill's own apply cues replace them).
+      - { on: apply, status: haunt, fx: frost_mage_1, tint: duo, scale: 0.75, opacity: 0.85, delay: 400 }
+      - { on: apply, status: spirit_mark, fx: necromancer_7, tint: duo, scale: 0.45, speed: 1.3, delay: 550 }
+
+  smite.ghost:
+    beat: Crimson claws rake down onto the target from above, their pale afterimage follows, and every hand offered to them makes their nerves misfire.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: down, tint: duo, scale: 0.9 }
+      - { on: hit, fx: blood_knight_2, face: down, tint: element, tone: light, scale: 1.2, opacity: 0.4, delay: 120 }   # the phantom echo
+      - { on: trigger, status: unnerving_touch, fx: fanfx_pain, tint: element, scale: 0.55, speed: 2, frames: [4, 24] }   # on the bearer as the help lands: pins and needles, their nerves misfiring (pale Wind, apart from Phantom Pain's crimson needles); Swiftness's clock goes to the user
+      # Horrified's skull follows.
+
+  prayer.ghost:
+    beat: A mournful dirge rises from the user's whole team in crimson notes and pale crosses lift each ally.
+    cues:
+      - { on: heal, fx: directional_music_burst_001, tint: duo, scale: 0.8, stagger: 100 }
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.5, speed: 2, delay: 150, stagger: 100 }
+      - { on: trigger, status: dirge_of_spirits, fx: directional_music_burst_002, size: small, tint: duo, scale: 0.45, note: "on the ally a Taunt slides off: a few mournful notes ring out as it spends a Swiftness stack" }
+
+  cleave.ghost:
+    beat: A spectral crescent sweeps up through the target and its phantom blade stays lodged in them, tearing free each turn into another of their allies.
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, tint: duo }
+      - { on: hit, fx: paladin_9, face: fromActor, tint: element, tone: light, scale: 1.25, opacity: 0.4, delay: 120 }   # the phantom echo
+      - { on: apply, status: phantom_blade, fx: paladin_9, tint: element, tone: light, scale: 0.6, opacity: 0.5, delay: 250, note: "the pale blade hangs in them: the carrier. Plays on the first target after the 20, and again on each new carrier when the blade moves" }
+      - { on: trigger, status: phantom_blade, fx: scifi_muzzle_flash_003, face: toTarget, size: small, scale: 0.6, note: "on the bearer it leaves, at each end of the user's turns: the blade's phantom shoots off toward its next victim, where the slash plays again for the 15" }
+
+  shout.ghost:
+    beat: A banshee wail rings out of the user in a crimson ring and its pale echo, and breaks over every enemy as the Haunt seizes them.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.4 }
+      - { on: cast, fx: frost_knight_7, tint: element, tone: light, scale: 2.4, opacity: 0.4, delay: 150 }   # the phantom echo rolls out further
+      - { on: apply, status: haunt, fx: stylized_impact_001, size: small, tint: duo, scale: 0.6, stagger: 80 }   # the wail breaks over each enemy
+      # Haunt's default, re-added after the wail (this skill's own apply cue replaces it).
+      - { on: apply, status: haunt, fx: frost_mage_1, tint: duo, scale: 0.75, opacity: 0.85, delay: 200, stagger: 80 }
+      # Each already-Haunted enemy also plays Intimidated's default.
+
+  withstand.ghost:
+    beat: Ectoplasm foams out round the user into a clinging film; when it breaks it bursts in gobs and they go translucent.
+    cues:
+      - { on: apply, status: ectoplasmic_shield, fx: round_bubble_burst_001, tint: duo, scale: 1.0, opacity: 0.75, layer: under, frames: [0, 8], note: "stops while the foam is still whole, before the bubbles thin to dashes and pop; fade it out over ~200 ms so the film settles rather than breaks" }
+      - { on: trigger, status: ectoplasmic_watch, fx: burst_splatter_002, tint: duo, scale: 0.8 }   # the Shield depleted; Spectral's default follows
+      # Absorbed blows play base's blocked flicker; unbroken, it just ends.
+
+  taunt.ghost:
+    beat: A crimson crown flares over the user and a spirit-wisp flies out to the target and back, beckoning them.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, tint: duo, tone: light, scale: 0.4, speed: 2 }   # base Taunt's grammar: the crown names the user as the one to hit
+      - { on: travel, fx: deathbringer_6, path: return, tint: duo, scale: 0.5 }   # out and back: the beckoning gesture
+      # The Beckoning Spirit's default ('!!' and the mist drawn toward the user) marks the target.
+
+  titan.ghost:
+    beat: The user's heart gives one last weak beat, then their ghost billows up out of them, towering, with a paler shade rising higher behind it and spirit-puffs ringing over their head.
+    note: "The portrait swells about 10% and stays translucent (Spectral) while Second Haunting lasts."
+    cues:
+      - { on: cast, fx: scifi_heartbeat_slow_001, tint: duo, scale: 0.6, offset: [0, 0.7] }   # one last beat; the flatline stays Vanished's, so the two read in sequence
+      - { on: apply, status: second_haunting, fx: directional_smoke_burst_001, tint: duo, scale: 2.0, layer: under }
+      - { on: apply, status: second_haunting, fx: directional_smoke_burst_001, tone: light, scale: 2.6, opacity: 0.4, layer: under, delay: 150 }   # the phantom echo
+      - { on: apply, status: second_haunting, fx: directional_sparkle_burst_003, tint: duo, scale: 1.5, delay: 250 }   # over the portrait: puffs rise off the body into a ring above the head
+      - { on: trigger, status: second_haunting, fx: none, note: "fires on every hit; only the one that would leave them at 1 HP pays, and Vanished's default (the flatline, the burst) shows it" }
+      # Spectral's default plays with it.
+
+  poltergeist_rattle:
+    beat: The Poltergeist whirls and flings a burst of crimson debris that clatters over the target.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 0.5, speed: 1.5 }
+      - { on: hit, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.6, speed: 1.5, note: "the target's portrait rattles side to side a few pixels" }
+      # Haunt's ring settles on them.
+
+  wraith_cold_grasp:
+    beat: The Wraith is all phantom; only its pale, cold claws rake the target.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: element, tone: light, scale: 0.45 }   # one pale layer, no crimson stroke and no echo: small for 5 damage, and apart from Smite's crimson claws and Restless Dead's claws from the ground

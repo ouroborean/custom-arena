@@ -1,0 +1,306 @@
+group: nomad
+# Nomad (Wind + Earth) is wind-blown sand. `duo` is the material almost everywhere: Wind's grey-blue
+# shadows on Earth's sand body and pale-sand highlights, so Wind's gusts and Earth's dust become one
+# drifting desert. Pure Earth (`element2`) is kept for solid stone: cairns, stakes, falling rocks.
+# Two literal exceptions: the Waterskin's drink is Water, and the campfire's embers are Fire.
+# Signatures:
+#   the sand-wind  frost_knight_5 in duo (a cloud-front of sand pushed by streaks, grains drifting round
+#                  it): every Trek gained (small, at the feet), and the kit's big gusts: Break Camp,
+#                  Haboob, Dust in the Wind.
+#   the cold trail directional_smoke_burst_004 in duo, small: a wisp of sand curling up where the road
+#                  stopped. Trek resetting, The Long Road ending, a Rolling Dune running out.
+#   cairns         Earth stone marks the road: a cairn juts up under a Waymarked enemy, a stone drops onto
+#                  a Cairn Blessing, a tent stake pins a target.
+#   Boulders       Nomad Boulders are packed out of blowing sand (spell_absorb_001 spiralling in), never
+#                  dropped or dug up like Earth's.
+
+statuses:
+  trek:
+    note: >-
+      Every Trek gain arrives through gain_trek and plays this apply: scale it with the stack it reaches
+      (0.35 / 0.45 / 0.55). Trek's own apply plays nothing at the cap (a gain at 3 still emits
+      effectApplied, stacks 3→3), but the gain still signals trek_rose: Rolling Dune grows, Wanderlust
+      grants Might, The Long Road continues. Their cues key on the trek effectApplied event, not on a
+      stack increase.
+    apply:  [ { fx: frost_knight_5, tint: duo, scale: 0.45, offset: [0, -0.4], opacity: 0.75, note: "mirrored so it blows toward the enemy side, the way they travel: a step on the road, sand streaming past their feet" } ]
+    remove: [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.45, opacity: 0.65 } ]   # reset or spent: the trail goes cold
+  nomad_trek:
+    note: Bookkeeping (the Wanderer passive that counts Trek). Nothing of its own plays; its turn-end check shows through Trek's apply (a gain) and remove (a reset).
+  mirage:
+    note: >-
+      Hidden: the opponent never sees it applied. What they see is their skill countered (base's counter
+      X) and, with it, this trigger: the attack plunging into a shimmer that tears apart, which reads on
+      its own. It removes itself every time it fires (Mirage Lull takes over), so it has no remove cue.
+    apply:   [ { fx: round_light_burst_001, tint: duo, tone: light, size: small, scale: 0.6, opacity: 0.6 } ]   # a heat-haze glare shimmers across them
+    trigger: [ { fx: scifi_warp_001, tint: duo, tone: light, scale: 0.8 } ]   # the slit of haze opens into a bright oval and bursts: there was nothing there
+    expire:  [ { fx: round_light_burst_001, tint: duo, tone: light, size: small, scale: 0.45, opacity: 0.4, frames: [5, 8] } ]   # only the collapse to a thin line
+  mirage_lull:
+    note: >-
+      The gap between two Mirages (hidden). Its apply comes straight after Mirage's trigger, which carries
+      that moment; when it fires, Mirage is applied again and Mirage's apply re-forms the haze. Only an
+      expiry needs its own cue.
+    expire: [ { fx: round_light_burst_001, tint: duo, tone: light, size: small, scale: 0.45, opacity: 0.4, frames: [5, 8] } ]
+  rolling_dune:
+    apply:   [ { fx: frost_knight_9, tint: duo, scale: 1.7, layer: under, opacity: 0.75 } ]   # banded streaks of sand roll round into a sphere behind the user, spilling past the portrait
+    trigger: [ { fx: directional_smoke_burst_002, tint: duo, scale: 1.4, layer: under, note: "growShield emits no event: key this on the bearer's own trek effectApplied from gain_trek, including a gain at the cap (stacks 3→3). trek_rose still fires there and the Shield still grows by 10" } ]   # fresh sand heaps onto the dune, rising past the shoulders and head
+    remove:  [ { fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.7 } ]   # broken: the dune blows apart
+    expire:  [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, opacity: 0.6 } ]
+  haboob_trail:
+    note: Bookkeeping (hidden). It marks the last enemy a Haboob gust struck so the next one wanders elsewhere; the gusts' hits carry everything, so nothing plays.
+  # Minion passive.
+  pack_mule_saddlebags:
+    trigger: [ { fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.45, note: "only on the turn ends it actually stores energy (the spendEnergy follows): a mote of the user's spare energy is drawn into its packs. The refund when the Mule leaves plays through the remove cue" } ]
+    remove:  [ { fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.7, note: "the Mule leaves (killed, or its 3 turns run out and LIFETIME kills it): this passive is removed with reason died, right after onDeath's gainEnergy. Its packs spill the stored energy back to the owner. Play it whatever it held, so the opponent can't read the hidden stored count (the energyGained itself is owner-only)" } ]
+
+macros:
+  # Trek's own apply carries every gain (nothing of its own at the cap); Wanderlust and Rolling Dune
+  # answer the trek_rose signal with their own trigger cues, keyed on that trek effectApplied, cap included.
+  gain_trek: []
+  # Trek's own remove (the cold trail) carries the reset. Under Endless Journey it removes nothing, so
+  # nothing should play: a cue here would play anyway.
+  reset_trek: []
+
+skills:
+  strike.nomad:
+    beat: Wave on wave of sand drives into the target, one crest for every step of the road spent on it.
+    note: "15 + 10 per Trek spent: scale both hit cues up about 0.12 per Trek. Trek's cold-trail remove then plays on the user."
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 0.8, note: "its splat star lands about 70% across the canvas: shift it back so the star breaks on the target" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: duo, size: small, scale: 0.5, delay: 60, note: "origin corner on the target, so the grit fans on past them" }
+
+  smash.nomad:
+    beat: A dune curls over and crashes onto the target, spraying sand up under each of their allies; at full Trek a greater dune breaks over the whole enemy line.
+    cues:
+      - { on: hit, only: primary, fx: deathbringer_1, face: fromActor, tint: duo, note: "anchor the impact corner (bottom-right as drawn) on the target, mirrored so the dune arcs over from the user's side" }
+      - { on: hit, only: others, fx: directional_splatter_002, tint: duo, size: small, scale: 0.6, delay: 150, stagger: 80 }   # the 10-damage splash
+      # At 3 Trek: Isolated is the only debuff this skill applies, so this plays once, only on that branch. Isolated's default and each stripped buff's remove default follow.
+      - { on: apply, status: debuff, fx: deathbringer_1, at: enemySide, face: fromActor, tint: duo, scale: 2.0, opacity: 0.85, note: "once: its crash corner (bottom-right as drawn) mid-column, so the dune breaks over the whole line" }
+
+  charge.nomad:
+    beat: The user kicks off in a spray of dust; their Boulder or Seedling crumbles and is blown away down the line as the road calls.
+    cues:
+      - { on: cast, fx: directional_impact_002, tint: duo, size: small, scale: 0.7, layer: under }
+      - { on: death, fx: frost_knight_5, face: fromActor, tint: duo, scale: 0.8, note: "the packed-up camp: the portrait greys and is carried off in the gust" }
+      # Rushing's default (wind streaking off both sides) and Trek's two gains play on the user.
+
+  riposte.nomad:
+    beat: Two stones circle the user in a quiet ring of sand; when struck they burst out, and the sand packs into a Boulder that holds the attacker's eye.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.8, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: stone_and_sand, fx: symmetrical_impact_004, tint: duo, scale: 0.8 }   # on the user: the ring bursts and the blow is turned
+      - { on: summon, fx: spell_absorb_001, tint: duo, scale: 0.8, speed: 1.6 }   # sand spirals in and packs into the Boulder
+      # The counter's X and Taunt's '!' on the attacker play their defaults.
+
+  rage.nomad:
+    beat: A compass rose flares around the user and columns of sand streak up from their feet; each new step of the road sharpens their edge.
+    note: >-
+      The validator flags the wanderlust_might apply (spell_attack_up_001, Might's signature) because this
+      skill applies Might only through an inline status. That status counts as Might, so wearing Might's
+      icon is the point: it should read as Might.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.3, speed: 0.6 }   # the compass flare holds about 0.4 s
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.8, layer: under, delay: 100, frames: [3, 12] }   # skips the thin wind-up ring; the columns rise past the head and sides
+      - { on: trigger, status: wanderlust, fx: frost_knight_7, tint: duo, scale: 0.5, note: "fires on every ally's Trek rise: key it on the bearer's own trek effectApplied from gain_trek, including a gain at the cap (stacks 3→3), where Wanderlust still grants Might (the Might follows)" }
+      - { on: apply, status: wanderlust_might, fx: spell_attack_up_001, tint: duo, size: small, scale: 0.4, speed: 1.3 }   # it counts as Might: Might's own icon
+      - { on: trigger, status: wanderlust_might, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.35, offset: [0, 0.6], opacity: 0.7, note: "fires on every ally's Trek reset: play it only on the bearer's own, as the Might ends" }
+      # Immune's default plays on the user.
+
+  shot.nomad:
+    beat: A sling loop whirls at the user's side and lobs a stone that bursts into grit on the target; the longer it has been wound up, the harder it lands.
+    note: "10 + 5 per turn of wind-up (up to 25): repeat the cast once per turn of wind-up (1 to 3), and scale the travel and hit up about 0.1 per +5."
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 0.45, frames: [0, 10], speed: 1.5 }   # cut before its crimson last frame
+      - { on: travel, fx: starcaller_2, path: arc, tint: duo, scale: 0.5 }
+      - { on: hit, fx: burst_splatter_001, tint: duo, size: small, scale: 0.6 }
+
+  snipe.nomad:
+    beat: Dust towers up behind the user; next turn a haboob rolls down the enemy line and three gusts tear into random enemies, each harder than the last.
+    note: "The three gusts deal 20, 25, 30: scale the hit cues 0.8, 0.95, 1.1, and leave about 250 ms between them so each lands on its own."
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: duo, scale: 1.2, layer: under }
+      - { on: trigger, status: haboob, fx: frost_knight_5, at: enemySide, face: down, tint: duo, scale: 2.0, opacity: 0.9, note: "fires at expiry: the sand wall runs the length of the enemy column" }
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, fx: burst_splatter_003, tint: duo, size: small, scale: 0.5, delay: 60 }
+
+  trap.nomad:
+    beat: Sand starts to turn slowly under the target's feet; if they stand still on the same skill, the whirlpool opens and swallows them to the waist.
+    cues:
+      - { on: apply, status: sinking_sands, fx: slime_5, tint: duo, scale: 0.7, offset: [0, -0.35], opacity: 0.45, speed: 0.8 }   # Invisible: owner only. Over the portrait, low at the feet
+      - { on: trigger, status: sinking_sands, fx: slime_5, tint: duo, scale: 1.8, layer: under, note: "it checks at every one of the user's turn ends: play it only when it springs (the damage and Stun follow)" }
+      - { on: hit, fx: directional_smoke_burst_002, tint: duo, scale: 1.0, note: "the portrait sinks a few pixels as the sand mound rises over its lower half" }
+      # Stun's default follows.
+
+  maneuver.nomad:
+    beat: The user whips up a cresting dune that lifts their weakest ally clear.
+    cues:
+      - { on: cast, fx: frost_knight_8, face: up, tint: duo, scale: 0.9 }
+      # The leap macro (takeoff dust, Leaping's updraft, Invulnerable's shell) plays on whoever Leaps; Trek's gain on the user.
+
+  companion.nomad:
+    beat: A Pack Camel plods in out of a trail of dust and kneels in a spray of sand.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_005, tint: duo, scale: 1.0, layer: under, note: "mirrored so the wedge streams back toward the user's side: the dust it walked in through" }
+      - { on: summon, fx: directional_impact_002, tint: duo, size: small, scale: 0.7, layer: under, delay: 150 }
+
+  bolt.nomad:
+    beat: A tent stake flies into the target with a dusty streak, bursts against them, and a second stake drives down at their feet to pin them.
+    cues:
+      - { on: travel, fx: warrior_8, tint: element2, scale: 0.6 }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8 }
+      - { on: apply, status: tent_stake, fx: paladin_5, tint: element2, scale: 0.7, note: "its black sword shape stays black: the stake itself" }
+      # remove_mobility's slowed clock and each stripped buff's remove default play on the target.
+
+  blast.nomad:
+    beat: A cloud of sand bursts over the enemy line and a dust devil whirls round each of them, stripping their speed.
+    note: >-
+      A multi-stack Swiftness loses one stack via removeStacks, which emits no event. When gain_trek's trek
+      apply on the user follows a target that got no effectRemoved, play Swiftness's remove default on that
+      target (symmetrical_smoke_burst_002, size small, scale 0.4, opacity 0.6) so the strip reads.
+    cues:
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tint: duo, scale: 2.2, layer: under, opacity: 0.8, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: dark_mage_2, tint: duo, scale: 1.0, frames: [0, 10], delay: 100, stagger: 90 }   # a spinning ring of sand round each; cut before its crimson last frame
+      # A stripped Rushing or Leaping (or a last Swiftness stack) plays its remove default; each Trek gained plays on the user.
+
+  consume.nomad:
+    beat: A light jab levies a toll that flips over the target; when they next act, coins spill out of them and the takings swirl into the user.
+    cues:
+      - { on: hit, fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.6 }
+      - { on: apply, status: road_toll, fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.5, frames: [0, 12], note: "fade it as the coin peaks: the toll is set, not yet paid" }
+      - { on: trigger, status: road_toll, fx: directional_coin_burst_001, tint: duo, scale: 0.7, speed: 1.4 }   # they pay
+      - { on: heal, fx: spell_absorb_001, tint: duo, tone: light, scale: 0.6, speed: 1.6 }   # on the user: the toll drawn in
+
+  summon.nomad:
+    beat: A laden Pack Mule trots up in a puff of glinting dust.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, tint: duo, scale: 0.9, speed: 1.3 }
+      - { on: summon, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.5, layer: under }
+      # Saddlebags plays its own trigger at each of the user's turn ends.
+
+  channel.nomad:
+    beat: Sand streams off the user toward the enemies as the road opens; each stride along it sends grit spurting up under every enemy, until the road goes cold.
+    note: Other skills don't end it; it ends when the user's Trek fails to rise.
+    cues:
+      - { on: apply, status: the_long_road, fx: necromancer_3, face: toTarget, tint: duo, tone: light, scale: 0.9, opacity: 0.85, note: "pin its left-edge origin on the user and aim at the enemy side's center: a widening cone of sand streaming off toward them" }   # tone light: the art is mostly dark
+      - { on: trigger, status: the_long_road, fx: directional_smoke_burst_005, tint: duo, scale: 1.2, layer: under, note: "a stride: mirrored so it kicks back away from the enemies" }
+      - { on: hit, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, opacity: 0.9, stagger: 60 }
+      - { on: remove, status: the_long_road, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, opacity: 0.7 }   # the road goes cold (not on its natural end after 4 turns)
+
+  stab.nomad:
+    beat: A traveler's knife flicks across the target and grit spits out behind it.
+    note: "10, 15 or 20 with the streak: scale both hit cues 0.65, 0.8, 0.95."
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.65 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, size: small, scale: 0.45, delay: 60, note: "origin corner on the target, so it sprays on past them" }
+
+  ravage.nomad:
+    beat: The user's speed pours off them into a sandblast; band after band of sand scours over the target and grit erupts off them.
+    note: "25 + 10 per mobility buff given up (each one's remove default plays on the user first): scale both hit cues up about 0.15 per buff."
+    cues:
+      - { on: hit, fx: paladin_8, tint: duo, scale: 1.1 }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 150 }
+
+  mislead.nomad:
+    beat: Heat motes rise off the user's hands, and a haze settles unseen over the target.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, tint: duo, tone: light, size: small, scale: 0.5 }   # Invisible: owner only
+      # Mirage's default (the heat-haze glare) plays on the target, owner only; its counter is what the opponent sees.
+
+  stun.nomad:
+    beat: A handful of grit sprays into the target's eyes and rains down around them, and they reel; once an enemy hurts the user, the grit clears.
+    note: >-
+      The validator flags the grit_in_the_eyes apply (toon_impact_001, Stun's signature) because this
+      skill's Stun is an inline status. It counts as Stun, so it wears Stun's own stars on purpose.
+      Grit in the Eyes counts as Stun under its own id: while it lasts, show Stun's aura on the bearer
+      (base stun.aura: scifi_charge_up_003, size small, scale 0.35, offset [0, 0.65], opacity 0.7). It
+      ends when the grit clears (grit_watch) or expires.
+    cues:
+      - { on: hit, fx: round_firework_burst_001, tint: duo, scale: 0.7 }
+      - { on: apply, status: grit_in_the_eyes, fx: toon_impact_001, tint: duo, size: small, scale: 0.7, delay: 250, note: "portrait staggers back a step" }   # it counts as Stun: Stun's own stars
+      - { on: trigger, status: grit_watch, fx: symmetrical_smoke_burst_001, at: target, tint: duo, size: small, scale: 0.5 }   # on the stunned enemy: the grit blows clear and the Stun ends
+
+  dance.nomad:
+    beat: Two dust wisps chase each other round and round the user, and a ring of sand is flung out from the loop.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 1.8, layer: under, opacity: 0.85 }   # large enough that the wisps circle outside the card
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.1, opacity: 0.85, delay: 250, frames: [0, 8] }   # its centre stays empty, so the user stays readable; stops before the olive fade
+
+  heal.nomad:
+    beat: Cool water wells up through the ally from their feet; it wells again at the end of each turn they keep moving.
+    cues:
+      - { on: heal, fx: directional_splatter_005, tint: Water, tone: light, scale: 0.8, note: "the kit's one splash of Water: the waterskin's drink. The two later 10 heals play these at about 0.7 scale" }
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.5, speed: 1.7, delay: 100 }
+      - { on: trigger, status: waterskin, fx: directional_splatter_005, tint: Water, tone: light, size: small, scale: 0.5, note: "it checks at every one of their turn ends: play it only when it heals (they used a skill)" }
+
+  bless.nomad:
+    beat: A stone drops onto a cairn at the ally's feet and the blessing glints; each time they move on, sand packs into a Boulder beside the user.
+    cues:
+      - { on: apply, status: cairn_blessing, fx: frost_mage_5, tint: element2, scale: 0.7 }
+      - { on: apply, status: cairn_blessing, fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.5, delay: 300 }
+      - { on: trigger, status: cairn_blessing, fx: round_sparkle_burst_003, tint: duo, tone: light, size: small, scale: 0.4 }   # on the ally, as they use the mobility skill
+      - { on: summon, fx: spell_absorb_001, tint: duo, scale: 0.8, speed: 1.6 }   # the same packed-sand Boulder as Stone and Sand
+      # Might's default plays on the ally.
+
+  curse.nomad:
+    beat: A gust of sand blows across into the target and grit patters down around them; a Boulder crumbles and its dust is flung into their face.
+    cues:
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.7 }
+      - { on: apply, status: debuff, fx: spell_forge_001, tint: duo, scale: 0.8, opacity: 0.85, stagger: 200, note: "once per Confusion stack, so the Boulder's extra stack patters down again; its yellow spark streaks take the tint too (re-tint them if they don't)" }
+      - { on: death, fx: directional_smoke_burst_003, face: toTarget, tint: duo, scale: 0.7 }   # the Boulder's dust blows at the cursed enemy
+      # Confusion's '?' plays per stack; the leap macro plays on the user.
+
+  smite.nomad:
+    beat: A sand-laden blow crashes down on the target and a cairn juts up at their feet; it glints for each ally who strikes them, and slumps when the user's road resets.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: apply, status: waymarker, fx: frost_mage_4, tint: element2, scale: 1.0, opacity: 0.9, delay: 150, note: "its crystal cluster reads as stacked stones: the cairn, jutting up over the bottom of the portrait" }
+      - { on: trigger, status: waymarker, fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.5, note: "on the damaged trigger only (an ally's direct hit); on the reset signal it just ends, through the remove cue" }
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.5, speed: 1.7 }   # on the ally who struck
+      - { on: remove, status: waymarker, fx: directional_smoke_burst_002, tint: duo, size: small, scale: 0.5 }   # the cairn slumps into sand
+
+  prayer.nomad:
+    beat: A campfire crackles up at the user's feet and a song rises from each ally as their wounds close.
+    note: "15 + 10 per Trek the user had: scale the heal cue up about 0.12 per Trek. Shield's default plays on each ally, and Trek's cold trail on the user."
+    cues:
+      - { on: cast, fx: spell_forge_001, tint: Fire, scale: 0.8, note: "a ring of embers kindles at the user's feet and flares: the campfire (not fire_looping_001, Ignite's tick)" }
+      - { on: heal, fx: directional_music_burst_001, tint: duo, tone: light, scale: 0.8, stagger: 100 }
+
+  cleave.nomad:
+    beat: A wedge of sand sweeps along the ground through the target and drifts over another enemy's feet; when the user's road resets, the drift bursts up under them.
+    cues:
+      - { on: hit, only: primary, fx: directional_smoke_burst_005, face: fromActor, tint: duo, scale: 1.1, note: "origin corner on the user's side of the target, so the wedge sweeps through them" }
+      - { on: apply, status: buried_in_sand, fx: directional_sparkle_burst_002, tint: duo, size: small, scale: 0.7, opacity: 0.85 }   # over the portrait: the mound drifts over their feet, star flecks rising
+      - { on: trigger, status: buried_in_sand, fx: directional_impact_004, tint: duo, scale: 1.0, note: "fires on every enemy Trek reset: play it only on the applier's own (the 30 damage follows)" }
+      - { on: hit, only: others, fx: burst_splatter_003, tint: duo, size: small, scale: 0.6, delay: 80 }   # the buried enemy's 30
+
+  shout.nomad:
+    beat: The caravan's call bursts from the user in a ring of sand, and a cloud of its dust hangs over every enemy.
+    cues:
+      - { on: cast, fx: deathbringer_4, tint: duo, scale: 1.4 }
+      - { on: apply, status: caravan_dust, fx: directional_smoke_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.75, delay: 200, stagger: 80 }
+
+  withstand.nomad:
+    beat: The ground heaves under the user and a dune rolls up around them.
+    cues:
+      - { on: cast, fx: directional_impact_004, tint: duo, scale: 1.5, layer: under }   # the spikes rise above the head and the ring reaches past each side
+      # Rolling Dune's default (a rolling sphere of sand streaks) plays on the user.
+
+  taunt.nomad:
+    beat: The user scores a line in the sand; when the challenged enemy finally hits them, their '!' crumbles to dust and the user springs away.
+    cues:
+      - { on: cast, fx: directional_impact_002, tint: duo, scale: 0.9, layer: under }
+      - { on: trigger, status: challenge_in_the_sand, fx: symmetrical_smoke_burst_002, at: source, tint: duo, size: small, scale: 0.5, offset: [0, 0.5], note: "fires on every enemy hit: play it only when the Taunted enemy hits (their Taunt ends)" }
+      # Taunt's '!' marks the target; the leap macro plays on the user when it fires.
+
+  titan.nomad:
+    beat: The dunes erupt around the user and they rise as a mountain of sand, so heavy the ground cracks under them.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.6, layer: under }
+      - { on: resolve, fx: frost_mage_3, tint: duo, scale: 1.9, layer: under, note: "swell the portrait about 10% as it rises; it ends on its brightest frame: hold a beat, then fade" }
+      - { on: apply, status: dune_colossus, fx: directional_impact_004, tint: element2, scale: 1.2, layer: under }
+      # Armor's and Immune's defaults play on the user; each stripped mobility buff plays its remove default.
+
+  pack_camel_kick:
+    beat: The camel lashes out with a hoof and dust puffs off the target.
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, size: small, scale: 0.6, note: "a blunt hoof blow, not Wayfarer's Blow's crescents: its shock ring sits right of center as drawn, so put the ring on the target and the shards spray on past them" }
+      - { on: hit, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.4, delay: 80 }

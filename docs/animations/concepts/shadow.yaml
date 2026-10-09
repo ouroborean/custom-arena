@@ -1,0 +1,286 @@
+group: shadow
+# Shadow is made of black smoke, ink, voids and the navy Dark Mage sorcery: units sink into shadow,
+# blink through black slits, and get struck out of nowhere. Palette art takes its drawn black/gray
+# variants where they exist, otherwise the Shadow ramp (`element`), with `tone: light` where a pale
+# highlight has to carry it. Class art is colorized to Shadow: luminance colorize keeps its own lights
+# and darks, so it comes out as pale-grey edges on slate bodies. The native Dark Mage set stays
+# untinted, because its navy already reads as Shadow.
+#
+# Portraits are opaque full-bleed squares, so a `layer: under` cue only shows where it is larger than the
+# portrait: under-cues here are scaled past the frame, or moved over at reduced opacity. Teams stack
+# vertically on desktop (only the enemy team turns horizontal on narrow screens), so area hits play per
+# unit, staggered, rather than as one band across a side.
+
+statuses:
+  stealth:
+    # a smoke bomb: a dome of smoke billows up around the unit and a dark puff closes over its face as it
+    # fades. Not a ring of smoke (symmetrical_smoke_burst_001): that is base Death's, and a unit going into
+    # Stealth must never read as dying.
+    apply:
+      - { fx: directional_smoke_burst_002, tint: element, tone: light, scale: 1.4, layer: under, note: "past the frame, so the dome billows up around the portrait while it fades to about 55% opacity; it stays faded for as long as it's Stealthed" }
+      - { fx: directional_smoke_burst_002, tint: element, size: small, scale: 0.7, opacity: 0.85, delay: 200 }
+    note: "No aura. The portrait held at about 55% opacity is the tell."
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.7, note: "the shroud tears away and the portrait snaps back to full opacity. Skip it for gain_stealth's removeEffect: that only clears an older Stealth before the fresh one is applied" } ]
+    expire: [ { fx: directional_smoke_burst_004, variant: black, size: small, scale: 0.6, opacity: 0.7, note: "the portrait fades back in as the last wisp rises" } ]
+  blinded:
+    # a dark flare smears across the eyes, then a little grey dust settles there
+    apply:
+      - { fx: round_light_burst_001, variant: black, scale: 0.6, offset: [0, 0.3] }
+      - { fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.4, offset: [0, 0.3], opacity: 0.8, delay: 120 }
+    # the dark flare flickers back over the eyes as the bearer's aim goes astray
+    trigger: [ { fx: round_light_burst_001, variant: black, size: small, scale: 0.45, offset: [0, 0.3], speed: 1.5, note: "no event of its own. Infer it when a Blinded unit uses a single-target skill (its primary target was re-rolled) and play it on that unit as the skill starts" } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5, offset: [0, 0.3], opacity: 0.8 } ]
+    expire: [ { fx: directional_smoke_burst_004, variant: black, size: small, scale: 0.5, offset: [0, 0.45], opacity: 0.7 } ]
+    note: No aura. Blinded is often on several enemies at once, and the status icon carries it.
+
+macros:
+  # Per unit gaining Stealth. Stealth's own apply carries it, so the macro adds no layer of its own; its
+  # removeEffect only refreshes an older Stealth (see Stealth's remove).
+  gain_stealth: []
+
+skills:
+  strike.shadow:
+    beat: A navy claw-axe rakes through the target and ink sprays out past them; a kill lets the user melt into shadow.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_004, variant: black, face: fromActor, scale: 0.6, delay: 100 }
+      # On a kill, Stealth's apply default plays on the user.
+
+  smash.shadow:
+    beat: A shadow-claw dives onto the target and it bursts in a crash of ink; smaller bursts of ink splash off every other enemy before the user sinks into Stealth.
+    cues:
+      - { on: hit, only: primary, fx: burst_splatter_002, variant: black, scale: 1.0, delay: 120 }   # the ink crash: this skill's look
+      - { on: hit, only: primary, fx: warrior_5, tint: element, face: fromActor, scale: 1.0 }   # the claw dives in first
+      - { on: hit, only: others, fx: burst_splatter_002, variant: black, scale: 0.6, delay: 200, stagger: 80 }
+      # Stealth's apply default then plays on the user.
+
+  charge.shadow:
+    beat: The user's shadow stretches across the floor to the target and lashes up through them, then pools long under the user for their next skill.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so only the owner sees the travel. The hit has to read on its own."
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, tint: element, tone: light, path: beam, layer: under, offset: [0, -0.35], opacity: 0.8, note: "stretched along the floor from the user's feet to the target's; the portrait lunges" }
+      - { on: hit, fx: directional_impact_003, tint: element, size: small, scale: 0.7 }   # the shadow spikes up out of the floor through the target
+      - { on: apply, status: long_shadow, fx: directional_impact_002, variant: black, scale: 1.2, layer: under, offset: [0, -0.4], opacity: 0.7 }   # a long dark pool spreading out to either side of the user's feet
+
+  riposte.shadow:
+    beat: A shimmer of pale glints passes over the user; a blow meant for them shatters a mirage, and the real blade flashes out of the shadows across the attacker.
+    cues:
+      - { on: cast, fx: status_sparkling_001, tint: element, tone: light, scale: 0.9, opacity: 0.6, speed: 1.5, note: "once, not looped: the portrait wavers like heat haze while the glints pass" }   # Invisible: owner only
+      - { on: trigger, status: mirage_blade, fx: symmetrical_impact_003, variant: white, scale: 0.7 }   # the mirage shatters on the user
+      - { on: trigger, status: mirage_blade, fx: warrior_2, at: source, tint: element, face: fromActor, scale: 0.8, delay: 120 }   # the real blade flashes on the countered attacker
+      # Focus's default follows the counter.
+
+  rage.shadow:
+    beat: Black flame flares up behind the user and a storm of grey knives whirls around them.
+    cues:
+      - { on: cast, fx: fire_looping_001, variant: black, scale: 1.5, layer: under, repeat: 2, speed: 1.5, note: "larger than the portrait, so the black flames lick out past the frame" }
+      - { on: cast, fx: frost_knight_9, tint: element, scale: 1.1, delay: 100 }
+      # Might and Swiftness defaults follow.
+
+  shot.shadow:
+    beat: A pale-tipped spine of shadow darts at the target and punches a spray of ink out the far side.
+    cues:
+      - { on: travel, fx: deathbringer_6, tint: element, scale: 0.5, speed: 1.4 }
+      - { on: hit, fx: directional_splatter_003, variant: black, face: fromActor, scale: 0.6 }
+      # Isolated's default follows.
+
+  snipe.shadow:
+    beat: Darkness winds up around the user; next turn a thin streak of night lances into the target, and a sleeper doesn't even stir.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, variant: black, scale: 0.6 }
+      - { on: trigger, status: dream_seeker, fx: scifi_muzzle_flash_003, face: toTarget, scale: 0.6 }   # the shot leaves the user
+      - { on: hit, fx: starcaller_7, tint: element, face: fromActor, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.6, delay: 150, note: "no flinch and no block flash: it Bypasses Invulnerable and doesn't wake a sleeping target, so leave a Sleep aura running" }
+
+  trap.shadow:
+    beat: A dark ring of chains settles around the enemy; if they don't act before it ends, it snaps shut in a burst of ink and they drop asleep.
+    cues:
+      - { on: apply, status: dream_chains, fx: dark_mage_2, scale: 0.9, note: "drop its last frame (it jumps to dark red)" }
+      # The skillUsed trigger only sets a flag (no event) and an un-sprung trap just expires, so neither gets a cue.
+      - { on: trigger, status: dream_chains, fx: dark_mage_2, scale: 0.9, speed: 1.5, note: "the spring: Dream Chains ending on a bearer who used no skill (the damage and Sleep follow). The ring snaps shut; drop the last frame" }
+      - { on: hit, fx: burst_splatter_003, variant: black, scale: 0.7, delay: 150 }
+      # Sleep's default follows.
+
+  maneuver.shadow:
+    beat: The user drops into a black slit in the air and steps back out onto a mound of starlit dust, out of reach.
+    cues:
+      - { on: cast, fx: scifi_warp_001, variant: black, scale: 0.8 }
+      - { on: cast, fx: directional_sparkle_burst_002, tint: element, tone: light, scale: 0.7, delay: 300, speed: 1.4 }   # the blink arrival
+      # Ghosted's default follows.
+
+  companion.shadow:
+    beat: A puff of starry night blooms open and the Spirit Raven drops out of it in a billow of grey smoke.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, scale: 0.8 }   # its white core and stars carry the Shadow tint
+      - { on: summon, fx: directional_smoke_burst_001, tint: element, tone: light, scale: 0.8, opacity: 0.75, delay: 150 }
+
+  bolt.shadow:
+    beat: A blue-white orb trailing black smoke streaks into the target and bursts in a pale nova of shards.
+    cues:
+      - { on: travel, fx: dark_mage_5, scale: 0.8, note: "the orb and its tail only: cut before its own impact (a low-contrast smudge with red sparks); the hit is the impact" }
+      - { on: hit, fx: scifi_warp_002, tint: element, tone: light, scale: 0.8 }   # white disc core and pale shards
+      # Blinded's default follows.
+
+  blast.shadow:
+    beat: A wave of darkness arcs over every enemy and crashes down on each, and a dark nova bursts out of them.
+    cues:
+      - { on: hit, fx: deathbringer_1, tint: element, face: fromActor, scale: 1.1, stagger: 80, note: "its crash sits at the bottom-right of the canvas (bottom-left once mirrored): offset so the crash lands on the unit" }
+      - { on: hit, fx: dark_mage_4, scale: 0.9, delay: 250, stagger: 80 }
+      # Confusion's default follows on each.
+
+  consume.shadow:
+    beat: Wisps of darkness rise off every enemy and curl toward the user, who swallows them; any Blind is drawn out of its eyes toward the user.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_004, tint: element, tone: light, face: toActor, scale: 0.6, stagger: 60, note: "Blinded enemies take a second hit (10 more) after losing the Blind; play that one slightly larger" }
+      # replaces Blinded's remove default: the darkness is pulled toward the user instead of puffing away
+      - { on: remove, status: blinded, fx: directional_smoke_burst_003, tint: element, face: toActor, size: small, scale: 0.6, offset: [0, 0.3] }
+      - { on: resolve, fx: spell_absorb_001, variant: black, at: actor, scale: 0.7, speed: 1.5 }   # once per cast, however many Blinds were drunk
+      # With nobody Blinded, Blinded's default lands on the random enemy.
+
+  summon.shadow:
+    beat: A navy ring opens on the ground, columns of light shoot up from it, and the Shade wells up out of a blot of ink.
+    cues:
+      - { on: summon, fx: dark_mage_3, layer: over, opacity: 0.85 }   # over the minion strip, so the columns rise across the Shade as it arrives
+      - { on: summon, fx: directional_splatter_005, variant: black, scale: 0.7, delay: 250 }
+
+  channel.shadow:
+    beat: The user's song rings out in pale notes; at the end of each of their turns a moon is eclipsed over every enemy, and a finished song puts them all to sleep.
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: element, tone: light, scale: 0.9 }
+      - { on: trigger, status: nightsong, fx: directional_music_burst_002, tint: element, tone: light, size: small, scale: 0.6 }
+      - { on: hit, fx: symmetrical_explosion_001, tint: element, scale: 0.6, stagger: 70 }   # a white moon eaten by a crescent of night
+      # A completed song: Sleep's default on every enemy.
+
+  stab.shadow:
+    beat: A blade of shadow bursts out of the dark behind the target and through them toward the user; if the target didn't see it coming, ink sprays too.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_005, tint: element, face: toActor, scale: 0.7, speed: 1.5, note: "its origin corner on the target's far side, so the white streaks and the smoke fan out of the target toward the user: a backstab" }
+      - { on: hit, fx: directional_splatter_004, variant: black, face: toActor, scale: 0.5, delay: 80, note: "bonus only: play when this hit's damage event has base 20 (the 'unseen' branch). The stab_bonus signal emits no event, and amount is shifted by Armor and Might." }
+
+  ravage.shadow:
+    beat: The user bursts out of a jet of dark smoke and a flurry of grey claws tears the target open in a gout of ink.
+    note: "At 40 damage (the user was Stealthed) scale the hit cues up by about a third. Stealth then breaks and plays its own remove."
+    cues:
+      - { on: cast, fx: directional_smoke_burst_003, tint: element, tone: light, face: toTarget, size: small, scale: 0.6 }
+      - { on: hit, fx: warrior_7, tint: element, face: fromActor }
+      - { on: hit, fx: burst_splatter_002, variant: black, scale: 0.8, delay: 150 }
+
+  mislead.shadow:
+    beat: Pale wisps curl around the enemy like a lure; when they attack, the illusion bursts into glittering smoke, the skill fizzles and they're left cut off.
+    cues:
+      - { on: apply, status: illusory_lure, fx: starcaller_4, tint: element, scale: 0.8 }
+      - { on: trigger, status: illusory_lure, fx: round_sparkle_burst_002, tint: element, tone: light, scale: 0.8 }   # the lure bursts on the bearer
+      # The counter default and Isolated's default follow each counter.
+
+  stun.shadow:
+    beat: A blunt blow of shadow cracks against the target's head and they slump into sleep.
+    cues:
+      - { on: hit, fx: stylized_impact_001, scale: 0.6, offset: [0, 0.3], note: "stagger: the portrait jolts, then sags as Sleep sets in" }
+      - { on: hit, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.4, offset: [0, 0.3], delay: 60 }
+      # Sleep's default follows.
+
+  dance.shadow:
+    beat: Shadows spin into a vortex around the user; if they were already hidden, phantom doubles circle them too.
+    cues:
+      - { on: cast, fx: slime_5, tint: element, scale: 1.7, layer: under, note: "larger than the portrait, so the vortex spins as a ring around it" }
+      # Ghosted's spirits, doubled into phantoms on either side.
+      - { on: apply, status: ghosted, fx: necromancer_4, tint: element, tone: light, scale: 0.9, offset: [-0.3, 0] }
+      - { on: apply, status: ghosted, fx: necromancer_4, tint: element, tone: light, scale: 0.9, offset: [0.3, 0], flip: x, delay: 120 }
+      # The phantoms stand for the whole bonus; Immune's default would pile onto the same portrait. Focus's still plays.
+      - { on: apply, status: immune, fx: none }
+
+  heal.shadow:
+    beat: Pale motes and soft crosses drift up through the ally, mending them as they nod off.
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tint: element, tone: light, scale: 0.9 }
+      - { on: heal, fx: spell_heal_002, tint: element, tone: light, size: small, scale: 0.5, delay: 100, speed: 1.8 }
+      # Sleep's default follows.
+
+  bless.shadow:
+    beat: A dark star gathers in the user's hand and falls onto the ally, and the smoke of Stealth billows up around them.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: element, tone: light, size: small, scale: 0.5 }   # the star gathers in the user's hand
+      - { on: travel, fx: starcaller_2, path: drop, tint: element, scale: 0.7 }   # a falling star: its head leads straight down onto the ally
+      # Stealth's apply default follows on the ally.
+
+  curse.shadow:
+    beat: The user flicks a pinch of black powder that bursts in the enemy's face and settles over their eyes.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, tint: element, tone: light, face: toTarget, size: small, scale: 0.4 }   # the flick, on the user
+      # The burst is bound to the Blind itself, so a countered or Immune-refused Blind shows none. It replaces
+      # Blinded's default for this skill, so that default's two layers follow it here (3 turns).
+      - { on: apply, status: blinded, fx: burst_splatter_001, tint: element, tone: light, scale: 0.6, offset: [0, 0.3] }
+      - { on: apply, status: blinded, fx: round_light_burst_001, variant: black, scale: 0.6, offset: [0, 0.3], delay: 150 }
+      - { on: apply, status: blinded, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.4, offset: [0, 0.3], opacity: 0.8, delay: 270 }
+
+  smite.shadow:
+    beat: A black blade drops out of a grey shaft of shadow and drives into the target, branding them.
+    note: "Used from Stealth, the cooldown resets, which shows on the skill bar (no board event)."
+    cues:
+      - { on: hit, fx: paladin_5, tint: element, scale: 0.8 }   # the sword silhouette stays black under the tint
+      - { on: hit, fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.4, offset: [0, 0.2], delay: 300 }
+      # Sanctify's default follows.
+
+  prayer.shadow:
+    beat: A galaxy of night wheels up behind the allies and pale stars rise through every ally as they slip into Stealth.
+    cues:
+      - { on: cast, fx: starcaller_4, at: allySide, tint: element, scale: 2.2, layer: under, opacity: 0.8, note: "a night sky turning slowly behind the whole team; behind the portraits, so it frames them instead of covering them" }
+      - { on: heal, fx: directional_star_burst_001, tint: element, tone: light, scale: 0.8, stagger: 80, speed: 1.4 }
+      # Stealth's apply default follows on every ally.
+
+  cleave.shadow:
+    beat: A star-flecked crescent of shadow sweeps through every enemy and black shards burst off each one it cuts.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted. The crescents play on the enemies, so the skill reads without showing the user."
+    cues:
+      - { on: hit, fx: starcaller_5, tint: element, face: fromActor, scale: 0.8, stagger: 70 }
+      - { on: hit, fx: directional_impact_001, variant: black, face: fromActor, size: small, scale: 0.5, delay: 150, stagger: 70 }
+
+  shout.shadow:
+    beat: The user's howl bursts out in a grey ring and a cone of dark mist rolls over every enemy, dimming their eyes.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, tint: element, tone: light }
+      - { on: travel, fx: necromancer_3, path: beam, tint: element, tone: light, scale: 0.8, stagger: 60, note: "mostly dark art: tone light keeps it visible on the board" }
+      # Each enemy then shows Blinded's or Intimidated's default, whichever branch it took.
+
+  withstand.shadow:
+    beat: Black wisps curl up over the user and a lattice of shadow locks together around them; at three Armor it swallows them into Stealth.
+    cues:
+      - { on: cast, fx: fanfx_barrier, tint: element, scale: 1.5, layer: under, delay: 200, note: "an opaque panel: behind the portrait and past its frame, so the lattice builds up as a border around the user" }
+      - { on: cast, fx: directional_smoke_burst_004, variant: black, scale: 1.0, layer: over }   # the wisps come first, then the lattice
+      # Armor's default follows; at 3+ Armor, Stealth's apply default plays too.
+
+  taunt.shadow:
+    beat: A shadow double billows up out of smoke in a scatter of twinkles, and the target can't look away.
+    cues:
+      - { on: summon, fx: symmetrical_smoke_burst_003, tint: element, tone: light, size: small, scale: 0.8 }
+      - { on: summon, fx: round_sparkle_burst_001, tint: element, tone: light, size: small, scale: 0.5, delay: 150 }
+      # Taunt's default lands on the target.
+
+  titan.shadow:
+    beat: A maw of shadow swallows the user whole, a dark nova bursts out of the faceless form, and tendrils of darkness bind every enemy's gaze to it.
+    cues:
+      - { on: cast, fx: necromancer_8, tint: element, scale: 1.5, note: "play until the oval has filled, then cut before the skull surfaces: the user is swallowed, not shown. The board dims, and the portrait stays a dark, featureless silhouette while the Titan lasts" }
+      - { on: cast, fx: dark_mage_4, scale: 1.8, delay: 600 }
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, tone: light, opacity: 0.85, stagger: 80, note: "a tether from the user to each enemy, held while that enemy's Taunt and Isolated land" }
+      # Armor's default on the user; Taunt's and Isolated's on every enemy.
+
+  raven_fel_swoop:
+    beat: The raven swoops through the target in a pale spectral arc and drinks a little life back.
+    cues:
+      - { on: hit, fx: necromancer_2, tint: element, face: fromActor, scale: 0.6 }
+      - { on: heal, fx: spell_absorb_001, variant: black, size: small, scale: 0.5, speed: 1.6 }
+
+  raven_blackwing:
+    beat: A black wing sweeps over the target, scattering grey smoke, and drags their gaze onto the raven.
+    cues:
+      # Bound to the Taunt, not the cast: a countered Blackwing (Mirage Blade, Illusory Lure) or a Taunt
+      # refused by Immune shows no landing. This replaces Taunt's default, so its '!' comes back last.
+      - { on: apply, status: taunt, fx: paladin_8, tint: element, face: fromActor, scale: 0.8 }
+      - { on: apply, status: taunt, fx: symmetrical_smoke_burst_002, variant: gray, size: small, scale: 0.5, delay: 250 }
+      - { on: apply, status: taunt, fx: symbol_alert_001, tint: element, size: small, scale: 0.5, delay: 350 }   # Taunt's own '!', as its default draws it for a Shadow applier
+
+  shade_shadow_choke:
+    beat: A ring of darkness tightens around the target's throat.
+    cues:
+      - { on: hit, fx: dark_mage_2, scale: 0.6, offset: [0, 0.25], note: "drop its last frame (it jumps to dark red)" }
+      # Blinded's default follows.

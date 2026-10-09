@@ -1,0 +1,311 @@
+group: battery
+
+# Battery (Lightning + Poison) is acid that carries a current, in three materials: arcs, crackle and bolts are
+# palette art on the default `element` tint (Lightning violet); acid, goo and fumes take `element2` (Poison
+# lime); the charged electrolyte itself takes `duo`, lime bodies edged in deep violet. Deathbringer art is
+# natively indigo and lime, so it plays untinted as Battery's own class family.
+# Signature motif, the galvanic cell: a Cell is sparks converging into a white capsule ring around a lime charge
+# (round_sparkle_burst_003, cut before it scatters, and only ever where a Cell is really stored); a single Cell
+# spent pops (symmetrical_explosion_001); a Discharge cracks every stored Cell at once as lime orbs flung off the
+# user; Corroded is lime acid splashed on the bearer, and acid foam (round_bubble_burst_001) means a Shield being
+# eaten, wherever that happens, and nothing else.
+# Most hits pair the two parents: an acid body with a violet crackle on top.
+
+statuses:
+  cell:
+    note: One cue per apply, however many Cells it stores; the status icon carries the count. No expire (Cells never decay) and no aura.
+    apply:  [ { fx: round_sparkle_burst_003, tint: duo, scale: 0.45, frames: [4, 13], speed: 1.4 } ]   # sparks converge and seal into a capsule ring around a lime charge
+    remove: [ { fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.4 } ]   # a Cell spent outside a Discharge pops (a Discharge plays its macro instead)
+  corroded:
+    apply:  [ { fx: burst_splatter_001, tint: duo, scale: 0.55 } ]   # lime acid splashed over them, violet at the edges
+    tick:   [ { fx: round_bubble_burst_001, size: small, tint: element2, scale: 0.55, opacity: 0.75, note: "only when a Shield actually loses value: no Shield, no foam" } ]
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.6 } ]
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.6 } ]
+  battery_core:
+    note: >-
+      The fusion passive. Its trigger hears every Charge gain, so play this only when it stores a Cell (the Charge
+      arrived at 3); a gain below 3 shows only Charged's crackle. Cell's default then shows the Cell.
+    trigger: [ { fx: spell_absorb_001, size: small, scale: 0.5, speed: 1.8 } ]   # the overflow Charge spirals into storage
+  bombardier_spray:   # minion passive: an enemy that damages the beetle is Corroded
+    trigger: [ { fx: directional_smoke_burst_003, face: toTarget, tint: element2, scale: 0.6 } ]   # a hot chemical blast puffs back at the attacker; Corroded's default lands on them
+
+macros:
+  discharge:   # on the user (the unit it strips), once per Discharge that removes Cells: a Discharge at 0 Cells shows nothing
+    - { fx: round_firework_burst_002, tint: duo, scale: 0.9, frames: [0, 18], speed: 1.6, note: "every stored Cell flung out as a lime orb. Scale with the Cells spent, about 0.6 at 1 to 1.2 at 5" }
+    - { fx: scifi_spark_burst_001, scale: 0.9, delay: 60 }   # the current let loose with them
+
+skills:
+  strike.battery:
+    beat: A jagged fang of lime acid rakes the target with a violet crackle; when a Cell is spent, it pops on the user and its acid gouts on through the wound.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, fx: lightning_burst_002, size: small, tone: light, scale: 0.4, delay: 100 }
+      # The spent Cell rides the Toxin it becomes: removeStacks reports a Cell only when it was the last one, so Cell's
+      # remove default is silenced here, and the Toxin lands exactly when one was spent. `debuff` adds to Toxin's skull.
+      # No Cell: Cell's default stores one on the user.
+      - { on: remove, status: cell, fx: none }
+      - { on: apply, status: debuff, at: actor, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.4 }   # Cell's spend pop on the user, every time a Cell goes
+      - { on: apply, status: debuff, fx: directional_splatter_004, face: fromActor, size: small, tint: element2, scale: 0.55, delay: 150 }
+
+  smash.battery:
+    beat: Violet claws crash down on the target in a lime splash and a ring of current wires them into a circuit; their next skill closes it and it shorts out through every ally.
+    cues:
+      - { on: hit, only: primary, fx: deathbringer_1, face: fromActor, note: "anchor the impact corner (bottom-right as drawn) on the target, mirrored so the claws arc in from the user's side" }
+      - { on: hit, only: primary, fx: lightning_burst_003, size: small, scale: 0.55, delay: 150 }
+      # The threat they must play around: a binding ring closes around them. Frames 10-11 turn dark red: cut.
+      - { on: apply, status: toxic_circuit, fx: dark_mage_2, tint: duo, scale: 0.7, frames: [0, 9], delay: 250 }
+      - { on: trigger, status: toxic_circuit, fx: stylized_impact_001, scale: 0.7 }   # their skill closes the loop: tilted rings spin out of them
+      - { on: hit, only: others, fx: symmetrical_impact_004, size: small, scale: 0.55, delay: 100, stagger: 100 }   # the circuit's 20 shorts out through each ally in a violet shock; Corroded's default brings the acid
+
+  charge.battery:
+    beat: The user is jump-started down a streak of lime current into the target, and the borrowed energy fizzes up off them.
+    note: The 2 energy now and the 2 less next turn show in the energy bar; the rising capsules are only their tell.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: beam, tint: duo, speed: 1.5, note: "the user's portrait dashes along the streak" }
+      - { on: hit, fx: warrior_6, face: fromActor, tint: duo, scale: 0.75, note: "its impact star sits about 70% across the canvas: put that point on the target" }
+      - { on: apply, status: jump_start, fx: directional_star_burst_001, size: small, tint: duo, scale: 0.6, speed: 1.8 }   # stars and capsule shapes rise off the user
+
+  riposte.battery:
+    beat: A capacitor hums to life in the user unseen; the first attack on them is swallowed whole and banked as Cells.
+    cues:
+      - { on: cast, fx: scifi_charge_up_002, scale: 0.9, opacity: 0.85 }   # Invisible: owner only. Current crackles inside a ring as streaks draw in: the capacitor charging (Battery Pack keeps the needle gauge)
+      - { on: trigger, status: capacitor, fx: spell_absorb_001, tint: duo, scale: 0.9, speed: 1.6 }   # the countered skill spirals into the user; the counter's X and Cell's default follow
+
+  rage.battery:
+    beat: The user's cells go into thermal runaway, jets of lime-and-violet battery fire erupting around them; every skill after vents another spurt that scalds them.
+    cues:
+      - { on: apply, status: thermal_runaway, fx: directional_fire_burst_001, tint: duo, scale: 1.2, layer: under }
+      - { on: apply, status: thermal_runaway, fx: directional_fire_burst_002, tint: duo, scale: 0.8, offset: [-0.35, 0], layer: under, delay: 120 }
+      - { on: apply, status: thermal_runaway, fx: directional_fire_burst_002, tint: duo, scale: 0.8, offset: [0.35, 0], layer: under, delay: 180 }
+      - { on: trigger, status: thermal_runaway, fx: directional_fire_burst_002, tint: duo, scale: 0.6, speed: 1.3 }   # each skill vents a spurt; Might's default follows
+      - { on: hit, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.45, delay: 80 }   # the 10 Affliction scald
+      # Might and Immune show through their defaults.
+
+  shot.battery:
+    beat: A lime-cored spark streaks at the target and pops in a ring of glints; if the user takes on Charge before their next turn, a second spark snaps from them into the same spot.
+    cues:
+      - { on: travel, fx: deathbringer_6, scale: 0.45, speed: 1.5 }   # native indigo and lime: a charged drop of acid
+      - { on: hit, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.5, note: "Afterspark's second strike plays this too, right after its spark leaves the user (no travel)" }
+      - { on: trigger, status: afterspark, fx: round_firework_burst_001, size: small, tone: light, scale: 0.35, offset: [0.35, 0.5], note: "its effectGained firing only, on the first Charge gained: one is enough to arm it" }   # a spark fizzes beside the user
+      - { on: trigger, status: afterspark, fx: scifi_muzzle_flash_001, face: toTarget, tint: duo, scale: 0.5, note: "its onExpire strike only, and only when armed (its damage follows): the spark leaves the user for the remembered target, then the hit cue plays" }
+
+  snipe.battery:
+    beat: Jagged sparks converge on the user's rails; next turn every Cell is fed in, the barrel blasts and the slug punches clean through the hidden target in a violet spray.
+    note: >-
+      HiddenTarget: nothing points at or travels to the target before the hit. Scale both hit cues with the Cells
+      discharged (about 1.0 at none, 1.4 at 5). A kill stores the Cells again, which plays Cell's default on the user.
+    cues:
+      # The rails charging, on the user only (it points at nothing). Cut before the ring and the white sphere: Paralysis plays those and the burst.
+      - { on: cast, fx: stylized_explosion_005, scale: 0.8, frames: [0, 13], speed: 1.3, note: "only the zigzag shards converging into a charged orb" }
+      - { on: trigger, status: railgun, fx: scifi_warp_002, scale: 0.8 }   # fires as Railgun expires, after the discharge macro: a radial blast that names no target
+      - { on: hit, fx: directional_impact_001, face: fromActor, tone: light, scale: 1.1, note: "its shock ring (right of center as drawn) on the target, the shard fan streaming out the far side: the slug passing through" }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.9, delay: 60 }
+
+  trap.battery:
+    beat: A cracked Cell is planted at the target's feet unseen, dribbling acid; when they reach for a Helpful skill it blows under them and splashes everyone they meant to help.
+    cues:
+      - { on: apply, status: leaking_cell, fx: directional_splatter_005, size: small, tint: duo, scale: 0.6, layer: under, opacity: 0.7 }   # Invisible: owner only
+      - { on: trigger, status: leaking_cell, fx: stylized_explosion_003, tint: duo, scale: 0.8 }   # the opponent's first sight: it goes off like a landmine
+      - { on: hit, fx: lightning_burst_003, size: small, scale: 0.6, delay: 100 }   # the 15 Piercing jolt; Corroded's default lands on every unit their skill reached
+
+  maneuver.battery:
+    beat: A current splits the user and charged gas bubbles stream up off them; their Toxin and Sapped bubble out and condense into Cells.
+    cues:
+      # Electrolysis: gas splitting off the user (not the acid foam, which in this kit means a Shield being eaten).
+      # Its native blue bubbles and yellow sparkles sit near the violet and lime, so they don't fight the tint.
+      - { on: cast, fx: directional_bubble_burst_001, tint: duo, scale: 0.9, speed: 1.6, frames: [0, 32], offset: [0, -0.3], note: "anchored low: its bubbles drift to the top third" }
+      - { on: cast, fx: lightning_strike_003B, size: small, scale: 0.6, speed: 1.5, delay: 120 }   # the current that splits them
+      # Invulnerable's default, Toxin's and Sapped's removals, then one Cell default for the stacks converted.
+
+  companion.battery:
+    beat: Acid fountains up from the ground and a bombardier beetle pops out of it with a crackling blast.
+    cues:
+      - { on: summon, fx: directional_splatter_002, tint: duo, scale: 0.8 }
+      - { on: summon, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.6, delay: 200 }
+
+  bolt.battery:
+    beat: A wavy glob of lime battery acid streaks in, balls up and erupts in a spiky splash; any Armor on the target smokes away.
+    cues:
+      - { on: travel, fx: slime_3, tint: duo, scale: 0.7, speed: 1.3, frames: [0, 7], note: "stop on the ringed goo ball, before its own puddle splat (frame 8 on); slime_4's orb burst is the impact" }
+      - { on: hit, fx: slime_4, face: fromActor, scale: 0.9, note: "the orb origin (lower-left as drawn) on the target, so the spikes fan on past them" }
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.55, delay: 80 }
+      - { on: remove, status: armor, fx: directional_smoke_burst_004, tint: element2, scale: 0.6 }   # the Armor etched away; Toxin's default marks what it became, then Corroded's
+
+  blast.battery:
+    beat: Every stored Cell is dumped at once; an indigo-and-lime nova rolls over the enemy side, violet bolts slam each enemy and acid splashes up under them.
+    note: The discharge macro plays first, on the user. Scale the nova and the bolts with the Cells spent. The user's Sapped, once per Cell, shows through Sapped's default.
+    cues:
+      - { on: hit, fx: deathbringer_4, at: enemySide, scale: 2.4, note: "once, with the first hit" }
+      - { on: hit, fx: lightning_strike_003A, scale: 1.3, delay: 100, stagger: 90 }   # tall enough that the bolt falls from above each head
+      - { on: hit, fx: directional_splatter_002, tint: element2, scale: 0.6, delay: 180, stagger: 90 }
+
+  consume.battery:
+    beat: A crackling lime line clamps onto the target; each turn it pumps their poison home and the user drinks it as healing and Charge.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, path: beam, tint: duo, speed: 1.4 }   # the line clamps on; Toxin's default marks the target
+      - { on: trigger, status: leech_line, fx: directional_particle_burst_001, face: toActor, tint: element2, scale: 0.7 }   # each turn end, poison drawn off toward the user
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, scale: 0.6, speed: 2, delay: 150 }   # Charged's default follows
+
+  summon.battery:
+    beat: A buzzing cloud of sparks puffs up and a swarm of voltaic wasps lifts off out of it.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo, scale: 0.9 }
+      - { on: summon, fx: directional_particle_burst_001, scale: 0.7, delay: 200 }   # violet motes rise: the swarm taking wing
+
+  channel.battery:
+    beat: A charged acid cloud gathers over the user; at the end of each of their turns it swells again and a sizzling drizzle falls on every enemy.
+    note: >-
+      The once-only extra turn changes no unit, so it has no cue of its own. The drizzle hangs on the tick (the trigger),
+      not on a hit, so every tick shows it, extension included, even one whose damage is all blocked: Corroded's
+      splash still lands on every enemy.
+    cues:
+      - { on: cast, fx: stylized_explosion_006, tint: duo, scale: 0.7, offset: [0, 0.75] }   # the cloud gathers above the user's head
+      - { on: trigger, status: acid_drizzle, fx: stylized_explosion_006, tint: duo, scale: 0.55, offset: [0, 0.75], speed: 1.3 }   # each tick the cloud swells over the user again
+      - { on: trigger, status: acid_drizzle, fx: round_firework_burst_001, at: enemySide, tint: duo, scale: 2.2, offset: [0, 0.5], delay: 150, note: "every tick, as the cloud swells: sparks spray over the row and droop down as drizzle" }
+      - { on: hit, fx: directional_particle_burst_001, face: down, tint: duo, scale: 0.7, delay: 250, stagger: 80 }   # turned over: white-cored lime drops streak down onto each enemy as the drizzle droops; Corroded's splash follows
+
+  stab.battery:
+    beat: The prod jabs a short violet spark straight through the target, its streaks spraying on out the far side; the acid comes after.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tone: light, scale: 0.45, speed: 1.3, note: "put its left edge (the white ring) on the target so the ring marks the prod's contact and the streaks spray on past them; 0.6 on the 20-damage branch (target was Corroded)" }
+      # Corroded's default splashes the acid and re-marks them.
+
+  ravage.battery:
+    beat: Fanged jaws of current clamp shut around the target, the relay locks with a crack and acid spits from the contacts.
+    cues:
+      - { on: hit, fx: necromancer_8, tint: duo, frames: [1, 6] }   # the jaws close; cut before its skull surfaces
+      - { on: hit, fx: lightning_burst_003, scale: 0.8, delay: 120 }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.7, delay: 220 }
+      # Sapped's default follows; Locked Relay's lost energy shows in the energy bar.
+
+  mislead.battery:
+    beat: A ground wire is clipped to the target unseen; when they attack, the charge earths through them in a bolt and fizzles, and any Shield they had foams away.
+    cues:
+      - { on: apply, status: short_to_ground, fx: dark_mage_3, tint: duo, scale: 0.6, layer: under, opacity: 0.6 }   # Invisible: owner only. A faint ring at their feet
+      - { on: trigger, status: short_to_ground, fx: lightning_strike_003A, scale: 1.1 }   # the opponent's first sight: their attack grounds out through them; the counter's X follows
+      - { on: trigger, status: short_to_ground, fx: directional_smoke_burst_004, tint: element2, scale: 0.6, delay: 250 }
+      - { on: hit, fx: round_bubble_burst_001, size: small, tint: element2, scale: 0.6 }   # with a Shield: the 10 Affliction as acid foam, after Shield's own break
+
+  stun.battery:
+    beat: Zigzag shards close on the target and burst in a paralyzing jolt; every drop of their Toxin bubbles through them at once.
+    cues:
+      # bound to the Stun landing, so a countered or refused Paralysis jolts no one
+      - { on: apply, status: stun, fx: stylized_explosion_005, scale: 0.9, frames: [12, 25], speed: 1.3 }   # the last shards converge and the charged sphere bursts
+      # Stun's default, re-added after the jolt (this skill's own apply cue replaces it)
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 250, note: "portrait staggers back a step" }
+      # Toxin's tick look, all at once. With no Toxin the engine still emits a damage event, with a base of 0 (a flat
+      # damage-taken bonus can even make it real damage): that event plays nothing here; the jolt above already marks them.
+      - { on: hit, fx: status_poison_001, tint: element2, scale: 0.8, speed: 1.5, note: "only when the damage event's base is above 0 (the target had Toxin); a 0-base event plays nothing. Grow it with the base: about 0.6 at 1 stack to 1.0 at 4+" }
+
+  dance.battery:
+    beat: Two charged motes waltz around the user on a ring of current; at each turn's end they whirl again as Charge leaps home from the poisoned enemies.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 1.1, frames: [0, 13] }   # two orbs circling a ring: the dancing pair. Its last frame (a dim ghost ring) is cut
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.5, delay: 450 }   # the twirl's flourish
+      - { on: trigger, status: voltaic_waltz, fx: frost_mage_1, tint: duo, scale: 0.5, frames: [0, 13], speed: 1.5, note: "only when it grants Charge (some enemy has Toxin)" }   # Charged's default follows
+      # Might and Swiftness defaults follow the cast.
+
+  heal.battery:
+    beat: A surge of lime energy spikes up through the ally and green crosses rise; the user's Cells crack open as they cross over as Charge.
+    cues:
+      - { on: heal, fx: directional_particle_burst_002, tint: duo, tone: light, scale: 0.8, layer: under }
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, scale: 0.6, speed: 1.5, delay: 120 }
+      # The Cells moved: removeStacks reports only a last Cell, so Cell's remove default is silenced here (it would play
+      # for 1-3 Cells and not for 4-5); Charge lands on the ally exactly when Cells moved, so the spark below is the one
+      # tell on the user. `buff` adds to Charged's crackle on the ally; this plays on the user.
+      - { on: remove, status: cell, fx: none }
+      - { on: apply, status: buff, fx: scifi_spark_burst_001, at: actor, size: small, tint: duo, scale: 0.5 }
+
+  bless.battery:
+    beat: A charged capsule of adrenaline drops onto the ally and bursts at their feet, energy squirming up through them, and their pulse races; every heal after jolts them with Charge.
+    cues:
+      - { on: apply, status: adrenal_charge, fx: scifi_warp_003, tint: duo, scale: 0.8, note: "canvas bottom at their feet; its descent is a thin glowing capsule, so keep it at this size or larger" }   # drawn falling from above: the shot lands in a splash ring and wavy tendrils rise
+      - { on: apply, status: adrenal_charge, fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.4, offset: [0, 0.6], speed: 1.5, delay: 350 }   # a racing pulse over their head, after the splash
+      - { on: trigger, status: adrenal_charge, fx: scifi_heartbeat_fast_001, size: small, tint: duo, scale: 0.35, offset: [0, 0.6], speed: 1.5 }   # each heal spikes it again; Charged's default follows
+      # Might's and Renew's defaults follow.
+
+  curse.battery:
+    beat: An indigo seal glows over the target, flashes and melts away in lime drips; their charge drained, their Sapped now marks them as Prey.
+    cues:
+      - { on: apply, status: low_battery, fx: deathbringer_2, scale: 0.8, opacity: 0.85, speed: 1.5, frames: [2, 22] }
+      - { on: apply, status: low_battery, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.45, speed: 1.5, delay: 650 }   # a burnt-out wisp where the seal was
+      # Confusion's question mark plays by default.
+
+  smite.battery:
+    beat: A violet comet falls onto the target, splashes them with acid and studs them with pins; each ally who strikes the brand draws a spark of healing from it.
+    cues:
+      - { on: hit, fx: starcaller_2, face: down, offset: [0, 0.6], note: "raised so the star head lands on the target's head as the tail streams down after it" }   # native violet
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.65, offset: [0, 0.2], delay: 150, note: "where the comet head lands" }   # the landing; Corroded's splash follows
+      - { on: apply, status: stripping_brand, fx: fanfx_pain, tint: duo, tone: light, scale: 0.85, speed: 1.8, delay: 200 }   # the brand, brightened: the one tell their allies need to read
+      - { on: trigger, status: stripping_brand, fx: scifi_spark_burst_001, size: small, tint: duo, scale: 0.5 }   # struck: sparks fly off the brand
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, scale: 0.5, speed: 1.5 }   # on the ally who struck it
+
+  prayer.battery:
+    beat: A grid of lime light switches on under the team and lifts each ally; then a line of current runs along them and their health levels out.
+    note: >-
+      The leveling heals are raw and quiet but still heal events, so a below-average ally's second heal replays the
+      heal cue; an above-average ally's share leaves as Affliction, which plays the hit cues.
+    cues:
+      - { on: cast, fx: dark_mage_3, at: allySide, tint: duo, scale: 2.0, layer: under }   # the grid powers on under the team
+      - { on: heal, fx: spell_heal_002, tint: element2, scale: 0.8, speed: 1.5, stagger: 100 }
+      - { on: hit, fx: necromancer_6, at: allySide, tint: duo, scale: 2.0, opacity: 0.85, note: "once: the grid line pools their health" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45 }   # each ally giving health into the pool
+
+  cleave.battery:
+    beat: A charged blade sweeps a wide arc of acid through the target, and the arc leaps on into a second enemy with a crackle.
+    cues:
+      # Sweep-arc art, mirrored so the arc sweeps over from the user's side: one wide crescent (its white core stays
+      # white) whose misty edging takes the tint as acid fumes.
+      - { on: hit, only: primary, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.65, delay: 150 }
+      - { on: hit, only: others, fx: lightning_burst_002, size: small, scale: 0.45, delay: 150 }   # the arc's jump lands
+      # Corroded's default splashes the acid wherever the branch puts it.
+
+  shout.battery:
+    beat: An alarm blares off the user, a double ring of charged acid pulsing out under a '!!'; after it, any big skill an enemy tries trips the alarm and overloads them.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.3 }
+      - { on: cast, fx: symbol_alert_002, size: small, tint: duo, scale: 0.45, offset: [0.4, 0.55], delay: 150, note: "fade its held glyph" }
+      # The alarm trips on the hit, not the trigger: the trigger hears every skill they use, but only one costing 3 or more deals the 15.
+      - { on: trigger, status: overload_alarm, fx: none }   # it fires on every skill they use; the hit cues below carry the ones that overload
+      - { on: hit, fx: symbol_alert_002, size: small, tint: duo, scale: 0.4, offset: [0, 0.6], speed: 1.5, note: "fade its held glyph" }
+      - { on: hit, fx: lightning_burst_003, scale: 0.7, delay: 100 }   # the overload, after the alarm trips
+      # Intimidated's default lands on every enemy.
+
+  withstand.battery:
+    beat: The user's core hums as Cells stack up behind them into a lime battery wall; whatever charge it still holds at the end drains into storage as Cells.
+    cues:
+      - { on: apply, status: battery_pack, fx: scifi_charge_up_001, tint: duo, scale: 0.7, opacity: 0.85, speed: 1.2 }   # the pack's core charging, its needle swinging like a gauge
+      - { on: apply, status: battery_pack, fx: fanfx_barrier, tint: duo, scale: 1.2, layer: under, opacity: 0.55, frames: [0, 13], delay: 100, note: "fade out after frame 13: cut before the panel shatters" }   # the Cells stack into a wall: Battery Pack's identity
+      # An inline Shield gets no base Shield `expire` default, so its end is shown here, in the base Shield's expire look.
+      - { on: trigger, status: battery_pack, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.6, opacity: 0.6, note: "as it expires (its onExpire), before Cell's default: the leftover Shield drains into storage" }
+      # Cell's default then shows what was banked (nothing, with under 10 left).
+
+  taunt.battery:
+    beat: The user's eyes flare in an acid-bright glare at the target, who is called out and etched; each turn their Shield foams away and the stripped charge shields the user.
+    cues:
+      - { on: cast, fx: round_light_burst_001, tint: duo, tone: light, scale: 0.6, offset: [0, 0.25] }   # the glare: an eye-shaped flare across the user's face
+      - { on: apply, status: etching_glare, fx: burst_splatter_001, tint: duo, scale: 0.55 }   # it counts as Corroded, so it wears Corroded's splash
+      - { on: trigger, status: etching_glare, fx: round_bubble_burst_001, size: small, tint: element2, scale: 0.55, opacity: 0.75, note: "only when the bearer had a Shield to lose" }   # Corroded's foam; Shield's default then plays on the user
+      # Taunt's '!' marks the target.
+
+  titan.battery:
+    beat: The user becomes a living battery; a lime mushroom of charged acid erupts around them with current forking up through it, and every turn more current tops them up with a Cell.
+    cues:
+      - { on: apply, status: living_battery, fx: epic_explosion_003, tint: duo, scale: 1.7, layer: under, note: "a short board shake" }
+      - { on: apply, status: living_battery, fx: lightning_strike_001, scale: 1.2, delay: 200 }   # violet bolts fork up out of the eruption from their feet: the user is the battery now
+      - { on: trigger, status: living_battery, fx: lightning_strike_003B, size: small, scale: 0.5, speed: 1.5 }   # each turn end current tops them up; Cell's default follows
+      # Immune's default follows the eruption. No Cell is stored at cast, so Cell's capsule waits for the first turn end.
+
+  bombardier_beetle_acid_jet:
+    beat: The beetle blasts a cone of scalding acid at the target.
+    cues:
+      - { on: travel, fx: necromancer_3, path: beam, tint: element2, tone: light, speed: 1.4, note: "the cone fills only the left 2/3 of its canvas: stretch it to about 1.5x the beetle-to-target distance so its far edge lands on the target, under the hit splatter" }   # its dark smoke body needs the lighter stop on a dark board
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.6, note: "at 0.8 on the 20-damage branch (target was Corroded)" }
+
+  voltaic_wasps_arc_sting:
+    beat: The swarm's barb stings the target in a thin violet streak, and the charge jumps on into every other poisoned enemy.
+    cues:
+      - { on: hit, only: primary, fx: starcaller_7, face: fromActor, scale: 0.45, speed: 1.3 }
+      - { on: hit, only: others, fx: lightning_burst_002, size: small, scale: 0.4, delay: 150, stagger: 80 }
+      # Toxin's default marks the stung target.
