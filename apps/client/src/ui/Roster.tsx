@@ -70,17 +70,20 @@ export function CharacterCard({
   order,
   className = '',
   buttonProps,
+  retire,
 }: {
   c: Character;
   onOpen: () => void;
   selected?: boolean;
   order?: number;
   className?: string;
+  /** A corner X that retires the character (a shortcut; `blocked` explains why it can't be). */
+  retire?: { onClick: () => void; blocked?: string };
   /** Extra props for the card's button (drag-and-drop handlers, a drop target). */
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement> & { 'data-drop'?: string };
 }) {
   const cls = content.classes[c.classId];
-  return (
+  const card = (
     <button
       type="button"
       {...buttonProps}
@@ -103,5 +106,22 @@ export function CharacterCard({
         <SkillChips skills={effectiveSkills(c)} />
       </div>
     </button>
+  );
+  if (!retire) return card;
+  // The X sits beside the card's button (a button can't hold another), over its corner.
+  return (
+    <div className="char-card-wrap">
+      {card}
+      <button
+        type="button"
+        className="char-retire"
+        aria-label={`Retire ${c.name}`}
+        title={retire.blocked ?? `Retire ${c.name}`}
+        disabled={!!retire.blocked}
+        onClick={retire.onClick}
+      >
+        ×
+      </button>
+    </div>
   );
 }
