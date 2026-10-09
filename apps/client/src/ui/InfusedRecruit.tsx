@@ -4,6 +4,7 @@
 // placed.
 
 import { useState } from 'react';
+import { byElementOrder } from '@arena/engine';
 import { rollableClasses, rollableElements } from '@arena/meta';
 import { content } from '../content.js';
 import { useT } from '../i18n/index.js';
@@ -17,7 +18,7 @@ type El = keyof typeof ELEMENT_PROSE;
 export function InfusedRecruitDialog({ onClose, onRecruited }: { onClose: () => void; onRecruited: (id: string) => void }) {
   const t = useT();
   const { infusedRecruits, busy, recruitInfused, characters, maxRoster } = useMeta();
-  const elements = rollableElements(content);
+  const elements = rollableElements(content).sort(byElementOrder);
   const classes = rollableClasses(content);
   const [element, setElement] = useState<string>(elements[0]!);
   const [classId, setClassId] = useState<string>(classes[0]!.id);

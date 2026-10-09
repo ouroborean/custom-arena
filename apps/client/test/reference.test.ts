@@ -30,7 +30,7 @@ describe('the reference, from the content bundle', () => {
       expect(g.kits[0]!.parents).toEqual([el, el]);
       expect(g.kits.every((k) => k.parents.includes(el as (typeof ELEMENTS)[number]))).toBe(true);
     }
-    expect(ref.groups[0]!.kits.map((k) => k.id).slice(0, 3)).toEqual(['dragon', 'apocalypse', 'alchemy']);
+    expect(ref.groups[0]!.kits.map((k) => k.id).slice(0, 3)).toEqual(['dragon', 'apocalypse', 'mechanic']);
     // A pair is listed under both its elements; a pure fusion under its one.
     const phoenix = ref.kitById.get('phoenix')!;
     expect(phoenix.groups).toEqual(['fire', 'holy']);

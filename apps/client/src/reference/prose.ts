@@ -4,8 +4,10 @@
 // every skill, keyword, status, term and class comes from the content bundle (reference/data.ts).
 // `**bold**` marks emphasis; keep these in step with the game when a rule changes or a kit is reworked.
 
+import { ELEMENT_ORDER } from '@arena/engine';
+
 /** The ten base elements, in the order the reference lists them. */
-export const ELEMENTS = ['Fire', 'Ice', 'Water', 'Lightning', 'Wind', 'Poison', 'Earth', 'Holy', 'Unholy', 'Shadow'] as const;
+export const ELEMENTS = ELEMENT_ORDER;
 
 export interface ProseSection {
   title: string;

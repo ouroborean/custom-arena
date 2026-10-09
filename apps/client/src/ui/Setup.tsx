@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { availableElements, randomCharacter, randomConfig } from '@arena/ai';
-import { seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
+import { byElementOrder, seedRng, type CharacterSpec, type MatchConfig } from '@arena/engine';
 import { content } from '../content.js';
 import type { BotKind, MatchMode } from '../match/LocalMatch.js';
 import { useStore } from '../store.js';
@@ -8,7 +8,7 @@ import { portraitKey } from '../assets.js';
 import { classCode, CostPips, elementClass, PortraitArt, portraitStyle, SkillGlyph, Tooltip } from './common.js';
 import { RulesText } from './RulesText.js';
 
-const ELEMENTS = availableElements(content);
+const ELEMENTS = availableElements(content).sort(byElementOrder);
 
 type ModeKind = MatchMode['kind'];
 
