@@ -1,0 +1,292 @@
+group: life
+# Life is Earth turned up: both parents are Earth, so the fusion shows in the layering, not a new hue.
+# Bark, loam and root are `element` at `tone: dark` (deeper than Earth's dust brown); sap, pollen and
+# sunlight are `element2` at `tone: light` (a warm gold-cream over-layer). Earth's dust and rubble come
+# alive: roots, thorns, vines and heartwood, bigger and more layered than Earth's, and everything grows
+# upward. Heals rise as sap-gold light.
+# Signature motifs: the Life sprout (a ring opens in the soil and shafts of gold light climb out of it,
+# dark_mage_3), which is how every Seedling this kit makes arrives; Flourish (hearts and up-arrows fanning
+# up: overflow healing turned into max HP); and the Bloom (a four-petal blossom bursting open, dark_mage_4),
+# kept for Bloom itself and the Ancient Treant.
+
+statuses:
+  life_grove:   # the fusion passive, set on every Life character; no trigger (each Seedling's Blooming carries it)
+    apply:   [ { fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.45, opacity: 0.8 } ]   # a small gold shoot noses up at their feet
+  bloom_timer:
+    note: "Put on every Seedling a Life character creates, right after the Life sprout. No expire cue: when it runs out, bloom_it's cues play the Bloom."
+    apply:   [ { fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.35, offset: [0, 0.5], speed: 1.5 } ]   # a ring of buds glints over the Seedling's head
+  wild_growth:
+    note: "No trigger of its own: each Bloom it rewards plays Might's default on the bearer (inside bloom_it)."
+    apply:   [ { fx: directional_particle_burst_002, size: small, tint: element2, tone: light, scale: 0.7, layer: under } ]   # sap-gold spikes shoot up around them
+  acorn_growth:   # the Acorn, at its owner's turn end: +10 max HP and a 10 heal, without limit
+    trigger: [ { fx: spell_buff_001, size: small, tint: element2, tone: light, scale: 0.45, speed: 1.6, note: "carries its 10 heal too; the Acorn's portrait grows a step" } ]
+
+macros:
+  flourish_it:   # its max HP raise and the quiet heal that fills it
+    - { fx: directional_heart_burst_003, size: small, tint: element2, tone: light, scale: 0.65, speed: 1.6, frames: [0, 24], note: "only when grow ≥ 1: bind it to the macro's quiet heal (the addMaxHp raises no event); never on a heal with no overflow, where the macro does nothing. The portrait swells a touch and settles: max HP grew" }   # its up-arrows read as the stat rising
+  bloom_it:   # a Seedling Blooms into a Treant (the transform is a summoned event inside the macro)
+    - { fx: dark_mage_4, tint: element2, tone: light, scale: 1.1, frames: [1, 8], stagger: 150, note: "plays on the Blooming Seedling (`it`) only. The transform's summoned event (defId treant) belongs to this macro: no caller summon cue and no base summon default play for it. The Might it may give the summoner/actor plays only Might's default on them" }   # the blossom bursts open around it: skip the grey start dot
+    - { fx: directional_particle_burst_002, tone: dark, scale: 1.2, layer: under, delay: 120, stagger: 150 }   # bark spikes heave up behind it as the trunk thickens into the Treant
+
+skills:
+  strike.life:
+    beat: A knotted oak fist punches into the target and bursts out the far side in a spray of leaves.
+    note: "Damage grows +5 per 10 max HP the user has Flourished (up to +15): step the fist up about 0.1 scale per 5."
+    cues:
+      - { on: hit, fx: warrior_6, tint: element, tone: dark, face: fromActor, scale: 0.9, note: "its impact star sits ~72% across: anchor that on the target" }   # the triple crescent is the knuckles
+      - { on: hit, fx: directional_impact_001, size: small, tint: element2, tone: light, face: fromActor, scale: 0.7, delay: 80 }   # leaf-shard streaks carry on past them
+
+  smash.life:
+    beat: The ground erupts under the target in a dome of loam and roots, and a gold swell rolls out along the whole board, mending every other unit.
+    cues:
+      - { on: hit, fx: epic_explosion_003, tone: dark, scale: 1.2 }   # its olive smoke goes deep loam under the tint
+      - { on: heal, fx: directional_impact_002, at: field, tint: element2, tone: light, scale: 2.2, layer: under, note: "once, with the first heal: the swell runs out both ways along the ground" }
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 150, stagger: 50, speed: 1.6 }   # every other unit's 15, both sides
+      # Flourish's own cues follow on whoever overflows.
+
+  charge.life:
+    beat: The user rushes in on a gust of sap-gold dust and bursts into the target in a crown of splinters; a Seedling sprouts behind them and a ring of leaves settles at their feet, ready to turn the next blow onto a minion.
+    cues:
+      - { on: travel, fx: frost_mage_7, tint: element2, tone: light, scale: 0.8, note: "Earth's dust-cloud dash, in sap-gold; the portrait lunges along it and snaps back" }
+      - { on: hit, fx: blood_knight_3, tint: element, tone: dark, face: fromActor, scale: 0.75 }   # origin low-left of centre: the spikes splay on past the target
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout
+      - { on: apply, status: sapling_guard, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.5, offset: [0, -0.4], opacity: 0.85, delay: 250 }   # the guard goes on: a ring of leaves settles at the user's feet after the sprout
+      - { on: trigger, status: sapling_guard, fx: none, note: "nothing: redirectDamage reroutes a hit to a minion before the bearer's damaged trigger is queued, so this trigger fires only when the guard fails (no minion left, the user takes the hit). A turned-aside hit plays its hit cue on the minion that takes it" }
+
+  riposte.life:
+    beat: A ring of thorns quietly circles the user; when struck at, a thorn hedge bursts up around them, a vine lashes the attacker, and a Seedling springs up to hold their attention.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: element, tone: dark, scale: 0.8, opacity: 0.75, note: "Invisible: owner only. Fade out its dim ghost ring" }
+      - { on: trigger, status: thornwall, fx: frost_knight_3, tint: element, tone: dark, scale: 1.3, layer: under }   # the hedge: spikes in its bottom third flank the user, then crumble to dust
+      - { on: trigger, status: thornwall, at: source, fx: dark_mage_1, tint: element, face: fromActor, scale: 0.7, delay: 120 }   # a vine whips across the attacker as their skill is countered (Earth mid: its navy body would sink into the board a stop darker)
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout; Taunt's '!' then lands on the attacker
+
+  rage.life:
+    beat: Gnarled boughs fork up out of the ground behind the user as sap surges through them and a Seedling sprouts; each turn after, sap wells up again and another pushes up.
+    cues:
+      - { on: apply, status: wild_growth_surge, fx: lightning_strike_001, tint: element, scale: 1.7, layer: under, frames: [0, 4], note: "its forked V towers past the portrait as branching boughs; stop before the bolts shatter into electric fragments and fade the held frame out" }
+      - { on: apply, status: wild_growth_surge, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.8, delay: 150 }   # sap motes rise through the user
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, now and at each turn start
+      - { on: trigger, status: wild_growth_surge, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # turn start: sap wells up in the user before the new Seedling
+
+  shot.life:
+    beat: A seed pod is flicked over and lodges in the target; it swells each turn, and a second shot bursts the ripe pod in a spray of seeds while sap flows back to the user.
+    note: "The harvest's damage (10 or 25) plays the same hit cue; scale the harvest burst with it (0.5 for an unripe pod, 0.9 at 25)."
+    cues:
+      - { on: travel, fx: slime_3, tint: element, tone: dark, scale: 0.5 }   # the pod wobbles over, rings and splats in
+      - { on: hit, fx: burst_splatter_001, size: small, tint: element2, tone: light, scale: 0.5 }
+      - { on: trigger, status: ripening_seed, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.4, note: "only when its stacks rise (to 2, then 3: worth 10, then 25); at 3 stacks the trigger changes nothing: play nothing" }   # turn end: the seed swells and a shoot noses out
+      - { on: remove, status: ripening_seed, only: primary, fx: round_firework_burst_002, size: small, scale: 0.7, speed: 1.5 }   # the harvest: the pod bursts and seeds fly out on trails
+      - { on: remove, status: ripening_seed, only: others, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.4, opacity: 0.7 }   # the user's old seed elsewhere withers, unharvested
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.6 }   # half the harvest, on the user
+
+  snipe.life:
+    beat: Bark spikes push up around the user as a heartwood spear grows; it swells with sap each turn, and when it's ready it drives through the target in a ringing starburst of sap-gold light.
+    note: "The spear lands when the channel ends (the inline status's expiry), so the strike is all hit cues: no travel. Interrupted, base's interrupted default plays instead."
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, size: small, tone: dark, scale: 0.8, layer: under }
+      - { on: trigger, status: heartwood_spear, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # each turn end, before Channel Growth's own cues on the Seedlings
+      - { on: hit, fx: warrior_8, tint: element, tone: dark, face: fromActor, scale: 1.3 }   # the long heartwood blade drives in from the user's side
+      - { on: hit, fx: symmetrical_impact_002, tint: element2, tone: light, scale: 1.0, delay: 100 }   # a spiky starburst, then a double ring with wedge rays (the leaf-blade cross stays Call of the Grove's)
+      - { on: hit, fx: directional_splatter_004, tone: dark, face: fromActor, scale: 0.7, delay: 150 }   # splinters fan out past them
+
+  trap.life:
+    beat: A knot of roots juts up under the enemy and sinks out of sight; at each of their next three skills the same roots burst up and clench around them, and at the third a Seedling sprouts on the user's side.
+    cues:
+      - { on: apply, status: strangling_roots, fx: frost_mage_4, tint: element, tone: dark, layer: under, opacity: 0.85, note: "Invisible: owner only. Its shoots rise and shrink back into the ground: set and hidden" }
+      - { on: trigger, status: strangling_roots, fx: frost_mage_4, tint: element, scale: 1.1, note: "only when a Weakness apply follows (the first three skills); after the Seedling the roots are spent: play nothing. The buried set itself, now seen by both players: the roots jut up and clench over the portrait, then shrink back" }   # Weakness's default follows
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, at the third tightening
+
+  maneuver.life:
+    beat: The user sinks roots into cracking soil as Invulnerable's shell closes over them, and a mossy Boulder heaves up beside them; next turn it splits open into a Worldsprout.
+    cues:
+      - { on: cast, fx: directional_impact_003, tone: dark, scale: 0.8, layer: under }   # the soil cracks open around their feet as the roots plunge in
+      - { on: summon, fx: frost_mage_3, tint: element, tone: dark, scale: 0.85, note: "renderer filter: play only when summoned.defId == boulder, not on the Worldsprout transform. Ends on its brightest frame: fade it as the portrait appears" }
+      - { on: summon, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.5, delay: 200, note: "renderer filter: boulder only" }   # a gold shoot noses out of the stone: a hint of what it becomes
+      # Next turn, take_root's expiry turns the Boulder into a Worldsprout: transformMinion emits summoned (defId worldsprout), a summoned event of this skill.
+      - { on: summon, fx: symmetrical_impact_004, size: small, tone: dark, scale: 0.7, note: "renderer filter: play only when summoned.defId == worldsprout: the stone splits apart" }
+      - { on: summon, fx: directional_splatter_005, tint: element2, tone: light, scale: 0.9, delay: 120, note: "renderer filter: worldsprout only: the shoot bursts up out of the split stone" }
+      # Invulnerable's default plays on the user.
+
+  companion.life:
+    beat: An acorn drops from above and thuds into the soil, which splashes up around it, and gold motes glint as it takes root.
+    cues:
+      - { on: summon, fx: paladin_7, tint: element, tone: dark, scale: 0.75, note: "its last frame is a held ochre patch: fade it out" }
+      - { on: summon, fx: directional_sparkle_burst_002, size: small, tint: element2, tone: light, scale: 0.6, delay: 250, speed: 1.4 }
+
+  bolt.life:
+    beat: A thorn seed glints as it streaks over and bursts into a star of spines; each turn after, thorns needle out through the target and their sap flows back to the user.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: element, tone: light, scale: 0.55 }   # lifted a stop: its navy tail and smudge impact would vanish on the board
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: element, scale: 0.8 }   # spiked star, spike-fringed disc, ring of jagged shards (also each later 10's impact)
+      - { on: trigger, status: growing_thorn, fx: fanfx_pain, scale: 0.8, frames: [3, 32], speed: 1.6 }   # turn end: thorns needle out through them before the 10 lands
+      - { on: heal, fx: directional_particle_burst_001, size: small, tint: element2, tone: light, scale: 0.5 }   # the user's 5: sap motes rise
+
+  blast.life:
+    beat: A breaker of vines rears up and crashes down across the enemy row, snarling every enemy; a Seedling sprouts for each one left reeling.
+    cues:
+      - { on: hit, fx: deathbringer_1, tint: element, at: enemySide, face: fromActor, scale: 2.3, note: "once, with the first hit: the side anchor doesn't repeat per enemy. Its crash lands at the canvas's lower-right corner: align that with the middle of the row" }
+      - { on: hit, fx: burst_splatter_002, size: small, tone: dark, scale: 0.7, delay: 200, stagger: 80 }   # vines snarl around each enemy
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12], stagger: 150 }   # the Life sprout, once per enemy left below 50 HP (max 2)
+
+  consume.life:
+    beat: One of the user's Seedlings melts into rising sap, which spirals into the ally and knits them whole; with none to give, a Seedling sprouts instead.
+    cues:
+      - { on: death, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.8 }   # the sacrificed Seedling (or Treant) dissolves into sap motes
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.85, speed: 1.6 }   # the sap spirals into the ally: the life taken in
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, delay: 300, speed: 1.8 }
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, only when there was nothing to harvest
+
+  summon.life:
+    beat: A ring opens in the soil, shafts of gold light climb out of it, and a Dryad steps up through them in a puff of glinting pollen.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 1.2 }   # the Life sprout at full height: the whole ring and its pillars
+      - { on: summon, fx: directional_splatter_005, size: small, tone: dark, scale: 0.6, layer: under }   # soil kicked up at its base
+      - { on: summon, fx: directional_sparkle_burst_002, tint: element2, tone: light, scale: 0.9, delay: 200, speed: 1.3 }
+
+  channel.life:
+    beat: The grove around the user glimmers as they settle in to tend it; each turn's end a warm glow spreads from them and every minion is mended, or a Seedling sprouts if there are none.
+    cues:
+      - { on: cast, fx: status_sparkling_001, at: allySide, tint: element2, tone: light, scale: 1.8, opacity: 0.8, note: "one pass of the loop, then fade" }
+      - { on: trigger, status: tend_the_grove, fx: directional_sparkle_burst_002, tint: element2, tone: light, layer: under, speed: 1.3 }   # each pulse: the glow wells up at the tender's feet
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.55, stagger: 80, speed: 1.6 }   # each allied minion's 15
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, on a pulse with no minion to tend
+
+  stab.life:
+    beat: One of the user's Seedlings snaps into a splinter that spears through the target; with no Seedling, a thinner thorn jabs and one sprouts.
+    note: "25 Piercing with a Seedling sacrificed, else 10: play the hit cues about 1.3x larger on the 25."
+    cues:
+      - { on: death, fx: burst_splatter_003, size: small, tone: dark, scale: 0.6, note: "the sacrificed Seedling only (the user's own minion, killed by the kill op before the damage); an enemy the spike kills plays base's death default" }   # the Seedling splinters in eight spokes
+      - { on: hit, fx: starcaller_7, tint: element, tone: dark, face: fromActor, scale: 0.7, note: "its impact star sits low-left (~30%/70%): anchor that on the target" }   # a thin splinter stroke spears in, flashes and hooks away
+      - { on: hit, fx: scifi_muzzle_flash_003, size: small, tint: element2, tone: light, face: fromActor, scale: 0.5, delay: 60, speed: 1.3 }   # the ring at the target, a jet of splinters and sap carrying on past it
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, on the 10-damage branch
+
+  ravage.life:
+    beat: A taproot rips up from under the target and tears through them in a flurry as sap sprays out; against a Stunned target, their life is drawn down into the user.
+    note: "The 10 max HP moved (addMaxHp on both) raises no event of its own; the user's quiet 10 heal, which only happens in the Stunned branch, carries the draw and the Flourish tell."
+    cues:
+      - { on: hit, fx: warrior_7, tint: element, tone: dark, face: fromActor, scale: 1.0 }   # claw swipes, then the big hooked fang: the root tearing through
+      - { on: hit, fx: directional_impact_004, tone: dark, layer: under }   # the taproot ruptures up out of the ground beneath them
+      - { on: hit, fx: directional_splatter_004, tint: element2, tone: light, face: fromActor, scale: 0.6, delay: 200 }   # sap sprays out the far side
+      - { on: heal, fx: round_sparkle_burst_003, size: small, tint: element2, tone: light, scale: 0.6, frames: [3, 12], speed: 1.3, note: "Stunned branch: the motes start at the primary target and are drawn across to the user, showing the target's 10 max HP leaving them, then converge into the star on the user" }
+      - { on: heal, fx: directional_heart_burst_003, size: small, tint: element2, tone: light, scale: 0.65, speed: 1.6, frames: [0, 24], delay: 250 }   # the Flourish tell: this +10 max HP counts toward the user's Flourish limit
+
+  mislead.life:
+    beat: A drift of pollen and leaves hangs over the target; when they attack it scatters and the blow veers into the user's minions, or, with none, the soil swallows it and a Boulder heaves up.
+    cues:
+      - { on: apply, status: debuff, fx: round_sparkle_burst_002, tint: element2, tone: light, scale: 0.9, opacity: 0.75, note: "Invisible: owner only. Covers both branches (Living Screen and its wall, both hidden debuffs)" }
+      - { on: trigger, status: living_screen, fx: symmetrical_smoke_burst_002, tint: element2, tone: light, scale: 0.7 }   # the drift scatters as their Harmful skill veers off
+      - { on: apply, status: living_screen_cover, fx: frost_mage_4, tint: element, tone: dark, scale: 0.9, layer: under, stagger: 80 }   # a hedge of shoots springs up at each allied character's feet; the hits play on the minions
+      - { on: trigger, status: living_screen_wall, fx: directional_impact_003, size: small, tone: dark, scale: 0.7 }   # the soil swallows the skill (base's counter X shows over them)
+      - { on: summon, fx: frost_mage_3, tint: element, tone: dark, scale: 0.8, note: "fade its held last frame" }   # the Boulder, on the wall branch
+
+  stun.life:
+    beat: Vines whip up the target and wind into a tight ring that binds them, held fast by a Seedling that sprouts at the user's side.
+    note: "The Stun is bound to that Seedling: if it dies first, the Stun ends early."
+    cues:
+      - { on: hit, fx: dark_mage_1, tint: element, face: up, scale: 0.7 }   # the 10: vines rake up the target (Earth mid, so the navy body doesn't sink into the board)
+      - { on: apply, status: stun, fx: dark_mage_2, tint: element, tone: dark, frames: [0, 10], delay: 100 }   # the vines close into a binding ring; its last frame turns crimson, so it's trimmed
+      # Stun's own default, re-added once the ring has closed (this skill's Stun cue replaces it). Its aura shows as usual.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 450, note: "portrait staggers back a step" }
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout
+
+  dance.life:
+    beat: Two leaf-wisps spiral up around the user and stay with them; each turn start they circle once more and the user mends, quickening once they've Flourished.
+    cues:
+      - { on: apply, status: evergreen, fx: starcaller_4, tint: element2, tone: light, scale: 1.2 }
+      - { on: trigger, status: evergreen, fx: starcaller_4, tint: element2, tone: light, scale: 0.8, speed: 1.4 }   # turn start: the wisps circle once more
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.55, speed: 1.8 }
+      # Swiftness's default plays when it's gained; Flourish's cues when the heal overflows.
+
+  heal.life:
+    beat: Gold puffs well up around the ally and rise into a ring of blossoms over their head; if any of it Flourishes, a Seedling sprouts.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.95, speed: 1.4 }   # its puff ring forms in the upper third: a crown of blossoms over the head
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 120, speed: 1.6 }
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12] }   # the Life sprout, after Flourish's own cues
+
+  bless.life:
+    beat: A shaft of sunlight drives a dark heartwood scion down beside the ally, and a shoot climbs out where it takes.
+    cues:
+      - { on: apply, status: graft, fx: paladin_5, tint: element2, tone: light, scale: 0.95, note: "its black sword silhouette stays black under the tint: here it is the dark scion of heartwood" }
+      - { on: apply, status: graft, fx: directional_splatter_005, size: small, tone: dark, scale: 0.5, delay: 350 }   # a shoot climbs out where it struck: the graft taking
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.55, delay: 200, speed: 1.6 }   # the 20 that fills the new max HP
+      # Might's default plays on the ally.
+
+  curse.life:
+    beat: A whorl of dark tangleweed spins up around the enemy and knots tight, leaving them muddled and blind to the user's minions.
+    cues:
+      - { on: apply, status: tangleweed, fx: slime_5, tint: element, tone: dark, scale: 0.8, opacity: 0.65, speed: 1.3 }   # knots and clears quickly, so the portrait and the '?' stay readable
+      - { on: apply, status: tangleweed, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.5, delay: 250 }   # loose strands drift up off them
+      # Confusion's default (the '?') plays over them.
+
+  smite.life:
+    beat: A slanting shaft of sunlight crashes down through the canopy onto the target, throwing up loam and leaves, and dappled light rises over every ally.
+    cues:
+      - { on: hit, fx: paladin_6, tint: element2, tone: light, face: fromActor, scale: 1.0 }   # dives in from the user's side and strikes at the target's feet
+      - { on: hit, fx: directional_splatter_002, size: small, tint: element, scale: 0.6, delay: 120 }   # loam and leaves leap up where the shaft lands: Life's matter, not Holy's flare
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.5, stagger: 80, speed: 1.4 }   # each ally's 5 (round_sparkle_burst_001 stays Blooming's tell)
+
+  prayer.life:
+    beat: A living root runs out from the user to every ally as warm gold rises up each of them, then digs in at every unit's feet, binding the team to share every wound.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, scale: 0.8, speed: 1.5, note: "a root laid from the user to each ally, minions included, all at once (none to the user themself); one pass of its loop, then fade. Its crossing tendrils colorize into twined roots" }
+      - { on: apply, status: common_root, fx: directional_splatter_005, size: small, tone: dark, scale: 0.5, layer: under, stagger: 90 }   # where it roots into each of them, minions included: the moment each is bound
+      - { on: heal, fx: spell_heal_003, tint: element2, tone: light, scale: 0.8, stagger: 90, speed: 1.6 }
+
+  cleave.life:
+    beat: Whirling vines lash through the enemies one after another, top to bottom; every enemy minion it fells comes back up on the user's side as a Seedling.
+    cues:
+      - { on: hit, fx: frost_knight_9, tint: element, tone: dark, face: fromActor, scale: 0.75, stagger: 70 }   # per enemy, cascading down their column: stacked arcs wrap into a whirl of vines
+      - { on: hit, fx: directional_splatter_003, size: small, tint: element2, tone: light, face: fromActor, scale: 0.6, delay: 120, stagger: 70, note: "its origin is the canvas's lower-left corner: put that corner on the hit point" }   # sap flicks off each enemy (minions take 20)
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12], stagger: 150 }   # the Life sprout, one per enemy minion it killed
+
+  shout.life:
+    beat: The user's call bursts out in a ring of leaf blades; a Seedling sprouts if none is waiting, every Seedling Blooms into a Treant, and every minion is mended whole.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: element2, tone: light, scale: 1.2 }   # the leaf-blade cross opens into rings sweeping out past the frame; kept modest so the Blooms carry the skill
+      - { on: summon, fx: dark_mage_3, tint: element2, tone: light, scale: 0.7, frames: [2, 12], note: "renderer filter: play only when summoned.defId == seedling (the shout's own summon op). The Bloom transforms inside bloom_it also emit summoned (defId treant): those belong to bloom_it and play its cues, not this one" }   # the Life sprout
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, stagger: 100, speed: 1.6 }   # every allied minion healed to full
+      # Bloom's own cues play on each Seedling, between the sprout and the heals.
+
+  withstand.life:
+    beat: Bark plates grow up around the user and close into a thick husk; when it falls away, the sap left in it heals them.
+    cues:
+      - { on: apply, status: barkskin, fx: blood_knight_5, tint: element, tone: dark, scale: 1.4, layer: under, note: "behind the portrait, larger than it: only the husk's closing rim shows around the user, and the portrait hides its face-like inner pattern" }
+      - { on: apply, status: barkskin, fx: directional_impact_003, size: small, tone: dark, scale: 0.6, layer: under }   # the ground buckles at its base
+      - { on: heal, fx: spell_heal_003, tint: element2, tone: light, scale: 0.7, speed: 1.7 }   # when it ends: whatever Shield is left heals them
+
+  taunt.life:
+    beat: A gold crown flares over the warden as a great bough curls over the target and Taunt's '!' lands on them; a ring of acorns circles each Seedling that will Bloom if it outlasts the Taunt.
+    cues:
+      - { on: apply, status: debuff, fx: frost_knight_8, tint: element, tone: dark, face: up, scale: 0.8 }   # layers under Taunt's '!' default
+      - { on: apply, status: debuff, at: source, fx: symbol_crown_001, size: small, tint: element2, tone: light, scale: 0.4, offset: [0, 0.6], speed: 2, note: "source = the effectApplied's source: the minion the Taunt comes from (its `from`), or the user when they have no minion. The Taunt is this skill's only debuff, so status: debuff adds to its default" }
+      - { on: apply, status: guardian_oak, fx: frost_mage_1, tint: element, tone: dark, scale: 0.6, opacity: 0.85, stagger: 120, note: "fade its dim ghost ring" }   # two acorns orbit each Seedling: the ones that Bloom, not the warden (the crown marks that)
+      # A Seedling that outlasts it Blooms when it ends: Bloom's own cues.
+
+  titan.life:
+    beat: The ground ruptures and towering bark heaves up around the user as they become an ancient treant, its crown bursting into a great blossom; their minions fade from enemy sight beneath it.
+    cues:
+      - { on: cast, fx: directional_impact_004, tone: dark, scale: 1.5, layer: under }
+      - { on: cast, fx: directional_particle_burst_002, tone: dark, scale: 2.2, layer: under, delay: 150, note: "the portrait darkens to bark for a moment as the spikes tower past it" }   # the trunk
+      - { on: resolve, fx: dark_mage_4, tint: element2, tone: light, scale: 2.0, frames: [1, 8] }   # Life's blossom at full size: the crown opens
+      # Immune's and Armor's defaults play on the user, Untargetable's on each minion.
+
+  treant_slam:
+    beat: A Treant's heavy limb swings over and crashes down on the target in a burst of loam.
+    cues:
+      - { on: hit, fx: frost_knight_1, tint: element, tone: dark, face: fromActor, scale: 0.9, frames: [6, 13], note: "skip the mace's rocking wind-up; anchor its lower-right crash on the target" }
+      - { on: hit, fx: directional_smoke_burst_002, size: small, tone: dark, scale: 0.6, opacity: 0.8, delay: 120 }
+
+  acorn_crush:
+    beat: The Acorn hurls itself down onto the target and its shell cracks open in a splash of loam.
+    note: "Its damage is half the Acorn's HP and grows without limit: scale the drop from 0.6 (a fresh Acorn) up to about 1.4."
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: element, tone: dark, scale: 0.7 }
+      - { on: hit, fx: symmetrical_impact_004, size: small, tone: dark, scale: 0.6, delay: 250 }   # the shell bursts as it lands
+
+  dryad_mend:
+    beat: Gold sparkles rise from both sides of the ally and merge into a column of warm light.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, tint: element2, tone: light, scale: 0.8, speed: 1.3 }
+      # Flourish's own cues follow when it overflows.

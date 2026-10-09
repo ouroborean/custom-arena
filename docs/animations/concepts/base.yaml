@@ -1,0 +1,398 @@
+# Base (elementless) animation concepts. Spec: docs/animations/README.md; brief: briefs/base.md.
+# Base is plain steel: every color a base skill sets is `neutral`. Warrior art is colorized to it too
+# (native Warrior red-and-cream would read as Fire or Unholy, which use the same slashes tinted).
+# `tone: light` only for heals and the light of blessings; `tone: dark` for murk (Curse, Mislead, death).
+# Status defaults use `tint: source`, so they take the applier's color.
+group: base
+
+defaults:
+  note: >-
+    counter and skillFailed play over the unit whose skill was stopped (at actor); interrupted plays on
+    the unit whose channel or pending effect broke; the rest play on the affected unit.
+  hit:
+    - { fx: symmetrical_impact_005, size: small, scale: 0.5, tint: source }
+  blocked:
+    - { fx: stylized_explosion_002, size: small, scale: 0.6, tint: source, opacity: 0.7, speed: 1.5 }   # the Shield bubble flickers
+  shieldBreak:
+    - { fx: symmetrical_impact_006, size: small, scale: 0.7, tint: source }
+  heal:
+    - { fx: spell_heal_002, size: small, scale: 0.5, tint: source, speed: 1.5 }
+  death:
+    # A puff that opens into a ring and crumbles. Not directional_smoke_burst_002: that dome is Shadow's Stealth.
+    - { fx: symmetrical_smoke_burst_001, tint: neutral, tone: dark, scale: 1.0, opacity: 0.8, note: "portrait greys out as the ring spreads" }
+  revive:
+    - { fx: round_heart_burst_001, size: small, scale: 0.8, tint: source }
+  summon:
+    - { fx: symmetrical_smoke_burst_002, size: small, scale: 0.8, tint: source }
+  counter:
+    - { fx: symbol_failure_001, at: actor, size: small, scale: 0.45, variant: red, speed: 2 }
+  effectBlocked:
+    - { fx: spell_dispel_001, size: small, scale: 0.5, tint: source, speed: 1.5 }
+  skillFailed:
+    - { fx: symbol_failure_001, at: actor, size: small, scale: 0.4, tint: neutral, speed: 2 }
+  interrupted:
+    # The held charge collapses into a dull puff: no X (that is a countered or failed skill).
+    - { fx: symmetrical_smoke_burst_002, size: small, scale: 0.6, tint: neutral, tone: dark, opacity: 0.8, speed: 1.3 }
+
+# Signatures (README rule 8): a base status's apply/aura art is its tell everywhere, so these are icons,
+# symbols and rare class art, never the generic bursts and impacts skills use. Icon language: the icon
+# with a plus is the stat raised (Might, Armor); the same icon with arrows falling through it is the stat
+# lowered (Weakness, Vulnerable); the icon crossed by the red X is locked out (partial stuns, Shattered,
+# Isolated). The red X is always red: it means "can't".
+statuses:
+  might:
+    apply:
+      - { fx: spell_attack_up_001, size: small, scale: 0.4, tint: source, speed: 1.3 }
+  weakness:
+    # Attack down: Might's sword with the arrows falling through it.
+    apply:
+      - { fx: spell_attack_up_001, size: small, scale: 0.4, tint: source, speed: 1.3 }
+      - { fx: spell_debuff_001, size: small, scale: 0.5, tint: source, speed: 1.8, delay: 150 }
+  vulnerable:
+    # Defense down, guard opened: Armor's shield with the arrows falling through it.
+    apply:
+      - { fx: spell_defense_up_001, size: small, scale: 0.4, tint: source, speed: 1.3 }
+      - { fx: spell_debuff_001, size: small, scale: 0.5, tint: source, speed: 1.8, delay: 150 }
+  armor:
+    apply:
+      - { fx: spell_defense_up_001, size: small, scale: 0.4, tint: source, speed: 1.3 }
+  shield:
+    apply:
+      - { fx: stylized_explosion_002, scale: 1.1, tint: source, opacity: 0.55, layer: under }
+    remove:
+      - { fx: symmetrical_impact_006, size: small, scale: 0.8, tint: source }
+    expire:
+      - { fx: symmetrical_smoke_burst_002, size: small, scale: 0.6, tint: source, opacity: 0.6 }
+  stun:
+    apply:
+      - { fx: toon_impact_001, size: small, scale: 0.7, tint: source, note: "portrait staggers back a step (only when a Stun lands: a blocked or negated one plays effectBlocked/Swiftness instead)" }
+    aura: { fx: scifi_charge_up_003, size: small, scale: 0.35, tint: source, offset: [0, 0.65], opacity: 0.7 }   # dots orbiting a ring over the head
+  stun_ns:
+    apply:
+      - { fx: spell_attack_up_001, size: small, scale: 0.4, tint: source }
+      - { fx: symbol_failure_001, size: small, scale: 0.4, variant: red, speed: 2, delay: 150 }
+  stun_s:
+    apply:
+      - { fx: symbol_lightbulb_001, size: small, scale: 0.4, tint: source }
+      - { fx: symbol_failure_001, size: small, scale: 0.4, variant: red, speed: 2, delay: 150 }
+  sleep:
+    apply:
+      - { fx: spell_sleep_001, size: small, scale: 0.6, tint: source, speed: 2 }
+    aura: { fx: status_sleep_001, size: small, scale: 0.35, tint: source }
+    trigger:
+      - { fx: round_bubble_burst_001, size: small, scale: 0.5, tint: source, offset: [0, 0.6] }   # woken: the dream bubble pops
+  invulnerable:
+    note: >-
+      Untouchable: a shell closes over the bearer and its inside turns to a starry void, sealed off from
+      every enemy. No aura: the status icon and the targeting UI (it can't be picked) carry it; sparkle
+      motes are generic buff ambience across the wave, and a held void would hide the portrait.
+    apply:
+      - { fx: starcaller_3, scale: 1.0, tint: source, speed: 1.5, opacity: 0.9, note: "the void covers the portrait for a moment, then the shell fades" }
+  ghosted:
+    # Slipping through barriers: two pale spirits wind through the bearer.
+    apply:
+      - { fx: necromancer_4, scale: 0.9, tint: source, tone: light, opacity: 0.85, note: "portrait flickers translucent once as the spirits pass through it" }
+  untargetable:
+    # Unseen by enemies: eclipsed, the bearer blacked out behind a dark disc.
+    apply:
+      - { fx: starcaller_6, scale: 0.9, tint: source, speed: 0.7, note: "play only the eclipse: frames 1-4 (the black disc over the portrait, its rim flaring), then fade it out. Cut before the light breaks out from behind, which reads as a reveal" }
+  isolated:
+    # Cut off from allies: Renew's heart (allied help) crossed out.
+    apply:
+      - { fx: spell_heal_001, size: small, scale: 0.45, tint: source, offset: [0, 0.6] }
+      - { fx: symbol_failure_001, size: small, scale: 0.4, variant: red, speed: 2, delay: 150, note: "centered on the heart" }
+  shattered:
+    apply:
+      - { fx: spell_defense_up_001, size: small, scale: 0.4, tint: source }
+      - { fx: symbol_failure_001, size: small, scale: 0.4, variant: red, speed: 2, delay: 150 }
+  swiftness:
+    apply:
+      - { fx: spell_haste_001, size: small, scale: 0.45, tint: source, speed: 1.5 }
+    trigger:
+      - { fx: directional_smoke_burst_003, size: small, scale: 0.5, tint: source, note: "plays on every negation (the effectBlocked whose reason is 'negated by Swiftness'), once per stack spent, and replaces the generic effectBlocked default there" }   # a sidestep out of a Stun or Sleep
+    remove:
+      - { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, tint: source, opacity: 0.6 }   # the buff fades: last stack spent (right after its trigger), cleansed or stolen
+  intimidated:
+    apply:
+      - { fx: fanfx_gaze, size: small, scale: 0.5, tint: source, speed: 1.3 }
+  focus:
+    apply:
+      - { fx: symbol_lightbulb_001, size: small, scale: 0.4, tint: source, note: "ends on a held lit bulb: fade it out" }
+    remove:
+      - { fx: round_firework_burst_001, size: small, scale: 0.4, tint: source, offset: [0, 0.6] }
+  confusion:
+    apply:
+      - { fx: symbol_question_001, size: small, scale: 0.5, tint: source, speed: 1.5 }
+  mark:
+    apply:
+      - { fx: scifi_analyze_001, size: small, scale: 0.8, tint: source, speed: 2, note: "play the bracket lock-on (about the first 24 frames), then fade; the full loop is 120 frames" }
+    trigger:
+      - { fx: scifi_warp_002, size: small, scale: 0.8, tint: source }
+  taunt:
+    note: No aura. No loopable art reads as provoked without looking like a burn; the '!' and the forced-target UI carry it.
+    apply:
+      - { fx: symbol_alert_001, size: small, scale: 0.5, tint: source }
+  immune:
+    apply:
+      - { fx: lightning_burst_001, size: small, scale: 0.7, tint: source, opacity: 0.85 }
+  trap:
+    apply:
+      - { fx: necromancer_1, scale: 0.8, tint: source, layer: under }   # hidden: only the setter sees the snare ring
+    trigger:
+      - { fx: directional_impact_004, scale: 0.9, tint: source }
+  sanctify:
+    apply:
+      - { fx: paladin_1, scale: 0.6, tint: source }
+    trigger:
+      - { fx: directional_sparkle_burst_001, size: small, scale: 0.6, tint: source }   # light drawn off the bearer; the damager's heal plays the heal default
+  renew:
+    apply:
+      - { fx: spell_heal_001, size: small, scale: 0.5, tint: source }
+    tick:
+      - { fx: spell_heal_002, size: small, scale: 0.45, tint: source, speed: 1.5 }
+  # Minion passives.
+  wolf_bite:
+    trigger:
+      - { fx: directional_impact_002, variant: gray, size: small, scale: 0.5, layer: under }   # the wolf kicks off
+      - { fx: warrior_7, at: target, face: fromActor, tint: neutral, scale: 0.55 }
+  arcane_bolt:
+    trigger:
+      - { fx: scifi_charge_up_001, tint: neutral, size: small, scale: 0.4 }
+      - { fx: round_firework_burst_002, at: target, size: small, scale: 0.6, tint: neutral }
+
+macros: {}   # base defines no macros
+
+skills:
+  strike:
+    beat: A quick steel slash cuts down through the target.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: neutral }
+      - { on: hit, fx: directional_splatter_003, variant: gray, size: small, scale: 0.5, face: fromActor, delay: 100 }
+
+  smash:
+    beat: A weapon slams down on the target and the shock bursts up under each of their allies in turn.
+    cues:
+      - { on: hit, only: primary, fx: warrior_5, face: fromActor, tint: neutral, scale: 1.1 }
+      - { on: hit, fx: directional_impact_002, variant: gray, size: small, scale: 0.7, delay: 120, layer: under, stagger: 90 }   # dust kicked out along the ground under each damaged unit
+      - { on: hit, only: others, fx: directional_impact_003, tint: neutral, scale: 0.6, delay: 160, layer: under, stagger: 90 }   # the shock bursts up under each ally
+
+  charge:
+    beat: The user kicks off in a streak across the board and crashes into the target.
+    note: The user's portrait lunges toward the target during the travel and snaps back.
+    cues:
+      - { on: cast, fx: directional_impact_002, variant: gray, size: small, scale: 0.6, layer: under }
+      - { on: travel, fx: scifi_muzzle_flash_002, path: beam, tint: neutral, size: small, scale: 0.6, speed: 1.5 }
+      - { on: hit, fx: warrior_6, face: fromActor, tint: neutral, scale: 0.75 }
+
+  riposte:
+    beat: The user settles into a crossed-blade guard; a blow against them is parried with sparks and answered by an X-slash.
+    cues:
+      - { on: cast, fx: warrior_11, tint: neutral, scale: 0.7 }   # Invisible: only the owner sees the stance
+      - { on: trigger, status: riposte, fx: scifi_spark_burst_001, tint: neutral, scale: 0.8 }   # the parry, on the user
+      - { on: hit, fx: warrior_1, face: fromActor, tint: neutral, scale: 0.8 }
+
+  rage:
+    beat: Power spikes erupt from the ground around the user, who flares with a '!!'.
+    note: Portrait shudders during the surge. Might and Immune show through their defaults.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: neutral, scale: 1.3 }
+      - { on: cast, fx: symbol_alert_002, size: small, scale: 0.5, tint: neutral, offset: [0.4, 0.55], delay: 200 }   # beside the head: Might's sword icon takes the spot above it
+
+  shot:
+    beat: A hand axe is hurled from the user to the target and pops on impact.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: toTarget, tint: neutral, size: small, scale: 0.4 }
+      - { on: travel, fx: warrior_9, path: straight, tint: neutral, scale: 0.5, note: "skip frames 1-4 (a faint outline windup at the canvas edge); fly on frames 5-6 (axe plus speed streaks) and cut before its frame-7 chevron burst: the hit pop is the impact" }
+      - { on: hit, fx: symmetrical_explosion_001, tint: neutral, size: small, scale: 0.6 }
+
+  snipe:
+    beat: The user narrows their aim; next turn one shot cracks out and punches straight through the target.
+    note: >-
+      HiddenTarget: nothing points at the target until the damage arrives, so the muzzle flash rides
+      the hit (or the block), not the trigger. While the snipe status is up, the user shows a faint
+      aiming loop (scifi_charge_up_001, tint neutral, size small, scale 0.45, opacity 0.5, its needle
+      sweeping like a scope) so the opponent can see there is something to interrupt.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: neutral, scale: 0.8 }   # the aim gathers on the user only
+      - { on: trigger, status: snipe, fx: round_firework_burst_001, size: small, scale: 0.5, tint: neutral }   # the shot cracks out: a flash on the user, no direction
+      - { on: hit, fx: symmetrical_impact_003, tint: neutral, scale: 1.3 }
+      - { on: hit, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, tint: neutral, scale: 0.7 }
+      - { on: hit, fx: round_light_burst_001, tint: neutral, scale: 1.2 }
+      # Fully absorbed by Shield: still the shot, then the impact on the shield (replaces the default flicker).
+      - { on: blocked, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, tint: neutral, scale: 0.7 }
+      - { on: blocked, fx: symmetrical_impact_003, tint: neutral, scale: 0.9 }
+
+  trap:
+    beat: A steel glint is tossed to the target's feet, where the hidden snare waits to spring.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: arc, tint: neutral, size: small, scale: 0.35 }   # Invisible; Trap's default shows the snare and its spring
+
+  maneuver:
+    beat: The user blinks out through a pale slit and a shell closes over them.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tint: neutral, scale: 0.9 }
+      # The shell is Invulnerable's own default.
+
+  companion:
+    beat: The wolf bounds in and lands in a puff of dust.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, tint: neutral, speed: 1.3 }
+      - { on: summon, fx: directional_impact_002, variant: gray, size: small, scale: 0.6, delay: 100 }
+
+  bolt:
+    beat: A pale arcane orb streaks to the target and bursts into rings, leaving a Mark.
+    cues:
+      - { on: travel, fx: scifi_charge_up_001, path: straight, tint: neutral, size: small, scale: 0.45 }
+      - { on: hit, fx: symmetrical_impact_002, tint: neutral }
+
+  blast:
+    beat: The user gathers power and the whole enemy row erupts.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: neutral, scale: 0.7 }
+      # Not stylized_explosion_001: that is Fire's explode macro, so Blast would read as an Explosion on every enemy.
+      - { on: hit, fx: epic_explosion_002, at: enemySide, tint: neutral, scale: 2, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: symmetrical_impact_003, tint: neutral, scale: 1.1, delay: 150, stagger: 90 }
+
+  consume:
+    beat: A light nick on the target, then its essence drifts across and spirals into the user.
+    note: The Marked/Cursed bonus is folded into the one heal event; play the heal cue about 1.2x larger when it heals more than the damage dealt.
+    cues:
+      - { on: hit, fx: symmetrical_impact_005, tint: neutral, size: small, scale: 0.5 }
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: neutral, tone: light, scale: 0.7, delay: 80 }   # the essence that becomes the heal: light, not steel
+      - { on: heal, fx: spell_absorb_001, tint: neutral, tone: light, scale: 0.9, speed: 1.5 }
+
+  summon:
+    beat: An arcane familiar puffs into being in a burst of sparkling smoke.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: neutral }
+      - { on: summon, fx: symmetrical_smoke_burst_001, tint: neutral, scale: 1.1, layer: under }
+
+  channel:
+    beat: The user holds a swirling orb; at each turn's end rings spread out from behind them and every enemy takes a light hit.
+    note: >-
+      When a Marked hit extends the channel (extendSelf has no event yet), replay the cast orb once on
+      the user (starcaller_4, tint neutral, scale 0.7, repeat 1): a re-charge, not a pulse. Never
+      replay the trigger ring for it (that would read as a third pulse hitting no one).
+    cues:
+      - { on: cast, fx: starcaller_4, tint: neutral, scale: 0.9, repeat: 2, speed: 1.4 }   # about 1.1 s: two star wisps winding into a held orb
+      - { on: trigger, status: channel, fx: stylized_impact_001, tint: neutral, scale: 1.2, layer: under }   # the rings open behind the user, not on their face
+      - { on: hit, fx: symmetrical_impact_001, tint: neutral, size: small, scale: 0.6, stagger: 70 }
+
+  stab:
+    beat: A thin, fast thrust punches through the target in a spray of shards.
+    note: The 20-damage version (target at or below 60 HP) is the same hit event; play the hit cues about 1.25x larger.
+    cues:
+      - { on: hit, fx: directional_impact_001, tint: neutral, size: small, scale: 0.7, face: fromActor }
+      - { on: hit, fx: directional_splatter_001, tint: neutral, scale: 0.6, face: fromActor, delay: 60 }
+
+  ravage:
+    beat: A brutal claw-and-fang flurry tears through the target in layers.
+    note: Against a Stunned target the same hit deals 40; play it about 1.25x larger with a short screen shake.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: neutral, scale: 1.1 }
+      - { on: hit, fx: directional_impact_001, tint: neutral, scale: 0.9, face: fromActor, delay: 100 }
+      - { on: hit, fx: burst_splatter_002, variant: gray, scale: 0.9, delay: 180, layer: under }
+
+  mislead:
+    beat: Murk quietly wraps the target; when they strike, their action folds into a slit and vanishes.
+    cues:
+      - { on: apply, status: mislead, fx: symmetrical_smoke_burst_002, tint: neutral, tone: dark, scale: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: mislead, fx: scifi_warp_001, tint: neutral, tone: dark, size: small, scale: 0.7 }   # gray, not black: black warps are Shadow's
+      - { on: trigger, status: mislead, fx: directional_smoke_burst_004, tint: neutral, tone: dark, size: small, scale: 0.6, delay: 150 }   # a wisp where the action was
+
+  stun:
+    beat: An uppercut knocks the target reeling inside spinning rings.
+    note: >-
+      The rings, stars and stagger hang off the Stun landing, not the hit: when Immune blocks it or
+      Swiftness negates it, only the uppercut plays, then the block or the sidestep.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: neutral, scale: 0.8 }
+      - { on: apply, status: stun, fx: stylized_impact_001, tint: neutral, size: small, scale: 0.7, delay: 120 }
+      # Stun's default, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: neutral, delay: 200, note: "portrait staggers back a step" }
+
+  dance:
+    beat: Blades whirl a full circle around the user and stars rise off them.
+    note: >-
+      The blades sit behind the portrait and larger than a hit, so only their arcs show around the
+      user (on a unit's face these slashes mean "just got hit"). Might, Swiftness and Focus land
+      together, so this skill fans their icons out over the head (offsets from the portrait center).
+    cues:
+      - { on: cast, fx: warrior_4, tint: neutral, scale: 1.4, layer: under }
+      - { on: cast, fx: warrior_2, tint: neutral, scale: 1.4, layer: under, delay: 250 }   # warrior_4 then warrior_2: both sweep counterclockwise, one full circle together
+      - { on: cast, fx: directional_star_burst_001, tint: neutral, scale: 0.9, speed: 1.8, delay: 400 }
+      # The three defaults, spread apart (fx, size and scale as in statuses:).
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, scale: 0.4, tint: neutral, speed: 1.3, offset: [-0.35, 0.6] }
+      - { on: apply, status: swiftness, fx: spell_haste_001, size: small, scale: 0.45, tint: neutral, speed: 1.5, offset: [0, 0.8], delay: 150 }
+      - { on: apply, status: focus, fx: symbol_lightbulb_001, size: small, scale: 0.4, tint: neutral, offset: [0.35, 0.6], delay: 300, note: "ends on a held lit bulb: fade it out" }
+
+  heal:
+    beat: Light crosses rise from the ally's feet and sparkles gather over them.
+    cues:
+      - { on: heal, fx: spell_heal_003, tint: neutral, tone: light, speed: 1.8 }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: neutral, tone: light, scale: 0.8, delay: 100 }
+
+  bless:
+    beat: Small lights fall onto the ally and settle into a glowing ring at their feet.
+    cues:
+      - { on: apply, status: renew, fx: spell_forge_001, tint: neutral, tone: light, layer: under }   # the gift lands with the Renew; nothing on the user
+      # Renew's default, re-added after the lights settle (this skill's own apply cue replaces it). Might's plays as usual.
+      - { on: apply, status: renew, fx: spell_heal_001, size: small, scale: 0.5, tint: neutral, tone: light, delay: 400 }
+
+  curse:
+    beat: A gray wisp arcs over and its murk spirals in and settles onto the enemy.
+    note: >-
+      When Immune refuses the Confusion, only the wisp plays, then the effectBlocked default: nothing
+      settles.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: arc, tint: neutral, tone: dark, scale: 0.5 }   # orb leads, smoke tendrils trail
+      - { on: apply, status: confusion, fx: spell_absorb_001, tint: neutral, tone: dark, scale: 0.9, speed: 1.6 }   # inward motion; the pale orb cores keep it visible on the dark board
+      # Confusion's default, re-added once the murk has settled (this skill's own apply cue replaces it).
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, scale: 0.5, tint: neutral, speed: 1.5, delay: 400 }
+
+  smite:
+    beat: A steel needle drops from above onto the target.
+    cues:
+      - { on: hit, fx: scifi_warp_003, tint: neutral, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_001, tint: neutral, scale: 0.7, delay: 150 }
+
+  prayer:
+    beat: Motes of light spread over the whole team and healing crosses rise up each ally.
+    cues:
+      - { on: cast, fx: status_sparkling_001, at: allySide, tint: neutral, tone: light, scale: 2.4, opacity: 0.8, speed: 1.5, layer: under }   # the team-wide wind-up, behind the portraits
+      # Not directional_sparkle_burst_003: its halo is Holy's Anointed.
+      - { on: heal, fx: spell_heal_002, tint: neutral, tone: light, scale: 0.7, speed: 1.5, stagger: 100 }
+      - { on: heal, fx: directional_particle_burst_001, tint: neutral, tone: light, scale: 0.7, delay: 150, stagger: 100 }
+
+  cleave:
+    beat: One wide sweeping arc carves through the target and catches a second enemy.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: neutral }
+      - { on: hit, only: others, fx: warrior_4, face: fromActor, tint: neutral, scale: 0.8, delay: 150 }   # the 15-damage second enemy
+      - { on: hit, fx: directional_splatter_004, variant: gray, size: small, scale: 0.6, face: fromActor, delay: 100 }
+
+  shout:
+    beat: A shockwave bursts off the user and rolls into every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: neutral, scale: 1.3, layer: under }
+      - { on: travel, fx: directional_smoke_burst_003, path: straight, tint: neutral, scale: 0.8 }
+
+  withstand:
+    beat: A steel shield assembles on the user as a ring snaps up around them.
+    cues:
+      - { on: cast, fx: warrior_10, tint: neutral, scale: 0.8 }
+      - { on: cast, fx: symmetrical_impact_005, tint: neutral, scale: 1.1, delay: 300, layer: under }
+
+  taunt:
+    beat: The user crowns themself the target; the enemy is called out with a '!'.
+    cues:
+      - { on: cast, fx: symbol_crown_001, variant: gray, size: small, scale: 0.4, speed: 2 }
+      - { on: cast, fx: symmetrical_impact_001, tint: neutral, size: small, scale: 0.6, layer: under }
+
+  titan:
+    beat: The user vanishes in a huge billowing cloud and bursts out transformed, shaking the ground.
+    note: The portrait swells about 15% with a screen shake as the burst lands. Armor and Immune show through their defaults.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: neutral, scale: 1.8, layer: under }
+      - { on: cast, fx: round_sparkle_burst_003, tint: neutral, scale: 1.3, delay: 250 }
+      - { on: cast, fx: directional_impact_002, tint: neutral, scale: 1.2, delay: 450, layer: under }

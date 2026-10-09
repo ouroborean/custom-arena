@@ -1,0 +1,300 @@
+group: current
+# Current (Water + Lightning) is water that carries a charge. Three materials: plain water is palette art at
+# the default `element` tint (Water blue: splashes, sprays, bubbles); the current running through it is
+# `element2` (Lightning violet: bolts, crackle, sparks); charged water itself is `duo`, violet bodies with
+# navy edges (waves, lashes, rings, the user's own surges). Starcaller art stays native: its violet body
+# with a cyan core is already Current's two colors.
+# Signature motif, conduction: when a single-target hit lands on a Soaked unit, the water under them closes
+# into a live ring (Soaked's trigger) and the charge leaps to every other Soaked unit, a violet zigzag
+# through each with a crown of water kicked up at their feet (the conduct macro). Still Water, Electric
+# Rain, Galvanic Fury and Electric Undertow all speak that language. A second motif, stillness: Still
+# Water and Still Spring settle into a glass-flat sheen (round_light_burst_001, laid level).
+# Charged, Sapped, Focus and the base statuses keep their own defaults.
+
+statuses:
+  soaked:
+    note: >-
+      No aura: Soaked sits on most of the enemy side most of the time, and a held effect on every wet unit
+      would bury the board; the status icon carries it. The trigger fires on every direct hit a Soaked unit
+      takes and only then checks the skill, so play its cue only when the conduct macro that follows
+      actually reaches another unit.
+    apply:  [ { fx: status_poison_001, tone: light, scale: 0.75, speed: 1.6, frames: [0, 15] } ]   # drenched: bubbles cling to them and pop (tone light so the thin outlines read on the dark board)
+    trigger: [ { fx: dark_mage_2, tint: duo, scale: 0.8, offset: [0, -0.35], speed: 1.4, layer: under, frames: [0, 10] } ]   # the hit conducts: the water at their feet closes into a live ring (last frame's red cut)
+    expire: [ { fx: directional_particle_burst_001, size: small, face: down, scale: 0.45, opacity: 0.6 } ]   # dried off: the last drops fall away
+    remove: [ { fx: directional_particle_burst_001, size: small, face: down, scale: 0.45, opacity: 0.6 } ]
+  current_conductor:
+    note: No art. The fusion passive is there from the start and only adds 5 damage against Soaked units, which shows in the damage numbers.
+  arc_lash:
+    note: No expire cue. It lasts only to the end of the turn; the icon going is enough.
+    apply: [ { fx: starcaller_4, scale: 0.55, speed: 1.4 } ]   # two wisps of current twine round each linked enemy: a pair
+    trigger:
+      - { fx: starcaller_7, face: toTarget, scale: 0.5, note: "on the struck enemy (the bearer), whipping toward their partner (the trigger's target), not from the Current user: actor here is whoever applied the link" }
+      - { fx: lightning_burst_002, at: target, size: small, tint: element2, scale: 0.45, delay: 100 }   # the partner jolts as their 10 lands
+
+macros:
+  conduct:   # per unit the hit conducts to (each damage event inside the macro)
+    - { fx: lightning_strike_003B, size: small, tint: element2, scale: 0.6, speed: 1.6, stagger: 90, note: "a thin arc (lightning_strike_002B, beam, size small, element2) first snaps from the unit struck (the macro's `it`) to this one: a macro takes no travel cue. The stagger lets the charge visibly leap unit to unit" }
+    - { fx: directional_impact_003, size: small, scale: 0.5, delay: 60, stagger: 90, layer: under }   # the water at their feet jumps in a crown
+
+skills:
+  strike.current:
+    beat: A palm of charged water slams into the target and bursts out past them with a violet snap.
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, scale: 0.8 }   # the shock ring at the palm, the spray flung on past them
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, scale: 0.5, delay: 80 }
+      # Soaked's default; Charged's default on the user once per enemy the hit conducts to.
+
+  smash.current:
+    beat: A wave of current crashes onto the target and spills over their allies; anyone behind Shield or Armor is left shorting out.
+    note: >-
+      Hit cues are skipped for damage caused by breakdown_surge (its non-direct 10 Affliction at the start
+      of the user's next turn); the trigger cue carries those hits.
+    cues:
+      - { on: hit, only: primary, fx: blood_knight_1, face: fromActor, tint: element, scale: 1.1, note: "the wave builds in from the user's side and crashes down: its impact corner (lower-right as drawn) on the target" }
+      - { on: hit, only: primary, fx: lightning_burst_003, tint: element2, scale: 0.8, delay: 250 }   # the current breaks out where the wave lands
+      - { on: hit, only: others, fx: directional_splatter_002, size: small, scale: 0.55, delay: 320, stagger: 80 }   # the 15 spilling over each ally
+      - { on: apply, status: breakdown_surge, fx: symmetrical_explosion_001, size: small, tint: element2, scale: 0.4, delay: 450, stagger: 80, note: "applied before the damage, so it waits for the wave" }   # a pop of current sinks into their plating
+      - { on: trigger, status: breakdown_surge, fx: lightning_burst_003, size: small, tint: element2, scale: 0.5 }   # next turn the stored current shorts out of their plating (the wave's crackle, small)
+
+  charge.current:
+    beat: The user rides a rip current across the board and it breaks through the target; the undertow stays coiled round them for their next skill.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: beam, tint: duo, scale: 0.7, note: "a head of white water driven by violet streaks runs the length of the beam to the target; the user's portrait dashes along behind it" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, scale: 0.6 }   # the water bursts out past them
+      - { on: hit, fx: round_firework_burst_001, size: small, tint: element2, scale: 0.5, delay: 80 }   # sparks spit off them
+      - { on: trigger, status: rip_current, at: target, fx: directional_smoke_burst_003, face: up, size: small, tint: duo, scale: 0.5 }   # the held undertow gushes up through each enemy the next skill targets (pointed up, at no one), just before Soaked's default and that skill's hit
+      # Focus's default marks the user.
+
+  riposte.current:
+    beat: The water round the user goes glass-still, unseen; when they're attacked it splits open and lashes the attacker with current.
+    cues:
+      - { on: cast, fx: round_light_burst_001, size: small, tone: light, scale: 0.7, offset: [0, -0.3], opacity: 0.7 }   # owner only (Invisible): a level sheen spreads over still water at their feet
+      - { on: trigger, status: still_water, fx: scifi_warp_001, size: small, tint: duo, scale: 0.7 }   # the glassy surface splits along a seam and snaps open
+      - { on: hit, fx: starcaller_7, face: fromActor, scale: 0.8 }   # the lash lands on the countered attacker
+      # Soaked's default lands on the attacker before the lash, the conduct macro on every other Soaked enemy; base's counter X marks the stopped skill.
+
+  rage.current:
+    beat: Pillars of charged water erupt round the user; while it lasts, their single hits arc on into Sapped enemies.
+    cues:
+      - { on: apply, status: galvanic_fury, fx: dark_mage_3, tint: duo, scale: 1.3 }   # a ground ring throws up pillars of current
+      - { on: trigger, status: galvanic_fury, fx: lightning_burst_002, size: small, tint: duo, scale: 0.4, note: "on the user, only when the hit actually arcs into a Sapped enemy (the trigger deals damage)" }
+      - { on: hit, fx: lightning_strike_003B, size: small, tint: element2, scale: 0.6, speed: 1.6, stagger: 90, note: "each Sapped enemy the hit arcs into, one after another: the conduct macro's jolt, without its crown of water (they're dry). A thin arc (lightning_strike_002B, beam, size small) snaps in from the unit struck first" }
+      # Might's and Immune's defaults land on the user (Immune's burst is the overload).
+
+  shot.current:
+    beat: A charged droplet flicks into the target and pops in sparks; with Charge to spend, a second spark soaks another enemy.
+    cues:
+      - { on: travel, fx: slime_3, path: straight, tint: duo, scale: 0.45, speed: 1.4, note: "its own splat lands as the travel arrives" }
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, scale: 0.5 }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.4, delay: 40 }   # a fleck of water sprays out past them
+      - { on: apply, status: debuff, only: others, fx: scifi_spark_burst_001, at: actor, size: small, tint: element2, scale: 0.5, note: "the Charge spent, on the user: it plays only when the random second enemy is Soaked (removeStacks raises no event of its own)" }
+      # Soaked's default on the target and on the random second enemy.
+
+  snipe.current:
+    beat: Water winds into a tight coil round the user; next turn it fires as a lance of current through the hidden target and leaps on through their Soaked allies.
+    note: "HiddenTarget, so everything before the hit stays on the user and points nowhere. The lance fires when Conductor's Lance runs out: its trigger is the release on the user, and the hit cues are the impact."
+    cues:
+      - { on: cast, fx: frost_knight_9, tint: duo, scale: 0.9, speed: 1.2 }   # stacked arcs of charged water wind into a coil
+      - { on: trigger, status: conductors_lance, fx: symmetrical_explosion_004, size: small, tint: duo, scale: 0.6, speed: 1.3 }   # the coil snaps loose in a ring of charged spray (radial: points at no one)
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, tone: light, note: "the blade's leading edge (about 68% across the canvas) on the target, so the lance punches through" }
+      - { on: hit, fx: scifi_warp_002, tint: element2, scale: 0.9, delay: 60 }   # the lance's charge bursts inside them
+      - { on: hit, fx: burst_splatter_002, scale: 0.8, delay: 120 }   # a heavy burst of water behind them
+      # The conduct macro carries it to each other Soaked enemy; Charged's default on the user per Soaked enemy.
+
+  trap.current:
+    beat: A live wire is laid unseen at the target's feet; when they attack it snaps, and their whole side is drenched and shocked.
+    cues:
+      - { on: apply, status: live_wire, fx: necromancer_6, tint: element2, scale: 0.6, offset: [0, -0.45], opacity: 0.6, layer: under, note: "owner only (Invisible): a thin violet wire across their feet; one cycle, then fade" }
+      - { on: trigger, status: live_wire, fx: lightning_strike_001, tint: duo }   # the wire snaps and forked current whips up out of it
+      - { on: hit, fx: lightning_burst_003, size: small, tint: element2, scale: 0.6, delay: 150, stagger: 70 }   # each enemy, drenched by Soaked's default a moment before, jolts
+
+  maneuver.current:
+    beat: The user plunges into a column of spray and ducks under it; when they surface, all their stored Charge discharges through every Soaked enemy.
+    note: The discharge comes when Submerge ends and grows with the Charge spent (10 per Charge), so scale the hit from about 0.6 at 1 Charge to 1.1 at 3 or more.
+    cues:
+      - { on: cast, fx: directional_splatter_005, scale: 1.0, speed: 1.2, layer: under, note: "the portrait dips into the plumes of spray as they erupt and bobs back as Invulnerable's shell closes over them: a brief duck, never a vanish (they're alive and on the board)" }
+      - { on: remove, status: charged, fx: directional_impact_004, tint: duo, scale: 0.9 }   # they surface in a crackling geyser, dumping their Charge (replaces Charged's discharge here)
+      - { on: hit, fx: stylized_explosion_005, tint: duo, scale: 0.8, speed: 1.5, frames: [12, 25], stagger: 90 }   # the shards converge and the charge bursts in each Soaked enemy
+      # Invulnerable's and Charged's defaults first; Soaked's default on the random enemy just before the discharge.
+
+  companion.current:
+    beat: A glob of charged water heaves up, curls over and lands as an eel, spitting sparks.
+    cues:
+      - { on: summon, fx: slime_2, tint: duo, scale: 0.8, note: "its content sits in the left 60% of the canvas: center that on the minion" }
+      - { on: summon, fx: round_firework_burst_001, size: small, tint: element2, scale: 0.5, delay: 450 }
+
+  bolt.current:
+    beat: A violet-cored orb trailing deep water streaks at the target and bursts in a heavy, crackling splash.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.6, frames: [0, 5] }   # cut before its own splat, a low-contrast dark smudge: the hit cues are the impact
+      - { on: hit, fx: burst_splatter_002, scale: 0.85 }
+      - { on: hit, fx: round_firework_burst_002, size: small, tint: element2, scale: 0.6, delay: 60 }   # sparks fly out of the splash
+      # Soaked's default lands first; the conduct macro carries it on and Sapped's default marks each enemy it reaches.
+
+  blast.current:
+    beat: Current shoots up off the user and bursts into a canopy of sparks over the enemy side that rains down, splashing on each of them.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: element2, scale: 0.9 }
+      - { on: hit, fx: round_firework_burst_001, at: enemySide, tint: element2, scale: 2.6, offset: [0, 0.8], note: "once, with the first hit: a willow of sparks bursts high over the row and droops down onto it" }
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.75, delay: 200, stagger: 80 }   # the sparking rain splashes on each
+      # Soaked's default on each enemy; Focus's on the user.
+
+  consume.current:
+    beat: The tide ebbs, drawing violet-glinting droplets off the target and back into the user.
+    cues:
+      - { on: travel, fx: directional_particle_burst_001, from: target, to: actor, path: straight, tint: duo, tone: light, scale: 0.8, speed: 1.3 }   # the droplets stream home (tone light and larger: this pull is the archetype's whole motion)
+      - { on: hit, fx: directional_splatter_003, size: small, face: toActor, scale: 0.45 }   # their water is pulled back toward the user
+      - { on: heal, fx: round_sparkle_burst_003, tint: duo, tone: light, scale: 0.7, frames: [3, 16] }   # the ebb gathers into the user
+      # Sapped's default on the target.
+
+  summon.current:
+    beat: A needle of current drops into a pool and an elemental of crackling water rises from the splash; when it dies, it discharges into every Soaked enemy.
+    note: Its hit is the Elemental's death discharge (15 to every Soaked enemy when it dies), the only damage this skill causes. Base's death default plays on the Elemental itself.
+    cues:
+      - { on: summon, fx: scifi_warp_003, tint: duo }
+      - { on: summon, fx: directional_splatter_002, size: small, scale: 0.6, delay: 300 }   # water flung up as it takes shape
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.7, stagger: 80 }
+
+  channel.current:
+    beat: A sparking thundercloud gathers over the user; each turn it flashes, its rain soaks an enemy and a bolt drops into one, arcing on through the wet.
+    cues:
+      - { on: apply, status: electric_rain, fx: round_sparkle_burst_002, tint: element2, scale: 0.7, offset: [0, 0.9] }   # a puffy cloud full of sparks blooms over the user
+      - { on: trigger, status: electric_rain, fx: round_sparkle_burst_002, size: small, tint: element2, scale: 0.55, offset: [0, 0.9], opacity: 0.85 }   # each turn end the cloud flashes
+      - { on: hit, fx: lightning_strike_003A, tint: duo, scale: 0.9, delay: 150 }   # a bolt drops into the random Soaked enemy
+      # Soaked's default on the random enemy; the conduct macro spreads each bolt.
+
+  stab.current:
+    beat: A needle of static slips through the target with a hiss of spray; for a turn, every skill aimed at the user prickles them with Charge.
+    note: The 20 (target at or below 60 HP) plays both hit cues about 1.25x larger.
+    cues:
+      - { on: hit, fx: lightning_strike_002B, size: small, face: fromActor, tint: element2, tone: light, scale: 0.55, speed: 1.5 }   # a needle of static flicks straight through them
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.45, delay: 60 }   # a hiss of spray out the far side
+      - { on: trigger, status: static_shiv, fx: fanfx_pain, size: small, tint: element2, scale: 0.7, speed: 2, frames: [2, 17] }   # pins and needles of static prickle over the user; Charged's default follows
+
+  ravage.current:
+    beat: A pike of riptide bursts through the target in a spiky crown, current crackling through it and water blowing out behind them.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, note: "the orb (lower-left as drawn) on the target, so the crown of spikes bursts out past them: Piercing" }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, scale: 0.6, delay: 120 }   # a spiked ring of current flares through them
+      - { on: hit, fx: directional_splatter_003, face: fromActor, scale: 0.6, delay: 200 }   # water out the far side
+      # A dry target gets Soaked's default; on a Soaked one the cooldown cut shows on the skill bar.
+
+  mislead.current:
+    beat: A grounding ring settles unseen round the target; when they attack, their skill shorts out and its current pours down into the ground.
+    cues:
+      - { on: apply, status: grounding, fx: frost_knight_7, tint: duo, scale: 0.6, opacity: 0.6 }   # owner only (Invisible): a faint four-pointed ring
+      - { on: trigger, status: grounding, fx: spell_forge_001, tint: element2, layer: under, note: "suppress or re-tint its yellow spark streaks" }   # their current falls out of them into a ring at their feet
+      # Base's counter X marks the stopped skill; Soaked's and Sapped's defaults follow.
+
+  stun.current:
+    beat: An undertow of current wraps the target in a crackling nova and locks them up; the shock runs through every other Soaked enemy.
+    cues:
+      - { on: hit, fx: dark_mage_4, tint: duo, scale: 0.85, note: "the target's portrait shudders" }
+      - { on: apply, status: debuff, only: others, fx: lightning_burst_002, size: small, tint: element2, scale: 0.45, stagger: 80, note: "each other Soaked enemy jolts as the shock runs through the water: a thin arc (lightning_strike_002B, beam, size small) snaps in from the target first" }
+      # Stun's default on the target; stun_ns's default on each other Soaked enemy.
+
+  dance.current:
+    beat: Two crescents of violet water sweep round the user, one low and one high, sealing them in eel-slick skin.
+    cues:
+      - { on: apply, status: eelskin_waltz, fx: starcaller_5, scale: 1.1, layer: under }
+      - { on: apply, status: eelskin_waltz, fx: starcaller_5, scale: 1.1, flip: y, delay: 150, layer: under }   # mirrored top to bottom, the second sweeps over the top and closes the circle
+      - { on: trigger, status: eelskin_waltz, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.5 }   # struck, the slick skin sheds a burst of bubbles; Soaked's default lands on the attacker
+      # Swiftness's default.
+
+  heal.current:
+    beat: A spring wells up under the ally in rising droplets and settles glass-still, brimming.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_003, tone: light, scale: 0.8 }   # droplets and glints rise into a ring over them
+      - { on: apply, status: still_spring, fx: round_light_burst_001, size: small, tint: duo, tone: light, scale: 0.6, offset: [0, -0.35], delay: 200 }   # the surface goes glass-still at their feet: their Renew won't drain
+      # Renew's default.
+
+  bless.current:
+    beat: A charged droplet falls onto the ally and overflows in a crown of violet-lit water; their attacks then spill it onto their targets.
+    cues:
+      - { on: apply, status: overflow, fx: directional_splatter_002, tint: duo, scale: 0.8, delay: 150 }   # it lands and overflows in a crown of violet-lit water: Overflow's own look
+      - { on: apply, status: overflow, fx: paladin_7, tint: duo, scale: 0.6, frames: [0, 3] }   # first, a charged drop falls onto them; cut as it lands (its spiky ground blaze reads as fire, and the crown is the splash)
+      - { on: trigger, status: overflow, at: target, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }   # the crown spills up on each enemy it Soaks, before Soaked's default
+
+  curse.current:
+    beat: Murky water swells round the target's head; every conducted jolt that reaches them scrambles them further.
+    cues:
+      - { on: apply, status: waterlogged, fx: symmetrical_explosion_003, tone: dark, scale: 0.55, offset: [0, 0.45] }   # a dark mass of water closes over the head and bubbles up
+      - { on: trigger, status: waterlogged, fx: lightning_burst_002, size: small, tint: element2, scale: 0.4, offset: [0, 0.5], note: "only when it adds a Confusion (under 3)" }   # a spark in the waterlogged head
+      # Soaked's and Confusion's defaults.
+
+  smite.current:
+    beat: A bolt leans down onto the target and a ring of current closes round them; each allied blow pulses it and sends healing home.
+    cues:
+      - { on: hit, fx: lightning_strike_002A, face: fromActor, tint: duo, scale: 0.9, note: "the impact corner (lower-left as drawn) on the target, mirrored so the bolt leans in from the user's side" }
+      - { on: apply, status: closed_circuit, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.6, delay: 150 }   # the circuit closes: a double ring settling to one
+      - { on: trigger, status: closed_circuit, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.45 }   # each allied hit pulses it
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tone: light, scale: 0.55, stagger: 80 }   # the current comes home to every ally
+
+  prayer.current:
+    beat: A swell of water spreads under the team and lifts every ally, rising higher each turn until the user is struck.
+    cues:
+      - { on: cast, fx: directional_impact_002, at: allySide, scale: 2.0, layer: under }   # the swell rolls out under the team
+      - { on: heal, fx: directional_splatter_005, scale: 0.7, stagger: 80 }
+      - { on: heal, fx: spell_heal_003, size: small, tone: light, scale: 0.6, speed: 1.6, delay: 150, stagger: 80 }
+      - { on: trigger, status: swelling_current, fx: directional_particle_burst_002, tone: light, scale: 0.9, layer: under, note: "on the user at each turn start as the swell rises (its heals follow, 20 then 30: play them about 1.15x then 1.3x larger). Not on the damage that ends it" }
+      - { on: remove, status: swelling_current, fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.6 }   # struck: the swell breaks up
+
+  cleave.current:
+    beat: A lash of current whips through the target and snaps a crackling line to a second enemy, tying the two together.
+    note: Arc Lash's default plays on both linked enemies as the link forms; as it lands, a thin violet arc (lightning_strike_002B, beam, size small, element2) snaps between them.
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, tint: duo, scale: 0.9 }
+      # Arc Lash's trigger follows the hit: the whip toward the partner and its jolt.
+
+  shout.current:
+    beat: A deep call booms off the user in rings and fans out across the water to every enemy.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.3 }   # the call: two shock rings tilt outward
+      - { on: travel, fx: necromancer_3, path: beam, tint: duo, tone: light, opacity: 0.85, stagger: 80 }   # a widening cone of sound to each enemy (tone light: its dark body is faint on the board)
+      # Soaked's and Intimidated's defaults on each.
+
+  withstand.current:
+    beat: A bubble of water foams up round the user with current crawling over its skin; whatever's left of it when it pops turns to Charge.
+    note: "Keeps the validator's signature warning on purpose. Bubble Cage is an inline Shield (shield: true), so Shield's own default never plays for it; its sphere is the one look that tells players this unit is shielded."
+    cues:
+      - { on: apply, status: bubble_cage, fx: stylized_explosion_002, tint: element, scale: 1.1, opacity: 0.6, layer: under }   # Shield's sphere: the bubble forms round them
+      - { on: apply, status: bubble_cage, fx: round_bubble_burst_001, size: small, scale: 0.6, speed: 1.4, delay: 150 }   # foam on its skin
+      - { on: apply, status: bubble_cage, fx: round_firework_burst_002, size: small, tint: element2, scale: 0.6, speed: 1.5, delay: 300 }   # sparks spit off the skin (sped up: its fizzle tail is long)
+      # Hits it absorbs use base's blocked and shieldBreak defaults; Charged's default when it ends with Shield left.
+
+  taunt.current:
+    beat: The user lobs a glowing lure onto the target; every time the user is healed, the backwash crashes into them.
+    cues:
+      - { on: travel, fx: starcaller_2, path: arc, scale: 0.5 }   # the lure: a violet and cyan comet
+      - { on: trigger, status: backwash_lure, fx: directional_splatter_004, size: small, face: toTarget, tint: duo, scale: 0.45, note: "on the user as they're healed: the backwash sprays off them toward the Taunted enemy" }
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: element, scale: 0.9, note: "the backwash curls over and breaks on the Taunted enemy; scale it with the heal it mirrors (about 0.7 at 10, 1.1 at 30 or more)" }
+      # Taunt's '!' marks the target.
+
+  titan.current:
+    beat: A waterspout spins up behind the user, bolts strike into it and a shockwave powers the dynamo on; each turn it bleeds current back into them.
+    cues:
+      - { on: apply, status: dynamo_form, fx: slime_5, tint: duo, scale: 1.8, speed: 0.7, layer: under }   # the waterspout whirls up behind the portrait (slowed so it's still turning when the bolt lands)
+      - { on: apply, status: dynamo_form, fx: lightning_strike_003A, tint: element2, scale: 1.6, delay: 250 }   # the storm strikes into it
+      - { on: resolve, fx: symmetrical_impact_004, tint: duo, scale: 1.8, layer: under, delay: 450 }   # as the bolt lands, the dynamo powers on in a ragged shockwave
+      - { on: trigger, status: dynamo_form, fx: lightning_burst_002, size: small, tint: duo, scale: 0.5 }   # each turn end it arcs into its rider
+      - { on: hit, fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.5, delay: 100, note: "the 15 Affliction at the end of each of the user's turns: a curl of violet smoke off them" }
+      # Armor's and Immune's defaults land with the spout.
+
+  electric_eel_shock:
+    beat: The eel lunges and bites, spraying crackling water past the target.
+    cues:
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.6, note: "its origin (lower-left as drawn) on the target, so the spray fans out past them" }
+      - { on: hit, fx: symmetrical_explosion_001, size: small, tint: element2, scale: 0.4, delay: 80 }
+
+  electric_eel_static_coil:
+    beat: The eel coils into a crackling ring and passes a thin arc of current to the ally.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.6, frames: [0, 13] }   # its dim last frame cut
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, tint: element2, speed: 1.5 }
+      # Charged's default on the ally, once per Soaked enemy (up to 3).
+
+  galvanic_elemental_static_lash:
+    beat: The elemental rakes the target with a whip of static water.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.4, delay: 60 }

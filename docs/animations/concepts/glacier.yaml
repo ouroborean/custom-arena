@@ -1,0 +1,291 @@
+group: glacier
+# Glacier (Ice + Water) is ice that holds time still and meltwater that sets it running again.
+# Its ice is Frost Knight / Frost Mage art (native) or palette art in Ice (`element`); its meltwater is
+# palette splashes in `duo` (Ice's teal outline around Water's deep blue body), a look neither parent
+# has. The signature is the calving two-beat: Glacier damage lands as ice, then breaks as a `duo` burst
+# of meltwater (the heavy goopy burst_splatter_002 on the biggest hits, a spout or spray on the rest).
+# Its two statuses are the time tells, and both are its own: Icebound is a frozen hourglass that cracks
+# and shatters when the ice breaks, Meltwater a patter of melt into a pool at the feet. No clock faces
+# anywhere: a clock is Swiftness's signature.
+#
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  icebound:
+    note: >-
+      No aura: Icebound sits on many units at once in this kit (both sides, often the user), and the
+      status icon carries it. Apply, remove and expire are three cuts of one hourglass (its white variant,
+      drawn colors: pale glass over washed-out sage-grey sand), so the end of the ice always reads as the same
+      glass breaking. Not the blue or green glass: those are Stasis's Suspended statuses.
+    apply:  [ { fx: fanfx_stop, variant: white, size: small, scale: 0.5, offset: [0, 0.6], frames: [0, 18], note: "the hourglass swings in and stands frozen: hold its last frame a beat, then fade it where it stands (cut before the gold crack)" } ]
+    remove: [ { fx: fanfx_stop, variant: white, size: small, scale: 0.5, offset: [0, 0.6], frames: [19, 36], speed: 1.3 } ]   # thawed or broken: a gold crack runs through the glass and it shatters
+    expire: [ { fx: fanfx_stop, variant: white, size: small, scale: 0.5, offset: [0, 0.6], frames: [27, 39], opacity: 0.7 } ]   # ran out: only its dotted outline and last shards drift away
+  meltwater:
+    apply:  [ { fx: spell_forge_001, size: small, tint: duo, scale: 0.6, speed: 1.3, note: "re-tint its yellow spark streaks onto the ramp's light stop: melt splashing, not sparks" } ]   # melt drips into a pool at the feet, faster than it should
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.6 } ]   # cleansed or stolen: the pool drains off
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.4, opacity: 0.6 } ]   # the last melt steams away
+  ice_tongue_advance:   # Ice Tongue, end of its owner's turn from its third on: 30 Piercing to a random enemy
+    trigger:
+      - { fx: directional_impact_002, size: small, scale: 0.6, frames: [2, 6], note: "only on turns it strikes (a damage event follows); its first two turns are silent. Cut its yellow-cored flash (frames 0-1) and re-tint the yellow sparks left in frames 2-4 onto the ramp's light stop" }   # the tongue grinds forward
+      - { fx: frost_knight_3, at: target, scale: 0.9, delay: 150 }   # a ridge of ice rips up under the enemy
+      - { fx: burst_splatter_003, at: target, size: small, tint: duo, scale: 0.5, delay: 300 }   # and breaks in meltwater
+
+macros: {}   # Glacier defines none
+
+skills:
+  strike.glacier:
+    beat: A slushy fist of crescents drives into the target and its icy crust bursts off in chips.
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 0.8, note: "its splat star lands about 70% across the canvas: shift it back so the star breaks on the target" }
+      - { on: hit, fx: directional_impact_001, size: small, face: fromActor, scale: 0.5, delay: 100, note: "off-center: its shock ring on the target, the shards spraying on past them" }   # the crust flies off in ice chips
+      # Icebound's hourglass lands on the target, or (already Icebound) Meltwater's drips on the user.
+
+  smash.glacier:
+    beat: The user's stored Renew gathers into the blow, an ice slab crashes onto the target, and meltwater geysers up under each of their allies.
+    note: Each Renew stack spent adds 5 to every hit (the same hit events); play the slab and the geysers up to about 1.25x at 4 or more stacks.
+    cues:
+      - { on: remove, status: renew, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.5, frames: [5, 16], speed: 1.5 }   # only when the user had Renew: it gathers into a point and is spent
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, tint: element, note: "its crash sits in the bottom corner on the leading side: place that corner on the target" }   # tinted, its violet impact accent turns to ice
+      - { on: hit, only: primary, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 300 }   # the slab breaks up into meltwater
+      - { on: hit, only: others, fx: directional_impact_004, size: small, tint: duo, scale: 0.6, delay: 350, stagger: 70 }   # the floe cracks and melt geysers up under each ally
+
+  charge.glacier:
+    beat: The user rides a rushing stream of meltwater across the board and bursts through the target in slush.
+    cues:
+      - { on: travel, fx: slime_3, path: straight, tint: duo, scale: 0.7, frames: [1, 5], note: "the user's portrait lunges along it; only its streak and wavy-trail frames, cut before the ringed ball and splat: the hit carries the landing" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: duo, scale: 0.65 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.45, delay: 60 }   # a small ice-white flash under the spray
+      # Meltwater's drips on the user (1 turn, or 2 if the target had a skill on cooldown: same event).
+
+  riposte.glacier:
+    beat: Unseen, pressure builds in the ice under the user; when a blow comes, a ridge of ice heaves up and meltwater spurts from the cracks.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.5, offset: [0, -0.3], opacity: 0.7, speed: 0.8 }   # Invisible: only the owner sees the pressure winding up
+      - { on: trigger, status: pressure_ridge, fx: frost_knight_3, scale: 0.75 }   # a row of ice spikes heaves up across the user's feet (about a portrait wide)
+      - { on: trigger, status: pressure_ridge, fx: directional_splatter_002, size: small, tint: duo, scale: 0.55, delay: 120 }
+      # Base's counter X marks the attacker; Meltwater's drips follow on the user when the countered skill had a cooldown.
+
+  rage.glacier:
+    beat: The shell of ice on the user bursts and spring meltwater wells up around them; each later thaw bubbles up again with Might.
+    cues:
+      - { on: cast, fx: symmetrical_impact_003 }   # the ice shell bursts off the user
+      - { on: cast, fx: directional_splatter_005, tint: duo, scale: 1.1, offset: [-0.45, 0], delay: 150 }   # springs well up on both sides
+      - { on: cast, fx: directional_splatter_005, tint: duo, scale: 1.1, offset: [0.45, 0], flip: x, delay: 230 }
+      - { on: trigger, status: spring_thaw, fx: directional_splatter_005, size: small, tint: duo, scale: 0.5, note: "only on turn starts that grant Might (Might's default follows); otherwise silent" }
+      # Immune's and Meltwater's defaults play on the user.
+
+  shot.glacier:
+    beat: A bead of ice flicks across and bursts into drooping streaks of melt, and the hour it took flows home into the user.
+    note: The cooldown swap itself shows on both skill bars; the resolve cue marks the user's end of it.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: element, tone: light, scale: 0.5, frames: [0, 6] }   # a frost bead: its navy tail lifts to Ice's teal, the orb to white; cut before its dark impact smudge and red sparks
+      - { on: hit, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.6 }   # willow streaks droop like melt
+      - { on: resolve, fx: directional_particle_burst_001, at: actor, size: small, tint: duo, scale: 0.45, note: "the borrowed hour comes home; skip it when nothing was swapped (no skill on cooldown on either side)" }
+
+  snipe.glacier:
+    beat: Meltwater motes spiral in over the user's head and freeze into a serac; next turn it is flung skyward and spears down on the hidden target in a burst of meltwater.
+    note: >-
+      HiddenTarget: nothing points at the target until the spear lands. Against an Icebound target it lands
+      at once: no trigger, the cast leads straight into the fall, and Icebound's shattering hourglass
+      follows the hit.
+    cues:
+      - { on: cast, fx: spell_absorb_001, tint: duo, scale: 0.6, offset: [0, 0.45], speed: 1.5 }   # radial, over the user: gives nothing away
+      - { on: trigger, status: serac_spear, fx: directional_splatter_002, tint: duo, scale: 0.7 }   # it tears free straight up in a spout, never toward the target
+      - { on: hit, fx: paladin_6, face: fromActor, tint: element, tone: light, scale: 1.1, note: "a short screen shake as it strikes" }   # a pale ice comet spearing down
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 150 }
+
+  trap.glacier:
+    beat: Unseen, a ring of cracks circles the enemy's feet; when they attack, the ice splits and bands of ice close over them.
+    cues:
+      - { on: apply, status: crevasse, fx: necromancer_1, tint: duo, scale: 0.9, opacity: 0.7 }   # Invisible: only the owner sees the snare ring (base Trap's ring, in Glacier)
+      - { on: trigger, status: crevasse, fx: directional_impact_002, scale: 1.0, frames: [2, 6], note: "cut its yellow-cored flash (frames 0-1); re-tint the yellow sparks left in frames 2-4 onto the ramp's light stop" }   # the opponent's first sight: the ice splits open along the ground
+      - { on: trigger, status: crevasse, fx: frost_knight_9, tint: element, scale: 0.9, delay: 120 }   # bands of ice wrap shut over them
+      # Icebound's hourglass follows; the cooldown rise shows on their skill bar.
+
+  maneuver.glacier:
+    beat: The user slips under the ice in a burst of bubbles, sealed over with a frost glint, while every enemy who has spent a skill freezes.
+    cues:
+      - { on: cast, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.8 }   # not a smoke ring on the user: that is base's death
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.5, delay: 200 }
+      # Invulnerable's shell follows on the user, and Icebound's hourglass on each enemy with a skill on cooldown.
+
+  companion.glacier:
+    beat: The ice floe cracks open in a crown and a walrus hauls out through a spout of meltwater.
+    cues:
+      - { on: summon, fx: directional_impact_003, scale: 0.9 }
+      - { on: summon, fx: directional_splatter_002, tint: duo, scale: 0.8, delay: 120 }
+
+  bolt.glacier:
+    beat: A pale frost orb trailing tendrils of melt lances across and bursts into a ring of ice shards.
+    note: The cooldown shifts show on both skill bars (no board event).
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, tone: light, scale: 0.45 }   # its crescent-fronted orb leads, the melt tendrils trail (a bigger, wispier missile than Shot's bead; no electric art)
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8 }   # a spiky star opens into a ragged ring of shards (not Blast's frost-sphere nova)
+
+  blast.glacier:
+    beat: The frost on every enemy cracks open and bursts into a flood of meltwater, and the thaw flows back to an ally as Renew.
+    note: Every Frost debuff it strips plays its own remove default on that enemy.
+    cues:
+      - { on: hit, fx: frost_mage_6, scale: 0.9, stagger: 70 }   # each enemy's frost cracks open
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 150, stagger: 70 }   # and breaks as meltwater
+      - { on: hit, fx: round_bubble_burst_001, at: enemySide, tint: duo, scale: 2.4, opacity: 0.7, layer: under, delay: 100, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }   # the flood foams along the enemy line
+      - { on: apply, status: buff, fx: directional_splatter_005, tint: duo, scale: 0.6 }   # the melt wells up at the ally's feet; Renew's default follows
+
+  consume.glacier:
+    beat: A spray of melt is flung off the target back toward the user and its motes spiral into them; a frozen target's ice cracks and gives up its thaw.
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: toActor, size: small, tint: duo, scale: 0.55, note: "its origin is the canvas's lower-left corner: set that corner on the target so the spray flies toward the user" }
+      - { on: heal, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 1.6, frames: [4, 24], delay: 150 }   # melt motes spiral into the user and pack in
+      # Icebound target: its hourglass shatters and Meltwater's drips fall on the user. Otherwise the hourglass lands on the target.
+
+  summon.glacier:
+    beat: A ring cracks in the ground and pillars of glacier ice thrust up into an Ice Tongue, shedding frost haze.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: element }
+      - { on: summon, fx: symmetrical_smoke_burst_002, tone: light, scale: 0.8, opacity: 0.7, delay: 250 }
+
+  channel.glacier:
+    beat: A frost ring locks around the user; at the end of each of their turns it flares and a small crest of ice-water rolls into the target.
+    note: While it channels the user's cooldowns stand still (skill bar only).
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.8, opacity: 0.8 }
+      - { on: trigger, status: glacial_advance, fx: frost_knight_7, tint: duo, scale: 0.6, opacity: 0.8, speed: 1.5 }   # each pulse: the ring flares again on the user
+      - { on: hit, fx: frost_knight_8, face: fromActor, tint: duo, scale: 0.6 }   # small: 10 a pulse (Calving's wave is the big one)
+      # Icebound's hourglass lands on the target each pulse.
+
+  stab.glacier:
+    beat: A thin jet of hoarfrost punches through the target and wet frost spikes fan out behind them.
+    note: The cooldown penalty shows on the user's skill bar (no board event).
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tone: light, scale: 0.6, speed: 1.3, note: "its ring sits at the canvas's left edge: put that edge on the target so the jet exits the far side" }
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.4, delay: 60, note: "its origin is the canvas's lower-left: set that corner on the target so the spikes fan out the far side" }
+
+  ravage.glacier:
+    beat: A whirl of slush with ice blades turning inside it scours the target, grinding harder the more confused they are, and washes their Confusion away.
+    note: Damage is 25 + 10 per Confusion (25/35/45/55) in one event; play the whirl at 0.8 / 0.9 / 1.0 / 1.1 by amount.
+    cues:
+      - { on: hit, fx: slime_5, tint: duo, scale: 0.8, speed: 1.5 }
+      - { on: hit, fx: frost_knight_9, scale: 0.75, delay: 100 }   # Ice's blade flurry turning inside Water's whirl
+      - { on: remove, status: confusion, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.45, offset: [0, 0.6], delay: 300 }   # the '?' washes off over their head
+
+  mislead.glacier:
+    beat: The user freezes still while, unseen, a skin of thin ice glazes under the enemy's feet; when they strike, it breaks under them and the user thaws free.
+    cues:
+      - { on: apply, status: thin_ice, fx: scifi_warp_001, size: small, scale: 0.55, offset: [0, -0.35], opacity: 0.6, frames: [0, 3], note: "hold the white lens a moment, then fade" }   # Invisible: only the owner sees the glaze
+      - { on: trigger, status: thin_ice, fx: scifi_warp_001, scale: 0.8, offset: [0, -0.25], frames: [3, 9] }   # the opponent's first sight: the glaze bursts into a ring of shards
+      - { on: trigger, status: thin_ice, fx: directional_splatter_002, tint: duo, scale: 0.7, delay: 80 }   # they break through into the melt
+      # Base's counter X follows on them; on the user, Icebound's hourglass shatters and Meltwater's drips fall.
+
+  stun.glacier:
+    beat: Floes crack against the target, two plates of pack ice swing in and lock around them, and the user is caught fast in the same ice.
+    note: When Immune blocks the Stun or Swiftness negates it, only the floes cracking play.
+    cues:
+      - { on: hit, fx: symmetrical_impact_004, size: small, scale: 0.55 }
+      - { on: apply, status: stun, fx: dark_mage_2, tint: duo, scale: 0.9, frames: [0, 9], delay: 80 }   # two floes swing in and grind into a ring (its last frames jump to crimson: cut)
+      # Stun's default, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 300, note: "portrait staggers back a step" }
+      # Icebound's hourglass on the user.
+
+  dance.glacier:
+    beat: Two currents, one of frost and one of melt, curl around the user; later, every ally they help is carried along on the current.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, scale: 2.0, layer: under }   # the frost current: large enough that the wisps curl out around the portrait
+      - { on: cast, fx: starcaller_4, tint: element2, scale: 2.0, layer: under, flip: x, delay: 120 }   # the melt current curls the other way
+      - { on: trigger, status: spring_current, fx: directional_particle_burst_001, at: target, size: small, tint: duo, scale: 0.55 }   # melt rises off each ally the user helps; Meltwater's drips follow
+      # Swiftness's and Meltwater's defaults play on the user.
+
+  heal.glacier:
+    beat: Clear spring water wells up around the ally and rises through them in drops of melt.
+    cues:
+      - { on: heal, fx: spell_heal_003, tint: duo, scale: 0.8, speed: 2 }
+      - { on: heal, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.55, delay: 200 }   # melt droplets rise through them (not base Heal's sparkle column)
+      # Meltwater's drips follow.
+
+  bless.glacier:
+    beat: The frost cracks off the ally and a single drop of snowmelt falls onto them and splashes.
+    cues:
+      - { on: apply, status: meltwater, fx: paladin_7, tint: duo, scale: 0.75, frames: [0, 4], note: "the drop falls and hits: cut before its spiky blaze spreads along the ground, and fade its splash frame out" }   # the drop is this Meltwater: replaces its drips here
+      - { on: apply, status: meltwater, fx: directional_splatter_005, size: small, tint: duo, scale: 0.5, delay: 200 }   # droplets spring up from the splash
+      # The ops remove first: Icebound's hourglass shatters and Chilled clears through their defaults before the drop.
+
+  curse.glacier:
+    beat: Cold motes spiral in and pack onto the target, and their hourglass freezes solid, larger and slower than anyone else's.
+    note: The cooldown rise shows on their skill bar. When Immune refuses the Icebound, neither cue plays (the effectBlocked default does).
+    cues:
+      - { on: apply, status: icebound, fx: spell_absorb_001, tint: duo, scale: 1.1, speed: 1.6, frames: [3, 26] }   # the cold settles inward onto them, over the portrait; the white orb cores keep it visible on the dark board
+      - { on: apply, status: icebound, fx: fanfx_stop, variant: white, scale: 0.8, offset: [0, 0.35], frames: [0, 18], speed: 0.8, delay: 300, note: "hold the frozen hourglass a full beat before fading" }   # Icebound's own hourglass, turned up (this skill's apply cue replaces the default)
+
+  smite.glacier:
+    beat: An icicle drops out of the sky onto the target in a splash of meltwater and leaves a tide line around them that laps back as healing whenever an ally strikes them.
+    note: A striker with no Renew heals nothing; then only the tide line's pulse plays.
+    cues:
+      - { on: hit, fx: scifi_warp_003, tint: duo }
+      - { on: apply, status: tidemark, fx: symmetrical_explosion_004, tint: duo, scale: 1.3, opacity: 0.8, frames: [0, 6], delay: 200, note: "over the portrait: its center is empty after the first frames, so the ring frames the unit. Cut before its olive fade (frame 7 on) and fade the last ring out" }   # a ring of meltwater spreads around them: the tide line
+      - { on: trigger, status: tidemark, fx: symmetrical_explosion_004, tint: duo, scale: 1.15, opacity: 0.7, speed: 1.2, frames: [1, 6], note: "fade the last ring out; this pulse is all that plays when the striker has no Renew" }   # it laps again when an ally strikes them
+      - { on: heal, fx: spell_heal_002, size: small, tint: duo, scale: 0.5, speed: 1.5 }   # on the striking ally
+
+  prayer.glacier:
+    beat: The user sings a still, cold hymn; frost-bright clouds rise through every ally and a hush of frost settles over each enemy.
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: duo, scale: 0.7 }
+      - { on: heal, fx: directional_sparkle_burst_003, tone: light, scale: 0.7, speed: 1.5, stagger: 100 }
+      - { on: apply, status: stillfrost_hymn, fx: directional_music_burst_002, size: small, tint: element, scale: 0.4, offset: [0, 0.5], opacity: 0.8, speed: 1.3, stagger: 60 }   # the hymn's notes settle over each enemy, echoing the cast (not a puff: that is this kit's removal tell)
+      # Shield's default on each ally.
+
+  cleave.glacier:
+    beat: A slab of ice shears off in a cresting wave through the target; a warning hangs over their allies, and the first to act is crushed as the ice calves onto them.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, face: fromActor, tint: duo }   # the ice slash curls into a wave: Glacier's own calving
+      - { on: hit, only: primary, fx: burst_splatter_003, size: small, tint: duo, scale: 0.6, delay: 250 }
+      - { on: apply, status: calving, fx: symbol_warning_001, size: small, scale: 0.35, offset: [0, 0.65], speed: 2, stagger: 60 }   # a small tell over each ally (about 1.5 s): whoever moves first is crushed
+      - { on: trigger, status: calving, fx: frost_mage_5 }   # the calved slab drops onto the one who acted
+      - { on: hit, only: others, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 250 }   # and bursts into meltwater (its 20 damage)
+      - { on: remove, status: calving, fx: symmetrical_smoke_burst_002, size: small, scale: 0.35, offset: [0, 0.65], opacity: 0.6 }   # the tells clear
+
+  shout.glacier:
+    beat: The user sounds a deep horn in rings across the ice; at the end of each of their turns the floes grind under every enemy with skills spent.
+    note: Damage is 5 per skill on cooldown (5/10/15); a bearer with none takes nothing and shows nothing.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.2 }   # the horn's boom spreads in tilted rings
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, tint: duo, scale: 0.7, stagger: 80 }   # one blast rolls into each enemy
+      - { on: apply, status: floe_horn, fx: directional_impact_003, size: small, tint: duo, scale: 0.45, opacity: 0.85, stagger: 80 }   # the floe cracks under each enemy as the blast arrives; the trigger and hit below are that floe grinding later
+      - { on: trigger, status: floe_horn, fx: symmetrical_impact_005, size: small, scale: 0.5, note: "only on bearers that take damage" }   # the floe under them jolts
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.6, delay: 100 }
+
+  withstand.glacier:
+    beat: A shelf of glacier ice heaves up behind the user and a glint runs across its face.
+    cues:
+      - { on: apply, status: ice_shelf, fx: frost_mage_3, tint: duo, scale: 1.5, layer: under, note: "behind the portrait its shoulders rise around it; hold its brightest last frame briefly, then fade" }
+      - { on: apply, status: ice_shelf, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.45, offset: [0.35, 0.3], delay: 300 }
+      # Meltwater's drips follow (it lasts while any of the shelf remains); base's shieldBreak plays when the shelf is broken.
+
+  taunt.glacier:
+    beat: The user's eyes flash with rime and a cold breath rolls across to the target, locking a ring of frost on them until a blow breaks it.
+    cues:
+      - { on: cast, fx: round_light_burst_001, size: small, tone: light, scale: 0.5, offset: [0, 0.3] }   # the glare
+      - { on: travel, fx: frost_mage_7, path: straight, scale: 0.55 }
+      - { on: apply, status: rime_glare, fx: frost_knight_7, tint: element, tone: light, scale: 0.5, offset: [0, 0.35], delay: 100 }   # the frost ring locks on; Taunt's '!' follows
+      - { on: trigger, status: rime_glare, fx: symmetrical_explosion_001, size: small, scale: 0.45, offset: [0, 0.35] }   # struck: the rime cracks off and the Taunt ends
+
+  titan.glacier:
+    beat: Meltwater fountains up around the user and freezes into a glacier block that settles around them, leaving them clad in glacier ice.
+    note: >-
+      The user stays Icebound, Immune and armored for 3 turns, so nothing here cracks or bursts: in this kit
+      ice shattering into a meltwater burst means time running again (Icebound's remove, Thin Ice, Spring Thaw).
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.6, note: "a brief screen shake as it erupts" }
+      - { on: apply, status: glacier_form, fx: spell_ice_001, tint: duo, scale: 1.6, frames: [11, 30], speed: 1.5, note: "the block hides the portrait for a moment: hold its last frame a beat, then fade the block where it stands. Never its white flash or outline frames: the ice doesn't break" }
+      # Icebound's hourglass and Immune's default play on the user before the block forms.
+
+  walrus_tusk:
+    beat: The walrus hooks down with both ivory tusks and meltwater sprays off the wound.
+    cues:
+      - { on: hit, fx: warrior_1, face: fromActor, tint: element, tone: light, scale: 0.75 }   # two crossing crescents: the tusks, ivory-pale
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tint: duo, scale: 0.45, delay: 120 }
+
+  walrus_haul_out:
+    beat: The walrus flops onto the ice with a slosh and its wake washes over the ally.
+    cues:
+      - { on: cast, fx: directional_impact_002, size: small, tint: duo, scale: 0.6, frames: [2, 6], note: "cut its yellow-cored flash (frames 0-1); re-tint the yellow sparks left in frames 2-4 onto the ramp's light stop" }
+      - { on: travel, fx: slime_2, path: arc, tint: duo, scale: 0.5, speed: 1.5, note: "a lobbed glob of melt; its own splash frames land on the ally as the wake" }
+      # Meltwater's drips on the ally, Icebound's hourglass on the walrus.

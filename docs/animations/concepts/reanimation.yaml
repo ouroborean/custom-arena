@@ -1,0 +1,303 @@
+# Reanimation (Lightning + Unholy) animation concepts. Spec: docs/animations/README.md; brief: briefs/reanimation.md.
+# Reanimation is dead flesh made to move by current. Three materials: pure current is `element` (Lightning
+# violet: bolts, crackle, sparks); blood and flesh are `element2` (Unholy crimson: splatters, gore); the
+# living-dead current itself is `duo`, crimson bodies with violet edges and rose highlights (claws, coils,
+# seals, comets, the user's own surges). Bone is `neutral` + `tone: light`.
+# Signature motif, the jolt: a bolt dropping straight down into a body (lightning_strike_003A, duo) is life
+# forced back in: the reanimate macro, the Flesh Golem's arrival and second wind, Raise the Fallen, The
+# Monster Lives. Galvanized, the jolt held in reserve, is its splashless sibling (lightning_strike_003B):
+# small in its default, full-size when Jolt of Life bestows it. Its stored jolt fires (lightning_burst_002,
+# duo) only when it catches a killing blow or Dead Man's Switch spends it; any other end is a quiet fade.
+# Second motif, the monitor: ECG traces over the head tell the dead from the risen. A flat line is a body that
+# is down (Reanimating, Electrocution's execution, the fallen lurer); a racing double beat is a heart kicked
+# back into motion (reanimate, Raise the Fallen, Galvanic Overdrive).
+group: reanimation
+
+statuses:
+  galvanized:
+    note: >-
+      Its trigger fires on every hit but acts only on the blow that would kill (once per match): it removes
+      itself (consumed) and leaves the bearer Reanimating. The stored jolt firing hangs on that trigger, not
+      on remove, because Galvanized also leaves without firing: linked to Life Current it is removed
+      (reason removed) when the channel ends or breaks, and a bearer already Reanimated once who dies loses
+      it with reason died. So remove is the same quiet fade as expire; Dead Man's Switch re-adds the jolt for
+      its reflect spend.
+    apply:   [ { fx: lightning_strike_003B, size: small, tint: duo, scale: 0.9, speed: 1.4 } ]   # the jolt held in reserve: a splashless bolt runs down through them
+    trigger: [ { fx: lightning_burst_002, size: small, tint: duo, scale: 0.65, note: "only when it acts: the killing blow it catches (its removal's fade and Reanimating's flatline follow). Its other firings play nothing" } ]   # the stored jolt fires
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.5, opacity: 0.6 } ]   # spent, stripped, taken by its channel ending, or lost with a body that can't return
+    expire:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.5, opacity: 0.6 } ]
+  reanimating:
+    note: It ends by running reanimate, whose cues are the return.
+    apply: [ { fx: scifi_heartbeat_flatline_001, tint: duo, scale: 0.45, offset: [0, 0.6], note: "the portrait slumps and greys as if dead but stays on the board, untargetable until the turn ends" } ]
+    aura:  { fx: scifi_charge_up_001, size: small, scale: 0.6, opacity: 0.55, layer: under }   # violet current gathers under the body for the restart
+  reanimated:
+    note: >-
+      Its turn-end trigger is its periodic HP loss, played as `tick`, and only when it costs HP. On a turn
+      Reprieve is spent instead no damage follows, and Reprieve's remove shows the skip.
+    apply: [ { fx: fanfx_pain, size: small, tint: duo, tone: light, scale: 0.8, speed: 2, note: "pins and needle streaks cross the body: stitched back together" } ]
+    tick:  [ { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.5 } ]   # rot smokes off them: 5 HP gone
+  deadhand_reprieve:
+    apply:  [ { fx: directional_star_burst_001, size: small, tint: duo, scale: 0.5, speed: 1.6 } ]
+    remove: [ { fx: symmetrical_impact_005, size: small, tint: duo, tone: light, scale: 0.4 } ]   # spent: the decay held off once
+  # Minion passives.
+  flesh_golem_stitches:
+    note: >-
+      Fires on every hit to the Golem. Play it only when it acts: the first time a hit leaves the Golem at 1 HP
+      (it heals quietly to 20 and is Reanimated). Its other hits play nothing here.
+    trigger: [ { fx: lightning_strike_003A, size: small, tint: duo, scale: 0.9 } ]   # the jolt raises it again; Reanimated's stitches follow
+
+macros:
+  reanimate:
+    - { fx: lightning_strike_003A, tint: duo, scale: 1.4, note: "the jolt, anchored at the feet: the portrait's colour floods back and it jerks upright as the bolt lands" }
+    - { fx: symmetrical_impact_002, scale: 1.2, layer: under, delay: 120 }   # the shock ring rolls out behind them
+    - { fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 1.5, delay: 300 }   # the heart kicks back in
+    # Reanimated's stitches follow; under The Monster Lives, Stormborn's and Might's defaults too.
+
+skills:
+  strike.reanimation:
+    beat: A dead hand's hooked claws rake up through the target, spitting sparks off the nails.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.45, delay: 100 }
+      # A Reanimated user's +10 is one bigger hit; Reprieve's default on the user shows the rest.
+
+  smash.reanimation:
+    beat: A crimson claw of current arcs over and crashes onto the target, and the shock erupts from the ground under each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: deathbringer_1, face: fromActor, tint: duo, scale: 1.1, note: "put the crash (the art's bottom-right corner as drawn) on the target" }
+      - { on: hit, only: primary, fx: lightning_burst_003, size: small, scale: 0.6, delay: 150 }
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, scale: 0.6, layer: under, delay: 200, stagger: 100 }   # the current runs through the ground and bursts up under each ally
+      # A kill leaves the user Galvanized: its bolt plays on them as the extra.
+
+  charge.reanimation:
+    beat: The user rides a crimson thrust into the target, then pays for it as blood spurts from their own chest and the spark crackles into Charge.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, scale: 0.8, speed: 1.4, note: "the user's portrait dashes in behind the thrust" }
+      - { on: hit, only: primary, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.6 }
+      - { on: hit, only: others, fx: directional_splatter_002, size: small, tint: element2, scale: 0.5 }   # the user's own 10 HP
+      # Charged's crackle (3 stacks) follows on the user.
+
+  riposte.reanimation:
+    beat: A dead man's switch ticks unseen on the user; the first attacker trips it and a dead hand lashes them, or if the user is Galvanized the stored jolt hurls their skill back.
+    cues:
+      - { on: apply, status: dead_mans_switch, fx: scifi_charge_up_001, tint: duo, scale: 0.8, layer: under, repeat: 2 }   # owner only (hidden): the switch's needle sweeps
+      - { on: apply, status: dead_mans_switch_reflect, fx: scifi_charge_up_001, tint: duo, tone: light, scale: 0.95, layer: under, repeat: 2 }   # brighter: wired to the user's Galvanized
+      - { on: trigger, status: dead_mans_switch, fx: lightning_burst_003, tint: duo, scale: 0.8 }   # the switch trips on the user
+      - { on: trigger, status: dead_mans_switch, fx: warrior_3, at: source, face: fromActor, tint: duo, scale: 0.8, delay: 120 }   # the dead hand lashes the attacker; the counter default follows
+      - { on: trigger, status: dead_mans_switch_reflect, fx: symmetrical_impact_002, tint: duo, scale: 1.1 }   # the stored jolt flings the skill back
+      - { on: remove, status: galvanized, fx: lightning_burst_002, size: small, tint: duo, scale: 0.65 }   # the reflect spends Galvanized: the stored jolt fires (in place of its quiet fade)
+
+  rage.reanimation:
+    beat: The user grabs the live wire as current spikes up around them and their heart races; each turn it jolts them again, burning life into Might and Charge.
+    cues:
+      - { on: apply, status: galvanic_overdrive, fx: directional_particle_burst_002, tint: duo, scale: 1.3, layer: under }
+      - { on: apply, status: galvanic_overdrive, fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 2, repeat: 2, delay: 200 }   # the heart races
+      - { on: trigger, status: galvanic_overdrive, fx: lightning_burst_002, size: small, scale: 0.55 }   # each turn start: the wire jolts them
+      - { on: hit, fx: directional_splatter_005, size: small, tint: element2, scale: 0.5, delay: 80 }   # the 10 HP it burns; Might's and Charged's defaults follow
+      # Galvanized's own bolt plays on the user when the skill lands.
+
+  shot.reanimation:
+    beat: A bone-white shard comet zips to the target and splinters in crackling crimson; when their Mark is spent, the user drains a soul off them.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: neutral, tone: light, scale: 0.45, speed: 1.4, frames: [0, 5], note: "the comet only: its own splat is cut" }   # bone white, apart from Necrobolt's crimson comet
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.5 }   # the current arrives with the hit
+      - { on: trigger, status: bone_zap, fx: none, note: "Soul Fragment's defaults carry the drain, as in Autopsy Blade: its remove on the enemy who loses one, its apply spiral on the user" }
+      # Mark's default follows the hit.
+
+  snipe.reanimation:
+    beat: Current gathers into the user with no hint of its aim while they refuse to die; next turn it bursts out of them and drops onto the victim as a crimson bolt, heavier the closer the user is to death.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, scale: 0.8, frames: [0, 12], note: "the converging zigzag shards only: the charge, pointed nowhere (HiddenTarget)" }
+      - { on: trigger, status: dying_current, fx: stylized_explosion_005, size: small, tint: duo, scale: 0.7, frames: [13, 25], speed: 1.5 }   # on the user (fires from onExpire): the gathered orb bursts
+      - { on: hit, fx: lightning_strike_002A, face: fromActor, tint: duo, scale: 1.2, note: "anchor the art's impact corner (lower-left as drawn) on the target" }
+      - { on: hit, fx: burst_splatter_002, tint: element2, scale: 0.8, delay: 120 }
+      # Immortal's default holds the user up until it lands; the missing-HP bonus is one bigger hit.
+
+  trap.reanimation:
+    beat: A coil of dead current lies unseen at the enemy's feet; when they attack it springs up and cinches tight, and tightens again each turn after.
+    cues:
+      - { on: apply, status: death_coil, fx: dark_mage_2, tint: duo, scale: 0.7, offset: [0, -0.35], opacity: 0.6, layer: under, frames: [0, 9] }   # owner only (hidden): the coil lies flat at their feet; frames cut before the art's off-palette last two
+      - { on: trigger, status: death_coil, fx: dark_mage_2, tint: duo, tone: light, speed: 1.4, frames: [0, 9] }   # it springs up around them and cinches
+      - { on: hit, fx: lightning_burst_002, size: small, tint: duo, scale: 0.6, delay: 100 }   # the 15, then each turn's 5
+      - { on: trigger, status: death_coiled, fx: dark_mage_2, tint: duo, scale: 0.6, opacity: 0.75, speed: 1.6, frames: [0, 9] }   # turn end: the coil squeezes again
+      # The can't-be-healed half has no event of its own; the coil's turn-end squeeze carries it.
+
+  maneuver.reanimation:
+    beat: The user's body spasms out of reach, and the jolt throws any Stun off them onto a random enemy.
+    cues:
+      - { on: cast, fx: directional_impact_002, size: small, tint: duo, scale: 0.6, layer: under, note: "the portrait jerks sideways and snaps back: the twitch" }
+      - { on: apply, status: debuff, fx: lightning_strike_002B, size: small, face: fromActor, scale: 0.8 }   # the moved Stun lands on the random enemy as a zap; Stun's own default follows
+      - { on: remove, status: debuff, fx: directional_impact_001, size: small, tint: duo, face: up, scale: 0.5, note: "the shock ring (right side as drawn) sits low on the user and the shards fly up off them" }   # the Stun is flung off the user
+      # Invulnerable's default seals the user off.
+
+  companion.reanimation:
+    beat: A bolt drops onto the slab and the Flesh Golem heaves up out of a burst of flesh.
+    cues:
+      - { on: summon, fx: lightning_strike_003A, tint: duo, scale: 1.3 }   # the jolt
+      - { on: summon, fx: symmetrical_explosion_003, tint: element2, scale: 0.8, delay: 200, note: "the Golem's portrait heaves up as the flesh bursts" }
+      # Stitched Together plays its own jolt the first time it would die.
+
+  bolt.reanimation:
+    beat: A crimson comet streaks to the target and bursts into a crackling crown of blood.
+    cues:
+      - { on: travel, fx: starcaller_2, tint: duo, scale: 0.7 }
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 0.85, note: "origin (lower-left-of-centre as drawn) on the target" }   # no skull: this Marks, it doesn't Horrify
+      - { on: hit, fx: lightning_burst_003, size: small, scale: 0.6, delay: 150 }
+      # Mark's default follows; a Reanimated user's bonus is one bigger hit.
+
+  blast.reanimation:
+    beat: Souls lift off the user's team, and their borrowed life is flung across the enemy side as a storm of crimson orbs that burst in every enemy.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, at: allySide, tint: duo, tone: light, scale: 2.0 }
+      - { on: hit, fx: round_firework_burst_002, at: enemySide, tint: duo, scale: 2.4, speed: 1.4, note: "once, with the first hit" }
+      - { on: hit, fx: scifi_warp_002, tint: duo, scale: 0.8, delay: 150, stagger: 80 }
+      # Each Galvanized or Reanimated ally's +10 is one bigger hit on every enemy.
+
+  consume.reanimation:
+    beat: A crimson bolt arcs from the target into the user, dragging their blood across; hearts rise on the user, or a Shield closes if they're Reanimated.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, from: target, to: actor, path: beam, tint: duo, speed: 1.4 }
+      - { on: hit, fx: burst_splatter_001, size: small, tint: element2, scale: 0.45 }
+      - { on: heal, fx: directional_heart_burst_001, size: small, tint: duo, scale: 0.6, speed: 1.6 }
+      # A Reanimated user can't heal: the siphon arrives as Shield, whose default plays instead.
+
+  summon.reanimation:
+    beat: A crimson seal assembles and flares white while four sparks stitch the scraps together, and the Patchwork Revenant lurches out of the flash.
+    cues:
+      - { on: summon, fx: deathbringer_2, tint: duo, scale: 0.9, speed: 1.6, frames: [0, 17], note: "cut before the melting silhouette: the Revenant's portrait appears in the white flash" }
+      - { on: summon, fx: round_sparkle_burst_003, scale: 0.7, speed: 1.4, delay: 150 }
+
+  channel.reanimation:
+    beat: The user becomes a dynamo; at each of their turn ends a ring of current snaps out of them and rings through every enemy.
+    cues:
+      - { on: apply, status: life_current, fx: frost_knight_7, tint: duo, scale: 0.8, layer: under, repeat: 2 }   # the dynamo spins up
+      - { on: trigger, status: life_current, fx: frost_knight_7, tint: duo, scale: 1.3 }   # each turn end: the pulse snaps out of the user
+      - { on: hit, fx: frost_knight_7, tint: duo, scale: 0.6, delay: 150, stagger: 80 }   # and rings through each enemy
+      # Galvanized's bolt plays on the user when it's applied with the channel. When the channel ends or breaks it
+      # takes its linked Galvanized with it (reason removed): Galvanized's quiet fade plays, not the stored jolt.
+
+  stab.reanimation:
+    beat: A scalpel of current flashes in a thin line across the target and blood sprays out behind them.
+    cues:
+      - { on: hit, fx: round_light_burst_001, size: small, tint: duo, tone: light, scale: 0.7, speed: 1.3 }
+      - { on: hit, fx: directional_splatter_003, size: small, tint: element2, face: fromActor, scale: 0.45, delay: 60, note: "its lower-left origin corner on the target, so the spray leaves out the back" }
+      # A bloodied user's Soul Fragment plays its own default on them.
+
+  ravage.reanimation:
+    beat: Current seizes the target in a shredding burst, jolts them twice more and bursts blood out of them; when it kills, their trace goes flat.
+    cues:
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 1.1 }
+      - { on: hit, fx: lightning_burst_003, scale: 0.9, repeat: 2, speed: 1.6, delay: 100, note: "the portrait convulses with each" }
+      - { on: hit, fx: burst_splatter_002, tint: element2, scale: 0.9, delay: 350 }
+      - { on: death, fx: scifi_heartbeat_flatline_001, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 1.5, delay: 150 }   # a Reanimated user's execution, or a killing 35
+
+  mislead.reanimation:
+    beat: A slow swirl of dead current hides under the enemy; when they attack, the trick bursts, their skill dies on the spot, and each would-be victim is wired to come back.
+    cues:
+      - { on: apply, status: lazarus_trick, fx: slime_5, tint: duo, scale: 0.7, opacity: 0.55, layer: under }   # owner only (hidden)
+      - { on: trigger, status: lazarus_trick, fx: stylized_explosion_004, tint: duo, scale: 0.9, frames: [11, 22] }   # on the countered enemy, skipping the long glint wind-up; the counter X follows, and Galvanized's bolt on each target they picked
+
+  stun.reanimation:
+    beat: A shock bursts through the target's nerves in a spiky crimson fan, and they lock rigid.
+    cues:
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.85, speed: 1.3, note: "origin (lower-left as drawn) on the target; the spiky fan carries on past them" }   # the nerve shock
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.5, delay: 120 }
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, note: "Stun's default re-added (this cue replaces it); the portrait locks rigid and trembles. Only when the Stun lands: a blocked or negated one plays effectBlocked/Swiftness instead" }
+      - { on: trigger, status: nerve_shock, fx: starcaller_1, face: fromActor, tint: duo, tone: light, scale: 0.45, speed: 1.6, note: "only when it doubles a Sapped (bearer Stunned): the nerve flares again and the second Sapped's default follows. Its other firings play nothing here" }
+
+  dance.reanimation:
+    beat: The user jerks through a twitching dance as a crimson arc snaps back and forth around them; each hit the Lifesteal can't heal sparks into Charge.
+    cues:
+      - { on: cast, fx: necromancer_2, tint: duo, scale: 1.1, repeat: 3, speed: 2, note: "mirror every other repeat so the arc jerks back and forth: a twitch, not a spin" }
+      - { on: trigger, status: twitching_dance, fx: round_firework_burst_001, size: small, scale: 0.45, note: "only on a paying hit (bearer Reanimated or at full HP): sparks jump off the user and Charged's crackle follows" }
+      # Might's, Swiftness's and Lifesteal's defaults land on the user.
+
+  heal.reanimation:
+    beat: Defibrillator paddles shock the ally, then crimson hearts fountain up off them.
+    cues:
+      - { on: heal, fx: stylized_impact_001, scale: 0.7, speed: 1.3, note: "the portrait jolts once" }
+      - { on: heal, fx: directional_heart_burst_003, tint: duo, scale: 0.8, speed: 1.6, delay: 150 }
+      # Charged's crackle follows; at 3 Charge, Galvanized's bolt too.
+
+  bless.reanimation:
+    beat: A full-length bolt of crimson current runs down through the ally without a splash and its spark settles in, wiring them to come back.
+    cues:
+      - { on: apply, status: galvanized, fx: lightning_strike_003B, tint: duo, scale: 1.3, speed: 1.2 }   # Galvanized's own splashless bolt made large, in place of its small default: held in reserve, not life forced back in (003A)
+      - { on: apply, status: galvanized, fx: round_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.6, delay: 250 }
+
+  curse.reanimation:
+    beat: A fanged crimson shroud closes over the enemy and a skull surfaces inside it; every Buff they gain after fizzles into Sapped.
+    note: >-
+      eventEffect removes the incoming Buff right after it lands, so its own apply default may flash before the
+      fizzle; the renderer could skip the apply of a Buff removed in the same resolution.
+    cues:
+      - { on: apply, status: short_circuit, fx: necromancer_8, tint: duo, scale: 0.9, speed: 1.3 }
+      - { on: trigger, status: short_circuit, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.5, speed: 1.4 }   # the incoming Buff fizzles in a puff; Sapped's default follows
+
+  smite.reanimation:
+    beat: Sparks of soul rain onto the target and burst; loose sparks hang around them, ready to shield whichever ally strikes them.
+    cues:
+      - { on: hit, fx: spell_forge_001, tint: duo, scale: 1.2 }
+      - { on: hit, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.6, delay: 200 }
+      - { on: apply, status: soul_spark, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.6, delay: 300 }
+      - { on: trigger, status: soul_spark, fx: directional_particle_burst_001, size: small, tint: duo, tone: light, scale: 0.5 }   # a spark lifts off them; Shield's default follows on the ally who hit (source)
+
+  prayer.reanimation:
+    beat: Storm-dust rises under the team; a bolt drops into each fallen ally and their heart kicks back in, while motes of life lift off the living.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_002, at: allySide, tint: duo, scale: 2.0, opacity: 0.7, layer: under, speed: 1.4 }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.8, stagger: 100 }
+      - { on: revive, fx: lightning_strike_003A, tint: duo, scale: 1.4, stagger: 150, note: "the jolt, as in reanimate: the fallen portrait's colour floods back as it lands" }
+      - { on: revive, fx: scifi_heartbeat_fast_001, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 1.5, delay: 300, stagger: 150 }
+      # Reanimated's stitches follow on each one raised.
+
+  cleave.reanimation:
+    beat: A crimson crescent cuts the target and the current chains on, forking as a slanted bolt into another enemy, and into one more for every life it takes.
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, tint: duo, scale: 0.9, note: "first hit on the primary only; a second hit on the primary in the same use is the kill's jump (randomEnemy, no exclude): play the lightning_strike_002A chain bolt there instead" }
+      - { on: hit, only: others, fx: lightning_strike_002A, size: small, face: fromActor, scale: 0.8, delay: 150, stagger: 150, note: "impact corner (lower-left as drawn) on the extra" }   # the chain leaps to each random extra, the kill's jump included
+      - { on: hit, fx: burst_splatter_001, size: small, tint: element2, scale: 0.4, delay: 80, stagger: 150 }
+
+  shout.reanimation:
+    beat: The user's wail tears open in a crackling ring and static sparks over every enemy before their dread sets in; any death while it lasts sparks the user to full Charge.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tint: duo, scale: 1.1 }   # a slit opens like a screaming mouth and bursts into a spiked ring
+      - { on: apply, status: debuff, fx: lightning_burst_002, size: small, tint: duo, scale: 0.5, stagger: 80 }   # static over each enemy; Intimidated's eye follows
+      - { on: trigger, status: wail_of_lightning, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.6, frames: [6, 16] }   # any death: sparks rush into the user; Charged's crackle follows
+
+  withstand.reanimation:
+    beat: Bone-white ribs curl up and close over the user; if a blow breaks them, the cage's current sparks loose and wires the user to come back.
+    cues:
+      - { on: apply, status: ribcage, fx: paladin_8, tint: neutral, tone: light, scale: 1.1, note: "the bands read as ribs curling up and closing over the user" }
+      - { on: remove, status: ribcage, fx: symmetrical_impact_003, tint: neutral, tone: light, scale: 0.7 }   # the ribs snap
+      - { on: trigger, status: ribcage_watch, fx: lightning_burst_003, tint: duo, scale: 0.8 }   # broken: the current sparks loose; Galvanized's bolt follows
+      # An unbroken Ribcage running out plays nothing.
+
+  taunt.reanimation:
+    beat: A crimson crown names the user as the one to hit and a leash of current runs out and coils round the target; if the user falls, their trace flatlines and the target is left Horrified.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, tint: duo, tone: light, scale: 0.45, speed: 2 }   # base Taunt's grammar: the crown over the user
+      - { on: apply, status: lure_the_living, fx: starcaller_4, tint: duo, tone: light, scale: 0.6, speed: 1.3, note: "the leash's end: two wisps of current curl round the target, then drift apart. No flash or impact: a lure, not a blow" }
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, tone: light, scale: 0.5, speed: 1.5 }   # the leash, laid user to target: its baked pulse runs back toward the user
+      - { on: trigger, status: lure_the_living, fx: scifi_heartbeat_flatline_001, at: actor, tint: duo, scale: 0.45, offset: [0, 0.6], speed: 1.5, note: "only when the unit that died is the user (its condition): over the fallen user. Horrified's skull follows on the bearer" }
+      # Taunt's '!' plays on the target.
+
+  titan.reanimation:
+    beat: Two violet bolts strike the user like a monster on the slab; a crimson nova with a crackling rim blasts out and the ground cracks as they rise.
+    cues:
+      - { on: apply, status: the_monster_lives, fx: dark_mage_4, tint: duo, scale: 1.8, layer: under, delay: 200 }
+      - { on: apply, status: the_monster_lives, fx: lightning_strike_003A, scale: 2.0, repeat: 2, speed: 1.5, note: "the portrait jerks upright and swells about 10%, holding it while The Monster Lives lasts" }
+      - { on: apply, status: the_monster_lives, fx: directional_impact_004, tint: element2, scale: 1.4, layer: under, delay: 250 }
+      # Armor's, Immune's and Galvanized's defaults follow on the user.
+
+  flesh_golem_slam:
+    beat: The Golem's stitched fist crashes down on the target in a spatter of flesh, and their power sputters.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: element2, scale: 0.4, delay: 100 }
+      # Sapped's default follows.
+
+  patchwork_revenant_gnash:
+    beat: The Revenant's mismatched jaws tear into the target.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: duo, scale: 0.6, speed: 1.3 }

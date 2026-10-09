@@ -1,0 +1,297 @@
+group: thunder
+# Thunder is Lightning turned up: both parents are Lightning, so every layer is the violet ramp and the
+# fusion shows in how the layers stack. Two materials, one per parent slot:
+#   flash  bolts, slashes and white-hot cores: `element2` at `tone: light`.
+#   boom   sound, shock rings, storm cloud: `element` (the default) at `tone: dark`.
+# Signature motif, the double peal: a Thunder blow is the flash and then, a beat later, the boom rolling out
+# from where it landed. Resound is that boom held: Echo's apply rolls a dark ring out under the unit
+# (symmetrical_explosion_004), and when the Echo runs out the same ring rolls back in with a crack of the
+# flash. Every Echo variant keeps the ring and adds its own mark (a ground band, a fork, a crackle at the
+# head). Deafened is a clap of sound slamming into both ears. Starcaller art stays native (already violet);
+# other class art is tinted. Lightning's Charged and Sapped keep their own defaults; a skill that spends
+# Charge binds the spend to `remove: charged`, as Lightning does.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+# symmetrical_explosion_004 is always cut at frame 6, before its fade turns olive.
+
+statuses:
+  deafened:
+    note: "No aura and no trigger: muting a counter, reflect or Trap raises no event of its own. Storm Snare and Deafening Cadence show the failures they answer."
+    apply:
+      - { fx: scifi_muzzle_flash_003, size: small, face: right, scale: 0.32, offset: [-0.3, 0.4], speed: 1.3 }   # a clap of sound slams into each ear from outside: the ring just past the frame, the jet reaching the head
+      - { fx: scifi_muzzle_flash_003, size: small, face: left, scale: 0.32, offset: [0.3, 0.4], speed: 1.3 }
+    remove: [ { fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.3, offset: [0, 0.45], opacity: 0.7 } ]   # hearing returns: one clean ping. Counters work again, so it shows on expiry too
+    expire: [ { fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.3, offset: [0, 0.45], opacity: 0.7 } ]
+  resound_echo:
+    apply:  [ { fx: symmetrical_explosion_004, tone: dark, scale: 1.35, opacity: 0.8, layer: under, delay: 200, frames: [0, 6] } ]   # the boom rolls out round the frame a beat after the flash; cut before the olive specks of its fade
+    expire:
+      - { fx: symmetrical_explosion_004, tone: dark, scale: 1.6, layer: under, frames: [0, 6] }   # the boom rolls back in on them, wider
+      - { fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 80 }   # with a crack of the flash; Charged's crackle follows on the Echo's owner
+  resound_echo_wide:
+    apply:
+      - { fx: symmetrical_explosion_004, tone: dark, scale: 1.35, opacity: 0.8, layer: under, delay: 200, frames: [0, 6] }
+      - { fx: directional_impact_002, tone: dark, scale: 0.55, opacity: 0.8, layer: under, delay: 260, note: "map its yellow spark colour (#fcd64b, in every drawn variant and outside the four-colour swap) onto the tint's light stop" }   # a ground band spreading just past the frame: this echo will roll on to their allies
+    expire:
+      - { fx: symmetrical_explosion_004, at: target, tone: dark, scale: 1.5, layer: under, delay: 100, stagger: 120, frames: [0, 6] }   # it booms on each unit it reaches, the bearer first: the chain carries the roll in any layout
+      - { fx: lightning_burst_002, at: target, size: small, tint: element2, tone: light, scale: 0.5, delay: 180, stagger: 120 }
+  resound_echo_fork:
+    apply:
+      - { fx: symmetrical_explosion_004, tone: dark, scale: 1.35, opacity: 0.8, layer: under, delay: 200, frames: [0, 6] }
+      - { fx: lightning_strike_001, size: small, tone: dark, scale: 0.5, opacity: 0.7, delay: 260 }   # a small fork at their feet: this echo will jump
+    expire:
+      - { fx: lightning_strike_001, size: small, tint: element2, tone: light, scale: 0.6 }   # the fork springs off the bearer, who takes nothing
+      - { fx: lightning_strike_003A, at: target, size: small, tint: element2, tone: light, scale: 0.9, delay: 150 }   # and comes down on the other enemy at full strength
+      - { fx: symmetrical_explosion_004, at: target, tone: dark, scale: 1.5, layer: under, delay: 220, frames: [0, 6] }
+  resound_echo_stun:
+    apply:
+      - { fx: symmetrical_explosion_004, tone: dark, scale: 1.35, opacity: 0.8, layer: under, delay: 200, frames: [0, 6] }
+      - { fx: lightning_burst_002, size: small, tone: dark, scale: 0.4, offset: [0, 0.55], opacity: 0.8, delay: 260 }   # a dull crackle at the head: this one will knock them out
+    expire:
+      - { fx: symmetrical_explosion_004, tone: dark, scale: 1.6, layer: under, frames: [0, 6] }
+      - { fx: symmetrical_impact_003, tint: element2, tone: light, scale: 0.8, delay: 80, note: "the portrait snaps back; Stun's default follows" }
+  overcapacity:
+    note: "At 5 Charge the stack is spent for 2 extra energy next turn: Charged's own discharge carries that, nothing extra."
+    apply:  [ { fx: directional_particle_burst_002, tint: element2, tone: light, scale: 1.5, layer: under } ]   # spikes of charge shoot up behind them and rise half a portrait over the head: past the brim
+    remove: [ { fx: directional_particle_burst_001, size: small, scale: 0.5, opacity: 0.7 } ]
+    expire: [ { fx: directional_particle_burst_001, size: small, scale: 0.5, opacity: 0.7 } ]
+  thunderhead_strike:   # the Thunderhead, at its owner's turn end: 20 to the unit with the most Charge (either side), else a random enemy
+    trigger:
+      - { fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.7 }   # the cloud lights up from inside
+      - { fx: lightning_strike_003A, at: target, tint: element2, tone: light, scale: 1.0, delay: 120 }   # a bolt drops onto whoever draws it, friend or foe
+
+macros:
+  resound_it: []   # Echo's apply default carries it: the boom ring, a beat after the skill's own flash
+
+skills:
+  strike.thunder:
+    beat: Two crescents of lightning clap together across the target, and the clap rings on twice.
+    note: "Two Echoes are set on the target, one per coming turn: play their two apply rings about 200 ms apart so the clap rings twice."
+    cues:
+      - { on: hit, fx: warrior_1, face: fromActor, tint: element2, tone: light, scale: 0.8 }   # the two hands of the clap cross into an X
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, tone: light, scale: 0.45, delay: 150 }   # the flash where they meet
+
+  smash.thunder:
+    beat: A wave of storm arcs over and crashes down on the target; next turn its echo rolls along their whole row.
+    cues:
+      - { on: hit, fx: deathbringer_1, face: fromActor, tint: element2, tone: light, scale: 1.0, note: "anchor its bottom-right crash (bottom-left when mirrored) on the target, so the wave arcs in from the user's side" }
+      - { on: hit, fx: lightning_burst_003, scale: 0.8, delay: 150 }
+      # Rolling Echo's default: the boom ring plus a ground band running toward the allies it will reach.
+
+  charge.thunder:
+    beat: The user breaks the sound barrier, lances into the target and bursts through in a double shock ring; the boom catches every deafened enemy on their next move.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: element2, tone: light, scale: 0.8, speed: 1.4, note: "the user's portrait dashes along behind the lance-streak and snaps back" }
+      - { on: hit, fx: stylized_impact_001, size: small, scale: 0.7 }   # the sonic boom: two tilted shock rings
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, tint: element2, tone: light, scale: 0.55, delay: 60 }
+      - { on: trigger, status: sonic_boom, fx: stylized_impact_001, size: small, tone: dark, scale: 0.6 }   # the held boom breaks off the user as their next skill starts; the hits above then land on each Deafened enemy
+
+  riposte.thunder:
+    beat: Static glints gather round the user unseen; the first enemy to strike is answered by a crackling peal that leaves them deaf and sapped.
+    cues:
+      - { on: cast, fx: stylized_explosion_004, tint: element2, tone: light, scale: 0.8, opacity: 0.7, frames: [0, 11] }   # Invisible: owner only. Only the opening glints, no blast
+      - { on: trigger, status: answering_peal, fx: dark_mage_4, tint: element2, tone: light, scale: 1.1 }   # the peal: a nova with a crackling white rim
+      - { on: trigger, status: answering_peal, fx: symmetrical_impact_005, at: source, size: small, tone: dark, scale: 0.6, delay: 150 }   # it reaches the attacker; Deafened's and Sapped's defaults follow
+
+  rage.thunder:
+    beat: The sky opens over the user and a needle of light drives into them; every spark they gather after calls one down on a random enemy.
+    cues:
+      - { on: apply, status: heavens_anger, fx: round_light_burst_001, tint: element2, tone: light, scale: 1.3, offset: [0, 0.9] }   # the sky flashes open above them
+      - { on: apply, status: heavens_anger, fx: scifi_warp_003, tint: element2, tone: light, scale: 1.4, delay: 150 }
+      - { on: trigger, status: heavens_anger, fx: scifi_muzzle_flash_001, face: up, size: small, tint: element2, tone: light, scale: 0.5, offset: [0, 0.5] }   # a spark shoots skyward off the user
+      - { on: hit, fx: scifi_warp_003, size: small, tint: element2, tone: light, scale: 0.7 }   # and heaven answers on a random enemy
+      # Might and Immune show through their defaults.
+
+  shot.thunder:
+    beat: A spark zips into the target, and their stored static flashes back down the line into the user.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, scale: 0.45, speed: 1.4 }   # native violet comet, star head leading
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, tone: light, scale: 0.6 }
+      - { on: remove, status: sapped, fx: scifi_muzzle_flash_002, face: toActor, tint: element2, tone: light, scale: 0.6 }   # the backflash, sprayed toward the user (replaces Sapped's wisp); Charged's crackle follows once per stack
+
+  snipe.thunder:
+    beat: A first zap rattles the target while the storm gathers in jagged lines round the user; next turn a colossal thunderbolt falls on them.
+    cues:
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, tint: element2, tone: light, speed: 1.6 }   # the leader stroke
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.5 }   # crackles inside the thunderbolt too, on the 40
+      - { on: apply, status: thunderbolt, fx: stylized_explosion_005, tone: dark, scale: 0.9, frames: [0, 13] }   # only its wind-up: jagged lines flick round the user, the storm gathering
+      - { on: trigger, status: thunderbolt, fx: lightning_strike_003A, at: target, tint: element2, tone: light, scale: 1.7, note: "fires as the channel expires. A short screen shake" }
+      - { on: trigger, status: thunderbolt, fx: symmetrical_impact_003, at: target, tint: element2, tone: light, scale: 1.2, delay: 100 }   # the Piercing flash
+
+  trap.thunder:
+    beat: A ring of storm coils unseen at the target's feet; when their own counter tries to fire, it fails and forked bolts erupt through them.
+    cues:
+      - { on: apply, status: storm_snare, fx: necromancer_1, tint: element, tone: dark, scale: 1.5, opacity: 0.7, layer: under }   # Invisible: owner only. Trap's snare ring, in storm, peeking out at their sides
+      - { on: trigger, status: storm_snare, fx: necromancer_1, tint: element, scale: 1.5, opacity: 0.9, layer: under, speed: 1.5 }   # the opponent's first sight: the hidden ring flashes into view as it fires, whether it springs or runs out into Sapped
+      - { on: hit, fx: dark_mage_3, tint: element2, tone: light, scale: 1.2, frames: [3, 12] }   # sprung only: the ring cinches and throws columns of current up through them (thin-ring wind-up skipped)
+      - { on: hit, fx: symmetrical_impact_004, tint: element2, tone: light, scale: 0.9, delay: 150 }   # the 25, as the columns peak
+      # Sprung: Deafened's default follows. Left to run out: no hit, and Sapped's default follows the ring.
+
+  maneuver.thunder:
+    beat: The user vanishes in one flash and is back in the second, untouchable, their last skill crackling ready again.
+    cues:
+      - { on: cast, fx: round_light_burst_001, tint: element2, tone: light, note: "the portrait blinks out on the flash" }
+      - { on: resolve, fx: round_light_burst_001, tint: element2, tone: light, scale: 0.7, note: "the second flash: the portrait blinks back" }
+      - { on: resolve, fx: round_sparkle_burst_003, size: small, tint: element2, tone: light, scale: 0.45, offset: [0, 0.6], delay: 150, frames: [7, 16], note: "only when a cooldown was actually reset" }
+      # Invulnerable's shell plays between the flashes.
+
+  companion.thunder:
+    beat: A great storm bird stoops out of the sky on a crackling streak and spreads its wings.
+    cues:
+      - { on: summon, fx: paladin_6, tint: element2, tone: light, scale: 1.2, note: "mirror so the comet dives in from the board-centre side" }   # the bird stoops on a diving streak that lands in a star and a ring
+      - { on: summon, fx: paladin_8, tint: element2, tone: light, scale: 1.6, layer: under, delay: 200 }   # the wings sweep open behind it, the dome rising over the frame
+      - { on: trigger, status: thunderbird_bond, fx: symmetrical_impact_002, at: target, size: small, tone: dark, scale: 0.6, stagger: 80, note: "only when the dying unit is this Thunderbird: its last thunderclap rolls over each enemy before Deafened's default" }
+
+  bolt.thunder:
+    beat: A crackling orb streaks into the target and cracks, and the crack sets off every echo waiting on their side at once.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: element2, tone: light, scale: 0.7, frames: [0, 5] }   # the orb and its lengthening tail; cut before the dark smudge
+      - { on: hit, fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8 }
+      - { on: hit, only: primary, fx: lightning_burst_002, at: enemies, size: small, tint: element2, tone: light, scale: 0.55, delay: 80, stagger: 70, note: "once, on the 15: the hit comes before the expire ops, so the crack runs down their side before any Echo goes off" }   # the crack hops down every enemy, in any layout
+      # Then every Echo there lands at once, each playing its own expire default.
+
+  blast.thunder:
+    beat: The user pulls the storm in, the sky splits over the enemy row and the ground quakes up through each of them; every Charge spent queues another aftershock.
+    note: "Each enemy gets 1 + Charge-spent Echo applies in a row: play their apply rings in sequence about 150 ms apart, each a step wider (1.35, 1.5, 1.65…), so the queued aftershocks count out."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.9, speed: 1.4 }   # sparks converge on the user and pop
+      - { on: remove, status: charged, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.9, speed: 1.4 }   # the spent Charge streams up into the sky (replaces Charged's discharge); no Charge, no stream
+      - { on: hit, fx: lightning_strike_001, tint: element2, tone: light, scale: 1.2, stagger: 90 }   # forked bolts erupt under each enemy
+      - { on: hit, fx: symmetrical_impact_004, at: enemySide, tone: dark, scale: 2.6, layer: under, note: "once, with the first hit: the quake's shock rolls through the whole row. A board shake" }
+      # Echo's default carries the queued aftershocks (counted out per the note); they land a turn apart.
+
+  consume.thunder:
+    beat: A grounding rod strikes the target, every spark on the enemy side earths out, and the drained charge spirals into the user as healing.
+    cues:
+      - { on: hit, fx: directional_impact_003, size: small, tint: element2, tone: light, scale: 0.6 }
+      - { on: remove, status: charged, fx: lightning_strike_003B, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.6 }   # replaces Charged's discharge: the Charge runs straight down through them to ground
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.9, speed: 1.5 }   # taking in Charge, as Lightning shows it
+
+  summon.thunder:
+    beat: A storm cloud billows open on the field and flickers with lightning.
+    cues:
+      - { on: summon, fx: symmetrical_smoke_burst_003, tone: dark, scale: 1.1 }
+      - { on: summon, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 300, repeat: 2, speed: 1.4 }
+
+  channel.thunder:
+    beat: A low roll of thunder beats under the user turn after turn, then breaks as bolt after bolt down the whole enemy row.
+    cues:
+      - { on: apply, status: drumroll, fx: symmetrical_impact_005, tone: dark, scale: 1.35, layer: under, repeat: 3, speed: 1.8, note: "three drum taps; no event marks the turns it holds, so nothing more until it ends" }   # the spoked ring beats out past the frame from behind them
+      - { on: trigger, status: drumroll, fx: stylized_explosion_005, tint: element2, tone: light, scale: 1.3, speed: 1.4, frames: [12, 25] }   # fires as it ends: the roll peaks and bursts off the user
+      - { on: hit, fx: lightning_strike_003A, tint: element2, tone: light, scale: 1.1, stagger: 120 }   # one bolt per enemy, a drumroll down the line
+      - { on: hit, fx: lightning_burst_003, size: small, scale: 0.6, delay: 80, stagger: 120 }
+
+  stab.thunder:
+    beat: A thin spike of lightning stabs straight through the target, and the user's spent Charge rides in after it as Sapped.
+    note: "20 damage when the target is at or below 60 HP: grow the spike to about 0.9."
+    cues:
+      - { on: hit, fx: lightning_strike_002B, face: fromActor, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.6, note: "centred on the target so the spike runs through them along the blow" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.5, delay: 60 }   # shards spray out the far side
+      - { on: remove, status: charged, fx: scifi_muzzle_flash_001, face: toTarget, size: small, tint: element2, tone: light, scale: 0.5 }   # the Charge fires down the spike (replaces Charged's discharge); Sapped's default lands per stack
+
+  ravage.thunder:
+    beat: Storm claws rake the target open, the wound crackles and current sprays out of it.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: element2, tone: light, scale: 1.0 }
+      - { on: hit, fx: lightning_burst_002, scale: 0.8, delay: 120 }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: element2, tone: light, scale: 0.6, delay: 220 }   # current leaking out like blood: Piercing
+      - { on: trigger, status: leaking_rend, fx: burst_splatter_001, size: small, tint: element2, tone: light, scale: 0.55, note: "only at a turn start where it spends the 2 Sapped: the leak bursts. Sapped's own remove follows" }
+
+  mislead.thunder:
+    beat: A silent vortex of storm starts turning round the target unseen; a turn later it swallows the first blow they try and its spark drifts to the user.
+    cues:
+      - { on: apply, status: hush_gathering, fx: slime_5, tint: element, tone: dark, scale: 0.6, opacity: 0.6, frames: [0, 5] }   # Invisible: owner only. Just the small swirl starting to spin
+      - { on: trigger, status: hush_gathering, fx: slime_5, tint: element, tone: dark, scale: 0.7, opacity: 0.5, frames: [3, 7], note: "fires as it runs out and leaves Hush: owner only, the swirl widens a turn" }
+      - { on: trigger, status: hush,fx: slime_5, tint: element, tone: dark, scale: 1.0, note: "the opponent's first sight of it: the vortex spins up over them and their skill is swallowed. Base's counter X and Charged's crackle on the user follow" }
+      # Deafened's default shows at once.
+
+  stun.thunder:
+    beat: A thunderclap goes off at the target's head and rings it; when the echo returns, it knocks them out cold.
+    cues:
+      - { on: hit, fx: symmetrical_impact_002, tint: element2, tone: light, scale: 0.85, offset: [0, 0.3], note: "the portrait jolts back" }
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.5, delay: 100 }
+      # Partial stun's default now; Concussive Echo's crackle marks the knock-out to come.
+
+  dance.thunder:
+    beat: The user whirls in a drumming storm of arcs; afterwards every blow they land rings its target deaf.
+    cues:
+      - { on: apply, status: deafening_cadence, fx: frost_knight_9, tint: element2, tone: light, scale: 1.1, speed: 1.3 }   # stacked arcs whirl into a sphere round them
+      - { on: apply, status: deafening_cadence, fx: directional_impact_002, size: small, tone: dark, scale: 0.6, layer: under, repeat: 2, speed: 1.6, delay: 200, note: "map its yellow spark colour (#fcd64b) onto the tint's light stop" }   # two stamps of the beat, spreading just past the frame
+      - { on: trigger, status: deafening_cadence, fx: symmetrical_impact_005, at: target, size: small, tint: element2, tone: light, scale: 0.4, note: "on the enemy it Deafens (Deafened's default follows); on a failed counter it lands on the user, and Charged's crackle follows" }
+      # Swiftness and Focus show through their defaults.
+
+  heal.thunder:
+    beat: A stroke of current pours into the ally, healing them and swelling their charge past its limit.
+    cues:
+      - { on: heal, fx: spell_heal_002, tint: element2, tone: light, speed: 1.6, delay: 100 }
+      - { on: heal, fx: lightning_strike_003B, size: small, tint: element2, tone: light, scale: 0.7, speed: 1.6 }
+      # Overcapacity's default follows.
+
+  bless.thunder:
+    beat: A rod of light drops into the ally and grounds them; each enemy they strike then takes their static as Sapped.
+    cues:
+      - { on: apply, status: grounding_touch, fx: scifi_warp_003, tint: element2, tone: light, scale: 0.9 }
+      - { on: trigger, status: grounding_touch, fx: scifi_spark_burst_001, at: target, size: small, tint: element2, tone: light, scale: 0.6, note: "static jumps off the ally onto the enemy they hit; Sapped's sputter follows there, and its wisp on the ally when one of theirs moved" }
+
+  curse.thunder:
+    beat: The pressure of a thunderclap bursts against the target's head and hangs there; every skill they use pops it again.
+    cues:
+      - { on: apply, status: eardrum_burst, fx: stylized_explosion_004, tone: dark, scale: 0.8, offset: [0, 0.3], frames: [11, 22] }   # only the blast: a dark-cored dome swells and breaks into cloud
+      - { on: trigger, status: eardrum_burst, fx: symmetrical_explosion_001, size: small, tint: element2, tone: light, scale: 0.4, offset: [0, 0.45] }   # a pop at the head each time they act; Sapped's default follows
+      # Deafened's default plays with it.
+
+  smite.thunder:
+    beat: A bolt falls on the target like a bell hammer and leaves them tolling; each blow on them rings out across their whole side.
+    cues:
+      - { on: apply, status: tolling_bolt, fx: lightning_strike_002A, face: fromActor, tint: element2, tone: light, scale: 1.2, note: "impact corner (lower-left as drawn) on the target's feet; ground art, so it is mirrored to lean in from the user's side" }   # once per use, right after the 20 lands: the toll's later 5s don't replay it
+      - { on: hit, only: primary, fx: symmetrical_impact_002, tone: dark, scale: 1.5, layer: under, delay: 120 }   # the bell rings past the frame; each toll's 5 on the bearer rings it again
+      - { on: trigger, status: tolling_bolt, fx: symmetrical_impact_002, at: target, size: small, tone: dark, scale: 0.6, stagger: 70 }   # the toll rings out over each enemy it reaches
+
+  prayer.thunder:
+    beat: A low hymn of thunder rises off every ally and heals them; each enemy move rolls it back in.
+    cues:
+      - { on: heal, fx: directional_music_burst_001, tint: element2, tone: light, scale: 0.8, speed: 1.3, stagger: 100 }   # notes over rolling sound arcs rise from each ally
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, speed: 1.7, delay: 150, stagger: 100 }
+      - { on: apply, status: rolling_hymn, fx: directional_music_burst_002, size: small, tone: dark, scale: 0.5, stagger: 60 }   # dark notes hang over each enemy
+      - { on: trigger, status: rolling_hymn, fx: round_music_burst_001, size: small, tone: dark, scale: 0.5 }   # their move sounds the hymn; the heals above play again on every ally
+
+  cleave.thunder:
+    beat: A great crescent of lightning shears through the target and forks at their feet; its echo jumps to another enemy.
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: element2, tone: light, scale: 1.0 }
+      - { on: hit, fx: lightning_strike_001, size: small, tint: element2, tone: light, scale: 0.7, delay: 120 }
+      # Forked Echo's default marks the fork to come.
+
+  shout.thunder:
+    beat: The user roars a thunderclap that opens like a mouth and slams a shock front into every enemy's ears.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tint: element2, tone: light, scale: 1.2 }   # a slit opens into a blazing oval and bursts into a spiked ring
+      - { on: travel, fx: scifi_muzzle_flash_003, path: straight, tone: dark, scale: 0.8, speed: 1.3, stagger: 80 }   # one shock front to each enemy
+      # Deafened's default lands on each; any channel broken plays base's interrupted.
+
+  withstand.thunder:
+    beat: Two bars of lightning slam down on either side of the user; each blow that gets through sparks on them and rings back on its striker.
+    cues:
+      - { on: apply, status: thunder_cage, fx: lightning_strike_003B, tint: element2, tone: light, scale: 1.1, offset: [-0.45, 0], speed: 1.4 }
+      - { on: apply, status: thunder_cage, fx: lightning_strike_003B, tint: element2, tone: light, scale: 1.1, offset: [0.45, 0], speed: 1.4, flip: x, delay: 60 }
+      - { on: trigger, status: thunder_cage, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.5 }   # the bars spark as they halve the hit; Echo's default lands on the striker
+
+  taunt.thunder:
+    beat: The user rings out a challenge that arcs across to the target; their answering blow rings back on them.
+    cues:
+      - { on: cast, fx: symmetrical_impact_005, tint: element2, tone: light, scale: 0.7 }
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, tone: dark, speed: 1.5, opacity: 0.85 }
+      - { on: trigger, status: challenge_peal, fx: symmetrical_impact_002, size: small, tint: element2, tone: light, scale: 0.6 }   # their blow on the user rings back; Echo's default follows on them
+      # Taunt's own '!' marks the target.
+
+  titan.thunder:
+    beat: A spire of storm drives down into the user, forked bolts crown it and the ground quakes as they stand as the lightning rod for their whole side.
+    cues:
+      - { on: apply, status: stormspire, fx: paladin_5, tint: element2, tone: light, scale: 1.8, note: "keep its black spire silhouette: that is the user's new form. A board shake as it lands" }
+      - { on: apply, status: stormspire, fx: lightning_strike_001, tint: element2, tone: light, scale: 1.8, delay: 250 }
+      - { on: apply, status: stormspire, fx: symmetrical_impact_004, tone: dark, scale: 2.2, layer: under, delay: 300 }   # the quake rolls out under them
+      # Armor and Immune show through their defaults. Redirecting a sweeping attack raises no event of its own.
+
+  thunderbird_wingclap:
+    beat: The Thunderbird beats its wings once and a clap of thunder cracks over every enemy.
+    cues:
+      - { on: cast, fx: paladin_8, tint: element2, tone: light, scale: 1.0 }   # the wingbeat
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, tone: light, scale: 0.6, stagger: 80 }

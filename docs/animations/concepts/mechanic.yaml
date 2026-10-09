@@ -1,0 +1,278 @@
+group: mechanic
+# Mechanic (Fire + Wind) is steam and steel: Fire's heat driving Wind's air as pressure. `duo` (Fire's
+# rust-dark outline under Wind's white body) is its steam and its steel: pale jets, puffs, vents, plates
+# and blades with hot red edges. Plain Fire is the hot metal: rivets, flares, sparks and blasts.
+# Signature motif: machines are worked in a shower of welding sparks (scifi_spark_burst_001) and vent a
+# curl of steam (directional_smoke_burst_004); clockwork reads as a gauge's sweeping needle
+# (scifi_charge_up_001). Each skill bolts its Contraption in with its own summon cue, then Contraption's
+# default lets off the new machine's first hiss. Explosions (Jetpack, the Dummy) are Fire's explode macro;
+# Ignite, Rushing and Leaping keep their parents' defaults.
+
+statuses:
+  contraption:   # applied to every Contraption the moment it's built, right after the skill's own summon cue
+    apply: [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.55, opacity: 0.85 } ]   # the boiler lights: a first curl of steam off the new machine
+  upgraded:
+    note: >-
+      Only the upgrade macro applies it: the macro's sparks are the work, this is the level-up tell. Losing a
+      level while others remain only drops a stack and raises no removal: Steam Whistle shows its own (its
+      trigger cue). The remove cue plays when the last level goes: Mech Suit ending, or Steam Whistle taking
+      a minion's only level (Steam Whistle silences it there).
+    apply:  [ { fx: spell_buff_001, tint: duo, size: small, scale: 0.5, speed: 1.5 } ]   # chunky arrows climb off the unit
+    remove: [ { fx: symmetrical_smoke_burst_002, tint: duo, tone: dark, size: small, scale: 0.5, opacity: 0.8 } ]   # the added plating vents off in a sooty puff (Mech Suit ending)
+  turret_fire:   # end of its owner's turn: 10 to a random enemy
+    trigger:
+      - { fx: scifi_muzzle_flash_001, face: toTarget, scale: 0.45 }   # the turret barks
+      - { fx: symmetrical_explosion_001, at: target, size: small, scale: 0.45, delay: 100 }
+  paired_turret_fire:   # the same gun (a Turret is a Turret); its partner's Upgrade on death plays the upgrade macro
+    trigger:
+      - { fx: scifi_muzzle_flash_001, face: toTarget, scale: 0.45 }
+      - { fx: symmetrical_explosion_001, at: target, size: small, scale: 0.45, delay: 100 }
+  clockwork_hound_hunt:   # end of its owner's turn: 10 to a random enemy; every other turn the upgrade macro plays on the hound
+    trigger:
+      - { fx: blood_knight_2, at: target, face: fromActor, tint: duo, scale: 0.55, note: "the hound's portrait lunges at the target and snaps back" }
+      - { fx: scifi_spark_burst_001, at: target, size: small, scale: 0.45, delay: 80 }   # iron jaws strike sparks
+
+macros:
+  upgrade:   # per unit Upgraded: the level, +10 max HP and the 10 heal all ride on this (no heal default); Upgraded's arrows follow
+    - { fx: scifi_spark_burst_001, scale: 0.65, note: "skip on a unit already at level 3: the macro changes nothing there and no event follows" }
+  upgrade_random: []   # picks one upgradeable ally; the nested upgrade macro plays on it, so nothing here doubles it
+  upgrade_all: []      # likewise: each nested upgrade macro plays on its own unit
+
+skills:
+  strike.mechanic:
+    beat: A steam piston rams through the target and vents a blast of steam out past them.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 0.8 }   # the flat-faced ram punches out along the blow
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, tint: duo, size: small, scale: 0.5, delay: 100 }
+      # upgrade_random's macro plays on the minion it picks.
+
+  smash.mechanic:
+    beat: A steam hammer swings down on the target, steam bursts out of the blow, and the shock runs along the ground under each of their allies.
+    note: "Rushing branch: the allies' hits are the 30 version, so play the splash about 1.25x; Ignite's default then catches on each ally."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.85, frames: [6, 13], note: "shift the canvas ~0.7 portrait back toward the attacker so the impact flash (≈90% across, 75% down) lands on the target" }   # frames 0-5 are the mace rocking: the swing and its impact flash only
+      - { on: hit, only: primary, fx: symmetrical_smoke_burst_003, tint: duo, scale: 1.5, layer: under, delay: 150 }   # big enough that the four lobes clear the portrait
+      - { on: hit, only: others, fx: directional_impact_002, tint: duo, size: small, scale: 0.7, layer: under, delay: 200, stagger: 90 }
+      # Rushing branch only: the user's speed vents into the swing (replaces Rushing's remove default here).
+      - { on: remove, status: rushing, fx: directional_smoke_burst_005, face: toTarget, tint: duo, scale: 0.8, layer: under }
+
+  charge.mechanic:
+    beat: Rocket boots fire and the user streaks in on a trail of steam, heel-first into the target, while a Turret thuds down behind.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, tint: duo, scale: 0.6, note: "portrait rockets along it; the billowing steam head leads, the streaks trail" }
+      - { on: hit, fx: symmetrical_impact_002, size: small, scale: 0.7 }
+      - { on: summon, fx: directional_impact_002, tint: duo, size: small, scale: 0.6, layer: under }
+      # Rushing's default plays on the user.
+
+  riposte.mechanic:
+    beat: A coiled spring tightens at the user's feet; when struck it snaps loose, steel jaws clamp the attacker, and a Turret springs up.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 1.1, offset: [0, -0.4], layer: under, frames: [0, 10] }   # Invisible: owner only. The ring winds tight round the feet; trim the last frame's red palette jump
+      - { on: trigger, status: spring_trap, fx: stylized_impact_001, tint: duo, size: small, scale: 0.7 }   # the spring lets go on the user: its coil rings fly out
+      - { on: trigger, status: spring_trap, fx: blood_knight_3, at: source, face: up, tint: duo, scale: 0.7, delay: 100 }   # the spiked crescent snaps up as the jaws close
+      - { on: summon, fx: directional_impact_004, tint: duo, size: small, scale: 0.6, delay: 200 }   # over the Turret: at this size it would hide behind the portrait
+      # The counter default, then Isolated's default on the attacker.
+
+  rage.mechanic:
+    beat: The user's boiler blows its valves in a burst of steam and red-hot rivets; every Explosion their side sets off shrieks it higher.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: duo, scale: 1.4, layer: under }   # steam blows out along the diagonals past the portrait
+      - { on: cast, fx: round_firework_burst_002, scale: 0.8, speed: 1.5, delay: 150 }   # red-hot rivets pop off
+      - { on: trigger, status: boiler_fury, fx: scifi_muzzle_flash_003, face: up, tint: duo, size: small, scale: 0.6, offset: [0, 0.45], note: "only while it still grants Might (the first 3 ally-side Explosions): the safety valve shrieks a jet of steam overhead; Might's default follows" }
+      # Might's and Immune's defaults play on the user.
+
+  shot.mechanic:
+    beat: A rivet gun cracks and a white-hot rivet streaks into the target in a spray of drooping sparks.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: toTarget, scale: 0.4 }
+      - { on: travel, fx: starcaller_2, path: straight, tint: element, tone: light, scale: 0.3, speed: 2 }   # the white star head is the rivet, its tail the streak
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.55 }
+      # If an allied minion hit them last, the upgrade macro plays on that minion.
+
+  snipe.mechanic:
+    beat: A Mortar is bolted down and the user ranges it; next turn it thumps and shells rain on every enemy.
+    cues:
+      - { on: summon, fx: directional_impact_003, tint: duo, size: small, scale: 0.7 }   # over the Mortar, so the target to kill is seen bolting down
+      - { on: apply, status: mortar_shell, fx: scifi_charge_up_001, tint: duo, size: small, scale: 0.5, repeat: 2, note: "on the user: the range gauge sweeps while it loads, so the opponent sees something to stop" }
+      - { on: trigger, status: mortar_shell, fx: symmetrical_smoke_burst_001, tint: duo, scale: 0.7, note: "the Mortar fires (it deals the damage): play this on the Mortar beside the user when the renderer can resolve it, else on the user. A thump ring of smoke as the shells go up. Only when a Mortar still stands, i.e. its hits follow. If the Mortar was destroyed, mortar_shell still expires and runs its payload, but nothing fires: play nothing" }
+      - { on: hit, fx: epic_explosion_001, delay: 300, stagger: 120 }   # the shells come down on every enemy just after the thump
+
+  trap.mechanic:
+    beat: A wire is strung taut across the target's feet; the first thing they do trips it and sets them alight, and every move after jerks the flames higher.
+    cues:
+      - { on: apply, status: tripwire, fx: necromancer_6, tint: duo, scale: 0.45, offset: [0, -0.42], opacity: 0.9, note: "Invisible: owner only. The thin beam is the wire: let one pulse run along it, then fade" }
+      - { on: trigger, status: tripwire, fx: directional_impact_003, size: small, scale: 0.55, note: "only when it does something: the first skill trips it (Ignite's default catches), each later one while they burn jerks it again (the hit below)" }
+      - { on: hit, fx: fire_looping_001, size: small, scale: 0.45 }   # the forced burn: Ignite's own tick look
+
+  maneuver.mechanic:
+    beat: Twin thrusters roar under the user and lift them clear in a cloud of exhaust; when the fuel runs out they slam down and the landing explodes.
+    note: "The portrait lifts about 0.15 and hovers while Airborne, and drops back on the landing."
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_002, face: down, size: small, scale: 0.6, offset: [-0.2, -0.45], layer: under }
+      - { on: cast, fx: scifi_muzzle_flash_002, face: down, size: small, scale: 0.6, offset: [0.2, -0.45], layer: under, delay: 40 }
+      - { on: cast, fx: directional_smoke_burst_002, tint: duo, scale: 1.3, layer: under, delay: 100 }
+      - { on: trigger, status: jetpack, fx: directional_impact_002, tint: duo, scale: 0.9, layer: under }   # the touchdown as it ends; the explode macro then bursts on each enemy
+      # Invulnerable's default plays on the user.
+
+  companion.mechanic:
+    beat: The Clockwork Hound's key is wound, its gauge sweeps round once, and it hops down in a puff of steam.
+    cues:
+      - { on: summon, fx: scifi_charge_up_001, tint: duo, scale: 0.6, speed: 1.5 }   # the white needle sweeping the rings reads as clockwork winding
+      - { on: summon, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.6, layer: under, delay: 350 }
+
+  bolt.mechanic:
+    beat: A launcher coughs steam, a cable pays out to the target, and the grapnel bites in and hooks them, tearing any cover away.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, tint: duo, size: small, scale: 0.5 }
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, scale: 0.5, speed: 1.5 }   # the cable
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.8 }   # the streak strikes and curls into a hook
+      - { on: remove, status: buff, fx: directional_smoke_burst_003, face: toActor, tint: duo, size: small, scale: 0.6, note: "only for the Invulnerable, Untargetable or Stealth it strips: the cover is yanked off toward the user" }
+      # Mark's default follows.
+
+  blast.mechanic:
+    beat: The pipes under the enemy side burst one after another, scalding steam geysering up through every enemy.
+    note: "The bonus (+10 per ally who acted earlier this turn) is folded into each hit: at 30 or more, play the geysers about 1.25x with a light screen shake."
+    cues:
+      - { on: hit, fx: dark_mage_3, tint: duo, opacity: 0.9, stagger: 120 }   # a vent ring at their feet, then steam columns shoot up through them: the cascade runs down the row
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tint: duo, scale: 2.2, opacity: 0.7, layer: under, delay: 150, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: symmetrical_impact_004, size: small, scale: 0.6, delay: 200, stagger: 120 }
+
+  consume.mechanic:
+    beat: A nozzle punctures the target and hot fuel streams back into the user, who burns their stored speed to refuel further.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.5 }
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, scale: 0.6, delay: 80 }   # glowing fuel drawn off toward the user
+      - { on: remove, status: swiftness, fx: round_firework_burst_002, tint: Wind, size: small, scale: 0.5, speed: 1.5, note: "the stored speed bursts into fuel (replaces Swiftness's remove default here); the heal is 10 larger per stack" }
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.6, note: "only where the heal restores HP (amount > 0): a Mech Suit user (healing ×0) or a user already at full HP gets a 0 heal event: play nothing" }
+
+  summon.mechanic:
+    beat: Two Turrets drop out of the sky on streaks and seat themselves in billows of steam.
+    cues:
+      - { on: summon, fx: scifi_warp_003, tint: duo, scale: 0.9, stagger: 150 }
+      - { on: summon, fx: directional_smoke_burst_002, tint: duo, size: small, scale: 0.6, layer: under, delay: 300, stagger: 150 }
+
+  channel.mechanic:
+    beat: Molten drops fall onto a workbench ring at the user's feet; at each of their turn ends a toothed gear turns over and the line turns out an upgrade or a fresh Turret.
+    cues:
+      - { on: apply, status: assembly_line, fx: spell_forge_001, scale: 0.9, opacity: 0.9 }   # over the user: its drops and ring are sparse, and under the portrait they'd be hidden
+      - { on: trigger, status: assembly_line, fx: frost_knight_7, tint: duo, scale: 0.6 }   # the spiked compass ring reads as a gear tooth
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo, size: small, scale: 0.7, note: "only with no minion to upgrade: a Turret pops off the line" }
+      # Otherwise the upgrade macro plays on the minion it picks.
+
+  stab.mechanic:
+    beat: A spinning drill bit bores into the target, throwing hot shavings.
+    note: "Each earlier Drill Bit still in them adds 5: play the spiral once more per hole (repeat 2 at the 15 version, 3 at the 20), so the bit bores deeper."
+    cues:
+      - { on: hit, fx: slime_5, tint: duo, scale: 0.5, speed: 1.6 }   # the spiral is the bit seen head-on
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.5, delay: 80 }
+
+  ravage.mechanic:
+    beat: A chainsaw's teeth whir through the target twice in a shower of sparks, its exhaust spraying out past them.
+    note: "The bite is a third of their current HP (10 to 25): scale the hit cues from about 0.8x at 10 to 1.2x at 25."
+    cues:
+      - { on: hit, fx: paladin_8, face: fromActor, tint: duo, scale: 0.9, repeat: 2, speed: 2 }   # the banded dome whirling twice is the chain running
+      - { on: hit, fx: scifi_spark_burst_001, scale: 0.8, delay: 100 }
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, tint: duo, size: small, scale: 0.6, delay: 150 }
+
+  mislead.mechanic:
+    beat: A hidden fuse sputters around the target; when they attack, it bursts into steam and a Dummy pops up where the blow went.
+    cues:
+      - { on: apply, status: dummy_bomb, fx: scifi_spark_burst_002, scale: 0.7, opacity: 0.85, speed: 1.6 }   # Invisible: owner only
+      - { on: trigger, status: dummy_bomb, fx: symmetrical_smoke_burst_001, tint: duo, scale: 0.8 }   # their attack bursts into a puff of steam; the counter default follows
+      - { on: summon, fx: round_sparkle_burst_003, tint: duo, scale: 0.8, frames: [6, 16] }   # skip the faint edge sparkles: the puff gathers and pops into the Dummy
+      # When the Dummy is destroyed, the explode macro plays.
+
+  stun.mechanic:
+    beat: A ticking grenade is lobbed to the target's feet; at the start of the user's next turn it goes off and leaves them reeling, unless they moved first.
+    cues:
+      - { on: travel, fx: scifi_charge_up_001, path: arc, tint: duo, size: small, scale: 0.3 }   # the gauge's needle reads as the timer
+      - { on: apply, status: concussion_grenade, fx: scifi_charge_up_001, tint: duo, size: small, scale: 0.35, offset: [0, -0.35], repeat: 2 }   # it lands ticking at their feet
+      - { on: trigger, status: concussion_grenade, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.5, note: "only on the dodge (they used a mobility skill first, and the grenade fizzles out harmlessly): the skillUsed firing where the grenade removes itself (effectRemoved, reason consumed). Never at its expiry: that is the detonation, which plays only the hit below and then Stun's default" }
+      - { on: hit, fx: symmetrical_explosion_002, scale: 0.75 }   # it goes off; Stun's default follows
+
+  dance.mechanic:
+    beat: A flywheel spins up around the user, its weights whirling; each of their turn ends the clock races ahead and the engine throws off overheated sparks.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 1.9, layer: under, speed: 1.5 }   # the ring circles just outside the portrait and its two weights swing round past its edges
+      - { on: trigger, status: overclock, fx: fanfx_slow, scale: 0.5, speed: 2, note: "the extra cooldown tick: played double speed, the hands whip forward. Fire-colored and fast, not Wind's sluggish clock" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.5 }   # the 5 Affliction it costs them
+      # Might's default plays on the user.
+
+  heal.mechanic:
+    beat: Bolts and bright sparks rise up through the ally as a toothed ring tightens round them.
+    note: "On an allied minion: a Contraption is Repaired (these heal cues), then the upgrade macro plays on it twice; any other minion only gets the upgrades."
+    cues:
+      - { on: heal, fx: directional_star_burst_001, tint: duo, scale: 0.8, speed: 1.6, note: "only where the heal restores HP (amount > 0): a Mech Suit user (healing ×0) or a target already at full HP (a Contraption included: its Repair is raw, so it only comes up 0 at full) gets a 0 heal event: play nothing" }   # the bar and capsule shapes among the stars read as bolts
+      - { on: heal, fx: frost_knight_7, tint: duo, scale: 0.5, delay: 100, note: "likewise only where the heal restores HP (amount > 0)" }
+
+  bless.mechanic:
+    beat: A spare part drops onto the ally and seats with a white splash, steam curling off both sides; their Leap now holds through their own attacks.
+    cues:
+      - { on: apply, status: tune_up, fx: frost_mage_5, tint: duo, scale: 0.8 }
+      - { on: trigger, status: tune_up, fx: directional_impact_002, tint: duo, size: small, scale: 0.55, layer: under, note: "only on the firing that re-grants Leaping after a damaging skill: a spring kick at their feet as Leaping's updraft returns. Silent on its bookkeeping firings, and on taking damage (Leaping's remove default shows the Leap ending)" }
+      # Might's default plays on the ally.
+
+  curse.mechanic:
+    beat: A spanner is flung into the target's works and black soot billows up; every mobility skill they try backfires in sparks.
+    cues:
+      - { on: travel, fx: warrior_9, path: arc, tint: duo, scale: 0.45, frames: [5, 5], repeat: 6, speed: 0.5 }   # one held frame, ~0.6 s: the spanner with its full streak tail, no wind-up and no chevron burst
+      - { on: apply, status: sabotage, fx: directional_smoke_burst_001, tint: Fire, tone: dark, scale: 1.1, opacity: 0.85 }   # a sooty rust cloud billows up through the target, over the portrait
+      - { on: trigger, status: sabotage, fx: round_firework_burst_002, size: small, scale: 0.6, speed: 1.5 }   # the backfire; the counter and Stun defaults follow
+      # Confusion's default plays on the target.
+
+  smite.mechanic:
+    beat: A signal flare drops onto the target and splashes into burning light, then blazes over their head as a beacon for the user's machines.
+    cues:
+      - { on: hit, fx: paladin_7, tint: element, scale: 0.8, note: "fade its last frame: a held ochre patch" }
+      - { on: apply, status: signal_flare, fx: round_light_burst_001, tone: light, size: small, scale: 0.55, offset: [0, 0.7] }
+      - { on: trigger, status: signal_flare, fx: round_firework_burst_001, size: small, scale: 0.45, offset: [0, 0.7], note: "only when one of the user's minions damaged them: the flare sputters, and the upgrade macro plays on that minion" }
+
+  prayer.mechanic:
+    beat: Steam billows up behind the team as a workshop fires up, sparkling rings tune up every ally, and the worst-hurt get a Turret forged beside them.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, at: allySide, tint: duo, scale: 2.2, opacity: 0.7, layer: under }
+      - { on: heal, fx: round_sparkle_burst_001, tint: duo, tone: light, scale: 0.8, stagger: 100, note: "only where the heal restores HP (amount > 0). Contraptions and a Mech Suit user (healing ×0) and full-HP allies get a 0 heal event: play nothing on them, so a Turret never looks repaired" }
+      - { on: summon, fx: spell_forge_001, size: small, scale: 0.55, stagger: 100 }   # per ally at or below half HP: molten drops forge a Turret on the spot
+
+  cleave.mechanic:
+    beat: A white-hot blade sweeps through the target and a second enemy, the cuts sizzling, and the user's own blades stay burning.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_4, face: fromActor, tint: element, tone: light }
+      - { on: hit, only: others, fx: frost_knight_4, face: fromActor, tint: element, tone: light, scale: 0.75, delay: 150 }   # the random 15-damage second enemy
+      - { on: hit, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, delay: 120 }   # the cut sizzles
+      - { on: trigger, status: red_hot_blades, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.45, opacity: 0.8, note: "only when it ends itself because the user is no longer Ignited: the blades cool off with a hiss" }
+      # Ignite's default catches on the user.
+
+  shout.mechanic:
+    beat: The user's steam whistle shrieks a jet of steam into the air and banks of steam roll out over every enemy.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_002, face: up, tint: duo, scale: 0.8, offset: [0, 0.35], layer: under }   # the ring and lower jet hide behind the portrait: only the jet venting above the head shows
+      - { on: cast, fx: round_music_burst_001, tint: duo, size: small, scale: 0.7, delay: 120 }   # the shriek rings out
+      - { on: apply, status: debuff, fx: directional_smoke_burst_003, face: fromActor, tint: duo, size: small, scale: 0.65, stagger: 80 }   # a bank of steam washes past each enemy, away from the user; adds to Intimidated's default
+      - { on: trigger, status: steam_whistle, fx: symmetrical_smoke_burst_002, tint: duo, tone: dark, size: small, scale: 0.4, opacity: 0.8, note: "two turns later, on each minion it pumped up: the borrowed level vents off in a sooty puff. When it was their only level, Upgrade itself ends; this skill silences Upgraded's remove default there" }
+      - { on: remove, status: upgraded, fx: none }   # only Steam Whistle's expiry removes it here: the puff above shows it
+      # Intimidated's default plays on each enemy; the upgrade macro on each allied minion.
+
+  withstand.mechanic:
+    beat: Riveted plates stack up into a wall behind the user and welding sparks seal the seams; plating left over at the end is bolted into a Turret.
+    cues:
+      - { on: apply, status: blast_shield, fx: fanfx_barrier, tint: duo, scale: 1.3, layer: under, frames: [0, 12], note: "the plates stack up from the feet and spill past the portrait's edges; hold the finished panel a beat, then fade it. Never its shatter frames" }
+      - { on: apply, status: blast_shield, fx: scifi_spark_burst_001, scale: 0.8, delay: 400 }
+      - { on: summon, fx: fanfx_barrier, tint: duo, size: small, scale: 0.55, frames: [0, 12], note: "only with 10 or more Shield left when it ends: a small panel bolts together where the Turret stands, then fades" }
+
+  taunt.mechanic:
+    beat: A scarecrow bot pops up out of a puff and hoots a blast of steam at the target.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, tint: duo, scale: 0.8, speed: 1.3 }
+      - { on: summon, fx: scifi_muzzle_flash_003, face: toTarget, tint: duo, size: small, scale: 0.5, delay: 300 }
+      # Taunt's default marks the target.
+
+  titan.mechanic:
+    beat: The boiler lights in a ring of fire jets, curved hull plates wrap round the user into a banded shell, and the finished suit stomps down.
+    note: "Swell the portrait about 12% with a light screen shake on the stomp. The welding sparks are the upgrade macro's, on the user. When the suit ends, Upgraded's remove default shows the levels coming off."
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: element, scale: 1.6, opacity: 0.85 }   # fire jets sprout from a ring at the feet and rise as embers
+      - { on: apply, status: mech_suit, fx: frost_knight_9, tint: duo, scale: 1.3, opacity: 0.9, note: "the curved bands stack round the user into a striped shell: hull plates closing. Starts small at the lower right; the peak frames fill the canvas" }
+      - { on: apply, status: mech_suit, fx: directional_impact_004, tint: duo, scale: 1.3, layer: under, delay: 550 }
+      - { on: trigger, status: mech_suit, fx: directional_smoke_burst_004, tint: duo, scale: 0.7, note: "each of their turn starts the suit vents steam, then the upgrade macro adds a level" }
+      # Immune's default and the first upgrade macro play on the user.

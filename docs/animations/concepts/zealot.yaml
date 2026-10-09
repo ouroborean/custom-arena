@@ -1,0 +1,353 @@
+# Zealot (Holy + Unholy) animation concepts. Spec: docs/animations/README.md; brief: briefs/zealot.md.
+# Zealot is faith that feeds on its own suffering. Its material is `duo`: Holy's dark-gold rims around an
+# Unholy-crimson body, gilded blood: its wounds, lashes and blood. Plain Holy (`element`) is the grace it
+# hands out, and in `tone: light` the white-gold flame of its zeal; plain Unholy (`element2`) is the dread it
+# lays on enemies. Class art is colorized to `duo`; Paladin art stays native gold.
+# Neither parent's look carries over whole: Holy's sparkles and crosses and Unholy's skulls and souls give
+# way to flame, wounds and martyrdom. Signature motifs, used across the kit:
+#   the flame       — Fervor is a small white-gold flame kindling at the heart (directional_fire_burst_002,
+#                     `element`, `tone: light`). It stays white-gold, small and at the chest: never crimson
+#                     (Hellfire) and never at the feet (where Ignite catches). Spent, it bursts into falling
+#                     sparks (round_firework_burst_001: Crusader's Wrath, Strike Me Down); at its height it
+#                     roars up as a white-gold pillar (directional_fire_burst_001: Fanaticism, Strike Me Down).
+#                     Eye for an Eye hurls a ball of it; Zealous Unction lights it as a tongue over the head.
+#   the wound       — whenever a Zealot hurts itself, its blood wells up from below (directional_splatter_005)
+#                     and self-scourging lashes cross it in an X (warrior_1): Give of Yourself, Mortification,
+#                     Mass Penance, Self-Scourge, the Flagellant's arrival.
+#   the bared mark  — a gilded ring with four points snaps out on the Zealot itself, "strike here"
+#                     (frost_knight_7): Welcome the Blow, Strike Me Down.
+#   the martyr's drop — Martyr pays out as a drop of gilded blood falling on each ally and blazing up
+#                     (paladin_7); Living Saint's payout falls as pure gold.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+group: zealot
+
+statuses:
+  fervor:
+    note: >-
+      No aura: Fervor sits on most Zealot units all match, and its icon carries the count. Scale the flame
+      about +0.1 per stack gained at once (Welcome the Blow's 2, Hair Shirt's 2). removeStacks raises no event
+      while stacks remain, so spending one of several (Penitent's Flail, Ecstasy) shows nothing until the engine
+      emits one per spent stack; the remove default plays when the last stack goes. Martyr (its onDeath) plays
+      the martyr macro on each ally.
+    # Kindled at the heart in white-gold: the ground-anchored flame is lifted from the feet to the chest.
+    apply:   [ { fx: directional_fire_burst_002, tint: element, tone: light, scale: 0.4, offset: [0, 0.3], speed: 1.4 } ]
+    # An enemy's hit or Debuff stokes it: the same flame, smaller and quicker.
+    trigger:
+      - { fx: directional_fire_burst_002, tint: element, tone: light, scale: 0.3, offset: [0, 0.3], speed: 1.8, opacity: 0.85, note: "Play only when a stack is actually added: an enemy's direct hit while under 5 stacks, or a Debuff whose source is an enemy while under 5 stacks and not under Fanaticism (Fanaticism's own Fervor apply shows that gain). Never for self- or ally-applied Debuffs (Unguarded Wrath's Sanctify, Ecstasy's Confusion). addStacksSelf raises no event: until the engine emits a stack-change event, diff the stacks between checkpoints" }
+    # The last flame spent, cleansed or stolen bursts into falling sparks.
+    remove:  [ { fx: round_firework_burst_001, tint: duo, size: small, scale: 0.45, offset: [0, 0.3] } ]
+  fervent_chant:
+    apply:   [ { fx: directional_music_burst_002, size: small, scale: 0.45, offset: [0, 0.4], speed: 1.4 } ]   # the hymn hangs over them
+    # onDeath: the hymn breaks out of the fallen, then the martyr's drop falls on each ally it heals, as in the martyr macro.
+    trigger:
+      - { fx: round_music_burst_001, size: small, scale: 0.6 }
+      - { fx: paladin_7, at: target, tint: duo, scale: 0.7, frames: [0, 6], delay: 200 }
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, offset: [0, 0.4], opacity: 0.6 } ]
+    expire:  [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, offset: [0, 0.4], opacity: 0.5 } ]
+  take_the_blow:
+    note: >-
+      Never consumed: while its Initiate lives, it turns the first single-target Harmful enemy skill aimed at the
+      bearer each turn onto the Initiate (pipeline wardTargets, the ward_redirect signal sent from the Initiate).
+      The redirected skill's skillUsed already names the Initiate and no effectRemoved is raised, so the trigger
+      cue is the only sign of the hand-off. The remove default means the vow is cut: the Initiate died or its 3
+      turns ran out (the status is bound to it), or the status was cleansed. It has no duration, so no expire.
+    # The Initiate's vow winds round the ally as a gilded band; its last two frames jump to dark red, so they are cut.
+    apply:  [ { fx: dark_mage_2, tint: duo, scale: 0.75, opacity: 0.85, frames: [0, 9] } ]
+    trigger:
+      - { fx: dark_mage_2, tint: duo, scale: 0.75, frames: [6, 9], speed: 1.5, opacity: 0.85 }   # the band flares
+      - { fx: directional_splatter_001, face: toActor, tint: duo, size: small, scale: 0.5, delay: 60, note: "plays on the redirect, once per redirect (at most once a turn), before the redirected skill's cues land on the Initiate: gilded blood flicks toward the Initiate (actor = the Initiate who set it). Needs the redirect surfaced as an event naming the warded bearer, the Initiate, the attacker and the skill (today only the internal ward_redirect signal exists, and it omits the bearer). When the redirected skill is HiddenTarget (its skillUsed carries secretFrom this viewer), hold this until that skill's first damage/apply lands on the Initiate, or skip it" }
+    remove: [ { fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.5 } ]
+  unction_shield:
+    note: Applied by nothing at present (kept because the icon manifest names it). Base's shieldBreak default plays when it is depleted.
+    apply:  [ { fx: directional_bubble_burst_001, tint: duo, scale: 0.7, opacity: 0.8, speed: 1.8 } ]   # beads of gilded oil film over the bearer
+    remove: [ { fx: burst_splatter_003, tint: duo, size: small, scale: 0.4 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.4, opacity: 0.5 } ]
+
+macros:
+  martyr:
+    # The fallen's blood falls on each ally as a gilded drop and blazes up, then the heal rises. Might's default follows (2+ Fervor).
+    - { fx: paladin_7, tint: duo, scale: 0.8, frames: [0, 6], note: "cut the held dark patch of its last frame" }
+    - { fx: spell_heal_002, tone: light, size: small, scale: 0.55, speed: 1.6, delay: 250 }
+  martyr_payout:
+    # Living Saint pays out without dying: the same drop, falling as pure gold (Paladin's native colors).
+    - { fx: paladin_7, scale: 0.8, frames: [0, 6] }
+    - { fx: spell_heal_002, tone: light, size: small, scale: 0.55, speed: 1.6, delay: 250 }
+
+skills:
+  strike.zealot:
+    beat: A gilded-blood scourge lashes down across the target, and the user's flame of Fervor kindles.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: duo, scale: 0.5, delay: 100 }   # blood flicks off the lash past them
+      # The +5 per Debuff on the user arrives in the one hit.
+
+  smash.zealot:
+    beat: All the user's Fervor bursts out of them in sparks, a gilded-blood morning star swings down on the target, and blood wells up under each of their allies.
+    note: >-
+      Scale every cue about +0.1 per Fervor stack spent. The hit cues take it from their amount, before Might and
+      similar bonuses (the damage event's `base`): stacks = (base - 20)/10 on the primary and (base - 10)/10 on the
+      splash. effectRemoved carries no stacks, so the remove cue takes them from the last effectApplied for that
+      Fervor effect id, or from the pre-skill checkpoint. With none to spend, the swing plays alone.
+    cues:
+      - { on: remove, status: fervor, fx: round_firework_burst_001, tint: duo }   # replaces Fervor's small spark-out: the whole flame at once
+      - { on: hit, only: primary, fx: frost_knight_1, face: fromActor, tint: duo, scale: 1.3, frames: [6, 13], note: "skip the rocking wind-up (frames 0-5); the impact sits in the lower-right of its wide canvas, so put that point on the target" }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, scale: 0.9, delay: 200 }
+      - { on: hit, only: others, fx: directional_splatter_002, tint: duo, scale: 0.6, delay: 250, stagger: 80 }
+
+  charge.zealot:
+    beat: The wounded user hurls themselves at the target in a streak of gilded blood, and their wounds smoulder into a discount on what comes next.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.7, note: "portrait lunges along it; the slanted leading edge leads" }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.7, note: "its burst starts in the lower-left: put that point on the target so the spray fans out past them" }
+      # On the user, one stack per 25 HP missing; an unhurt user gains none, and nothing plays.
+      - { on: apply, status: fanatics_charge, fx: directional_particle_burst_001, tint: duo, size: small, scale: 0.55 }
+
+  riposte.zealot:
+    beat: Unseen, the user marks their own chest to be struck; the first blow breaks against them in a ring of gilded blood and feeds two flames.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.7, speed: 0.6 }   # the bared mark (owner only: Invisible); slowed, its 5 frames would be a blip
+      # On the user as the skill is countered: base's counter X plays on the attacker and Fervor's flame (2 stacks) on the user.
+      - { on: trigger, status: welcome_the_blow, fx: blood_knight_6, tint: duo, scale: 0.75 }
+
+  rage.zealot:
+    beat: The user's flame roars up into a white-gold pillar around them and a gold flare bursts off it; every curse an enemy throws after smoulders away and feeds the flame.
+    cues:
+      - { on: cast, fx: directional_fire_burst_001, tint: element, tone: light, scale: 1.3, opacity: 0.9, note: "it engulfs the user for a moment; in the light tone its plume's skull-like shading is gold on pale gold and no longer reads as a skull. Portrait shudders" }
+      - { on: cast, fx: stylized_impact_001, scale: 0.8, delay: 300 }
+      # The prevented Debuff (the eventEffect removal, raised through this skill's inline status) smoulders off the
+      # user as a crimson wisp; Fanaticism's Fervor apply follows. Might's default plays on the user.
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.5 }
+      - { on: trigger, status: fanaticism, fx: none, note: "fires on every Debuff gained; only enemy ones are prevented, shown by the remove cue" }
+
+  shot.zealot:
+    beat: A knot of gilded blood flies off the penitent's flail and splats on the target; a user with Fervor spends a flame to mend.
+    note: Spending 1 of several Fervor raises no event (see fervor), so the heal is the tell.
+    cues:
+      - { on: travel, fx: slime_3, path: beam, tint: duo, scale: 0.5, note: "stretched user to target so its splat (about 70% across) lands on the target" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: duo, size: small, scale: 0.5 }
+      - { on: heal, fx: spell_heal_003, tint: duo, size: small, scale: 0.6, speed: 1.8 }
+
+  snipe.zealot:
+    beat: Blood and light coil round the user with no hint of their aim; each blow they suffer feeds it, and next turn a gilded spearhead falls on the hidden target.
+    note: >-
+      HiddenTarget: nothing points at the target before the hit. Its stacking trigger (an enemy hit on the
+      user) is silent and shows nothing; scale both hit cues about +0.1 per stack (the damage is 25 + 10 per stack).
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 0.7 }   # the wind-up, on the user only
+      - { on: trigger, status: martyrs_spear, fx: directional_splatter_002, tint: duo, size: small, scale: 0.6 }   # fires from its onExpire, on the user: blood spurts up as the spear tears free, with no direction
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 1.2, speed: 1.3 }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 200 }
+
+  trap.zealot:
+    beat: Watchful glints of gilded blood settle unseen round the enemy and tally every skill they use; when it ends, gilded spikes of judgment erupt under them.
+    cues:
+      - { on: apply, status: inquisition, fx: stylized_explosion_004, tint: duo, scale: 0.8, frames: [0, 11], speed: 1.5 }   # only its glinting wind-up, owner only (hidden)
+      # Each skill tallied; the first one reveals Inquisition to the opponent. Fervor's flame follows on the user.
+      - { on: trigger, status: inquisition, fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.4, offset: [0, 0.55], note: "on its skillUsed trigger only, not its onExpire: the verdict is the hit cue" }
+      - { on: hit, fx: directional_impact_004, tint: duo, size: small, scale: 0.6, note: "the verdict: +0.1 per skill counted (5 damage each), cap 1.0. With no skill used it still raises a 0-damage event: play nothing for that" }
+
+  maneuver.zealot:
+    beat: Unseen, a hair shirt of thorns pricks in round the user; every blow they take is dulled and stokes their Fervor twice.
+    cues:
+      - { on: apply, status: hair_shirt, fx: fanfx_pain, tint: duo, tone: light, scale: 0.9, speed: 1.8 }   # owner only (hidden); the light tone lifts its faint pins
+      - { on: trigger, status: hair_shirt, fx: fanfx_pain, tint: duo, tone: light, scale: 0.7, speed: 2, frames: [8, 22] }   # the shirt's thorns prick again as the blow is halved (pins and three needle streaks, past its near-empty ends); Fervor's flame follows
+
+  companion.zealot:
+    beat: The Flagellant rises out of a well of gilded blood, a first small lash crosses it, and its first flame lights.
+    cues:
+      # The arrival leads (Self-Scourge plays the same pair the other way round: lash first, blood second).
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 1.0 }   # it rises out of the welling blood
+      - { on: summon, fx: warrior_1, tint: duo, scale: 0.6, delay: 300 }   # a smaller first lash; Fervor's flame follows as it arrives
+
+  bolt.zealot:
+    beat: A ball of the user's white-gold flame flies to the target and bursts in gilded blood; if they were the last to strike the user, a crimson eye flares across them as it repays them.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: straight, tint: element, tone: light, size: small, scale: 0.45, flip: y }   # flipped so the white-hot core leads and the tongues trail
+      - { on: hit, fx: symmetrical_explosion_003, tint: duo, scale: 0.8 }   # a lumpy blood mass bursts into a crown: gilded blood, not a fireball blast
+      # Only the repaid branch gives Fervor, so its apply carries the tell. Naming Fervor replaces its default here, so the flame is re-added.
+      - { on: apply, status: fervor, fx: round_light_burst_001, at: target, tint: element2, tone: light, scale: 0.8 }
+      - { on: apply, status: fervor, fx: directional_fire_burst_002, tint: element, tone: light, scale: 0.4, offset: [0, 0.3], speed: 1.4 }
+
+  blast.zealot:
+    beat: Shards of gilded blood converge on the user and burst, a harrow of spikes rakes up along the enemy row, and every enemy bursts in blood.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, scale: 0.9, frames: [10, 25], speed: 1.4 }   # skip the sparse start: the shards converge, then burst
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 150, stagger: 80 }
+      - { on: hit, fx: frost_knight_3, at: enemySide, tint: duo, scale: 1.4, note: "once, with the first hit: the side anchor doesn't repeat per enemy. Its spikes run along the bottom of its wide canvas, at the row's feet" }
+      # Soul Fragment's default spirals into the user for each enemy dropped to half.
+
+  consume.zealot:
+    beat: A spurt of the target's blood flies home to mend the user, then every curse on their allies lifts off and the user gulps each one down.
+    cues:
+      - { on: hit, fx: directional_splatter_004, face: toActor, tint: duo, size: small, scale: 0.45, note: "origin is the lower-left: put it on the target so the goopy fan sprays toward the user" }
+      - { on: heal, fx: spell_heal_003, tint: duo, size: small, scale: 0.5, speed: 1.8 }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, tint: element2, size: small, scale: 0.5, stagger: 80 }   # each Debuff lifts off an ally
+      # One gulp per moved Debuff, on the user. moveEffects applies each to the user just before lifting it off the
+      # ally, so the delay lets the lift-off read first. Each Debuff's own default follows.
+      - { on: apply, status: debuff, fx: necromancer_8, tint: duo, scale: 0.55, frames: [1, 6], speed: 1.3, delay: 180, note: "the fanged maw closes; cut before frame 7, where the purple skull starts to surface" }
+
+  summon.zealot:
+    beat: Golden stars of devotion rise and the Initiate kneels up among them, its first flame lit.
+    cues:
+      - { on: summon, fx: directional_star_burst_001, scale: 0.9, speed: 1.5 }
+      - { on: summon, fx: directional_impact_002, tint: duo, size: small, scale: 0.5, layer: under }
+
+  channel.zealot:
+    beat: Incense rises as the user takes up the scourge; at each turn's end they lash themselves, their blood wells up, and a pulse of their pain strikes a random enemy.
+    note: >-
+      The user's own wound is on the trigger (each firing always deals them the 10 Affliction), not on a hit
+      filter. Scale the enemy's pulse about +0.1 per Fervor stack (5 damage each).
+    cues:
+      - { on: apply, status: mortification, fx: directional_smoke_burst_004, tint: duo, scale: 0.8, opacity: 0.85 }
+      - { on: trigger, status: mortification, fx: warrior_1, tint: duo, scale: 0.7 }   # the self-scourge, on the user
+      - { on: trigger, status: mortification, fx: directional_splatter_005, tint: duo, size: small, scale: 0.5, delay: 120 }   # their blood wells up; Fervor's flame follows
+      - { on: hit, only: primary, fx: directional_impact_001, face: fromActor, tint: duo, size: small, scale: 0.7, note: "a shard-fan pulse lands on the random enemy. The randomEnemy hit counts as primary even if that enemy joined after the cast" }
+
+  stab.zealot:
+    beat: A thin jet of gilded blood runs the target through, and one of the user's curses slides down the blade into them.
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.6, speed: 1.3, note: "its origin is the lower-left corner: put that corner on the target so it sprays out the far side" }
+      - { on: hit, fx: symmetrical_impact_005, tone: light, size: small, scale: 0.35 }   # the white-gold glint where it enters
+      # On the user: the curse leaves toward the target, where its own default plays as it lands.
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, face: toTarget, tint: element2, size: small, scale: 0.6 }
+
+  ravage.zealot:
+    beat: Gilded-blood claws rake the target twice and gore bursts out, an eclipse sign brands every enemy, and each turn a Horrified one has a blessing torn away.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.9, delay: 120 }
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.8, delay: 220 }
+      # A crimson crescent eating a white disc: a halo devoured. The same sign flashes again when it strips.
+      - { on: apply, status: strip_the_faithless, fx: symmetrical_explosion_001, tint: element2, size: small, scale: 0.45, offset: [0, 0.55], stagger: 60 }
+      # A Buff torn off: the sign flashes, then the blessing crumbles into gold orbs (the same lost blessing as Sermon of Dread's).
+      - { on: remove, status: buff, fx: symmetrical_explosion_001, tint: element2, size: small, scale: 0.45, offset: [0, 0.55] }
+      - { on: remove, status: buff, fx: round_firework_burst_002, size: small, scale: 0.6, delay: 120 }
+      - { on: trigger, status: strip_the_faithless, fx: none, note: "fires every turn start; only a Horrified bearer with a Buff loses one, shown by the remove cues" }
+
+  mislead.zealot:
+    beat: Unseen, two gilded drops circle the enemy; when they strike, the blow folds into a star of light and heals everyone it was aimed at.
+    cues:
+      - { on: apply, status: willing_martyrs, fx: frost_mage_1, tint: duo, scale: 0.7, opacity: 0.75, frames: [0, 13] }   # owner only (hidden); its dim ghost-ring last frame is cut
+      - { on: trigger, status: willing_martyrs, fx: round_sparkle_burst_003, scale: 0.8, frames: [6, 16], speed: 1.3 }   # on the countered enemy, past the faint converge; base's counter X plays too
+      - { on: heal, fx: spell_heal_003, tint: duo, size: small, scale: 0.6, speed: 1.8, stagger: 60 }
+
+  stun.zealot:
+    beat: A heavy flash of penance knocks every enemy still, and the user pays for each one as lashes cross them and their blood wells up.
+    note: The user's Affliction is one hit of 15 per enemy Stunned; scale its cues about +0.1 per enemy.
+    cues:
+      - { on: apply, status: debuff, fx: symmetrical_impact_003, tint: duo, scale: 0.8, stagger: 80 }   # on each enemy the Stun takes, under Stun's default (an Immune enemy shows only the block)
+      - { on: hit, fx: directional_splatter_005, tint: duo, scale: 0.8, delay: 120 }
+      - { on: hit, fx: warrior_1, tint: duo, scale: 0.8 }
+
+  dance.zealot:
+    beat: The user whirls in ecstasy as gilded-blood ribbons spin up both sides; a spent flame blazes into Might, Swiftness and Focus in turn, and without one they reel, dizzy and burning.
+    note: >-
+      The ribbons sit behind the portrait and past its frame, so only their arcs show above and beside the head
+      (on a unit's face these slashes mean "just got hit"). Might, Swiftness and Focus land together, so their
+      defaults are fanned out over the head as base's Dance does (offsets from the portrait center).
+    cues:
+      - { on: cast, fx: paladin_9, tint: duo, scale: 1.5, layer: under }   # it sits in its upper-right quadrant, so the arc clears the head
+      - { on: cast, fx: paladin_9, tint: duo, scale: 1.5, layer: under, flip: x, delay: 150 }   # the mirrored ribbon up the other side
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, scale: 0.4, tint: source, speed: 1.3, offset: [-0.35, 0.6] }
+      - { on: apply, status: swiftness, fx: spell_haste_001, tint: source, size: small, scale: 0.45, speed: 1.5, offset: [0, 0.8], delay: 150 }
+      - { on: apply, status: focus, fx: symbol_lightbulb_001, tint: source, size: small, scale: 0.4, offset: [0.35, 0.6], delay: 300, note: "ends on a held lit bulb: fade it out" }
+      # With no Fervor to spend, Fervor's flame and Confusion's question mark play as usual.
+
+  heal.zealot:
+    beat: The user opens their own wound, and their blood rises through the ally as golden light.
+    cues:
+      # On the user: the cut opens, then the wound motif wells up (Heal's usual splatter-from-below leads in too many groups). Fervor's flame follows.
+      - { on: hit, fx: burst_splatter_001, tint: duo, size: small, scale: 0.5 }
+      - { on: hit, fx: directional_splatter_005, tint: duo, size: small, scale: 0.55, delay: 100 }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.9, speed: 1.3 }
+      - { on: heal, fx: round_sparkle_burst_001, size: small, scale: 0.5, delay: 250 }
+
+  bless.zealot:
+    beat: Gilded drops fall onto the ally and a white-gold tongue of flame lights over their head; at each of the user's turn ends it flickers and mends them.
+    cues:
+      # A Pentecost tongue above the head, clear of the body where a burn plays.
+      - { on: apply, status: zealous_unction, fx: fire_looping_001, tint: element, tone: light, size: small, scale: 0.4, offset: [0, 0.75], repeat: 2, delay: 200 }
+      - { on: apply, status: zealous_unction, fx: directional_particle_burst_001, face: down, tint: duo, size: small, scale: 0.5, offset: [0, 0.5] }   # the drops fall first
+      # The unction's heals are this skill's only ones (and a 0 heal raises no event), so the flicker rides the heal.
+      - { on: heal, fx: fire_looping_001, tint: element, tone: light, size: small, scale: 0.35, offset: [0, 0.75], opacity: 0.85 }
+      - { on: heal, fx: spell_heal_003, tint: duo, size: small, scale: 0.6, speed: 1.8 }
+      - { on: trigger, status: zealous_unction, fx: none, note: "fires at each of the applier's turn ends, and heals nothing once the bearer has no Fervor: the flicker plays with the heal instead" }
+
+  curse.zealot:
+    beat: A dark crimson cloud with stars caught in it settles on the enemy under Sanctify's cross, and every blow on them spills grace to the striker's whole team.
+    cues:
+      - { on: apply, status: communal_grace, fx: round_sparkle_burst_002, tint: duo, tone: dark, scale: 0.8 }
+      # It fires on every allied hit but pays only while Sanctified; Sanctify's own trigger default plays alongside.
+      - { on: trigger, status: communal_grace, fx: burst_splatter_001, size: small, scale: 0.5, note: "play only when its heal follows (the bearer is still Sanctified)" }
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.5, speed: 1.5, stagger: 60 }
+
+  smite.zealot:
+    beat: A gilded-blood blade arcs high over and crashes down on the target, and the user, guard dropped, is Sanctified.
+    cues:
+      - { on: hit, fx: frost_knight_10, face: fromActor, tint: duo, note: "its impact sits in the bottom-right corner of its wide canvas: put that point on the target's feet" }
+      - { on: hit, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, delay: 150 }
+      # Sanctify's cross plays on the user.
+
+  prayer.zealot:
+    beat: The user's hymn bursts out, gilded sacred hearts rise from every ally, and the chant hangs over each of them.
+    cues:
+      - { on: cast, fx: round_music_burst_001, scale: 0.8 }
+      - { on: heal, fx: directional_heart_burst_003, tint: duo, scale: 0.9, speed: 1.6, stagger: 80 }
+      # Fervent Chant's default (the hymn overhead) follows on each ally.
+
+  cleave.zealot:
+    beat: A broad gilded-blood arc cuts the target and, if they bear a Debuff, sweeps on round the circle through every other sinner.
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, tint: duo }
+      - { on: hit, only: others, fx: warrior_2, face: fromActor, tint: duo, scale: 0.75, delay: 150, stagger: 90 }
+      - { on: hit, fx: burst_splatter_001, tint: duo, size: small, scale: 0.4, delay: 80 }
+
+  shout.zealot:
+    beat: The sermon booms off the user in a gilded ring and rolls over each enemy as crimson dread; every blessing they try to take after crumbles and feeds the preacher's flame.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.1 }
+      - { on: travel, fx: directional_smoke_burst_003, path: straight, tint: element2, scale: 0.6, stagger: 60 }
+      - { on: apply, status: sermon_of_dread, fx: directional_smoke_burst_004, tint: element2, flip: y, scale: 0.6, offset: [0, 0.35] }   # flipped: the wisp starts above the head and curls down onto them, dread descending
+      - { on: trigger, status: sermon_of_dread, fx: round_firework_burst_002, size: small, scale: 0.6 }   # the Buff crumbles into gold orbs; Fervor's flame follows on the user
+
+  withstand.zealot:
+    beat: Gilded embers fall into a forge ring at the user's feet, and every blow that lands strikes sparks off them as a Shield hardens over.
+    cues:
+      - { on: apply, status: hardened_faith, fx: spell_forge_001, tint: duo }
+      - { on: trigger, status: hardened_faith, fx: scifi_spark_burst_001, size: small, scale: 0.6 }   # the hammer-strike sparks; Shield's default bubble follows
+
+  taunt.zealot:
+    beat: The bared mark snaps out on the user's own chest to dare the target, and if the dare kills them, their flame erupts in a white-gold column under the killer.
+    cues:
+      - { on: apply, status: strike_me_down, fx: frost_knight_7, tint: duo, scale: 0.7, speed: 0.6 }   # on the user, slowed so the mark holds; Taunt's '!' plays on the target
+      - { on: trigger, status: strike_me_down, fx: none, note: "fires from its onDeath: Fervor's remove default (the flame bursting out as they fall) and the hit on the killer carry it" }
+      - { on: hit, fx: directional_fire_burst_001, tint: element, tone: light, scale: 0.9, note: "on the killer: scale about +0.1 per Fervor the user had (10 damage each). With no Fervor it still raises a 0-damage event: play nothing for that" }
+
+  titan.zealot:
+    beat: A fountain of gilded blood erupts under the user and a gold crown settles over them as the Living Saint; when it ends, their gathered light bursts out and falls on every ally.
+    note: >-
+      The portrait swells about 15% and holds a gold rim while Living Saint lasts. Armor's and Immune's
+      defaults follow on the user; the payout plays the martyr_payout macro on each ally, then Fervor's spark-out.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.5, layer: under }
+      - { on: cast, fx: symbol_crown_001, tone: light, size: small, scale: 0.5, offset: [0, 0.7], speed: 2, frames: [0, 30], delay: 450, note: "cut before it shatters into pixels; fade out its last frame" }
+      - { on: trigger, status: living_saint, fx: symmetrical_impact_001, tone: light, note: "fires from its onExpire, on the user" }
+
+  flagellant_self_scourge:
+    beat: The Flagellant lashes its own back in a gilded-blood X, and its blood wells up to stoke its flame.
+    cues:
+      - { on: hit, fx: warrior_1, tint: duo, scale: 0.7 }
+      - { on: hit, fx: directional_splatter_005, tint: duo, size: small, scale: 0.5, delay: 150 }
+
+  flagellant_blood_whip:
+    beat: The Flagellant's bloody whip curls up across the target and flicks blood past them.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: duo, size: small, scale: 0.4, delay: 80 }
+      # The +5 per Fervor arrives in the one hit.
+
+  initiate_take_the_blow:
+    beat: The Initiate sends a gold glint of its vow arcing to the ally, and a guard-band winds round them.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: arc, size: small, scale: 0.35 }
+      # Take the Blow's default (the gilded band) lands on the ally.

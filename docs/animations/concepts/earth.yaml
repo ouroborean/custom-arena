@@ -1,0 +1,275 @@
+group: earth
+# Earth is made of rubble, dust and things that grow out of the ground: rock spikes heaving up, stone
+# masses rising, brown dust rings, roots and vines (class art colorized to Earth). Boulders arrive by
+# falling or rising out of the ground; Seedlings and Worldsprouts sprout out of soil. Heals take
+# `tone: light`, so they rise as warm sand and light rather than as more dirt.
+
+statuses: {}   # Earth owns no named statuses, and its minions have no triggered passives.
+
+macros:
+  channel_growth:   # per allied Seedling: +10 max HP (raises no event of its own), then a 10 heal
+    - { fx: directional_splatter_005, size: small, scale: 0.5, opacity: 0.8 }   # a sprout pushes up from it, echoing the Seedling's arrival: the growth
+    - { fx: spell_heal_003, size: small, scale: 0.45, tone: light, speed: 1.8, delay: 120 }   # the 10 heal
+  launch_boulder:   # per enemy a launched Boulder hits for its remaining HP; the Boulder's own death then plays base's death default
+    - { fx: directional_impact_002, at: source, size: small, scale: 0.6, layer: under }   # the Boulder (it deals this damage) kicks off its slot in a spray of dirt
+    - { fx: paladin_6, face: fromActor, tint: element, scale: 1.2 }   # it dives in from the launching side
+    - { fx: stylized_explosion_003, scale: 1.1, delay: 200 }   # and lands as the dive hits the ground
+
+skills:
+  strike.earth:
+    beat: A stone fist cracks into the target and sprays shards past it.
+    note: "Damage grows +5 per allied minion; the renderer can step the impact scale up with it (0.8 base, +0.1 per minion)."
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.8 }
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, scale: 0.6, opacity: 0.7, delay: 60 }
+
+  smash.earth:
+    beat: A quake bursts up under the target and rolls out along the ground, and smaller stone spikes heave up under each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: directional_impact_004, scale: 1.0 }
+      - { on: hit, only: primary, fx: directional_impact_002, scale: 1.3, layer: under }   # its dust clouds run outward along the ground from the target
+      - { on: hit, only: others, fx: directional_impact_004, scale: 0.7, delay: 150, stagger: 80 }   # the 10-damage splash
+      - { on: hit, fx: directional_smoke_burst_002, scale: 0.6, opacity: 0.7, delay: 120, stagger: 80 }
+
+  charge.earth:
+    beat: The user rolls in as a dust-trailing landslide, crashes into the target, and a Boulder thuds down beside them.
+    cues:
+      - { on: travel, fx: frost_mage_7, tint: element, scale: 0.9 }   # a dust-cloud head with brown speed streaks: a rolling landslide
+      - { on: hit, fx: symmetrical_impact_004, scale: 0.8 }
+      - { on: summon, fx: directional_impact_002, layer: under }
+
+  riposte.earth:
+    beat: Dust curls up quietly at the user's feet; when struck, shale bursts up around them and spits shards back at the attacker.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, size: small, scale: 0.6, opacity: 0.7 }   # Invisible: owner only
+      - { on: trigger, status: shale_guard, fx: directional_impact_003, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_003, size: small, scale: 0.6, delay: 100 }
+
+  rage.earth:
+    beat: The ground surges up around the user in a burst of spikes, and two Seedlings push out of the soil.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.7, layer: under }   # the spikes tower past the portrait's sides and head
+      - { on: summon, fx: directional_sparkle_burst_002, scale: 0.8, stagger: 150, speed: 1.3 }
+      # Immune's default plays on the user.
+
+  shot.earth:
+    beat: A flung stone streaks over and bursts into rubble; aimed at a Boulder, it sends the Boulder crashing down on a random enemy.
+    note: "On the Boulder branch the travel flicks the stone into the Boulder (the launch kick); the Boulder's flight and impact are launch_boulder's cues."
+    cues:
+      - { on: travel, fx: starcaller_2, tint: element, scale: 0.6 }
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.6 }
+
+  snipe.earth:
+    beat: The user burrows in and the dig runs off underground; when it lands, the ground erupts under the target in a column of rock and dust.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, scale: 0.9, opacity: 0.85 }
+      - { on: death, fx: frost_mage_6, tint: element, scale: 0.8, note: "a consumed Boulder cracks apart into the tunnel (also plays if the eruption kills)" }
+      - { on: trigger, status: tunnelmaker, at: target, fx: directional_impact_002, scale: 0.9, layer: under }   # fires at expiry: the tunnel surfaces under the target
+      - { on: hit, fx: epic_explosion_001, scale: 1.5 }
+      - { on: hit, fx: directional_impact_004, scale: 1.1, delay: 100 }
+
+  trap.earth:
+    beat: Clods of earth patter down into a ring under the enemy; when they summon, the ground swallows the newcomer and the stone rises again on the user's side as a Boulder.
+    cues:
+      - { on: apply, status: boulder_trap, fx: spell_forge_001, scale: 1.0, layer: under, opacity: 0.85, note: "its yellow spark streaks take the Earth tint too (re-tint them if they don't)" }
+      - { on: trigger, status: boulder_trap, fx: directional_impact_003, size: small, scale: 0.7 }   # the ring snaps shut under the bearer
+      - { on: death, fx: stylized_explosion_003 }   # the enemy's new minion caves in
+      - { on: summon, fx: frost_mage_3, tint: element, scale: 0.8, note: "ends on its brightest frame; fade it as the Boulder portrait appears" }
+
+  maneuver.earth:
+    beat: Dirt sprays out and dust billows up as the user digs in, and a mound of earth closes over them.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, scale: 0.8, delay: 80 }
+      - { on: cast, fx: directional_impact_002, size: small, scale: 0.6, layer: under }
+      # Invulnerable's default (its shell rises in Earth and turns black inside: buried) and Ghosted's follow.
+
+  companion.earth:
+    beat: The ground splits in a ring and columns of earth heave up into a Forest Stalker.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, size: small, scale: 0.5 }
+      - { on: summon, fx: dark_mage_3, tint: element, scale: 1.1 }
+      - { on: summon, fx: symmetrical_smoke_burst_001, scale: 0.7, delay: 300 }
+
+  bolt.earth:
+    beat: A seed pod trailing vines flies over and the vines lash across the target; a Seedling sprouts if the user had none.
+    cues:
+      - { on: travel, fx: deathbringer_6, tint: element, scale: 0.8 }
+      - { on: hit, fx: dark_mage_1, tint: element, face: fromActor }
+      - { on: hit, fx: symmetrical_impact_002, scale: 0.7 }
+      - { on: summon, fx: directional_splatter_005, scale: 0.6 }
+
+  blast.earth:
+    beat: The user's Seedlings swell, then a ridge of stone spikes bursts along the whole enemy row.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, size: small, scale: 0.6 }   # dust motes gather into the user and pop
+      # Channel Growth's own cues play on the Seedlings next.
+      - { on: hit, fx: frost_knight_3, tint: element, at: enemySide, scale: 2.2, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: directional_impact_003, delay: 100, stagger: 80 }
+
+  consume.earth:
+    beat: Each Seedling folds in on itself like a seed, and a Worldsprout heaves up in its place.
+    cues:
+      - { on: death, fx: spell_absorb_001, scale: 0.8, stagger: 100, speed: 1.5 }
+      - { on: summon, fx: directional_particle_burst_002, scale: 1.1, stagger: 150 }
+      - { on: summon, fx: directional_smoke_burst_001, scale: 1.4, layer: under, opacity: 0.85, stagger: 150 }   # dust billows up behind the newcomer
+      # With no Seedlings to sacrifice, the same summon cues bring up the two new Seedlings.
+
+  summon.earth:
+    beat: The soil cracks open in two places and a Seedling sprouts up through each in a puff of glinting dust.
+    cues:
+      - { on: summon, fx: directional_splatter_005, scale: 0.9, stagger: 200 }
+      - { on: summon, fx: directional_impact_003, size: small, scale: 0.6, layer: under, stagger: 200 }   # the soil splitting
+      - { on: summon, fx: directional_sparkle_burst_002, scale: 0.6, opacity: 0.8, delay: 100, stagger: 200, speed: 1.3 }
+
+  channel.earth:
+    beat: Stones begin to orbit the caller; each turn's end a rumble rolls out and a Worldsprout heaves up from the ground.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: element, scale: 1.0, opacity: 0.75 }
+      - { on: trigger, status: worldcaller, fx: directional_impact_002, scale: 0.8, layer: under }
+      - { on: summon, fx: frost_mage_3, tint: element, scale: 0.8, note: "ends on its brightest frame; fade it as the Worldsprout portrait appears" }
+
+  stab.earth:
+    beat: A stone point jabs clean through the target and grit and chips spray out behind it.
+    note: "When the damage is 20 (the target had Shield or Armor), play the hit cues about 1.3x larger: the stone cracks the guard."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, scale: 0.6, speed: 1.3 }   # origin at the target, the fan carrying on past it
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.5, delay: 60 }
+      - { on: blocked, fx: scifi_muzzle_flash_001, face: fromActor, scale: 0.6, speed: 1.3 }   # a Shield soaked all 20
+      - { on: blocked, fx: symmetrical_impact_002, size: small, scale: 0.6, delay: 60 }   # the ring reads as the guard taking it
+
+  ravage.earth:
+    beat: A stone drill whirs up and grinds into the target, cracking it open and blowing dust out the far side.
+    note: "When the user has 3+ Armor and Might (45 damage), the renderer can scale the hit cues up by about a third."
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, size: small, scale: 0.5 }   # spinning needle reads as the drill bit
+      - { on: hit, fx: frost_knight_9, tint: element, scale: 1.1 }
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, scale: 0.8, delay: 150 }
+      - { on: hit, fx: symmetrical_impact_003, delay: 250 }
+
+  mislead.earth:
+    beat: The ground under the target goes loose in a ring of dust; if they attack, the floor gives way beneath them.
+    cues:
+      - { on: apply, status: pitfall, fx: symmetrical_smoke_burst_002, scale: 1.4, layer: under, opacity: 0.85 }   # the ring of dust puffs frames the portrait
+      - { on: apply, status: pitfall, fx: directional_smoke_burst_004, size: small, scale: 0.5, layer: under, opacity: 0.7, delay: 250 }   # a wisp of dust sifts up through the loosened ground
+      - { on: trigger, status: pitfall, fx: symmetrical_smoke_burst_003, scale: 0.9, note: "the portrait dips as if dropping into the pit; Stun's and Isolated's defaults follow" }
+
+  stun.earth:
+    beat: A band of earth coils around the target and closes into a block of faceted stone, locking them in place.
+    cues:
+      - { on: apply, status: shield, fx: dark_mage_2, tint: element, scale: 1.1, note: "trim the last frame (it turns crimson)" }
+      - { on: apply, status: shield, fx: spell_ice_001, tint: element, scale: 0.9, speed: 1.8, delay: 200, note: "the stone block is their 25 Shield; it fades back to its outline ring" }
+      # Both replace Shield's default for this skill. Below, Stun's own default with only a longer delay, so
+      # its stars pop once the stone has closed; its aura shows as usual.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: element, delay: 450, note: "portrait staggers back a step" }
+
+  dance.earth:
+    beat: Scree swirls around the user and settles as a shield; done again while it holds, a boulder slides down into place.
+    cues:
+      - { on: apply, status: landslide, fx: slime_5, tint: element, scale: 1.6, layer: under, opacity: 0.75 }   # the swirl's arms circle the portrait
+      - { on: summon, fx: paladin_6, face: fromActor, tint: element, scale: 0.9 }   # slides in from the user's side
+
+  heal.earth:
+    beat: Warmth rises out of the soil under the ally as their wounds knit.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, size: small, scale: 0.5 }
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 0.8, speed: 1.7 }
+      # Channel Growth's own cues play on each Seedling first.
+
+  bless.earth:
+    beat: A drop of living earth falls onto the ally and splashes up around their feet.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, size: small, scale: 0.5 }
+      - { on: apply, status: buff, fx: paladin_7, tint: element, scale: 0.8, note: "layers under the Might or Armor default, which still shows which one landed; fade its last frame" }
+
+  curse.earth:
+    beat: The ally swells with strength while clods of earth drop onto random enemies and weigh them down.
+    cues:
+      - { on: apply, status: debuff, fx: frost_mage_5, tint: element, scale: 0.7, stagger: 120, note: "layers with Weakness's default, once per stack" }
+      - { on: apply, status: debuff, fx: directional_smoke_burst_002, scale: 0.6, opacity: 0.7, delay: 200, stagger: 120 }
+      # Might's default plays on the ally.
+
+  smite.earth:
+    beat: A shaft of stone drives down onto the target and leaves stone stubs at their feet; if a Boulder hits them, the stubs spike up and pin them.
+    cues:
+      - { on: hit, fx: scifi_warp_003, scale: 1.1 }   # streak from above, splash cone and flat shockwave; the rising tendrils read as cracks
+      - { on: apply, status: earth_pillar, fx: directional_impact_003, size: small, scale: 0.6 }   # a small crown of stone stubs; the Stun cue below is the big version
+      - { on: apply, status: stun, fx: directional_impact_004, scale: 0.9, note: "Earth Pillar's only Stun comes from earth_pillar (a Boulder hit), so this plays exactly when it lands" }
+      # Stun's default, re-added once the spikes are up (this skill's own Stun cue replaces it). Its aura shows as usual.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: element, delay: 200, note: "portrait staggers back a step" }
+      - { on: trigger, status: earth_pillar, fx: none }   # it fires on any damage; the Stun cues above carry the payoff
+
+  prayer.earth:
+    beat: The ground under the whole team blooms with dust and glints, and columns of warm sparkles rise up each ally.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_002, at: allySide, scale: 2.0, layer: under, speed: 1.3 }
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 1.0, stagger: 100, speed: 1.3 }   # a column, not Grovetender's crosses
+      # Channel Growth's own cues play on each Seedling first (twice); Renew's default plays on each ally.
+
+  cleave.earth:
+    beat: A whirling vine sweeps the enemy row, then flings a Boulder or drags a new one up out of the ground.
+    cues:
+      - { on: hit, fx: necromancer_2, tint: element, at: enemySide, face: fromActor, scale: 1.8, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }   # the sweep starts on the user's side
+      - { on: hit, fx: symmetrical_smoke_burst_002, size: small, scale: 0.6, delay: 100, stagger: 70 }
+      - { on: summon, fx: frost_mage_3, tint: element, scale: 0.7, note: "fade its held last frame" }
+      # The launched Boulder plays launch_boulder's cues.
+
+  shout.earth:
+    beat: The user's roar bursts out in a ring of rubble; a Boulder bursts up and every Boulder's cracks seal.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.8, opacity: 0.9 }   # its centre is empty after the first frame, so the user stays readable
+      - { on: summon, fx: directional_impact_004, scale: 0.8 }
+      - { on: heal, fx: directional_sparkle_burst_002, tone: light, scale: 0.7, stagger: 100, speed: 1.3 }
+      # Armor's default plays on each Boulder.
+
+  withstand.earth:
+    beat: The ground buckles and a wall of faceted stone builds up behind the user.
+    cues:
+      - { on: cast, fx: directional_impact_002, scale: 0.9, layer: under }
+      - { on: resolve, fx: fanfx_barrier, scale: 1.5, layer: under, opacity: 0.85, speed: 1.3, note: "play only the build and shimmer frames (stop before the shatter, around frame 12), then fade; resolve covers both branches (new 30 Shield, or the doubled Shield, which raises no apply)" }
+      - { on: apply, status: shield, fx: none }   # the rampart is this skill's Shield
+
+  taunt.earth:
+    beat: A stone crown rises over the user; the ground cracks under the target and a '!' flares over them; any older grudge crumbles to dust.
+    note: >-
+      Ancient Grudge is a Taunt under another name: the same forceTarget modifier as the base status,
+      made permanent. So its apply shows Taunt's own '!' (at Taunt's default size) on purpose, and the
+      validator's signature warning for symbol_alert_001 here is expected: reading as Taunt is correct.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, scale: 0.45, speed: 2 }   # base Taunt's crown, in Earth
+      - { on: apply, status: ancient_grudge, fx: directional_impact_003, size: small, scale: 0.6, layer: under }
+      - { on: apply, status: ancient_grudge, fx: symbol_alert_001, size: small, scale: 0.5, delay: 100 }
+      - { on: remove, status: ancient_grudge, fx: directional_smoke_burst_004, scale: 0.5 }
+
+  titan.earth:
+    beat: Earth explodes outward from the user and a ridge of rock spikes heaves up around them as a Seedling and a Boulder land beside.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, scale: 1.5, layer: under }
+      - { on: cast, fx: frost_knight_3, tint: element, scale: 1.6, layer: under, delay: 200, note: "colorized brown the spikes read as stone, and its grey crumble at the end reads as dust settling" }   # 3.2 portraits wide, spikes in the bottom third: they flank the user's feet
+      - { on: summon, fx: directional_impact_002, scale: 0.8, stagger: 150 }
+      - { on: resolve, fx: directional_particle_burst_002, scale: 1.4 }
+      # Might's and Shield's defaults play on the user.
+
+  seedling_channel_earth:
+    beat: The Seedling sends motes up and its creator draws them in.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, size: small, scale: 0.6 }
+      - { on: apply, status: buff, fx: spell_absorb_001, scale: 0.7, speed: 1.5, note: "once per bearer (Might and Armor land together); layers with their defaults" }
+
+  stalker_rootlash:
+    beat: A root whips up out of the ground and lashes over the target.
+    cues:
+      - { on: hit, fx: frost_knight_8, tint: element, face: fromActor, scale: 0.7 }
+      - { on: hit, fx: directional_splatter_005, size: small, scale: 0.5, opacity: 0.8, delay: 80 }
+
+  worldsprout_treant_smash:
+    beat: A heavy treant limb slams down on the target.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: element, scale: 0.8 }
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, scale: 0.5, opacity: 0.8, delay: 150 }
+
+  worldsprout_vitality_transfer:
+    beat: The Worldsprout crumbles to dust and its life drifts across to the ally.
+    cues:
+      - { on: death, fx: symmetrical_smoke_burst_001, scale: 0.8 }
+      - { on: travel, fx: directional_particle_burst_001, path: arc, tone: light, scale: 0.6, note: "starts where the Worldsprout stood" }
+      - { on: heal, fx: spell_heal_002, tone: light, scale: 0.9, speed: 1.6 }

@@ -1,0 +1,289 @@
+group: evil
+# Evil is Unholy turned up: both parents are Unholy, so the fusion shows in weight and layering, not in a
+# second hue. `tone: dark` (oxblood) only where white cores or bright highlights still carry the art on the
+# near-black board; flat or outline-only palette art and class art whose read matters (a skull, a maw, a
+# column) stay mid crimson, and souls, rims and bone take `tone: light` (rose, or bone-white on `neutral`).
+# Blood Knight art stays native crimson. Unholy's three families stay (blood, souls, dread) but heavier and
+# stacked.
+# Evil's own signature is desecration: healing art turned upside down. Heal crosses, halos, sparkles and
+# hearts that should rise instead sink into the body (`face: down`) whenever healing or a gift is turned into
+# harm: Unhallowed's falling halo and sinking crosses, Damning Shackle, Waking Nightmare, Borrowed Blood's
+# debt, False Mercy. A real heal in the kit keeps its art upright, so the two read as opposites. Second tell,
+# the soul trade: rose soul motes (directional_particle_burst_001) tear off whoever loses a Soul Fragment and
+# stream toward the taker (drain_it, and Soul Fragment's own remove motes); nothing else in the kit uses them,
+# so a unit that loses nothing never sheds motes. A spent fragment flares up as a small soulfire jet (tithe).
+# Unholy's own defaults (Horrified's skull, Immortal's pillars and heartbeat, Soul Fragment's spiral,
+# Lifesteal's cocoon) play as they are.
+
+statuses:
+  unhallowed:
+    note: "Its trigger is each heal it turns into Affliction damage (an invertHealing modifier, so it needs the cause link on that damage event)."
+    apply:   [ { fx: directional_sparkle_burst_003, face: down, size: small, scale: 0.7, speed: 1.5 } ]   # the halo forms, then sinks to their feet
+    trigger: [ { fx: spell_heal_002, face: down, size: small, scale: 0.6, speed: 1.5 } ]   # the heal's crosses sink in as wounds
+    remove:  [ { fx: directional_sparkle_burst_003, size: small, scale: 0.5, opacity: 0.6, speed: 1.8 } ]   # upright again: the halo lifts off
+    expire:  [ { fx: directional_sparkle_burst_003, size: small, scale: 0.5, opacity: 0.6, speed: 1.8 } ]
+
+macros:
+  drain_it:   # on the drained unit: soul motes tear off it and stream to the user; Soul Fragment's spiral then lands on the user
+    - { fx: directional_particle_burst_001, face: toActor, size: small, tone: light, scale: 0.6, speed: 1.3, note: "Play once per drain_it call, on the calling forEach's `it` (the drained unit), even when it had no fragment or keeps others. removeStacks emits nothing then, so this needs a macro-invocation or stack-change event naming `it`. Never play it on the actor: the actor's effectApplied soul_fragment is the gain and plays Soul Fragment's spiral." }
+  tithe:      # on the user, per fragment spent: it burns up as a thin soulfire jet
+    - { fx: directional_fire_burst_002, at: actor, tone: light, scale: 0.5, note: "plays once per fragment actually spent (none with no fragments, or under Lord of Souls). removeStacks emits no event while stacks remain: the engine should emit one per spent stack, or the renderer must diff stacks" }
+
+skills:
+  strike.evil:
+    beat: A serrated crimson crescent sweeps through the target and beads of blood burst off its edge; one healed since the user's last turn tears open a second time.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: element, scale: 0.9 }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.5, delay: 80 }   # mid tone: flat two-tone art with no white
+      - { on: apply, status: debuff, fx: burst_splatter_002, size: small, tone: dark, scale: 0.6, delay: 120 }   # the healed branch only (Unhallowed is its one debuff): the +10 reads as a second, heavier wound; Unhallowed's falling halo still plays
+
+  smash.evil:
+    beat: A crushing blow shreds the target, a grinding crimson vortex settles under them, and each turn it turns again and grinds their whole row.
+    note: "Soulgrinder's turn-end ticks replay the hit cues: the bearer's 10 is the primary again, so play its crush at about 0.6x on a tick (needs the cause link)."
+    cues:
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tone: dark, scale: 1.3 }
+      - { on: hit, only: others, fx: burst_splatter_003, size: small, tone: dark, scale: 0.5, stagger: 80 }   # the 5 to each of the bearer's allies, on ticks only
+      - { on: apply, status: soulgrinder, fx: slime_5, tint: element, scale: 1.4, speed: 1.3, opacity: 0.85, layer: under }   # mid crimson, its arms reaching past the portrait's edges
+      - { on: trigger, status: soulgrinder, fx: slime_5, tint: element, scale: 1.0, speed: 1.6, opacity: 0.85, layer: under }   # the wheel turns again; the hits, then drain_it, follow
+
+  charge.evil:
+    beat: The user coils into a blood vortex, hurls across as a comet, rakes the target and rips a soul loose; a stolen soul circles the user, ready to be torn back.
+    cues:
+      - { on: travel, fx: blood_knight_4, path: beam, scale: 0.8, frames: [8, 20], note: "skip the faint draw-in; laid user to target, the vortex bursts at the user and the comet crashes on the target. The portrait lunges along it" }
+      - { on: hit, fx: blood_knight_2, face: fromActor, scale: 0.7 }
+      - { on: apply, status: soul_hunt, fx: frost_mage_1, tint: element, tone: light, scale: 0.5, opacity: 0.8 }   # on the user
+      - { on: trigger, status: soul_hunt, fx: symmetrical_impact_005, size: small, tone: light, scale: 0.45, note: "the orbiting soul ring round the user breaks as the hunt is spent, whether or not they had a fragment to lose. Soul Fragment's remove motes (when they had one) and its spiral on the attacker show the soul changing hands" }
+      # drain_it plays on the target.
+
+  riposte.evil:
+    beat: An unseen crimson guard-arc rises round the user; whoever strikes is turned away and their heartline goes flat, bound to die if the user does.
+    cues:
+      - { on: cast, fx: paladin_9, tint: element, tone: light, scale: 0.8, speed: 1.3, opacity: 0.8 }   # seen by the owner only (Invisible); over the portrait and rose, so the owner sees the counter armed
+      - { on: trigger, status: take_you_with_me, fx: symmetrical_impact_005, size: small, tone: light, scale: 0.6 }   # the guard flashes on the user as it counters
+      - { on: apply, status: doomed_together, fx: scifi_heartbeat_flatline_001, size: small, tone: light, scale: 0.45, offset: [0, 0.7] }   # over the countered enemy
+      - { on: remove, status: doomed_together, fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, opacity: 0.6 }   # an earlier victim's bond fades when a new one is struck
+      - { on: trigger, status: doomed_together, fx: none, note: "it fires on every death on the board and only kills when the user is the one who died; the death cue below shows that" }
+      - { on: death, fx: deathbringer_5, tint: element, tone: light, speed: 1.3 }   # the reaper's crescent takes the bound enemy with them; the light tone lifts its near-black opening skull to crimson
+
+  rage.evil:
+    beat: Shards of soul converge on the user and burst into a jagged crimson storm, leaving a bristle of needles round them that tears a soul from every attacker.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tone: light, scale: 1.1, speed: 1.5, opacity: 0.9 }   # over the portrait, so the shards visibly converge on the user. Its pale cream and pink accents are drawn the same in every color (red too), so they read as glints
+      - { on: apply, status: atrocity, fx: fanfx_pain, tone: light, scale: 0.9, speed: 2 }
+      - { on: trigger, status: atrocity, fx: none, note: "each hit pays out through drain_it on the attacker and Soul Fragment's spiral on the user" }
+      # Immortal's default (pillars, then the heartbeat) follows on the user.
+
+  shot.evil:
+    beat: A bone needle flicks across and bursts into a spray of crimson splinters in the target.
+    note: "With a Soul Fragment to spend, tithe's jet plays on the user first and the 25 Piercing lands: play the burst about 1.3x. Otherwise the 10 lands and drain_it follows."
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: neutral, tone: light, scale: 0.45 }   # bone white
+      - { on: hit, fx: slime_4, face: fromActor, tint: element, tone: dark, scale: 0.5 }   # a spiked splinter fan with no star sparkles; its white core flash holds the dark tint
+
+  snipe.evil:
+    beat: A knell rings out around the user with no hint of whom it tolls for; turns later it tolls a last time and a skull seal bursts on the doomed.
+    note: "HiddenTarget: nothing points at the target before the hit. The mark and its early tolls are hidden statuses, seen by the owner only."
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, tone: dark, scale: 0.9 }   # the first toll, a ring round the user
+      - { on: apply, status: doom_knell_mark, fx: symbol_warning_001, size: small, scale: 0.35, offset: [0, 0.7], speed: 2, frames: [0, 45] }   # owner only
+      - { on: trigger, status: doom_knell_mark, fx: symmetrical_explosion_004, at: actor, size: small, tone: dark, scale: 0.5, note: "owner only; must never play for the opponent, or a toll right after their heal reveals the target" }   # healed: the bell tolls a turn early, on the user
+      - { on: trigger, status: doom_knell, fx: symmetrical_explosion_004, tone: light }   # fires as it lands (its onExpire): the last toll, on the user
+      - { on: hit, fx: necromancer_7, tint: element, scale: 1.3 }   # mid tone, so the skull seal reads
+      - { on: hit, fx: symmetrical_explosion_004, tone: light, scale: 1.2, delay: 150 }   # the toll's ring bursts out of the victim
+
+  trap.evil:
+    beat: A binding ring closes unseen round the enemy; when they're healed it snaps shut and the healing crosses sink into them as wounds.
+    cues:
+      - { on: apply, status: damning_shackle, fx: dark_mage_2, tint: element, tone: dark, scale: 0.8, opacity: 0.7, layer: under, frames: [0, 10] }   # owner only; cut its odd last frame
+      - { on: trigger, status: damning_shackle, fx: dark_mage_2, tint: element, scale: 0.9, speed: 1.5, frames: [0, 10] }   # the ring snaps shut on the bearer
+      - { on: hit, fx: spell_heal_002, face: down, scale: 0.8, speed: 1.5 }   # the inverted heal is this skill's damage
+      - { on: hit, fx: burst_splatter_003, size: small, tone: dark, scale: 0.5, delay: 300 }
+      # Stun's default follows.
+
+  maneuver.evil:
+    beat: A star of soul-light pops round the user and opens into a ring of mist; each blow that should draw blood snuffs out a soul instead.
+    cues:
+      - { on: apply, status: deathless_step, fx: round_sparkle_burst_003, frames: [7, 16], tone: light, scale: 0.8, opacity: 0.85 }   # starts at the star pop: the faint converge would double Soul Fragment's spiral
+      - { on: trigger, status: deathless_step, fx: symmetrical_explosion_001, size: small, tone: light, scale: 0.45, note: "fires on every hit; play it only when the hit was capped and a fragment paid for it" }   # a white disc eaten by a crescent: a soul snuffed out
+      # Soul Fragment's spiral shows the fragment gained, and its remove motes each one spent.
+
+  companion.evil:
+    beat: A fanged maw yawns open in the ground and the Fiend climbs out of it in a burst of soulfire.
+    cues:
+      - { on: summon, fx: necromancer_8, tint: element, note: "the Fiend's portrait appears as the skull surfaces" }   # mid tone, so the maw and skull read
+      - { on: summon, fx: stylized_explosion_003, tone: dark, scale: 0.7, delay: 250, layer: under }
+
+  bolt.evil:
+    beat: A holy crescent gone crimson flies at the target and splits in a profane flare; every Buff they take after drops profaned light into them.
+    note: "profane_bolt's 10 replays the hit cues: play them at about 0.5x for it (needs the cause link)."
+    cues:
+      - { on: travel, fx: paladin_10, path: beam, tint: element, scale: 0.8 }   # stretched user to target, so its own impact star lands on the target; mid tone keeps the crescent visible in flight
+      - { on: hit, fx: round_light_burst_001, tone: light, scale: 0.9 }   # the rays are thin, so the light stop
+      - { on: hit, fx: burst_splatter_002, size: small, tone: dark, scale: 0.6, delay: 60 }
+      - { on: apply, status: profane_bolt, fx: paladin_7, tint: element, scale: 0.35, opacity: 0.7, delay: 250, frames: [0, 6] }   # a faint first drop: the tax shown once as it is set
+      - { on: trigger, status: profane_bolt, fx: paladin_7, tint: element, scale: 0.5, speed: 1.5, frames: [0, 6] }   # after the gained Buff's own icon, a drop of profaned light falls and splashes onto them (no arrows: falling arrows are Weakness's language); cut before the last frame's lingering flame patch
+
+  blast.evil:
+    beat: A blood nova bursts off the user, soulfire columns erupt under every enemy, and a crimson pall rolls over their row.
+    cues:
+      - { on: cast, fx: blood_knight_6, scale: 1.2 }
+      - { on: hit, fx: epic_explosion_001, scale: 1.1, delay: 120, stagger: 80 }
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, scale: 2.4, opacity: 0.85, layer: under }   # once, with the first hit; mid tone, as it has no white to hold a dark tint
+      # The price: Unhallowed's falling halo plays on the user and each ally.
+
+  consume.evil:
+    beat: A crimson scythe sweeps down the enemy row, and the weakest's soul is torn loose and dragged home to the user.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: element, scale: 0.55, stagger: 80 }   # the enemies only: if the user is Unhallowed, Reap's self-heal arrives as damage on them and shows Unhallowed's sinking crosses instead
+      - { on: heal, fx: directional_heart_burst_001, size: small, scale: 0.45, speed: 1.5 }   # a real heal: upright, mid tone
+      # drain_it plays on the weakest enemy; Horrified's skull on every enemy.
+
+  summon.evil:
+    beat: A crimson slit tears open beside the user and the Tormentor steps through in a spray of embers.
+    cues:
+      - { on: summon, fx: scifi_warp_001, tone: dark, scale: 0.9 }
+      - { on: summon, fx: round_firework_burst_001, size: small, tone: light, scale: 0.6, delay: 200 }
+
+  channel.evil:
+    beat: A blood leech streaks onto the target, the user's dead heart slows to a crawl, and each turn the leech bursts blood back toward them.
+    cues:
+      - { on: travel, fx: slime_3, path: straight, tint: element, tone: dark, scale: 0.5, frames: [0, 7] }   # cut before its own splat
+      - { on: apply, status: undying_thirst_hold, fx: scifi_heartbeat_slow_001, size: small, tone: light, scale: 0.4, offset: [0, 0.7], opacity: 0.7 }   # the hold is an Immortal: its slow heartbeat, on the user
+      - { on: trigger, status: undying_thirst, fx: none, note: "each pulse shows through the blood spray toward the user and the upright heal crosses. Immortal's fast heartbeat means its floor just stopped a blow, so it isn't reused here" }
+      - { on: hit, only: primary, fx: blood_knight_3, face: toActor, scale: 0.6 }   # blood sprays out of the target toward the user; if the user is Unhallowed, the inverted self-heal shows only Unhallowed's crosses
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.5, speed: 2 }   # upright: the only healing that reaches them
+
+  stab.evil:
+    beat: A thin star-headed streak runs the target through and blood fans out of their back.
+    cues:
+      - { on: hit, fx: starcaller_2, face: fromActor, tint: element, tone: light, scale: 0.7, speed: 1.3 }   # turned along the blow, so it passes straight through them
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tone: dark, scale: 0.5, delay: 80 }
+      # At 30 HP or less, Unhallowed's falling halo follows.
+
+  ravage.evil:
+    beat: A comb of crimson claws rips the target open with a heavy crack, and the same claws tear back up through the user.
+    cues:
+      - { on: hit, only: primary, fx: dark_mage_1, face: fromActor, tint: element, tone: dark, scale: 1.2 }
+      - { on: hit, only: primary, fx: symmetrical_impact_003, tone: dark, delay: 100 }
+      - { on: hit, only: others, fx: dark_mage_1, face: up, tint: element, tone: dark, scale: 0.7, delay: 250 }   # the user's own 25: the rake rips upward through their own body, a wound rather than a second strike
+
+  mislead.evil:
+    beat: Nightmare bubbles drift unseen round the enemy; when they reach to help, the dream bursts and the blessing they meant rains down as harm.
+    cues:
+      - { on: apply, status: waking_nightmare, fx: status_poison_001, tone: light, scale: 0.8, opacity: 0.8 }   # owner only (hidden); light tone so the thin outlines read
+      - { on: trigger, status: waking_nightmare, fx: round_bubble_burst_001, tone: light, scale: 0.7 }   # on the countered enemy
+      - { on: hit, fx: directional_sparkle_burst_001, face: down, scale: 0.7, speed: 1.4, stagger: 80 }   # on each target of the countered skill
+
+  stun.evil:
+    beat: A black sword drives down through the enemy in a rose-lit column and pins them there, then undying pillars rise round them; kept from dying and from moving.
+    cues:
+      - { on: apply, status: debuff, fx: paladin_5, tint: element, tone: light, note: "adds to Stun's default. The column is rose, so the black sword silhouette reads against it. Portrait jolts down a few pixels" }
+      - { on: apply, status: immortal, fx: dark_mage_3, tint: element, layer: under, delay: 450 }   # Immortal's own pillars, held back so the sword lands first and the pillars rise after
+
+  dance.evil:
+    beat: Two crimson wisps whirl round the user like dance partners while an uppercut arc flicks across the target, and a dirge rises at the user's feet.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, tone: light, scale: 0.9, layer: under }
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: element, tone: dark, scale: 0.7 }
+      - { on: apply, status: danse_macabre, fx: directional_music_burst_001, size: small, tone: light, scale: 0.5 }
+      # Confusion's default follows on the user.
+
+  heal.evil:
+    beat: Plump crimson hearts rise through the ally; each turn they don't draw enemy blood, the borrowed hearts sink back out of them.
+    cues:
+      - { on: heal, fx: directional_heart_burst_001, scale: 0.9, speed: 1.4 }   # a real heal: upright, mid tone
+      - { on: apply, status: borrowed_blood, fx: directional_heart_burst_001, face: down, size: small, scale: 0.35, opacity: 0.6, speed: 1.6, delay: 500, frames: [0, 20] }   # the debt taken on: a faint few hearts sink straight back in
+      - { on: trigger, status: borrowed_blood, fx: none, note: "fires on every enemy they damage (marking the turn paid) and at each turn end; only an unpaid turn end costs HP, shown by the hit" }
+      - { on: hit, fx: directional_heart_burst_001, face: down, size: small, scale: 0.5, speed: 1.5 }   # the debt collected: the hearts that rose sink back out (False Mercy keeps directional_heart_burst_002)
+
+  bless.evil:
+    beat: A soul-orb arcs from the user onto the ally, or the user bleeds for it; what was only lent gutters out when the gift ends.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: arc, tint: element, tone: light, scale: 0.5 }
+      - { on: hit, fx: directional_splatter_002, size: small, scale: 0.6 }   # on the user: 15 HP paid when there was no fragment to give; mid tone, as the flat splash has no white
+      - { on: trigger, status: dark_gift, fx: directional_smoke_burst_004, size: small, tone: light, scale: 0.5, note: "fires when it ends (its onExpire): the lent fragments crumble off the ally" }
+      # tithe's jet plays on the user when a fragment is given; Soul Fragment's spiral lands on the ally.
+
+  curse.evil:
+    beat: Embers of torment rain onto a ring at the enemy's feet; every blow that leaves them at death's door spirals a shred of soul into the striker.
+    cues:
+      - { on: apply, status: eternal_torment, fx: spell_forge_001, scale: 0.9, delay: 450, layer: under }   # mid tone, so the crimson flames carry it over the untinted yellow sparks; after Immortal's pillars
+      - { on: trigger, status: eternal_torment, fx: none, note: "fires on every hit; it only pays when the hit left them at the 5 floor, and that payout is the soul_fragment apply below" }
+      - { on: apply, status: soul_fragment, fx: spell_absorb_001, size: small, scale: 0.6, speed: 1.8 }   # the payout, on the dealer: only Eternal Torment applies a fragment here. Naming it replaces Soul Fragment's default, so its spiral is re-added
+      # Confusion's and Immortal's defaults follow.
+
+  smite.evil:
+    beat: Rotten claws arc high over the target and crash down on them; a rot-cloud clings to them and leaks souls to whoever strikes them.
+    cues:
+      - { on: hit, fx: deathbringer_1, face: fromActor, tint: element, tone: dark, scale: 0.9, note: "its crash sits in the lower-right corner: anchor that corner on the target (mirrored per side), so the claws come down on them from above" }
+      - { on: hit, fx: symmetrical_explosion_003, tone: dark, scale: 0.7, delay: 150 }
+      - { on: apply, status: soul_rot, fx: directional_smoke_burst_001, size: small, tone: dark, scale: 0.6, opacity: 0.8, layer: under }
+      - { on: trigger, status: soul_rot, fx: directional_smoke_burst_001, size: small, scale: 0.45, opacity: 0.8, speed: 1.4 }   # the rot-cloud flares on the bearer, who loses nothing; Soul Fragment's spiral lands on the ally who hit
+      # tithe's jet plays on the user before Soul Rot is set.
+
+  prayer.evil:
+    beat: Three black candle-flames swell behind the team, dark hearts rise from each ally, and those already whole bleed their overflow into a soul.
+    cues:
+      - { on: cast, fx: paladin_4, at: allySide, tint: element, scale: 2.6, offset: [0, 0.35], opacity: 0.8, layer: under }   # sized and raised so the three flames clear the heads behind the row
+      - { on: heal, fx: directional_heart_burst_003, tone: dark, scale: 0.7, speed: 1.6, stagger: 80 }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.4, opacity: 0.85, stagger: 80 }   # a plain small wound for any damage this causes, the overflow 10 or a heal Unhallowed turned into harm (its sinking crosses layer on); it claims no soul
+      - { on: apply, status: buff, fx: directional_splatter_005, size: small, scale: 0.6, delay: 150, stagger: 80 }   # only the allies at full HP: their overflow rises out of the wound into a soul. Soul Fragment is the only Buff Black Mass applies, so this adds to its spiral
+
+  cleave.evil:
+    beat: A crimson slash cuts the target and crests over, and smaller crescents of agony sweep down through each of their allies.
+    note: "Scale the splash with its damage: about 0.4 for 5, 0.5 for 10, 0.65 for 15."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, face: fromActor, tint: element, tone: dark }
+      - { on: hit, only: others, fx: frost_knight_4, face: fromActor, tint: element, tone: dark, scale: 0.5, delay: 150, stagger: 100 }   # the sweep carries across the row
+
+  shout.evil:
+    beat: The user shrieks, and a pale-crimson gale of wailing souls rolls over the whole enemy row.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tone: light, scale: 1.1 }
+      - { on: travel, fx: frost_mage_7, to: enemySide, path: beam, tint: element, tone: light, scale: 1.3, opacity: 0.85 }   # once, across the row: a gust with no snowflakes; its white cloud stays pale and the streaks take the crimson
+      - { on: trigger, status: wail_of_the_damned, fx: none, note: "healed under it: Horrified's skull plays on them, after Unhallowed's sinking crosses" }
+      # Unhallowed's falling halo plays on every enemy.
+
+  withstand.evil:
+    beat: Spiked torment is wrenched off every Unhallowed or Horrified enemy toward the user, and a ridge of bone spikes rises round them as the ward closes.
+    cues:
+      - { on: hit, fx: slime_4, face: toActor, tint: element, tone: dark, scale: 0.6, stagger: 100 }
+      - { on: apply, status: buff, fx: frost_knight_3, tint: neutral, tone: light, scale: 0.9, layer: under }   # bone, like Bone Needle; adds to Shield's default, at the user's feet
+
+  taunt.evil:
+    beat: The tyrant's eyes flare over the user, and a crimson reticle snaps round the enemy they've fixed on.
+    cues:
+      - { on: cast, fx: round_light_burst_001, size: small, tone: light, scale: 0.5, offset: [0, 0.3] }   # an eye-shaped flare across the user's face
+      - { on: apply, status: debuff, fx: frost_knight_7, tint: element, tone: light, scale: 0.8, speed: 0.7 }   # adds to Taunt's '!'; rose and slowed so the 5-frame reticle registers
+      # Immortal's default follows on the user.
+
+  titan.evil:
+    beat: A fountain of soulfire erupts behind the user, spikes of soul stream up round them, and a crown settles over the Lord of Souls.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tone: dark, scale: 1.6, layer: under }   # the wind-up
+      - { on: apply, status: lord_of_souls, fx: directional_particle_burst_002, tone: light, scale: 1.3, delay: 150, note: "portrait swells about 10% and holds it while Lord of Souls lasts; the swell ends when lord_of_souls is removed or expires" }
+      - { on: apply, status: lord_of_souls, fx: symbol_crown_001, size: small, tone: light, scale: 0.45, offset: [0, 0.75], speed: 1.5, delay: 400 }   # the light tone keeps the crown's detail
+      # Lifesteal's cocoon and Armor's shield defaults follow.
+
+  fiend_rend_soul:
+    beat: The Fiend's claws tear into the target in a jagged flurry.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: element, tone: dark, scale: 0.7 }
+      # Unhallowed's falling halo follows.
+
+  fiend_feast:
+    beat: The Fiend's fanged maw snaps shut on the Horrified enemy and its soul goes to the Fiend's master.
+    cues:
+      - { on: resolve, fx: necromancer_8, at: target, tint: element, scale: 0.6, speed: 1.3, note: "the same maw it arrived through; Soul Fragment's spiral lands on the summoner (no anchor for the summoner, so nothing streams to them)" }
+
+  tormentor_barbed_whip:
+    beat: A barbed lash cracks across the target.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: element, tone: dark, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, scale: 0.5, delay: 80 }
+
+  tormentor_false_mercy:
+    beat: Hearts are offered to the enemy and sink into them as harm.
+    cues:
+      - { on: heal, fx: directional_heart_burst_002, size: small, tone: light, scale: 0.5, note: "rare: only when the target is an HP-linked minion (Bloodbound Familiar). Its healing passes to its summoner, and if that summoner isn't Unhallowed it lands as a real heal, upright, on the summoner" }
+      - { on: hit, fx: directional_heart_burst_002, face: down, size: small, tone: dark, scale: 0.55, speed: 1.5 }   # the skill's real outcome: the 15 heal only happens once Unhallowed has taken, so it arrives inverted as Affliction damage and Unhallowed's sinking crosses layer on it; if Unhallowed is blocked, only effectBlocked plays

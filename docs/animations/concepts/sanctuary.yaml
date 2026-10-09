@@ -1,0 +1,329 @@
+group: sanctuary
+# Sanctuary (Earth + Holy) is hallowed stone. Three materials: dust and rubble are palette art on its default
+# tint (`element`, Earth); light is `element2` (Holy gold), `tone: light` for heals; Sanctuary's own gilded
+# stone is `duo` (Earth-brown outlines and shade under Holy-gold bodies), on class and palette art alike.
+# Signature motif, the hallowed standing stone: paladin_5 in duo, a shaft of light driving a dark spire into
+# the ground and leaving it gilded. Every Wardstone (and the Temple Warden, which counts as one) is set this
+# way, and Living Temple raises a towering one behind the hero. The Sanctum is the temple around them: each
+# level raised brings up a ring of gilded columns (dark_mage_3 in duo) on its carrier, the columns glow up
+# faintly under every ally at each turn's end, and a level lost crumbles to dust.
+
+statuses:
+  sanctum:
+    note: >-
+      The team's temple, carried by one unit, its level as stacks (1-3). No aura: the level lives on the icon,
+      and the turn-end tick shows it working every turn. raise_sanctum's only visible step is this apply.
+    apply:
+      - { fx: dark_mage_3, tint: duo, scale: 1.3, layer: under, frames: [4, 12], note: "skips the shrinking-ring wind-up so the columns rise at once, spilling past the portrait's sides. A refresh at level 3 (stacks unchanged) plays it at about 0.6 opacity" }
+    tick:   # each turn end of its side: Armor and a heal per level on every ally (their defaults follow), Steadfast at 3
+      - { fx: dark_mage_3, tint: duo, at: allies, scale: 0.8, layer: under, opacity: 0.4, frames: [4, 12], speed: 1.3, stagger: 60, note: "the bearer's side: the apply's columns, faint and portrait-sized under each ally, in step with their heals" }
+    remove:   # ended: the last level spent, Temple Within, or cleansed
+      - { fx: symmetrical_smoke_burst_002, scale: 0.8, opacity: 0.8 }
+    expire:
+      - { fx: symmetrical_smoke_burst_002, size: small, scale: 0.6, opacity: 0.6 }
+  sanctum_steady:
+    note: Re-applied to every ally at each level-3 tick beside Armor and the heal, so it stays a faint stamp at the feet; a refused Stun shows the effectBlocked default.
+    apply:
+      - { fx: directional_impact_003, tint: duo, size: small, scale: 0.35, layer: under, opacity: 0.6 }   # a crown of stone stubs: feet rooted
+  living_temple:
+    note: Only Living Temple applies it, so this is the transformation itself. No aura; the icon carries it for its 3 turns.
+    apply:
+      - { fx: paladin_5, tint: duo, scale: 1.8, layer: under, note: "behind the hero, the spire towering over their head: they stand as the Sanctum's Wardstone. Its black spire stays dark under the tint: that is the stone" }
+    remove:
+      - { fx: symmetrical_impact_004, size: small, scale: 0.6 }   # cleansed or stolen: the spire shatters
+    expire:
+      - { fx: symmetrical_smoke_burst_001, scale: 0.6, opacity: 0.7 }
+  stately_might:
+    note: >-
+      Might under its own key (so it caps at 3): it reads as attack up, but as two gilded swords crossing, not base
+      Might's sword icon. No remove: it is linked to Stately Measure, whose break carries the moment.
+    apply:
+      - { fx: paladin_2, tint: duo, scale: 0.4, speed: 1.5, note: "ends on a grey outline: fade it out" }
+  shieldbearer:
+    apply:
+      - { fx: frost_knight_7, tint: duo, scale: 0.6 }   # a gilded reticle ring snaps around the bearer: strike here
+    trigger:
+      - { fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.5 }   # the mark pops; Shield's default then lands on the damager
+
+macros:
+  raise_sanctum: []   # its only effect is Sanctum's apply, whose default (the columns) is the visual
+  lower_sanctum:   # on the Sanctum's carrier, the only ally with a level to lose
+    - { fx: directional_smoke_burst_002, size: small, scale: 0.5, opacity: 0.85, note: "a small puff breaking into dust balls, a smaller cousin of Sanctum's remove ring. removeStacks raises no event unless the last level goes (then Sanctum's remove default follows): play it as the macro runs" }
+
+skills:
+  strike.sanctuary:
+    beat: A gilded stroke chops down through the target and chips of stone burst off them, as off a toppled idol.
+    note: "On the 30-damage branch (the target had more HP than the user) it is the same single hit: play both cues about 1.25x; Condemned's warning then lands."
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_004, size: small, scale: 0.5, delay: 100 }
+
+  smash.sanctuary:
+    beat: The user's Boulders crack to feed the blow, then the foundation bursts open under the target in a gilded eruption and smaller blasts crack up under each of their allies.
+    note: "Each allied Boulder (Wardstones too) adds 5 to every enemy hit (one event each): step the enemy hit cues up about 0.1x per Boulder."
+    cues:
+      - { on: hit, only: primary, fx: epic_explosion_001, tint: duo }   # gold bursts up through the broken ground under a cap of dark dust
+      - { on: hit, only: primary, fx: directional_impact_002, scale: 1.3, layer: under, delay: 100 }   # the crack runs out along the ground
+      # `others` is both the enemy splash and the user's own Boulders losing 15 HP (those come first), and `only` can't
+      # split them by side: each cue below names the side it plays on.
+      - { on: hit, only: others, fx: stylized_explosion_003, size: small, scale: 0.6, delay: 150, stagger: 80, note: "enemy splash only" }
+      - { on: hit, only: others, fx: symmetrical_smoke_burst_001, size: small, scale: 0.5, stagger: 80, note: "the user's own Boulders/Wardstones only (the damage events before the primary hit): a chip crumbles off each as it feeds the blow" }
+
+  charge.sanctuary:
+    beat: Gilded dust kicks up at the user's feet, they stride in behind a wedge of it and strike, and a shell of light closes on the most wounded ally.
+    note: The user's portrait lunges toward the target during the travel. Shield's default plays on the ally with the lowest HP (the user included).
+    cues:
+      - { on: cast, fx: directional_smoke_burst_005, at: actor, face: toTarget, tint: duo, size: small, scale: 0.7, layer: under, note: "offset so its lower-right origin sits at the user's feet; the dust rolls out ahead of them" }
+      - { on: travel, fx: frost_knight_5, path: straight, tint: duo, scale: 0.7, frames: [0, 5] }   # a curling cloud front pushed by speed streaks: the gilded dust wedge, the lunging portrait behind it; its grey end frames cut, its snowflakes gold flecks
+      - { on: hit, fx: symmetrical_impact_002, tint: duo, scale: 0.7 }
+
+  riposte.sanctuary:
+    beat: Unseen, a gilded guard arc curls up over the user (over every ally, with the Sanctum at 3); struck, gilded stone heaves up around them and shards spit back through the attacker.
+    cues:
+      - { on: apply, status: sheltering_stone, fx: frost_knight_2, tint: duo, scale: 0.5, opacity: 0.7 }   # Invisible: owner only, on each bearer. Riposte's guard flash as a gilded arc, not Earth's dust wisp
+      - { on: trigger, status: sheltering_stone, fx: directional_impact_004, tint: duo, scale: 0.9 }   # base's counter default marks the stopped skill
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.6, delay: 100, note: "the 10 Piercing on the attacker: aim along bearer → attacker (the ally whose Sheltering Stone countered); in the base branch the bearer is the user" }
+
+  rage.sanctuary:
+    beat: The Sanctum's light spirals into the user and a shaft of it drives down into them; the temple now stands within.
+    note: >-
+      Sanctum's remove default (its ring of dust) plays on the carrier as it ends; Immune's default follows on the
+      user. Might and Armor land together, so this skill fans their icons apart over the head (offsets from the
+      portrait center).
+    cues:
+      - { on: cast, fx: spell_absorb_001, tint: duo, scale: 1.1, speed: 1.8 }
+      - { on: resolve, fx: scifi_warp_003, tint: element2, scale: 1.3 }
+      # The two defaults, spread apart (fx, size and scale as in base's statuses:).
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, scale: 0.4, tint: source, speed: 1.3, offset: [-0.3, 0.6] }
+      - { on: apply, status: armor, fx: spell_defense_up_001, size: small, scale: 0.4, tint: source, speed: 1.3, offset: [0.3, 0.6], delay: 150 }
+
+  shot.sanctuary:
+    beat: A glinting stone is slung over in an arc and cracks against the target, and the user's guard firms.
+    cues:
+      - { on: travel, fx: slime_3, path: arc, tint: duo, scale: 0.5, frames: [1, 7] }   # the sling's whirl streaks into a rimmed stone; its own splat is cut
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, size: small, scale: 0.5 }
+      # Armor's default plays on the user.
+
+  snipe.sanctuary:
+    beat: A Wardstone is driven down beside the user as light gathers in their hands; two turns on, the light is called down and the obelisk's gilded weight crashes onto the target.
+    note: "The hit is 50, or 70 with an allied Wardstone standing (one event): play the hit cues about 1.2x for 70."
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: element2, size: small, scale: 0.5 }
+      - { on: summon, fx: paladin_5, tint: duo, scale: 0.8 }
+      - { on: trigger, status: obelisk, fx: round_firework_burst_001, tint: element2, size: small, scale: 0.6 }   # at expiry: light streaks up off the user
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 1.3 }   # dives in from the user's side and slams the ground at the target's feet
+      - { on: hit, fx: symmetrical_smoke_burst_003, scale: 1.1, delay: 250 }
+
+  trap.sanctuary:
+    beat: Unseen, a gilded ring is drawn around the enemy's feet; when they strike the user's side, the boundary heaves up around them as a ridge of hallowed stone and the Sanctum rises.
+    cues:
+      - { on: apply, status: sacred_boundary, fx: necromancer_1, tint: duo, scale: 0.9, layer: under, opacity: 0.8 }   # Invisible: owner only. Base Trap's snare ring, in gilded dust
+      - { on: trigger, status: sacred_boundary, fx: frost_knight_3, tint: duo, scale: 1.3, layer: under }
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.6, delay: 100 }
+      # Sanctum's columns then rise on its carrier.
+
+  maneuver.sanctuary:
+    beat: A gilded ward rings the user as they withdraw into the sanctuary; with the Sanctum at 3, it is spent to ring every ally the same way.
+    note: >-
+      In the Sanctum branch, the drop from 3 to 1 (removeStacks) raises no event: play lower_sanctum's dust on the
+      Sanctum's carrier as the branch runs, before the Invulnerable applies, once per level spent ({ fx:
+      directional_smoke_burst_002, size: small, scale: 0.5, opacity: 0.85, repeat: 2 }), reading the carrier's stack
+      drop the same way lower_sanctum does. Invulnerable's default plays on each unit that gains it.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.9, opacity: 0.85 }
+      - { on: apply, status: buff, only: others, fx: frost_mage_1, tint: duo, scale: 0.75, stagger: 100 }   # Sanctum branch; adds to Invulnerable's default on each ally
+
+  companion.sanctuary:
+    beat: A shaft of light drives a great gilded stone into the ground and the Temple Warden stands up out of it in a roll of dust.
+    cues:
+      - { on: summon, fx: paladin_5, tint: duo, scale: 1.2 }   # the Wardstone's arrival, larger: the Warden counts as one
+      - { on: summon, fx: directional_impact_002, scale: 0.9, layer: under, delay: 300 }
+
+  bolt.sanctuary:
+    beat: A gilded stone comet streaks to the target and bursts as a sphere veined with light; when their Condemnation resolves, it cracks open on them again.
+    note: "The later 10 (the Condemnation resolving) replays the hit cue: play it about 0.7x."
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.8, frames: [0, 5] }   # the comet only; its own dark smudge impact is cut
+      - { on: hit, fx: frost_mage_6, tint: duo, scale: 0.8 }
+      # It fires on every skill the bearer uses; Condemned's trigger flare, the hit replay and Sanctum's columns carry the payoff.
+      - { on: trigger, status: stone_rebuke, fx: none }
+
+  blast.sanctuary:
+    beat: The user stamps, a tremor rolls along under the enemy row and gilded light spikes burst up under every enemy; the Sanctum gives up a level to it.
+    note: "Damage is 20 +10 per Sanctum level (one event each): play the hit cues at about 0.9 / 1.0 / 1.15 / 1.3x for levels 0-3. lower_sanctum's dust then plays on the carrier."
+    cues:
+      - { on: cast, fx: directional_impact_004, tint: duo, size: small, scale: 0.6 }
+      - { on: hit, fx: directional_impact_002, at: enemySide, scale: 2.4, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: directional_particle_burst_002, tint: duo, delay: 120, stagger: 70 }
+
+  consume.sanctuary:
+    beat: Dust pops off the target and gilded chaff blows from them into the user, who gathers it in; the first blow on the Sanctified target raises a Wardstone.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.4 }
+      - { on: hit, fx: frost_mage_7, face: toActor, tint: duo, scale: 0.6, delay: 100, note: "its cloud head leads toward the user; put its tail end (left as drawn) on the target" }
+      - { on: heal, fx: spell_absorb_001, tint: duo, size: small, scale: 0.6, speed: 1.7 }   # on the user
+      # Sanctify's cross plays on the target. Holy Harvest fires on every direct hit; the summon below is its payoff.
+      - { on: trigger, status: holy_harvest, fx: none }
+      - { on: summon, fx: paladin_5, tint: duo, scale: 0.8 }
+
+  summon.sanctuary:
+    beat: Chisel sparks rain onto a ring on the ground and the Stonemason steps out of the stone dust.
+    cues:
+      - { on: summon, fx: spell_forge_001, tint: duo, scale: 1.1 }
+      - { on: summon, fx: symmetrical_smoke_burst_001, scale: 0.6, delay: 250 }
+
+  channel.sanctuary:
+    beat: The user marks out the ground; at each of their turn ends a course of gilded stone juts up at their feet and the Sanctum rises, or, already whole, its weight lands on every enemy.
+    note: Each pulse runs raise_sanctum, so Sanctum's columns follow the trigger. The 10 on each enemy comes only at Sanctum 3.
+    cues:
+      - { on: cast, fx: directional_impact_002, tint: duo, size: small, scale: 0.7, layer: under }
+      - { on: trigger, status: build_the_sanctuary, fx: frost_mage_4, tint: duo, scale: 0.9, note: "its mist curls go grey: settling dust" }
+      - { on: hit, fx: directional_impact_003, size: small, scale: 0.6, stagger: 70 }
+
+  stab.sanctuary:
+    beat: A gilded awl punches through the target in a fan of shards; if they were already Condemned, the judgment flares and comes due at once.
+    note: "20 damage (the target at or below 60 HP) is the same single hit: play the hit cues about 1.3x."
+    cues:
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.6, speed: 1.3, note: "offset so its lower-left origin sits on the target: the spike fan bursts out past them" }   # the awl's point punches through in a fan of gilded spikes
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.45, delay: 60 }   # grit sprays out behind
+      # Condemned resolving early: its own trigger flare stands in for its remove default; Weakness's, Vulnerable's or Confusion's default follows.
+      - { on: remove, status: condemned, fx: round_light_burst_001, tint: element2, size: small, scale: 0.6 }
+
+  ravage.sanctuary:
+    beat: A gilded ram-spike drives into the target and grinds there in a whirl of blades, and dust blows out around them; a plate of the user's Armor chips off to drive it.
+    note: "+5 per Armor on the user (one event): step the hit cues up about 0.1x per Armor. The Armor then spent raises no event (and base Armor has no remove default even for the last one): the resolve cue shows it."
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8, delay: 120 }
+      - { on: hit, fx: symmetrical_smoke_burst_001, scale: 0.7, delay: 250 }
+      - { on: resolve, fx: directional_splatter_005, size: small, scale: 0.4, note: "only if the user had Armor to spend: a plate of it chips off (removeStacks raises no event)" }
+
+  mislead.sanctuary:
+    beat: Unseen, gilded glints settle over each of the user's other allies; the first enemy skill on one of them breaks against a wall of gilded tiles that snaps up behind them and shatters.
+    cues:
+      - { on: apply, status: right_of_asylum, fx: status_sparkling_001, tint: duo, scale: 0.8, opacity: 0.6 }   # Invisible: owner only; one pass, not a held aura
+      - { on: trigger, status: right_of_asylum, fx: fanfx_barrier, tint: duo, scale: 1.3, layer: under, opacity: 0.85, speed: 1.6, note: "faceted tiles snap up behind the ally and shatter as the skill breaks; base's counter default marks the stopped skill" }
+
+  stun.sanctuary:
+    beat: A needle of light drops onto the target and seals a block of gilded stone over them, holding them kneeling in penance.
+    note: "1 turn, +1 per allied Wardstone (up to 3), in one apply event: if the renderer reads the duration, hold the block a beat longer per extra turn."
+    cues:
+      - { on: apply, status: stun, fx: spell_ice_001, tint: duo, scale: 0.9, frames: [11, 34], speed: 1.5, delay: 150, note: "skips the sparkle wind-up: the block forms at once as the needle lands, holds, and crumbles to its outline ring" }
+      # The needle of light that seals it, first (no delay): Holy's judgment driven down into Earth's block.
+      - { on: apply, status: stun, fx: scifi_warp_003, tint: element2, size: small, scale: 0.8, frames: [0, 6] }
+      # Stun's default, re-added once the block has closed (the cues above replace it for this skill). Its aura shows as usual.
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 550, note: "portrait staggers back a step" }
+
+  dance.sanctuary:
+    beat: Gilded rings open slowly around the user like a turning orrery; at each turn's start the measure turns with a glint and they grow stronger, until a mobility skill breaks it.
+    note: >-
+      Each turn start brings Might (Stately Measure), Armor and Focus together (until Might reaches 3), so this skill
+      fans their three icons apart over the head (offsets from the portrait center) and staggers them.
+    cues:
+      - { on: apply, status: stately_measure, fx: stylized_impact_001, tint: duo, scale: 1.3, layer: under, opacity: 0.85, speed: 0.7 }   # slowed: its tilted and flat rings open past the portrait like a stately turn
+      - { on: trigger, status: stately_measure, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.45, offset: [0, 0.3], note: "also fires on the mobility skill that breaks it, just before the remove below; skip it on a turn-start firing that applies nothing (all three already at 3)" }
+      - { on: remove, status: stately_measure, fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.8 }
+      # The three defaults, spread apart (fx, size and scale as in statuses:).
+      - { on: apply, status: stately_might, fx: paladin_2, tint: duo, scale: 0.4, speed: 1.5, offset: [-0.35, 0.6], note: "ends on a grey outline: fade it out" }
+      - { on: apply, status: armor, fx: spell_defense_up_001, size: small, scale: 0.4, tint: source, speed: 1.3, offset: [0, 0.8], delay: 150 }
+      - { on: apply, status: focus, fx: symbol_lightbulb_001, size: small, scale: 0.4, tint: source, offset: [0.35, 0.6], delay: 300, note: "fade the held lit bulb" }
+
+  heal.sanctuary:
+    beat: Warm light rises through the ally out of glinting ground; if they rest their next turn without attacking, it wells up again at its end.
+    note: "The 30 at the end of a peaceful turn replays the heal cues about 1.2x."
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_002, tint: duo, tone: light, scale: 1.3, layer: under, speed: 1.3 }   # the glinting mound spills past the portrait's sides
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.7, delay: 150 }
+      - { on: apply, status: day_of_rest, fx: scifi_heartbeat_slow_001, tint: element2, scale: 0.35, note: "one slow beat over the head: resting" }
+      - { on: remove, status: day_of_rest, fx: symmetrical_smoke_burst_002, size: small, scale: 0.4, offset: [0, 0.6], opacity: 0.7, note: "the removeSelf when a Harmful skill breaks the rest (or a cleanse); not its expiry" }
+      # Its success is the onExpire heal of 30, which replays the heal cues above: nothing extra as it fires.
+      - { on: trigger, status: day_of_rest, fx: none }
+
+  bless.sanctuary:
+    beat: Gilded motes sift down onto the ally as a vow sworn on the stones; while a Wardstone stands, half of each blow on them cracks the Wardstone instead.
+    cues:
+      - { on: apply, status: stone_vow, fx: directional_sparkle_burst_001, face: down, tint: duo, scale: 0.9, speed: 1.4, offset: [0, 0.2] }
+      # Might's default plays with it. The vow fires on every hit on the ally, Wardstone or not: the heal and hit below are its payoff.
+      - { on: trigger, status: stone_vow, fx: none }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.55, speed: 1.5 }   # the half given back rises off the ally as the same motes
+      - { on: hit, fx: symmetrical_impact_004, size: small, scale: 0.6, delay: 100, note: "on the Wardstone taking its half" }
+
+  curse.sanctuary:
+    beat: The Sanctum gives up a level, and a drop of its light falls on the enemy dimmed and gutters out at their feet, casting them out under a warning of judgment.
+    cues:
+      - { on: apply, status: condemned, fx: paladin_7, tint: duo, tone: dark, scale: 0.8, note: "the consecrating drop of Bless the Ground, dimmed; fade its held dark patch" }
+      # Condemned's default (in Holy's gold), re-added once the drop has gone out: the cue above replaces it for this skill.
+      - { on: apply, status: condemned, fx: symbol_warning_001, tint: element2, size: small, scale: 0.4, speed: 2, delay: 450 }
+      # lower_sanctum's dust plays on the Sanctum's carrier first; Isolated's crossed-out heart plays as usual.
+
+  smite.sanctuary:
+    beat: A gilded reaping arc swings over and crashes down on the target and a tithe of gold coins spills off them; the coins shower over the most wounded ally.
+    note: "Max HP changes raise no event. Past the target's third tithe (or on a minion) only the hit plays: no heal follows, and no coins leave the target."
+    cues:
+      - { on: hit, fx: frost_knight_10, face: fromActor, tint: duo, scale: 0.9, note: "line its bottom-right impact up on the target. On the tithe branch (a heal follows in the same resolution), also play { fx: directional_coin_burst_001, tint: element2, size: small, scale: 0.4, speed: 1.8, delay: 200 } on the target as the tithe leaves them; skip it when no heal follows" }
+      - { on: hit, fx: directional_splatter_002, size: small, scale: 0.5, delay: 150 }   # a spout of dust where it lands
+      - { on: heal, fx: directional_coin_burst_001, tint: element2, scale: 0.7, speed: 1.6 }
+
+  prayer.sanctuary:
+    beat: The user's psalm rises in gilded notes and warm stars rise up through every ally.
+    note: The +10 max HP raises no event; the heal carries it.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, tint: duo, scale: 0.9 }   # duo: the notes carry the stone's brown outlines under the gold
+      - { on: heal, fx: directional_star_burst_001, tint: element2, tone: light, scale: 0.9, stagger: 80 }
+
+  cleave.sanctuary:
+    beat: A heavy gilded mace swings through the target and its arc carries on into a second enemy; whoever strikes either of them first takes up a shield.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.9, frames: [6, 13], note: "skips the mace's rocking wind-up (frames 0-5); line its lower-right impact up on the target" }
+      - { on: hit, only: others, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.6, frames: [8, 13], delay: 150, note: "just the end of the swing and its impact; line the lower-right impact up on the target" }   # the random second enemy: the same arc carrying on
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.45, delay: 100 }
+      # Shieldbearer's Mark's default plays on both.
+
+  shout.sanctuary:
+    beat: A gilded nova rings out from the user and gusts of dust roll over every enemy; each Boulder is hallowed into a Wardstone, or a new one is driven down.
+    cues:
+      - { on: cast, fx: dark_mage_4, tint: duo, scale: 1.3 }
+      - { on: summon, fx: paladin_5, tint: duo, scale: 0.8, stagger: 120, note: "a Boulder turned Wardstone raises the same summoned event: the light drives the spire into it" }
+      - { on: travel, fx: directional_smoke_burst_003, scale: 0.5, stagger: 60 }
+      # Intimidated's eye lands on each enemy.
+
+  withstand.sanctuary:
+    beat: Each Boulder and Wardstone sheds a chip of itself, and a gilded stone rampart heaves up behind the user.
+    note: "The Shield is 20 +10 per stone (one event): scale the rampart up about 0.1x per stone."
+    cues:
+      - { on: apply, status: buff, fx: frost_mage_3, tint: duo, scale: 1.0, layer: under, opacity: 0.9, note: "a gilded stone rampart heaves up behind the user, raised the way Earth raises its stones; it ends on its brightest frame, so fade it" }   # adds to Shield's bubble
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, scale: 0.5, stagger: 80 }   # the 10 each stone gives up
+
+  taunt.sanctuary:
+    beat: A Wardstone is driven down beside the user and a ray of its light reaches out to call the target; each blow they land on a Wardstone brands them Condemned.
+    cues:
+      - { on: summon, fx: paladin_5, tint: duo, scale: 0.8 }
+      - { on: travel, from: minion, path: beam, fx: scifi_muzzle_flash_002, tint: element2, size: small, scale: 0.6, speed: 1.5, delay: 300, note: "from the Wardstone this cast summoned (its summoned event precedes the Taunt apply): the Wardstone is the taunter the target must strike" }
+      # Taunt's '!' lands on the target. The challenge fires on every hit the bearer deals; Condemned's warning marks each brand.
+      - { on: trigger, status: unceasing_challenge, fx: none }
+
+  titan.sanctuary:
+    beat: The ground bursts in a fountain of gilded rubble, the Sanctum's columns rise and a shaft of light drives a towering spire down behind the user; they stand as the temple's living stone.
+    note: The portrait swells about 10% and keeps a gold-stone sheen while it lasts. Sanctum's columns (on its carrier), Living Temple's spire, and Armor's and Immune's defaults land between these cues.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.6, layer: under }
+      - { on: resolve, fx: directional_impact_002, scale: 1.6, layer: under }   # the shock rolls out along the ground as the spire settles
+
+  warden_stone_fist:
+    beat: The Warden's gilded stone fist punches through the target.
+    cues:
+      - { on: hit, fx: warrior_6, face: fromActor, tint: duo, scale: 0.55, note: "line its star impact (about 70% across as drawn) up on the target" }
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, scale: 0.4, delay: 100 }
+
+  warden_bless_the_ground:
+    beat: A golden drop falls before the Warden and splashes across the ground at its feet, and the Sanctum rises.
+    cues:
+      - { on: cast, fx: paladin_7, tint: duo, tone: light, scale: 0.7, note: "fade its held last frame" }
+      # Sanctum's columns then rise on its carrier.
+
+  stonemason_carve:
+    beat: Chisel sparks fly and a block of stone heaves up; with the Sanctum at 2 or more, light drives it down as a Wardstone.
+    cues:
+      - { on: cast, fx: scifi_spark_burst_001, tint: element2, size: small, scale: 0.5 }
+      - { on: summon, fx: directional_impact_004, scale: 0.8 }
+      - { on: summon, fx: paladin_5, tint: duo, scale: 0.75, delay: 100, note: "Wardstone branch only (Sanctum 2+): skip it when the summoned unit is a Boulder" }

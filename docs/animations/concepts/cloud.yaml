@@ -1,0 +1,319 @@
+group: cloud
+# Cloud is Wind turned up (Wind + Wind): the same white air, massed into cloud and weighed down. Both parents
+# are Wind, so the layers split by weight: storm-grey bodies, undersides and heavy air are `element` at
+# `tone: dark`; white tops, rain, spray and silver light are `element2` with no tone. Wind's own ramp is already
+# white over grey shading, and `tone: light` would push body, highlight and core all to white and flatten shaded
+# smoke and class art into a silhouette, so it's kept for small sparkle and flare accents only (round_sparkle_burst_001,
+# spell_heal_002, round_light_burst_001) and the Drift-landing puff. Wind's gusts, feather-sprays and crescents stay,
+# but Cloud's heavy blows come down from above (paladin_6, paladin_5, scifi_warp_003) and its matter is weather:
+# hail (frost_mage_5), heavy drops (paladin_7), rain (directional_particle_burst_001 turned down; a single drop's
+# splat, burst_splatter_001), sleet squalls (frost_knight_5, directional_smoke_burst_005) and four-lobed cumulus
+# (symmetrical_smoke_burst_003).
+# Signature motif, the hanging cloud. A Drift skill hangs for a turn and lands as its user's next turn starts: the
+# use emits only skillDrifting (no `on:` binds it) and skillUsed comes at the landing, so every Drift skill's cast
+# is the cloud breaking open over its user (symmetrical_smoke_burst_002, small, white, above the head). Drifting
+# Damage is the same idea parked over a victim: a small grey cloud swells over their head, and when it runs out a
+# heavy drop falls on them. Second tell, feeding the cloud: when a unit's own skill use feeds a Cloud debuff
+# (Overcast, Looming Cloud, Squall Line's watch), a small dark wisp curls up off them (directional_smoke_burst_004).
+# Portraits are opaque squares: `layer: under` cues are scaled past the frame, or they wouldn't show.
+# directional_impact_002 has a saturated yellow flash and specks baked into every variant (still about a tenth of
+# its pixels in frames 2-4): it's kept only for Low Ceiling's lid, started at frame 2 past the flash; outflows use
+# palette art with nothing baked in. Skip spell_forge_001 for the same reason (yellow and orange sparks).
+
+statuses:
+  aloft:
+    # A pad of cloud under the feet, not Leaping's updraft: Aloft is the lift that stays.
+    apply:  [ { fx: directional_sparkle_burst_002, tint: element2, scale: 0.8, offset: [0, -0.2], speed: 1.3, note: "over the portrait at the feet: the puffy pad gathers under them with star glints, and the portrait lifts a few pixels" } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.6, offset: [0, -0.35], opacity: 0.8, note: "the pad is torn out from under them: the portrait drops back down" } ]
+    expire: [ { fx: directional_smoke_burst_004, tint: element2, scale: 0.5, offset: [0, -0.2], opacity: 0.6 } ]   # the pad thins away and they settle
+  drifting_hit:
+    note: >-
+      Its damage plays this expire cue, not the applying skill's hit. Scale the drop with the value: about 0.6
+      at 10, 0.9 at 30, 1.1 from 45 (Overcast and Rain Check can leave big ones). Cloudburst lays two on each
+      enemy at once: play one cloud per unit. Value 0 (a Rain Check hold of a hit of 10 or less): play the apply
+      cloud at opacity 0.5. On expire, play no drop, only { fx: symmetrical_smoke_burst_002, size: small, tone:
+      dark, scale: 0.4, offset: [0, 0.7], opacity: 0.6 } (the cloud breaks up empty).
+    apply:  [ { fx: symmetrical_smoke_burst_001, size: small, tone: dark, scale: 0.45, offset: [0, 0.7], speed: 0.8 } ]   # a small grey cloud swells over their head
+    expire: [ { fx: paladin_7, tint: element, scale: 0.75, frames: [0, 6] } ]   # it lets go: a heavy drop falls and bursts on them (cut the held last patch)
+  gathering_storm:
+    note: "Its growth (growShield) emits no event: Gathering Clouds' trigger shows each swell. Scale the break with its value (15 to 45); at 45 add a short screen shake."
+    apply:  [ { fx: symmetrical_smoke_burst_003, size: small, tone: dark, scale: 0.6, offset: [0, 0.7], opacity: 0.9 } ]   # a dark storm head billows up over them
+    expire:
+      - { fx: frost_mage_6, tint: element, tone: dark, scale: 0.8, offset: [0, 0.35] }   # the storm head swells, cracks with white veins and bursts
+      - { fx: directional_impact_004, tint: element2, scale: 0.9, delay: 150 }   # the deluge slams down and spray crowns up around them
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.5, offset: [0, 0.7], opacity: 0.6 } ]   # cleansed: the storm head breaks up harmlessly
+  idle_updraft:
+    apply:  [ { fx: directional_particle_burst_001, tint: element2, scale: 0.7, speed: 0.7, opacity: 0.8 } ]   # a lazy thermal: pale motes drift slowly up through them
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.5 } ]
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.5 } ]
+  low_ceiling:
+    apply:  [ { fx: directional_impact_002, variant: gray, scale: 0.75, flip: y, offset: [0, 0.3], frames: [2, 6], note: "upside down so its band rolls out along the top of the head: a flat lid of cloud slams down on them and spreads to both sides; the portrait dips a few pixels under it. Starts at frame 2 to skip the baked yellow flash" } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.5, offset: [0, 0.6], opacity: 0.6 } ]   # the ceiling lifts
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.5, offset: [0, 0.6], opacity: 0.6 } ]
+  squall_marked:
+    apply:  [ { fx: symbol_warning_001, size: small, tone: dark, scale: 0.4, offset: [0, 0.7], speed: 2 } ]   # singled out: the squall will hit them double (toned dark so the white '!' stands out on the fill)
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.4, offset: [0, 0.6], opacity: 0.5, delay: 150 } ]   # the squall has passed (Squall Line clears it after its hits)
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.4, offset: [0, 0.6], opacity: 0.5 } ]   # the squall broke up first (its channel was interrupted)
+  cloud_titan_mark:
+    apply:  [ { fx: dark_mage_2, tint: element, tone: dark, scale: 0.5, offset: [0, 0.65], frames: [0, 9] } ]   # a dark eddy of storm air locks into a ring over their head; cut the two red last frames
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.4, offset: [0, 0.65], opacity: 0.6 } ]   # it breaks off them (it moves to the next attacker, or the Titan ends)
+
+macros: {}   # Cloud defines none; Cloudbank uses Wind's leap macro, which plays its own cues
+
+skills:
+  strike.cloud:
+    beat: The cloud hanging over the user breaks and a heavy slab of storm-grey air sweeps low through the target, blowing white air out past them.
+    note: >-
+      Drift: using it emits only skillDrifting, which no `on:` binds yet, so everything here plays when it lands at
+      the start of the user's next turn, cast included. Until skillDrifting gets a cue, the renderer can hold the
+      cast's small cloud (frames 0-3) over the user while the skill hangs. The same goes for every Drift skill here.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.55, offset: [0, 0.7] }   # Drift landing: the hanging cloud breaks open over the user
+      - { on: hit, fx: warrior_4, face: fromActor, tint: element, tone: dark, scale: 1.1 }   # a heavy storm-grey crescent sweeps low through them (the falling look is Smash's)
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, size: small, tint: element2, scale: 0.6, delay: 120 }
+
+  smash.cloud:
+    beat: A dark thunderhead billows up behind the user; two turns later it lets go, crashing down on the target as its outflow slams up round each of their allies.
+    cues:
+      - { on: apply, status: anvil_cloud, fx: symmetrical_smoke_burst_003, tone: dark, scale: 1.6, layer: under }   # the anvil builds behind the user, its lobes spilling past the frame
+      - { on: trigger, status: anvil_cloud, fx: symmetrical_smoke_burst_002, tone: dark, offset: [0, 0.4], opacity: 0.8 }   # two turns on, the thunderhead breaks off the user
+      - { on: hit, only: primary, fx: paladin_6, face: fromActor, tint: element, tone: dark, scale: 1.3, note: "a short screen shake as it lands" }
+      - { on: hit, only: primary, fx: directional_impact_004, tint: element2, delay: 150 }   # white spray towers up from the crash
+      - { on: hit, only: others, fx: directional_impact_003, tone: dark, scale: 1.2, layer: under, delay: 300, stagger: 90 }   # the outflow slams up a grey crown round each ally, lighter than the tower on the primary
+
+  charge.cloud:
+    beat: A rising draft scoops the user up and carries them over in an arc, clipping the target in a spray of wind.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: arc, tint: element, scale: 0.6, note: "the portrait rides up the arc toward the target and snaps back" }
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, tint: element2, scale: 0.5 }   # a ring of air pops on them and fans out past
+      # Aloft's pad (first use) or stun_ns (already Aloft) plays its own default.
+
+  riposte.cloud:
+    beat: A veil of cloud quietly wraps the user; a blow aimed at them sinks into it in a ring of puffs and a gust shoves the attacker away.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: element2, opacity: 0.7 }   # owner only (Invisible): billows close over them
+      - { on: trigger, status: cloud_veil, fx: symmetrical_smoke_burst_001, tint: element2 }   # the blow sinks into the veil, which bursts into a ring of cloud
+      - { on: trigger, status: cloud_veil, fx: directional_smoke_burst_003, at: source, face: fromActor, scale: 0.7, delay: 150 }   # a gust shoves the attacker back
+      # Isolated (on the attacker), Aloft (on the user) and the base counter X play their defaults.
+
+  rage.cloud:
+    beat: Light gathers into a star over the user and bursts into a ring round a puff of cloud as they rise above it; each turn their Debuffs lift off them in silver sparkles.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: element2, scale: 1.2, frames: [5, 16] }   # skip the faint edge sparkles
+      - { on: trigger, status: rise_above, fx: directional_particle_burst_001, tint: element2, scale: 0.6, speed: 1.3, note: "only when it removes a Debuff (the trigger fires every turn start)" }
+      - { on: remove, status: debuff, fx: directional_sparkle_burst_001, size: small, tint: element2, scale: 0.5, stagger: 100 }   # each Debuff lifts off in silver sparkles (the grey puff under the feet means only 'Aloft torn away')
+      # Aloft's pad and Might's icon play their defaults.
+
+  shot.cloud:
+    beat: The user punches a puff of air straight up and hail clatters down on every grounded unit on the field, friend and foe.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: up, size: small, tint: element2, scale: 0.6 }
+      - { on: hit, fx: frost_mage_5, tint: element, scale: 0.65, stagger: 60 }   # a hailstone drops and shatters on each, the user's own allies too
+
+  snipe.cloud:
+    beat: A dark squall line banks up behind the user and its leading edge brushes over every enemy; next turn it sweeps down the enemy row and lashes each of them, hardest whoever struck in the meantime.
+    note: "Squall-marked enemies take 30, the rest 15: play their lash about 1.3x."
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: element, tone: dark, scale: 1.3, layer: under, frames: [2, 12] }   # columns of dark air stack up behind the user
+      - { on: apply, status: squall_watch, fx: frost_knight_5, face: fromActor, tint: element, tone: dark, scale: 0.5, offset: [0, 0.6], opacity: 0.6, stagger: 60 }   # the squall's leading edge brushes over each head: they're being watched
+      - { on: trigger, status: squall_watch, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.45, offset: [0, 0.3] }   # feeding the cloud: their Harmful skill sends a dark wisp up; Squall-marked's warning follows
+      - { on: trigger, status: squall_line, fx: frost_knight_5, at: enemySide, face: down, tint: element, tone: dark, scale: 2.4, note: "once, laid along the enemy column: the squall front and its sleet roll down through every portrait" }
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: element, tone: dark, scale: 0.8, stagger: 70 }
+
+  trap.cloud:
+    beat: A flat overcast settles unseen over the target and thickens with every skill they use; when it ends, it gathers into one cloud over their head.
+    note: "Invisible: the opponent sees only the Drifting Damage it leaves (15 per skill they used) and its drop when it lands."
+    cues:
+      - { on: apply, status: overcast, fx: round_light_burst_001, size: small, scale: 0.9, offset: [0, 0.6], opacity: 0.7 }   # owner only: a flat sheet of cloud spreads over their head
+      - { on: trigger, status: overcast, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.45, offset: [0, 0.3] }   # feeding the cloud: each skill they use sends a dark wisp up into it
+      # When it ends, Drifting Damage's cloud gathers over them by its default.
+
+  maneuver.cloud:
+    beat: The user fades behind a cluster of white cloud that drifts up on a lazy updraft and evaporates into falling glitter.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_003, tint: element2, scale: 1.2, offset: [0, -0.2], speed: 1.3, frames: [0, 27], note: "the portrait fades to half for a beat as the cloud covers it" }   # puffs gather over their face and chest, drift up and break into glitter (its empty last frames cut)
+      # One cue on purpose: Invulnerable's shell, Rushing's side streaks and Idle Updraft's thermal all land with it.
+
+  companion.cloud:
+    beat: A bank of white cloud heaves up and the Sky Whale surfaces out of it with a spout of spray.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_001, tint: element2, scale: 1.4, layer: under }   # the cloud bank billows up past the frame
+      - { on: summon, fx: directional_splatter_002, tint: element2, scale: 0.9, delay: 300 }   # the whale's spout
+
+  bolt.cloud:
+    beat: The hanging cloud breaks and a streak of high cirrus falls on the weakest enemy, shattering into glitter.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.55, offset: [0, 0.7] }   # Drift landing
+      - { on: hit, fx: starcaller_2, face: down, tint: element2, scale: 0.8 }   # the cirrus streak falls straight onto them
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, scale: 0.6, delay: 120 }
+      # Mark's default follows.
+
+  blast.cloud:
+    beat: A cloudburst opens over the whole enemy row and the downpour slams up white spray under each of them, leaving a cloud over every head.
+    cues:
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tone: dark, scale: 2.4, offset: [0, 0.4], layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: directional_impact_003, tint: element2, scale: 0.8, delay: 150, stagger: 80 }
+      # Drifting Damage's cloud follows over each (two per enemy, landing at the user's next two turn starts).
+
+  consume.cloud:
+    beat: Vapor steams off the target and drifts across into the user; next turn the rest of it is drawn off the same way.
+    note: "The first pull is only 5: play the hit and heal about 0.7x. The pull a turn later (Evaporate, 15) plays them full size."
+    cues:
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: element2, scale: 0.7 }   # the vapor rises off them toward the user
+      - { on: heal, fx: spell_absorb_001, size: small, tint: element2, scale: 0.7, speed: 1.6 }   # and condenses into the user
+      - { on: trigger, status: evaporate, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.4, offset: [0, 0.5] }   # a turn on: a glint on the user as it draws again
+
+  summon.cloud:
+    beat: Two puffs of white cloud bloom and twinkle into Cloudlings; when one bursts, a light shower falls over the user's team.
+    cues:
+      - { on: summon, fx: symmetrical_smoke_burst_001, tint: element2, scale: 0.8, stagger: 150 }
+      - { on: summon, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.5, delay: 150, stagger: 150 }
+      - { on: trigger, status: cloudling_rain, fx: round_firework_burst_001, at: allySide, tint: element2, scale: 1.6, offset: [0, 0.5], opacity: 0.8, note: "only when one of the user's Cloudlings died (the heal follows)" }   # the shower's streaks droop over the team
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.5, stagger: 80 }
+
+  channel.cloud:
+    beat: The user stirs a ring of grey air; at the end of each of their turns it turns again and the storm over every enemy swells a notch.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: element, tone: dark, frames: [0, 13] }   # cut the dim ghost ring
+      - { on: trigger, status: gathering_clouds, fx: frost_mage_1, tint: element, tone: dark, scale: 0.6, opacity: 0.8, speed: 1.3, frames: [0, 13] }
+      - { on: trigger, status: gathering_clouds, fx: symmetrical_smoke_burst_003, at: enemies, size: small, tone: dark, scale: 0.7, offset: [0, 0.7], frames: [0, 5], stagger: 60, note: "only on enemies holding a Gathering Storm; grow it each swell: 0.7, 0.8, 0.9" }   # the storm head re-blooms bigger and holds at its peak lobes (its cleanse is the different, diamond-ring puff)
+      # Gathering Storm's default gathers over each enemy at the start and breaks on them at the end.
+
+  stab.cloud:
+    beat: A thin needle of sleet drives through the target in a spit of slush, and a grey cloud is left over them.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: element2, scale: 0.6 }   # a white streak of sleet stabs through, flashes and curls off
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: element2, scale: 0.6, delay: 80 }
+      # Drifting Damage's cloud follows.
+
+  ravage.cloud:
+    beat: A heavy cloud hangs low over the target; the first time they strike, a downdraft drops out of it and slams them flat, its outflow racing out along the ground.
+    note: "The first-strike blow is 35; if they never strike, the same downburst falls for 20 when it ends: play it about 0.8x then."
+    cues:
+      - { on: apply, status: downburst, fx: directional_smoke_burst_001, size: small, tone: dark, scale: 0.6, offset: [0, 0.45] }   # a heavy grey cloud billows up over their head
+      - { on: trigger, status: downburst, fx: scifi_warp_003, tint: element2, scale: 1.3 }   # the downdraft shaft drops out of it
+      - { on: hit, fx: symmetrical_impact_004, tone: dark, scale: 1.1 }
+      - { on: hit, fx: directional_smoke_burst_005, face: left, tint: element2, scale: 0.6, offset: [-0.6, -0.3], layer: under, delay: 80, note: "offset so the wedge's origin (the canvas's lower-right corner) sits on the unit" }   # the outflow races out one way along the ground...
+      - { on: hit, fx: directional_smoke_burst_005, face: right, tint: element2, scale: 0.6, offset: [0.6, -0.3], layer: under, delay: 80 }   # ...and the other
+
+  mislead.cloud:
+    beat: A faint low ceiling hangs unseen just over the target's head; when they strike, the blow is smothered in cloud and the lid slams down on them.
+    cues:
+      - { on: apply, status: low_ceiling_trap, fx: directional_impact_002, variant: gray, size: small, scale: 0.6, flip: y, offset: [0, 0.4], opacity: 0.5, frames: [2, 6] }   # owner only: a faint preview of the lid
+      - { on: trigger, status: low_ceiling_trap, fx: symmetrical_explosion_001, size: small, tone: dark, scale: 0.5, offset: [0, 0.45] }   # their blow is smothered: a small white flash at their head is swallowed by a grey crescent of cloud (not a portrait-wide ring, which reads as a death)
+      # The base counter X, then Low Ceiling's lid slams down by its default.
+
+  stun.cloud:
+    beat: The hanging cloud breaks and a squall of sleet whips through the target's whole row; the strongest of them is knocked reeling.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.55, offset: [0, 0.7] }   # Drift landing
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, tone: dark, scale: 0.8, stagger: 80 }   # a grey wedge of squall shot with white streaks of sleet rolls through each
+      - { on: hit, fx: burst_splatter_003, size: small, tint: element2, scale: 0.45, delay: 100, stagger: 80 }   # sleet pellets spatter
+      # Stun's default (and its stagger) lands on the strongest enemy.
+
+  dance.cloud:
+    beat: Rings and veils of white cloud whirl round the user as they dance up into the sky; each turn a flick of the veil snatches a random enemy's speed.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: element2, scale: 1.2, offset: [0, -0.3], opacity: 0.85, frames: [0, 9] }   # over the portrait: two crescents of cloud join into a ring whirling round their legs; cut the two red last frames
+      - { on: cast, fx: paladin_8, tint: element2, scale: 1.8, offset: [0, 0.35], layer: under, delay: 200 }   # a dome of banded cloud sweeps up round them, clearing the top and both sides of the frame
+      - { on: trigger, status: sky_dancer, fx: paladin_9, tint: element2, scale: 0.6, note: "only when the random enemy has a mobility buff to lose" }   # the flick of the veil
+      - { on: trigger, status: sky_dancer, fx: directional_smoke_burst_003, at: target, face: fromActor, size: small, tint: element2, scale: 0.6, delay: 120 }   # a gust whips across the enemy; each stripped buff plays its remove default
+      # Aloft's pad and Focus's bulb play their defaults.
+
+  heal.cloud:
+    beat: Fresh rainwater wells up through the ally and a white canopy of cloud spreads over their head to catch the next blows.
+    cues:
+      - { on: heal, fx: directional_splatter_005, tint: element2, scale: 0.8 }   # plumes of rain droplets climb through them
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.5, delay: 150 }
+      - { on: apply, status: rain_check, fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.8, offset: [0, 0.6], delay: 200 }   # the canopy: a flat white sheet over their head
+      - { on: trigger, status: rain_check, fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.6, offset: [0, 0.6], note: "on each damageBlocked with reason 'held' on the bearer (rain_check is a deferHits modifier, not a trigger): the canopy catches the blow; play instead of the base blocked flicker" }
+      # Each hit it holds becomes Drifting Damage: that cloud gathers over them right after the canopy flares, instead of the blow.
+
+  bless.cloud:
+    beat: A puff of white cloud floats down onto the ally cloud-first and settles under their feet, lifting them clear of any Taunt.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: drop, tint: element2, scale: 0.45, speed: 0.8 }   # led by its billowing cloud head, the puff drifts down onto them
+      - { on: remove, status: taunt, fx: directional_smoke_burst_003, face: up, size: small, tint: element2, scale: 0.5 }   # the Taunt is blown off them
+      - { on: trigger, status: lift, fx: directional_smoke_burst_003, face: up, size: small, tint: element2, scale: 0.5, note: "only when it clears a new Taunt (they're still Aloft)" }
+      # Aloft's pad gathers under them as the puff arrives.
+
+  curse.cloud:
+    beat: The air goes dead still around the target; a grey pall spreads slowly over them and their clock slows to a crawl.
+    note: "Each skill they use while Becalmed hangs as a Drift (skillDrifting, no cue) and plays its own cues when it lands."
+    cues:
+      - { on: apply, status: becalmed, fx: symmetrical_smoke_burst_002, tone: dark, scale: 0.9, speed: 0.6, opacity: 0.8 }
+      - { on: apply, status: becalmed, fx: fanfx_slow, tone: dark, scale: 0.5, offset: [0, 0.6], speed: 1.3, delay: 250 }   # every skill they use now lands a turn late
+
+  smite.cloud:
+    beat: A shaft breaks down through the cloud onto the target and flares silver across them; for a turn, each ally who strikes them knocks a gleam loose and sheds a Debuff.
+    cues:
+      # The silver flare leads; the shaft under it is the Smite fall.
+      - { on: hit, fx: round_light_burst_001, tint: element2, tone: light, scale: 1.1, delay: 150 }   # the silver lining flares across them as the shaft lands
+      - { on: hit, fx: paladin_5, tint: element2, scale: 0.8, note: "its black blade stays dark inside the white column: the dark cloud with its silver rim" }
+      - { on: trigger, status: silver_lining, fx: round_light_burst_001, size: small, tint: element2, tone: light, scale: 0.6 }   # struck by an ally: a silver flare off them
+      - { on: remove, status: debuff, fx: directional_sparkle_burst_001, size: small, tint: element2, scale: 0.5 }   # the striker's Debuff lifts off in silver sparkles
+
+  prayer.cloud:
+    beat: The hanging cloud breaks wide over the user's team and a warm rain falls on every ally, lifting light off them.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.8, offset: [0, 0.7] }   # Drift landing
+      - { on: heal, fx: directional_particle_burst_001, face: down, tint: element2, scale: 0.9, stagger: 90 }   # white-cored drops rain down through each ally
+      - { on: heal, fx: spell_heal_002, size: small, tint: element2, tone: light, scale: 0.5, speed: 1.5, delay: 200, stagger: 90 }   # and the healing lifts off them
+      # Swiftness's clock follows on each.
+
+  cleave.cloud:
+    beat: A grey gust front rolls through the target and on into a second enemy.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, face: fromActor, tint: element, tone: dark, note: "In the Aloft branch the 15 can land on the primary again (the weakest enemy after the 20). Play that second damage event on them with the `others` cue's art (frost_knight_8, scale 0.8, delay 150), not a second full-size primary cue." }   # the front whips up and curls over them like a rolling shelf cloud
+      - { on: hit, only: others, fx: frost_knight_8, face: fromActor, tint: element, tone: dark, scale: 0.8, delay: 150 }   # the 15 on the random other enemy, or the weakest enemy when that isn't the primary
+      # Aloft's pad on the user.
+
+  shout.cloud:
+    beat: A compass-pointed ring of wind bursts off the user and the gale buffets every enemy; allies with Swiftness catch it and break into a run.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: element2, scale: 1.3, speed: 0.7 }   # the gale warning: a ring with four compass points
+      - { on: apply, status: debuff, fx: directional_smoke_burst_003, face: fromActor, size: small, tone: dark, scale: 0.6, stagger: 70 }   # the gale buffets each enemy; Intimidated's gaze follows
+      # Rushing's side streaks (and Swiftness's fade on a last stack) play on each ally who trades.
+
+  withstand.cloud:
+    beat: A bank of white cumulus piles up behind the user; if it's knocked apart while they're Rushing, it bursts up under them and they leap clear.
+    cues:
+      - { on: apply, status: cloudbank, fx: symmetrical_smoke_burst_003, tint: element2, scale: 1.5, layer: under }   # the lobes billow past the frame
+      - { on: remove, status: cloudbank, fx: symmetrical_smoke_burst_002, tint: element2, scale: 0.9, opacity: 0.8 }   # knocked apart (or run out): the bank bursts into a ring of puffs
+      - { on: trigger, status: cloudbank_watch, fx: directional_particle_burst_002, tint: element2, scale: 0.9, note: "only when they're Rushing: the leap macro's takeoff follows" }   # the bank spurts up under them
+
+  taunt.cloud:
+    beat: A dark thunderhead looms up behind the user and its shadow stretches over the target; each skill they throw while Taunted feeds a cloud over their own head.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tone: dark, scale: 1.4, layer: under }
+      - { on: travel, fx: necromancer_3, path: beam, tint: element, scale: 0.8 }   # a grey wedge of cloud widens across to them (not toned dark: its dark body would vanish on the board)
+      - { on: trigger, status: looming_cloud, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.45, offset: [0, 0.3], note: "only while they're Taunted: Drifting Damage's cloud follows" }   # feeding the cloud
+      # Taunt's '!' marks the target.
+
+  titan.cloud:
+    beat: A towering cumulonimbus erupts round the user and they swell into a giant of cloud; whoever strikes it gets a storm over their head, and at each turn's end the giant flings a drift of rain at them.
+    note: "The portrait swells about 15% as the tower rises; a light screen shake."
+    cues:
+      - { on: cast, fx: epic_explosion_001, tint: element2, scale: 2.0, layer: under }   # the white tower and its dark anvil cap rise behind them
+      - { on: cast, fx: directional_particle_burst_002, tint: element2, scale: 1.5, layer: under, delay: 150 }   # updraft columns surge up its flanks
+      - { on: trigger, status: cloud_titan, fx: directional_smoke_burst_003, face: toTarget, size: small, tone: dark, scale: 0.6, note: "aim it at the Stormcloud's holder: the new one when the Titan is struck, the marked one at turn end" }
+      # Immune, Aloft (its pad gathers round the giant's base), the Stormcloud and each turn's Drifting Damage play their defaults.
+
+  whale_rain_down:
+    beat: The cloud over the Sky Whale breaks and a soft shower droops down over every ally.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.55, offset: [0, 0.7] }   # Drift landing
+      - { on: heal, fx: round_firework_burst_001, tint: element2, scale: 0.7, offset: [0, 0.4], stagger: 80 }   # the shower's streaks droop over each ally
+
+  whale_breach:
+    beat: The cloud over the Sky Whale breaks as it breaches, its flukes arcing over and crashing down across the enemy row in white spray.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.55, offset: [0, 0.7] }   # Drift landing
+      - { on: hit, fx: deathbringer_1, at: enemySide, face: fromActor, tint: element2, scale: 2.0, note: "once, with the first hit: its crash sits in the canvas's bottom-right corner; put that corner mid-row" }
+      - { on: hit, fx: directional_impact_004, size: small, tint: element2, scale: 0.7, delay: 250, stagger: 80 }
+
+  cloudling_drizzle:
+    beat: The Cloudling's little cloud breaks and a fat grey raindrop splats onto the target.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: light, scale: 0.35, offset: [0, 0.6] }   # Drift landing
+      - { on: hit, fx: burst_splatter_001, size: small, tone: dark, scale: 0.5, offset: [0, 0.2] }   # the drop splats into grey spray that droops off them

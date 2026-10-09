@@ -1,0 +1,286 @@
+group: blight
+# Blight (Poison + Unholy) is rot: flesh going green at the edges and crimson inside. Three materials:
+#   rot-flesh — palette gore and bursts tinted `duo` (Poison's dark-green rim around Unholy's crimson
+#               body and pink highlights): the default for Blight's own hits;
+#   miasma    — smoke and gas tinted `element` (lime, often `tone: dark`), or the olive-smoke explosions
+#               (epic_explosion_003, stylized_explosion_006) tinted `element2`, whose fire turns crimson
+#               under their own olive smoke, so one effect reads as both parents;
+#   grave-rot — Necromancer art: native where its spectral green already carries baked crimson
+#               (necromancer_5's red specks, necromancer_6's blood pulse), tinted `duo` where its own
+#               colors would read as plain Poison or as purple.
+# Signature motifs, Blight's own: the pustule (symmetrical_explosion_003 in duo, a green-skinned blister
+# that swells and bursts crimson) closes the quick hits (Strike, Charge, Shot), and the drip — Withered's
+# default, crimson drops falling off the bearer — follows almost every skill, so the whole kit leaves its
+# victims dripping.
+# Poison's skull puff (Toxin) and Unholy's flaming skull (Horrified) keep their own shapes beside it.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  withered:
+    note: >-
+      Stacking (max 5) and on many units at once, so no aura; the icon carries the count. Several stacks in
+      one apply play the cue once. Festering (its turn-end trigger) adds Toxin through an ordinary apply, so
+      Toxin's skull puff shows it; there is no trigger cue, because the trigger fires every turn end whether
+      or not there is Toxin to feed.
+    # the drip: crimson drops fall off the bearer as their max HP withers (a falling cluster, unlike
+    # Toxin's overhead skull puff, Horrified's flaming skull or Soul Fragment's inward spiral)
+    apply:  [ { fx: directional_particle_burst_001, face: down, size: small, tint: duo, scale: 0.6, offset: [0, 0.15], speed: 1.3 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: element, scale: 0.5, opacity: 0.6 } ]   # cleansed: the rot fumes away
+  imp_bitten:
+    # the Imp's summoning sigil (summon.blight), stamped small on each enemy it bites
+    apply:  [ { fx: deathbringer_2, tint: duo, scale: 0.3, offset: [0, 0.55], opacity: 0.8, speed: 1.5, frames: [0, 12], note: "the seal forms; fade on its held frame before the white flash" } ]
+    # the Imp dies (its onDeath Withers each bitten enemy, then removes this): the sigil flashes and melts down
+    # onto them, after Withered's drip. A cleanse plays the same melt, which still reads as the mark going.
+    remove: [ { fx: deathbringer_2, tint: duo, scale: 0.35, offset: [0, 0.55], frames: [13, 22] } ]
+
+macros: {}   # Blight defines no macros
+
+skills:
+  strike.blight:
+    beat: A rot-blade lashes through the target and a blister bursts crimson where it bit.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.9, note: "its impact burst sits at the lower-left as drawn (~30%, 70%): put that point on the target" }
+      - { on: hit, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.4, delay: 150 }
+      # Withered's drip follows; at 3+ Withered, Soul Fragment's default spirals into the user.
+
+  smash.blight:
+    beat: The blow cracks a dome of rot open under the target, and gore spatters across each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_003, tint: duo, scale: 1.1, note: "short screen shake as the dome flares" }
+      - { on: hit, only: others, fx: burst_splatter_002, size: small, tint: duo, scale: 0.55, delay: 150, stagger: 80, note: "scale with the splash (5 per Withered on the target): about 0.45 at 5 up to 0.8 at 25" }
+
+  charge.blight:
+    beat: The user rushes in on a wedge of rot-fog, a blister bursts on the target, and a pale ghost of a fear-skull hangs over them.
+    cues:
+      - { on: travel, fx: necromancer_3, path: beam, tint: duo, tone: light, scale: 0.8, note: "portrait lunges along the wedge; tone light keeps its dark smoke body off the board" }
+      - { on: hit, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.6 }
+      # Dread counts as Horrified: a fainter, greener echo of Horrified's own flaming skull says so
+      - { on: apply, status: dread_lunge, fx: deathbringer_3, tint: duo, scale: 0.45, offset: [0, 0.35], opacity: 0.7, speed: 1.5 }
+
+  riposte.blight:
+    beat: A festering ring coils unseen around the user; the first attacker bursts the sore and is spattered with rot.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, scale: 1.6, opacity: 0.7, frames: [0, 9], layer: under, note: "past the frame: the ring's side lobes coil about 0.2 out from each edge of the portrait" }   # Invisible: owner only; its crimson frames (10-11) dropped
+      - { on: trigger, status: festering_spite, fx: burst_splatter_002, tint: duo, scale: 0.8 }   # the opponent's first sight: the sore bursts on the user
+      - { on: trigger, status: festering_spite, fx: directional_splatter_004, at: source, face: fromActor, size: small, tint: duo, scale: 0.6, delay: 120 }
+      # The counter's X, then Withered's drip (2 stacks) on the attacker.
+
+  rage.blight:
+    beat: A festering nova bursts off the user as they drink in their own rot and stop dying.
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 1.9, layer: under, note: "past the frame: from its petal circle (frame 3) on, the nova rings out round the portrait" }
+      # Then Withered's drip (2 stacks) on the user, Might's sword and Immortal's pillars and heartbeat.
+
+  shot.blight:
+    beat: A flick of bile spatters the target and pops a small blister.
+    cues:
+      - { on: travel, fx: directional_splatter_001, size: large, tint: duo, scale: 0.6, frames: [1, 4], note: "hold the streak (frames 2-3) for the flight; the droplets play on arrival" }
+      - { on: hit, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.45 }
+      # Soul Fragment's spiral (while under 3) and Toxin's skull puff land on the user.
+
+  snipe.blight:
+    beat: Rot-wisps coil round the user's spear without a hint of the aim; next turn it is flung skyward and drops onto the hidden target, shattering in rot.
+    note: "HiddenTarget: the wind-up and the throw stay on the user and point up, never at the target. The moved Toxin plays Toxin's remove on the user and its skull puff on the target."
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 0.6, opacity: 0.8 }
+      - { on: trigger, status: rotspear, fx: directional_fire_burst_002, tint: duo, scale: 0.8, speed: 1.5 }   # fires from onExpire: a gout shoots straight up off the user
+      - { on: hit, fx: frost_mage_5, tint: duo, note: "anchor its bottom at the target's feet: the rotten shard falls the full height and shatters" }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.55, delay: 150 }
+
+  trap.blight:
+    beat: A draught of tainted tonic wells up unseen inside the enemy; the first heal they get swells into a heart that blanches and bursts into rot.
+    cues:
+      # a few plumes of rot welling up (not a bubble burst: directional_bubble_burst_001's baked blue bubbles and yellow sparkles won't take the tint)
+      - { on: apply, status: rotten_remedy, fx: directional_splatter_005, size: small, tint: duo, tone: dark, scale: 0.5, opacity: 0.7 }   # Invisible: owner only
+      # after the heal's own cue: the heart swells and blanches white (frame 11), cut before its white flash and ring of hearts, which read as the heal going through
+      - { on: trigger, status: rotten_remedy, fx: round_heart_burst_001, tint: duo, scale: 0.7, speed: 1.5, frames: [0, 11] }
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.7, delay: 380, note: "lands as the heart blanches (frame 11 at 1.5x): the rot is the burst" }
+      # Withered's drip (1 per 10 healed) follows.
+
+  maneuver.blight:
+    beat: The user bursts into a froth of rot and is gone; next turn the rot seeps out along the ground and every enemy's Toxin bubbles once more.
+    cues:
+      - { on: cast, fx: round_bubble_burst_001, tint: duo, scale: 0.9 }
+      - { on: trigger, status: seep_away, fx: directional_impact_002, size: small, tint: duo, scale: 0.6, layer: under }
+      # the extra tick reads as a Toxin tick (its lime bubbles), with a crimson wisp in place of Toxin's own
+      - { on: hit, fx: status_poison_001, scale: 0.7, speed: 1.5, stagger: 80 }
+      - { on: hit, fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.5, delay: 150, stagger: 80 }
+      # Invulnerable's default closes over the user.
+
+  companion.blight:
+    beat: A mound of rot heaves up and a swarm of plague rats spills out in a spatter of filth.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_002, tint: element, tone: dark, scale: 0.9 }
+      - { on: summon, fx: directional_splatter_002, size: small, tint: duo, scale: 0.6, delay: 200 }   # brighter on top of the flat mound
+
+  bolt.blight:
+    beat: A sputtering ball of plague-fire lobs into the target and swells into a rotten orb that cracks and shatters over them, binding their rot.
+    note: Plague-Bound (its Withered can't be cleansed while Horrified) has no art of its own; the cracking orb is its look.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: arc, flip: y, size: small, tint: duo, scale: 0.5, speed: 1.4, note: "flipped so its white core leads and the flames trail" }
+      # necromancer_7's template without its skull: Horrified's flaming skull, which follows, stays the only skull on them
+      - { on: hit, fx: frost_mage_6, tint: duo, scale: 0.85 }   # then Horrified's skull and Withered's drip
+
+  blast.blight:
+    beat: A plague wave flattens along the enemy row and every enemy erupts in a crimson mushroom of rot, the healthiest the biggest.
+    cues:
+      - { on: hit, fx: epic_explosion_003, tint: element2, scale: 0.9, stagger: 90, note: "crimson fire under its own olive smoke. Scale with the damage: about 0.7 at 15 up to 1.2 at 35, so the leveling reads" }
+      - { on: hit, fx: directional_impact_002, at: enemySide, tint: element, tone: dark, scale: 1.2, layer: under, note: "once, with the first hit: the flat wave runs the length of the row" }
+
+  consume.blight:
+    beat: A grave-green tether latches onto the target and a crimson pulse of their life runs home into the user.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, speed: 1.5 }   # native: laid user to target, its baked crimson pulse runs home
+      - { on: hit, fx: burst_splatter_001, size: small, tint: duo, scale: 0.45 }
+      - { on: heal, fx: spell_heal_002, size: small, tint: duo, scale: 0.5, speed: 2 }
+      # Toxin's remove default as it is drunk, then Soul Fragment's spiral for each fragment it pays.
+
+  summon.blight:
+    beat: A plague sigil forms, glows and melts into a dripping blob, and the Imp drops out in a puff of crimson-cored gas.
+    cues:
+      - { on: summon, fx: deathbringer_2, tint: duo, scale: 0.8, speed: 1.5, note: "the Imp's portrait appears as the sigil melts" }
+      - { on: summon, fx: stylized_explosion_006, size: small, tint: element2, scale: 0.5, delay: 450 }
+
+  channel.blight:
+    beat: A ring of rot bursts off the user; at each of their turn ends it rings out again and a cloud of decay swells over every enemy and crumbles.
+    cues:
+      # a donut of spiky rot-puffs off the user, fading to olive specks (not the sparkle family: its white stars read as fairy dust or a blessing)
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 0.9 }
+      - { on: trigger, status: long_decay, fx: symmetrical_explosion_004, size: small, tint: duo, scale: 0.5 }   # each pulse on the user, smaller
+      # a cloud that rots and crumbles, not bubbles, a wisp or a skull: Toxin ticks and Festering fire at the same turn end
+      - { on: hit, fx: stylized_explosion_006, size: small, tint: element2, scale: 0.55, stagger: 80 }   # olive gas with a crimson core, crumbling
+
+  stab.blight:
+    beat: A rusted point punches through the target and rot sprays out of the far side in a shower of rust.
+    note: "The spent Soul Fragment emits no event while stacks remain (see unholy's note); the 2 Withered show through Withered's drip."
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tint: duo, scale: 0.7, speed: 1.3, note: "its origin corner (lower-left as drawn) on the target" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: Earth, scale: 0.45, delay: 60 }   # rust flecks: the knife's own matter, the one non-Blight color in the kit
+
+  ravage.blight:
+    beat: Layer on layer of rot peels off the target in crescents, gore bursts out, and every blessing on them is stripped away.
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 1.1, note: "its splat sits at ~70% across the canvas: put that point on the target" }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 120 }
+      - { on: remove, status: buff, fx: round_sparkle_burst_001, size: small, tint: element2, tone: dark, scale: 0.5, delay: 250, stagger: 100 }   # each stripped Buff scatters; one Withered drip per Buff follows
+
+  mislead.blight:
+    beat: A false halo settles unseen over the enemy; when they try to help, it curdles into plague gas and the help Withers everyone it touched.
+    cues:
+      - { on: apply, status: tainted_offering, fx: directional_sparkle_burst_003, tint: duo, tone: dark, scale: 0.7, opacity: 0.6, speed: 1.5 }   # Invisible: owner only
+      - { on: trigger, status: tainted_offering, fx: stylized_explosion_006, tint: element2, scale: 0.7 }   # the opponent's first sight: the offering curdles as their skill seizes
+      # The counter's X, then Withered's drip on each unit the skill would have helped.
+
+  stun.blight:
+    beat: A grave-green burst cracks open around a skull at the target's joints and they buckle, sick with rot.
+    cues:
+      - { on: hit, fx: necromancer_5, scale: 0.75, note: "native: its green-to-crimson shift is already Blight. Off-center: put the skull on the target and mirror it per side (flip x for a user on the right) instead of rotating, so the spikes spray away from the user and the skull stays upright" }
+      # Stun's stagger, Withered's drip and Toxin's skull puff follow in that order.
+
+  dance.blight:
+    beat: Two rot-motes waltz in a ring around the user; every skill they use flicks rot onto its first enemy.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 2.0, opacity: 0.85, layer: under, note: "past the frame: the ring shows about 0.12 out from each edge and the two motes orbit well outside it" }
+      - { on: trigger, status: rot_waltz, fx: directional_splatter_001, at: target, face: fromActor, size: large, tint: duo, scale: 0.6 }   # Withered's drip follows on them
+      # Swiftness's and Focus's defaults play on the user.
+
+  heal.blight:
+    beat: Crimson hearts rise through the ally, fattened on the enemy's fear.
+    note: "Each Horrified enemy adds 10 but sends no event of its own; scale the hearts with the heal, about 0.7 at 15 up to 1.1 at 45."
+    cues:
+      - { on: heal, fx: directional_heart_burst_001, tint: duo, scale: 0.8, speed: 1.3 }
+
+  bless.blight:
+    beat: Carrion wings unfurl overhead and fold down around the ally; when their blows leave prey at death's door, a reaper's skull finishes it.
+    cues:
+      - { on: apply, status: vultures_blessing, fx: paladin_8, tint: duo, scale: 0.9, offset: [0, 0.2], flip: y, opacity: 0.75, speed: 0.8, note: "flipped: the wings start overhead and fold down over the ally; slow, no impact read" }   # Might's sword follows
+      - { on: trigger, status: vultures_blessing, fx: none, note: "fires after every skill the ally uses but only pays on Prey at 15 HP or less: the death cue shows that" }
+      - { on: death, fx: deathbringer_5, tint: duo, scale: 0.9, speed: 1.5, frames: [3, 22] }   # the near-black opening frames skipped
+
+  curse.blight:
+    beat: A skull-faced cloud of decay balloons over the enemy and rains rot onto them until they're muddled.
+    note: Withered's drip lands first; when Immune refuses both, nothing but the effectBlocked default plays.
+    cues:
+      - { on: apply, status: confusion, fx: spell_poison_001, tint: duo, scale: 0.8 }
+      # Confusion's default, re-added once the cloud has rained (this skill's own apply cue replaces it)
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, tint: duo, scale: 0.5, speed: 1.5, delay: 450 }
+
+  smite.blight:
+    beat: A claw of rot dives out of the sky onto the target and stakes decay-pins in them; each ally's blow then wrings their Toxin out as healing.
+    note: "Both kinds of damage play this skill's hit cues; the damage event tells them apart. The Smite's own 20 is direct: it plays the claw. The mark's tick is `type: Affliction, direct: false`: it plays only Toxin's bubbles and the spurt, never a second claw. The trigger itself is silent: it fires on every direct hit from the user's side but pays only when the bearer holds Toxin."
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 0.9, note: "direct damage only (the Smite's own 20); skip the mark's tick, which arrives as direct:false Affliction. Its impact sits lower-center (~50%, 80%): put it at the target's feet" }   # mirrored so it dives in from the user's side
+      - { on: apply, status: mark_of_decay, fx: fanfx_pain, size: small, tint: duo, scale: 0.6, speed: 1.5, delay: 200 }
+      - { on: trigger, status: mark_of_decay, fx: none, note: "fires on every direct hit from the user's side; pays only when the bearer holds Toxin — the tick's hit and the hitter's heal show it" }
+      # an ally's hit with Toxin on the bearer: the pins wring the Toxin out of them
+      - { on: hit, fx: status_poison_001, scale: 0.6, speed: 1.5, note: "the mark's tick only (direct:false): Toxin's own bubbles, made to tick" }
+      - { on: hit, fx: burst_splatter_001, size: small, tint: duo, scale: 0.45, delay: 100, note: "the mark's tick only" }
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, scale: 0.45, speed: 2 }   # on the ally who hit
+
+  prayer.blight:
+    beat: Crimson life steams off every enemy and rises again as hearts through the user's team.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.7, stagger: 80 }
+      - { on: heal, fx: directional_heart_burst_003, tint: duo, scale: 0.8, stagger: 100 }
+
+  cleave.blight:
+    beat: A rot-misted scythe sweeps up through the target and whips on into a second enemy, who catches their rot.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.7, delay: 150 }   # the random second enemy
+      - { on: hit, fx: burst_splatter_001, size: small, tint: duo, scale: 0.4, delay: 80 }
+      # Withered's drip follows on the second enemy when the target had any.
+
+  shout.blight:
+    beat: The user bellows a hymn of rot, sour notes settle on every enemy, and any help they give afterward bursts on whoever it reaches.
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: duo, scale: 1.2 }
+      - { on: apply, status: plague_hymn, fx: directional_music_burst_001, size: small, tint: duo, scale: 0.6, opacity: 0.85, delay: 150, stagger: 100 }   # Intimidated's eye plays beside it
+      - { on: trigger, status: plague_hymn, fx: directional_music_burst_002, size: small, tint: duo, tone: dark, scale: 0.5 }   # a sour chord over the enemy who helped
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.5 }   # the 10 Affliction on each unit their help reached
+
+  withstand.blight:
+    beat: Ribs of lime-stained bone shoot up around the user; whoever breaks through them splinters the bone and loses a soul to the user.
+    cues:
+      - { on: apply, status: bone_carapace, fx: frost_knight_3, tint: duo, tone: light, scale: 1.3, note: "lime-shadowed pale pink: rotten bone" }   # Shield's bubble forms with it
+      - { on: trigger, status: bone_carapace, fx: none, note: "fires on every hit to the Shield but only pays when it breaks: the remove cue and Soul Fragment's spiral on the user show that" }
+      - { on: remove, status: bone_carapace, fx: directional_impact_003, size: small, tint: duo, tone: light, scale: 0.6 }   # the bone splinters with the Shield's break
+
+  taunt.blight:
+    beat: A crimson crown flares over the user and a reek of carrion settles around them, dulling every blow and souring every cure.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, tint: duo, tone: light, scale: 0.45, speed: 2 }   # base Taunt's grammar: the crown names the user; Taunt's '!' marks each enemy. The light tone keeps the crown's detail
+      # not directional_smoke_burst_002: its dome billowing round a portrait is Shadow's Stealth, and Plague Rats' mound
+      - { on: apply, status: carrion_stench, fx: directional_smoke_burst_001, tint: element, tone: dark, scale: 1.6, opacity: 0.7, layer: under, note: "past the frame so the reek billows round the portrait and rises off the user's head; its white opening puff (which won't take the tint) stays almost all behind the portrait" }
+
+  titan.blight:
+    beat: A plague eruption fountains up under the user, a grave-shroud rises over them with the Plague Lord's skull, and the rot of every Withered enemy whirls into them.
+    note: The portrait swells about 15% with a heavy shake as the shroud closes, and holds it while Plague Lord lasts.
+    cues:
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.8, layer: under }
+      - { on: cast, fx: necromancer_8, tint: duo, scale: 1.3, delay: 250 }   # tinted: its native purple skull isn't Blight
+      # Plague Lord is applied only when there is Withered on the enemies (an apply that resolves to 0 stacks is
+      # skipped), so both its cues play only when the max HP actually rises.
+      - { on: apply, status: plague_lord, fx: slime_5, tint: duo, scale: 2.0, layer: under, delay: 400, note: "scale with the stacks (Withered on enemies): about 1.7 at 1 up to 2.3 at 10+. The delay lets it whirl out round the portrait after the eruption peaks" }
+      # the max HP rises with as much HP, but through the maxHp modifier, which sends no heal event: the crosses ride the apply
+      - { on: apply, status: plague_lord, fx: spell_heal_003, size: small, tint: duo, scale: 0.5, speed: 2, delay: 550 }   # the new max HP fills as the vortex peaks
+      # Armor's and Immune's defaults follow on the user.
+
+  rats_plague_bite:
+    beat: The rats swarm the target in a raking flurry of little bites.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.5, speed: 1.3 }
+      # Withered's drip follows.
+
+  rats_scurry:
+    beat: The swarm scurries across the enemy row, kicking up filth and nipping every Withered enemy.
+    cues:
+      - { on: hit, fx: directional_impact_002, size: small, tint: element, tone: dark, scale: 0.6, layer: under, stagger: 100 }
+      - { on: hit, fx: burst_splatter_001, size: small, tint: duo, scale: 0.35, delay: 100, stagger: 100 }
+
+  imp_rotbolt:
+    beat: The Imp flicks a rot-comet that pops crimson on the target and stamps them with its sigil.
+    cues:
+      - { on: travel, fx: starcaller_2, tint: duo, scale: 0.4 }
+      - { on: hit, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.5 }
+      # Toxin's skull puff, then Imp-Bitten's small sigil.

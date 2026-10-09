@@ -1,0 +1,291 @@
+# Apocalypse (Fire + Ice) animation concepts. Spec: docs/animations/README.md; brief: briefs/apocalypse.md.
+# Apocalypse is where Fire and Ice meet. Three things carry it across the kit:
+#   frostfire — the group's own matter: Fire's flame art (fire_looping_001, the fire jets and bursts)
+#               tinted `duo`, an ice-blue flame with ember-red edges. Frostfire itself, the Salamander's
+#               blaze and most Apocalypse-only effects burn in it.
+#   twins     — opposed pairs: a Fire layer (palette art, `element`) and a frost layer (`element2`, or
+#               Frost Knight / Frost Mage art left native), mirrored or arriving from opposite sides and
+#               meeting on the unit: Worldbreaker's split ground, Ragnarok's two pillars, Paradox Bolt's two
+#               motes, Twin Needle, Twofold Ruin's crossed rakes, Split Horizon's two crescents.
+#   steam     — what's left where they meet: white smoke (`variant: white`), small when Frostfire is put out,
+#               billowing when Steamstep vanishes the user.
+# Thermal Shock is the signature: a Fire spray and a frost spray slam into the unit from either side and
+# it cracks open (the thermal_shock macro), whichever skill or passive set it off.
+group: apocalypse
+
+statuses:
+  frostfire:
+    # Counts as an Ignite and as Chilled: Ignite's flame, burning ice-blue. A flame wrapping the body (not
+    # Ignite's geyser at the feet, not Chilled's snowflake over the head) keeps it apart from both parents.
+    apply:  [ { fx: fire_looping_001, tint: duo, scale: 0.6, speed: 1.3 } ]
+    tick:   [ { fx: fire_looping_001, size: small, tint: duo, scale: 0.45 } ]   # its 5 Affliction burn at the end of the applier's turn
+    # Put out (consumed, cleansed, moved, turned): a small rising puff of steam, Steamstep's billow in
+    # miniature. Not a smoke ring (base Death's) and not Ignite's single wisp.
+    remove: [ { fx: directional_smoke_burst_001, variant: white, size: small, scale: 0.45, opacity: 0.8 } ]
+    expire: [ { fx: directional_smoke_burst_001, variant: white, size: small, scale: 0.4, opacity: 0.6 } ]
+  thermal_shocked:
+    note: No art. A bookkeeping marker (already Shocked this turn) applied inside the thermal_shock macro, whose crack is the visible moment.
+  thermal_shock:
+    note: >-
+      No art. The fusion passive is there from the start, and its trigger fires on every Fire or Frost
+      debuff an Apocalypse character gives an enemy and only then checks; the Shock it causes plays the
+      thermal_shock macro, so a trigger cue here would also flash on the checks that come to nothing.
+  # Minion passives.
+  rimeflame_breath:   # Rimeflame Salamander, end of its owner's turn: Frostfire on a random enemy
+    trigger:
+      - { fx: scifi_muzzle_flash_002, face: toTarget, tint: duo, size: small, scale: 0.55 }   # it spits a jet of frostfire their way; Frostfire's default catches on them
+  jotunn_stride:      # Twilight Jotunn, end of its owner's turn: 25 damage to a random enemy
+    trigger:
+      - { fx: directional_impact_002, tone: dark, size: small, scale: 0.4, layer: under }   # the giant's stride shakes the ground under it (dusk-red Fire)
+      - { fx: stylized_explosion_003, at: target, tint: duo, scale: 0.9, delay: 150, note: "its fist comes down on them and the ground erupts; one light screen shake" }
+
+macros:
+  thermal_shock:   # per unit: 15 Piercing and Shattered for 1 turn; Shattered's default (base) follows the crack
+    - { fx: directional_impact_001, face: right, size: small, scale: 0.6, stagger: 80 }   # Fire from the left...
+    - { fx: directional_impact_001, tint: element2, size: small, scale: 0.6, stagger: 80 }   # ...frost from the right (as drawn, spraying left): the two sprays cross on them
+    - { fx: symmetrical_impact_003, tint: duo, size: small, scale: 0.7, delay: 80, stagger: 80, note: "where they meet the unit cracks open: a one-frame white flash on the portrait. When several units Shock at once (Worldbreaker, Fimbulfire, the Salamander's death) the stagger walks the crack along the line" }
+  thermal_check: []           # pass-through: when it Shocks, the nested thermal_shock macro plays; when it doesn't, nothing should
+  frostfire_shock_check: []   # pass-through, as above
+
+skills:
+  strike.apocalypse:
+    beat: A red-rimmed crescent of tempered frost swings through the target in a shower of anvil sparks.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.9 }   # Ice's frost crescent, forged: ember-red at the edges
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.6, delay: 80 }   # sparks spray and droop as off an anvil (Fire)
+      # Ignite's default (a frosted target) or Frostbitten's follows; where the kinds meet, the thermal_shock macro.
+
+  smash.apocalypse:
+    beat: The blow splits the ground; fire erupts under the target, ice heaves up around it, and the crack runs on under each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: epic_explosion_001, scale: 0.9, note: "a short screen shake" }   # the fire half of the split (Fire)
+      - { on: hit, only: primary, fx: frost_knight_3, scale: 0.9, delay: 100, layer: under }   # the ice half: spikes heave up on both sides of the portrait
+      - { on: hit, only: others, fx: directional_impact_003, tint: element2, scale: 0.6, delay: 160, stagger: 90 }   # the crack bursts up under each ally
+      # Frostfire's default lands on the target; every Shock plays the thermal_shock macro.
+
+  charge.apocalypse:
+    beat: The user streaks in behind a blade of frostfire and the cold snaps shut on the target; their next skill makes a frosted burn flare twice.
+    note: "Coldsnap's 10 Affliction on each Chilled, Ignited enemy (on the user's next skill) is a later hit of this skill: on those hits play only the trigger's double flare, not the dash's impact. Until damage events carry a cause, tell them apart by the travel: only the dash's hit follows one."
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.8, note: "the portrait lunges along it and snaps back; the slanted blade edge leads, its flame prongs trail" }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.7 }   # the snap: a ragged burst of frost and embers
+      - { on: trigger, status: coldsnap, fx: fire_looping_001, at: target, size: small, scale: 0.45, speed: 2, repeat: 2 }   # their Ignite flares twice at once (Fire, Ignite's own tick)
+      # Frostfire's default lands on the target, Focus's on the user.
+
+  riposte.apocalypse:
+    beat: Thorns of fire and frost bristle unseen around the user; struck, they burst outward and a splinter lodges in every other enemy.
+    cues:
+      - { on: cast, fx: fanfx_pain, tint: duo, tone: light, scale: 0.9, frames: [0, 19] }   # Invisible: owner only. Pins and two crossed needles bristle around the user
+      - { on: trigger, status: twin_spines, fx: burst_splatter_003, tint: duo, scale: 0.9 }   # the spines shoot out from the user as the blow is turned aside
+      - { on: apply, status: debuff, fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.45, stagger: 80 }   # a splinter glints in each other enemy; Frostfire's default catches
+      # Base's counter default marks the attacker. The counter deals no damage, so there is no counter-cut.
+
+  rage.apocalypse:
+    beat: A pillar of fire and a glacier tear up on either side of the user and crash together in a ring; each turn the surge flares again.
+    cues:
+      # The pillars stand clear of the portrait's flanks (it is opaque and a portrait wide), so the whole jet and the glacier's peak show.
+      - { on: cast, fx: directional_fire_burst_001, scale: 1.3, offset: [-0.7, 0], layer: under }   # fire on one side (Fire)
+      - { on: cast, fx: frost_mage_3, scale: 1.1, offset: [0.7, 0], delay: 100, layer: under, note: "ends on its brightest frame: fade it as the ring blows out" }   # ice on the other
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.5, delay: 350, frames: [0, 9], note: "fade it out over its last two frames: the art's own fade turns to olive specks that clash with fire and frost" }   # they meet: a ring blows out around the user
+      - { on: trigger, status: ragnarok, fx: symmetrical_explosion_004, tint: duo, size: small, scale: 0.9, frames: [0, 9], note: "fade it out over its last two frames, as on the cast" }   # each turn start the ring pulses out again (its empty center keeps the portrait clear); Might's, or Armor's and Immune's, defaults say which turn it is
+      # Might's default plays now.
+
+  shot.apocalypse:
+    beat: A sleet-wrapped spark zips into the target and leaves a frost glint lodged in them; a second Sleetspark sets the glint off.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.4, speed: 1.5 }   # the pale crescent head leads, an ember-red smoke trail behind
+      - { on: hit, fx: round_firework_burst_001, tint: duo, size: small, scale: 0.55 }   # sleet and sparks spray out and droop
+      - { on: apply, status: sleetspark, fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.35, offset: [0.2, 0.15] }   # the glint, lodged off-center on the body
+      - { on: remove, status: sleetspark, fx: symmetrical_explosion_002, size: small, scale: 0.4, note: "only when the second Sleetspark consumes it (effectRemoved reason 'removed'); play nothing when it runs out (reason 'expired'). The thermal_shock macro is the payoff, and it is skipped if they were already Shocked this turn" }   # the second shot sets the glint off (Fire)
+
+  snipe.apocalypse:
+    beat: Fire and frost spiral into a single core over the user; next turn it shoots skyward and a burning ice comet slams into the hidden target.
+    note: "HiddenTarget: nothing points at or travels to the target before the hit. The cast and both launches play on the user; the comet first shows as it lands, diving in from the user's side. If a Fire or Frost debuff brings it down early, the thermal_shock macro follows the impact."
+    cues:
+      # Two counter-rotating spirals, fire and frost, pack into one core; cut before the core crumbles (the impact is the release).
+      - { on: cast, fx: spell_absorb_001, tint: element, scale: 0.8, speed: 1.5, frames: [0, 22] }   # the fire orbs (Fire)
+      - { on: cast, fx: spell_absorb_001, tint: element2, flip: x, scale: 0.65, speed: 1.5, delay: 100, frames: [0, 22] }   # mirrored, the frost orbs spiral the other way inside them
+      - { on: trigger, status: comet_of_ruin, fx: directional_fire_burst_001, tint: duo, scale: 0.9 }   # at the end of the following turn it launches straight up off the user
+      - { on: trigger, status: comet_of_ruin_mark, fx: directional_fire_burst_001, at: actor, tint: duo, scale: 0.9 }   # brought down early: the same launch, from the user who set it
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 1.2 }   # the comet's flame-claws dive in and slam down
+      - { on: hit, fx: epic_explosion_002, tint: duo, scale: 2.0, delay: 150, layer: under, note: "a screen shake on landing" }   # frostfire fireballs and ice shards fountain up behind them, arching a portrait above the head and past both sides
+
+  trap.apocalypse:
+    beat: Unseen, frostfire seeps into a floe beneath the target; when they fall to half health it cracks open and fire wells up through the crack.
+    cues:
+      - { on: apply, status: cracking_floe, fx: directional_sparkle_burst_002, tint: duo, scale: 0.8, opacity: 0.7 }   # Invisible: owner only. A glinting mound settles at their feet
+      - { on: trigger, status: cracking_floe, fx: none }   # it fires on every hit they take and only springs at 50 HP or less: the crack is its own hit below
+      - { on: hit, fx: directional_impact_002, tint: element2, scale: 0.5 }   # the floe splits along the ground both ways
+      - { on: hit, fx: directional_particle_burst_002, scale: 0.8, delay: 80 }   # flame spikes well up through the crack (Fire); Stun's default follows
+
+  maneuver.apocalypse:
+    beat: Fire and frost meet at the user's feet and they vanish in a burst of steam, stepping back out with hot vapor still coiled about them.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, variant: white, scale: 1.2, note: "the portrait blinks out as the steam billows over it and back in as it clears" }   # billowing up from the feet, not a smoke ring: that is base Death's
+      - { on: apply, status: steamstep, fx: directional_smoke_burst_004, tint: duo, scale: 0.8, opacity: 0.75 }   # the vapor that keeps burning enemies off them for the second turn
+      # Invulnerable's default plays on the user.
+
+  companion.apocalypse:
+    beat: A row of ice-blue flame spikes shoots up where the salamander will stand, and it crawls out of them shaking off a puff of frost.
+    cues:
+      # Not the frostfire flame (fire_looping_001 duo): that is Frostfire's apply, and would read as your own unit catching it.
+      - { on: summon, fx: directional_particle_burst_002, tint: duo, scale: 0.9 }   # over the new portrait: the spikes hide it until it crawls out
+      - { on: summon, fx: round_sparkle_burst_002, tint: element2, size: small, scale: 0.6, delay: 350 }
+      # When it dies, every enemy in Frostfire plays the thermal_shock macro.
+
+  bolt.apocalypse:
+    beat: A fire mote arcs high and a frost mote flies straight; they meet on the target and collapse into a bursting disc.
+    cues:
+      - { on: travel, fx: fire_looping_001, path: arc, flip: y, size: small, scale: 0.4, note: "flipped so the white-hot core leads; time both motes to arrive together" }   # the fire mote (Fire)
+      - { on: travel, fx: fire_looping_001, path: straight, flip: y, tint: element2, size: small, scale: 0.4 }   # its cold twin, burning ice-white
+      - { on: hit, fx: scifi_warp_002, tint: duo, scale: 0.8 }
+      # Frostfire's default follows; a target already in it plays the thermal_shock macro.
+
+  blast.apocalypse:
+    beat: A burning blizzard whirls over the enemy line and frostfire sleet splashes down on every enemy; old burns turn cold and crack, the rest catch fire.
+    cues:
+      - { on: hit, fx: slime_5, at: enemySide, tint: duo, scale: 2.2, opacity: 0.75, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: paladin_7, tint: duo, scale: 0.75, delay: 120, stagger: 80, note: "fade its last frame: it ends on a still flame patch" }   # a drop of frostfire sleet falls and splashes into flame on each
+      # An Ignite turning cold plays Ignite's remove, Frostfire's apply and the thermal_shock macro; a fresh Ignite plays Ignite's default.
+
+  consume.apocalypse:
+    beat: A pale disc is eclipsed on the target; if both fire and frost burn in them, each is drawn out and streams into the user, who is restored.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.6 }   # the balance tips: a pale disc eaten by a crescent
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, face: toActor, tint: duo, scale: 0.6, stagger: 80 }   # each Fire and Frost debuff ended streams off toward the user (their own remove defaults play too)
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, size: small, scale: 0.6 }   # two streams of sparkles rise and merge into one in the user
+
+  summon.apocalypse:
+    beat: A glacier heaves up and dusk-red fire bursts through it as a frost giant breaks free; the user is locked in frostfire crystal while it stands.
+    cues:
+      - { on: summon, fx: frost_mage_3, scale: 1.3, note: "ends on its brightest frame: hold it a beat, then fade as the fire climbs" }
+      - { on: summon, fx: directional_fire_burst_001, tone: dark, scale: 1.4, delay: 250, note: "a short screen shake as the giant breaks out" }   # dusk-red Fire: the twilight
+      - { on: apply, status: jotunn_bond, fx: spell_ice_001, tint: duo, scale: 0.9, speed: 2, note: "fade it once the crystal has formed instead of playing out to its outline ring; the status icon carries the lock afterward" }
+
+  channel.apocalypse:
+    beat: A wheel of the seasons turns over the user; at the end of each of their turns frostfire hail pours onto every enemy, first kindling, then freezing, then blowing them apart.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.8, offset: [0, 0.7], speed: 0.6 }   # the wheel forms over the user's head
+      - { on: trigger, status: seasons_end, fx: frost_knight_7, tint: duo, scale: 0.8, offset: [0, 0.7], speed: 0.6, note: "each pulse turns the wheel: tint it element (Fire) on the first, element2 (Ice) on the second, duo on the third" }
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.6, stagger: 70 }   # a frostfire hailstone drops and shatters on each enemy
+      # Then Ignite's default (1st pulse), Chilled's (2nd) or Fire's explode macro (3rd).
+
+  stab.apocalypse:
+    beat: A needle of frost pricks the target and cracks their guard, and a needle of fire follows through the crack.
+    note: "Two hits (5, then 10 once Shattered lands), so the needle plays twice. On the second, tint it element (Fire) instead: frost pricks, fire follows through."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tint: element2, tone: light, size: small, scale: 0.6, speed: 1.3 }   # the entry ring on their near side, the thin jet out the far side
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.4, delay: 60 }   # embers spit out behind them (Fire)
+
+  ravage.apocalypse:
+    beat: A rake of fire and a rake of frost tear across the target in an X, ripping every burn and frost out of them.
+    note: "Damage is 20 + 10 per Fire or Frost debuff (one event): play both rakes at about 0.9 / 1.0 / 1.15 / 1.3 for 0 / 1 / 2 / 3+ debuffs, judged by the target's statuses as it lands, with a short screen shake at 2+. The debuffs it removes then play their own remove defaults."
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: element, scale: 0.9 }   # the fire rake
+      - { on: hit, fx: dark_mage_1, face: fromActor, flip: y, tint: element2, scale: 0.9, delay: 80, note: "mirrored across the blow's line so it crosses the fire rake in an X" }   # the frost rake
+
+  mislead.apocalypse:
+    beat: The air around the target shimmers like a heat haze over ice; whatever they do next, the mirage tears open on them.
+    cues:
+      - { on: apply, status: shimmering_air, fx: round_light_burst_001, tint: duo, scale: 0.9, opacity: 0.6, speed: 0.7 }   # Invisible: owner only. A long shimmer of light lies across them
+      - { on: trigger, status: shimmering_air, fx: scifi_warp_001, tint: duo, size: small, scale: 0.7 }   # the mirage tears open
+      # Then base's counter default and Frostfire's (a Harmful skill), or Scorched's and Numb's (a Helpful one).
+
+  stun.apocalypse:
+    beat: A shell of frost-flame clamps shut around the target and holds them; if their Frostfire still burns when the Stun ends, it hardens into the shell again.
+    cues:
+      - { on: hit, fx: blood_knight_5, tint: duo, scale: 0.8, note: "the portrait staggers back a step inside it" }
+      - { on: hit, fx: symmetrical_impact_001, tint: element2, size: small, scale: 0.5 }   # the clamp's cold flash
+      # No trigger cue for Hoarfire Hold: its expiry acts only if Frostfire is still there, so the re-clamp is bound to that Frostfire's removal.
+      - { on: remove, status: frostfire, fx: blood_knight_5, tint: duo, scale: 0.7, speed: 1.3 }   # replaces Frostfire's steam here; Stun's default follows
+
+  dance.apocalypse:
+    beat: Two blades of white flame waltz around the user; at the end of each turn they drew blood, the user bursts in an Explosion.
+    cues:
+      # Both are under the opaque portrait, so both are sized to clear it.
+      - { on: cast, fx: fire_looping_001, tint: element2, tone: light, scale: 1.6, opacity: 0.8, layer: under }   # white flame flares up behind them, clearing the portrait at the sides and above
+      - { on: apply, status: white_flame_waltz, fx: dark_mage_2, tint: element2, tone: light, scale: 1.8, offset: [0, -0.2], layer: under, frames: [0, 10] }   # the two blades circle in and join in a ring around them, its ends swinging out past both flanks (its crimson last frame dropped)
+      - { on: trigger, status: white_flame_waltz, fx: none }   # it fires on every hit the user lands and again at turn end; the Explosion (Fire's explode macro) is the payoff
+      # Swiftness's and Focus's defaults play on the user.
+
+  heal.apocalypse:
+    beat: Glints of rime close over a spark of warmth inside the ally; when the enemy's turn ends, or a killing blow lands, the rime breaks and the warmth floods up through them.
+    cues:
+      - { on: apply, status: frozen_remedy, fx: round_sparkle_burst_003, tint: duo, scale: 0.6 }   # four glints converge and seal into one bright star
+      - { on: trigger, status: frozen_remedy, fx: none }   # it fires on every hit they take and only heals at the killing one: the heal cues below show it
+      - { on: heal, fx: symmetrical_smoke_burst_002, tint: element2, size: small, scale: 0.6 }   # the rime shell bursts off
+      - { on: heal, fx: directional_particle_burst_001, tone: light, scale: 0.8, delay: 120 }   # warmth rises through them (Fire)
+
+  bless.apocalypse:
+    beat: Molten drops fall onto the ally and flare white-hot, then frost glints quench them hard.
+    cues:
+      - { on: apply, status: tempered, fx: spell_forge_001, scale: 0.8 }   # the forge's drops land in a ring at their feet (Fire)
+      - { on: apply, status: tempered, fx: round_sparkle_burst_001, tint: element2, size: small, scale: 0.5, delay: 350 }   # the quench
+      # Might's default plays on the ally.
+
+  curse.apocalypse:
+    beat: The warmth in the target spirals in on itself and gutters out to a last spark; the more burns and frost they carry, the more lost they are.
+    cues:
+      # Once, after Frostfire's flame and Confusion's '?': it draws them inward, crumbles to particles and ends on a single spark (the guttering-out).
+      - { on: resolve, at: target, fx: spell_absorb_001, tint: duo, tone: dark, scale: 0.9, speed: 1.5, note: "skip it if neither status landed (an Immune target): base's effectBlocked default says so instead" }
+
+  smite.apocalypse:
+    beat: A pillar of frost-light drives a dark spire straight down into the target and leaves a crown of rime at their feet; each time they attack, the brand bites back with frost.
+    cues:
+      # A vertical drop, not a diagonal comet: the comet belongs to Comet of Ruin alone. The spire is a common Smite look,
+      # so the rime crown (the same art its trigger flares) is this skill's own layer on it.
+      - { on: hit, fx: directional_impact_003, tint: element2, tone: light, size: small, scale: 0.6, delay: 250 }   # the brand: a crown of rime spikes rings their feet as the spire lands
+      - { on: hit, fx: paladin_5, tint: duo, scale: 0.8 }   # the pillar drives the spire in and it dwindles to a sparkle
+      - { on: trigger, status: rimebrand, fx: directional_impact_003, tint: element2, size: small, scale: 0.5 }   # the brand flares up at their feet as they attack; Frostbitten's crust follows
+      # Sanctify's default plays on the target.
+
+  prayer.apocalypse:
+    beat: A ring of frost-light kindles behind the team and cold vigil columns rise from it, warmth rises through every ally, and a frost haze settles over the enemy line.
+    cues:
+      # Side-wide art sits behind a column of opaque portraits, so it is sized to spread well past the column's sides.
+      - { on: cast, fx: dark_mage_3, at: allySide, tint: duo, scale: 2.8, opacity: 0.85, layer: under }   # the vigil: a ground ring behind the whole team, light columns rising from it
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 0.8, speed: 1.3, stagger: 100 }   # warm sparks rise through each ally (Fire)
+      - { on: apply, status: fimbul_vigil, fx: directional_smoke_burst_001, at: enemySide, tint: element2, scale: 2.8, opacity: 0.7, layer: under, note: "once, with the first Fimbul Vigil: the side anchor doesn't repeat per enemy" }   # billows out past the enemy column's sides
+      # Shield's default follows on each ally.
+
+  cleave.apocalypse:
+    beat: A fire crescent sweeps over and a frost crescent under, splitting the target along the horizon, and the follow-through carries their burns and frost into another enemy.
+    cues:
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, tint: element, scale: 1.0 }   # the fire crescent arcs over the top
+      - { on: hit, only: primary, fx: warrior_2, face: fromActor, flip: y, tint: element2, scale: 1.0, delay: 60 }   # flipped, the frost crescent arcs under: the two meet along a level line
+      - { on: hit, only: others, fx: warrior_2, face: fromActor, tint: duo, scale: 0.8, delay: 150 }   # the follow-through, into the random second enemy
+      # The copied Fire and Frost debuffs play their own defaults (and may Shock).
+
+  shout.apocalypse:
+    beat: The user tolls like a great bell and the long night rolls out in rings, settling cold on every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.4, layer: under }   # the toll: a double ring pulses out from the user
+      - { on: apply, status: long_nights_toll, fx: symmetrical_impact_002, tint: element2, tone: dark, size: small, scale: 0.6, stagger: 80 }   # the toll reaches each enemy as a dark frost ring
+      # Intimidated's default plays on each, Frostfire's on the random one.
+
+  withstand.apocalypse:
+    beat: A glacier heaves up around the user with a fire glowing in its peak; when it ends, what's left breaks off and bursts up under a random enemy.
+    note: "The burst deals what's left of the Shield (0-30, one event): scale its hit from about 0.5 to 1.0 by amount."
+    cues:
+      - { on: apply, status: heart_of_the_glacier, fx: frost_mage_3, scale: 1.6, layer: under, note: "ends on its brightest frame: hold it a beat, then fade" }   # its flanks clear the portrait and its peak rises well above the head
+      - { on: apply, status: heart_of_the_glacier, fx: fire_looping_001, size: small, scale: 0.35, offset: [0, 0.75], opacity: 0.9, delay: 250 }   # the fire at its heart, up in the glacier's peak rather than on the body, where it would read as Ignite (Fire)
+      - { on: trigger, status: heart_of_the_glacier, fx: frost_mage_6, scale: 0.8 }   # it ends: the glacier cracks and shatters off the user
+      - { on: hit, fx: directional_impact_004, tint: duo, scale: 0.9 }   # its last shards burst up under the enemy; Frostfire's default follows
+
+  taunt.apocalypse:
+    beat: Every burn and frost on the target's allies is torn loose and pulled into the target, and two crossed rings of frostfire lock around them.
+    cues:
+      - { on: remove, status: debuff, fx: scifi_muzzle_flash_002, face: toTarget, tint: duo, size: small, scale: 0.5, stagger: 60, note: "moveEffects emits each debuff's apply on the target just before its removal from the ally. Pair them: play this jet first, and hold the target's apply default and any thermal_shock macro it triggers ~150 ms until the jet arrives" }   # each Fire and Frost debuff jets off an ally toward the target
+      - { on: resolve, fx: stylized_impact_001, at: target, tint: duo, layer: under }   # the twin rings, one tall and one flat, close around them
+      # Taunt's '!' marks the target through its default; the moved debuffs land with theirs.
+
+  titan.apocalypse:
+    beat: Dusk flame spikes ring the user, arcs of frostfire wrap them in a striped shell, and it bursts apart, leaving a colossus of dusk fire and frost, cracked through but untouchable.
+    cues:
+      # Encased, then bursting, then transformed: not Ragnarok's two pillars and a ring.
+      - { on: cast, fx: directional_particle_burst_002, tone: dark, scale: 1.8, layer: under }   # dusk-red flame spikes ring the user (Fire)
+      - { on: cast, fx: frost_knight_9, tint: duo, scale: 1.5, delay: 150, frames: [0, 7], note: "the arcs wrap the user into a striped shell; cut before its streaks drift off to the upper-right, as the nova breaks it" }
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 1.8, delay: 450, note: "the shell bursts: a brief white board flash and a screen shake" }
+      - { on: resolve, fx: scifi_charge_up_001, tint: duo, scale: 1.3, opacity: 0.6, layer: under, note: "the portrait keeps an ice-blue rim with ember edges while Twilight Colossus lasts" }   # a frostfire core pulses behind them
+      - { on: trigger, status: twilight_colossus, fx: none }   # it fires on every direct hit the user lands and only Shocks the first enemy each turn: the thermal_shock macro is the payoff
+      # Shattered's and Immune's defaults play on the user.

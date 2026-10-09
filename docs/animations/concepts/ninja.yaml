@@ -1,0 +1,274 @@
+group: ninja
+
+# Ninja (Wind + Shadow) is speed you can't see. Three materials carry the kit:
+#   slate steel  every blade, kunai and shuriken is class art tinted `duo`: Wind's pale-steel rim around a
+#                Shadow-slate body with white edges, so the cuts read dark but never vanish on the board.
+#   white smoke  Wind's palette (`element`, the default on palette art): poofs, gusts and speed streaks.
+#   black ink    Shadow's drawn `black` variants: what a cut leaves, a shadow pinned down, a wisp of hiding.
+# Signature: the Clone. Each one peels off the user as a slate afterimage and solidifies in a white four-lobed
+# poof (make_clone); a Clone the Ninja spends bursts apart in the same poof turned slate and caught at its peak
+# (the skills' `death` cues: tint duo, frames [3, 9]), so gaining and losing one never look alike. Log Trick
+# and Smoke Bomb blow the white poof up to full size. Flurry, the passive, is the second tell: after a Harmful
+# skill, thin slate cuts flick through each enemy it hit out of nowhere, one per Clone.
+# A Clone an enemy kills plays base's death default. Portraits are opaque squares: `layer: under` cues are
+# scaled past the frame, or they wouldn't show.
+
+statuses:
+  ninja_flurry:
+    note: "The fusion passive: no apply or aura. It fires on skillResolved; the Blur it spends leaves silently."
+    trigger:
+      - { fx: starcaller_7, at: target, tint: duo, face: fromActor, scale: 0.5, frames: [2, 9], speed: 1.5, note: "Play nothing when the Ninja's side has no Shadow Clones: Flurry still fires and sends 0-amount damage events to each enemy hit. Cut count = Clones on the Ninja's side when it fires (1-3), doubled if a Blur is removed in the same trigger; never derive it from the damage amount (Vulnerable and other bonuses change it). Each cut turned about 60 degrees from the last and ~70 ms apart, as if unseen Clones slash from every side. Keep it light: it follows almost every Harmful skill" }
+  substitution:
+    note: "No remove: a Substitution ends with its Clone, whose death already shows. Cloak of Shadows adds one copy per Clone at once: play the apply once per bearer per skill."
+    apply:  [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.4, offset: [0.35, 0], opacity: 0.7 } ]   # a slate wisp curls up at the bearer's side: a Clone has their back
+    trigger:
+      - { fx: symmetrical_smoke_burst_003, size: small, scale: 0.6, note: "no trigger of its own: play it on the ward_redirect signal (sent from the Clone) as the enemy skill turns aside. The bearer blinks out in a white poof and the skill lands on the Clone instead" }
+    expire: [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.35, offset: [0.35, 0], opacity: 0.5, frames: [8, 16] } ]   # the slate wisp breaks into specks; not black, which is Stealth running out
+
+macros:
+  make_clone:   # on the new Clone; nothing plays at 3 Clones (no summon). Several in one skill land ~120 ms apart
+    - { fx: directional_smoke_burst_003, tint: duo, face: fromActor, size: small, scale: 0.55 }   # an afterimage peels off the user and blows into the Clone's slot
+    - { fx: symmetrical_smoke_burst_003, size: small, scale: 0.5, delay: 100 }   # and solidifies in the white poof
+
+skills:
+  strike.ninja:
+    beat: Two thin slate blades cut an X through the target and sparks spit where they cross.
+    cues:
+      - { on: hit, fx: warrior_1, tint: duo, face: fromActor, scale: 0.85 }
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.4, delay: 150 }
+      # With no Clone, make_clone's peel follows, then Flurry's cut.
+
+  smash.ninja:
+    beat: A dome of whirling slate blades slams shut on the target and spins off into each of their allies; at three Clones the doubles hurl themselves in and burst apart.
+    note: "At 3 Clones each Clone's 10 lands on a random enemy after the splash and plays the only: others cue; one that lands on the target replays the crash and its landing at about 0.6x."
+    cues:
+      - { on: hit, only: primary, fx: paladin_8, tint: duo, face: fromActor, scale: 1.0 }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.9, delay: 250, note: "the dome slams shut: short portrait jolt" }
+      - { on: hit, only: others, fx: stylized_impact_001, tint: duo, size: small, scale: 0.6, delay: 150, stagger: 80 }
+      - { on: death, fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.5, frames: [3, 9], stagger: 100 }   # each spent Clone bursts apart
+
+  charge.ninja:
+    beat: The user dashes out and back faster than the eye, leaving two afterimage streaks hanging, and one stays behind as a Clone.
+    note: "Self-target: lay both streaks across the user pointing toward the enemy side, and judder the portrait about 4 px forward and back. When the next Harmful skill spends Blur, Flurry's cuts play twice per Clone."
+    cues:
+      - { on: apply, status: blur, fx: frost_mage_7, tint: duo, scale: 0.8, offset: [0, 0.15], opacity: 0.85 }
+      - { on: apply, status: blur, fx: frost_mage_7, tint: element, scale: 0.7, offset: [0, -0.15], opacity: 0.7, delay: 120 }   # the second, pale streak: twice
+
+  riposte.ninja:
+    beat: The user's guard pings once; a blow aimed at them bursts a decoy into white smoke and a fan of kunai flies out of it into the attacker.
+    cues:
+      - { on: cast, fx: symmetrical_impact_005, tint: duo, size: small, scale: 0.6, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: log_trick, fx: symmetrical_smoke_burst_003, scale: 0.95, note: "the decoy bursts where the user stood: the portrait blinks out and back. make_clone's peel follows" }
+      - { on: hit, fx: directional_impact_001, tint: duo, face: fromActor, scale: 0.8, delay: 100, note: "10 per Clone: about 0.7 / 0.85 / 1.0 scale for one, two or three" }
+
+  rage.ninja:
+    beat: A rank of slate silhouettes springs up around the user as two Clones peel off; each Clone that falls rises back into them as strength.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, scale: 1.3, offset: [-0.55, 0], layer: under }   # flanking the portrait (the 96-wide canvas is barely a portrait wide), so a rank of spikes rises either side
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, scale: 1.3, offset: [0.55, 0], flip: x, layer: under, delay: 80 }
+      - { on: trigger, status: shadow_army, fx: directional_particle_burst_001, tint: duo, scale: 0.6, note: "each Clone destroyed while it lasts; Might's default follows" }
+      # Immune's default and two make_clone peels play on their own.
+
+  shot.ninja:
+    beat: Three slate shuriken whip from the user's hand and clink off the target in white sparks.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: duo, scale: 0.35, speed: 2, repeat: 3, note: "three in a quick stream; each hit lands as its star arrives" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.45 }
+
+  snipe.ninja:
+    beat: The user goes still as two slate wisps curl round each other in their hands; next turn a needle glints there, a pinprick flares on the target, and their pulse stumbles.
+    note: "HiddenTarget: nothing points at the target until the damage lands. While Hidden Needle holds (interruptible), loop the cast's wisps faintly on the user (starcaller_4, tint duo, scale 0.7, opacity ~0.4, frames [3, 11]) so the opponent sees there is something to interrupt. The half-HP drain runs the HP bar down slowly, not in a snap."
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 0.7, opacity: 0.85 }   # taking aim; not a black wisp, which is Stealth running out
+      - { on: trigger, status: hidden_needle, fx: symmetrical_impact_005, size: small, scale: 0.3, offset: [0.3, 0.1] }   # a pinpoint glint at the hand, no direction
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.6, offset: [0, 0.3], speed: 1.5 }
+      - { on: hit, fx: scifi_heartbeat_slow_001, tint: element2, tone: light, size: small, scale: 0.5, offset: [0, 0.7], delay: 150 }
+
+  trap.ninja:
+    beat: A pale paper seal presses unseen onto the target; when they gain a Buff it flashes into view and blows up on them.
+    cues:
+      - { on: apply, status: paper_seal, fx: deathbringer_2, tint: element, scale: 0.45, offset: [0, 0.15], speed: 1.5, frames: [0, 14], note: "owner only (Invisible): the sigil fades into their chest; cut before its pattern melts into a solid blob" }
+      - { on: trigger, status: paper_seal, fx: deathbringer_2, tint: duo, scale: 0.5, offset: [0, 0.15], speed: 2, frames: [8, 14] }   # the opponent's first sight of it
+      - { on: hit, fx: symmetrical_explosion_002, size: small, scale: 0.6, offset: [0, 0.15], delay: 100 }
+      # The Buff's own default plays; its icon shows one turn fewer.
+
+  maneuver.ninja:
+    beat: A smoke pellet cracks into a ring of white puffs around the user, and a Clone bursts apart in their place as they vanish.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.1 }
+      - { on: death, fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.55, frames: [3, 9] }
+      # With a Clone, Stealth's default follows; without, Invulnerable's default and make_clone's peel.
+
+  companion.ninja:
+    beat: The Ninken bounds down claws-first into its slot and lands in a white poof.
+    cues:
+      - { on: summon, fx: warrior_5, tint: duo, scale: 0.8 }
+      - { on: summon, fx: symmetrical_smoke_burst_003, size: small, scale: 0.65, delay: 150 }
+
+  bolt.ninja:
+    beat: A slate kunai streaks low at the target and stakes them to the floor, their shadow pooling black around it.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: duo, scale: 0.5, speed: 1.5, note: "aimed low, at the target's feet" }
+      - { on: hit, fx: directional_impact_003, tint: duo, size: small, scale: 0.7 }
+      - { on: apply, status: pinning_kunai, fx: directional_splatter_005, variant: black, size: small, scale: 0.5, delay: 100 }
+      # Mark's default and, if they had it, Swiftness's remove follow.
+
+  blast.ninja:
+    beat: A storm of slate blade arcs whirls over the whole enemy side and a fan of steel bursts through each enemy.
+    cues:
+      - { on: hit, fx: frost_knight_9, at: enemySide, tint: duo, scale: 2.6, opacity: 0.5, note: "once, with the first hit: over the enemy column, faint enough that every portrait reads through the whirl (behind them it only showed as slivers at the sides)" }
+      - { on: hit, fx: directional_impact_001, tint: duo, face: fromActor, scale: 0.8, delay: 120, stagger: 80 }
+      # With no Clones, three make_clone peels come first.
+
+  consume.ninja:
+    beat: A thin slate flick is drawn out of the target's eyes toward the user, and every Clone unravels into motes that spiral into them.
+    note: "The heal is 5 alone, or 15-35 with Clones drunk: play it about 1.3x then."
+    cues:
+      - { on: hit, fx: directional_splatter_001, tint: duo, face: toActor, scale: 0.7, offset: [0, 0.3] }
+      - { on: death, fx: directional_particle_burst_001, face: toActor, scale: 0.6, stagger: 100 }
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.8, speed: 1.5 }
+      # With no Clone, make_clone's peel follows.
+
+  summon.ninja:
+    beat: Glints snap together into a hand seal on the user, and three afterimages peel off into three Clones.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: duo, scale: 0.8, frames: [6, 16], note: "skip the faint converge; the portrait splits into faded copies that slide toward the Clone slots, where make_clone's peels land" }
+
+  channel.ninja:
+    beat: Two blades spin into a ring around the user; at each of their turn ends it whirls, a Clone peels off, and blade arcs rake every enemy.
+    note: "Each pulse hits every enemy twice: the 10, then the Clones' 5 per Clone about 150 ms later (a second pass of the same cue)."
+    cues:
+      - { on: apply, status: blade_tornado, fx: dark_mage_2, tint: duo, scale: 1.3, layer: under, frames: [0, 10] }   # its last frame jumps to red
+      - { on: trigger, status: blade_tornado, fx: dark_mage_2, tint: duo, scale: 1.0, speed: 1.5, frames: [0, 10] }
+      - { on: hit, fx: paladin_9, tint: duo, face: fromActor, scale: 0.6, stagger: 60 }
+
+  stab.ninja:
+    beat: A thin jab of slate punches through the target; a Clone sinks into shadow, and next turn it cuts out of their blind spot and bursts apart.
+    note: "The Clone's 15 replays the hit cue at about 1.4x, right after the trigger."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_002, tint: duo, face: fromActor, size: small, scale: 0.6 }
+      - { on: apply, status: blind_spot, fx: directional_smoke_burst_004, variant: black, size: small, scale: 0.45, opacity: 0.8 }   # on the Clone, lying in wait
+      - { on: trigger, status: blind_spot, fx: frost_knight_4, at: target, tint: duo, face: toActor, scale: 0.75, note: "on the enemy only (not the Clone it kills): the cut sweeps out from behind them toward the user's side" }
+      - { on: death, fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.5, frames: [3, 9] }
+
+  ravage.ninja:
+    beat: A blade's glint slides across the target; the instant they move, one huge slate draw-cut tears through them in a gout of ink.
+    note: "If they use no skill, the 20 at the turn's end plays the same draw at about 0.8x."
+    cues:
+      - { on: apply, status: quickdraw, fx: round_light_burst_001, size: small, scale: 0.55, opacity: 0.85 }
+      - { on: trigger, status: quickdraw, fx: symmetrical_impact_003, size: small, scale: 0.6 }   # the draw: a white flash before their skill resolves
+      - { on: hit, fx: warrior_4, tint: duo, face: fromActor, scale: 1.1 }
+      - { on: hit, fx: directional_splatter_004, variant: black, face: fromActor, scale: 0.6, delay: 100 }
+
+  mislead.ninja:
+    beat: A ghost of a cut passes harmlessly through the target; when they strike, the user was only a decoy that bursts into white smoke as they spring clear.
+    cues:
+      - { on: apply, status: feint, fx: frost_knight_2, tint: duo, face: fromActor, scale: 0.7, opacity: 0.5 }   # Invisible: owner only
+      - { on: trigger, status: feint, fx: symmetrical_smoke_burst_003, at: actor, size: small, scale: 0.6, note: "only when the Feint springs (the counter on their Harmful skill). Not from its onExpire: unsprung, only Mark's default plays on the user" }   # the Ninja's decoy, just before the leap's dust kick; smaller than Log Trick's burst
+      # The counter default and the leap macro (on the user) follow; unsprung, Mark's default lands on the user.
+
+  stun.ninja:
+    beat: Pins sting into the target's pressure points and two needles cross; at the end of their next turn the pins flare and the body locks.
+    cues:
+      - { on: hit, fx: fanfx_pain, tint: duo, tone: light, scale: 0.7, speed: 2, frames: [2, 30], note: "once, not looped" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.4, offset: [0, 0.3], delay: 80, note: "the jab: the portrait jolts and stiffens" }
+      - { on: trigger, status: pressure_point, fx: fanfx_pain, tint: duo, tone: light, scale: 0.6, speed: 2, frames: [2, 22] }
+      # Stun's default follows the trigger.
+
+  dance.ninja:
+    beat: Slate crescents wheel a full turn around the user as two Clones peel off; while it lasts, a careless skill spends a Clone in their stead.
+    cues:
+      - { on: cast, fx: starcaller_5, tint: duo, scale: 1.6, layer: under }
+      - { on: cast, fx: frost_knight_2, tint: duo, scale: 1.6, layer: under, delay: 180 }   # with starcaller_5, one counter-clockwise turn round the user, a ring past the frame
+      - { on: trigger, status: shadow_dance, fx: none }   # it fires on every skill the user uses and only spends a Clone on a non-Stealthy one: the death cues below show that
+      - { on: death, fx: starcaller_5, at: actor, tint: duo, scale: 1.6, layer: under, speed: 1.5 }   # a Clone spent in their stead: the swirl flicks round the user once more (its only deaths are the Clones Shadow Dance spends)
+      - { on: death, fx: symmetrical_smoke_burst_003, tint: duo, size: small, scale: 0.5, frames: [3, 9] }
+      # Stealth's and Might's defaults and two make_clone peels play on their own.
+
+  heal.ninja:
+    beat: Pale wraps cinch round the ally and white crosses rise as they drift off; they wake springing up, fast and fresh.
+    cues:
+      - { on: heal, fx: dark_mage_2, tint: element, scale: 0.8, frames: [0, 10] }   # a bandage of white air, not Shadow navy
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.5, speed: 1.6, delay: 150 }
+      - { on: trigger, status: field_dressing, fx: directional_particle_burst_001, at: target, scale: 0.7, speed: 1.4 }   # on the waking ally; Rushing's and Swiftness's defaults follow
+      # Sleep's default follows the heal.
+
+  bless.ninja:
+    beat: A cloak of slate shadow drops over the ally from the head down and thins away, and the Clones take up their guard.
+    cues:
+      - { on: apply, status: swiftness, fx: blood_knight_5, tint: duo, scale: 0.9, opacity: 0.8, flip: y, note: "flipped, so the cocoon closes from the head down and thins away at the feet" }
+      - { on: apply, status: swiftness, fx: spell_haste_001, size: small, scale: 0.45, speed: 1.5, delay: 450 }   # Swiftness's default, re-added after the cloak
+      # Substitution's default plays on the ally (once), and make_clone's peel on the new Clone.
+
+  curse.ninja:
+    beat: Two motes of shadow start circling the enemy; each skill they use, the shadows claw them.
+    cues:
+      - { on: apply, status: haunting_shadows, fx: frost_mage_1, tint: duo, scale: 0.9 }
+      - { on: trigger, status: haunting_shadows, fx: frost_mage_1, tint: duo, scale: 0.6, speed: 1.8 }
+      - { on: hit, fx: blood_knight_2, tint: duo, face: fromActor, scale: 0.5, note: "5 Piercing per Clone: about 0.45 with one, 0.65 with three, sized by the Clones on the user's side, not the amount. With no Clones left the trigger still sends a 0-amount hit: play neither this nor the trigger's motes" }
+
+  smite.ninja:
+    beat: A slate shard drops straight onto the target out of the dark and shatters in a white splash and a spray of ink, branding them with a star of it; every ally hit tears a Clone off them.
+    cues:
+      - { on: hit, fx: burst_splatter_001, variant: black, size: small, scale: 0.55, offset: [0, -0.35], delay: 300 }   # this skill's own layer over the shared shard: ink sprays out where it shatters
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.9, note: "the shard falls through its first six frames and shatters on frame 6 (~300 ms): time the HP drop and flinch to the shatter" }   # falls-from-above, ground-anchored at the feet
+      - { on: apply, status: shadow_mark, fx: burst_splatter_003, variant: black, scale: 0.55, offset: [0, 0.15], delay: 300 }   # the brand settles once the shard has shattered
+      - { on: trigger, status: shadow_mark, fx: directional_smoke_burst_003, tint: element2, tone: light, face: toActor, size: small, scale: 0.5 }   # a wisp torn off toward the user; make_clone's peel follows
+
+  prayer.ninja:
+    beat: White smoke rolls up behind the team and stars scatter off each ally as they mend; a targeted ally slips away in a flick of the same stars.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, at: allySide, scale: 2.2, opacity: 0.6, layer: under }
+      - { on: heal, fx: round_sparkle_burst_001, tint: duo, tone: light, scale: 0.8, stagger: 90 }
+      - { on: trigger, status: scatter, fx: round_sparkle_burst_001, tint: duo, tone: light, size: small, scale: 0.45, speed: 1.5 }   # Stealth's default follows
+
+  cleave.ninja:
+    beat: A slate crescent sweeps up through the target and ink flicks off, then the whirl carries Flurry's cuts across every enemy.
+    note: "Stealthy: used from Stealth, only the hits show. This skill's Flurry reaches every enemy: stagger Flurry's default ~70 ms down the row so the whirl reads as sweeping on."
+    cues:
+      - { on: hit, fx: warrior_2, tint: duo, face: fromActor, scale: 0.8 }
+      - { on: hit, fx: directional_splatter_003, variant: black, face: fromActor, size: small, scale: 0.5, delay: 90 }
+
+  shout.ninja:
+    beat: A fuse sparks in the user's hand and a smoke bomb's clover of white smoke billows across the whole board, swallowing everyone.
+    note: "The clover blooms out of the user and rolls outward over both sides. Stagger the defaults that follow, ~60 ms per unit: Intimidated's on each enemy, then Stealth's on every character, the user last."
+    cues:
+      - { on: cast, fx: round_firework_burst_001, tint: element2, tone: light, size: small, scale: 0.5 }
+      - { on: apply, status: any, fx: symmetrical_smoke_burst_003, at: field, scale: 3.0, opacity: 0.6, layer: under, note: "once, with the first status applied: behind every portrait" }
+
+  withstand.ninja:
+    beat: A ring of slate blade points snaps out from the user, then echoes round each Clone as it hardens.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 0.55 }   # a barrier forming, not crossed swords (that reads as an attack buff)
+      - { on: apply, status: shield, fx: frost_knight_7, tint: duo, scale: 0.7, stagger: 80 }
+      - { on: apply, status: shield, fx: stylized_explosion_002, tint: duo, scale: 1.1, opacity: 0.55, layer: under, delay: 100, stagger: 80 }   # Shield's default, re-added after the ring
+
+  taunt.ninja:
+    beat: A stream of jeering shadows rushes the target and every Clone lunges into their face and pops.
+    cues:
+      - { on: travel, fx: necromancer_3, path: beam, tint: duo, tone: light, scale: 0.8 }   # mostly dark art: tone light keeps it visible
+      - { on: death, fx: directional_smoke_burst_003, face: toTarget, size: small, scale: 0.6, stagger: 90 }   # each Clone's puff blows toward the target
+      # Taunt's default lands on the target.
+
+  titan.ninja:
+    beat: A black slit tears open over the user, three slate doubles swell round them, and a slate nova leaves them veiled behind their Clones, out of every enemy's reach; when the last Clone falls, the veil breaks like an eclipse.
+    cues:
+      - { on: cast, fx: scifi_warp_001, variant: black, scale: 1.4, note: "the board dims for the cast" }
+      - { on: cast, fx: paladin_4, tint: duo, scale: 1.6, opacity: 0.75, delay: 250 }   # three slate puffs swell round the user: the doubles
+      - { on: apply, status: shadow_master, fx: deathbringer_4, tint: duo, scale: 1.3, delay: 100, note: "the portrait stays veiled in a faint dark haze while Shadow Master holds" }
+      - { on: trigger, status: shadow_master, fx: none }   # it fires on every allied Clone destroyed and only ends once none are left: the remove cue shows that
+      - { on: remove, status: shadow_master, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.6 }   # its removeSelf once the last Clone falls: a disc eaten by a crescent, the veil breaking
+      # Immune's default and make_clone's peels play on their own.
+
+  ninken_snap:
+    beat: The Ninken's jaws rake through the target in slate streaks.
+    cues:
+      - { on: hit, fx: dark_mage_1, tint: duo, face: fromActor, scale: 0.55 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.35, delay: 60 }
+
+  ninken_track:
+    beat: The Ninken bays in a double ring and a trail of dust runs under every enemy, flushing them out.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, size: small, scale: 0.6 }
+      - { on: apply, status: tracked, fx: directional_impact_002, variant: gray, size: small, scale: 0.6, layer: under, stagger: 70 }
+      # Stealth's remove default plays on each enemy flushed out.

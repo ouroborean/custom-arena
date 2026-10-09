@@ -1,0 +1,275 @@
+# Holy animation concepts. Spec: docs/animations/README.md; brief: briefs/holy.md.
+# Holy is gold: palette art takes `element` (the Holy ramp) by default, Paladin art stays native gold, and
+# other class art is colorized with `tint: element`. `tone: light` for heals and white-gold light.
+group: holy
+
+statuses:
+  anointed:
+    # directional_sparkle_burst_003 forms its ring in the upper third: lifted so it lands as a halo on the head.
+    apply:  [ { fx: directional_sparkle_burst_003, scale: 0.9, offset: [0, 0.25], speed: 1.4 } ]
+    remove: [ { fx: round_sparkle_burst_001, scale: 0.5, offset: [0, 0.55] } ]
+    expire: [ { fx: directional_particle_burst_001, scale: 0.5, offset: [0, 0.45], opacity: 0.7 } ]
+    note: No aura on purpose. Anointed is often permanent (Ascension, Martyrdom), so a glow would sit on half the board for the whole match. The status icon carries it.
+  condemned:
+    # A pending-punishment telegraph. Not the eye (Intimidated's and Prey's look), since several fusions apply Condemned and Intimidated together.
+    apply:   [ { fx: symbol_warning_001, size: small, scale: 0.4, speed: 2 } ]
+    # Judgment flares as the bearer acts, then the random Weakness, Vulnerable or Confusion default plays.
+    # Not paladin_1: that is Sanctify's apply, and Mark of Heresy applies both, so it would read as Sanctify landing again.
+    trigger: [ { fx: round_light_burst_001, size: small, scale: 0.6 } ]
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, offset: [0, 0.5], opacity: 0.7 } ]
+    expire:  [ { fx: directional_smoke_burst_004, scale: 0.5, opacity: 0.6 } ]
+
+macros: {}   # Holy owns no macros
+
+skills:
+  strike.holy:
+    beat: A quick golden arc slashes the target; while Anointed, light rises back into the user.
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.5, delay: 120 }
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.5, tone: light, speed: 1.6 }
+
+  smash.holy:
+    beat: Light slams down on the target in a burst of golden clouds, and smaller clouds burst over each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: paladin_4, scale: 1.0, delay: 80 }
+      - { on: hit, only: primary, fx: directional_impact_004, scale: 1.0 }   # the slam's shock spikes up from the ground first
+      - { on: hit, only: others, fx: paladin_4, scale: 0.6, delay: 150, stagger: 90 }
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.5, tone: light, speed: 1.6 }
+
+  charge.holy:
+    beat: The user rushes in behind a golden crescent and hits hard; a zeal lingers on them for their next attack.
+    cues:
+      # Not the jet of base charge's travel: a pale gold jet reads as the same near-white streak.
+      - { on: travel, fx: paladin_10, path: straight, scale: 0.7, note: "portrait lunges toward the target" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.8 }
+      - { on: apply, status: zealous_rush, fx: directional_particle_burst_001, scale: 0.6 }
+      # The zeal is spent on the user; Sanctify's default then lands on each target of that skill.
+      - { on: trigger, status: zealous_rush, fx: round_sparkle_burst_001, size: small, scale: 0.5 }
+
+  riposte.holy:
+    beat: Golden blades cross into a guard on the user; a blow that lands on it bursts into light and heals them.
+    note: Retribution is a modifier, so the engine emits no trigger event for it. Play its trigger cue when a blow on the bearer arrives as a heal instead of damage.
+    cues:
+      # Base riposte's crossed-blade guard in Holy's own art (lightning_burst_001 is Immune's default).
+      - { on: apply, status: retribution, fx: paladin_2, scale: 0.7 }
+      - { on: trigger, status: retribution, fx: symmetrical_impact_002, size: small, scale: 0.7 }
+      - { on: heal, fx: spell_heal_002, size: small, scale: 0.6, tone: light, speed: 1.6, delay: 120 }
+
+  rage.holy:
+    beat: Golden flame spikes surge up around the user and flare; the halo of Anointed settles on them.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.2 }
+      - { on: cast, fx: symmetrical_impact_002, scale: 0.9, delay: 250 }
+
+  shot.holy:
+    beat: A small sun leaves the user's hand and pops on the target; an Anointed user spends the halo to heal.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_001, face: toTarget, scale: 0.35 }
+      - { on: travel, fx: scifi_charge_up_001, path: straight, size: small, scale: 0.3 }   # a white orb ringed in gold: the sun
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.6 }
+      - { on: heal, fx: directional_particle_burst_001, tone: light, scale: 0.6 }
+      # Consuming Anointed plays its own remove default (the halo bursts).
+
+  snipe.holy:
+    beat: The user draws in light, hurls a spear skyward next turn, and it falls on the hidden target.
+    cues:
+      - { on: cast, fx: spell_absorb_001, scale: 0.8, speed: 1.5 }
+      # HiddenTarget: the spear launches straight up from the user and falls from above, never pointing at anyone.
+      - { on: trigger, status: spear_of_light, fx: scifi_muzzle_flash_003, face: up, scale: 0.6, offset: [0, 0.4] }
+      - { on: hit, fx: scifi_warp_003, scale: 1.4 }
+      - { on: hit, fx: symmetrical_impact_003, delay: 250 }
+
+  trap.holy:
+    beat: A band of golden light closes around the target and seals them under the decree; a warning of judgment hangs over them.
+    cues:
+      - { on: apply, status: condemned, fx: dark_mage_2, tint: element, scale: 0.9, note: "trim the last frame (it jumps to a dark red)" }
+      # Condemned's default, re-added once the band has closed (this skill's own apply cue replaces it). Its trigger default is the spring.
+      - { on: apply, status: condemned, fx: symbol_warning_001, size: small, scale: 0.4, speed: 2, delay: 300 }
+
+  maneuver.holy:
+    beat: The user blinks out in a puff of gold and returns behind a veil of sparkling light.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_001, scale: 0.9, note: "portrait blinks out under the puff and back in as the veil settles" }
+      # Immune's default (and Invulnerable's, when Anointed) lands first; the veil settles once the skill has resolved.
+      - { on: resolve, fx: status_sparkling_001, scale: 0.9 }
+
+  companion.holy:
+    beat: Pillars of gold light rise from a ring and the Sacred Lion bounds out of them.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: element, scale: 1.2, opacity: 0.85 }   # over the portrait, so the columns rise across the lion as it arrives
+      - { on: summon, fx: directional_impact_002, scale: 0.45, delay: 300 }
+
+  bolt.holy:
+    beat: A golden comet streaks to the target and bursts into a spray of light orbs.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: element, scale: 0.7 }
+      - { on: hit, fx: round_firework_burst_002, scale: 0.9, speed: 1.4 }
+
+  blast.holy:
+    beat: The user gathers light, a wide flare sweeps the enemy row and a star of light bursts on every enemy; Anointed, the nova flares out of the user again next turn.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, scale: 0.7 }
+      - { on: hit, fx: round_light_burst_001, at: enemySide, scale: 2.2, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      # Not scifi_warp_002: that is Mark's detonation, so every enemy would read as a Mark going off.
+      - { on: hit, fx: symmetrical_impact_001, scale: 0.9, delay: 120, stagger: 60 }
+      - { on: apply, status: holy_nova, fx: round_sparkle_burst_003, size: small, scale: 0.6 }
+      # The echo flares off the user; its damage then replays the hit cues above.
+      - { on: trigger, status: holy_nova, fx: round_light_burst_001, size: small, scale: 0.8 }
+
+  consume.holy:
+    beat: A small sparkle pops on the target and light motes stream from them into the user, who becomes Anointed.
+    cues:
+      - { on: hit, fx: round_sparkle_burst_001, size: small, scale: 0.5 }
+      # Bound to the hit, not a travel: a travel would play before the 5 damage lands.
+      - { on: hit, fx: directional_particle_burst_001, at: target, face: toActor, scale: 0.6, delay: 120 }
+      - { on: hit, fx: spell_absorb_001, at: actor, size: small, scale: 0.7, speed: 1.6, delay: 250 }
+      # Anointed's halo and Sanctify's default show which branch fired.
+
+  summon.holy:
+    beat: Sparkles converge into one bright star that pops open as the Divine Blessing.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003 }
+      - { on: summon, fx: status_sparkling_001, scale: 0.8, delay: 400 }
+
+  channel.holy:
+    beat: Consecrated ground forms under the user; at each turn's end it flares again and a golden drop splashes on a random enemy.
+    cues:
+      # Large enough under the opaque portrait that the mound spills past its sides and the stars clear its top.
+      - { on: apply, status: consecration, fx: directional_sparkle_burst_002, scale: 1.5, layer: under, speed: 1.3 }
+      - { on: trigger, status: consecration, fx: directional_sparkle_burst_002, scale: 1.2, layer: under, speed: 1.6, opacity: 0.85 }
+      - { on: hit, fx: paladin_7, scale: 0.8, note: "fade its held last frame" }
+
+  stab.holy:
+    beat: A thin lance of white-gold light punches through the target and out the far side; the bonus adds a glint.
+    cues:
+      # The lance's ring forms on the near side and its streaks shoot out past the target.
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, tone: light, scale: 0.45, speed: 1.3 }
+      - { on: hit, fx: round_sparkle_burst_001, size: small, scale: 0.4, delay: 120, note: "bonus glint. Play it only when the stab_bonus signal fired this cast (Condemned or Sanctified target, or Anointed user)" }
+
+  ravage.holy:
+    beat: A flurry of golden slashes tears into the target, a heavy flash, and light bursts out the far side.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: element, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_003, scale: 0.8, delay: 200 }
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, scale: 0.5, delay: 250 }
+
+  mislead.holy:
+    beat: A quiet veil of gold settles on the target (owner only); when they attack, their skill bursts into blessing on everyone it reaches.
+    cues:
+      - { on: apply, status: martyrdom, fx: symmetrical_smoke_burst_002, tone: light, scale: 0.8, opacity: 0.8 }   # Invisible: owner only
+      # The opponent sees only this burst, then Anointed's halo on each target of their skill.
+      - { on: trigger, status: martyrdom, fx: round_sparkle_burst_002, scale: 0.9 }
+
+  stun.holy:
+    beat: A star flash staggers the target under a warning of judgment; if they were already Condemned, a sword of light drives down and pins them.
+    cues:
+      # The stagger hangs off whichever status lands, so an Immune target shows only the block.
+      - { on: apply, status: condemned, fx: symmetrical_impact_001, scale: 0.8, note: "stagger. The target's portrait jolts back" }
+      # Condemned's default, re-added (the cue above replaces it for this skill).
+      - { on: apply, status: condemned, fx: symbol_warning_001, size: small, scale: 0.4, speed: 2, delay: 150 }
+      - { on: apply, status: stun, fx: paladin_5, scale: 1.1 }
+      # Stun's default, re-added once the sword lands (the cue above replaces it for this skill).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 300, note: "portrait staggers back a step" }
+
+  dance.holy:
+    beat: Golden wisps swirl around the user and two wings of light spread out behind them.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, scale: 1.2 }
+      # Behind the portrait and large, so the bands fan out past its top and sides like wings and the face stays clear.
+      - { on: apply, status: invulnerable, fx: paladin_8, scale: 1.7, layer: under, offset: [-0.15, 0.1] }
+      - { on: apply, status: invulnerable, fx: paladin_8, scale: 1.7, layer: under, offset: [0.15, 0.1], flip: x }
+      # The wings stand for all three buffs; three status defaults at once would pile up on one portrait.
+      - { on: apply, status: immune, fx: none }
+      - { on: apply, status: ghosted, fx: none }
+
+  heal.holy:
+    beat: Light gathers in the user's hand and a column of crosses rises through the ally.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, scale: 0.5 }
+      - { on: heal, fx: spell_heal_003, scale: 1.2, speed: 1.8 }
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 1.1, layer: under }
+
+  bless.holy:
+    beat: Golden stars fall onto the ally and the halo of Anointed settles on them.
+    cues:
+      - { on: apply, status: anointed, fx: directional_star_burst_001, face: down, scale: 0.9, speed: 1.5, offset: [0, 0.2] }
+      # Anointed's halo, re-added after the stars (this skill's own apply cue replaces it).
+      - { on: apply, status: anointed, fx: directional_sparkle_burst_003, scale: 0.9, offset: [0, 0.25], speed: 1.4, delay: 400 }
+
+  curse.holy:
+    beat: Dim golden embers of judgment settle onto a ring at the enemy's feet, then the warning and the cross settle on them.
+    cues:
+      - { on: apply, status: condemned, fx: spell_forge_001, tone: dark, scale: 0.9 }
+      # Condemned's default, re-added after the embers (this skill's own apply cue replaces it). Sanctify's cross plays as usual.
+      - { on: apply, status: condemned, fx: symbol_warning_001, size: small, scale: 0.4, speed: 2, delay: 400 }
+
+  smite.holy:
+    beat: A golden comet dives from the sky onto the target.
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.5, delay: 150 }
+
+  prayer.holy:
+    beat: The user sends light up and grace rains down; starlight wells up under every ally, again each turn while it lingers.
+    cues:
+      - { on: cast, fx: round_firework_burst_001, scale: 0.9 }
+      - { on: heal, fx: directional_sparkle_burst_002, tone: light, scale: 0.9, stagger: 80, speed: 1.3 }
+      # The same converging-star tell as Holy Nova's Anointed echo.
+      - { on: apply, status: saving_grace, fx: round_sparkle_burst_003, size: small, scale: 0.6 }
+      - { on: trigger, status: saving_grace, fx: round_firework_burst_001, scale: 0.7 }
+
+  cleave.holy:
+    beat: A wide golden crescent sweeps through the target and carries on into a second enemy; striking a Sanctified enemy sends light to every ally.
+    cues:
+      - { on: hit, only: primary, fx: starcaller_5, face: fromActor, tint: element, scale: 0.8 }
+      - { on: hit, only: others, fx: starcaller_5, face: fromActor, tint: element, scale: 0.65, delay: 150 }   # the extra random enemy: the sweep carrying on
+      - { on: heal, fx: directional_particle_burst_001, tone: light, scale: 0.5, stagger: 60 }
+
+  shout.holy:
+    beat: A ring of light bursts from the user and rolling waves of it wash over every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.2 }   # its empty center frames the user
+      - { on: travel, fx: scifi_muzzle_flash_003, path: straight, scale: 0.6, stagger: 60 }
+      # Each enemy then shows Sanctify's or Condemned's default, whichever branch it took.
+
+  withstand.holy:
+    beat: A lattice of light assembles behind the user, the shield closes over them, and it seals with a glint.
+    cues:
+      - { on: cast, fx: fanfx_barrier, scale: 1.3, layer: under, opacity: 0.6, speed: 1.3 }
+      # Shield's bubble and, when Anointed, Immune's burst land through their defaults (no shield emblem: it would read as Armor).
+      - { on: resolve, fx: round_sparkle_burst_001, size: small, scale: 0.5, offset: [0, 0.3] }
+
+  taunt.holy:
+    beat: Light gleams off the user and a glint flies to catch the target's eye.
+    cues:
+      - { on: cast, fx: round_light_burst_001, scale: 0.8 }
+      - { on: travel, fx: round_sparkle_burst_001, path: straight, size: small, scale: 0.3 }
+      # Taunt's and Condemned's defaults land on the target.
+
+  titan.holy:
+    beat: The sky splits open over the user and they blaze out in a cross of light as the Grand Crusader; a shock of light runs under the enemy row and gold erupts beneath each enemy.
+    note: The portrait swells about 15% with a brief screen brighten as the cross blazes. Might and Armor show their own defaults on the user; Sanctify's on each enemy.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tone: light, scale: 1.5 }
+      - { on: cast, fx: stylized_impact_001, scale: 1.6, delay: 300 }
+      - { on: hit, fx: directional_impact_002, at: enemySide, scale: 1.2, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: directional_impact_003, scale: 0.7, delay: 120, stagger: 80 }
+
+  lion_roar:
+    beat: The lion's roar rings out in a shockwave and gusts of golden breath hit every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, scale: 1.5, layer: under }   # overflows the opaque portrait so the ring shows on every side
+      - { on: hit, fx: directional_smoke_burst_003, face: fromActor, size: small, scale: 0.6, stagger: 70 }
+
+  lion_claws:
+    beat: Golden claws rake the target.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: element, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.4, delay: 100, note: "the Sanctified bonus has no event of its own. If the renderer can tell, scale this up for the 25-damage hit" }
+
+  blessing_from_above:
+    beat: The Blessing sends its star arcing to the ally, where it becomes their halo, and the Blessing dissolves into rising motes.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_003, path: arc, size: small, scale: 0.35 }   # the star the Blessing was summoned from
+      - { on: death, fx: directional_particle_burst_001, tone: light, scale: 0.8 }

@@ -1,0 +1,303 @@
+group: slime
+# Slime (Water + Earth) is living mud: wet clay that wells up, swallows whole, and splits in two.
+# `duo` is the house look on everything that is the gel itself (Water's deep-blue outline around
+# Earth's tan body and pale-sand highlights: wet clay). Slime class art is always `duo`, never native:
+# its lime is Poison's. `element` (Water) tints the clear-water parts (spray, bubbles, springs);
+# `element2` (Earth) the grit (dust, silt, baked clay).
+# Signature motifs, used across the kit:
+#   the bud   — slime_2's first frames, a puddle bulging up into a bubbly mass: how every Ooze arrives
+#               (make_ooze), and the Great Ooze the same way at twice the size.
+#   the gulp  — necromancer_8's first frames, a bowl of gel rising and closing over a unit in a fanged
+#               oval: Engulfed, and the Great Ooze's Swallow turned up. blood_knight_5 draws the same
+#               frames 0-6, so it never plays over a unit here (it would read as Engulfed): only under the
+#               portrait, where the portrait hides its fangs.
+#   the split — directional_splatter_005, a blob pinching up into two plumes: every Split (the Ooze's
+#               own, Mitosis's payoff, the Gelatinous Giant shedding Oozes).
+# epic_explosion_003 carries a second, 3-tone smoke ramp a 4-stop swap won't reach: olive (Poison) in its
+# red/green/orange/yellow variants, slate in blue/violet. Tint it from the blue (or violet) variant.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  engulfed:
+    note: >-
+      Held inside an Ooze, it can't act: a full Stun, so it gets an aura. It ends when its Ooze dies
+      (remove) or after 3 turns (expire). Plunging Fist's extra turn raises no event.
+    apply:  [ { fx: necromancer_8, tint: duo, frames: [0, 6], note: "the gulp: a bowl of gel rises from their feet and closes over them in a fanged oval. Hold the closed frame a beat, then fade into the aura; cut before the skull surfaces (frame 7 on)" } ]
+    tick:   [ { fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.5, speed: 1.4 } ]   # the gel froths as it digests them (5 Affliction)
+    remove: [ { fx: burst_splatter_002, tint: duo, scale: 0.8 } ]   # its Ooze died, or it was cleansed: the gel bursts off them
+    expire: [ { fx: directional_impact_002, size: small, tint: duo, scale: 0.6, opacity: 0.85 } ]   # ran out: it slumps off them into a puddle
+    aura:   { fx: status_poison_001, tint: duo, scale: 0.85, opacity: 0.55 }   # bubbles drifting in the gel over them; outlines only, so the portrait stays readable
+  gel_coat:
+    apply:  [ { fx: dark_mage_2, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 9], note: "two smears of gel wrap round them into a ring; cut its last frames (the crimson jump)" } ]
+    trigger:
+      - { fx: directional_splatter_004, size: small, face: up, tint: duo, scale: 0.5, note: "only when it hops (a direct hit left them at 10+ HP and a 15-damage hit follows); other hits change nothing: no art" }   # the coat splits off them
+      - { fx: burst_splatter_002, at: target, size: small, tint: duo, scale: 0.6, delay: 150 }   # and splats onto the ally (its 15 damage); the new coat's apply follows there
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.45, opacity: 0.6 } ]   # it hopped away or was cleansed
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.6 } ]   # it dries and flakes off as dust
+  ooze_split:   # Ooze passive: survives an enemy's damage with 10+ HP and fewer than 4 Oozes, splits its HP with a new one
+    trigger:
+      - { fx: directional_splatter_005, tint: duo, scale: 0.6, note: "the split: the Ooze pinches into two plumes. Play only when it actually splits, meaning a summon follows (10+ HP left and fewer than 4 allied Oozes); any other enemy hit on an Ooze gets no art. The new Ooze's summon is raised here, not by make_ooze: play make_ooze's bud on it. The halving self-damage (Affliction) gets no hit art" }
+  great_ooze_feed:   # Great Ooze passive: heals 10 at each turn end while it holds an enemy
+    trigger:
+      - { fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 1.4, note: "only on turn ends it holds someone (its heal follows, base's heal default); otherwise silent" }   # it draws in what it digests
+  slime_mother_brood:   # Slime Mother passive: at her third turn end she leaves 2 Oozes
+    trigger:
+      - { fx: round_bubble_burst_001, tint: duo, scale: 0.8, note: "fires at each of her turn ends; only the third, when the brood comes, gets art. make_ooze's bud then plays on each of the two Oozes" }
+
+macros:
+  make_ooze:   # on the new Ooze: its summon, max-HP set and top-up heal are one moment, played once
+    - { fx: slime_2, tint: duo, scale: 0.75, frames: [0, 8], note: "the bud. Its content sits in the canvas's lower-left 60%, rising from the bottom-left: centre that part on the new Ooze. Cut before it smears off as a projectile; fade the held mass as the portrait appears" }
+    - { fx: directional_impact_002, size: small, tint: element2, scale: 0.5, opacity: 0.8 }   # a slap of mud and dust at its base
+  engulf_new:   # on the enemy being swallowed, after make_ooze's bud on the new Ooze
+    - { fx: deathbringer_1, face: fromActor, tint: duo, scale: 0.9, frames: [3, 9], note: "the new Ooze arcs over from the user's side and crashes down on them (faint wind-up frames skipped): its crash sits in the canvas's bottom corner on the leading side, place that corner on the unit. Engulfed's gulp rises under it" }
+
+skills:
+  strike.slime:
+    beat: A clay fist plunges into the target and the gel bursts out past them in a spiky fan.
+    note: Against an Engulfed target the Engulf's extra turn raises no event; the Oozes' heals carry that branch.
+    cues:
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.75, note: "its origin is the canvas's lower-left (~20%, 75%): set that point on the target so the spikes fan out past them" }
+      - { on: hit, fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.75, delay: 80 }   # a puff of grit
+      - { on: heal, fx: spell_absorb_001, size: small, tint: duo, scale: 0.5, speed: 1.6, stagger: 80 }   # Engulfed target only: each Ooze drinks in what the blow wrings out
+
+  smash.slime:
+    beat: A heavy glob of mud slams onto the target and bursts, slapping out along the ground, and gobs of it splash down on each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: burst_splatter_002, tint: duo, scale: 1.1, note: "a short screen shake" }
+      - { on: hit, only: primary, fx: directional_impact_002, tint: element2, scale: 0.75, delay: 60 }   # mud and dust slap out along the ground
+      - { on: hit, only: others, fx: directional_splatter_002, size: small, tint: duo, scale: 0.6, delay: 220, stagger: 80 }   # the 10-damage gobs
+      # A Stunned target: engulf_new's lunge, Engulfed's gulp and make_ooze's bud follow.
+
+  charge.slime:
+    beat: The user balls up and rolls across the board as a ring of gel, flattens against the target in a splash, and leaves an Ooze to take their hits.
+    cues:
+      - { on: travel, fx: slime_3, tint: duo, scale: 0.7, speed: 1.3, frames: [2, 7], note: "the wavy streak rolls up into the ringed ball as it crosses, the user's portrait lunging along it; cut before its own splat: the hit is the landing" }
+      - { on: hit, fx: directional_impact_002, tint: duo, scale: 0.8 }   # the ball flattens into a splash along the ground under them
+      - { on: apply, status: slime_roll, fx: round_sparkle_burst_001, size: small, tint: element, tone: light, scale: 0.45, offset: [0.3, 0.3] }   # a wet glint on the user: blows slide off onto a minion
+      # With no Ooze, make_ooze's bud follows.
+
+  riposte.slime:
+    beat: Unseen, the user's skin goes soft and bubbly; when struck, the blow sinks into the gel with a ringing flash, a gob is flung back at the attacker, and an Ooze buds off.
+    cues:
+      - { on: cast, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.5, opacity: 0.6 }   # Invisible: only the owner sees it
+      - { on: trigger, status: gel_parry, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.75, note: "the opponent's first sight, on the user: the blow sinks into the gel and rings out" }
+      - { on: trigger, status: gel_parry, at: source, fx: directional_splatter_004, size: small, face: fromActor, tint: duo, scale: 0.5, delay: 100, note: "the counter: a gob flung back at the attacker, its spray carrying on past them beside base's counter X. make_ooze's bud then follows on the new Ooze (10-40 HP by the skill's cost)" }
+
+  rage.slime:
+    beat: The user's gel heaves and divides like a cell, bursting up in a crown of blobs as the ground buckles; every Split after swells them with Might.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_003, tint: duo, scale: 1.2, note: "its inner lumpy mass reads as a cell dividing" }
+      - { on: cast, fx: directional_impact_004, tint: element2, scale: 0.9, delay: 120 }   # the ground buckles under them
+      - { on: trigger, status: mitosis, fx: directional_splatter_005, size: small, tint: duo, scale: 0.45, note: "the split echoed on the user, once per allied Split. It grants Might only up to 3 (Might's default follows); after that the Split changes nothing here: skip it" }
+      # make_ooze's bud, then Immune's default.
+
+  shot.slime:
+    beat: A glob of mud is flicked onto the target and spatters past them, and an Ooze swells as it's fed.
+    cues:
+      - { on: travel, fx: directional_splatter_001, path: arc, tint: duo, scale: 0.55 }   # the flicked glob
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: duo, scale: 0.5, note: "origin at its lower-left corner: set that corner on the target" }
+      - { on: heal, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.45, speed: 1.4 }   # the fed Ooze froths (its +10 max HP raises no event)
+      # No Ooze: make_ooze's bud (10 HP) instead.
+
+  snipe.slime:
+    beat: Motes of gel gather over the user into a fresh Ooze; next turn an Ooze lobs itself straight up and drops onto the hidden target, swallowing them.
+    note: HiddenTarget. Nothing points at the target before the drop lands; the spout rises straight up on the user's side.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.55, offset: [0, 0.4], frames: [0, 12] }   # motes converge into a ring of blobs over the user: radial, gives nothing away
+      - { on: trigger, status: ooze_mortar, fx: directional_splatter_002, tint: duo, scale: 0.7, note: "fires as it ends (its onExpire). Play it on the Ooze the payload picks (the new Engulfed's source, which now holds the target), not on the user: no anchor names that Ooze. The gob spouts straight up from it, never toward the target. If no allied Ooze is left, nothing fires: no art" }
+      - { on: hit, fx: paladin_7, tint: duo, note: "the gob drops onto them and splashes out along the ground; its last frame is a held dark patch: fade it" }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 150 }
+      # make_ooze's bud plays with the cast; Engulfed's gulp follows the hit (the Ooze keeps the HP it has left).
+
+  trap.slime:
+    beat: Unseen, a film of bubbles settles at the enemy's feet; when they're healed, mud erupts under them, the healing drains back out and an Ooze swallows them.
+    cues:
+      - { on: apply, status: gel_snare, fx: status_poison_001, size: small, tint: duo, scale: 0.7, offset: [0, -0.35], opacity: 0.6, note: "owner only (hidden): one cycle of bubbles at their feet, then fade. It is Engulfed's aura, lying in wait" }
+      - { on: trigger, status: gel_snare, fx: epic_explosion_003, tint: duo, scale: 0.85, note: "the opponent's first sight: a dome of mud erupts under them as the heal lands. Tint from the blue (or violet) variant: its smoke is slate #30324d/#54577f/#8398af and sits with duo's navy; the other variants' smoke is olive (Poison)" }
+      - { on: hit, fx: directional_particle_burst_001, face: down, tint: element, tone: light, scale: 0.6, delay: 120 }   # the healing drains back down out of them (the undo)
+      # engulf_new's lunge, Engulfed's gulp and make_ooze's bud (as much HP as the heal, up to 40) follow.
+
+  maneuver.slime:
+    beat: Wet clay fountains up over the user and sets hard into a mound; the Renew in them bakes into Armor.
+    note: Spent Renew stacks raise no event until the last one goes (removeStacks only removes Renew when it runs out); Armor's default shows what it became.
+    cues:
+      - { on: cast, fx: directional_splatter_002, tint: duo, scale: 0.85 }   # wet clay fountains up and slaps down over them
+      - { on: resolve, fx: frost_mage_3, tint: element2, scale: 0.9, opacity: 0.85, note: "the last beat, once Invulnerable's shell has faded: the clay sets into a mound over them. It ends on its brightest frame: fade it out" }
+      - { on: remove, status: renew, fx: symmetrical_smoke_burst_001, size: small, tint: element2, scale: 0.5, opacity: 0.8 }   # the last of their Renew bakes off as clay dust
+      # Invulnerable's and Armor's defaults on the user.
+
+  companion.slime:
+    beat: A great swell of mud bulges up out of the ground and the Great Ooze heaves into place.
+    cues:
+      - { on: summon, fx: slime_2, tint: duo, scale: 1.3, frames: [0, 8], note: "make_ooze's bud, turned up: centre the canvas's lower-left 60% on the Great Ooze" }
+      - { on: summon, fx: directional_impact_004, tint: element2, scale: 0.9, delay: 100 }   # the ground heaves under its weight
+
+  bolt.slime:
+    beat: An orb of gel trailing tendrils streaks across and its tail lashes down over the target; the next time they're struck, a gob tears off them and becomes an Ooze.
+    cues:
+      - { on: travel, fx: deathbringer_6, tint: duo, scale: 0.7 }   # the crescent head leads; most of the canvas is tail
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.85, note: "its impact star lands at the canvas's lower-left (~30%, 70%): set that point on the target" }   # the tail cracks down like a whip
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.7, delay: 100 }   # and the orb bursts in spokes
+      - { on: trigger, status: ooze_lash, fx: directional_splatter_004, size: small, face: toActor, tint: duo, scale: 0.55, note: "struck again: a gob tears off them back toward the user's side, where make_ooze's bud follows" }
+
+  blast.slime:
+    beat: A vast bubble of gel swells over the enemy row and bursts into a crown of blobs that rain down on each of them; until it fades, each Ooze that dies pops the same way.
+    note: While Burst Bubble lasts, an allied Ooze's death deals 10 to every enemy from the Ooze's own onDeath, not from this skill's events; if the renderer can attribute it, play the bubble burst below at about 0.6 on each enemy.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_003, at: enemySide, tint: duo, scale: 2.6, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: round_bubble_burst_001, tint: element, scale: 0.8, delay: 250, stagger: 80 }   # each enemy caught in the burst
+      - { on: apply, status: burst_bubble, fx: directional_particle_burst_001, size: small, tint: element, tone: light, scale: 0.5 }   # bubbles rise through the user: primed
+      # make_ooze's bud follows.
+
+  consume.slime:
+    beat: Gel streams off the target toward the user and gathers into them; a target not yet held is swallowed by a small new Ooze.
+    note: The hit is 20 Affliction on a held target and 5 otherwise (one event); play the stream at about 0.55 for 5.
+    cues:
+      - { on: hit, fx: necromancer_3, face: toActor, tint: duo, tone: light, scale: 0.75, note: "origin (left edge as drawn) on the target: the gel streams off them toward the user; tone light so its dark body reads on the board" }
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.5 }   # the receiving end: it gathers into the user
+      # Not yet Engulfed: make_ooze's bud (10 HP), then Engulfed's gulp (for 1 turn).
+
+  summon.slime:
+    beat: A mound of mud wells up out of the ground and the Slime Mother settles out of it in a ring of dust.
+    cues:
+      - { on: summon, fx: epic_explosion_003, tint: duo, scale: 0.9, speed: 0.8, frames: [0, 3], note: "only the welling mound and its shock skirt: cut before it breaks into the fire dome and smoke (frame 4 on), and fade frame 3 as the portrait appears. Tint from the blue (or violet) variant: the small smoke puffs at its shoulders are slate there (#30324d/#54577f/#8398af), olive (Poison) in the others" }
+      - { on: summon, fx: symmetrical_smoke_burst_001, tint: element2, scale: 0.7, opacity: 0.8, delay: 300 }
+      # Her brood at her third turn end plays slime_mother_brood, then make_ooze's bud twice.
+
+  channel.slime:
+    beat: A pool of mud whirls open at the user's feet; at the end of each of their turns it sloshes out, gel spikes up under every enemy, and fallen Oozes re-form from it.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.6, offset: [0, -0.4], opacity: 0.75, layer: under }   # its arms show around the portrait
+      - { on: trigger, status: primordial_pool, fx: directional_impact_002, tint: duo, scale: 0.7, note: "its turn-end pulse only: the signal trigger (an allied Ooze died) just counts, with no art" }
+      - { on: hit, fx: directional_impact_003, size: small, tint: duo, scale: 0.55, delay: 100, stagger: 60 }   # 5 each: small
+      # Each re-formed Ooze plays make_ooze's bud; make_ooze's bud also plays with the cast.
+
+  stab.slime:
+    beat: A thin jet of gel punches through the target and a thread of it sprays out behind them; the wound seeps at the end of each of the user's turns.
+    note: The hit cues are the direct 10-damage stab only. On oozing_cut's turn-end tick (5 Affliction), play neither; the trigger's seep and drip are the whole tick.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, tint: duo, scale: 0.5, note: "direct hit only (skip on the oozing_cut tick). Its ring sits at the canvas's left edge: put that edge on the target so the jet exits the far side" }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: duo, scale: 0.5, delay: 60, note: "direct hit only (skip on the oozing_cut tick)" }
+      - { on: trigger, status: oozing_cut, fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.45 }   # the wound seeps
+      - { on: trigger, status: oozing_cut, fx: burst_splatter_001, size: small, tint: duo, scale: 0.4, delay: 80 }   # and drips: the tick's 5 damage, no direction
+
+  ravage.slime:
+    beat: A huge mass of clay crashes down onto the target in a shockwave, bursts over them and blows out a ring of dust.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 1.1, note: "a short screen shake as it lands; its grey ground ring stays neutral (dust)" }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 150 }
+      - { on: hit, fx: symmetrical_smoke_burst_001, tint: element2, scale: 0.9, opacity: 0.8, delay: 220 }
+      # A Stunned target: Might's and Armor's defaults on the user.
+
+  mislead.slime:
+    beat: Unseen, a glistening haze of gel poses as the floor under the target; when they attack, the false floor bursts up around them like a mirage and an Ooze swallows them.
+    cues:
+      - { on: apply, status: gulp, fx: round_sparkle_burst_002, size: small, tint: duo, scale: 0.55, offset: [0, -0.3], opacity: 0.6 }   # owner only (hidden): a glistening haze at their feet
+      - { on: trigger, status: gulp, fx: round_sparkle_burst_002, tint: duo, scale: 0.85, offset: [0, -0.2], note: "the opponent's first sight: the glistening haze under them bursts up; it was never floor. Base's counter X follows; the owner sees the haze they planted spring" }
+      # engulf_new's lunge, Engulfed's gulp and make_ooze's bud (10 HP per energy their skill cost) follow.
+
+  stun.slime:
+    beat: The user's gel heaves up, a fat Ooze buds off and crashes down over the target, and they stagger inside it.
+    note: What lands is engulf_new's lunge, make_ooze's bud (30 HP) and Engulfed's gulp; this skill adds the heave and the stagger.
+    cues:
+      - { on: cast, fx: directional_impact_004, size: small, tint: duo, scale: 0.75 }
+      - { on: resolve, at: target, fx: symmetrical_impact_002, size: small, tint: element2, scale: 0.6, note: "the target's portrait staggers back a step inside the gel" }
+
+  dance.slime:
+    beat: Slick strands of gel whirl around the user in tilted rings, spinning into a sphere; at the end of each of their turns, their Debuffs slide off them.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.4, opacity: 0.85, layer: under, note: "its two tilted rings open past the frame like strands of gel spinning into a sphere around them" }
+      - { on: trigger, status: slick_shimmy, fx: directional_splatter_001, face: down, tint: duo, scale: 0.45, note: "fires every turn end: play it only when Debuffs come off (each one's own remove default follows)" }   # they slide off in a drip
+      # Might's and Swiftness's defaults on the user.
+
+  heal.slime:
+    beat: Clear water springs up under the ally and rises through them, and rain patters into a ring at every ally's feet.
+    cues:
+      - { on: heal, fx: directional_splatter_002, tint: element, tone: light, scale: 0.75 }   # a spring of clear water
+      - { on: heal, fx: spell_heal_002, size: small, tint: duo, tone: light, scale: 0.5, delay: 200 }
+      - { on: apply, status: irrigate, fx: spell_forge_001, tint: element, scale: 0.6, opacity: 0.85, stagger: 80, note: "re-tint its yellow spark streaks onto the ramp's light stop: drops, not sparks" }
+      - { on: trigger, status: irrigate, fx: directional_splatter_001, face: up, tint: element, scale: 0.4, note: "only when an allied Seedling or Boulder (an Earth ally's) is there to share it; the shared heals replay the heal cues on each" }
+
+  bless.slime:
+    beat: Warm silt sifts down onto the ally and swells into a fertile mound at their feet; each later heal sprouts Might.
+    cues:
+      - { on: travel, fx: directional_particle_burst_001, path: drop, size: small, tint: element2, tone: light, scale: 0.5 }   # silt motes sift down onto them
+      - { on: apply, status: fertile_silt, fx: directional_sparkle_burst_002, tint: element2, scale: 0.85, speed: 1.3 }
+      - { on: trigger, status: fertile_silt, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.4, note: "on each heal; it grants Might only while they hold under 2 (Might's default follows)" }
+      # Renew's default (2 stacks).
+
+  curse.slime:
+    beat: A gob of goo splats on the target's head and runs down over them; anyone who uses a skill on them comes away stuck too.
+    cues:
+      - { on: apply, status: flypaper, fx: slime_4, face: down, tint: duo, scale: 0.6, offset: [0, 0.45], note: "its origin (lower-left as drawn) over the head, so the spikes run down over them" }
+      - { on: trigger, status: flypaper, fx: burst_splatter_003, at: source, size: small, tint: duo, scale: 0.45 }   # a strand splats onto whoever touched them; Confusion's default follows
+      # Confusion's default (2 stacks) on the target.
+
+  smite.slime:
+    beat: A clod of wet silt drops out of the sky onto the target and splashes, and the silt settles in a ring around them that pins any Stun.
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: duo, scale: 0.95, note: "its bottom at their feet; its grey smoke curls stay neutral (dust)" }
+      - { on: apply, status: settling_silt, fx: symmetrical_smoke_burst_002, tint: element2, scale: 1.3, opacity: 0.75, layer: under, delay: 250 }   # the ring shows around the portrait
+
+  prayer.slime:
+    beat: Bubbles of clear water burst over every ally and close into gel mantles; then each Ooze slumps into a puddle and its gel flows into them.
+    note: Each melted Ooze adds 10 to every ally character's Shield through boostShields, which raises no event. The second death cue carries it, bound to the deaths, which happen exactly as often as the boost.
+    cues:
+      - { on: heal, fx: round_bubble_burst_001, tint: element, tone: light, scale: 0.75, stagger: 90 }
+      - { on: death, fx: directional_impact_002, size: small, tint: duo, scale: 0.7, stagger: 80 }   # each Ooze slumps into a puddle
+      - { on: death, at: allies, fx: spell_absorb_001, size: small, tint: duo, scale: 0.45, speed: 1.6, delay: 250, stagger: 60, note: "ally characters only, not minions: each melted Ooze's gel flows into every ally's Shield (+10 each), so it plays once per melted Ooze" }
+      # Shield's default on each ally character (its bubble reads as the mantle).
+
+  cleave.slime:
+    beat: Strands of mud sweep up and wrap over the target, leaving them coated in gel that can split off onto one of their allies.
+    cues:
+      - { on: hit, only: primary, fx: paladin_8, face: fromActor, tint: duo, scale: 0.95, note: "its bands curl up from the bottom and wrap over the top: the coat clinging on" }
+      - { on: hit, only: primary, fx: directional_splatter_004, size: small, face: fromActor, tint: duo, scale: 0.5, delay: 100 }
+      # Gel Coat's default lands just before the blow; if the sweep leaves them at 10+ HP (most casts), its trigger
+      # default carries the hop inside this skill: the ally's 15 shows only that splat and the new coat's apply.
+
+  shout.slime:
+    beat: The user slaps the ground and a ring of mud rolls out; under each enemy the mire closes in and gel rises around them.
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: duo, scale: 1.3 }
+      - { on: apply, status: quagmire, fx: dark_mage_3, tint: duo, scale: 0.9, stagger: 70, note: "its ground ring tightens around their feet, then the columns rise: held in the mire" }
+      - { on: trigger, status: quagmire, fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.75 }   # struck: they tear free and the dried mud crumbles off
+
+  withstand.slime:
+    beat: A wobbling wall of jelly swells up behind the user; at the end of each of their turns a slab of it sloughs off.
+    cues:
+      - { on: apply, status: quivering_wall, fx: symmetrical_explosion_003, tint: duo, scale: 1.4, opacity: 0.7, layer: under, frames: [1, 5], note: "only the disc holding its lumpy mass: hold the last frame a beat and fade before it bursts" }
+      - { on: trigger, status: quivering_wall, fx: burst_splatter_003, size: small, tint: duo, scale: 0.4, offset: [0, 0.2], note: "each of their turn ends: it loses 10, or ends at 10 or less; base's shieldBreak covers a wall broken by damage" }
+
+  taunt.slime:
+    beat: A gob of bait is lobbed onto the target and a new Ooze calls them to it; if the Ooze is still there when the Taunt ends, the bait reels them in and it swallows them.
+    cues:
+      - { on: travel, fx: slime_3, path: arc, tint: duo, scale: 0.5, frames: [0, 7], note: "cut before its own splat: the bait's burst is the landing" }
+      - { on: apply, status: sticky_bait, fx: directional_splatter_002, size: small, tint: duo, scale: 0.6, offset: [0, 0.3] }   # the bait bursts over them; Taunt's '!' follows
+      - { on: trigger, status: sticky_bait, fx: slime_5, tint: duo, scale: 0.8, speed: 1.5, note: "fires as it runs out, only while the Ooze lives: the bait reels them in; Engulfed's gulp follows" }
+      # make_ooze's bud (30 HP) first.
+
+  titan.slime:
+    beat: Mud erupts around the user and they swell into a giant, outlined by a rim of gel; every blow that lands splits a chunk off them that crawls away as an Ooze.
+    cues:
+      - { on: cast, fx: epic_explosion_003, tint: duo, scale: 1.6, note: "a brief screen shake as it erupts. Tint from the blue (or violet) variant: its smoke is slate #30324d/#54577f/#8398af and sits with duo's navy; the other variants' smoke is olive (Poison)" }
+      - { on: apply, status: gelatinous_giant, fx: blood_knight_5, tint: duo, scale: 1.9, speed: 1.2, delay: 200, layer: under, note: "the portrait swells about 15% and stays swollen while it lasts. The opaque portrait hides the oval's fanged interior (it shares the gulp's frames): only the swelling rim shows past the frame, all round, as the giant's outline, then dissolves bottom-up" }
+      - { on: trigger, status: gelatinous_giant, fx: directional_splatter_005, tint: duo, scale: 0.7, note: "the split, on the user. Play only when it splits (20+ HP left and fewer than 4 allied Oozes: make_ooze's bud and the quarter-HP self-damage follow); any other hit gets no art" }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.5 }   # the split's self-damage (a quarter of their HP): a chunk tears off
+
+  ooze_slap:
+    beat: The Ooze slaps the target with a wet crescent of itself.
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 0.5, note: "its splat star lands ~70% across the canvas: shift it back so the star breaks on the target" }
+
+  great_ooze_swallow:
+    beat: The Great Ooze rears up and its gel rises and closes over the target, larger than any Ooze's.
+    cues:
+      - { on: cast, fx: directional_splatter_002, tint: duo, scale: 0.7 }   # it rears up
+      - { on: apply, status: engulfed, fx: necromancer_8, tint: duo, scale: 1.3, frames: [0, 6], note: "the gulp turned up for the Great Ooze (this replaces Engulfed's default here): hold the closed frame a beat, then fade into the aura" }
+
+  slime_mother_gloop:
+    beat: The Slime Mother lobs a glob that splatters over the target.
+    cues:
+      - { on: travel, fx: directional_splatter_003, path: arc, tint: duo, scale: 0.5 }
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.55 }

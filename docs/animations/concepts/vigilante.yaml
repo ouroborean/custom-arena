@@ -1,0 +1,301 @@
+# Vigilante (Holy + Shadow) animation concepts. Spec: docs/animations/README.md; brief: briefs/vigilante.md.
+# Vigilante works the streets at night: it hides in Shadow's dark and turns Holy's light on whoever it hunts.
+# Three materials carry the kit:
+#   gold light       Holy's palette (`element`, the default on palette art): flares, beams, glints, the badge.
+#   black ink/smoke  Shadow's drawn `black`/`gray` variants, or `element2`: the dark the user moves through,
+#                    and the cover torn off a target.
+#   gold-rimmed slate  class art tinted `duo` (Holy's dark-gold outline round a Shadow-slate body with pale
+#                    highlights): the user's own blows, the coat, the hound.
+# Signature: the Spotlight. round_light_burst_001 in gold is light finding someone in the dark. Exposed lands
+# as a pool of it flaring at the bearer's feet under a gold '!!'. The same flare is Searchlight's beam,
+# Floodlight's lamp, the hunter's eyes, the rooftop scope's glint and the Nightwarden's sweep, and it stays
+# off anything else, so a unit lit by it reads as found (Holy's Condemned also flares it as it fires).
+# Exposed going out is the opposite: a disc of light eaten by a crescent of shadow.
+# The badge: round_sparkle_burst_003, four glints closing on one gold star (Full Sentence, the Nightwarden).
+# Not frost_knight_6: that snowflake is Ice's Chilled.
+# Portraits are opaque squares, so `layer: under` cues are scaled past the frame or they wouldn't show.
+group: vigilante
+
+statuses:
+  exposed:
+    note: >-
+      No aura: Floodlight and Hue and Cry put it on the whole enemy side at once, and the status icon carries it.
+      Its own trigger fires as it lands: any Stealth, Invulnerable or Untargetable it strips plays that status's
+      remove default. It also reveals every Invisible effect the bearer owns, and those appear on whichever unit
+      holds them, often the Vigilante's own units (a Trap or counter the bearer planted there). For each
+      effectRevealed this trigger causes, play round_sparkle_burst_001 (size small, scale 0.4, offset [0, 0.55],
+      tint element) on the unit holding the revealed effect, so the icon appearing there reads as found. No plain
+      trigger cue at the bearer: it would fire on every Exposed apply and double the apply default.
+    apply:
+      - { fx: round_light_burst_001, tone: light, scale: 1.2, layer: under, offset: [0, -0.4], note: "the spotlight snaps on: a flat pool of light flares out just past both sides of the portrait at the bearer's feet (about 2.1 portraits wide, kept clear of the status chips and of the next unit's flare when a whole side is Exposed at once)" }
+      - { fx: symbol_alert_002, size: small, scale: 0.4, offset: [0, 0.6], delay: 100, speed: 1.5, note: "caught: ends on a held glyph, so fade it out" }
+    # the light goes out: a disc of gold eaten by a crescent of shadow
+    remove: [ { fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.5, offset: [0, 0.45], opacity: 0.85 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, tone: dark, size: small, scale: 0.45, offset: [0, -0.35], opacity: 0.6 } ]   # the pool dims to a gold haze at the feet
+  informant_watch:
+    note: Applied by the Informant to itself as it arrives (the summon cue covers that), so no apply.
+    trigger:
+      - { fx: round_sparkle_burst_001, size: small, scale: 0.45, offset: [0, 0.3], note: "the Informant flinches and sings out; Exposed's default follows on whoever hit it (source)" }
+  patrol_watch:
+    note: Night Patrol's watch on every enemy. No expire cue; the status icon going is enough.
+    apply: [ { fx: frost_knight_7, tint: duo, scale: 0.5, opacity: 0.75, repeat: 2 } ]   # a reticle ring snaps round each enemy twice, locking on: they're on the patrol's beat (5 frames, so one pass is a blink)
+    trigger:
+      - { fx: frost_knight_7, tint: duo, scale: 0.4, opacity: 0.8, repeat: 2, note: "only when it notes a Harmful skill (the counter it sets has no event of its own): the reticle pings twice, so both players see who Night Patrol punishes at the user's turn end" }
+  setup_watch:
+    note: >-
+      Applied with Condemned when Setup springs; that skill's own trigger cue is the moment, so no apply.
+      Not scifi_spark_burst_002 for the glints: that is Lightning's Sapped.
+    trigger:
+      - { fx: stylized_explosion_004, tint: duo, size: small, scale: 0.6, frames: [0, 9], speed: 1.5, note: "only when the branch runs (the Buff came from the bearer's own side): Setup's planted glints twinkle on the bearer again, the same glint phase Setup's apply plays, cut before the flash dome opens at frame 11; Exposed's default lands on the ally who gave the Buff (source)" }
+  swept:
+    note: No skill applies it any more (kept for the icon manifest); its default is here in case one does.
+    trigger:
+      - { fx: directional_smoke_burst_003, tint: element2, tone: light, size: small, scale: 0.5, offset: [0, 0.3], note: "a gust of grit swept across the eyes; Blinded's default follows" }
+
+macros: {}   # Vigilante owns no macros
+
+skills:
+  strike.vigilante:
+    beat: Two quick gold-rimmed blows cross through the target and strike sparks; a target who hit the user last is caught in the spotlight first.
+    note: The 30-damage branch reads through Exposed's default landing just before the blows.
+    cues:
+      - { on: hit, fx: warrior_1, tint: duo, face: fromActor, scale: 0.85 }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.45, delay: 150 }
+
+  smash.vigilante:
+    beat: A spiked nightstick swings down on the target; a ring of shadow cinches round every other enemy carrying a Buff, and each takes the crack too.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, tint: duo, face: fromActor, scale: 1.15, frames: [6, 13], offset: [-0.85, 0.3], note: "skips all six static wind-up frames, so the swing starts at once and connects about 100 ms in, as the impact ring below fires. The mace head crashes at about 90% across, 75% down the 256x128 canvas; the offset is pre-mirror (its x flips with the art when fromActor mirrors it), putting that crash on the target" }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, size: small, scale: 0.7, delay: 150 }
+      - { on: hit, only: others, fx: dark_mage_2, tint: duo, scale: 0.75, frames: [0, 10], stagger: 90 }   # rounded up; the last frame jumps to red, so it's cut
+      - { on: hit, only: others, fx: symmetrical_impact_004, size: small, scale: 0.5, delay: 180, stagger: 90 }
+
+  charge.vigilante:
+    beat: The user streaks across the board behind a slate blade and crashes into the target.
+    note: >-
+      From Stealth, Exposed's default lands on the target before the crash and Stealth's remove plays on the user as
+      the ambush reveals them; otherwise Stealth's smoke closes over the user after it.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, scale: 0.7, note: "the portrait lunges toward the target" }
+      - { on: hit, fx: warrior_6, tint: duo, face: fromActor, scale: 0.75 }
+
+  riposte.vigilante:
+    beat: Watching orbs circle the user's allies; the first enemy to strike at one is cut down by the user and caught in the spotlight.
+    cues:
+      - { on: apply, status: caught_red_handed, fx: frost_mage_1, tint: duo, scale: 0.6, opacity: 0.6, frames: [0, 12], note: "owner only (Invisible); the dim ghost ring at the end is cut" }
+      - { on: trigger, status: caught_red_handed, fx: frost_knight_4, at: source, tint: duo, face: fromActor, scale: 0.8, delay: 100 }   # one big crescent cut from the user's side, breaking into shards (not an uppercut: that is Chokehold's)
+      # Then the counter default and Exposed's default on the attacker: Exposed's flare is the flashbulb. The watch
+      # leaving the other allies is silent (hidden).
+
+  rage.vigilante:
+    beat: A nova of gold-rimmed shadow bursts off the user and their eyes flash gold in the dark; every blow of the hunt flashes them again.
+    cues:
+      - { on: cast, fx: blood_knight_6, tint: duo, scale: 1.2 }
+      - { on: cast, fx: round_light_burst_001, tone: light, size: small, scale: 0.5, offset: [0, 0.3], delay: 250, note: "the eyes: a narrow flare across the face" }
+      - { on: trigger, status: the_hunt_begins, fx: round_light_burst_001, size: small, scale: 0.35, offset: [0, 0.3], speed: 1.5, opacity: 0.8, note: "each enemy the user damages; Exposed's default then lands on that enemy. Fires often for 3 turns, so it stays a glint" }
+      # Might's default follows on the user.
+
+  shot.vigilante:
+    beat: A searchlight beam swings out to a random enemy, hidden or not, and a star of light bursts where it lands.
+    note: The Shot's projectile is the beam itself. A Stealthed enemy it finds plays Stealth's remove and Exposed's default before the burst.
+    cues:
+      - { on: travel, fx: round_light_burst_001, path: beam, tone: light, size: small, scale: 0.5, speed: 1.4, note: "stretched from the user to the enemy it found: there and gone. Searchlight targets self, so skillUsed lists only the user: resolve `to` as the enemy the skill reaches, the first unit other than the user to get its Exposed apply or its damage, and play the beam just before that. If the renderer can't, skip the beam rather than play it user to user; the starburst still lands on the found enemy" }
+      - { on: hit, fx: starcaller_1, tint: duo, face: fromActor, scale: 0.5 }
+
+  snipe.vigilante:
+    beat: The user rises into black smoke on the rooftops with a glint of a scope; next turn a gold-headed round drops out of the sky onto the hidden target.
+    note: >-
+      HiddenTarget: nothing travels, and nothing on the user points anywhere. On the 60-damage branch Exposed's
+      default lands first; scale both hit cues up by about a third.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, variant: black, scale: 0.9, opacity: 0.85 }
+      - { on: cast, fx: round_light_burst_001, size: small, scale: 0.3, offset: [0.2, 0.3], delay: 300 }   # the scope glints
+      - { on: trigger, status: rooftop_watch, fx: round_sparkle_burst_001, size: small, scale: 0.35, offset: [0, 0.55], note: "owner only: the watch is hidden and this glint points at the hidden target. Play it only when rooftop_watch's stacks rise (the target gained Stealth or used an Invisible skill, so the shot will hit for 60). That needs a stack-change signal, since addStacksSelf emits no event; never play it on a run that adds no stack (its skillUsed trigger runs on every skill the target uses). Both its triggers must also be `silent` in the skill source, as zealot's martyrs_spear is: otherwise the engine reveals the watch, and with it the target, to the opponent the first time it runs" }
+      - { on: trigger, status: from_the_rooftops, fx: symmetrical_explosion_002, size: small, scale: 0.5, offset: [0.15, 0.3] }   # the rifle cracks on the rooftop
+      - { on: hit, fx: starcaller_2, tint: duo, face: down, scale: 1.1, speed: 1.4, note: "the round falls straight down onto the target" }
+      - { on: hit, fx: burst_splatter_002, variant: black, scale: 0.8, delay: 150 }
+
+  trap.vigilante:
+    beat: A faint gold seal traces itself over the enemy; when they try to slip away unseen, it blazes up and shuts the skill down.
+    cues:
+      - { on: apply, status: sting_operation, fx: deathbringer_2, tint: duo, scale: 0.55, opacity: 0.5, frames: [0, 9], note: "owner only (Invisible): the seal half-forms and fades" }
+      - { on: trigger, status: sting_operation, fx: deathbringer_2, tint: duo, scale: 0.85, frames: [5, 17], speed: 1.6, note: "the sting springs: cut on the white flash (frame 17); the later frames melt into a solid blob" }
+      # The counter default and Exposed's default follow.
+
+  maneuver.vigilante:
+    beat: The user drops a smoke bomb and a lane of gold-trimmed shadow opens to the ally, and both close up out of reach.
+    note: Invulnerable's default lands on both, and Safe Passage shows only as its icon.
+    cues:
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: element2, tone: light, size: small, scale: 0.8 }
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, scale: 0.6, opacity: 0.85, note: "held from the user to the ally while both shells close; none if the user targets themself" }
+
+  companion.vigilante:
+    beat: The Bloodhound pounces into its slot in a dive of slate-and-gold claw streaks and kicks up dust.
+    cues:
+      - { on: summon, fx: warrior_5, tint: duo, face: fromActor, scale: 0.9 }
+      - { on: summon, fx: directional_impact_002, variant: gray, size: small, scale: 0.6, layer: under, delay: 200 }
+
+  bolt.vigilante:
+    beat: A gold-tipped bolt trailing a long tail of smoke streaks into the target and bursts, and the smoke settles over the weakest ally as cover.
+    cues:
+      - { on: travel, fx: deathbringer_6, tint: duo, scale: 0.6 }
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, scale: 0.8 }   # a star flash into a disc, then a spiked ring. Not stylized_explosion_001: that is Fire's explode macro
+      # Stealth's default plays on the covered ally.
+
+  blast.vigilante:
+    beat: A floodlight snaps on in the user's hands, columns of light blaze up under every enemy, and the shadows they hid in burst apart.
+    note: Enemies with Stealth or Invulnerable show those statuses' remove defaults and Exposed's default first, and take 10 more.
+    cues:
+      - { on: cast, fx: round_light_burst_001, tone: light, scale: 1.1 }
+      - { on: hit, fx: dark_mage_3, tint: element, tone: light, scale: 1.1, stagger: 70 }
+      - { on: hit, fx: burst_splatter_003, variant: black, scale: 0.7, delay: 180, stagger: 70 }
+
+  consume.vigilante:
+    beat: A rough shove, and the target's Buff is shaken out of them in a spray of gold coins; with nothing to take, the user pockets some health instead.
+    cues:
+      - { on: hit, fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.55 }
+      - { on: remove, status: buff, fx: directional_coin_burst_001, scale: 0.75, speed: 1.6, note: "the stolen Buff shaken out of the target (stealRandom's effectRemoved)" }
+      - { on: apply, status: buff, fx: directional_coin_burst_001, size: small, scale: 0.45, speed: 1.6, delay: 150, note: "the haul lands on the user, bearer of the re-applied stolen Buff (stealRandom's effectApplied); it shows even for a stolen inline Buff with no default of its own, and adds to a named Buff's own default" }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6 }
+
+  summon.vigilante:
+    beat: A curl of black smoke rises and the Informant steps out of it, a match flaring at its face.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_004, variant: black, scale: 1.0 }
+      - { on: summon, fx: round_firework_burst_001, size: small, scale: 0.3, offset: [0.15, 0.3], delay: 300 }   # the match
+
+  channel.vigilante:
+    beat: The patrol's lamp sweeps once round the user; at each of their turn ends it sweeps again and a slate streak cracks across every enemy who acted against them.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, scale: 0.6, note: "once, not looped: its needle sweeps round like a lamp" }
+      # patrol_watch's reticle lands on every enemy.
+      - { on: trigger, status: night_patrol, fx: scifi_charge_up_001, size: small, scale: 0.5, speed: 1.5 }
+      - { on: hit, fx: starcaller_7, tint: duo, face: fromActor, scale: 0.65, stagger: 80 }   # Exposed's default lands just before each
+
+  stab.vigilante:
+    beat: Unseen, a mark is set on the enemy; at the end of the user's next turn a silenced shot flicks through them and ink sprays out the far side.
+    cues:
+      - { on: apply, status: quiet_verdict, fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.4, offset: [0, 0.3], opacity: 0.7, note: "owner only (Invisible)" }
+      - { on: trigger, status: quiet_verdict, fx: scifi_muzzle_flash_001, face: fromActor, size: small, scale: 0.5 }
+      - { on: hit, fx: directional_splatter_003, variant: black, face: fromActor, scale: 0.6, note: "its origin is the canvas's lower-left corner: anchor that corner on the target. The 25-damage branch (at or below 60 HP): scale 0.8" }
+
+  ravage.vigilante:
+    beat: The user crashes into the target in a burst of slate spikes and a heavy flash; an Exposed target is driven to the floor as the spotlight goes out.
+    cues:
+      - { on: hit, fx: blood_knight_3, tint: duo, face: fromActor, scale: 1.05 }
+      - { on: hit, fx: symmetrical_impact_003, scale: 0.7, delay: 150 }
+      - { on: remove, status: exposed, fx: warrior_5, tint: duo, face: fromActor, scale: 0.95, note: "replaces Exposed's remove here: the takedown slams them down; Stun's default follows" }
+
+  mislead.vigilante:
+    beat: Gold glints are quietly planted on the enemy; when they attack, the frame-up goes off, the skill fails, and they're Condemned.
+    cues:
+      - { on: apply, status: setup, fx: stylized_explosion_004, tint: duo, size: small, scale: 0.6, opacity: 0.75, frames: [0, 9], speed: 1.5, note: "owner only (Invisible). Only the detonation's glint phase: cut before the flash dome opens at frame 11, so the trigger below reads as the same charge going off" }
+      - { on: trigger, status: setup, fx: stylized_explosion_004, tint: duo, scale: 0.85, frames: [8, 22], speed: 1.5, note: "the planted glints twinkle, then the gold-rimmed flash; the counter default and Condemned's default follow" }
+
+  stun.vigilante:
+    beat: A gold-rimmed arm hooks round the target's neck and squeezes; they slump asleep, or lock rigid if they were Exposed.
+    cues:
+      - { on: hit, fx: paladin_9, tint: duo, face: fromActor, scale: 0.75, offset: [0, 0.2], note: "the portrait jolts, then sags under Sleep or stiffens under Stun" }
+      - { on: hit, fx: burst_splatter_001, variant: black, size: small, scale: 0.5, offset: [0, 0.3], delay: 120 }
+      # Sleep's or Stun's default follows.
+
+  dance.vigilante:
+    beat: The user's coat whirls out into two spinning slate-and-gold rings and they vanish into smoke; while hidden, their hits on Exposed enemies nick out of the dark.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.3, layer: under, note: "past the frame: the coat's two rings, one tilted and one flat, spin out round the portrait like a gyroscope (not Withstand's sweeping bands)" }
+      # Stealth's and Swiftness's defaults follow.
+      - { on: trigger, status: mask_on, fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.35, offset: [0, 0.3] }   # a glint off the mask
+      - { on: hit, fx: directional_splatter_001, tint: element2, face: fromActor, size: small, scale: 0.6, delay: 80, note: "the 10 extra, on the Exposed enemy" }
+
+  heal.vigilante:
+    beat: A flashbulb pops on the culprit the witness names, and the light they're made to give back rises through the ally.
+    cues:
+      - { on: hit, fx: scifi_warp_001, tone: light, size: small, scale: 0.6 }   # on the last enemy to hurt the ally: a white slit pops open into a flash, caught on camera. Not the spotlight: they're neither Exposed nor Condemned
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, tone: light, scale: 1.0, note: "scale with the amount: 10 plus what the culprit took, or 15" }
+
+  bless.vigilante:
+    beat: Embers of gold-rimmed shadow drift down around the ally unseen; the first blow on them brings the watcher diving out of the dark.
+    cues:
+      - { on: apply, status: watcher_in_the_dark, fx: round_firework_burst_001, tint: duo, scale: 0.7, offset: [0, 0.45], opacity: 0.8, note: "owner only (Invisible): the trails droop down around the ally" }
+      - { on: trigger, status: watcher_in_the_dark, fx: paladin_6, tint: duo, face: fromActor, scale: 0.85, note: "dives in from the user's side; Shield's and Might's defaults follow" }
+
+  curse.vigilante:
+    beat: The spotlight finds the enemy, a dark token drops onto them and breaks into smoke, and a gold bounty crown hangs beside their head.
+    cues:
+      - { on: apply, status: most_wanted, fx: frost_mage_5, tint: element2, tone: light, scale: 0.85 }
+      - { on: apply, status: most_wanted, fx: symbol_crown_001, size: small, scale: 0.4, offset: [0.4, 0.55], delay: 300, note: "beside the head, clear of Exposed's '!!'; it shatters to pixels on its own" }
+      - { on: trigger, status: most_wanted, fx: round_firework_burst_001, size: small, scale: 0.45, offset: [0.4, 0.55], note: "bounty claimed by the first of the user's side to hit them; Stealth's default follows on that ally" }
+
+  smite.vigilante:
+    beat: A slate claw of judgment arcs over and crashes down on the target; for the next two turns a gold badge flares over them each time they lash out, and light mends whoever they hit.
+    cues:
+      - { on: hit, fx: frost_knight_10, tint: duo, face: fromActor, scale: 0.8, offset: [-0.4, 0.2], note: "its crash lands at about 80% across, 75% down the 192x128 canvas (frames 5-7); the offset is pre-mirror (its x flips with the art when fromActor mirrors it), putting that crash on the target" }
+      - { on: hit, fx: symmetrical_impact_002, size: small, scale: 0.5, delay: 250 }   # as the claw crashes down (frame 5)
+      - { on: apply, status: full_sentence, fx: round_sparkle_burst_003, tint: element, size: small, scale: 0.45, offset: [0, 0.5], frames: [4, 12], delay: 300 }   # sentenced: four glints close on one gold star over them and it pops into a ring, a badge pinned on
+      - { on: trigger, status: full_sentence, fx: round_sparkle_burst_003, tint: element, size: small, scale: 0.4, offset: [0, 0.5], frames: [6, 14], speed: 1.5, note: "the badge flares again after each Harmful skill they finish (straight from the star into its ring); a countered skill fires nothing" }
+      - { on: heal, fx: directional_particle_burst_001, tone: light, size: small, scale: 0.5, stagger: 60 }
+
+  prayer.vigilante:
+    beat: Dawn breaks behind the user's team and light rises through every ally; the Anointed burn off their Debuffs in it.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, at: allySide, tone: light, scale: 3.2, layer: under, opacity: 0.8, note: "laid along the ally column: dawn embers rise behind every portrait (points-up art, so its motion runs the length of a vertical side). Not a horizontal flare: that only ever lies across the middle ally, and a gold flare under a unit is Exposed's" }
+      - { on: heal, fx: directional_particle_burst_002, tone: light, scale: 0.9, opacity: 0.85, stagger: 80 }
+      - { on: remove, status: debuff, fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.45, stagger: 60 }
+      # Shield's default on every ally; Anointed's own remove where it was spent.
+
+  cleave.vigilante:
+    beat: A low slate crescent sweeps along the ground through the target and on through every other Exposed enemy, kicking up street dust.
+    note: With nobody else Exposed, the random enemy it carries on to shows Exposed's default after its cut.
+    cues:
+      - { on: hit, only: primary, fx: necromancer_2, tint: duo, face: fromActor, scale: 0.85 }
+      - { on: hit, only: others, fx: necromancer_2, tint: duo, face: fromActor, scale: 0.65, delay: 150, stagger: 80 }
+      - { on: hit, fx: directional_smoke_burst_005, tint: element2, tone: light, face: fromActor, size: small, scale: 0.5, delay: 100, stagger: 80 }
+
+  shout.vigilante:
+    beat: A ring of gold-rimmed shadow bursts off the user as they raise the cry, it carries to every enemy, and the spotlight finds each of them, hidden or not.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.3 }
+      - { on: travel, fx: scifi_muzzle_flash_002, size: small, scale: 0.6, stagger: 60, note: "Stealthed enemies aren't among skillUsed's targets (they can't be targeted), but the skill reaches them too: give each the same travel, just before its Exposed lands" }
+      # Exposed's default on every enemy: the cry taken up.
+      - { on: trigger, status: hue_and_cry, fx: symmetrical_impact_002, tint: duo, size: small, scale: 0.45, speed: 1.5, note: "after their first Harmful skill resolves: a small echo of the cast ring as the cry goes up again; Condemned's warning triangle follows and carries the status. Not the '!!': that is Exposed's" }
+
+  withstand.vigilante:
+    beat: The user's coat sweeps up and round them in gold-trimmed bands and closes into a shield; Debuffs thrown at them glance off it in a flash.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.5, layer: under, note: "past the frame, so the bands sweep up round the portrait like a coat's collar" }
+      # Shield's default follows.
+      - { on: trigger, status: reinforced_trenchcoat, fx: symmetrical_impact_002, tint: duo, size: small, scale: 0.6, note: "only when a Debuff from an enemy is actually turned away (the user still holds Shield). The refused Debuff arrives as effectApplied plus effectRemoved (reason removed) on the bearer within this trigger: suppress that Debuff's apply and remove defaults and play this flash in their place, as base effectBlocked would, so it reads as refused, not landed and cleansed. The 10 Shield it costs (boostShields) has no event of its own" }
+
+  taunt.vigilante:
+    beat: The user flips a gold coin onto the target as bait; when the target bites, a decoy bursts where the user stood and the spotlight swings onto the attacker.
+    cues:
+      - { on: travel, fx: symmetrical_explosion_001, path: arc, size: small, scale: 0.3, note: "the disc and the crescent eating it read as a coin spinning edge-on" }
+      # Taunt's '!' lands on the target.
+      - { on: trigger, status: bait_and_switch, fx: round_sparkle_burst_002, at: actor, tint: duo, scale: 0.8, note: "only when the hit lands on the user (the branch runs: the Taunt comes off and the user gains Stealth). It triggers on every direct hit the bearer deals, so never on one that lands on anyone else (another of the user's allies, an AoE's other targets, a minion). The portrait blinks out under it; Stealth's default follows on the user and Exposed's on the attacker" }
+
+  titan.vigilante:
+    beat: The user's coat folds over them like a pair of dark wings and falls open on the Nightwarden, its badge flashing as a searchlight sweeps the whole board.
+    note: The board dims while the coat is closed. Armor's default follows on the user. Blows from enemies already Exposed are refused, and the base skillFailed/blocked defaults show that.
+    cues:
+      - { on: cast, fx: blood_knight_5, tint: duo, scale: 1.6 }   # its bat-shaped inner pattern is the point
+      - { on: cast, fx: round_light_burst_001, at: field, tone: light, scale: 3.0, delay: 450 }
+      - { on: cast, fx: round_sparkle_burst_003, tint: element, size: small, scale: 0.5, offset: [0, 0.05], frames: [2, 12], delay: 600 }   # the badge on the chest: four glints close on a gold star that pops into a ring (the kit's badge, as on Full Sentence)
+      - { on: trigger, status: nightwarden, fx: symmetrical_impact_004, tint: duo, size: small, scale: 0.6, note: "an enemy struck the warden; Exposed's default lands on that enemy" }
+
+  bloodhound_run_down:
+    beat: The hound's jaws rake through the target and knock ink out of them.
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: duo, face: fromActor, scale: 0.65 }
+      - { on: hit, fx: burst_splatter_001, variant: black, size: small, scale: 0.45, delay: 100 }
+
+  bloodhound_scent:
+    beat: The hound snorts toward its quarry and a gold thread of scent curls up off them.
+    note: A previous quarry plays Exposed's remove default as the old scent is dropped; the new one gets Exposed's default with the thread.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_003, tint: element2, tone: light, face: toTarget, size: small, scale: 0.4 }
+      - { on: apply, status: bloodhound_scent, fx: directional_smoke_burst_004, tone: light, scale: 0.6 }
+
+  informant_tip_off:
+    beat: A glint at the creator's ear as the Informant passes on a tip.
+    cues:
+      - { on: apply, status: tip_off, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.45, offset: [0.3, 0.35] }

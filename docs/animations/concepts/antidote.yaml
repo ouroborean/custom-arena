@@ -1,0 +1,323 @@
+group: antidote
+# Antidote (Poison + Holy) is venom made into medicine. Its material is `duo`: Poison's deep-green rims
+# around a Holy-gold body, gilded venom, the cure itself. Plain Poison (`element`, the palette default) is
+# the sickness: a dart's sting, venom fizzing up under an enemy. Holy (`element2`, `tone: light` for
+# white-gold) is the cleansing light. Class art is colorized to `duo` unless a cue says otherwise.
+# Signature motifs, used across the kit:
+#   the check — Inoculated is a gilded check mark ticked over the head (symbol_success_001): cleared.
+#               Nothing else in the kit uses the check.
+#   the purge — every Debuff Purged onto an enemy lands on them as a gilded seal that bares a skull and
+#               shatters (necromancer_7, `duo`): your sickness, theirs now. The three purge macros, Antivenom's
+#               sting, Countervenom, Draw the Venom, Holy Wash, False Symptom and Theriac Brand all use it.
+#   the draw  — a Debuff drawn out of an ally rises off them as gilded motes (directional_particle_burst_001,
+#               `duo`, `tone: light`), on top of that Debuff's own remove default.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  inoculated:
+    note: >-
+      No aura: Inoculated sits on much of the team, and its icon carries it. When it stops a Debuff, the
+      trigger plays and that Debuff's apply default must not (it never lands); Immunity's rings follow, and the
+      spent check needs no remove cue there (the trigger shows it).
+    apply:   [ { fx: symbol_success_001, size: small, tint: duo, scale: 0.4, speed: 2, frames: [0, 39] } ]   # a gilded check ticks over the head; cut before its scanline glitch
+    trigger:
+      - { fx: stylized_impact_001, size: small, tint: duo, tone: light, scale: 0.6 }   # the Debuff glances off two tilted rings
+      - { fx: necromancer_7, at: source, tint: duo, scale: 0.55, delay: 200, note: "only when the bearer holds Antivenom: the stopped Debuff is thrown back at whoever gave it (10 Affliction), the purge look" }
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, offset: [0, 0.6], opacity: 0.6 } ]   # cleansed or stolen: the check fades
+  immunity:
+    note: >-
+      Made by `immunize` against one status: an Inoculation stopping a Debuff, Vaccinate's Toxin, Healing
+      Liturgy, Neutralize's stopped Buff. No aura: the icon names what it blocks. The rings are the
+      effectBlocked default's art on purpose: this is the promise, that is the refusal.
+    apply:  [ { fx: spell_dispel_001, size: small, tint: duo, tone: light, scale: 0.55, speed: 1.5, frames: [3, 21] } ]   # skip its empty first frames
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, opacity: 0.5 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, opacity: 0.5 } ]
+  antivenom:
+    note: Only Antivenom (heal) applies it, beside Inoculated. Its sting plays in Inoculated's trigger, where the stopped Debuff's source is known.
+    apply:  [ { fx: directional_splatter_001, size: small, scale: 0.45, offset: [0.15, 0.1], delay: 250 } ]   # a bead of lime venom flicks up beside the check: the sting held ready
+    remove: [ { fx: directional_smoke_burst_004, size: small, scale: 0.35, opacity: 0.6 } ]
+  find_the_wound:
+    note: No aura. It only bites at or below 60 HP, where the bearer counts as Prey without gaining Prey, so the icon carries it.
+    apply:  [ { fx: starcaller_1, tint: duo, scale: 0.45, speed: 1.3 } ]   # a gilded burst ending on a lone twinkle: the weak spot found
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.35, opacity: 0.6 } ]
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.35, opacity: 0.6 } ]
+  shared_absolution:
+    note: >-
+      Lands on an enemy and each of their allies at once, for one enemy turn. Its trigger fires on every direct
+      hit on the bearer but acts only while they are Sanctified: play it only when heals follow (Sanctify's own
+      trigger default flares on the bearer first).
+    apply:   [ { fx: paladin_4, tint: duo, scale: 0.4, offset: [0, 0.55], opacity: 0.85 } ]   # three small gilded clouds over the head: one absolution shared three ways
+    trigger: [ { fx: spell_heal_003, at: target, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.6, stagger: 80, note: "target = each ally of the damager healed 15: this stands for those heals" } ]
+    remove:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, offset: [0, 0.55], opacity: 0.6 } ]
+    expire:  [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.4, offset: [0, 0.55], opacity: 0.6 } ]
+
+macros:
+  # The purge, for each enemy a Purge damages (10 Affliction per Debuff stack moved). The Debuff leaving the
+  # purging unit (`it`) plays its own remove default there; a macro takes no travel cue.
+  purge_one_to_primary:
+    - { fx: necromancer_7, tint: duo, scale: 0.6, speed: 1.3, note: "a gilded seal swells over them, bares its skull and shatters; grow it about 0.1 per stack past the first" }
+    - { fx: burst_splatter_003, size: small, scale: 0.45, delay: 250 }   # the venom spatters as it breaks
+  purge_one_to_random:
+    - { fx: necromancer_7, tint: duo, scale: 0.6, speed: 1.3, note: "as purge_one_to_primary" }
+    - { fx: burst_splatter_003, size: small, scale: 0.45, delay: 250 }
+  purge_all_to_random:
+    - { fx: necromancer_7, tint: duo, scale: 0.6, speed: 1.3, stagger: 200, note: "one seal per 10-damage Purge, each on its own random enemy; space repeats about 200 ms, so a unit hit twice cracks twice" }
+    - { fx: burst_splatter_003, size: small, scale: 0.45, delay: 250, stagger: 200 }
+
+skills:
+  strike.antidote:
+    beat: A gilded crescent cuts the target; any sickness the user carries is wrung out and cracks open on them.
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, tint: element2, tone: light, scale: 0.5, delay: 80 }   # light shards spray out past them
+      # With a Debuff to Purge, purge_one_to_primary's seal follows on the target.
+
+  smash.antidote:
+    beat: A gilded blast domes up under the target and spatters across their allies; three small gold clouds settle over each, one absolution shared.
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_003, tint: duo, scale: 1.1 }
+      - { on: hit, only: primary, fx: directional_impact_002, tint: duo, scale: 0.9, layer: under, delay: 60 }   # the shock rolls out along the ground past the frame
+      - { on: hit, only: others, fx: directional_splatter_002, tint: duo, scale: 0.6, delay: 150, stagger: 90 }
+      # Shared Absolution's default follows on each.
+
+  charge.antidote:
+    beat: The user surges in behind a gilded wave that crashes on the target; their Toxin quickens and ticks with every skill they use.
+    note: "Each Quickened tick (5 per Toxin) replays the hit on the bearer: play it there at about 0.6, after the trigger's bubbles."
+    cues:
+      - { on: travel, fx: blood_knight_1, path: straight, tint: duo, scale: 0.8, speed: 1.3, note: "moved, not stretched, so the claw streaks keep their shape; its built-in crash plays as it arrives on the target. The portrait lunges along it" }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.6 }
+      - { on: apply, status: quickened_venom, fx: fanfx_pain, tone: light, scale: 0.7, speed: 2, frames: [2, 30] }   # pins of venom prickle through them
+      - { on: trigger, status: quickened_venom, fx: status_poison_001, scale: 0.7, speed: 1.5, note: "only when they hold Toxin: Toxin's own bubbling tick, quicker, as it fires out of turn" }
+      # Toxin's skull lands with the hit.
+
+  riposte.antidote:
+    beat: A dose of tolerance is drawn in unseen; the first blow is turned aside by a thin gilded parry arc over the user and the check of Inoculation ticks over them.
+    cues:
+      - { on: cast, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, opacity: 0.7, speed: 1.6 }   # Invisible: owner only
+      - { on: trigger, status: acquired_tolerance, fx: paladin_9, tint: duo, tone: light, scale: 0.8, speed: 1.3 }   # the counter-slash, what the opponent sees; base's counter X and Inoculated's check follow
+
+  rage.antidote:
+    beat: Gilded spines bristle up round the user and a swarm of bright cells bursts out of them; every Debuff they carry falls silent.
+    note: When Immune Response runs out, the held Debuffs leave the user (their own remove defaults) and purge_all_to_random's seal cracks on each enemy they land on.
+    cues:
+      - { on: cast, fx: frost_knight_3, tint: duo, scale: 1.0, layer: under, note: "content sits in its bottom third: the spines rise at the user's feet and past the frame's sides" }
+      - { on: apply, status: immune_response, fx: round_bubble_burst_001, tint: duo, tone: light, scale: 0.9, delay: 150 }
+      # Might's default (2 stacks) follows.
+
+  shot.antidote:
+    beat: A gilded dart flies to the target and flicks a bead of venom out the far side; the user's most wounded ally is Inoculated.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, scale: 0.4, speed: 1.4 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, scale: 0.6 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.35 }
+      # Inoculated's check follows on the most wounded ally.
+
+  snipe.antidote:
+    beat: A slow dial turns over the user for three turns while the hidden target's every skill is counted; then a gilded shard drops onto them and bursts in venom.
+    note: >-
+      HiddenTarget: nothing points at or travels to the target before the hit. The shot fires when Long
+      Diagnosis runs out, with no trigger, so the hit cues carry it alone. 20 plus 15 per skill counted (max 65):
+      scale both hit cues from 1.0 at 20 to about 1.4 at 65, with a short shake from 50.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: duo, scale: 0.6, speed: 0.6 }   # radial, on the user only: its needle sweeps slowly, a dial counting down
+      - { on: trigger, status: diagnosis_chart, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.3, offset: [0, 0.6], opacity: 0.7, note: "owner only (the chart is hidden): a tick over them per skill counted, if the engine raises an event for this silent trigger" }
+      - { on: hit, fx: frost_mage_5, tint: duo }
+      - { on: hit, fx: burst_splatter_003, scale: 0.7, delay: 150 }
+
+  trap.antidote:
+    beat: Drops of dark venom settle into a ring at the enemy's feet unseen; the first Debuff they give the user's side never lands, a crown of gilded fangs snaps up under them, and it is Purged onto them.
+    cues:
+      - { on: apply, status: countervenom, fx: spell_forge_001, tone: dark, scale: 0.8, opacity: 0.85 }   # Invisible: owner only
+      - { on: trigger, status: countervenom, fx: directional_impact_003, tint: duo, scale: 0.8, note: "the stopped Debuff never lands: skip its apply and remove defaults on the ally, as Inoculated does" }   # the opponent's first sight of it: a sibling of base Trap's spring
+      - { on: remove, status: debuff, only: others, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.55 }   # the draw, on the ally it was meant for; only: others keeps it off Countervenom itself being used up
+      - { on: hit, fx: necromancer_7, tint: duo, scale: 0.55, delay: 150 }   # the purge: their own Debuff's 10 Affliction
+
+  maneuver.antidote:
+    beat: A screen of gilded tiles assembles round the user and seals them off; any enemy who strikes at it is marked as Prey.
+    cues:
+      - { on: cast, fx: fanfx_barrier, tint: duo, scale: 1.4, layer: under, opacity: 0.8, speed: 1.3, note: "an opaque panel: behind the portrait and past its frame, so the screen shows round the user" }
+      - { on: trigger, status: quarantine, fx: fanfx_barrier, size: small, tint: duo, tone: light, scale: 1.2, layer: under, speed: 2 }   # the screen flashes as it is touched; Prey's reticle locks onto the attacker
+      # Invulnerable's default follows on the user.
+
+  companion.antidote:
+    beat: A gilded rod drives down from above and plants itself, and a lime serpent coils up out of the splash as the Asclepian Serpent.
+    cues:
+      - { on: summon, fx: scifi_warp_003, tint: duo, scale: 1.1 }
+      - { on: summon, fx: slime_5, tint: element, scale: 0.6, opacity: 0.85, delay: 300, note: "the coil winds open as the serpent's portrait appears" }
+
+  bolt.antidote:
+    beat: A gilded orb streaks to the target and bursts in a spiky flash that opens into a double ring, a seal stamping shut; the next Buff they reach for chokes off.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.6, note: "cut it as the orb splats (its own smudge is low-contrast): the hit is the impact" }
+      - { on: hit, fx: symmetrical_impact_002, tint: duo, scale: 0.85 }
+      - { on: apply, status: neutralized, fx: directional_smoke_burst_004, size: small, scale: 0.45, opacity: 0.8, delay: 200 }   # a lime wisp clings to them
+      - { on: trigger, status: neutralized, fx: stylized_explosion_006, size: small, tint: duo, scale: 0.6 }   # the stopped Buff fizzles in gilded gas; Immunity's rings follow on them
+
+  blast.antidote:
+    beat: A gilded gust runs down the enemy column and venom fizzes up under each enemy; each ally then sheds a Debuff, and every Purge cracks a seal over the whole enemy side.
+    note: "Each Purge's hit (10 per stack, on every enemy) replays the fizz: play those at about 0.4. The gust plays once."
+    cues:
+      - { on: hit, fx: frost_knight_5, at: enemySide, face: down, tint: duo, scale: 2.2, opacity: 0.85, note: "once, with the first hit: laid along the enemy column, the gust runs down through every enemy portrait" }
+      - { on: hit, fx: directional_splatter_002, tint: duo, scale: 0.6, delay: 120, stagger: 70 }
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6, stagger: 100 }   # the draw, on each ally as its Debuff leaves
+      - { on: remove, status: debuff, fx: necromancer_7, at: enemies, tint: duo, scale: 0.5, delay: 150, stagger: 60 }   # the purge: each one reaches every enemy
+
+  consume.antidote:
+    beat: Venom spurts out of the target into the user; an ally's Toxin is drawn off them and cracks open on the target.
+    note: The Purge's hit (10 per Toxin stack) replays the spurt right after the seal.
+    cues:
+      - { on: hit, fx: slime_4, face: toActor, tint: element, scale: 0.5 }
+      - { on: heal, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 1.6, delay: 100 }   # drawn into the user, gilded
+      # These two replace Toxin's remove default for this skill: the draw on the ally, the purge on the target.
+      - { on: remove, status: toxin, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6 }
+      - { on: remove, status: toxin, fx: necromancer_7, at: target, tint: duo, scale: 0.6, delay: 150, note: "grow it about 0.1 per Toxin stack moved past the first" }
+
+  summon.antidote:
+    beat: A puff of gilded vapor blooms full of stars and the Apothecary steps out of it, flasks bubbling.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.9 }
+      - { on: summon, fx: round_bubble_burst_001, size: small, scale: 0.45, delay: 300 }
+
+  channel.antidote:
+    beat: Two gilded drops start circling the user; at each of their turn's ends the circle turns, venom bursts on every enemy, and one ally's sickness is drawn off.
+    cues:
+      - { on: apply, status: long_treatment, fx: frost_mage_1, tint: duo, scale: 0.9, frames: [0, 13] }   # its dim ghost-ring last frame cut
+      - { on: trigger, status: long_treatment, fx: frost_mage_1, tint: duo, scale: 0.6, speed: 1.5, frames: [0, 13] }
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.6, delay: 150, stagger: 70 }
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.55, delay: 250 }   # the draw; Inoculated's check follows on that ally
+
+  stab.antidote:
+    beat: A pinpoint of gilded light pricks the target and venom sprays from the puncture out the far side; the wound is found.
+    note: The 20-damage version (target at or below 60 HP) plays both hit cues about 1.25x larger.
+    cues:
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.6, note: "its origin is the canvas's lower-left corner: offset so that corner sits on the target and the spray runs on past them" }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, tone: light, scale: 0.35 }   # the needle's prick
+      # Found Wound's twinkle follows.
+
+  ravage.antidote:
+    beat: A heavy gilded crescent tears through the target, the shock shreds outward and a jet of venom punches out the far side; an Inoculated user burns the check into the blade first.
+    note: When the user spends Inoculated (40 damage), play the hit cues about 1.3x larger with a short shake. Otherwise Inoculated's check lands on the user after the hit.
+    cues:
+      - { on: hit, fx: warrior_4, face: fromActor, tint: duo }
+      - { on: hit, fx: symmetrical_impact_004, size: small, tint: duo, scale: 0.6, delay: 100 }
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, scale: 0.55, delay: 200 }   # Piercing: the jet punches through
+      - { on: remove, status: inoculated, fx: round_sparkle_burst_003, size: small, tint: duo, tone: light, scale: 0.55, frames: [6, 16], note: "on the user, before the hit: the check is drawn into the blade (replaces Inoculated's remove default)" }
+
+  mislead.antidote:
+    beat: A faint sham sickness bubbles on the target unseen; when they attack, the skill chokes off, and each of its targets throws a Debuff back onto them.
+    cues:
+      - { on: apply, status: false_symptom, fx: status_poison_001, tint: duo, scale: 0.6, opacity: 0.6 }   # Invisible: owner only. Toxin's bubbles, gilded: a symptom that isn't real
+      - { on: trigger, status: false_symptom, fx: round_sparkle_burst_002, tint: duo, scale: 0.75 }   # the opponent's first sight: their skill puffs out; base's counter X follows
+      - { on: remove, status: debuff, only: others, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.55, stagger: 100 }   # the draw, on each of their skill's targets; only: others keeps it off False Symptom itself being used up on the attacker
+      - { on: hit, fx: necromancer_7, tint: duo, scale: 0.55, stagger: 120 }   # the purge: 10 per stack, once per target that had one
+
+  stun.antidote:
+    beat: A dusky gilded vapor rolls over the target and then the user, and both slump into a sleep nothing can break.
+    cues:
+      - { on: apply, status: sleep, fx: directional_smoke_burst_001, tint: duo, tone: dark, scale: 0.9, opacity: 0.85, stagger: 200, note: "the target first, then the user; each portrait slumps as the vapor rises" }
+      # Sleep's default, re-added after the vapor (this skill's own apply cue replaces it). Invulnerable's follows on both.
+      - { on: apply, status: sleep, fx: spell_sleep_001, size: small, tint: duo, scale: 0.6, speed: 2, delay: 350, stagger: 200 }
+
+  dance.antidote:
+    beat: Gilded arcs whirl into a bright sphere round the user, a clean bill of health; at each of their turn's ends without a Debuff, a quick clean heartbeat traces over them as their cooldowns drop.
+    note: Might, Swiftness and Focus defaults follow; land them about 150 ms apart so the three icons don't stack.
+    cues:
+      - { on: cast, fx: frost_knight_9, tint: duo, tone: light, scale: 1.5, layer: under }   # past the frame on every side, so the whirl circles the portrait
+      - { on: trigger, status: clean_bill, fx: scifi_heartbeat_fast_001, tint: duo, tone: light, scale: 0.35, speed: 1.5, note: "only when it acts (no Debuffs): two sharp beats over the head, a clean bill of health, as cooldowns drop by 1. No clock: that would read as Swiftness or Slow" }
+
+  heal.antidote:
+    beat: A gilded draught wells up through the ally in rising plumes and crosses; the check of Inoculation ticks over them with a bead of antivenom ready.
+    cues:
+      - { on: heal, fx: directional_splatter_005, tint: duo, tone: light, scale: 0.8 }
+      - { on: heal, fx: spell_heal_002, tint: duo, scale: 0.8, speed: 1.6, delay: 100 }
+      # Antivenom's bead and Inoculated's check follow.
+
+  bless.antidote:
+    beat: A gilded star falls onto the ally and breaks into a tamed dose of Toxin that leaves them immune to more, with Might and Renew.
+    cues:
+      - { on: travel, fx: starcaller_2, path: drop, tint: duo, tone: light, scale: 0.6 }   # no impact of its own: the gilded skull below is the landing
+      - { on: apply, status: toxin, fx: stylized_skull_smoke_burst_001, size: small, tint: duo, scale: 0.5, offset: [0, 0.35], note: "Toxin's skull, gilded: the dose is the vaccine (replaces Toxin's default for this skill)" }
+      # Immunity's rings, then Might's and Renew's defaults follow.
+
+  curse.antidote:
+    beat: Confusion and Condemnation land, then a gilded skull cloud of guilt boils up over the enemy and rains on them; every skill they use, conscience turns thumbs-down and Condemns them again.
+    note: >-
+      The cloud hangs off Crisis of Conscience, applied once at cast, so a Confusion that Condemned rolls later
+      never brings it back; Confusion's and Condemned's own defaults play as usual. When Immune refuses
+      everything, Crisis of Conscience is refused too: no cloud, only the effectBlocked defaults.
+    cues:
+      - { on: apply, status: crisis_of_conscience, fx: spell_poison_001, tint: duo, tone: dark, scale: 0.9 }
+      - { on: trigger, status: crisis_of_conscience, fx: symbol_thumbs_down_001, size: small, tint: duo, scale: 0.4, speed: 2, frames: [0, 39], note: "after Condemned's own trigger flare; Condemned's warning then lands again. Cut before its scanline glitch" }
+
+  smite.antidote:
+    beat: A gilded comet dives onto the target and strikes a white star and a ring of gold into the ground under them, branding them; each ally who hits them while it burns throws a Debuff onto them, or is Inoculated.
+    note: "Each Purge the brand draws (10 per stack) replays the hit on the branded enemy: play the comet there at about 0.5, after the seal."
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, tint: duo, scale: 0.8 }   # ground art, so only mirrored: it dives in from the user's side
+      - { on: trigger, status: theriac_brand, fx: necromancer_7, tint: duo, scale: 0.55, note: "only when the striking ally Purges (they held a Debuff). With none, Inoculated's check lands on that ally and nothing plays here" }
+      - { on: remove, status: debuff, only: others, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.5 }   # the draw, on the striking ally; only: others keeps it off the brand itself ending on the target
+
+  prayer.antidote:
+    beat: Gilded stars and capsules rise behind the whole team and spikes of white-gold light shoot up through every ally; while the liturgy holds, any Debuff an enemy gives them flares into immunity for all.
+    cues:
+      - { on: cast, fx: directional_star_burst_001, at: allySide, tint: duo, tone: light, scale: 2.4, opacity: 0.8, layer: under }   # square and pointing up, so it covers the whole column; the capsules suit a medicine kit
+      - { on: heal, fx: directional_particle_burst_002, tint: duo, tone: light, scale: 1.0, stagger: 80 }   # a row of light spikes rising from a curved ground line at each ally's feet
+      - { on: trigger, status: healing_liturgy, fx: round_sparkle_burst_001, size: small, tint: duo, tone: light, scale: 0.5 }   # on the ally given the Debuff; Immunity's rings then follow on every ally
+      # Shield's default follows on each.
+
+  cleave.antidote:
+    beat: Twin gilded fangs cross on the target and snap at a second enemy; a Condemned one marks the other as Prey.
+    cues:
+      - { on: hit, only: primary, fx: warrior_1, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: warrior_1, face: fromActor, tint: duo, scale: 0.65, delay: 150 }   # the random second enemy: the bite carrying on
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, scale: 0.4, delay: 120 }   # venom off the fangs
+      # Prey's reticle follows on whichever one is marked.
+
+  shout.antidote:
+    beat: A sterilizing nova of gilded light bursts from the user; Debuffs lift off every ally as motes, and gusts of light cow every enemy.
+    cues:
+      - { on: cast, fx: dark_mage_4, tint: duo, tone: light, scale: 1.3 }
+      - { on: apply, status: debuff, fx: directional_smoke_burst_003, face: fromActor, size: small, tint: element2, tone: light, scale: 0.6, stagger: 70 }   # the gust reaches each enemy; Intimidated's eye follows
+      - { on: remove, status: debuff, fx: directional_particle_burst_001, tint: duo, tone: light, scale: 0.6, stagger: 80 }   # the draw, on each ally
+
+  withstand.antidote:
+    beat: Venom is wrung out of the user in goopy tendrils and every Debuff cracks open on the enemies; then a gilded bubble swells behind them, larger for each Debuff thrown off.
+    cues:
+      - { on: cast, fx: burst_splatter_002, tint: element, tone: dark, scale: 0.6 }   # the sickness wrung out of them
+      # purge_all_to_random's seal cracks on each enemy a Purge lands on.
+      - { on: apply, status: shield, fx: stylized_explosion_002, tint: duo, tone: light, scale: 1.2, opacity: 0.6, layer: under, note: "replaces Shield's default for this skill: the Shield is 20 plus 10 per Debuff Purged, so grow it about 0.1 per Debuff Purged" }
+
+  taunt.antidote:
+    beat: Soft gilded light blooms round the serene user and the target is called out; each blow the target lands on them only anoints them.
+    cues:
+      - { on: cast, fx: round_firework_burst_001, tint: duo, tone: light, scale: 0.7 }
+      # Taunt's '!' default carries the challenge onto the target.
+      - { on: trigger, status: other_cheek, fx: round_sparkle_burst_001, at: actor, size: small, tint: element2, tone: light, scale: 0.5 }   # light gathers on the struck user; Anointed's halo follows
+
+  titan.antidote:
+    beat: Gilded columns erupt round the user, twin forked bolts climb through them and a burst of gold orbs spreads out; the user is a living cure, Inoculated anew each turn.
+    note: The portrait swells about 15% with a brief screen brighten. Armor's default (2 stacks) shows on the user.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.8, layer: under, frames: [3, 12] }
+      - { on: cast, fx: lightning_strike_001, tint: duo, scale: 1.5, delay: 200 }   # two forks climb like serpents on a rod
+      - { on: cast, fx: round_firework_burst_002, tint: duo, tone: light, scale: 1.4, delay: 450 }
+      - { on: trigger, status: living_cure, fx: dark_mage_3, tint: duo, scale: 0.8, opacity: 0.8, frames: [3, 12], speed: 1.4 }   # turn start; Inoculated's check follows
+
+  serpent_cure:
+    beat: The serpent's tether reaches the ally and draws a Debuff up out of them; it cracks open on a random enemy.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, scale: 0.6, note: "native: its crimson pulse runs back toward the caster, the sickness drawn up the tether into the serpent" }
+      # purge_one_to_random's seal lands on the enemy it hits.
+
+  serpent_kiss:
+    beat: The serpent strikes with a quick gilded bite and leaves venom behind.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.55, speed: 1.3 }
+      # Toxin's skull follows.
+
+  apothecary_milk_venom:
+    beat: The Apothecary flings a flask of gilded venom that splashes on the target; if they carried Toxin, an ally is Inoculated with what was milked.
+    cues:
+      - { on: travel, fx: slime_3, tint: duo, scale: 0.45 }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.55 }
+      # Inoculated's check follows on the random ally.

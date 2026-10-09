@@ -1,0 +1,304 @@
+group: myth
+# Myth (Ice + Earth) is the saga of frost giants, told in rime-crusted stone. Three materials: frost is Frost
+# Knight / Frost Mage art left native, or palette art left untinted (palette art defaults to `element`, Ice);
+# dust and rubble are palette art tinted `element2` (Earth); Myth's own rime-stone is `duo`, sandy stone
+# outlined in ice-blue, on class and palette art alike.
+# Signature motif, the standing stone: frost_mage_3 in duo. Every Myth Boulder heaves up as a small rime-stone
+# (frost_mage_3, duo, about 0.7, over the new portrait), Turned to Stone crusts its target into one, and
+# becoming Mythic raises a towering one behind the hero. Smaller tells: each Legend kindles a star over the
+# head; runes are a four-pointed compass ring (frost_knight_7 in duo: Runic Ward, Frost Rune, Old Feud); the
+# skald's songs (Retold Saga, Song of the Saga) are music.
+
+statuses:
+  legend:
+    note: >-
+      One star per Legend gained (Saga's Legend for every Myth skill and kill, and the skills that add more),
+      so it stays small and quick; the stack count lives on the icon. No remove: Legend only leaves when
+      become_mythic spends it, and that macro's standing stone carries the moment. No aura.
+    apply:
+      - { fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.45, offset: [0, 0.7], frames: [5, 16], speed: 1.3, note: "skip the faint opening motes: they converge into one star over the head and pop. Two Legends at once play it twice, about 150 ms apart" }
+  mythic:
+    note: >-
+      No apply: Mythic only ever arrives through become_mythic, whose cues are the transformation. The aura
+      earns its place because every Myth skill changes while it holds, so the opponent should read it at a
+      glance. It stays behind the portrait: its glints are small and sparse across the whole canvas, so at
+      1.5x the outer band clears the portrait on every side and they ring the hero.
+    aura: { fx: status_sparkling_001, tint: duo, tone: light, scale: 1.5, opacity: 0.75, layer: under }   # rime glints twinkling around the hero
+    remove:
+      - { fx: symmetrical_impact_004, size: small, tint: duo, scale: 0.6 }   # cleansed or stolen: the stone mantle shatters
+    expire:
+      - { fx: directional_smoke_burst_002, size: small, tint: element2, scale: 0.6, opacity: 0.7 }   # ran out: the legend settles back into dust
+  saga:
+    note: >-
+      The fusion passive, on every Myth character. No cue of its own: on every Myth skill and every kill it
+      runs gain_legend (Legend's star, or become_mythic at 3), and when a Kinslayer's Doom bearer dies its
+      Confusion lands through Confusion's default on each enemy. A trigger that changes nothing shows nothing.
+    trigger: []
+
+macros:
+  # Legend's own apply default is the visual, once per Legend actually gained. While the unit is Mythic the
+  # macro does nothing, so it must show nothing; at 3 Legend, become_mythic plays.
+  gain_legend: []
+  become_mythic:   # on the unit becoming Mythic: Legend spent, +20 max HP, the 20 heal, Mythic applied
+    - { fx: frost_mage_3, tint: duo, scale: 1.5, layer: under, note: "a rime-crusted standing stone towers up behind the hero; it ends on its brightest frame: hold it a beat, then fade" }
+    - { fx: directional_impact_002, tint: element2, scale: 1.1, layer: under, delay: 100 }   # dust rolls out along the ground as it rises
+    - { fx: directional_sparkle_burst_003, tint: duo, tone: light, scale: 0.8, delay: 250 }   # frost-lit puffs rise into a halo over the head: the 20 heal and the crowning
+
+skills:
+  strike.myth:
+    beat: A giant's fist of rime-stone punches a shockwave through the target in a spray of frost chips.
+    note: "30 damage (the user has no allied minions) is the same single hit event: play warrior_6 about 1.2x larger."
+    cues:
+      - { on: hit, only: primary, fx: warrior_6, face: fromActor, tint: duo, scale: 0.9, note: "line its star impact (about 70% across as drawn) up on the target" }
+      - { on: hit, fx: symmetrical_impact_003, size: small, scale: 0.45, delay: 80 }   # Ice: ragged frost chips, on every enemy it hits
+      - { on: hit, only: others, fx: warrior_6, face: fromActor, tint: duo, scale: 0.65, delay: 120 }   # Mythic: the shockwave carries on into a random second enemy
+
+  smash.myth:
+    beat: The giant stomps and the ground erupts under the target in a column of rime and rubble, while ice cracks up under each of their allies.
+    note: "Each allied Boulder adds 5 to every hit (one event each): step the hit cues up about 0.1x per Boulder."
+    cues:
+      - { on: hit, only: primary, fx: epic_explosion_001, tint: duo, scale: 0.9 }
+      - { on: hit, only: others, fx: directional_impact_003, scale: 0.7, delay: 150, stagger: 80 }   # the 10-damage splash: an ice crown splashes up under each ally
+      - { on: hit, fx: directional_smoke_burst_002, tint: element2, scale: 0.6, opacity: 0.7, delay: 120, stagger: 80 }
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, stagger: 120, note: "Mythic: one Boulder per enemy hit, each a rime-stone heaving up; fade its held last frame as the Boulder portrait appears" }
+
+  charge.myth:
+    beat: The user stampedes in behind a front of snow and dust and slams into the target; a spent Boulder bursts to rubble, or a new one heaves up.
+    note: "With a Boulder's HP added (the same single hit, up to about 37), scale the hit cues up to about 1.3x."
+    cues:
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.8, note: "the user's portrait charges along behind the cloud front" }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.8 }
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, tint: element2, scale: 0.7, delay: 60, note: "its origin (the lower corner as drawn) on the target, the dust skidding on past them" }
+      - { on: death, fx: symmetrical_smoke_burst_001, tint: element2, scale: 0.6, note: "the Boulder spent into the hit bursts to rubble in its slot (also plays if the charge kills the target)" }
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, note: "no Boulder to spend: a new rime-stone heaves up; fade its held last frame" }
+
+  riposte.myth:
+    beat: A compass-rune of rime-stone rings the user unseen; struck, it bursts outward to turn the blow (or, Mythic, throw it back) and a Boulder heaves up beside them.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.4, speed: 0.6, opacity: 0.85, layer: under }   # Invisible: owner only. The compass points clear the portrait and hold about 0.4 s
+      - { on: trigger, status: runic_ward, fx: symmetrical_explosion_004, tint: duo, scale: 0.9 }   # base's counter default marks the stopped skill
+      - { on: trigger, status: runic_ward_mythic, fx: symmetrical_explosion_004, tint: duo, tone: light, scale: 1.1, note: "brighter and wider: the skill is thrown back, then plays its own cues on its user" }
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, delay: 150, note: "fade its held last frame" }
+
+  rage.myth:
+    beat: Pillars of rime-light shoot up from a ring around the user as the saga answers, two Legends kindle and a Boulder heaves up.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.2, frames: [3, 12] }   # skips the thin-ring wind-up so the pillars rise at once
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, note: "fade its held last frame" }
+      # Legend's star plays twice (or become_mythic takes over at 3); Immune's default follows on the user.
+
+  shot.myth:
+    beat: A rime-crusted stone is lobbed over and bursts into rubble; aimed at the user's own Boulder, the stone crumbles where it stands and its tale becomes Legend.
+    note: "Each Legend adds 5 (one hit event): step the burst up about 0.1x per Legend. On the Boulder branch skip the travel (nothing is thrown): the hit and death cues play on the Boulder, then Legend's star once per Legend gained."
+    cues:
+      - { on: travel, fx: warrior_9, path: arc, tint: duo, scale: 0.45, frames: [5, 5], repeat: 5, speed: 0.5 }   # one held frame, ~0.5 s: a round stone with its streak tail, no outline wind-up and no chevron burst (the hit is the impact)
+      - { on: hit, fx: symmetrical_impact_004, size: small, tint: element2, scale: 0.6 }
+      - { on: death, fx: directional_smoke_burst_002, tint: element2, scale: 0.7, opacity: 0.85 }   # the crumbled Boulder slumps into dust (or a killed enemy)
+
+  snipe.myth:
+    beat: The user hefts a spear of rime-stone skyward; it grows each turn, and when it lands it drives down out of the sky into the hidden target.
+    note: "HiddenTarget: nothing points at the target before the hit. The hit is 20, 40 or 60 Piercing (one event): play paladin_5 at about 0.8 / 1.0 / 1.25."
+    cues:
+      - { on: cast, fx: warrior_8, face: up, tint: duo, scale: 0.6 }   # a lance forms point-up over the user, never toward the target
+      - { on: trigger, status: giants_spear, fx: scifi_muzzle_flash_002, face: up, tint: duo, scale: 0.3, frames: [0, 3] }   # every firing (each turn-end, or the user hurt): just the ring, the spear raised a notch
+      - { on: hit, at: actor, fx: scifi_muzzle_flash_002, face: up, tint: duo, scale: 0.6 }   # it lands: the throw, straight up from the user (the hit has already revealed the target)
+      - { on: hit, fx: paladin_5, tint: duo, delay: 150, note: "the spear comes down out of the sky after the throw; its black spire stays black: that is the spear" }
+      - { on: hit, fx: directional_impact_002, tint: element2, scale: 0.9, layer: under, delay: 400 }
+
+  trap.myth:
+    beat: Rime-dust glints settle unseen under every enemy; whoever repeats last turn's skill pays the troll's toll as the bridge stones burst up beneath them.
+    cues:
+      - { on: apply, status: troll_bridge, fx: directional_sparkle_burst_002, tint: duo, scale: 1.3, opacity: 0.6, layer: under, stagger: 60 }   # Invisible: owner only. The dust mound spreads past the portrait's base and its stars rise beside it
+      - { on: trigger, status: troll_bridge, fx: none }   # it fires on every skill the bearer uses; the hit below is the toll
+      - { on: hit, fx: stylized_explosion_003, tint: element2, scale: 0.8 }
+      - { on: hit, fx: directional_impact_003, size: small, tint: duo, scale: 0.6, delay: 100 }   # rime-stone shards crown up out of the burst
+
+  maneuver.myth:
+    beat: Earth billows up around the user and a barrow mound of frosted sod closes over them, untouchable inside.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, tint: element2, scale: 0.8 }
+      - { on: apply, status: invulnerable, fx: starcaller_3, tint: duo, scale: 1.1, speed: 1.5, note: "Invulnerable's own shell, in rime-stone colors: the dome rises and closes over the user, and its dark interior is the inside of the barrow" }
+      - { on: apply, status: stun, fx: none }   # self-imposed: no stagger; Stun's aura still marks the user lying in the barrow
+      # Legend's star follows.
+
+  companion.myth:
+    beat: A block of glacier ice cracks open and a mammoth stamps out of it, and a cold haze settles over the enemy line.
+    cues:
+      - { on: summon, fx: frost_mage_6, scale: 1.1 }   # the ice shell bursts over the new Mammoth
+      - { on: summon, fx: directional_impact_002, tint: element2, scale: 1.1, layer: under, delay: 150 }   # its first heavy footfall
+      - { on: apply, status: any, fx: symmetrical_smoke_burst_002, at: enemySide, scale: 3.0, opacity: 0.55, layer: under, note: "the Mammoth's Chill (its onSummon) landing on every enemy: once, with the first; their Frost debuffs can't be removed while it stands" }
+
+  bolt.myth:
+    beat: A rune-carved stone streaks across, a frost rune flashes open on the target and bursts into shards.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.55 }
+      - { on: hit, fx: frost_knight_7, tint: duo, scale: 0.9 }   # the rune rings the target
+      - { on: hit, fx: scifi_warp_002, scale: 0.8, delay: 80 }   # and bursts in frost
+      - { on: apply, status: debuff, only: others, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45, note: "Mythic spread only: once per enemy reached, with its first copied Frost debuff; the debuffs' own defaults follow" }
+      # A frosted target: Legend's star plays an extra time.
+
+  blast.myth:
+    beat: The ice age comes down on the enemy row in a fountain of rime and rubble; every enemy cracks in a frost sphere, and their slain minions are sealed in stone that rises again on the user's side.
+    cues:
+      - { on: hit, fx: epic_explosion_002, at: enemySide, tint: duo, scale: 2.0, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: frost_mage_6, scale: 0.8, delay: 100, stagger: 70 }
+      - { on: death, fx: spell_ice_001, tint: duo, scale: 0.8, speed: 2, note: "a minion it kills (Mythic: every minion it hits) is sealed in rime-stone; skip the opening glints" }
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, stagger: 120, note: "the stone rises again on the user's side as a Boulder; fade its held last frame" }
+
+  consume.myth:
+    beat: A tether of ancient frost-dust draws the ages out of the target, a pinprick of rime nicks them, and the user drinks it in.
+    note: "The heal is 5 + 5 per round (up to 45, one event): scale the heal cue from about 0.6 to 1.1 with it."
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, tone: light, scale: 0.45, speed: 1.5, note: "a frost-dust tether laid user to target, so its pulse runs from the target home to the user; keep the pulse brighter than the line after tinting" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.45 }   # the 5-damage nick
+      - { on: heal, fx: spell_absorb_001, tint: duo, tone: light, scale: 0.7, speed: 1.8, delay: 200 }   # the drawn-in ages gather into the user
+
+  summon.myth:
+    beat: The ground splits in two places and a hulking troll hauls itself out of each crack in a billow of frozen dust.
+    note: "A Troll that dies or expires turns to stone: its onDeath Boulder (20 HP) should arrive with Myth's Boulder look (frost_mage_3, duo, 0.7) once minion onDeath summons can carry cues; until then base's summon default plays."
+    cues:
+      - { on: summon, fx: directional_impact_003, tint: duo, scale: 0.9, stagger: 200 }
+      - { on: summon, fx: directional_smoke_burst_002, tint: element2, scale: 0.8, opacity: 0.85, delay: 100, stagger: 200 }
+
+  channel.myth:
+    beat: Rime drops fall onto a ring at the user's feet; each turn's end a ring of frozen dust rolls out and a standing stone heaves up, and when it ends every stone cracks open into a Rime Giant.
+    cues:
+      - { on: cast, fx: spell_forge_001, tint: duo, scale: 1.3, offset: [0, -0.3], opacity: 0.9, note: "over the portrait: its content is small, so the drops fall onto a ring in front of the user's feet. Its yellow spark streaks take the tint too (re-tint them if they don't)" }
+      - { on: trigger, status: awakening_the_ancients, fx: symmetrical_explosion_004, tint: element2, scale: 1.5, layer: under }   # each turn-end pulse: the ring rolls out past the portrait's edges, its empty center framing the user
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.7, note: "renderer filter: play only when summoned.defId == boulder (the turn-end Boulders); fade its held last frame" }
+      - { on: summon, fx: frost_mage_6, note: "renderer filter: play only when summoned.defId == rime_giant. When the channel ends, transformMinion re-summons every allied Boulder as a Rime Giant (a summoned event each): the stone's rime shell bursts and a giant stands up. A Boulder made on the last turn-end and transformed at expiry gets both, in sequence" }
+
+  stab.myth:
+    beat: A rime-edged flint point jabs through the target and frost spits out behind them, biting deeper the more they're frosted.
+    note: "10 + 5 per Frost debuff (up to 25, one event): scale both cues from about 0.5 to 0.8 with it."
+    cues:
+      - { on: hit, fx: starcaller_2, face: fromActor, tint: duo, scale: 0.55, speed: 1.4 }   # a rime-edged flint point: its star head flares as it goes in, the thin streak carrying on past them
+      - { on: hit, fx: directional_impact_001, face: fromActor, size: small, scale: 0.45, delay: 60 }   # Ice: its shock ring on the near side, a fan of frost shards spitting out the far side
+
+  ravage.myth:
+    beat: A giant-slayer's flurry of rime-stone blows hacks into the target, cracks them open and sprays rubble out the far side.
+    note: "45 damage (the target had more HP than the user, or the user is Mythic; the same single event): play the cues about 1.3x larger with a short screen shake."
+    cues:
+      - { on: hit, fx: paladin_8, face: fromActor, tint: duo }
+      - { on: hit, fx: symmetrical_impact_006, scale: 0.8, delay: 120 }   # frost shards scatter
+      - { on: hit, fx: directional_splatter_004, face: fromActor, tint: element2, scale: 0.6, delay: 180, note: "its origin corner on the target" }
+      # A kill: Legend's star plays twice (Saga's and this skill's own).
+
+  mislead.myth:
+    beat: A small whirl of rime turns over the target unseen like a riddle; if they attack, it snaps shut and their cooldowns freeze.
+    cues:
+      - { on: apply, status: frozen_riddle, fx: slime_5, tint: duo, scale: 0.6, opacity: 0.8, speed: 1.3 }   # Invisible: owner only
+      - { on: trigger, status: frozen_riddle, fx: stylized_impact_001, scale: 0.8 }   # the riddle snaps shut; base's counter default marks the stopped skill
+      - { on: apply, status: riddled, fx: fanfx_slow, size: small, tint: duo, scale: 0.5, speed: 1.3, note: "a clock over their head with its hands stuck: their cooldowns stall while they're frosted" }
+
+  stun.myth:
+    beat: Rime creeps over the target and hardens into a crust of standing stone that locks them in place until it's broken.
+    cues:
+      - { on: apply, status: stone_shell, fx: frost_mage_3, tint: duo, scale: 1.1, note: "over the portrait: the target crusted into a rime-stone (their 25 Shield); hold its brightest last frame a beat, then fade" }
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: duo, scale: 0.7, delay: 400, note: "Stun's default, held until the stone has closed; no stagger step: the portrait stiffens instead" }
+      - { on: remove, status: stone_shell, fx: symmetrical_impact_004, tint: duo, scale: 0.8 }   # the shell is broken (or cleansed) and cracks apart
+      - { on: trigger, status: turned_to_stone, fx: directional_smoke_burst_002, at: target, size: small, tint: element2, scale: 0.6, note: "the shell broke: stone dust sheds off them as their Stun ends (not when the user was Mythic)" }
+
+  dance.myth:
+    beat: The saga is sung again; notes ring out around the user and rime arcs whirl about them, wider with every retelling.
+    note: "Each earlier use adds a stack of each buff: play the whirl about 0.15x larger per retelling."
+    cues:
+      - { on: cast, fx: round_music_burst_001, tint: duo, scale: 1.1 }
+      - { on: resolve, fx: frost_knight_9, scale: 1.3, opacity: 0.8, layer: under, speed: 1.3, note: "behind the portrait only its margins show: frost arcs whirling around the user" }
+      # Might's, Swiftness's and Focus's defaults play on the user.
+
+  heal.myth:
+    beat: Frost-lit warmth rises through the ally, and a cairn of rime-stone heaves up, larger the more frost lies on the enemy.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, tone: light, scale: 0.9, speed: 1.3 }   # frost-lit sparkles rise from both sides and merge into a column
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.6, delay: 150, note: "the cairn has 10 HP per enemy Frost debuff (10-40): scale it from about 0.5 to 0.8; fade its held last frame" }
+
+  bless.myth:
+    beat: Motes rise off the user and an ancestor's token of rime-stone drops onto the ally, shattering into frost glints.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, size: small, tint: duo, scale: 0.5 }
+      - { on: apply, status: buff, fx: frost_mage_5, tint: duo, scale: 0.6, note: "once per bearer (a minion gains Might and Armor together); the Might or Armor default still shows which one landed" }
+      # Mythic, on another non-minion ally: become_mythic's standing stone rises behind them.
+
+  curse.myth:
+    beat: A skull of frozen dust forms over the target and breaks apart, and a cold wisp of doom curls up off them.
+    note: "If the bearer dies while it holds, Saga's trigger Confuses every ally of theirs: Confusion's default plays on each."
+    cues:
+      - { on: apply, status: kinslayers_doom, fx: stylized_skull_smoke_burst_001, tint: duo, scale: 0.6 }
+      - { on: apply, status: kinslayers_doom, fx: directional_smoke_burst_004, size: small, scale: 0.5, opacity: 0.7, delay: 200 }
+      # Confusion's default marks the target.
+
+  smite.myth:
+    beat: A rime-stone hammer-blow dives out of the sky onto the target, and a crown of renown hangs over them for whoever strikes next.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo }
+      - { on: apply, status: deed_of_renown, fx: symbol_crown_001, size: small, tint: element2, tone: light, scale: 0.45, delay: 200 }   # the prize: each ally who strikes them earns the user a Legend
+      - { on: trigger, status: deed_of_renown, fx: directional_star_burst_001, size: small, tint: duo, scale: 0.45, offset: [0, 0.5], speed: 1.6 }   # renown rises off them as an ally strikes
+      # Legend's star then plays on the user (Mythic: Armor's default on the striking ally).
+
+  prayer.myth:
+    beat: The skald's song rises under the whole team and frost-lit crosses climb through every ally.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, at: allySide, tint: duo, scale: 3.0, layer: under }   # the notes rise from the row's feet and climb clear above the portraits
+      - { on: heal, fx: spell_heal_002, tint: duo, tone: light, scale: 0.6, speed: 1.5, delay: 100, stagger: 100, note: "a minion's second heal (to full) plays it again" }
+      - { on: apply, status: song_of_the_saga, fx: directional_sparkle_burst_003, size: small, tint: duo, tone: light, scale: 0.6, stagger: 100 }   # Mythic: become_mythic's halo, shared with every ally
+
+  cleave.myth:
+    beat: A giant's club of rime-stone sweeps through the target and on into one more enemy per Legend, or every enemy when Mythic.
+    cues:
+      - { on: hit, only: primary, fx: warrior_4, face: fromActor, tint: duo }
+      - { on: hit, only: others, fx: warrior_4, face: fromActor, tint: duo, scale: 0.7, delay: 150, stagger: 100 }   # the 10-damage follow-through
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, tint: element2, scale: 0.5, delay: 100, stagger: 70 }
+      # Mythic: Frostbitten's crust follows on each other enemy.
+
+  shout.myth:
+    beat: The user sounds the horn of the north; a ring of rime bursts off them and a cone of cold sound rolls into every enemy.
+    note: "The 2-3 turn cooldown setback shows on the enemy's skill bar (no board event); the cones mark every enemy it reaches."
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.3 }
+      - { on: travel, fx: necromancer_3, path: beam, tint: element, tone: light, scale: 0.8, stagger: 80, note: "colorized Ice its dark smoke turns frost-blue; the cone widens toward each enemy" }
+      # An enemy with nothing cooling down gets Intimidated's default instead.
+
+  withstand.myth:
+    beat: A rampart of rime-stone spikes heaves up behind the user and a Boulder rises beside them to share every blow.
+    cues:
+      - { on: apply, status: frozen_rampart, fx: frost_knight_3, tint: duo, scale: 1.2, layer: under }   # 2.4 portraits wide, spikes in the bottom third: they flank the user
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.6, delay: 150, note: "a smaller (25 HP) stone; fade its held last frame" }
+      - { on: trigger, status: frozen_rampart, fx: none }   # it fires on every direct hit, but only splits it while a minion stands: the split's own damage below is the tell
+      - { on: hit, at: actor, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.5 }   # a hit was split: the rampart flares on the user
+      - { on: hit, fx: symmetrical_smoke_burst_001, size: small, tint: element2, scale: 0.5 }   # and the other half chips a random allied minion
+
+  taunt.myth:
+    beat: Crossed blades flash over the user as an old feud is sworn and an oath-rune rings the target; when the user turns Mythic the feud is settled with a crashing blow.
+    cues:
+      - { on: cast, fx: warrior_11, tint: duo, scale: 0.55, offset: [0, 0.55], speed: 1.5 }
+      - { on: apply, status: old_feud, fx: frost_knight_7, tint: duo, scale: 1.3, speed: 0.7, layer: under }   # the oath-rune's compass points ring the target's portrait
+      - { on: trigger, status: old_feud_oath, fx: frost_knight_7, at: target, tint: duo, tone: light, scale: 0.9 }   # the oath-rune flares on the feud's target as the user becomes Mythic
+      - { on: hit, fx: frost_knight_10, face: fromActor, scale: 0.9, note: "the 25-damage settlement; line its bottom-right impact (bottom-left when mirrored) up on the target" }
+      # Taunt's '!' marks the target through its default.
+
+  titan.myth:
+    beat: The whole board quakes and rubble bursts out around the user along the diagonals as they awaken into a giant beneath a towering standing stone.
+    note: "become_mythic's cues are the transformation itself; for Titan play them about 1.3x larger, but skip its directional_impact_002 dust layer: the field quake already rolls the dust. Immune's default follows."
+    cues:
+      - { on: cast, fx: directional_impact_002, at: field, tint: element2, scale: 3.5, opacity: 0.8, layer: under, note: "a board-wide quake with a short screen shake" }
+      - { on: cast, fx: symmetrical_smoke_burst_003, tint: element2, scale: 2.2, layer: under, delay: 150 }   # rubble lobes burst out along the diagonals and hollow out, leaving the vertical axis clear for the standing stone
+
+  mammoth_trample:
+    beat: The Mammoth rears and stamps, and rime-stone spikes burst up under every enemy in a rolling wave of dust.
+    cues:
+      - { on: cast, fx: directional_impact_002, size: small, tint: element2, scale: 0.8, layer: under }   # the stamp: a wide ground band of dust rolls out on both sides of the Mammoth
+      - { on: hit, fx: directional_impact_004, tint: duo, scale: 0.7, stagger: 90 }
+      - { on: hit, fx: directional_smoke_burst_002, tint: element2, scale: 0.6, opacity: 0.8, delay: 80, stagger: 90 }
+
+  troll_club:
+    beat: The troll's stone club swings up and over and clubs the target.
+    cues:
+      - { on: hit, fx: warrior_2, face: fromActor, tint: element2, scale: 0.6, speed: 1.3 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, scale: 0.4, delay: 150 }
+
+  rime_giant_frost_maul:
+    beat: The Rime Giant swings an ice-crystal maul down onto the target and stone chips fly.
+    cues:
+      - { on: hit, fx: frost_knight_1, face: fromActor, scale: 0.8, frames: [6, 13], note: "skips the static wind-up; line its lower-right impact (lower-left when mirrored) up on the target" }
+      - { on: hit, fx: symmetrical_impact_004, size: small, tint: element2, scale: 0.5, delay: 100 }

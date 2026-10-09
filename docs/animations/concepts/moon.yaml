@@ -1,0 +1,305 @@
+# Moon (Earth + Shadow) animation concepts. Spec: docs/animations/README.md; brief: briefs/moon.md.
+# Moon is a stone moon in a night sky. Three materials carry it across the kit:
+#   moonstone — Earth's rock, dust and ground-spike art tinted `duo`: Earth's brown-black rims under Shadow's
+#               slate body and pale highlights, so it reads as grey cratered rock. Fists, falling rock, shards,
+#               cairns, the wolf's fangs.
+#   moonlight — `element2` (Shadow) at `tone: light`: silver-white light. Crescents, glints, songs, heals.
+#   night     — Shadow's drawn `black` smoke and ink, for the dark side of the moon.
+# Signature: the moon itself, in two forms.
+#   The phase disc: symmetrical_explosion_001, a white moon with a shadow biting across it. It hangs small over a
+#   Moon character's head whenever their Lunar Cycle turns (advance_moon), and in Turn Beast, Dance of Phases and
+#   Moonfall's reset. Over the head the backdrop is the near-black board, so there it is `element2` at
+#   `tone: light`: the bite is pale slate on the white disc and the leftover crescent a silver sliver. Over the
+#   whole portrait (Eclipse) it is `duo`, Earth's slate shadow eating the moon (a lunar eclipse is literally
+#   Earth's shadow on the Moon). Hunter's Moon draws it in Earth amber (`element`), the one amber moon in the kit.
+#   The crater: stylized_explosion_004 from frame 12 (its long glint wind-up skipped), a pale dome around a
+#   near-black core, the moon's cratered face. It lands wherever the moon itself comes down (Moonfall, Moonless
+#   Bolt, Hunter's Moon, a Moonshard at the Full Moon). Behind the Face of the Moon only its first two frames
+#   play, held: the dome without the blast.
+# Lifesteal is moonlight drunk back: silver motes spiral into the user (spell_absorb_001, element2 light).
+group: moon
+
+statuses:
+  lunar_cycle:
+    note: >-
+      The passive on every Moon character. No apply or aura: the phase shows on its icon. Its turn-end trigger
+      plays advance_moon's cues (twice in a row after Eclipse); while Held Moon pins the cycle nothing advances
+      and nothing plays.
+  moonshard:
+    note: "No remove or aura: its trigger always removes it, and the burst covers that. The status icon counts the shards."
+    apply:
+      - { fx: directional_impact_001, tint: duo, face: fromActor, size: small, scale: 0.45 }   # a sliver of moonstone drives in
+      - { fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.3, offset: [0.15, 0.2], delay: 120 }   # and glints where it lodged
+    trigger: [ { fx: stylized_explosion_004, tint: duo, tone: light, size: small, scale: 0.7, frames: [12, 22], note: "at the Full Moon the lodged shard flares into a small crater: the 15 damage. Several shards on one bearer burst about 120 ms apart" } ]
+    expire: [ { fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.4, opacity: 0.6 } ]   # never reached a Full Moon: it crumbles out as grey dust
+  wolf_howl:
+    note: "Applied as the Lunar Wolf arrives; Lunar Wolf's summon cues carry that, so no apply."
+    trigger: [ { fx: frost_knight_7, tint: element2, tone: light, scale: 0.8, speed: 0.7, note: "the wolf howls at the Full Moon: a silver ring rolls out off it. The 20 heal plays the base heal default; Taunt's default lands on the random enemy" } ]
+  face_of_the_moon:   # Held Moon
+    apply:  [ { fx: dark_mage_2, tint: duo, scale: 0.4, offset: [0, 0.65], frames: [0, 10], note: "a flat ring of stone and night spins shut over the head like a halo: the Lunar Cycle is pinned. Its last frame (dark red) is dropped" } ]
+    remove: [ { fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.35, offset: [0, 0.45], opacity: 0.6 } ]
+    expire: [ { fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.35, offset: [0, 0.45], opacity: 0.6 } ]
+  shared_dream:
+    apply:   [ { fx: starcaller_4, tint: element2, tone: light, scale: 0.6, offset: [0, 0.35], opacity: 0.85 } ]   # two pale wisps curl round each other and drift apart: one dream between two sleepers
+    trigger: [ { fx: round_bubble_burst_001, at: target, tint: element2, tone: light, size: small, scale: 0.5, offset: [0, 0.6], note: "on each partner whose Sleep this ends (a removal, which has no default): their dream bubble pops too, echoing Sleep's woken default on the bearer" } ]
+  moonglare:
+    note: "Lands with the Blind from Face of the Moon. No aura: it only matters while Blinded, whose icon is already there."
+    apply: [ { fx: starcaller_1, tint: element2, tone: light, scale: 0.4, offset: [0, 0.3], delay: 150 } ]   # after Blinded's flare, a hard silver glint of the moon's face catches in their eyes
+
+macros:
+  # The phase disc over the Moon character's head. setCounter and signal raise no event, so it plays at their
+  # turn end when the phase counter changes, and again about 350 ms later for Eclipse's extra phase. Frames by
+  # the new phase: Waxing [0, 2] (the white moon swells out of the dark); Full [0, 2] at 1.4x, held a beat with
+  # a soft glow; Waning [3, 5] (the pale slate shadow bites in from the lower-left); New [5, 7] (the last silver
+  # arc dots out). Light, not duo: frames 3-7 are mostly the crescent, which in duo is dark slate and vanishes
+  # into the board above the head.
+  advance_moon:
+    - { fx: symmetrical_explosion_001, at: actor, tint: element2, tone: light, size: small, scale: 0.45, offset: [0, 0.7], speed: 0.5, note: "frames by the new phase, as above; at this speed each 3-frame slice lasts about 300 ms" }
+
+skills:
+  strike.moon:
+    beat: A moonstone fist cracks into the target in a burst of grey grit and a pale crescent sweeps up off the blow; at the Waning moon, silver light drains back into the user.
+    note: "At the New Moon it's Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so the hit has to read on its own."
+    cues:
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.75 }
+      - { on: hit, fx: frost_knight_2, tint: duo, tone: light, face: fromActor, scale: 0.8, delay: 60 }   # the crescent uppercut carries on past them
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, size: small, scale: 0.55, speed: 1.6 }   # Waning only: half the damage drunk back
+
+  smash.moon:
+    beat: A pale streak plunges onto the target and a crater blasts open under them, moon-rock crowns up under each of their allies, and the moon over the user's head goes dark.
+    note: "Damage grows 5 per phase since the New Moon (15 to 30 on the target): scale the crater from about 1.0 at New to 1.4 at Waning, and the splash from 0.6 to 0.85."
+    cues:
+      - { on: hit, only: primary, fx: stylized_explosion_004, tint: duo, scale: 1.1, frames: [12, 22], delay: 200, note: "a short board shake as it lands" }   # the crater: this skill's look
+      - { on: hit, only: primary, fx: scifi_warp_003, tint: duo, tone: light, speed: 1.4 }   # the moon-rock streaks down onto them first
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, scale: 0.65, delay: 250, stagger: 90 }   # the splash: rock crowns up under each ally
+      - { on: resolve, fx: symmetrical_explosion_001, tint: element2, tone: light, size: small, scale: 0.45, offset: [0, 0.7], frames: [3, 7], note: "the phase disc over the user is eaten whole: the cycle falls back to New Moon (setCounter raises no event). Light like advance_moon, so the bite reads against the board" }
+
+  charge.moon:
+    beat: The user slinks low across the board in a streak of grey moondust, rakes the target with pale claws and melts into the dark.
+    note: "Stealthy: used from Stealth, the opponent only learns that a Stealthed unit acted, so only the owner sees the travel and the rake reads on its own. Stealth's and Held Moon's defaults then play on the user."
+    cues:
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.7, offset: [0, -0.3], opacity: 0.85, note: "low along the floor; the user's portrait slinks forward with it and snaps back. Its snowflakes read as moondust" }
+      - { on: hit, fx: dark_mage_1, tint: duo, tone: light, face: fromActor, scale: 0.7 }
+      - { on: hit, fx: directional_splatter_003, variant: black, face: fromActor, size: small, scale: 0.45, delay: 80 }   # a flick of night off the claws
+
+  riposte.moon:
+    beat: A cowl of shadow draws over the user's face; a harmful skill aimed at them glances off the dark side in a pale ring and the cowl snaps shut.
+    note: "Invisible: the cast is the owner's alone. The counter is public: these trigger cues, then the base counter default on the attacker."
+    cues:
+      - { on: cast, fx: blood_knight_5, tint: element2, scale: 0.9, opacity: 0.6, note: "the oval closes over the portrait and dissolves bottom-up, leaving its thin top arc like a crescent" }
+      - { on: trigger, status: shadowed_face, fx: symmetrical_impact_002, tint: duo, tone: light, size: small, scale: 0.7 }   # the blow glances off: a pale ring flares off the user
+      - { on: trigger, status: shadowed_face, fx: blood_knight_5, tint: element2, scale: 0.8, opacity: 0.8, speed: 1.6, delay: 80 }   # the face turns away into shadow
+      - { on: trigger, status: shadowed_face_new, fx: symmetrical_impact_002, tint: element2, size: small, scale: 0.7, note: "New Moon: it counters every harmful skill this turn, so it can repeat; the darker ring alone keeps repeats quick" }
+
+  rage.moon:
+    beat: The moon over the user swells full, pale stone hackles tower up around them and a dome of claw-swipes flares as they turn beast; every blow after drinks moonlight back.
+    note: "Turn Beast's +10 damage and Strategic lock raise no event; Held Moon's default plays on the user. Already at Full, the disc still swells (the cycle just holds)."
+    cues:
+      - { on: cast, fx: symmetrical_explosion_001, tint: element2, tone: light, size: small, scale: 0.6, offset: [0, 0.7], frames: [0, 2], speed: 0.6, note: "the phase disc jumps to Full and holds a beat before fading" }
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, scale: 1.6, layer: under, delay: 150 }   # past the portrait's frame: the hackles tower up its sides
+      - { on: cast, fx: paladin_8, tint: duo, delay: 250, note: "portrait hunches and shudders" }
+      - { on: trigger, status: turn_beast, fx: round_sparkle_burst_001, variant: white, size: small, scale: 0.35, offset: [0, 0.3] }   # on each direct hit it lands, the beast's eyes flash
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, size: small, scale: 0.5, speed: 1.8 }   # half the damage drunk back
+
+  shot.moon:
+    beat: A pale crescent of moonstone flicks across and shatters on the target; at the Waxing moon a shard of it stays lodged.
+    cues:
+      - { on: travel, fx: paladin_10, tint: duo, tone: light, scale: 0.5, speed: 1.3, note: "its own end flash lands as the hit plays" }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, size: small, scale: 0.5 }
+      # Waxing: Moonshard's default lodges the shard.
+
+  snipe.moon:
+    beat: An amber hunter's moon swells over the user and a reticle locks round the prey; each ally's hit pings it tighter, and next turn the moon is spent as an amber spear dives in from the user's side and blasts a crater under them.
+    note: "Scale the next turn's hit cues with the damage: about 1.0 at 30 up to 1.5 at 60. The spear comes in on a slant from the user's side, fast, not straight down like Moonfall's plunge."
+    cues:
+      - { on: cast, fx: symmetrical_explosion_001, size: small, scale: 0.55, offset: [0, 0.7], frames: [0, 2], speed: 0.5, note: "the phase disc in Earth amber: the Hunter's Moon swells and holds a beat" }
+      - { on: apply, status: hunted, fx: frost_knight_7, tint: element, scale: 0.6, offset: [0, 0.2] }   # the amber reticle locks on
+      - { on: trigger, status: hunted, fx: symmetrical_impact_005, size: small, scale: 0.4, offset: [0, 0.2] }   # each hit an ally lands pings it tighter
+      - { on: trigger, status: hunters_moon, fx: symmetrical_explosion_001, size: small, scale: 0.55, offset: [0, 0.7], frames: [2, 7], speed: 1.3 }   # the amber moon over the user is spent as it fires
+      - { on: hit, fx: paladin_6, tint: element, face: fromActor, scale: 1.0, speed: 1.4, note: "ground art, so face only mirrors it: the amber spear dives in from the user's side and lands at their feet with a star and a ring" }
+      - { on: hit, fx: stylized_explosion_004, scale: 1.0, frames: [12, 22], delay: 200 }   # then the amber crater blooms where it struck
+
+  trap.moon:
+    beat: A ring of small grey standing stones pushes up at the enemy's feet; when they strike, the stones heave up around them and they drop asleep, cut off.
+    note: "Invisible and hidden: only the setter sees the stones go in. The spring is public, and Sleep's and Isolated's defaults follow it."
+    cues:
+      - { on: apply, status: dreaming_stones, fx: frost_mage_4, tint: duo, scale: 0.9, opacity: 0.85, note: "the cluster sits small and low in its wide canvas: stones at the feet" }
+      - { on: trigger, status: dreaming_stones, fx: frost_knight_3, tint: duo }   # the stones spring up in a ridge around them
+
+  maneuver.moon:
+    beat: Earth's shadow slides across a pale moon over the user until it's swallowed, a silver diamond ring flashes, and they pass out of reach.
+    note: "Stealthy (see Prowl). The extra phase shows as advance_moon playing twice at this turn's end. The three layers run in turn on one portrait: eclipse, diamond ring, then the void."
+    cues:
+      - { on: cast, fx: symmetrical_explosion_001, tint: duo, scale: 1.1, speed: 0.8, opacity: 0.85, note: "the phase disc over the whole portrait: it swells, then is eaten from the lower-left (about 500 ms)" }
+      - { on: cast, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.8, delay: 300 }   # the diamond ring flashes as the last arc goes
+      # Replaces Invulnerable's default for this skill only, held back so the void closes over them after the eclipse has run.
+      - { on: apply, status: invulnerable, fx: starcaller_3, tint: duo, speed: 1.5, opacity: 0.9, delay: 450 }
+
+  companion.moon:
+    beat: Moon-rock heaves up out of the ground in a spiked ring and a Lunar Wolf bounds out of a mound of glittering grey dust.
+    cues:
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.9 }
+      - { on: summon, fx: directional_sparkle_burst_002, tint: element2, tone: light, scale: 0.8, delay: 120, speed: 1.3 }
+      # Howl is applied as it arrives; its default only plays at Full Moons.
+
+  bolt.moon:
+    beat: A dark crescent-headed orb trailing night streaks into the target and bursts into a black crater that swallows their sight.
+    note: "The Blind runs longer the darker the moon (4 turns at New down to 1 at Waning); Blinded's default follows."
+    cues:
+      - { on: travel, fx: deathbringer_6, tint: duo, scale: 0.7, speed: 1.2 }   # its crescent head leads: a new moon in flight
+      - { on: hit, fx: stylized_explosion_004, tint: element2, scale: 0.75, frames: [12, 22] }   # the crater in Shadow: a dark dome round a black core
+
+  blast.moon:
+    beat: The moon bursts over the enemy line in a falling spray of silver light, and moon-rock blows apart on every enemy.
+    note: "Full Moon: Sleep's default lands on the Blinded ones after the hits. Waning: the heal below plays once (5 per enemy hit)."
+    cues:
+      - { on: hit, fx: round_firework_burst_001, at: enemySide, tint: element2, tone: light, scale: 2.4, note: "once, with the first hit: the willow's trails droop down across the whole row like falling moonlight" }
+      - { on: hit, fx: symmetrical_impact_004, tint: duo, scale: 0.8, delay: 150, stagger: 80 }
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.7, speed: 1.5 }
+
+  consume.moon:
+    beat: A silver tether reaches the target and a splash of moonlight is wrung out of them and streams home toward the user; at the Waning moon every enemy is wrung out.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, tone: light, opacity: 0.85, note: "the primary target only (the skill's one target): a silver tether. Tinted, its baked pulse no longer shows a direction, so the drain rides the motes on each hit below" }
+      - { on: hit, fx: burst_splatter_001, tint: element2, tone: light, size: small, scale: 0.5, stagger: 60 }
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: element2, tone: light, size: small, scale: 0.5, delay: 80, stagger: 60 }   # moonlight wrung out toward the user, on every enemy it hits (the Waning forEach's extra enemies included)
+      - { on: heal, fx: spell_absorb_001, tint: element2, tone: light, scale: 0.75, speed: 1.5 }   # one heal after the last hit: all of it drunk together
+
+  summon.moon:
+    beat: Two puffs of grey wing-dust burst open and pale moths flutter up out of them in columns of silver glints; Blinded enemies turn toward their glow.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: element2, tone: light, size: small, scale: 0.6, stagger: 200 }   # the wing-dust puff, the moths' motif (Flutter uses it too)
+      - { on: summon, fx: directional_sparkle_burst_001, tint: element2, tone: light, scale: 0.7, delay: 100, stagger: 200, speed: 1.3 }
+      - { on: apply, status: debuff, fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.4, offset: [0, 0.3], note: "adds to Taunt's default (its only Debuff): a moth's glow catches the Blinded eyes just before the '!'" }
+
+  channel.moon:
+    beat: Soft notes rise off the user in slow silver arcs; at each of their turn ends a lullaby rings out over every enemy, and at the New Moon it closes all their eyes.
+    note: "The last tick rides the New Moon (its new_moon signal), and Sleep's default then lands on every enemy."
+    cues:
+      - { on: cast, fx: directional_music_burst_001, tint: duo, tone: light, scale: 0.8 }
+      - { on: trigger, status: lunar_lullaby, fx: symmetrical_impact_005, tint: element2, tone: light, size: small, scale: 0.6, opacity: 0.8 }   # the next verse: a soft ring off the singer
+      - { on: hit, fx: round_music_burst_001, tint: element2, tone: light, size: small, scale: 0.6, stagger: 70 }
+
+  stab.moon:
+    beat: A thin star-headed streak of moonlight pierces through the target and cracks in a white star; a Blind is sliced away from their eyes and leaves them cut off.
+    note: "20 damage at or below 60 HP: play the streak and the star about 1.3x."
+    cues:
+      - { on: hit, fx: starcaller_2, tint: element2, tone: light, face: fromActor, scale: 0.7, speed: 1.5 }   # the streak runs along the blow, in through them and out the far side
+      - { on: hit, fx: symmetrical_impact_001, variant: white, size: small, scale: 0.45, delay: 150 }   # the white star where it pierced (the comet has no impact of its own)
+      # Replaces Blinded's remove default here: the blindfold of shadow is cut along a thin silver line. Isolated's default follows.
+      - { on: remove, status: blinded, fx: round_light_burst_001, variant: white, size: small, scale: 0.5, offset: [0, 0.3], frames: [5, 8], note: "from where the flare collapses to a thin horizontal line" }
+
+  ravage.moon:
+    beat: A grey fanged maw closes on the target, pale claws tear through it and shards of night blow out the far side; the frenzy leaves the user dazzled.
+    cues:
+      - { on: hit, fx: necromancer_8, tint: duo, frames: [1, 6], note: "the fanged oval only: cut before the skull surfaces" }
+      - { on: hit, fx: warrior_7, tint: duo, tone: light, face: fromActor, scale: 0.9, delay: 150 }
+      - { on: hit, fx: directional_impact_001, variant: black, face: fromActor, scale: 0.6, delay: 300 }
+      # Blinded's default then plays on the user.
+
+  mislead.moon:
+    beat: A faint false moonlight glimmers around the enemy; when they strike, it swells and bursts in a silver flash, the skill fizzles and their whole side is dazzled.
+    note: "Invisible and hidden: the glimmer is the setter's alone. The burst, the counter default and Blinded's default on every unit of their side are public."
+    cues:
+      - { on: apply, status: false_moonlight, fx: status_sparkling_001, tint: element2, tone: light, scale: 0.9, opacity: 0.7, note: "once, not looped" }
+      - { on: trigger, status: false_moonlight, fx: scifi_warp_002, tint: element2, tone: light, scale: 0.8 }   # the false moon swells to a disc and bursts in shards
+
+  stun.moon:
+    beat: A knock of moonstone rocks the target, and a pale dream winds between them and an ally as both drop asleep.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, size: small, scale: 0.7, offset: [0, 0.3], note: "stagger: the portrait jolts, then sags as Sleep sets in" }
+      # Shared Dream's default on both sleepers, then Sleep's: their wisps and spiral carry the lunacy, so no swirl of its own.
+
+  dance.moon:
+    beat: Two silver orbit rings wheel out around the user, and the moon over their head shows which phase they dance in.
+    note: "Swiftness's default plays with this phase's gift (Stealth, Armor, Might or Renew)."
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: element2, tone: light, scale: 1.4, layer: under, speed: 0.8, note: "past the portrait's frame, so the tilted rings wheel around it" }
+      - { on: resolve, fx: symmetrical_explosion_001, tint: element2, tone: light, size: small, scale: 0.45, offset: [0, 0.7], speed: 0.5, note: "the phase disc at the current phase, with advance_moon's frames for it" }
+
+  heal.moon:
+    beat: Pillars of silver moonlight rise from a ring at the ally's feet as their wounds close; three turns later the loan is called in and the light drains back up out of them as pale dust.
+    cues:
+      - { on: heal, fx: dark_mage_3, tint: element2, tone: light, scale: 0.85, frames: [3, 12] }   # skip the thin-ring wind-up: the columns rise at once
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.5, delay: 150, speed: 1.7 }   # pale crosses rise from the ground
+      - { on: trigger, status: borrowed_moonlight, fx: round_sparkle_burst_001, tint: element2, tone: light, size: small, scale: 0.5 }   # at expiry the borrowed glow flares once...
+      - { on: hit, fx: directional_smoke_burst_004, tint: duo, tone: light, size: small, scale: 0.5, opacity: 0.8, delay: 100 }   # ...and drains up out of them, pale so it reads on the portrait: no flinch, it's not a blow
+
+  bless.moon:
+    beat: Drops of silver moonlight fall into a glowing ring at the ally's feet and they sleep sealed beneath it; when it lifts, they wake with the light in them.
+    cues:
+      - { on: apply, status: moonveil, fx: spell_forge_001, tint: element2, tone: light, scale: 0.9, note: "its yellow spark streaks may not take the tint: re-tint them silver" }
+      # Invulnerable's and Sleep's defaults play as it lands.
+      - { on: trigger, status: moonveil, fx: round_sparkle_burst_003, tint: element2, tone: light, size: small, scale: 0.6, frames: [6, 16], note: "at expiry they wake (Sleep is removed), then Might's and Renew's defaults follow" }
+
+  curse.moon:
+    beat: A ring of moonstone with two small moons in orbit locks around the enemy as night coils up under it; each turn it turns, shutting one face of their skills.
+    note: "Each turn end, the Stun default for that turn (Strategic or non-Strategic) follows the trigger."
+    cues:
+      - { on: apply, status: tidal_lock, fx: frost_mage_1, tint: duo, opacity: 0.9 }
+      - { on: apply, status: tidal_lock, fx: directional_smoke_burst_004, variant: black, scale: 0.7, opacity: 0.8, delay: 200 }
+      - { on: trigger, status: tidal_lock, fx: frost_mage_1, tint: duo, scale: 0.6, opacity: 0.8, speed: 1.5 }   # the lock turns another face
+
+  smite.moon:
+    beat: A small pale moon trailing night drops onto the target and a spire of moonstone spikes up where it lands, and a silver covenant settles over every unit on the field.
+    note: "Sanctify's default plays on every unit on both sides."
+    cues:
+      - { on: travel, fx: dark_mage_5, path: drop, tint: element2, tone: light, scale: 0.7, frames: [0, 5], note: "the orb and its dark tail only: cut before its own low-contrast impact; the spire is the landing" }
+      - { on: hit, fx: directional_impact_004, tint: duo, tone: light, scale: 0.85 }
+      - { on: hit, fx: directional_impact_002, tint: duo, size: small, scale: 0.7, layer: under, delay: 100, frames: [2, 6], note: "cut its yellow-cored flash (frames 0-1) and remap the baked #fcd64b spark color left in frames 2-4 to the ramp's light stop: grey dust, not gold sparks" }   # wider than the portrait: the dust runs out past its sides
+
+  prayer.moon:
+    beat: A hymn of pale notes arches over the team, and silver puffs rise up each ally into a halo.
+    note: "This phase's gift follows on every ally (Stealth, Renew or Might), or at the Waning moon Weakness's default on every enemy."
+    cues:
+      - { on: cast, fx: directional_music_burst_002, at: allySide, tint: element2, tone: light, scale: 1.6, opacity: 0.9 }
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, stagger: 80, speed: 1.3 }
+
+  cleave.moon:
+    beat: A spiked moonstone mace sweeps a wide crescent across the target and shatters, and its shards fly off to lodge in every other enemy.
+    cues:
+      - { on: hit, fx: frost_knight_1, tint: duo, face: fromActor, scale: 0.6, frames: [6, 13], note: "skip the mace's rocking wind-up (frames 0-5); the swing sweeps across the target and flashes about 0.3 portrait past its center, away from the user" }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, tone: light, size: small, scale: 0.55, delay: 150 }   # the crescent shatters
+      # Moonshard's default lodges a shard in each other enemy.
+
+  shout.moon:
+    beat: The user howls and a silver ring rolls out off them, a pale shock runs along the enemy line dragging every eye to them, and the howl knits their wounds.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: element2, tone: light, scale: 1.6, speed: 0.7 }   # the Lunar Wolf's howl ring, at full size
+      - { on: apply, status: debuff, at: enemySide, fx: directional_impact_002, tint: element2, tone: light, scale: 1.6, layer: under, frames: [2, 6], note: "once, with the first Taunt: the shock runs along the whole row. Adds to Taunt's default on each. Cut its yellow-cored flash (frames 0-1) and remap the baked #fcd64b spark color left in frames 2-4 to the ramp's light stop: silver, not a Holy or Lightning yellow" }
+      - { on: heal, fx: spell_heal_003, tint: element2, tone: light, size: small, scale: 0.6, speed: 1.6 }
+
+  withstand.moon:
+    beat: Grey moonstones heave up into a cairn behind the user and hold off blows; whatever's left of it when it falls stands up as a Boulder.
+    cues:
+      - { on: apply, status: cairn_ward, fx: frost_mage_3, tint: duo, scale: 1.3, layer: under, note: "past the portrait's frame, so the cairn juts out either side; it ends on its brightest frame, so fade it out over about 300 ms" }
+      - { on: trigger, status: cairn_ward, fx: directional_smoke_burst_001, tint: duo, scale: 0.8, opacity: 0.8, note: "at expiry with Shield left: the cairn tumbles in a billow of grey dust" }
+      - { on: summon, fx: directional_impact_003, tint: duo, scale: 0.8 }   # the stones crown up into the Boulder
+      - { on: hit, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.45, opacity: 0.7, note: "the raw trim that sets the new Boulder's HP to the ward's remainder: dust settling off it, not a blow" }
+
+  taunt.moon:
+    beat: A pale will-o'-the-wisp of moonlight kindles over the user and the enemy can't look away; each time an ally strikes them, it rekindles over that ally.
+    note: "The wisp always hangs over whoever the enemy must attack; Taunt's '!' marks the enemy. A pass only moves the Taunt's source (the hitter: the user, an ally or a minion); the Taunt itself stays on the enemy."
+    cues:
+      - { on: apply, status: wandering_light, at: actor, fx: fire_looping_001, tint: element2, tone: light, size: small, scale: 0.4, offset: [0, 0.65], opacity: 0.85 }   # the lure over the user
+      - { on: trigger, status: wandering_light, at: source, fx: fire_looping_001, tint: element2, tone: light, size: small, scale: 0.4, offset: [0, 0.65], opacity: 0.85, delay: 200 }   # rekindles over whoever just hit them, after their blow lands
+      # Taunt's '!' default lands on the enemy as it's applied, and again with each pass (it's removed and re-applied from the hitter).
+
+  titan.moon:
+    beat: A huge pale cratered moon rises behind the user and its glare rings out; whoever strikes them is dazzled by its face.
+    note: "The board dims a moment as the moon rises, and the portrait keeps a pale silver cast while Face of the Moon lasts. Blinded's and Moonglare's defaults play on each attacker."
+    cues:
+      - { on: cast, fx: stylized_explosion_004, tint: duo, tone: light, scale: 2.2, layer: under, frames: [12, 13], speed: 0.7, note: "past the frame on every side: hold frame 13 ~500 ms, then fade over ~300 ms, so the pale cratered face rises behind them and stays. Stop there: from frame 14 it mushrooms into a cloud and would read as a blast on the user" }
+      - { on: cast, fx: symmetrical_impact_002, tint: element2, tone: light, scale: 1.4, delay: 300 }   # the glare rings out
+      - { on: trigger, status: face_of_the_moon_glare, fx: symmetrical_impact_005, variant: white, size: small, scale: 0.6 }   # the moon's face flashes back at whoever hit it
+
+  wolf_moonfang:
+    beat: The Lunar Wolf kicks off in a puff of moondust and pale fangs rake up through the target.
+    cues:
+      - { on: hit, fx: blood_knight_2, tint: duo, tone: light, face: fromActor, scale: 0.6 }
+      - { on: hit, fx: directional_impact_002, at: actor, tint: duo, size: small, scale: 0.5, layer: under, frames: [2, 6], note: "cut its yellow-cored flash (frames 0-1) and remap the baked #fcd64b spark color left in frames 2-4 to the ramp's light stop: moondust, not sparks" }   # the wolf kicks off
+
+  moth_flutter:
+    beat: The moth flits at the target and bursts a puff of glittering wing-dust over them.
+    cues:
+      - { on: hit, fx: round_sparkle_burst_002, tint: element2, tone: light, size: small, scale: 0.55 }

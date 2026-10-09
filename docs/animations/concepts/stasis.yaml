@@ -1,0 +1,307 @@
+group: stasis
+
+# Stasis (Ice + Poison) is venom held in ice, and time held still. Three materials: frost class art left native
+# or tinted `element` (the cold shell), splatter and bubble art in `element2` (the held venom), and `duo` for
+# venom frozen into the ice itself (teal shadows, lime body): the travel gusts, Frozen Instant's crystal and the
+# small accents. Duo is one material of three, not the default: blue ice against lime venom is the kit's contrast.
+# Signature motif, the stopped hourglass: Suspended is an hourglass of green venom (clear blue ice on the user's
+# side) swirling in over the bearer's body and stopping mid-pour. When it ends the glass cracks (the Thaw), and the
+# thaw macro bursts the held Toxin out of a cracking blue frost sphere as a spray of lime bubbles, in that order:
+# Toxin's tick, all at once.
+# Every Suspension a skill makes for itself (Cryo Rend, Hold, Frozen Quarry, Nine Winters) reuses the same glass,
+# so a Suspension reads the same wherever it comes from. Skills that bend time (Stopped Clock, Lingering Frost)
+# use a clock face, in its drawn green (fanfx_slow's gold accent arcs don't take a tint). Stasis draws venom out
+# of an ally as a little green upwelling (Cold Storage, Hymn of Stillness).
+
+statuses:
+  suspended:
+    note: >-
+      No aura: Absolute Stillness and Nine Winters hold whole sides at once, and the status icon already marks it.
+      Thaw damage (the Toxin) plays the thaw macro right after the expire crack (its cues are delayed onto the
+      glass's shatter frame); with no Toxin, only the glass cracks.
+    apply:
+      - { fx: fanfx_stop, variant: green, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], note: "on the body, not over the head (Chilled's snowflake sits there): the hourglass swirls in and stops mid-pour (frames 9 on only trickle sand); fade over ~150 ms after the last frame" }
+    expire:
+      - { fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33] }   # the Thaw: the glass cracks and shatters
+    remove:
+      - { fx: directional_smoke_burst_004, size: small, tint: element, tone: light, scale: 0.5, opacity: 0.7 }   # cleansed or stolen: no Thaw, so no crack; the cold lifts off as a wisp
+  suspended_ally:
+    note: The same hourglass in clear blue ice, so a held ally reads as preserved rather than trapped.
+    apply:
+      - { fx: fanfx_stop, variant: blue, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], note: "on the body: fade over ~150 ms after the last frame" }
+    expire:
+      - { fx: fanfx_stop, variant: blue, scale: 0.75, speed: 1.3, frames: [19, 33] }
+    remove:
+      - { fx: directional_smoke_burst_004, size: small, tint: element, tone: light, scale: 0.5, opacity: 0.7 }
+  frozen_instant_hit:
+    # Frozen Instant's held blow: its flash swells and freezes in place, and shatters onto them three turns later.
+    apply:
+      - { fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.6, frames: [0, 3], note: "hold frame 3 a beat, then fade it out where it hangs. Plays in place of the board `blocked` default on the damageBlocked (reason 'held') that comes with it: no Shield flicker for a held blow; an attacking skill's own `blocked` cue may still play" }
+    expire:
+      - { fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.6, frames: [4, 7] }
+  cryo_sprite_watch:   # end of its owner's turn: the weakest enemy gains 1 Toxin, or is Suspended if Prey
+    trigger:
+      - { fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4 }   # the sprite glints
+      - { fx: symmetrical_impact_005, at: target, size: small, tint: element, tone: light, scale: 0.4, delay: 120, note: "on the enemy it picks; Toxin's skull or Suspended's hourglass follows" }
+
+macros:
+  thaw:   # per unit with Toxin: its Toxin deals its damage at once, doubled
+    # Sequenced after the glass: the hourglass cracks, then the blue sphere cracks, then the lime venom bursts out.
+    - { fx: frost_mage_6, scale: 0.75, speed: 1.3, delay: 200, note: "native blue: lands on the hourglass's shatter frame (about frame 24). Scale with the damage (10 per Toxin stack): about 0.6 at 10, 1.0 at 40 or more. When no Suspended crack precedes it (Final Thaw, Freezing Lunge, Cold Grudge), drop the first 150 ms of delay from both cues" }
+    - { fx: round_bubble_burst_001, tint: element2, scale: 0.7, delay: 320 }   # every held Toxin bubble pops at once, lime out of the blue
+  suspend:  # Absolute Stillness: every unit on both sides
+    - { fx: symmetrical_impact_002, size: small, tint: element, tone: light, scale: 0.5, stagger: 60 }   # a cold ring snaps shut on each unit; Suspended's hourglass follows
+
+skills:
+  strike.stasis:
+    beat: A thin arc of rime slashes the target and flicks venom off the cut; after, the venom in them bubbles up each time they act.
+    note: "The ticking_venom trigger fires on every skill the bearer uses, and its damage event is emitted even at 0 (no Toxin). For those later hits play only the trigger cue, never the two hit cues, and skip the trigger cue too when the damage is 0."
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, tint: duo, scale: 0.85, frames: [2, 8] }   # a thin rime arc; skips its lead-in specks
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tint: element2, scale: 0.45, delay: 100 }
+      - { on: trigger, status: ticking_venom, fx: status_poison_001, tint: duo, scale: 0.6, speed: 2, note: "skip it when the damage it deals is 0 (the bearer holds no Toxin)" }
+
+  smash.stasis:
+    beat: A blue glacier heaves up around the target and holds them in a venom hourglass; when they Thaw, the crack runs along the ground and venom bursts up under each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: frost_mage_3, scale: 1.1, note: "native blue ice (the venom comes from the splatters and the green hourglass); ends on its brightest frame: hold it a beat, then fade" }
+      - { on: hit, only: primary, fx: directional_impact_002, tint: element, scale: 0.9, layer: under, delay: 60 }   # the stomp's shock along the ground
+      # Later, as the target Thaws (Suspended's crack and the thaw macro play on them first):
+      - { on: trigger, status: frozen_stomp, fx: directional_impact_002, tint: duo, scale: 1.2, layer: under, note: "only when the bearer held Toxin (the ally hits are above 0)" }
+      - { on: hit, only: others, fx: directional_splatter_002, tint: element2, scale: 0.6, delay: 150, stagger: 90, note: "skip 0-damage events: with no Toxin the onExpire still emits amount-0 hits" }
+
+  charge.stasis:
+    beat: The user rides a green-white frost gust into the target, and the cold they carry back primes their next attack to crack its targets' Toxin open.
+    cues:
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.7, speed: 1.3, note: "the user's portrait lunges along the gust and snaps back" }
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.55, note: "its origin (lower-left as drawn) on the target, the spikes fanning on past them" }
+      - { on: apply, status: freezing_lunge, fx: spell_absorb_001, size: small, tint: duo, scale: 0.5, speed: 1.6, delay: 150 }   # the cold gathers back into the user
+      - { on: trigger, status: freezing_lunge, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.5, frames: [6, 16] }   # spent: the held cold bursts from the user; the thaw macro cracks each target's Toxin
+
+  riposte.stasis:
+    beat: A faint frost shimmer settles on the user unseen; whoever strikes at them is caught in a white flash like a frozen frame, venom held in them for the Thaw.
+    note: "The counter deals no damage: the flash on the attacker is the payoff, followed by base's counter X, Toxin's skull and Suspended's hourglass."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.6, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: freeze_frame, fx: round_light_burst_001, at: source, tint: element, tone: light, note: "the camera flash: hold its full ellipse about 150 ms before the rays break" }
+      - { on: trigger, status: freeze_frame, fx: symmetrical_impact_002, size: small, tint: duo, scale: 0.55 }   # the guard snaps on the user
+
+  rage.stasis:
+    beat: A blue-and-lime nova bursts round the user and a great clock face behind them stops dead; when it ends, every hand lurches forward.
+    cues:
+      - { on: cast, fx: deathbringer_4, scale: 1.1 }   # native: its blue ring and lime rim are already Stasis's colors
+      - { on: apply, status: stopped_clock, fx: fanfx_slow, variant: green, scale: 1.2, opacity: 0.8, layer: under, frames: [0, 6], note: "drawn green (lime numerals, white hands, gold arcs): the clock blooms behind the user and its hands stop: hold frame 6 a beat, then fade" }
+      - { on: trigger, status: stopped_clock, fx: fanfx_slow, variant: green, scale: 1.0, opacity: 0.7, layer: under, speed: 2, frames: [7, 28] }   # when it ends: the hands whip on as every skill goes onto cooldown
+      # Might's and Immune's defaults follow on the user.
+
+  shot.stasis:
+    beat: A hair-thin needle of rime flicks across and bursts into a spray of frost crystals, a fleck of venom spitting out behind.
+    note: Every Frost debuff on the target lasting a turn longer shows on their status icons (no board event); Chilled's snowflake lands through its default.
+    cues:
+      - { on: travel, fx: starcaller_7, tint: duo, tone: light, scale: 0.5, frames: [1, 3], note: "only the streak as it lengthens (no star flash, no hook): hold frame 3 for the rest of the flight" }   # a needle in flight
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: element, scale: 0.5 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, tint: element2, scale: 0.45, delay: 60 }   # Piercing: out the far side
+
+  snipe.stasis:
+    beat: The target is held still in a venom hourglass while cold rises off the user; at the end of the next turn a lance of rime punches through them and the glass cracks.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, tint: element, tone: light, scale: 0.6 }   # the user draws the cold in to aim; Suspended's hourglass marks the target
+      - { on: trigger, status: release, fx: scifi_muzzle_flash_002, face: toTarget, tint: duo, tone: light, scale: 0.6 }   # the lance launches from the user
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, note: "its leading edge (right, as drawn) drives through the target and out past them" }
+      - { on: hit, fx: symmetrical_impact_006, size: small, tint: element, scale: 0.6, delay: 80 }   # then Suspended's crack and the thaw macro
+
+  trap.stasis:
+    beat: Drops of venom settle unseen into a cold ring at the enemy's feet; the first time they're healed, pale ice spikes snap up around them and hold them.
+    cues:
+      - { on: apply, status: cold_pit, fx: spell_forge_001, tint: duo, tone: dark, scale: 0.7, opacity: 0.8, layer: under }   # Invisible: owner only
+      - { on: trigger, status: cold_pit, fx: frost_knight_3, tint: element, tone: light, scale: 0.9, note: "the opponent's first sight of the pit: it springs as the heal lands" }
+      # Toxin's skull and Suspended's hourglass follow.
+
+  maneuver.stasis:
+    beat: A cold green mist billows up around the user and their pulse goes flat as they sink into cryosleep, held in clear ice.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: duo, scale: 0.9, opacity: 0.85 }
+      - { on: resolve, fx: scifi_heartbeat_flatline_001, tint: element, scale: 0.4, offset: [0, 0.7] }   # over the head, once Invulnerable and Suspended are on
+      # Invulnerable's shell and Suspended's clear hourglass land through their defaults.
+
+  companion.stasis:
+    beat: The ground cracks open in a crown of green-white ice and a spider scuttles out of a starburst of frost silk.
+    cues:
+      - { on: summon, fx: directional_impact_003, tint: duo, scale: 0.8 }
+      - { on: summon, fx: burst_splatter_003, size: small, tint: element, tone: light, scale: 0.6, delay: 150 }   # eight spokes of frost silk: the web its Frost Web throws too
+
+  bolt.stasis:
+    beat: A glob of freezing acid streaks across and bursts into a teal-rimmed gas cloud; each time their Toxin ticks after, the frost over their head creeps back.
+    cues:
+      - { on: travel, fx: dark_mage_5, tint: duo, scale: 0.7, frames: [0, 5] }   # only the orb and its tail: its own dark splat is cut
+      - { on: hit, fx: stylized_explosion_006, tint: duo, scale: 0.8 }
+      - { on: trigger, status: chilling_acid, fx: frost_knight_6, scale: 0.35, offset: [0, 0.6], opacity: 0.8, speed: 1.6, note: "only when it acts (they hold Toxin): Chilled's snowflake flickers back as the Chill lasts a turn more. When it applies a fresh Chilled instead, Chilled's own default plays: skip this" }
+
+  blast.stasis:
+    beat: A venom-frost dome bursts over the enemy line and shatters out of every enemy, then cold rings snap shut on every unit on the board, the user's side too, each held in its hourglass.
+    note: "The suspend macro then plays on every unit of both sides, the user included: run its stagger from the enemy side across to the user's."
+    cues:
+      - { on: hit, fx: stylized_explosion_004, at: enemySide, tint: duo, scale: 2.4, layer: under, frames: [9, 22], note: "once, with the first hit: start on the last glints so the dome bursts almost at once" }
+      - { on: hit, fx: symmetrical_impact_003, tint: element, scale: 0.8, delay: 100, stagger: 70 }
+      - { on: hit, fx: burst_splatter_002, size: small, tint: element2, scale: 0.6, delay: 180, stagger: 70 }
+
+  consume.stasis:
+    beat: The target's frozen venom cracks open inside them all at once, and its cold green motes spiral back into the user.
+    note: Toxin's skull lands first, then the thaw macro bursts on the target, then the freed venom streams off them toward the user; the heal is the payoff on the user.
+    cues:
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.75, speed: 1.6, delay: 150 }   # catches the stream below
+      - { on: apply, status: debuff, fx: directional_particle_burst_001, face: toActor, size: small, tint: duo, tone: light, scale: 0.6, delay: 400, note: "after the thaw bursts: the freed venom streams off the target toward the user. Adds to Toxin's skull (status: debuff), doesn't replace it" }
+
+  summon.stasis:
+    beat: Four frost glints draw together into a star that bursts into a puff of cold green cloud, and a sprite rises out of it on a column of glints.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, tint: duo, scale: 0.9, frames: [4, 16] }
+      - { on: summon, fx: directional_sparkle_burst_001, size: small, tint: duo, scale: 0.6, delay: 300 }
+
+  channel.stasis:
+    beat: A wheel of winter turns over the user and every enemy is held in an hourglass; each turn it turns again and a random enemy catches venom, and when the winters end every glass cracks at once.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tint: duo, scale: 0.6, offset: [0, 0.7] }   # its sweeping needle is the turning of the winters
+      - { on: apply, status: nine_winters_hold, fx: directional_sparkle_burst_002, at: enemySide, tint: element, tone: light, scale: 2.2, opacity: 0.6, layer: under, note: "once, with the first hold: a snow mound with star flashes spreads along the enemy side" }
+      # The hold counts as Suspended: Suspended's hourglass, on each enemy.
+      - { on: apply, status: nine_winters_hold, fx: fanfx_stop, variant: green, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], delay: 150, stagger: 80, note: "fade over ~150 ms after the last frame" }
+      - { on: trigger, status: nine_winters, fx: scifi_charge_up_001, tint: duo, scale: 0.45, offset: [0, 0.7], speed: 1.5 }   # each turn end; Toxin's skull marks the random enemy
+      - { on: trigger, status: nine_winters_end, fx: symmetrical_explosion_004, tint: duo, scale: 1.2 }   # the wheel breaks on the user
+      - { on: remove, status: nine_winters_hold, fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33], stagger: 80 }   # every glass cracks; the thaw macro follows on each enemy
+
+  stab.stasis:
+    beat: A fang of rime drives into the target with a star flash, shards and a fleck of venom flying on past them; the longer the user waited, the deeper it bites.
+    note: "Damage is 5 + 5 per turn waited (5 to 20) in one event: scale the bite from about 0.45 at 5 to 0.8 at 20."
+    cues:
+      - { on: hit, fx: warrior_6, face: fromActor, tint: duo, tone: light, scale: 0.6, speed: 1.4, frames: [1, 5], note: "its star flash (about 70% across as drawn) on the target, the arrowhead shards flying on past them" }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, tint: element2, scale: 0.5, delay: 60 }
+      # Toxin's skull follows.
+
+  ravage.stasis:
+    beat: A crown of venom-ice spikes tears out of the target's wound and a ragged shatter bursts over it, then the wound is sealed in an hourglass; when they Thaw, the spikes burst out again.
+    note: "The second 20 Piercing (on the Thaw) is a later hit of this skill: both hit cues replay at about 0.85x after the glass cracks and the thaw macro bursts, the spikes bursting out again."
+    cues:
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 1.0, note: "its origin (lower-left of centre as drawn) on the target, the spikes thrusting on past them" }
+      - { on: hit, fx: symmetrical_impact_003, tint: element, scale: 0.7, delay: 60 }   # the brutal second layer
+      # Cryo Rend is its own Suspension (it counts as Suspended): it wears Suspended's hourglass.
+      - { on: apply, status: cryo_rend, fx: fanfx_stop, variant: green, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], delay: 200, note: "fade over ~150 ms after the last frame" }
+      - { on: trigger, status: cryo_rend, fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33] }   # the Thaw: the glass cracks
+
+  mislead.stasis:
+    beat: A breath of frost slips onto the enemy unseen; when they attack, their skill folds away into a cold rift and a clock over them winds their curses on.
+    cues:
+      - { on: apply, status: lingering_frost, fx: directional_smoke_burst_004, size: small, tint: duo, tone: light, scale: 0.55, opacity: 0.7 }   # Invisible: owner only
+      # The opponent's first sight of it: the skill seizes up and vanishes, so the counter reads on its own.
+      - { on: trigger, status: lingering_frost, fx: scifi_warp_001, tint: duo, scale: 0.8, speed: 1.3 }
+      - { on: trigger, status: lingering_frost, fx: fanfx_slow, size: small, variant: green, scale: 0.45, offset: [0, 0.65], speed: 1.6, delay: 250, frames: [3, 25] }   # every Debuff on them gains two turns
+      # Base's counter X follows.
+
+  stun.stasis:
+    beat: A ring of green-white ice clamps around the target and holds them in an hourglass with their venom; when they Thaw, they stagger, stunned.
+    cues:
+      - { on: apply, status: hold, fx: dark_mage_2, tint: duo, scale: 0.9, frames: [0, 9] }   # the binding ring closes; its last two (crimson) frames cut
+      # Hold is its own Suspension (it counts as Suspended): it wears Suspended's hourglass.
+      - { on: apply, status: hold, fx: fanfx_stop, variant: green, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], delay: 250, note: "fade over ~150 ms after the last frame" }
+      - { on: trigger, status: hold, fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33] }   # the Thaw: the glass cracks; the thaw macro and Stun's default follow
+      # Toxin's skull (2 stacks) lands through its default.
+
+  dance.stasis:
+    beat: Bands of frost sweep slowly round the user in a waltz and they freeze mid-turn in clear ice; at each turn's end the waltz steps again and their strength piles up.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, speed: 0.7 }   # slowed: a waltz, not a flurry
+      - { on: trigger, status: frozen_waltz, fx: paladin_8, tint: duo, scale: 0.7, opacity: 0.8, speed: 1.2 }   # each turn end, one more turn of the waltz
+      # Suspended's clear hourglass, then each turn Might's and Swiftness's defaults, land on the user.
+
+  heal.stasis:
+    beat: Pale-green bubbles rise through the ally as the venom wells up out of them, and they're laid in clear ice to keep.
+    cues:
+      - { on: heal, fx: directional_bubble_burst_001, tint: duo, tone: light, scale: 0.75, speed: 1.6, frames: [0, 34] }   # its native blue bubbles stay blue: ice among the green
+      - { on: remove, status: toxin, fx: directional_splatter_005, size: small, tint: element2, scale: 0.5, delay: 150 }   # the venom wells up out of them
+      # Suspended's clear hourglass follows.
+
+  bless.stasis:
+    beat: A frost star with a green tail drops onto the ally and opens into a ring of glints, crowning them with Might, then clear ice holds it in.
+    cues:
+      - { on: travel, fx: starcaller_2, path: drop, tint: duo, tone: light, scale: 0.5 }
+      - { on: resolve, fx: round_sparkle_burst_001, at: target, size: small, tint: duo, scale: 0.55 }
+      # Might's sword and Suspended's clear hourglass land through their defaults.
+
+  curse.stasis:
+    beat: A skull-faced venom cloud billows up behind the enemy and settles over them, muddling them and stilling their blood; every skill they force out thickens it.
+    cues:
+      - { on: apply, status: stilled_blood, fx: spell_poison_001, tint: duo, scale: 0.8, layer: under }
+      - { on: trigger, status: stilled_blood, fx: scifi_heartbeat_slow_001, tint: element2, scale: 0.35, offset: [0, 0.85], speed: 1.3 }   # one sluggish beat above the head; Toxin's skull follows
+      # Confusion's '?' and Suspended's hourglass land through their defaults.
+
+  smite.stasis:
+    beat: Claws of frozen venom dive onto the target and pin them in an hourglass; every blow the user's side lands meanwhile is tallied, and when they Thaw half of it falls on them again.
+    note: "The echo on the Thaw (half the tally, as Affliction) is a later hit of this skill: replay the dive at about 0.7x after the glass cracks and the thaw macro bursts. Skip the replayed dive when the echo is 0 (nothing tallied: the onExpire still emits an amount-0 hit)."
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, tint: duo, scale: 0.85, note: "ground art: mirrored so it dives in from the user's side" }
+      # Frozen Quarry is its own Suspension (it counts as Suspended): it wears Suspended's hourglass.
+      - { on: apply, status: frozen_quarry, fx: fanfx_stop, variant: green, scale: 0.75, opacity: 0.8, speed: 1.4, frames: [0, 13], delay: 200, note: "fade over ~150 ms after the last frame" }
+      # Frozen Quarry fires `trigger` two ways: its damaged trigger (each blow tallied) and its onExpire (the Thaw).
+      - { on: trigger, status: frozen_quarry, fx: symmetrical_impact_005, size: small, tint: element2, scale: 0.35, note: "the damaged trigger only: each blow tallied, a small lime ping on the glass" }
+      - { on: trigger, status: frozen_quarry, fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33], note: "onExpire only: the Thaw, the glass cracks; the thaw macro and the echo follow" }
+
+  prayer.stasis:
+    beat: A quiet hymn of frost notes arches over the team; a halo of pale cloud lifts each ally, their venom wells up out of them, and it freezes into Shields.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, at: allySide, tint: duo, scale: 2.2, opacity: 0.8, speed: 0.8 }   # slow and hushed, hanging over the whole team
+      - { on: heal, fx: directional_sparkle_burst_003, tint: duo, tone: light, scale: 0.7, stagger: 100 }
+      - { on: remove, status: toxin, fx: directional_splatter_005, size: small, tint: element2, scale: 0.5, delay: 150, stagger: 100 }
+      # Shield's default follows wherever Toxin was lost.
+
+  cleave.stasis:
+    beat: A venom-green lash cracks across the target and flicks on into a random second enemy, who is left holding as much venom and frozen still.
+    cues:
+      - { on: hit, only: primary, fx: warrior_3, face: fromActor, tint: duo, scale: 0.95, note: "its impact burst (lower-left as drawn) on the target" }
+      - { on: hit, only: others, fx: warrior_3, face: fromActor, tint: duo, scale: 0.7, flip: x, delay: 150, note: "the lash's flick on: mirrored so its hook curls the other way" }
+      - { on: hit, fx: burst_splatter_001, size: small, tint: element2, scale: 0.45, delay: 120 }
+      # Toxin's skull and Suspended's hourglass follow on the second enemy.
+
+  shout.stasis:
+    beat: The user lets out a hushing breath that blooms into tilted frost rings, and hoarfrost settles over the whole enemy side.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.2 }
+      - { on: apply, status: debuff, fx: symmetrical_smoke_burst_003, at: enemySide, tint: element, tone: light, scale: 2.4, opacity: 0.6, layer: under, note: "once, with the first Debuff: the side anchor doesn't repeat per enemy" }
+      # Chilled's snowflake, Suspended's hourglass and (on the already Chilled) Toxin's skull land on each enemy.
+
+  withstand.stasis:
+    beat: Still columns of frost rise around the user and hold the moment; at the start of their next turn a frost ring opens to let it go and the HP they lost drifts back into them.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, layer: under, frames: [2, 12] }   # skips its thin-ring lead-in; Shield's default follows
+      - { on: trigger, status: hold_the_moment, fx: frost_knight_7, tint: element, tone: light, scale: 0.7 }   # the held moment releases: a spiked ring opens into a thin ring (not a shield break)
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, scale: 0.7, delay: 120 }
+
+  taunt.stasis:
+    beat: A cold '!!' flares beside the user and a cold tether pulses from them to the target; every blow they land on the user freezes venom back into them, and when the grudge ends it all thaws at once.
+    cues:
+      - { on: cast, fx: symbol_alert_002, size: small, tint: element2, scale: 0.5, offset: [0.4, 0.55] }   # beside the head: Taunt's '!' is the target's
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, scale: 0.35, speed: 1.5, note: "a cold tether from the user to the target (the grudge link): one pulse, then fade" }
+      - { on: trigger, status: cold_grudge, fx: burst_splatter_001, size: small, tint: duo, scale: 0.35, note: "only when it adds Toxin (their damage landed on the user who Taunted them); Toxin's skull follows" }
+      # Taunt's '!' lands on the target; the thaw macro plays on them when the grudge ends.
+
+  titan.stasis:
+    beat: A vast frost ring opens behind the user and its two ice orbs slow to a stop, and the user sets into a statue of venom-veined crystal; blows that land on them after hang in the air as frozen flashes.
+    cues:
+      - { on: cast, fx: frost_mage_1, scale: 1.8, opacity: 0.8, layer: under, speed: 0.7, note: "native blue, so the ice shows before the venom crystal sets: a frost ring opens behind the user and its two ice orbs slow and stop: hold, then fade; the rest of the board dims" }
+      - { on: apply, status: frozen_instant, fx: spell_ice_001, tint: duo, scale: 1.6, opacity: 0.9, speed: 1.6, frames: [11, 34], note: "a short screen shake as the crystal sets" }
+      - { on: apply, status: frozen_instant, fx: symmetrical_impact_006, tint: element, scale: 1.4, delay: 650 }   # the crystal bursts off, leaving the user changed
+      # Immune's default follows; each blow it delays plays Frozen Instant's own frozen_instant_hit default, in place of
+      # the board `blocked` default on the damageBlocked (reason 'held') that comes with it: no Shield flicker for a held
+      # blow (an attacking skill's own `blocked` cue may still play).
+
+  ice_spider_frost_web:
+    beat: The spider spits a glob of frost silk that splats across the target in a starburst web.
+    cues:
+      - { on: travel, fx: slime_3, tint: element, tone: light, scale: 0.5, frames: [0, 7] }   # cut before its puddle splat: the web replaces it
+      - { on: apply, status: debuff, fx: burst_splatter_003, size: small, tint: element, tone: light, scale: 0.65 }   # adds to Suspended's hourglass, so a refused Suspension spins no web
+
+  ice_spider_frozen_fang:
+    beat: The spider sinks frost fangs into the target; if they're Suspended, the bite cracks their hourglass open instead.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.5 }
+      - { on: remove, status: any, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.5, note: "the Suspended branch (no damage): the expire op ends whichever Suspension the target wears (suspended, suspended_ally, cryo_rend, hold, frozen_quarry, nine_winters_hold) as an effectRemoved with reason expired. Play once per use, on the first such removal. It adds to the crack (Suspended's expire default, or the Cryo Rend/Hold/Frozen Quarry trigger crack) and the thaw that follows; a Nine Winters hold ends with no thaw" }
+      - { on: remove, status: debuff, fx: fanfx_stop, variant: green, scale: 0.75, speed: 1.3, frames: [19, 33], delay: 100, note: "only when the Suspension the bite ends is a Nine Winters hold (channel.stasis's inline status, which can't be named here): it has no expire default and the channel's crack binds only to removals the channel causes, so this cracks its glass. Every other Suspension cracks through its own default or trigger cue: skip it for those" }
+      # Toxin's skull follows the bite on the other branch.

@@ -1,0 +1,304 @@
+group: blood
+# Blood (Water + Unholy) is blood that moves like water. Unholy's matter (blood, claws, hearts) moves the
+# way Water moves: waves, whirls, jets and splashes. Its color is `duo`, a crimson body with Water's deep
+# navy in the shadows (venous blood). Blood Knight art is tinted `duo` too, where Unholy keeps it native.
+# Dark blood (clots, curdling, bad blood) is `element2, tone: dark`, a maroon body with crimson highlights:
+# `duo, tone: dark` would push Water's navy into the body and read as Water. Water's own ramp (`element`,
+# `tone: light`) is kept for pallor and cold: Pale Step, Swoon's faint, Bloodcurdle's chill, a wound
+# washed clean.
+#
+# Signature, the pulse. Rising hearts mark blood coming home (Blood's heals and drains), and the swelling
+# heart of round_heart_burst_001 is the user's own (Rage throbs it, Titan bursts it). The heartbeat trace
+# marks the pulse itself (Quickened Pulse, the Familiar's shared beat, Swoon's waking, the Crash's
+# flatline). Wounds pump in a lub-dub double beat (Hemorrhage's tick, Rage's heart, Quickened Pulse's
+# extra tick). Bleeding that moves between units flies as directional_splatter_004 (Exsanguinate's
+# wrench, Transfusion's drain, Open Vein's and Arterial Strike's fling).
+#
+# Blood Price: the HP is paid as damage on the user just before `skillUsed`, so it isn't this skill's hit.
+# Every BloodPrice skill opens with the same small spill on the user (its first cast cue,
+# directional_splatter_002), and costs paid in HP under Blood Chant or the Crimson Colossus play it too
+# (their trigger cues). No other cue in the kit uses that art. It is the tell that HP was paid.
+#
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  hemorrhage:
+    note: >-
+      Stacks (max 5) and sits on several units at once, so no aura: the icon carries the count. Several
+      stacks in one apply play the cue once. The tick's own extra stack (addStacksSelf) is part of the tick:
+      don't replay the apply after it. `trigger` is the `healed` trigger (the turnEnd one is the tick). A
+      heal that washes it away plays only the remove; under Hemophilia nothing plays. Under Arterial
+      Strike the trigger moves the bleeding: its cue flings it from the bearer at the healer, the healer's
+      apply welling follows, and the bearer's remove wisp is skipped (the wound moved, it didn't close).
+    apply:  [ { fx: directional_splatter_005, size: small, tint: duo, scale: 0.5, offset: [0, 0.3] } ]   # the wound wells up in plumes: lifted off the feet onto the body
+    tick:   [ { fx: burst_splatter_001, size: small, tint: duo, scale: 0.55, repeat: 2, speed: 1.6 } ]   # it pumps twice, lub-dub: the 5-per-stack damage
+    trigger: [ { fx: directional_splatter_004, at: bearer, face: toTarget, tint: duo, scale: 0.6, note: "only when the healed trigger moves the bleeding (Arterial Strike: its apply lands on the healer, the trigger's target); a plain wash-away plays only the remove. In this branch skip the remove wisp on the bearer and play the healer's apply welling ~150 ms after the fling" } ]   # flung at the healer
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element, tone: light, scale: 0.5, opacity: 0.7 } ]   # washed clean: a pale wisp
+  bloodbound:   # the Bloodbound Familiar's passive: it dies when its summoner does
+    note: Its hpLink (damage and healing to the Familiar land on the summoner) is a modifier, not a trigger, so those events play on the summoner as usual.
+    trigger:
+      - { fx: burst_splatter_002, size: small, tint: duo, scale: 0.6, note: "on the Familiar as its summoner dies: it collapses into the blood it was made of; the base death default follows" }
+
+macros: {}
+
+skills:
+  strike.blood:
+    beat: A crimson crescent wrings across the target and blood sprays past them; any Weakness wrung out of them drifts back to the user.
+    cues:
+      - { on: hit, fx: necromancer_2, face: fromActor, tint: duo, scale: 0.9 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, tint: duo, scale: 0.5, delay: 100 }
+      - { on: remove, status: weakness, fx: directional_particle_burst_001, size: small, face: toActor, tint: duo, tone: light, scale: 0.5, note: "removeStacks emits no event while stacks remain (see unholy's Soul Fragment note); play it once per Weakness wrung out" }
+      # Soul Fragment's default lands on the user for each one.
+
+  smash.blood:
+    beat: A crimson wave crests over the target and breaks into gore, and its spill splashes up under each of their allies.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_8, face: fromActor, tint: duo, scale: 1.3, note: "short shake as the crest breaks" }
+      - { on: hit, only: primary, fx: burst_splatter_002, tint: duo, scale: 1.0, delay: 250 }
+      - { on: hit, only: others, fx: burst_splatter_003, size: small, tint: duo, scale: 0.6, delay: 350, stagger: 70 }
+      # Hemorrhage's default on each: the allies' half-share arrives as one apply each.
+
+  charge.blood:
+    beat: A racing heartbeat runs from the user to the target as they lunge in; when their next skill resolves, every bleeding enemy's wound pumps once more.
+    note: >-
+      The extra tick plays Hemorrhage's tick look (the lub-dub) on each bleeding enemy the forEach reaches.
+      Its damage is this skill's, so the hit spray layers on it (`only: primary` can't keep the hit to the
+      opening blow: the original target usually bleeds too), and the stack it adds plays Hemorrhage's
+      apply default.
+    cues:
+      - { on: travel, fx: scifi_heartbeat_fast_001, path: beam, tint: duo, tone: light, scale: 0.8, speed: 2, frames: [2, 19], note: "the trace is laid from the user to the target; the portrait lunges along it" }   # trimmed of its near-empty edge frames: about 0.45 s
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.55 }
+      - { on: trigger, status: quickened_pulse, fx: scifi_heartbeat_fast_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], speed: 1.5 }   # over the user, as their next skill resolves: the pulse races
+      - { on: trigger, status: quickened_pulse, at: target, fx: burst_splatter_001, size: small, tint: duo, scale: 0.55, repeat: 2, speed: 1.6, stagger: 80 }   # and every bleeding enemy's wound pumps once more, lub-dub
+
+  riposte.blood:
+    beat: Crimson needles bristle unseen around the user; when an enemy strikes at them, their blood bursts out in a nova and spits onto the attacker.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: cast, fx: fanfx_pain, tint: duo, tone: light, scale: 0.9, speed: 2 }   # owner only (Invisible); light tone because the needles are faint
+      - { on: trigger, status: blood_spite, fx: blood_knight_6, tint: duo, scale: 0.7, speed: 1.3 }   # on the user, as it catches the skill
+      - { on: trigger, status: blood_spite, fx: slime_4, at: source, face: fromActor, tint: duo, scale: 0.6, delay: 150, note: "off-center: put its lower-left origin on the attacker" }
+      # The base counter X follows on the attacker, then Hemorrhage's default (none under 20 missing HP).
+
+  rage.blood:
+    beat: The user's heart pounds twice over them and claws of blood surge up their body, hungrier the more they bleed.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: cast, fx: round_heart_burst_001, size: small, tint: duo, scale: 0.5, offset: [0, 0.3], frames: [3, 7], repeat: 2, speed: 1.5 }   # only the swell: the heart throbs, lub-dub, and never bursts (Titan's does)
+      - { on: apply, status: crimson_frenzy, fx: blood_knight_2, face: up, tint: duo, scale: 1.2 }
+      # Lifesteal's default (the fanged cocoon) follows.
+
+  shot.blood:
+    beat: A bead of the user's blood streaks to the target and spatters through; if they were already bleeding, a few hearts of it rise back on the user.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: travel, fx: slime_3, path: straight, tint: duo, scale: 0.5, speed: 1.5, note: "its own splat frames land as it arrives" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: duo, scale: 0.5 }
+      - { on: heal, fx: directional_heart_burst_001, size: small, tint: duo, scale: 0.45, delay: 350 }   # the refund heals before the damage (op order): held back so it reads as the payoff
+
+  snipe.blood:
+    beat: Blood gathers into a ring around the user, aimed nowhere anyone can see, and swells with every wound they take; next turn it drives down onto the victim as a lance.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.8 }   # radial: it points nowhere (HiddenTarget)
+      - { on: trigger, status: crimson_lance, fx: symmetrical_explosion_001, size: small, tint: duo, scale: 0.5, note: "on the user: each hit that feeds the lance (its damaged trigger), and once more as it looses (onExpire)" }
+      - { on: hit, fx: warrior_8, face: down, tint: duo, scale: 1.1, offset: [0, 0.35], note: "the lance plunges down onto them; short shake" }
+      - { on: hit, fx: burst_splatter_003, tint: duo, scale: 0.9, delay: 120 }
+
+  trap.blood:
+    beat: Foul bubbles froth unseen in the enemy's blood; the next heal they take curdles in a dark burst and gushes back out of them as bleeding.
+    cues:
+      - { on: apply, status: tainted_cure, fx: round_bubble_burst_001, size: small, tint: element2, tone: dark, scale: 0.5, opacity: 0.7 }   # owner only (hidden)
+      - { on: trigger, status: tainted_cure, fx: stylized_explosion_004, tint: element2, tone: dark, scale: 0.8, frames: [11, 22] }   # the heal curdles: skips the glinting wind-up
+      - { on: hit, fx: blood_knight_3, face: up, tint: duo, scale: 0.8, delay: 150, note: "its origin sits at ~40%/65% of the canvas: put that on the target so the crown erupts out of them" }   # the healed amount gushes back up out of them as a spiked crown
+      # The healer's own heal plays first, so the opponent sees the cure turn; Hemorrhage's default follows (up to 5 stacks, one apply).
+
+  maneuver.blood:
+    beat: The color drains from the user in a pale puff and they slip aside; the last enemy to strike them starts to bleed, and so does anyone who still lands a hit.
+    note: Invulnerability to bleeding enemies is a modifier (targeting UI), not the Invulnerable status, so no shell plays.
+    cues:
+      - { on: apply, status: pale_step, fx: round_sparkle_burst_002, tint: element, tone: light, scale: 0.9, speed: 1.3 }   # Water's pallor; owner only (Invisible)
+      - { on: trigger, status: pale_step, fx: directional_splatter_003, at: source, size: small, face: fromActor, tint: duo, scale: 0.5 }   # the attacker is nicked; Hemorrhage's default follows on them
+      # The last attacker's Hemorrhage plays its default and reads on its own.
+
+  companion.blood:
+    beat: A mass of blood swells where the Familiar will stand and bursts into it, and one heartbeat crosses over it and the user at once, because they share a pulse.
+    cues:
+      - { on: summon, fx: symmetrical_explosion_003, tint: duo, scale: 0.8 }
+      - { on: summon, fx: scifi_heartbeat_fast_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], delay: 350 }
+      - { on: summon, fx: scifi_heartbeat_fast_001, at: actor, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], delay: 350 }   # the same beat at the same moment: one HP pool
+
+  bolt.blood:
+    beat: A blood orb coils at the user and launches as a comet that bursts on the target; the price comes back doubled as hearts rising over the weakest ally.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: travel, fx: blood_knight_4, path: beam, tint: duo, speed: 1.4, frames: [8, 20], note: "its vortex end on the user, its comet's splash on the target" }   # starts at the coil: its draw-in (frames 0-7) would read as a drain
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 0.8, note: "its origin sits at ~40%/65% of the canvas: put that on the target so the spikes splay on past them" }   # the orb bursts into a spiked crown
+      - { on: heal, fx: directional_heart_burst_001, tint: duo, scale: 0.7 }
+
+  blast.blood:
+    beat: A crimson cloud billows over the enemy row and rains blood; drops pelt each enemy and burst red, and the user's spent souls seed the bleeding.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: hit, fx: directional_smoke_burst_002, at: enemySide, tint: element2, scale: 2.3, offset: [0, 0.3], opacity: 0.75, note: "once, with the first hit: the side anchor doesn't repeat per enemy. The dome sits over the side's portraits (a column on desktop, a row on mobile) so every enemy is under it and the rain falls out of it, not above them" }
+      - { on: hit, fx: directional_particle_burst_001, face: down, tint: duo, scale: 0.9, delay: 150, stagger: 90 }   # the red rain: the drops Soul Fragment's remove sends up off the user come down on each enemy
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.6, delay: 400, stagger: 90 }
+      # Soul Fragment's remove default rises off the user. With fragments spent, each enemy's Hemorrhage default follows (all the stacks in one apply).
+
+  consume.blood:
+    beat: A vein of blood strings from the user to the target; a bleeding target is drained along it and a heart bursts over the user.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: duo, tone: light, scale: 0.6, speed: 1.5, note: "a plain vein between them: it plays in both branches, so it mustn't read as a drain. Keep its pulse no brighter than the line after tinting; the drain is the remove spray (bleeding branch only)" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: toActor, tint: duo, scale: 0.5 }
+      - { on: remove, status: hemorrhage, fx: directional_splatter_004, face: toActor, tint: duo, scale: 0.6, note: "scale with the stacks drained, like the heart" }   # replaces the washed-clean wisp: the bleeding is wrenched out toward the user
+      - { on: heal, fx: round_heart_burst_001, tint: duo, scale: 0.8, delay: 250, note: "drained branch only: scale with the stacks drained, about 0.6 at 1 to 1.1 at 5" }   # the heal op runs before the removal: held back so the heart lands after the drain
+      # Not bleeding: Hemorrhage's apply default instead, and no heal.
+
+  summon.blood:
+    beat: The price spills at the user's feet, a whirlpool of blood spins up beside them, and the Elemental bursts out of it.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: summon, fx: slime_5, tint: duo, speed: 1.3 }
+      - { on: summon, fx: burst_splatter_002, size: small, tint: duo, scale: 0.7, delay: 350 }
+      - { on: heal, fx: round_heart_burst_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.3], frames: [3, 7], speed: 1.5, delay: 450 }   # the price fills it: one heartbeat (its HP top-up; none when exactly 20 was paid)
+
+  channel.blood:
+    beat: Each turn the user's pulse pulls; a ring throbs out from them, the target's blood is wrenched toward them, and hearts rise over the user.
+    note: The bleeding's damage is Hemorrhage's own tick, not this skill's. A stun or death breaks the channel (base `interrupted` default).
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: trigger, status: exsanguinate, fx: frost_knight_7, tint: duo, scale: 0.6, opacity: 0.85 }   # on the user, each turn end
+      - { on: apply, status: hemorrhage, fx: directional_splatter_004, face: toActor, tint: duo, scale: 0.6, delay: 100 }   # replaces the welling: their blood is wrenched toward the user
+      - { on: heal, fx: directional_heart_burst_003, size: small, tint: duo, scale: 0.6, delay: 250 }
+
+  stab.blood:
+    beat: A thin lancet streaks through the target and a fine jet of blood spurts out the far side.
+    cues:
+      - { on: hit, fx: starcaller_2, face: fromActor, tint: duo, tone: light, scale: 0.6, note: "it has no impact of its own: the jet behind it is the wound" }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: duo, scale: 0.5, delay: 60 }
+      # A target missing 30+ HP plays Hemorrhage's default (one apply however many stacks).
+
+  ravage.blood:
+    beat: Hooked claws tear an artery open; gore bursts, a jet of blood spurts high, and a warning hangs over the wound against healing it.
+    cues:
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 1.1 }
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.9, delay: 100 }
+      - { on: hit, fx: directional_fire_burst_002, tint: duo, scale: 1.0, delay: 200 }   # the arterial jet: its bulbous head and falling drips read as blood
+      - { on: apply, status: arterial_strike, fx: symbol_warning_001, size: small, tint: duo, scale: 0.35, offset: [0, 0.75], speed: 2, note: "fade it after the shine sweep" }   # tell: heal them and the healer takes the bleeding
+      # When it pays off, Hemorrhage's trigger default flings the bleeding from the wound at the healer, whose apply welling follows (no washed-clean wisp).
+
+  mislead.blood:
+    beat: A false trail glints unseen in every bleeding enemy's blood; the first of them to attack strikes a decoy that bursts into red mist.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: apply, status: red_herring, fx: round_sparkle_burst_001, size: small, tint: element2, tone: dark, scale: 0.45, opacity: 0.7 }   # owner only (hidden), on each bleeding enemy
+      - { on: trigger, status: red_herring, fx: directional_smoke_burst_001, tint: duo, scale: 0.9 }   # on the countered enemy; the base counter X follows
+      # The watch lifting off the others is hidden: nothing to show.
+
+  stun.blood:
+    beat: A rising crimson cut drains the color from the target's face and they swoon; healing them sets their pulse racing again and they come to.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: apply, status: stun, fx: round_light_burst_001, size: small, tint: element, tone: light, scale: 0.6, offset: [0, 0.3], delay: 100 }   # the pallor: a pale flash across the face
+      # Stun's default, re-added (this skill's own apply cues replace it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, tint: source, scale: 0.7, delay: 250, note: "portrait sags a step" }
+      - { on: trigger, status: swoon, fx: scifi_heartbeat_fast_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6] }   # healed: the pulse races back and the Stun lifts
+
+  dance.blood:
+    beat: Two crimson ribbons waltz around the user and fling blood off as they turn; each time the user cuts a bleeding foe, a ribbon flourishes and they step quicker.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 1.1, speed: 1.3 }
+      - { on: cast, fx: symmetrical_explosion_004, tint: duo, scale: 1.1, delay: 350 }   # its empty center frames the portrait
+      - { on: trigger, status: danse_sanguine, fx: paladin_9, tint: duo, scale: 0.6, speed: 1.3 }   # on the user, per paying hit; the enemy's Hemorrhage and the user's Swiftness defaults follow
+      # The target's Hemorrhage default plays on cast.
+
+  heal.blood:
+    beat: Bad blood is let out of the ally in dark spurts, then fresh blood rises through them as a column of hearts.
+    cues:
+      - { on: heal, fx: directional_heart_burst_001, tint: duo, scale: 0.9, delay: 150 }
+      - { on: remove, status: debuff, fx: directional_splatter_001, face: up, tint: element2, tone: dark, scale: 0.5, stagger: 120 }   # each Debuff let out (adds to its own remove default)
+
+  bless.blood:
+    beat: A needle of blood plunges down into the ally and their veins surge; when it wears off, their pulse flatlines for a turn.
+    cues:
+      - { on: apply, status: blood_doping, fx: scifi_warp_003, tint: duo, scale: 0.9 }   # the dose; Might and Swiftness defaults follow
+      - { on: apply, status: blood_crash, fx: scifi_heartbeat_flatline_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], note: "two turns later, the crash: portrait sags a step while it lasts" }
+      - { on: apply, status: blood_crash, fx: symmetrical_smoke_burst_002, size: small, tint: element2, tone: dark, scale: 0.5, delay: 150 }
+
+  curse.blood:
+    beat: Two wounds well up on the target and a dark crimson ring closes around them so healing can't stop the bleeding.
+    cues:
+      - { on: apply, status: hemophilia, fx: dark_mage_2, tint: element2, tone: dark, frames: [0, 10] }   # drops its last frame (a palette jump in the art)
+      - { on: apply, status: hemorrhage, fx: directional_splatter_005, size: small, tint: duo, scale: 0.6, offset: [0, 0.3], repeat: 2, speed: 1.4 }   # replaces the default: both wounds well up, one after the other
+
+  smite.blood:
+    beat: A dark clot of blood drops onto the target and bursts in a crown of blood; any ally who strikes them later draws hearts of blood from the mark.
+    cues:
+      - { on: travel, fx: slime_3, path: drop, tint: element2, tone: dark, scale: 0.8, frames: [0, 7], note: "cut before its puddle frames, whose speed lines would stand on end once the drop turns the art: it ends as the ringed clot bursts on arrival" }   # liquid, not frost_mage_5's crystal shard (the common Smite art); bulkier than Shot's dart
+      - { on: hit, fx: directional_impact_003, tint: duo, scale: 0.9 }   # Water's Smite landing (a crown of spray), in blood
+      - { on: trigger, status: bloodmark, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.45 }   # on the bearer, as an ally's hit lands
+      - { on: heal, fx: directional_heart_burst_002, size: small, tint: duo, scale: 0.5, speed: 1.5 }   # on that ally
+
+  prayer.blood:
+    beat: The user's chant throbs out in rings of crimson notes and hearts rise over every ally; the rest of the team is marked to pay its costs in blood.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: cast, fx: round_music_burst_001, tint: duo, scale: 0.7 }
+      - { on: heal, fx: directional_heart_burst_003, tint: duo, scale: 0.8, stagger: 80 }
+      - { on: apply, status: blood_chant, fx: directional_coin_burst_001, size: small, tint: duo, scale: 0.45, speed: 1.5 }   # blood-red coins: their random costs are paid in blood (not the user)
+      - { on: trigger, status: blood_chant, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45, note: "modifier, no trigger op: play on the bearer each time it pays a skill's random cost in HP under Blood Chant (the self-damage right before its skillUsed); skip it for BloodPrice-tagged skills, whose own cast spill already plays" }   # the Blood Price spill: each payment reads as Blood Chant's
+
+  cleave.blood:
+    beat: A crimson wave of claws sweeps over the target and crashes down, their wounds burst open, and the spray crashes onto another enemy in a wave of blood.
+    cues:
+      - { on: hit, only: primary, fx: blood_knight_1, face: fromActor, tint: duo, scale: 1.1, note: "its crash lands in the lower-right corner: put that corner on the target" }   # the sweep is built in: it arcs in from the user's side and breaks over them
+      - { on: remove, status: hemorrhage, fx: burst_splatter_002, tint: duo, scale: 0.9 }   # replaces the washed-clean wisp: the wounds burst rather than close
+      - { on: hit, only: others, fx: slime_1, face: fromActor, tint: duo, scale: 0.7, delay: 200, note: "its splat lands about 70% across the canvas: shift it back so the splat breaks on this enemy" }
+
+  shout.blood:
+    beat: A blood-curdling scream bursts from the user in rings and a cold wind runs to every enemy; healing them later only shakes their nerve.
+    cues:
+      - { on: cast, fx: stylized_impact_001, tint: duo, scale: 1.1 }
+      - { on: travel, fx: frost_mage_7, path: straight, tint: duo, tone: light, scale: 0.6, opacity: 0.85, stagger: 80 }   # pink streaks behind the white cold cloud: their blood runs cold, one gust per enemy in turn
+      - { on: trigger, status: bloodcurdle, fx: symmetrical_smoke_burst_002, size: small, tint: element, tone: light, scale: 0.5 }   # Water's pale chill on the healed bearer; Intimidated's default follows
+      # Hemorrhage's default on each enemy.
+
+  withstand.blood:
+    beat: Ribbons of blood wrap the user into a clot; blows squelch into it and seep in as bleeding, and after their next turn the clot seals shut.
+    cues:
+      - { on: apply, status: clotting_ward, fx: frost_knight_9, tint: duo, scale: 1.1, opacity: 0.85 }
+      - { on: trigger, status: clotting_ward, fx: burst_splatter_002, size: small, tint: element2, tone: dark, scale: 0.55 }   # each direct hit sinks in; Hemorrhage's default follows for every 20 stopped
+      - { on: remove, status: hemorrhage, fx: round_sparkle_burst_003, size: small, tint: duo, tone: light, scale: 0.5, speed: 1.5 }   # clot_closing ends it: the clot seals instead of washing clean
+
+  taunt.blood:
+    beat: The user opens their own vein in a high spurt and the scent of blood drifts to the target; when the taunted enemy bites, the user's bleeding is flung onto them.
+    cues:
+      - { on: cast, fx: directional_fire_burst_002, tint: duo, scale: 0.8 }   # the opened vein spurts; the user's Hemorrhage default follows
+      - { on: travel, fx: directional_smoke_burst_003, path: straight, tint: duo, tone: light, scale: 0.6, opacity: 0.7 }
+      - { on: trigger, status: open_vein, fx: none, note: "fires on every enemy hit to the user but only moves the bleeding from a Taunted attacker: the remove cue shows the move" }
+      - { on: remove, status: hemorrhage, fx: directional_splatter_004, face: toTarget, tint: duo, scale: 0.6 }   # the wound moves, it doesn't close: flung from the user at the Taunted target, whose apply default follows
+      # Taunt's '!' default on the target.
+
+  titan.blood:
+    beat: The user's heart swells huge over them and bursts, a fountain of blood erupts beneath them, and they rise from it as the Colossus, paying every cost in blood.
+    cues:
+      - { on: cast, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45 }
+      - { on: cast, fx: round_heart_burst_001, tint: duo, scale: 1.3, offset: [0, 0.3], frames: [0, 13] }   # swells, whitens and bursts: cut before the ring of little hearts
+      - { on: resolve, fx: epic_explosion_002, tint: duo, scale: 1.8, layer: under, note: "portrait swells about 10% and holds it while the Colossus lasts" }
+      - { on: resolve, fx: symmetrical_impact_004, tint: duo, scale: 1.4, delay: 250 }
+      - { on: apply, status: crimson_colossus, fx: directional_coin_burst_001, size: small, tint: duo, scale: 0.45, speed: 1.5 }   # Blood Chant's tell: costs paid in blood
+      - { on: trigger, status: crimson_colossus, fx: directional_splatter_002, size: small, tint: duo, scale: 0.45, note: "modifier, no trigger op: play on the user each time a skill's random cost is paid in HP because of the Colossus; skip it for BloodPrice-tagged skills, whose own cast spill already plays" }   # the Blood Price spill on every payment while it lasts
+      # Armor's and Immortal's defaults play between the heart and the eruption.
+
+  bloodbound_familiar_bite:
+    beat: The Familiar's two crimson fangs snap shut on the target and blood spits out behind them.
+    cues:
+      - { on: hit, fx: warrior_1, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: duo, scale: 0.4, delay: 80 }
+
+  blood_elemental_lash:
+    beat: A whip of blood cracks across the target and flicks off them.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, tint: duo, scale: 0.4, delay: 80 }
+      # Hemorrhage's default follows.

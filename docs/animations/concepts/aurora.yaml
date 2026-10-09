@@ -1,0 +1,290 @@
+group: aurora
+
+# Aurora (Ice + Lightning) is cold light. `element` is Ice cyan, `element2` Lightning violet, and `duo` (ice-blue
+# edges, violet body) is the aurora itself. Kit motif, the colour drift: an Aurora effect lands in one colour and
+# its afterimage follows a beat later in the other (the same art twice, Ice then Lightning), so the light seems to
+# drift through the sky's colours, the way Dazzled shifts an energy's colour and Shimmer lets any colour pay.
+# Signature art: the curtain (dark_mage_3, pillars of light climbing out of a ground ring) for the kit's big
+# moments only (Polar Storm, Borealis, Stray Aurora), always from frame 5 (frames 0-4 are a bare ring) and over
+# the portrait, since a portrait is an opaque square that hides anything behind it; the ribbon (necromancer_6's
+# wavy band) is Shimmer's, a band of aurora rippling over the bearer's head; the lens flare (round_light_burst_001)
+# is Dazzled's and appears nowhere else. Frost Knight and Starcaller art stays native where its own
+# cyan-and-violet already reads as Aurora.
+
+statuses:
+  shimmer:
+    note: No aura. Shimmer changes how costs are paid, not what can touch the bearer; the status icon carries it while it lasts.
+    apply:  [ { fx: necromancer_6, tint: duo, scale: 0.45, offset: [0, 0.7], opacity: 0.85, note: "one ripple of the ribbon over the head, fading in and out at its ends; the crossing pulse runs along it as a brighter band" } ]
+    remove: [ { fx: directional_particle_burst_001, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.6], opacity: 0.8 } ]   # spent or cleansed: the ribbon breaks into motes that drift off
+    expire: [ { fx: directional_particle_burst_001, size: small, tint: duo, tone: light, scale: 0.4, offset: [0, 0.6], opacity: 0.6 } ]
+  dazzled:
+    note: No aura; the status icon carries it. The flare is Dazzled's alone in this kit, so every Aurora skill that Dazzles shows it through this default.
+    apply:  [ { fx: round_light_burst_001, size: small, tint: duo, tone: light, scale: 0.6, offset: [0, 0.25], note: "level with the eyes: the portrait washes brighter for a moment" } ]
+    tick:   # turn start, as one of their player's energies changes colour
+      - { fx: round_light_burst_001, size: small, scale: 0.4, offset: [0, 0.25], speed: 1.5, note: "flash the changed pip in the energy bar through both colours with it" }
+      - { fx: round_light_burst_001, size: small, tint: element2, scale: 0.45, offset: [0, 0.25], speed: 1.5, delay: 120 }   # the flare drifts from cyan to violet: the colour shift itself
+    remove: [ { fx: round_light_burst_001, size: small, tint: element2, scale: 0.5, offset: [0, 0.25], opacity: 0.6, frames: [5, 8] } ]   # only the collapse to a thin line: their eyes clear
+    expire: [ { fx: round_light_burst_001, size: small, tint: element2, scale: 0.5, offset: [0, 0.25], opacity: 0.6, frames: [5, 8] } ]
+  stray_aurora_drift:   # end of its owner's turn: 15 to a random unit on whichever side holds more total HP
+    trigger:
+      - { fx: round_sparkle_burst_002, size: small, tint: duo, scale: 0.5 }   # the stray light flickers
+      - { fx: scifi_warp_003, at: target, tint: duo, tone: light, scale: 0.8, delay: 120, note: "a streak of light drops onto whichever unit it drifts to: an enemy, or one of its own allies when their side holds more HP" }
+
+macros: {}   # Aurora defines none
+
+skills:
+  strike.aurora:
+    beat: A crescent of ice cuts through the target and its violet afterimage follows a beat behind.
+    note: "+5 damage per Charge in the one hit event: play the slashes about 0.8 with no Charge up to 1.1 at 3."
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, scale: 0.8 }
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: element2, scale: 0.8, opacity: 0.65, delay: 70 }   # the afterimage, in the other colour
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, tone: light, scale: 0.4, delay: 110 }
+      # Shimmer is applied only when a Charge is spent, so its ribbon is the spend's tell; Charged's discharge plays when it was the last.
+
+  smash.aurora:
+    beat: A claw of rime-light arcs over and crashes onto the target, violet ice ridges burst up through their allies, and hoarfrost settles on everyone it hit.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, scale: 1.1, frames: [3, 9], note: "native: its cyan arc and violet-white impact are already Aurora. Line the impact corner (bottom-right as drawn, bottom-left mirrored) up on the target; the faint opening streaks are skipped so the crash lands about 150 ms after the damage" }
+      - { on: hit, only: others, fx: frost_knight_3, tint: element2, scale: 0.9, opacity: 0.9, delay: 150, stagger: 90 }   # the ridge is about 1.2 portraits wide: violet ice bursts up over each ally's lower body
+      - { on: apply, status: hoarfrost_crash, fx: directional_sparkle_burst_002, tone: light, scale: 0.7, opacity: 0.7, delay: 250, stagger: 60 }   # rime settles glinting over each one's feet: their Frost debuffs are sealed in
+
+  charge.aurora:
+    beat: The user streaks to the target as a jet of light, bursts through and out past them with a violet afterimage behind, and leaves a lock-ring on them for the next blow.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, tint: duo, tone: light, scale: 0.7, speed: 1.6, note: "the user's portrait dashes along the streak and snaps back" }   # a moving streak, not a tether: the jet leads toward the target
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tint: duo, tone: light, scale: 0.9 }   # the carry-through: its ring lands on the user's side of them and the jet sprays out past them
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: element2, scale: 0.75, opacity: 0.7, delay: 80 }   # the afterimage
+      - { on: apply, status: streaked, fx: frost_knight_7, tint: element2, scale: 0.5, delay: 200 }   # a four-pointed ring closes on them: the next blow lands here
+      # Shimmer's ribbon then settles over the user.
+
+  riposte.aurora:
+    beat: Unseen field lines wrap the user; when they're struck, the field snaps out, turns the skill back and clamps a ring of current onto the attacker.
+    note: "The counter deals no damage, so there is no counter-slash: the field's flare, base's counter X on the stopped skill and Sapped's default on the attacker are the payoff."
+    cues:
+      - { on: cast, fx: stylized_impact_001, size: small, tint: duo, scale: 0.8, opacity: 0.7 }   # Invisible: only the owner sees the field
+      - { on: trigger, status: magnetic_veil, fx: stylized_impact_001, tint: duo, tone: light }   # the field flares around the user, reading on its own to an opponent who never saw it set
+      - { on: apply, status: magnetized, fx: dark_mage_2, tint: element2, scale: 0.6, frames: [0, 10], delay: 150 }   # a ring of current clamps around the attacker: their Sapped won't come off (trim the dark-red last frame)
+
+  rage.aurora:
+    beat: Curtains of light shoot up around the user and crackle at the crown; every enemy they then hit is lashed by the storm and dazzled.
+    cues:
+      - { on: apply, status: polar_storm, fx: dark_mage_3, tint: duo, scale: 1.6, opacity: 0.8, frames: [5, 12] }   # over the portrait, pillars erupting at once (the ring-only wind-up skipped)
+      - { on: apply, status: polar_storm, fx: lightning_burst_003, tint: duo, scale: 1.0, delay: 250 }   # the storm crackles out of them
+      - { on: trigger, status: polar_storm, fx: lightning_strike_002A, at: target, face: fromActor, size: small, tint: element2, scale: 0.55, note: "on each enemy the user damages directly: the impact corner (lower-left as drawn) on them, mirrored so it leans in from the user's side. Dazzled's flare follows" }
+
+  shot.aurora:
+    beat: A glint of starlight zips over and pops on the target in cyan, then violet.
+    note: "20 against a target already Dazzled (the same single hit event): play both pops about 1.3x."
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: straight, size: small, tint: duo, tone: light, scale: 0.35, frames: [0, 1], repeat: 4, speed: 1.5 }   # only its dense opening puff, flickering in flight (the later frames swell into a ring and scatter)
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.55 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: element2, scale: 0.6, opacity: 0.7, delay: 70 }   # the afterimage
+      # Dazzled's flare follows.
+
+  snipe.aurora:
+    beat: Glints converge on the user into a lance while a thread of light hangs over the target; next turn the lance drives down out of the sky through them.
+    note: >-
+      Polar Lance fires from its expiry at the end of the following turn: polar_lance's onExpire firing plays its
+      trigger cue on the channelling user first (the lance launches), then the hit cues on the target. If the
+      channel is interrupted, base's interrupted default plays and neither cue does. Not HiddenTarget, so the
+      thread may mark the target from the start.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: duo, scale: 0.7 }   # four glints converge into one star and pop: the lance forms
+      - { on: apply, status: polar_lance_mark, fx: lightning_strike_003B, size: small, tint: element2, scale: 0.6, offset: [0, 0.45], opacity: 0.55, delay: 150 }   # a thin thread of light hangs over them from the sky: the aim
+      - { on: trigger, status: polar_lance_mark, fx: lightning_strike_003B, size: small, tint: element2, scale: 0.5, speed: 1.6 }   # each skill they use, the thread jolts them; Sapped's default follows
+      - { on: trigger, status: polar_lance, fx: round_sparkle_burst_003, tint: duo, tone: light, scale: 0.6, frames: [7, 16], speed: 1.4 }   # the shot: the star that formed at cast pops off the user as the lance launches
+      - { on: hit, fx: paladin_5, tint: duo, scale: 1.2, note: "the column of light drives the lance down into them (Piercing); its black spire stays black, the lance's dark core inside the light" }
+      - { on: hit, fx: symmetrical_impact_006, size: small, scale: 0.7, delay: 200 }   # ice shatters off them as it lands
+      # Chilled's snowflake lands on the target with the cast.
+
+  trap.aurora:
+    beat: Unseen motes of light gather around the target; when they act, stars burst up off them and the glitter spreads to every one of their team.
+    cues:
+      - { on: apply, status: snare_of_lights, fx: status_sparkling_001, size: small, tint: duo, scale: 0.7, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: snare_of_lights, fx: directional_star_burst_001, tint: duo, tone: light, speed: 1.3 }   # reads on its own: the snare springs off the one who acted
+      - { on: trigger, status: snare_of_lights, fx: status_sparkling_001, at: target, size: small, tint: duo, tone: light, scale: 0.7, opacity: 0.8, delay: 200, stagger: 80 }   # the glitter reaches each of their team; Dazzled's flare lands on each
+
+  maneuver.aurora:
+    beat: The user dissolves into a veil of glints and slips out of reach, the current drained from them drawn back in as Charge.
+    cues:
+      - { on: cast, fx: status_sparkling_001, tint: duo, tone: light, scale: 1.1, opacity: 0.85, speed: 1.3, frames: [0, 15], note: "the portrait fades to translucent as the glints spread over it; Invulnerable's shell then closes" }
+      - { on: remove, status: sapped, fx: spell_absorb_001, tint: element2, scale: 0.7, speed: 1.6 }   # replaces Sapped's fizzle here: the drained current spirals back in, and Charged's crackle follows
+      # With Chilled: Chilled's own removal glint, then Shimmer's ribbon.
+
+  companion.aurora:
+    beat: A puff of glittering snow bursts and a brush of light flicks up out of it as the Aurora Fox lands.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tone: light, scale: 0.9 }
+      - { on: summon, fx: dark_mage_1, face: up, tint: duo, scale: 0.8, delay: 150 }   # the fox's brush of light sweeps upward
+      # Stormborn shows through Lightning's default.
+
+  bolt.aurora:
+    beat: A comet of light flickers between cyan and violet as it flies and bursts into a ring of shards; fed the user's Shimmer, it lands far harder.
+    note: "35 when the user had Shimmer (the same single hit event): play the burst about 1.3x."
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: element, scale: 0.6 }
+      - { on: travel, fx: starcaller_2, path: straight, tint: element2, scale: 0.6, opacity: 0.6, delay: 50 }   # its violet twin a step behind: the flicker
+      - { on: hit, fx: scifi_warp_002, tint: duo, scale: 0.8 }
+      - { on: remove, status: shimmer, fx: round_sparkle_burst_003, tint: duo, scale: 0.6, speed: 1.5, frames: [0, 8] }   # replaces Shimmer's fade: it gathers into one star and goes into the bolt; no Shimmer, no star
+      # Without Shimmer, the ribbon settles over the user instead.
+
+  blast.aurora:
+    beat: Light rises off the user and the borealis falls across the enemy line, a curtain climbing through every enemy, cyan then violet.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_001, tint: duo, scale: 0.9 }
+      - { on: hit, fx: dark_mage_3, tint: element, scale: 1.3, frames: [5, 12], stagger: 80 }   # the pillars erupt with the damage (the ring-only wind-up skipped)
+      - { on: hit, fx: dark_mage_3, tint: element2, scale: 1.4, opacity: 0.8, frames: [5, 12], delay: 120, stagger: 80 }   # the same curtain drifting to violet
+      - { on: hit, fx: lightning_burst_002, size: small, tone: light, scale: 0.5, delay: 200, stagger: 80 }
+      # Chilled enemies take Dazzled's flare, the rest Chilled's snowflake.
+
+  consume.aurora:
+    beat: A nick of light on the target, then motes of its light drift off toward the user and spiral into them as one of their energies changes hands.
+    cues:
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: element2, scale: 0.4 }
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: duo, tone: light, scale: 0.6, speed: 1.4, delay: 60 }   # the essence leaves after the strike, rising off them toward the user
+      - { on: resolve, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.6, note: "only when the steal happened (stealEnergy's energyGained pair arrives; nothing plays if their player had no energy). Each viewer animates only their own bar: the user's player sees a pip arrive, the victim's player sees one leave." }
+
+  summon.aurora:
+    beat: A fold of the aurora curtain rises out of a ring of light and hangs there, twinkling.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: duo }
+      - { on: summon, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.6, delay: 300 }
+
+  channel.aurora:
+    beat: A glow climbs off the user into a halo of light; at the end of each of their turns it pulses, stars of light pop on every enemy and the whole team shimmers.
+    note: "skyglow's trigger fires both for its turn-end pulse and for the direct hit that ends it: play the trigger cue on the pulse only."
+    cues:
+      - { on: apply, status: skyglow, fx: directional_sparkle_burst_003, tint: duo, speed: 1.3 }
+      - { on: trigger, status: skyglow, fx: directional_sparkle_burst_003, tint: duo, tone: light, scale: 0.8, speed: 1.4 }
+      - { on: hit, fx: round_sparkle_burst_001, size: small, tint: element2, tone: light, scale: 0.45, stagger: 60 }   # 5 each: small
+      - { on: remove, status: skyglow, fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: dark, scale: 0.6, opacity: 0.8, note: "when direct damage breaks it early: the halo goes dark" }
+      # Shimmer's ribbon plays over every ally on cast and on each pulse.
+
+  stab.aurora:
+    beat: A charged icicle punches through the target and spits shards and sparks out behind them.
+    note: "25 when their player holds 1 energy or none (the same single hit event): play both cues about 1.3x."
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, tone: light, scale: 0.6, speed: 1.3 }   # the shard fan sprays out the far side
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, scale: 0.4, delay: 60 }   # the charge in it discharges
+      # Dazzled's flare follows.
+
+  ravage.aurora:
+    beat: Claws of light tear through the target in a flurry and shatter off them; any Charge spent grounds through them as a bolt.
+    note: Piercing.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: duo }
+      - { on: hit, fx: symmetrical_impact_003, size: small, scale: 0.6, delay: 150 }
+      - { on: apply, status: debuff, fx: lightning_strike_003A, size: small, tint: element2, scale: 0.7, note: "Sapped is this skill's only debuff and comes only from spent Charge: the user's current grounds through them. Adds to Sapped's default" }
+      # Charged's discharge plays on the user as the Charge is spent.
+
+  mislead.aurora:
+    beat: Unseen will-o'-wisps circle the target; when they strike, the wisps lead the blow astray and drift back to the user as energy.
+    cues:
+      - { on: apply, status: ghost_lights, fx: starcaller_4, tint: duo, scale: 0.6, opacity: 0.55 }   # Invisible: owner only
+      - { on: trigger, status: ghost_lights, fx: starcaller_4, tint: duo, tone: light, scale: 0.9, speed: 1.4 }   # the wisps swirl up and scatter as the skill is countered; base's counter X follows
+      - { on: trigger, status: ghost_lights, fx: spell_absorb_001, at: actor, size: small, tint: duo, scale: 0.6, speed: 1.6, delay: 200, note: "the energy it pays out spirals into the user (the kit's energy-gained look, as in Drink the Light); add the pips to their bar" }
+
+  stun.aurora:
+    beat: Fireworks of violet and cyan light burst over the target; the glitter lingers, and after the next skill they use the finale goes off and leaves them stunned.
+    cues:
+      - { on: hit, fx: round_firework_burst_001, size: small, tint: element2, scale: 0.7, note: "the target's portrait shudders" }
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.8, delay: 120 }   # the afterimage, in cyan
+      - { on: apply, status: lightshow, fx: round_sparkle_burst_002, size: small, tint: duo, tone: light, scale: 0.45, offset: [0, 0.6], delay: 250 }   # the glitter hangs over them: the show isn't over
+      - { on: trigger, status: lightshow, fx: round_firework_burst_002, tint: duo, scale: 0.9, offset: [0, 0.3] }   # after their next skill the finale bursts over them; Stun's default follows
+
+  dance.aurora:
+    beat: Two rings of light whirl around the user in opposite directions, cyan and violet; each skill they use sets the rings spinning again.
+    cues:
+      - { on: apply, status: dance_of_lights, fx: dark_mage_2, tint: element, scale: 1.2, frames: [0, 10] }
+      - { on: apply, status: dance_of_lights, fx: dark_mage_2, tint: element2, flip: x, scale: 1.3, opacity: 0.8, frames: [0, 10], delay: 150 }   # mirrored, so it spins the other way
+      - { on: trigger, status: dance_of_lights, fx: dark_mage_2, tint: duo, scale: 0.7, speed: 1.5, opacity: 0.8, frames: [0, 10] }   # each skill they use; Charged's crackle follows, and Swiftness's clock on every second one
+      # Shimmer's ribbon settles over them.
+
+  heal.aurora:
+    beat: Pale light rises through the ally and a faint glow stays on them; next turn the long night's glow heals them again for every frost on the enemy side.
+    note: >-
+      The glow's later heal is another heal of this skill: 5 per Frost debuff on the enemy team, up to 30. Play its
+      cue about 0.5x at 5 up to 1.0x at 30; with no Frost debuffs it heals nothing and plays nothing.
+    cues:
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, scale: 0.8, speed: 1.6 }
+      - { on: apply, status: glow_of_the_long_night, fx: directional_particle_burst_001, size: small, tone: light, scale: 0.5, delay: 300 }   # motes of cold light linger on them
+
+  bless.aurora:
+    beat: A veil of light ripples down over the ally and stars rise around them; the user's Charge lifts off them and crackles onto the ally.
+    cues:
+      - { on: apply, status: shimmer, fx: necromancer_6, tint: duo, scale: 0.7, offset: [0, 0.8], note: "lower it from above the frame to just over the head as it ripples: the veil settles. Replaces Shimmer's ribbon here" }
+      - { on: apply, status: shimmer, fx: directional_star_burst_001, tint: duo, tone: light, scale: 0.6, delay: 200 }
+      - { on: remove, status: charged, fx: directional_particle_burst_001, face: toTarget, tint: element2, scale: 0.6, speed: 1.3, note: "replaces Charged's discharge: the Charge isn't spent, it moves, so the motes lift off the user toward the ally" }
+      - { on: apply, status: charged, fx: scifi_charge_up_002, tint: element2, scale: 0.8, speed: 1.5, delay: 250 }   # Lightning's Charged crackle, restated with a delay so it gathers on the ally after the motes head its way (moveEffects applies it before the user's removal); no Charge to move, neither plays
+
+  curse.aurora:
+    beat: The colours around the target swirl and darken into them; each turn their energy shifts, the swirl drains them again.
+    cues:
+      - { on: apply, status: color_drain, fx: slime_5, tint: duo, tone: dark, scale: 0.75, opacity: 0.85 }
+      - { on: trigger, status: color_drain, fx: slime_5, tint: duo, tone: dark, scale: 0.5, speed: 1.6, opacity: 0.8, note: "only when it Saps them (they're still Dazzled); Sapped's default follows" }
+      # Dazzled's flare lands first.
+
+  smite.aurora:
+    beat: A star dives out of the sky onto the target and a guiding star lights over their head, flaring each time an ally strikes them.
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, tint: duo, scale: 0.8 }   # ground art: mirrored so it dives in from the user's side
+      - { on: apply, status: lodestar, fx: round_sparkle_burst_003, size: small, tint: element2, tone: light, scale: 0.45, offset: [0, 0.65], frames: [0, 9], delay: 200, note: "four glints converge into one star over the head; hold that frame a beat, then fade" }
+      - { on: trigger, status: lodestar, fx: symmetrical_impact_005, size: small, tint: element2, tone: light, scale: 0.35, offset: [0, 0.65] }   # each allied hit makes it flare: their Dazzle runs longer
+      # Dazzled's flare lands with the hit.
+
+  prayer.aurora:
+    beat: Dawn rays rise behind the whole team and sparkling light climbs through every ally.
+    note: "The cooldown change emits no event: as the light climbs, tick each reduced cooldown badge on the user's side down with a small glint."
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: allySide, tint: duo, tone: light, scale: 3.2, opacity: 0.6, layer: under, note: "far wider and taller than the team, so the rays spill past every portrait's frame and climb above the heads: behind the opaque portraits only that spill shows" }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, tone: light, scale: 0.7, delay: 100, stagger: 100 }
+      # Shield's default follows on each ally.
+
+  cleave.aurora:
+    beat: A thin arc of light sweeps through the target and carries on, turned cyan, into a second enemy.
+    cues:
+      - { on: hit, only: primary, fx: paladin_9, face: fromActor, flip: y, tint: duo, scale: 0.85 }   # flipped: the arc sweeps low along the bottom instead of rising over the top (Polar Jolt keeps the uppercut)
+      - { on: hit, only: others, fx: paladin_9, face: fromActor, flip: y, tint: element, scale: 0.65, delay: 150 }   # the arc carries on into the random second enemy, in the other colour
+      - { on: hit, fx: lightning_burst_002, size: small, tint: element2, scale: 0.4, delay: 80 }
+      # Dazzled's flare lands on the second enemy.
+
+  shout.aurora:
+    beat: A ringing pulse bursts off the user and static crackles over every enemy; each skill one of them uses throws the static onto an ally of theirs.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.4 }   # the pulse
+      - { on: apply, status: polar_static, fx: lightning_burst_002, size: small, tint: duo, scale: 0.5, delay: 150, stagger: 70 }
+      - { on: trigger, status: polar_static, fx: lightning_burst_002, size: small, tint: element2, scale: 0.4 }   # static jumps off them as they act; Confusion's default lands on the random ally
+      # Chilled's snowflake lands on each enemy.
+
+  withstand.aurora:
+    beat: Bars of light drop around the user, cyan on one side and violet on the other, and lock into a cage that shimmers while it holds.
+    cues:
+      - { on: apply, status: ice_cage, fx: lightning_strike_003B, scale: 1.0, offset: [-0.4, 0], speed: 0.8, note: "hold the swollen frame (2) about 150 ms before thinning, so the bar stands" }
+      - { on: apply, status: ice_cage, fx: lightning_strike_003B, tint: element2, flip: x, scale: 1.0, offset: [0.4, 0], speed: 0.8, delay: 80, note: "hold the swollen frame (2) about 150 ms before thinning: the two bars lock and stand as a cage" }
+      - { on: remove, status: ice_cage, fx: symmetrical_impact_006, size: small, scale: 0.7 }   # broken or run out: the bars shatter, and Shimmer's motes follow
+      # Shimmer's ribbon settles over the user.
+
+  taunt.aurora:
+    beat: A column of light shoots up from the user like a beacon; each time one of the taunted strikes them, it flares again and draws another enemy in.
+    cues:
+      - { on: cast, fx: directional_fire_burst_002, tint: duo, tone: light }   # the beacon: the challenge comes from the user
+      - { on: trigger, status: polar_beacon, fx: directional_fire_burst_002, size: small, tint: duo, tone: light, scale: 0.7, speed: 1.4, note: "only when it Taunts someone new (the attacker was one the user Taunted)" }
+      # Taunt's '!' lands on the target, and on each enemy the beacon draws in.
+
+  titan.aurora:
+    beat: Heaven's light spears down into the user and wraps them in bands of radiant armour, crowned by a great ribbon of aurora.
+    note: "Armor scales with the colours among their player's energies (1 each): as the bands close, flash one glint per colour counted."
+    cues:
+      - { on: apply, status: heavenlight_armor, fx: scifi_warp_003, tint: duo, tone: light, scale: 1.8, note: "a short board flash as it strikes" }
+      - { on: apply, status: heavenlight_armor, fx: paladin_8, tint: duo, scale: 1.5, delay: 250 }   # the bands wrap the user into armour
+      - { on: apply, status: shimmer, fx: necromancer_6, tint: duo, scale: 1.4, offset: [0, 0.95], opacity: 0.9, delay: 600 }   # Shimmer's ribbon at Titan size, replacing its default here: lands after the armour
+      # Immune's default plays.
+
+  aurora_fox_foxfire:
+    beat: The fox spits a wisp of cold foxfire that bursts into a spray of violet and cyan stars on the target.
+    note: "+5 per Charge the Fox has (one hit event): play the burst about 0.6 with no Charge up to 0.9 at 3."
+    cues:
+      - { on: travel, fx: fire_looping_001, path: straight, flip: y, size: small, tone: light, scale: 0.35, speed: 1.5, note: "flipped so the white core leads; a cold cyan flame" }
+      - { on: hit, fx: starcaller_1, face: fromActor, scale: 0.6, note: "native: its violet body and cyan glow are already Aurora. The burst's origin (lower-left as drawn) on the target" }
+      # Dazzled's flare follows; Stormborn's bolt and Charged's crackle feed the Fox.

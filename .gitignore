@@ -8,3 +8,7 @@ replays/
 # Local server data (PGlite)
 .data/
 apps/server/.data/
+
+# The raw animation library (~59k frames): scripts/animations/build-vfx.mts packs what the game uses
+# into apps/client/public/assets/vfx, which is committed.
+skill_animations/

@@ -1,0 +1,294 @@
+group: mist
+# Mist (Water + Wind) is water carried on the air. Its body color is `duo`: Water's deep-blue shadow under
+# Wind's white body, which reads as pale vapor with a blue edge. That is the mist itself and the house
+# look of the kit (smoke, crescents, sprays, class art). Plain Water (`element`, the default tint for
+# palette art here) is what the mist condenses into: dew, beads, spouts and spray. Plain Wind (`element2`)
+# shows up only where the air is bare (the Foghorn's boom).
+# Signature: the veil. Fog is the kit's central status (about fifteen skills grant it). It rolls in as two
+# low banks of mist that cross over the bearer from either side (directional_smoke_burst_005, duo). Torn
+# away early, the banks blow back out. When it runs out, the veil lifts. Its look-alikes (veiled_strike,
+# mercy_of_the_mist, cloak_of_mist, the Heron's passive) count as Fog under their own ids, so their
+# skills replay the veil. Two more tells run through the kit:
+#   redirect  when Fog sends a skill astray (every fog_redirect trigger), the veil swirls shut around the
+#             Fogged unit: dark_mage_2 in duo, frames 0-10 (its last frame jumps to red).
+#   condense  when mist turns into something else (Morning Dew and Veil of Mist spending Fog, Condensation
+#             drinking the target), motes of mist spiral into the unit: spell_absorb_001 in duo.
+#
+# Portraits are opaque squares: `layer: under` cues are scaled past the frame, or they wouldn't show.
+
+statuses:
+  fog:
+    note: >-
+      No aura: Fog sits on whole teams at once (Rolling Fog, Mercy of the Mist) and on the Heron for
+      good, so the veil at each gain and the status icon carry it. The redirect itself has no event of its
+      own; the skills that react to it play the redirect tell on their trigger.
+    apply:
+      - { fx: directional_smoke_burst_005, tint: duo, face: left, scale: 0.7, opacity: 0.8, note: "over the portrait at the feet: the two banks roll across the bearer from either side and cross, veiling the lower body" }
+      - { fx: directional_smoke_burst_005, tint: duo, face: right, scale: 0.7, opacity: 0.8, delay: 80 }
+    remove:
+      # Torn away early (spent by a skill, cleansed, or a link broken): no Renew, the banks blow back out.
+      - { fx: directional_smoke_burst_003, tint: duo, size: small, face: left, scale: 0.6, offset: [-0.3, 0], opacity: 0.8 }
+      - { fx: directional_smoke_burst_003, tint: duo, size: small, face: right, scale: 0.6, offset: [0.3, 0], opacity: 0.8 }
+    expire:
+      # Ran out: the veil lifts, and Renew's heart follows (the fog gives the bearer its moisture).
+      - { fx: directional_smoke_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.7 }
+  mist_double_burst:   # struck by an enemy Harmful skill: the Double bursts and lashes that skill's user
+    trigger:
+      - { fx: symmetrical_smoke_burst_003, tint: duo, scale: 0.9 }
+      - { fx: symmetrical_impact_001, at: source, tint: duo, size: small, scale: 0.5, delay: 100 }   # the 10 damage on the attacker (the skill's user), not on the Double the kill lands on
+      # The kill plays base's death default on the Double; its onDeath then closes Fog's veil on the summoner.
+
+macros: {}   # Mist defines none; Undertow Thrust uses Wind's leap macro, which plays its own cues
+
+skills:
+  strike.mist:
+    beat: A thin arc of mist slices the target and the user sinks into a veil; when it lifts, the arc cuts the same enemy again out of the fog.
+    note: "This Fog's onExpire hit (15, or 25 after a redirect) replays the hit cues on the remembered enemy right after the veil lifts off the user; play it about 1.3x when it is 25."
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, tint: duo, scale: 0.8 }
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.45, delay: 80 }   # dew flicked off the blade
+      # veiled_strike is a Fog under its own id: replay Fog's veil, and lift it when it ends.
+      - { on: apply, status: veiled_strike, fx: directional_smoke_burst_005, tint: duo, face: left, scale: 0.7, opacity: 0.8 }
+      - { on: apply, status: veiled_strike, fx: directional_smoke_burst_005, tint: duo, face: right, scale: 0.7, opacity: 0.8, delay: 80 }
+      - { on: trigger, status: veiled_strike, fx: dark_mage_2, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 10], note: "the redirect tell: only when the user's own Fog sent the skill astray (the signal fires for every ally's Fog)" }
+      - { on: remove, status: veiled_strike, fx: directional_smoke_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.7 }
+
+  smash.mist:
+    beat: A spindle of wind wound with spray dives onto the target, lands hard and unwinds in a double ring of spray, flinging spray up under each of their allies.
+    note: "Every Swiftness stack spent adds 10 to every hit: grow each hit cue about 0.1 per stack. Swiftness's own remove default plays on the user as it is spent."
+    cues:
+      - { on: hit, only: primary, fx: paladin_6, face: fromActor, tint: duo, scale: 1.1 }   # the heavy landing: streaks dive in and crash into a star and ground ring
+      - { on: hit, only: primary, fx: symmetrical_impact_002, tint: duo, scale: 0.9, delay: 200 }   # the spindle unwinds in a double ring of spray
+      - { on: hit, only: others, fx: directional_splatter_002, size: small, scale: 0.6, delay: 250, stagger: 80 }
+
+  charge.mist:
+    beat: The user rushes in as a wave of mist that breaks through the target and leaves an afterimage; the next other enemy the user strikes, the afterimage strikes the first one too.
+    cues:
+      - { on: travel, fx: blood_knight_1, path: straight, tint: duo, scale: 0.6, speed: 1.3, note: "its crash lands as the travel arrives" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, tint: duo, scale: 0.55, note: "its lower-left origin on the target" }
+      - { on: apply, status: mistwalk, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, opacity: 0.8 }   # a wisp of the afterimage trails off the user
+      - { on: trigger, status: mistwalk, fx: starcaller_7, at: target, face: fromActor, tint: duo, scale: 0.7 }   # the echo cuts the marked enemy (plays only when its damage lands); the hit cue follows
+
+  riposte.mist:
+    beat: A ring of mist hides around every Fogged ally; the first blow at one of them is swatted aside by a rising wall of fog that blows into the attacker's face.
+    cues:
+      - { on: apply, status: fogbank, fx: frost_mage_1, tint: duo, scale: 0.6, opacity: 0.6, stagger: 60 }   # Invisible: owner only
+      - { on: trigger, status: fogbank, fx: warrior_2, tint: duo, scale: 0.9, note: "mirrored so it rises on the side facing the source (the unit whose skill it counters)" }
+      - { on: trigger, status: fogbank, fx: directional_smoke_burst_003, at: source, face: fromActor, tint: duo, size: small, scale: 0.6, delay: 120 }
+      # Fog's veil plays on the user; base's counter X marks the source.
+
+  rage.mist:
+    beat: A riptide of spray and wind spins up around the user and water surges up their body; each turn they end still rushing, the current churns again.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.8, opacity: 0.85, layer: under }
+      - { on: cast, fx: directional_splatter_005, delay: 200 }
+      - { on: trigger, status: riptide_fury, fx: slime_5, tint: duo, scale: 0.6, opacity: 0.8, speed: 1.5, note: "only on the turns it grants Renew (the bearer still Rushing); Renew's heart follows" }
+      # Rushing's side streaks and Might's sword play their own defaults.
+
+  shot.mist:
+    beat: A bead of dew wobbles off on the breeze and pops on whichever enemy the mist carries it to.
+    note: "The bead travels to the enemy it actually hits (the random pick), not the one the player aimed at. 10 when that is the aimed enemy: play the pop about 0.45."
+    cues:
+      - { on: travel, fx: slime_3, path: arc, tint: duo, scale: 0.45, speed: 1.3, note: "its own splat frames land as the travel arrives" }
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.6 }
+
+  snipe.mist:
+    beat: The user draws the mist into a glinting point and hides in it; next turn a needle of mist streaks out of the veil through the target.
+    note: "HiddenTarget: nothing points at the target until the shot lands. 30 instead of 45 when the user was hit while aiming: play the two impact cues about 0.8x. Fog's veil plays on the user while it aims and ends with the shot. An interrupted aim never fires, so it plays base's interrupted default and none of these."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tint: duo, scale: 0.7 }   # radial: gives nothing away
+      - { on: trigger, status: mistpiercer, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5 }   # struck while aiming: a wisp of the gathered mist escapes
+      - { on: hit, fx: starcaller_2, face: fromActor, tint: duo, scale: 1.2, speed: 1.4, delay: 80 }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, delay: 140 }
+      # The shot leaves the veil: bound to the hit (only the expiry shot deals damage), so it points at the target only once the shot lands, and it leads the impact.
+      - { on: hit, at: actor, fx: scifi_muzzle_flash_003, face: toTarget, tint: duo, size: small, scale: 0.5 }
+
+  trap.mist:
+    beat: A thin curl of fog clings to the target unseen; their first attack loses its way as the fog whirls up around them.
+    cues:
+      - { on: apply, status: choking_fog, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: choking_fog, fx: slime_5, tint: duo, tone: dark, scale: 0.9, opacity: 0.85, speed: 1.5 }   # the opponent's first sight: the fog whirls round them as the skill flies astray
+      # Confusion's question mark follows; the misdirected skill plays its own cues on whoever it hits.
+
+  maneuver.mist:
+    beat: The user erodes into speckles of vapor behind the veil; the first attack the fog turns away leaves them untouchable.
+    cues:
+      - { on: apply, status: dissipate, fx: round_sparkle_burst_002, tint: duo, tone: light, scale: 0.9, opacity: 0.85, note: "the portrait flickers to half opacity as the cloud erodes into speckles, then firms up" }
+      - { on: trigger, status: dissipate, fx: dark_mage_2, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 10], note: "the redirect tell: only when the user's own Fog sent the skill astray" }
+      # Fog's veil plays on the user; Invulnerable's shell follows the trigger.
+
+  companion.mist:
+    beat: A heron lands in a splash of shallows and fog rolls in around it.
+    cues:
+      - { on: summon, fx: directional_impact_003, size: small, scale: 0.7 }
+      # The Heron's Fog is a passive with no event of its own: its arrival replays Fog's veil.
+      - { on: summon, fx: directional_smoke_burst_005, tint: duo, face: left, scale: 0.7, opacity: 0.8, delay: 200 }
+      - { on: summon, fx: directional_smoke_burst_005, tint: duo, face: right, scale: 0.7, opacity: 0.8, delay: 280 }
+
+  bolt.mist:
+    beat: A pressurized orb of spring water streaks into the target and bursts in bubbling spray, and a spring wells up under every ally with Renew.
+    note: "Each heal is 5 per Renew stack: play it about 0.5 at 5 up to 0.8 at 20+."
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.6, speed: 1.3 }
+      - { on: hit, fx: symmetrical_explosion_002, scale: 0.8 }
+      # Each ally's Renew heals once: Renew's tick look, in mist, over a small spring rising at the feet.
+      - { on: heal, fx: directional_splatter_005, size: small, scale: 0.45, opacity: 0.85, stagger: 70, note: "over the portrait: an under-layer this small would hide behind it" }
+      - { on: heal, fx: spell_heal_002, tint: duo, size: small, scale: 0.5, speed: 1.5, delay: 80, stagger: 70 }
+
+  blast.mist:
+    beat: A squall of rain-heavy mist fans through every enemy and swamps their side, leaving a dark cloud hanging over each of them.
+    cues:
+      - { on: hit, fx: necromancer_3, face: fromActor, tint: duo, tone: light, stagger: 80, note: "its origin edge just before the unit, so the cone fans through it" }
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, tint: duo, scale: 2.6, opacity: 0.6, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: apply, status: drowning_squall, fx: symmetrical_smoke_burst_002, tint: duo, tone: dark, size: small, scale: 0.45, offset: [0, 0.6], opacity: 0.8, delay: 200, stagger: 80 }
+      - { on: trigger, status: drowning_squall, fx: directional_splatter_005, size: small, scale: 0.6 }   # water surges up over them as Confusion lands; Intimidated's eye follows
+
+  consume.mist:
+    beat: Moisture lifts off the target as a trail of droplets and condenses into the user in a spiral of mist.
+    note: "+20 when the target was healed since the user's last turn (no event of its own): play the heal cue about 1.0 instead of 0.6."
+    cues:
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: duo, size: small, scale: 0.6 }
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.6, speed: 1.6 }   # the condense tell
+
+  summon.mist:
+    beat: The user's outline lifts off in a pale oval of mist and steps aside as a double.
+    note: "When the Double expires or bursts, its onDeath closes Fog's veil on the user."
+    cues:
+      - { on: summon, fx: scifi_warp_001, tint: duo, scale: 0.9, note: "the Double's portrait fades in through the oval" }
+      - { on: apply, status: mist_double_decoy, fx: symmetrical_smoke_burst_002, tint: duo, size: small, scale: 0.45, opacity: 0.6 }   # a puff on the user where the double split off
+
+  channel.mist:
+    beat: Fog billows up behind the user and veils their team; at each of their turn ends a low cloud rolls into every enemy and stings them.
+    cues:
+      - { on: apply, status: rolling_fog, fx: directional_smoke_burst_001, tint: duo, scale: 2.2, opacity: 0.8, layer: under }
+      # The roll rides on the damage itself: only the turnEnd pulse deals damage, so a redirect never plays it.
+      - { on: hit, fx: frost_mage_7, face: fromActor, tint: duo, scale: 0.8, opacity: 0.85, stagger: 60, note: "the cloud head ends on each enemy" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, size: small, scale: 0.45, delay: 150, stagger: 60 }
+      - { on: trigger, status: rolling_fog, fx: dark_mage_2, at: source, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 10], note: "signal trigger only: source = the Fogged ally that sent fog_redirect. The turnEnd pulse has no event source and plays nothing here" }   # the redirect tell; Confusion's default lands on the redirected enemy
+      # Fog's veil closes on every ally.
+
+  stab.mist:
+    beat: A thin streak of mist slips into the target and leaves pins of mist hanging around them; the next blow at low health drives it home.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.6, speed: 1.3 }   # the streak pierces and curls away like a breath
+      - { on: apply, status: whisper_knife, fx: fanfx_pain, tint: duo, tone: light, size: small, scale: 0.7, opacity: 0.8, speed: 2 }
+      - { on: trigger, status: whisper_knife, fx: symmetrical_impact_001, at: target, tint: duo, size: small, scale: 0.55 }   # only when its 15 lands; the hit cue follows
+
+  ravage.mist:
+    beat: The user pours their stored water into one thrust; stacked crescents of water and air ram through the target and spray out of their back, then the user springs clear.
+    note: "+5 per Renew spent (max +20): grow both hit cues up to about 1.3x."
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 1.1, note: "its splat lands about 70% across the canvas: shift it back so it breaks on the target" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, scale: 0.9, delay: 100, note: "its lower-left origin on the target" }
+      - { on: remove, status: renew, fx: directional_smoke_burst_003, face: toTarget, size: small, scale: 0.5 }   # the spent Renew streams off the user after the thrust
+      # Wind's leap macro (takeoff dust, Leaping's updraft) plays on the user.
+
+  mislead.mist:
+    beat: Glints of mist gather unseen around the target; when they attack, two wisps spin them around and their skill falls on one of their own.
+    cues:
+      - { on: apply, status: lost_in_the_fog, fx: round_sparkle_burst_003, tint: duo, size: small, scale: 0.6, opacity: 0.7 }   # Invisible: owner only. The mirage gathers around them
+      - { on: trigger, status: lost_in_the_fog, fx: starcaller_4, tint: duo, scale: 1.1, speed: 1.4, note: "the portrait turns half around as the wisps close" }
+      # Base's counter X follows; a single-target skill then plays its own cues on the random ally.
+
+  stun.mist:
+    beat: Out of the fog a squall crashes down on a random enemy and rain spits off them as they reel.
+    cues:
+      - { on: hit, fx: frost_knight_10, face: fromActor, tint: duo, scale: 0.8, note: "its crash sits in the bottom corner on the leading side: put that corner on the target" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.45, delay: 150 }
+      # Stun's default (and its stagger) follows.
+
+  dance.mist:
+    beat: Bands of mist sweep around the user as they spin, flinging rain out in a falling ring; every attack the fog turns away quickens them.
+    cues:
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.8, opacity: 0.85, layer: under }
+      - { on: cast, fx: round_firework_burst_001, scale: 1.1, delay: 200 }   # rain flung off the spin droops back down
+      - { on: trigger, status: rain_dance, fx: dark_mage_2, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 10], note: "the redirect tell: only when the user's own Fog sent the skill astray; Swiftness's clock and Focus's bulb follow" }
+      # Fog's veil plays on the user.
+
+  heal.mist:
+    beat: Morning mist rises off the ally into a halo of dew; if they were veiled, the Fog condenses into them instead of lifting.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_003, tint: duo, scale: 0.8, speed: 1.5 }
+      - { on: remove, status: fog, fx: spell_absorb_001, tint: duo, scale: 0.6, speed: 1.6, delay: 200 }   # the condense tell, in place of the banks blowing out
+      # Renew's heart follows when the Fog was spent.
+
+  bless.mist:
+    beat: Motes of mist drift down onto the ally and close around them as a cloak.
+    cues:
+      - { on: apply, status: cloak_of_mist, fx: directional_particle_burst_001, tint: duo, face: down, scale: 0.8, offset: [0, 0.3] }   # turned over, the droplets fall onto the ally
+      # cloak_of_mist is a Fog under its own id: replay Fog's veil as the motes settle, and lift it when it ends.
+      - { on: apply, status: cloak_of_mist, fx: directional_smoke_burst_005, tint: duo, face: left, scale: 0.7, opacity: 0.8, delay: 250 }
+      - { on: apply, status: cloak_of_mist, fx: directional_smoke_burst_005, tint: duo, face: right, scale: 0.7, opacity: 0.8, delay: 330 }
+      - { on: remove, status: cloak_of_mist, fx: directional_smoke_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.7 }
+      # Renew's heart plays its default.
+
+  curse.mist:
+    beat: A sodden cloud of air sinks over the target and pools low around their feet, pinning them down.
+    cues:
+      - { on: apply, status: heavy_air, fx: directional_smoke_burst_001, flip: y, tint: duo, tone: dark, scale: 1.1, speed: 0.8, note: "flipped: the cloud starts over the head and sinks to pool around the feet" }
+      # Weakness's default follows.
+
+  smite.mist:
+    beat: A heavy drop of dew falls on the target and splashes into a crown, leaving a ring of dew over them that sheds a veil onto each ally they strike.
+    cues:
+      - { on: hit, fx: paladin_7, tint: element, scale: 0.9, note: "its last frame holds as a dark patch: fade it out" }
+      - { on: apply, status: dewfall_ring, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.5, offset: [0, 0.55], delay: 200 }
+      - { on: trigger, status: dewfall_ring, fx: round_sparkle_burst_001, tint: duo, size: small, scale: 0.4, offset: [0, 0.55] }   # the ring glints as it sheds; Fog's veil closes on the struck ally
+
+  prayer.mist:
+    beat: A soft bank of mist rises behind the team, healing rises through each ally, and the veil closes over every one of them.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, at: allySide, tint: duo, scale: 2.4, opacity: 0.8, layer: under }
+      - { on: heal, fx: directional_sparkle_burst_001, tint: duo, scale: 0.8, speed: 1.4, stagger: 80 }   # glints of dew rise up around each ally
+      # mercy_of_the_mist is a Fog under its own id: replay Fog's veil, and lift it when it ends.
+      - { on: apply, status: mercy_of_the_mist, fx: directional_smoke_burst_005, tint: duo, face: left, scale: 0.7, opacity: 0.8, delay: 200, stagger: 80 }
+      - { on: apply, status: mercy_of_the_mist, fx: directional_smoke_burst_005, tint: duo, face: right, scale: 0.7, opacity: 0.8, delay: 280, stagger: 80 }
+      - { on: remove, status: mercy_of_the_mist, fx: directional_smoke_burst_001, tint: duo, size: small, scale: 0.6, opacity: 0.7 }
+      - { on: trigger, status: mercy_of_the_mist_heal, fx: dark_mage_2, at: source, tint: duo, scale: 0.8, opacity: 0.85, frames: [0, 10], note: "the redirect tell on the Fogged ally whose Fog sent the skill astray (the signal's source); each ally's 10 then replays the heal cue" }
+
+  cleave.mist:
+    beat: A crescent of mist sweeps through the target; a veiled user flings the veil after it through every other enemy, an unveiled one grazes a second enemy and gathers the veil around themself.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_4, face: fromActor, tint: duo }
+      - { on: remove, status: fog, fx: directional_smoke_burst_005, face: toTarget, tint: duo, scale: 0.8 }   # the veil rolls off the user toward the enemy side (no Renew)
+      - { on: hit, only: others, fx: frost_knight_4, face: fromActor, tint: duo, scale: 0.65, opacity: 0.8, delay: 150, stagger: 80, note: "the crescent carries on through them: about 0.65 at 15 (the flung veil), 0.5 at 10 (the graze)" }
+      # Unveiled: Fog's veil closes on the user.
+
+  shout.mist:
+    beat: A deep foghorn boom bursts from the user and pushes a ring of fog outward, and the boom slams into each enemy it unnerves.
+    note: "The three picks can repeat: a unit picked twice plays its cue twice (and Intimidated's eye again)."
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: element2, scale: 1.2 }   # the bare boom of air
+      - { on: cast, fx: symmetrical_smoke_burst_002, tint: duo, scale: 2.0, opacity: 0.6, delay: 200 }
+      - { on: apply, status: debuff, fx: symmetrical_explosion_004, tint: element2, size: small, scale: 0.6, opacity: 0.85, frames: [0, 6], stagger: 150 }   # the boom's ring closes on each enemy (empty center frames them; cut before its fixed olive fade), adding to Intimidated's eye; the stagger lets a unit picked twice read twice
+
+  withstand.mist:
+    beat: Mist mounds up at the user's feet and glints harden in it as it rises into a shell; if they were veiled, the Fog condenses into it for a heavier one.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_002, tint: duo, scale: 1.2, opacity: 0.75 }   # over the portrait: the cloud mound swells at the feet, its glints rise and harden
+      - { on: remove, status: fog, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.6 }   # the condense tell
+      # Shield's bubble (30 when the Fog was spent) and Renew's heart follow.
+
+  taunt.mist:
+    beat: A whisper drifts out of the fog to the target and a mark of mist flares over them.
+    note: "No trigger: what the opponent sees is their own single-target skill landing on the user, whoever they aimed at."
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: duo, scale: 0.5, opacity: 0.8 }   # Invisible: owner only
+      - { on: apply, status: voice_in_the_fog, fx: symbol_alert_001, tint: duo, size: small, scale: 0.45 }   # base Taunt's '!', in mist
+
+  titan.mist:
+    beat: A waterspout of mist erupts behind the user, a sphere of vapor swells over them and bursts into droplets, and a marid stands in the billowing fog; its every blow throws a lash of mist at another enemy.
+    cues:
+      - { on: cast, fx: directional_fire_burst_002, tint: duo, scale: 2.2, speed: 0.8, layer: under }
+      - { on: resolve, fx: round_bubble_burst_001, tint: duo, scale: 1.3, note: "swell the portrait about 10% as the bubbles break" }
+      - { on: resolve, fx: symmetrical_smoke_burst_003, tint: duo, scale: 1.8, opacity: 0.7, layer: under, delay: 150 }
+      - { on: trigger, status: marid_form, fx: directional_smoke_burst_003, at: target, face: fromActor, tint: duo, size: small, scale: 0.6 }   # only on the extra 10 (its other trigger just sets a flag)
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.6 }
+      # Immune's and Fog's defaults play on the user.
+
+  mist_heron_spear_beak:
+    beat: The heron's beak stabs down into the target and flicks off a bead of dew.
+    note: "25 against an Immobile target: play both cues about 1.3x."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_001, face: fromActor, tint: duo, scale: 0.55, note: "its ring end on the target, the fan spraying on past them" }
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.35, delay: 60 }

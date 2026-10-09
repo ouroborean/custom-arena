@@ -1,0 +1,275 @@
+group: alchemy
+# Alchemy is Fire and Water made to react. Bodies are tinted `duo` (Fire's dark outline around a Water
+# body), with Fire and Water on separate layers where the two meet (dance, rage, titan). Steam
+# (directional_smoke_burst_004 / _002, white) rises wherever they react; on an enemy the wisp is tinted
+# instead, since a white wisp there is Ignite going out (Fire's remove default), which Vial Toss reads.
+# Steam domes go over the portrait at low opacity: under it, at hit size, the opaque card hides them,
+# and past the card they would echo Shadow's Stealth dome. Two tells run through the kit:
+# Catalyst is a transmutation sigil (deathbringer_2), and every Transmute (a status turned into another)
+# is a two-wisp swirl (starcaller_4) on the unit whose status changed, played on `remove` before the new
+# status's own default.
+
+statuses:
+  catalyst:
+    # No aura: the status icon carries it, and Catalyst sits on many units at once.
+    apply:  [ { fx: deathbringer_2, scale: 0.5, tint: duo, speed: 1.5, frames: [0, 14], note: "the sigil coalesces and glows; cut before it turns to a solid blob and melts" } ]
+    remove: [ { fx: round_sparkle_burst_003, size: small, scale: 0.55, tint: duo, tone: light, frames: [6, 16] } ]   # spent: the primed reagent flares into a ring as the doubled skill lands
+    expire: [ { fx: directional_smoke_burst_004, size: small, scale: 0.4, tint: duo, opacity: 0.6 } ]   # unspent: it evaporates
+  catalyst_debuff:
+    # The same Catalyst on an enemy: one look, so the board reads one mechanic.
+    apply:  [ { fx: deathbringer_2, scale: 0.5, tint: duo, speed: 1.5, frames: [0, 14], note: "the sigil coalesces and glows; cut before it turns to a solid blob and melts" } ]
+    remove: [ { fx: round_sparkle_burst_003, size: small, scale: 0.55, tint: duo, tone: light, frames: [6, 16] } ]
+    expire: [ { fx: directional_smoke_burst_004, size: small, scale: 0.4, tint: duo, opacity: 0.6 } ]
+  homunculus_work:   # Homunculus, end of its owner's turn: one enemy Buff stack Transmuted, a random ally gains 1 Renew
+    trigger:
+      - { fx: directional_smoke_burst_004, size: small, scale: 0.4, variant: white }   # the homunculus puffs over its work
+      - { fx: starcaller_4, at: target, scale: 0.45, tint: duo, speed: 1.5, delay: 150, note: "only on the enemy whose Buff was Transmuted (the unit with the effectRemoved); not on the ally gaining Renew, whose gain is Renew's own default" }   # the Transmute swirl
+
+macros:
+  give_catalyst:   # Brew's dose, per unit: the brew splashes up around them, then Catalyst's sigil
+    - { fx: directional_splatter_005, size: small, scale: 0.5, tint: duo }
+
+skills:
+  strike.alchemy:
+    beat: A two-tone crescent slashes the target and the cut smolders down to ash.
+    note: "The Ignite tick is this skill's `type: Affliction, direct: false` hit (the 20-damage blow is Normal and direct). For it, play only the plume (directional_smoke_burst_004, scale 0.8, Fire), never the slash."
+    cues:
+      - { on: hit, fx: frost_knight_4, face: fromActor, scale: 0.9, tint: duo }
+      - { on: hit, fx: directional_smoke_burst_004, scale: 0.5, delay: 120 }   # Fire-tinted: a smoldering plume curls up from the cut
+
+  smash.alchemy:
+    beat: A furnace-hot blow crashes down in a cloud of steam, and molten glaze spatters onto each of the target's allies.
+    cues:
+      - { on: hit, fx: warrior_5, face: fromActor, scale: 1.1, tint: duo }
+      - { on: hit, fx: directional_smoke_burst_002, scale: 0.8, variant: white, delay: 150, opacity: 0.55 }   # steam billows off the crash, briefly over the portrait
+      - { on: apply, status: debuff, only: others, fx: directional_splatter_002, size: small, scale: 0.55, tint: duo, stagger: 90 }   # the splash on each ally; Catalyst's sigil grows out of it (the sigil's first frames are a faint wisp)
+
+  charge.alchemy:
+    beat: The user rushes in on a scalding jet of steam that blasts through the target.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, scale: 0.6, tint: duo, note: "portrait lunges along it; the cloud head stays near white and reads as steam, the speed streaks carry the two colors" }
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, size: small, scale: 0.6 }   # the white ring on their near side, the jet out the far side
+      # Focus's and Renew's defaults play on the user.
+
+  riposte.alchemy:
+    beat: A primed flask hums at the user's side; whoever strikes is drenched in reagent that turns their power against them.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, size: small, scale: 0.5, tint: duo, opacity: 0.8 }   # Invisible: owner only
+      - { on: trigger, status: reactive_flask, fx: symmetrical_impact_002, size: small, scale: 0.6, tint: element2, tone: light }   # the flask flashes on the user
+      - { on: trigger, status: reactive_flask, fx: directional_splatter_004, at: source, face: fromActor, scale: 0.7, tint: duo, delay: 100 }   # its reagent lashes across the attacker: the counter-slash, in liquid
+      - { on: remove, status: buff, only: others, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, delay: 200 }   # each of the attacker's Buffs Transmuted (only: others skips the spent flask on the user)
+      # The counter's X, the new Debuffs' and Catalyst's defaults follow on the attacker.
+
+  rage.alchemy:
+    beat: A circle flares at the user's feet and throws up pillars of light, and the user burns with blue-hearted fire.
+    cues:
+      - { on: cast, fx: dark_mage_3, scale: 1.4, tint: duo, layer: under }
+      - { on: cast, fx: fire_looping_001, scale: 1.3, offset: [0, 0.5], tint: element2, delay: 200, repeat: 2, layer: under, opacity: 0.85 }   # Water-colored flame: the alchemist's fire, its upper half burning above the head
+      - { on: trigger, status: magnum_opus, fx: dark_mage_3, scale: 1.4, tint: duo, layer: under, speed: 1.5, opacity: 0.75 }   # each turn start the cast circle flares again; Catalyst's sigil follows
+      # Might's default plays on the user.
+
+  shot.alchemy:
+    beat: A glowing vial arcs into the target and shatters in sparks and glass, leaving them alight.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, scale: 0.5, tint: duo, note: "duo turns the orb pale blue and its tail and sparks Fire-dark: a lit vial" }
+      - { on: hit, fx: scifi_spark_burst_001, scale: 0.85, tint: duo, tone: light }   # large and a stop brighter: the 1-pixel trails stay legible under Ignite's flame
+      # Ignite's default catches on them.
+      - { on: trigger, status: vial_toss, fx: round_firework_burst_001, size: small, scale: 0.5, offset: [0, 0.2], note: "only when it Explodes (Ignite gone at the applier's turn end); a turn end with the Ignite still burning shows nothing. The explode macro follows" }
+
+  snipe.alchemy:
+    beat: Droplets spiral into a single bead over the user; next turn it shoots skyward and drops on the hidden target as a needle of distillate.
+    cues:
+      - { on: cast, fx: spell_absorb_001, scale: 0.7, tint: duo, speed: 1.5 }   # radial: gives no direction away
+      - { on: trigger, status: distilled_arrow, fx: directional_splatter_005, scale: 0.7, tint: duo, tone: light }   # the bead spurts straight up off the user
+      - { on: hit, fx: scifi_warp_003, scale: 1.2, tint: duo }   # it falls from above and strikes
+      - { on: hit, fx: directional_smoke_burst_004, scale: 0.6, tint: duo, tone: light, delay: 200 }   # steam hisses from the wound (tinted: a white wisp here would read as their Ignite going out)
+      - { on: trigger, status: distilled_arrow_mark, fx: round_sparkle_burst_001, size: small, scale: 0.35, tint: duo, offset: [0, 0.5] }   # hidden: owner only; each heal they take glints into the bead
+
+  trap.alchemy:
+    beat: Drops of an unstable compound settle at the target's feet; every skill they use sets it fuming, then off.
+    cues:
+      - { on: apply, status: volatile_compound, fx: spell_forge_001, size: small, scale: 0.8, tint: element2, opacity: 0.85 }   # Invisible: owner only. Over the portrait (under, the card hides it); Water-tinted, apart from Titan's large duo forge ring
+      - { on: trigger, status: volatile_compound, fx: directional_smoke_burst_004, scale: 0.55, tint: duo }   # fumes rise as they act
+      # Then Catalyst's sigil lands, or Catalyst's spent flare and the explode macro.
+
+  maneuver.alchemy:
+    beat: The user sublimes into a cloud of colored vapor; their afflictions boil off as steam and condense onto the enemies.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, scale: 1.2, tint: duo, tone: light, note: "portrait fades to half opacity under the billow and returns as it clears" }
+      - { on: remove, status: debuff, fx: directional_smoke_burst_004, size: small, scale: 0.5, tint: duo, tone: light, stagger: 60 }   # each Debuff steams off the user (tinted, so a cleansed Ignite's own white wisp doesn't double up)
+      - { on: apply, status: debuff, only: others, fx: directional_particle_burst_001, face: down, size: small, scale: 0.45, tint: duo, offset: [0, 0.55], delay: 300, stagger: 100, note: "the ops give the enemies Catalyst before the user's Debuffs come off: the delay puts the condensing vapor after the steam" }   # the vapor falls onto each enemy given Catalyst
+      - { on: apply, status: catalyst_debuff, only: others, fx: deathbringer_2, scale: 0.5, tint: duo, speed: 1.5, frames: [0, 14], delay: 450, stagger: 100, note: "Catalyst's default sigil (as in statuses:), held back so it forms out of the vapor" }
+      # Invulnerable's default plays on the user.
+
+  companion.alchemy:
+    beat: A glass disc holds a lumpy living mass that swells and bursts upward into the Homunculus, spilling steam.
+    cues:
+      - { on: summon, fx: symmetrical_explosion_003, scale: 0.8, tint: duo }
+      - { on: summon, fx: directional_smoke_burst_002, scale: 0.7, variant: white, delay: 250, opacity: 0.55 }   # steam drifts over the new minion
+
+  bolt.alchemy:
+    beat: A bead of quicksilver streaks into the target and bursts into hanging droplets.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, scale: 0.6, tint: neutral, tone: light }   # silver: the crescent head leads, smoke tendrils trail
+      - { on: hit, fx: round_firework_burst_002, scale: 0.8, tint: duo, speed: 1.5 }
+      - { on: remove, status: buff, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, delay: 150 }   # with Catalyst: the Transmuted Buff
+      # Without: Catalyst's sigil lands. With: Catalyst's spent flare plays as the doubled hit lands.
+
+  blast.alchemy:
+    beat: A reacting cloud billows across the enemy side and the reaction leaps from enemy to enemy.
+    cues:
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, scale: 2.2, tint: duo, layer: under, opacity: 0.8, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: dark_mage_4, scale: 0.8, tint: duo, delay: 100, stagger: 150 }   # a nova on each enemy in turn: the chain
+      # Enemies holding Catalyst then play the explode macro.
+
+  consume.alchemy:
+    beat: A wedge of essence is torn out of the target and condenses into the user.
+    note: "The max HP shift has no event of its own: both HP bars' maximums visibly move as the heal lands."
+    cues:
+      - { on: travel, fx: necromancer_3, path: beam, from: target, to: actor, scale: 0.6, tint: duo, tone: light }   # reversed: the wedge fans out of the target and widens toward the user
+      - { on: hit, fx: directional_splatter_003, face: toActor, size: small, scale: 0.45, tint: duo, note: "slide it so its lower-left origin corner sits on the target" }   # essence torn out toward the user
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, scale: 0.6, tint: duo }   # sparkles converge onto the user and rise
+
+  summon.alchemy:
+    beat: A still settles onto the board in a glittering puff and starts to steam.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, scale: 0.8, tint: duo }
+      - { on: summon, fx: directional_smoke_burst_004, scale: 0.55, variant: white, offset: [0.15, 0.3], delay: 350 }   # steam from the spout
+
+  channel.alchemy:
+    beat: A ring of reagents circles the user and drips once a turn; when it ends the still bursts, splashing every enemy and welling up through every ally.
+    note: "Release damage and healing scale with the turns counted (10/20/30 and 5/10/15): play the hit and heal cues at about 0.6/0.8/1.0 of their scale."
+    cues:
+      - { on: cast, fx: frost_mage_1, scale: 0.8, tint: duo, note: "fade out its held ghost ring" }
+      - { on: trigger, status: slow_distillation, fx: directional_particle_burst_001, face: down, size: small, scale: 0.4, tint: duo, offset: [0, 0.6] }   # one drop condenses per counted turn
+      - { on: trigger, status: distillation_release, fx: stylized_explosion_004, scale: 1.0, tint: duo, frames: [11, 22] }   # the still bursts open (wind-up glints skipped)
+      - { on: hit, fx: directional_impact_003, size: small, scale: 0.7, tint: duo, delay: 150, stagger: 80 }
+      - { on: heal, fx: directional_splatter_005, scale: 0.6, tint: element2, tone: light, delay: 150, stagger: 80 }   # distillate wells up through each ally
+
+  stab.alchemy:
+    beat: A slim lancet thrusts through the target and flicks out a bead of fluid; a buffed target's strength curdles.
+    note: "The 20-damage branch is a single hit with no event of its own; if the renderer can tell it from the amount, play the lancet at scale 0.75."
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, scale: 0.55, tint: duo, note: "its blade spans ~10-68% of the canvas: slide it so the tip ends just past the target" }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, scale: 0.4, tint: element2, delay: 60 }
+      - { on: remove, status: buff, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, delay: 120 }   # the Transmuted (or dissolved) Buff
+
+  ravage.alchemy:
+    beat: The target is torn open in a shredding burst, boils over in bubbles and steam, and the user's Renew boils away to feed it.
+    note: "The Ignite branch is this skill's `type: Affliction, direct: false` hit (the 25 Piercing blow is direct). For that hit play only the bubbles (round_bubble_burst_001, scale 0.6, element2) and the steam, never the symmetrical_impact_004 shred. Play nothing for it when its amount is 0: the target was Ignited but the user had no Renew to boil away."
+    cues:
+      - { on: hit, fx: symmetrical_impact_004, scale: 0.9, tint: duo }
+      - { on: hit, fx: round_bubble_burst_001, scale: 0.8, tint: element2, delay: 80 }   # boiling
+      - { on: hit, fx: directional_smoke_burst_002, scale: 0.8, variant: white, delay: 200, opacity: 0.55 }   # steam billows off the wound, briefly over the portrait
+      - { on: remove, status: renew, fx: directional_smoke_burst_004, scale: 0.5, tint: element2, tone: light }   # on the user: Renew boils off as steam
+
+  mislead.alchemy:
+    beat: An inverted circle is inked unseen under the target; when they try to help, it springs and their remedy bursts on its recipients.
+    cues:
+      - { on: apply, status: inversion_circle, fx: frost_knight_7, scale: 0.7, tint: duo, offset: [0, -0.4], opacity: 0.75, speed: 0.6 }   # Invisible: owner only. Over the portrait (under, the card hides it), slowed so the 5-frame ring reads
+      - { on: trigger, status: inversion_circle, fx: stylized_impact_001, scale: 0.8, tint: duo }   # the circle springs on the bearer
+      - { on: hit, fx: blood_knight_3, face: up, scale: 0.6, tint: duo, delay: 150, stagger: 80 }   # the curdled remedy bursts on each of its targets in turn
+      # The counter's X on the bearer, Weakness's default on each target.
+
+  stun.alchemy:
+    beat: A pinch of flash powder goes off in the target's face in a white-hot flash and a glittering cloud.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.5, tone: light, frames: [0, 2] }   # Fire, one stop up: just the magnesium-white flash, so Stun's stars stay clear
+      - { on: hit, fx: round_sparkle_burst_002, size: small, scale: 0.7, tint: duo, delay: 150 }   # the powder cloud blooms as Stun's stars clear
+      - { on: remove, status: swiftness, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, delay: 150 }   # Swiftness Transmuted into Confusion (replaces Swiftness's fade here)
+      # Stun's default (the stagger), and Confusion's when Swiftness turned.
+
+  dance.alchemy:
+    beat: Bands of fire and water whirl around the user in opposite directions; next turn the draught kicks in with a rush of rising stars.
+    cues:
+      - { on: cast, fx: paladin_8, scale: 1.6, tint: element, layer: under }   # at 1.6 the dome clears the card on every side
+      - { on: cast, fx: paladin_8, scale: 1.6, tint: element2, delay: 200, layer: under, flip: x }   # the Water band sweeps the other way
+      - { on: trigger, status: quickening_draught, fx: directional_star_burst_001, scale: 0.7, tint: duo, speed: 1.5, note: "at the start of the user's next turn (its onExpire), just before the Buffs land" }
+      # Catalyst's sigil at cast; next turn Might, Swiftness and Focus defaults, and Catalyst's spent flare when it doubled them.
+
+  heal.alchemy:
+    beat: Elixir bubbles rise off the ally and their vapor gathers into a halo; their afflictions turn into Renew.
+    cues:
+      - { on: heal, fx: directional_bubble_burst_001, scale: 0.7, tint: duo, tone: light, speed: 2 }   # elixir bubbles rising (about 1 s); rising, not falling, so it stays apart from Universal Solvent's drop
+      - { on: heal, fx: directional_sparkle_burst_003, scale: 0.8, tint: duo, tone: light, delay: 200, speed: 1.5 }   # the rise: puffs climb into a ring over the head
+      - { on: remove, status: debuff, fx: starcaller_4, scale: 0.5, tint: duo, tone: light, speed: 1.5, delay: 200, stagger: 80 }   # each Debuff Transmuted
+      # Renew's default follows.
+
+  bless.alchemy:
+    beat: A crystal vial drops onto the ally and shatters, and the solvent fumes up through them.
+    cues:
+      - { on: apply, status: universal_solvent, fx: frost_mage_5, scale: 0.8, tint: duo }
+      - { on: apply, status: universal_solvent, fx: directional_smoke_burst_004, scale: 0.6, tint: element2, tone: light, delay: 300 }   # the solvent fumes up through them
+      # Might's default plays on them.
+
+  curse.alchemy:
+    beat: The target's every Buff drops off them as dull lead coins.
+    cues:
+      - { on: remove, status: buff, fx: directional_coin_burst_001, scale: 0.6, tint: neutral, tone: dark, offset: [0, -0.15], speed: 1.5, stagger: 200, frames: [9, 27] }   # lead: from the top of the arch, so the coins only fall and settle at their feet (no fountain out of a flash), then shrink away
+      - { on: remove, status: buff, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, stagger: 200 }   # paced with the coins: each Buff's coins and swirl land as a pair
+      - { on: resolve, fx: spell_absorb_001, at: target, size: small, scale: 0.5, tint: neutral, tone: dark, speed: 1.5 }   # a leaden weight settles in, even with nothing to turn
+      # Weakness, Vulnerable and Confusion defaults for what each Buff became.
+
+  smite.alchemy:
+    beat: A brand of light is driven down onto the target and flares again whenever an ally strikes them.
+    cues:
+      - { on: hit, fx: paladin_5, scale: 0.7, tint: duo }   # its black sword shape stays dark: the branding iron
+      - { on: trigger, status: reagent_brand, fx: symmetrical_explosion_001, size: small, scale: 0.5, tint: duo }   # the brand flares; Catalyst's sigil follows
+      # Catalyst's sigil lands with the hit.
+
+  prayer.alchemy:
+    beat: Two arcs join into a ring under the team; every ally is restored while the enemies' Renew turns sour.
+    cues:
+      - { on: cast, fx: dark_mage_2, at: allySide, scale: 2.2, tint: duo, layer: under, opacity: 0.8, frames: [0, 10] }   # last frame dropped (a palette jump in the art)
+      - { on: heal, fx: spell_heal_003, scale: 0.8, tint: duo, tone: light, speed: 2, stagger: 80 }
+      - { on: remove, status: renew, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5, stagger: 60 }   # each enemy's Renew Transmuted (named, so an ally's spent Catalyst keeps its own flare)
+      # Weakness's default on the enemies, Renew's on the allies.
+
+  cleave.alchemy:
+    beat: A potion bursts over the target and its splash washes on through every other enemy.
+    cues:
+      - { on: hit, only: primary, fx: burst_splatter_002, scale: 0.9, tint: duo }
+      - { on: hit, only: others, fx: slime_1, face: fromActor, scale: 0.65, tint: duo, delay: 150, stagger: 90, note: "its splat lands ~70% across the canvas: shift it back so the splat breaks on each enemy" }
+      # Weakness's default on the target.
+
+  shout.alchemy:
+    beat: A ring of sour vapor rolls out from the user and wells up around every enemy; any Buff they gain curdles.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.2, tint: duo, tone: light }   # a donut of vapor puffs rolls out from an empty center: not the smoke ring of base Death
+      - { on: apply, status: souring_vapors, fx: directional_smoke_burst_002, scale: 0.7, tint: duo, delay: 150, stagger: 80, opacity: 0.7 }
+      - { on: trigger, status: souring_vapors, fx: none }   # the Transmute swirl below carries each trigger
+      - { on: remove, status: buff, fx: starcaller_4, scale: 0.5, tint: duo, speed: 1.5 }
+
+  withstand.alchemy:
+    beat: Steam wells up into a cocoon around the user; what's left of it condenses back into Renew.
+    cues:
+      - { on: apply, status: steam_barrier, fx: blood_knight_5, scale: 1.8, tint: duo, tone: light, layer: under, opacity: 0.85 }   # big enough that its rim rings the card while the fanged interior stays hidden behind the portrait
+      - { on: apply, status: steam_barrier, fx: directional_smoke_burst_004, scale: 0.7, variant: white, offset: [-0.4, 0], delay: 150 }
+      - { on: apply, status: steam_barrier, fx: directional_smoke_burst_004, scale: 0.7, variant: white, offset: [0.4, 0], delay: 250, flip: x }
+      - { on: trigger, status: steam_barrier, fx: spell_absorb_001, size: small, scale: 0.5, tint: element2, tone: light, speed: 2, note: "as it ends (its onExpire); skip when nothing is left to become Renew" }
+      # Renew's default follows.
+
+  taunt.alchemy:
+    beat: The user uncorks a flask and a sweet plume drifts to the target; blows from them feed back into the user.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, scale: 0.4, tint: duo, offset: [0.25, 0.35] }   # the cork pops
+      - { on: travel, fx: directional_smoke_burst_003, path: straight, scale: 0.6, tint: duo, tone: light, opacity: 0.75 }   # a soft, streak-free puff, its convex front leading: a drifting lure, not Steam Rush's jet
+      - { on: trigger, status: lure_flask, fx: none }   # the heal cue carries it, and only fires when a Taunted enemy dealt the damage
+      - { on: heal, fx: directional_particle_burst_001, scale: 0.5, tint: duo }
+      # Taunt's '!' marks the target.
+
+  titan.alchemy:
+    beat: Molten drops fall into a great ring, a crimson stone crystallizes around the user, then cracks open and the user steps out gleaming.
+    cues:
+      - { on: cast, fx: spell_forge_001, scale: 1.6, tint: duo, layer: under }
+      - { on: resolve, fx: spell_ice_001, scale: 1.3, tint: element, speed: 2, frames: [0, 32], note: "the Fire-red stone hides the portrait for a moment; cut while it holds, the burst replaces its fade" }
+      - { on: resolve, fx: frost_mage_6, scale: 1.5, tint: element, tone: light, delay: 750, note: "white veins crack the stone and it breaks away; brief white board flash" }
+      - { on: resolve, fx: directional_smoke_burst_002, scale: 1.6, variant: white, delay: 900, layer: under }   # steam rolls off the user
+      # Armor's and Immune's defaults play on the user.
+
+  alembic_brew:
+    beat: The still puffs and lobs a glob of brew onto any unit.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, size: small, scale: 0.45, variant: white }
+      - { on: travel, fx: slime_3, path: arc, scale: 0.4, tint: duo, note: "its own splat frames land as it arrives" }
+      # The give_catalyst macro and Catalyst's sigil play on the target.

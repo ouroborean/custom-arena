@@ -1,0 +1,314 @@
+group: magnet
+# Magnet (Lightning + Earth) is lodestone: rock and iron given a charge. Three materials: `duo` (Lightning's
+# violet shadows under Earth's sand body) is magnetized iron (fists, slugs, plates, filings, Boulders); palette
+# art left at the default `element` tint is the field itself (violet rings, arcs, jets); `element2` is plain dust
+# and warm earth light (heals take it with `tone: light`).
+# Signature motif, the two poles: every Attract and Repel shows which way things move.
+#   Attract: the buff is torn off its bearer as a spray of iron shards flung toward the puller
+#   (directional_impact_001, face: toActor), and a ring of iron motes spirals into whoever gains it
+#   (spell_absorb_001, small and fast; Golem and Colossus use it full size).
+#   Repel: a violet ring of force bursts outward off the unit shedding the Debuff (symmetrical_explosion_004,
+#   always frames [0, 6]: from frame 7 its fade turns to olive specks outside the palette swap), and the Debuff
+#   lands on the enemy inside two crossing field rings (stylized_impact_001).
+# moveEffects and stealRandom raise effectRemoved on the giver and effectApplied on the receiver, so the motif
+# binds to `remove`/`apply` filtered by `buff`/`debuff`: it adds to the moved status's own default, which still
+# shows what moved. Shield's `remove` default is base's shatter, which reads as destroyed, not moved, so every
+# skill whose Attract removes a Shield silences it (`remove, status: shield, fx: none`; Shared Field names
+# Shield in its tear-off instead) and lets the tear-off show the move.
+# removeStacks and boostShields raise no event, so there the tear-off rides on the receiver's apply, at the
+# skill's target, or, in Electromagnet, on `blocked`: every enemy it drains has just soaked its pulse in that Shield.
+# Boulders are hauled up out of the ground: violet field pillars (dark_mage_3, large enough to rise past the
+# Boulder's head) under a heave of rock (directional_impact_004).
+# Portraits are opaque squares: anything `layer: under` must reach past their edges to be seen.
+
+statuses:
+  rebound_mark:   # tags an enemy who hit a Rebound Plate; the Debuff it brings arrives through Rebound Plate's own cues
+    apply:  [ { fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.45, offset: [0, 0.55], speed: 1.3 } ]   # a glint of iron sticks over them: tagged
+    expire: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.7 } ]
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.4, opacity: 0.7 } ]
+  opposite_pole:
+    apply:  [ { fx: frost_knight_7, tint: element2, tone: light, scale: 1.3, speed: 0.6, opacity: 0.85 } ]   # a sand compass ring locks around them, spikes over the portrait and opening out past its edges; Opposite Poles answers it with a violet one on the user
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.6 } ]
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.45, opacity: 0.6 } ]
+
+macros: {}   # Magnet defines none
+
+skills:
+  strike.magnet:
+    beat: An iron-clad fist cracks into the target in a run of crescent shockwaves; if they had more Might, it's torn off them and spirals into the user.
+    cues:
+      - { on: hit, fx: warrior_6, face: fromActor, tint: duo, scale: 0.8, note: "the impact star (about 70% across as drawn) on the target" }
+      - { on: apply, status: buff, fx: directional_impact_001, at: target, face: toActor, size: small, tint: duo, scale: 0.5 }   # Attract: one per Might taken (removeStacks raises no event, so it rides the user's gain)
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # Might's default follows on the user
+
+  smash.magnet:
+    beat: The user stamps and an iron burst erupts under the target, the shock runs out under each ally, and the user's Debuffs are flung off onto every enemy.
+    cues:
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tint: duo, scale: 1.1, note: "a short board shake" }
+      - { on: hit, fx: directional_impact_002, tint: duo, scale: 0.6, layer: under, delay: 80, stagger: 100 }   # violet-edged dust runs along the ground under each unit struck
+      - { on: hit, only: others, fx: directional_impact_003, size: small, tint: duo, scale: 0.6, delay: 180, stagger: 100 }   # filings bristle up under each ally: the 10 splash
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.6, frames: [0, 6], stagger: 120 }   # Repel: each Debuff bursts off the user...
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5, stagger: 120 }   # ...and lands on an enemy; its own default follows
+
+  charge.magnet:
+    beat: The user is yanked across the board on an iron thrust and slams into the target; a hook stays latched on, and anything they gain is reeled back to the user.
+    cues:
+      - { on: travel, fx: warrior_8, tint: duo, scale: 0.8, note: "the user's portrait rides the thrust in and snaps back" }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tint: duo, scale: 0.6 }
+      - { on: apply, status: reel_in, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.55, delay: 100 }   # a streak that curls into a hook: latched
+      - { on: trigger, status: reel_in, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.55 }   # Attract: the gain is torn off toward the user...
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # ...and spirals into them; the moved status's default follows
+      - { on: remove, status: shield, fx: none }   # a reeled-in Shield moves, it isn't destroyed: no shatter on the target
+
+  riposte.magnet:
+    beat: Two violet motes quietly circle the user; when attacked, the field flips and bursts outward, throwing the skill back with a Debuff riding on it.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element, scale: 0.7, opacity: 0.7 }   # Invisible: only the owner sees the ward
+      - { on: trigger, status: repulsor_ward, fx: symmetrical_explosion_004, scale: 1.1, frames: [0, 6], note: "the reflected skill then plays its own cues back on its user" }   # Repel at full size: the ward bursts outward
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5 }   # the Debuff lands on the attacker
+
+  rage.magnet:
+    beat: Iron shards slam inward onto the user and burst back out in jagged bands; at each of their turn starts the field throws every Debuff off them onto whoever last hit them.
+    cues:
+      - { on: apply, status: repelling_fury, fx: stylized_explosion_005, tint: duo, scale: 1.4, speed: 1.4, frames: [6, 25], note: "the shards converge, then the burst lands around frame 18; the portrait shudders as it bursts" }
+      - { on: apply, status: repelling_fury, fx: directional_impact_002, tint: duo, scale: 0.9, layer: under, delay: 430 }   # the burst kicks dust out along the ground
+      - { on: trigger, status: repelling_fury, fx: none }   # it fires every turn start, even with nothing to throw: the Repel cues below show only when Debuffs move
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, scale: 0.8, frames: [0, 6] }
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5, stagger: 100 }   # every Debuff lands on the last attacker
+      # Might's default plays on the user.
+
+  shot.magnet:
+    beat: A violet rail kicks off the user's palm and an iron slug streaks along a crackling field line and pops on the target; with a Boulder ready, a chunk shears off it and rides along.
+    note: "On the Boulder branch the target takes 30: play the primary hit about 1.3x larger."
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, size: small, scale: 0.5 }
+      - { on: travel, fx: lightning_strike_002B, path: beam, size: small, scale: 0.35, opacity: 0.6, speed: 1.5 }   # the violet field line the slug rides...
+      - { on: travel, fx: starcaller_2, tint: duo, scale: 0.5, speed: 1.5 }   # ...and the iron slug, drawn over it
+      - { on: hit, only: primary, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.55 }
+      - { on: hit, only: others, fx: directional_impact_001, face: toTarget, size: small, tint: duo, scale: 0.6 }   # the Boulder sheds 15 HP: a chunk sprays off it toward the target
+
+  snipe.magnet:
+    beat: A Boulder is hauled up out of the ground beside the user; next turn the field fires it like a rail slug and it shatters on the target.
+    note: "HiddenTarget: nothing points at or travels to the target before the hit. The rail fires on the user's side; the slug appears only as the impact."
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: element, scale: 1.4, layer: under }   # violet field pillars rise past the Boulder's head...
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.8, delay: 250 }   # ...heave the Boulder up out of the ground
+      - { on: trigger, status: mass_driver, fx: scifi_warp_002, size: small, scale: 0.7 }   # the rail fires: a violet disc bursts at the user
+      - { on: hit, fx: symmetrical_impact_006, tint: duo, scale: 1.1 }   # the slug shatters on the target: 20 plus its HP
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, scale: 0.9, delay: 60 }   # shards carry on past them
+      - { on: death, fx: symmetrical_explosion_004, size: small, tint: duo, scale: 0.7, frames: [0, 6], note: "the Boulder is fired off its slot (also plays if the shot kills the target)" }
+
+  trap.magnet:
+    beat: Iron studs sink unseen at the enemy's feet; when they attack, a violet crown snaps up through them and their Armor and Shield are torn off to the user.
+    cues:
+      - { on: apply, status: polarized_trap, fx: frost_mage_4, tint: duo, scale: 0.9, opacity: 0.7, note: "fade it out as the crystals shrink back" }   # Invisible: owner only. Over the portrait, so the studs show across its bottom
+      - { on: trigger, status: polarized_trap, fx: directional_impact_003, scale: 0.8 }   # the plate snaps up in a violet crown
+      - { on: hit, fx: lightning_burst_003, size: small, tint: duo, scale: 0.7, delay: 60 }   # the 15
+      - { on: remove, status: buff, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.5 }   # Attract: Armor and Shield ripped off toward the user...
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # ...and drawn into them
+      - { on: remove, status: shield, fx: none }   # the Shield moves, it isn't destroyed: the tear-off above replaces its shatter
+
+  maneuver.magnet:
+    beat: The field slams the floor and lifts the user off it, and every Debuff on them is flung off onto a random enemy.
+    cues:
+      - { on: cast, fx: directional_impact_002, scale: 0.8, layer: under, note: "the portrait lifts a little off the ground and hovers until Invulnerable ends" }
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.6, frames: [0, 6], stagger: 100 }   # Repel: each Debuff bursts off the user...
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5, stagger: 100 }   # ...and lands on the random enemy
+      # Invulnerable's default follows on the user.
+
+  companion.magnet:
+    beat: Scrap iron and stone spiral in from all around and lock together into a Lodestone Golem, which settles in a spray of dust.
+    cues:
+      - { on: summon, fx: spell_absorb_001, tint: duo, scale: 1.2, speed: 1.8 }   # Attract at full size: the Golem is pulled together
+      - { on: summon, fx: directional_impact_002, tint: element2, scale: 0.8, layer: under, delay: 500 }
+
+  bolt.magnet:
+    beat: The user's Debuffs are wound into a coil of iron that launches at the target and bursts in crossing field rings, bigger for each Debuff it carries.
+    note: "Each Debuff carried adds 10 damage: scale the hit cues up by about a fifth per Debuff."
+    cues:
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.5, frames: [0, 6], stagger: 120 }   # Repel: each Debuff bursts off the user into the coil
+      - { on: travel, fx: blood_knight_4, path: beam, tint: duo, scale: 0.8, frames: [8, 20], note: "skip the faint draw-in; the vortex end on the user, the crash end on the target" }
+      - { on: hit, fx: stylized_impact_001, tint: duo, scale: 0.9 }   # Repel's landing at full size; the moved Debuffs' defaults play first
+      - { on: hit, fx: lightning_burst_003, size: small, scale: 0.5, delay: 100 }
+
+  blast.magnet:
+    beat: The field rises off the user and an iron-dust vortex swallows the enemy side, jolting each enemy; the user's Charge sprays off into the storm, seeding Sapped.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, tint: duo, scale: 1.6, layer: under }   # the spikes tower past the user's sides and head
+      - { on: hit, fx: slime_5, at: enemySide, tint: duo, scale: 2.4, opacity: 0.85, speed: 1.3, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: lightning_burst_002, scale: 0.7, delay: 120, stagger: 80 }   # each enemy jolts: violet field crackle inside the sand vortex
+      - { on: remove, status: charged, fx: round_firework_burst_002, scale: 0.9, speed: 1.4, frames: [0, 16] }   # the spent Charge sprays off the user (replaces Charged's discharge here); no Charge, no spray
+      # Sapped's default lands once per stack on each enemy.
+
+  consume.magnet:
+    beat: The field rakes every armored or shielded enemy, scraping iron off them toward the user, who draws it in and knits.
+    cues:
+      - { on: hit, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.55, stagger: 80 }   # Attract's tear-off, as the 5 Piercing
+      - { on: blocked, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.55, stagger: 80 }   # the same scrape where Shield soaks all 5 (Piercing still meets Shield); they're harvested too. Replaces base's blocked bubble here
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.9, speed: 1.8 }
+      - { on: heal, fx: spell_heal_003, size: small, tint: element2, tone: light, scale: 0.6, speed: 1.6, delay: 350 }
+
+  summon.magnet:
+    beat: A cloud of iron filings whips up into a glittering swarm, and its needles cling all over the target.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, tint: duo, scale: 0.9 }
+      - { on: apply, status: clinging_filings, fx: fanfx_pain, tint: duo, tone: light, scale: 0.9, speed: 1.5, frames: [3, 32] }   # needles prickle over the target
+      - { on: apply, status: clinging_filings, fx: directional_impact_003, size: small, tint: duo, scale: 0.5 }   # and stand on end at their feet
+
+  channel.magnet:
+    beat: An iron armature spins up around the user; at each of their turn ends it pulses, jolting every enemy and dragging their Shield onto the user.
+    cues:
+      - { on: apply, status: electromagnet, fx: scifi_charge_up_001, tint: duo, scale: 1.4, layer: under, repeat: 2 }   # the coil spins up, its rings and needle sweeping round the portrait's edges
+      - { on: trigger, status: electromagnet, fx: scifi_warp_002, scale: 0.9, note: "turnEnd trigger only. The damaged trigger (an enemy hit the user) only runs removeSelf, so the pulse must not play for it" }
+      - { on: remove, status: electromagnet, fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: dark, scale: 0.6, opacity: 0.8, note: "the armature collapses: an enemy's damage broke the channel (removeSelf, reason consumed). Not on natural expiry, and not on a stun/death break, which plays base interrupted" }
+      - { on: hit, fx: round_firework_burst_002, size: small, scale: 0.6, frames: [0, 14], delay: 150, stagger: 80 }   # each enemy the pulse hurts jolts
+      # An enemy the pulse drains from soaks all 10 in their Shield (blocked, no hit); one with less loses it to the damage and isn't drained.
+      - { on: blocked, fx: round_firework_burst_002, size: small, scale: 0.6, frames: [0, 14], delay: 150, stagger: 80 }   # so the drained enemies jolt on blocked...
+      - { on: blocked, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.5, delay: 250, stagger: 80, note: "only on an enemy still holding Shield: an Invulnerable enemy without one blocks the pulse too but gives nothing" }   # ...and their 10 Shield is torn off toward the user (boostShields raises no event on them)
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2, stagger: 80 }   # Attract: each 10 Shield torn off a blocked enemy is drawn in; Shield's default follows
+
+  stab.magnet:
+    beat: A thin iron pin lances into the target and earths them; any Sapped crackles down through the pin into the ground.
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, size: small, tint: duo, scale: 0.7, note: "ring end on the target, the streak jet punching out past them" }   # the pin driven through
+      - { on: hit, fx: directional_impact_003, size: small, scale: 0.45, delay: 80 }   # a violet crown at the feet: grounded
+      - { on: remove, status: sapped, fx: lightning_strike_003A, size: small, scale: 0.8, delay: 100 }   # the spent Sapped runs down into the ground (replaces Sapped's smoke here); no Sapped, no bolt
+
+  ravage.magnet:
+    beat: The target's Armor is ripped off toward the user, then an iron drill lances through them, bursts open and blows violet sparks out the far side.
+    note: "10 more damage per Armor taken: scale the hit cues up by about a sixth per Armor."
+    cues:
+      - { on: remove, status: buff, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.55 }   # Attract: their Armor torn off toward the user...
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # ...and drawn in
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo }
+      - { on: hit, fx: symmetrical_impact_003, tint: duo, scale: 0.9, delay: 120 }
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, scale: 0.8, delay: 220, note: "the ring end on the target, the jet blowing on past them" }
+
+  mislead.magnet:
+    beat: The target's field quietly turns over; when they attack, their skill snaps dead in a burst of reversed polarity and everything they had flies to the user.
+    cues:
+      - { on: trigger, status: pole_reversal, fx: scifi_warp_001, tint: duo, scale: 0.9 }   # the visible payoff: a slit of reversed field bursts open on them; the counter default follows
+      - { on: apply, status: pole_reversal, fx: slime_5, tint: element, scale: 0.6, opacity: 0.6, speed: 1.5 }   # Invisible: owner only. Their field swirls the wrong way
+      - { on: remove, status: buff, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.5 }   # Attract: Armor, Might, Charge and Shield torn off toward the user...
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # ...and drawn in
+      - { on: remove, status: shield, fx: none }   # the Shield moves, it isn't destroyed: the tear-off above replaces its shatter
+
+  stun.magnet:
+    beat: Bands of iron wrap around the target and clamp shut into a cage, and their Armor and Shield are torn off to the user.
+    cues:
+      - { on: apply, status: debuff, fx: frost_knight_9, tint: duo, scale: 1.0 }   # the clamp closes; Stun's default follows
+      - { on: remove, status: buff, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.5 }   # Attract: Armor and Shield torn off toward the user...
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.6, speed: 2 }   # ...and drawn in
+      - { on: remove, status: shield, fx: none }   # the Shield moves, it isn't destroyed: the tear-off above replaces its shatter
+
+  dance.magnet:
+    beat: Bands of iron dust and static whirl up and around the user; each time they reach 3 Charge, the swirl packs down into a Boulder.
+    cues:
+      - { on: apply, status: static_quarry, fx: paladin_8, tint: duo, scale: 1.2, opacity: 0.85 }   # the bands sweep up from the feet, around one side and over the head
+      - { on: trigger, status: static_quarry, fx: none }   # it fires on every Charge gained; the Boulder below is the only payoff
+      - { on: summon, fx: dark_mage_3, tint: element, scale: 1.4, layer: under }
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.8, delay: 250 }
+      # Swiftness's and Stormborn's defaults play on the user.
+
+  heal.magnet:
+    beat: Warm sparkling dust rises through the ally into a halo as a Debuff is drawn out of them and thrown onto a random enemy.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, speed: 1.6 }
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.55, frames: [0, 6] }   # Repel: off the ally...
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5 }   # ...onto the random enemy
+
+  bless.magnet:
+    beat: Drops of molten iron rain onto a ring at the ally's feet and forge into plating; the first Debuff thrown at them each turn glances off onto a random enemy.
+    cues:
+      - { on: apply, status: polarized_plating, fx: spell_forge_001, tint: duo, scale: 0.9, note: "its yellow spark streaks may keep their color: fine for hot iron" }
+      - { on: apply, status: polarized_plating, fx: symmetrical_impact_005, size: small, scale: 0.45, delay: 350 }   # the plating takes its charge: a violet ping
+      - { on: trigger, status: polarized_plating, fx: none }   # it fires on every Debuff gained; only the first each turn glances off, shown below
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.55, frames: [0, 6] }   # Repel: the Debuff bursts off the plating...
+      - { on: apply, status: debuff, fx: stylized_impact_001, size: small, tint: duo, scale: 0.5, delay: 150 }   # ...onto a random enemy (the copy lands before the original is removed: the delay restores the order)
+      # Armor's default plays on the ally.
+
+  curse.magnet:
+    beat: A Debuff bursts off every ally at once and they converge on the target in a dark violet star that settles over them.
+    cues:
+      - { on: apply, status: debuff, fx: round_sparkle_burst_003, tone: dark, scale: 0.9, stagger: 120 }   # each Debuff converges on the target; its own default follows
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.55, frames: [0, 6], stagger: 120 }   # Repel: off each ally
+      - { on: apply, status: debuff, fx: directional_smoke_burst_004, size: small, tone: dark, scale: 0.5, opacity: 0.8, delay: 400, stagger: 120 }   # darkness curls up off them
+
+  smite.magnet:
+    beat: A violet field line flickers down over the target and an iron needle drops straight along it like a compass finding north, cracking violet at their feet and leaving them exposed.
+    cues:
+      - { on: hit, fx: lightning_strike_003B, size: small, scale: 0.9, offset: [0, 0.4], opacity: 0.85 }   # the field line, from above the head down to the feet
+      - { on: hit, fx: frost_mage_5, tint: duo, delay: 60 }   # the needle drops along it
+      - { on: hit, fx: lightning_burst_002, size: small, scale: 0.5, offset: [0, -0.35], delay: 280 }   # violet crackle where the needle strikes
+      # Vulnerable's default follows.
+
+  prayer.magnet:
+    beat: The user's field rips the Shield off every enemy and scatters it across the team, then warm motes rise through each ally.
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.9, stagger: 100 }
+      - { on: remove, status: shield, fx: directional_impact_001, face: toActor, size: small, tint: duo, scale: 0.55, stagger: 80 }   # Attract: each enemy Shield torn off toward the user (replaces Shield's shatter here)
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.55, speed: 2, stagger: 100 }   # drawn into each ally; Shield's default follows
+
+  cleave.magnet:
+    beat: An iron flail whirls through the target and flicks on into a second enemy; a violet wire collar grounds each of the user's allies, sparking Charge home whenever they're hit.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.9, frames: [5, 13], note: "skip the mace's static wind-up; the impact (lower-right as drawn) on the target" }
+      - { on: hit, only: others, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.6, delay: 150 }   # the flick into the random second enemy
+      - { on: apply, status: grounding_whirl, fx: dark_mage_2, tint: element, scale: 0.8, offset: [0, -0.4], opacity: 0.8, frames: [0, 9], stagger: 100 }   # a violet wire collar closes round each ally's feet: grounded (frames 10-11 turn crimson)
+      - { on: trigger, status: grounding_whirl, fx: scifi_muzzle_flash_001, face: toActor, scale: 0.4 }   # the struck ally sparks a Charge home; Charged's default follows on the user
+
+  shout.magnet:
+    beat: A deep hum rolls off the user in rings and ripples out in widening waves to every enemy; each allied Boulder adds a crackle of Sapped.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.6, layer: under }   # the hum: a double ring settling to one behind the user
+      - { on: travel, fx: necromancer_3, path: straight, tint: duo, tone: light, opacity: 0.85, stagger: 80 }   # a widening wall of vibration rolls all the way to each enemy (as a beam its cone stops a third short); light, since the art is mostly dark
+      # Intimidated's and Sapped's defaults land on each.
+
+  withstand.magnet:
+    beat: The field stands iron up into a bristling rampart before the user; whoever strikes it is tagged, and when it drops the user's Debuffs rebound onto each of them.
+    note: >-
+      No landing cue for the rebounded Debuffs: an apply filtered by debuff would also play on every Rebound tag.
+      Each moved Debuff's own default shows where it lands.
+    cues:
+      - { on: apply, status: rebound_plate, fx: frost_knight_3, tint: duo, scale: 0.75, speed: 1.3, frames: [0, 6], note: "fade it out on its last frame, before the grey mist" }   # a row of iron spikes bristles up at the user's feet and flashes as it sets
+      - { on: trigger, status: rebound_plate, fx: symmetrical_impact_002, size: small, scale: 0.6 }   # the rampart rings with each enemy blow; Rebound's default tags the attacker
+      - { on: remove, status: debuff, fx: symmetrical_explosion_004, size: small, scale: 0.6, frames: [0, 6], stagger: 120 }   # when the plate ends: Repel, one Debuff bursts off the user per tagged enemy
+
+  taunt.magnet:
+    beat: A field line snaps taut between the user and the target and a compass ring locks onto each, opposite poles; a '!' flares over the target.
+    cues:
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, opacity: 0.8, note: "its pulse runs back along the line toward the user: the two are drawn together" }
+      - { on: apply, status: opposite_poles, fx: frost_knight_7, tint: element, scale: 0.6, speed: 0.6 }   # the user's own pole, violet, answering Opposite Pole's sand ring on the target at the same pace
+      # Taunt's '!' and Opposite Pole's default play on the target.
+
+  titan.magnet:
+    beat: A Boulder is hauled up, then every Boulder on the user's side bursts apart and streams onto the user, who locks into a colossus of iron; when it ends the iron sheds off as one great Boulder.
+    note: "The engine emits summoned, then died for every Boulder (the new one too), then Armor and iron_colossus, then resolve, back to back: the delays restore the beat's order, about 1.6 s in all."
+    cues:
+      - { on: apply, status: iron_colossus, fx: spell_absorb_001, tint: duo, scale: 1.8, speed: 1.6, delay: 500 }   # Attract at its largest: all that iron spirals in, once the Boulders burst
+      - { on: death, fx: directional_impact_001, face: toActor, tint: duo, scale: 0.8, delay: 400, stagger: 100 }   # each Boulder torn apart toward the user, after the new one has been heaved up
+      - { on: resolve, fx: dark_mage_4, tint: duo, scale: 1.8, delay: 1100, note: "a short board shake as the colossus locks together" }   # a round nova ending in a full ring with a crackling rim, as the absorb finishes
+      - { on: resolve, fx: directional_particle_burst_002, tint: duo, scale: 1.5, layer: under, speed: 1.4, delay: 1150 }
+      - { on: summon, fx: dark_mage_3, tint: element, scale: 1.4, layer: under }   # the first Boulder, and the one shed when it ends
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.8, delay: 250 }
+      - { on: trigger, status: iron_colossus, fx: symmetrical_smoke_burst_003, tint: element2, scale: 1.0, note: "when it ends: the iron crumbles off the user in a cloud of dust, then the summon cues bring up the Boulder" }
+      - { on: heal, fx: directional_sparkle_burst_002, size: small, tint: element2, tone: light, scale: 0.6 }   # the shed Boulder fills out to its full HP
+      # Armor's default plays once on the user.
+
+  lodestone_golem_magnetize:
+    beat: The Golem's field tugs at the target and a scrap of their Armor or Shield is torn off and drawn into it.
+    cues:
+      - { on: apply, status: buff, fx: directional_impact_001, at: target, face: toActor, size: small, tint: duo, scale: 0.5 }   # Attract (removeStacks and boostShields raise no event, so the tear-off rides the Golem's gain)
+      - { on: apply, status: buff, fx: spell_absorb_001, size: small, tint: duo, scale: 0.55, speed: 2 }   # Armor's or Shield's default follows on the Golem
+
+  lodestone_golem_iron_fist:
+    beat: The Golem drives a stone fist into the target.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: symmetrical_smoke_burst_002, size: small, tint: element2, scale: 0.5, opacity: 0.8, delay: 100 }
+
+  iron_filings_grind:
+    beat: The filings swarm over the target and grind in, throwing off thin sprays of metal.
+    cues:
+      - { on: hit, fx: fanfx_pain, size: small, tint: duo, tone: light, scale: 0.7, speed: 1.8, frames: [3, 30] }
+      - { on: hit, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.5, delay: 100 }

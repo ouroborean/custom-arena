@@ -1,0 +1,275 @@
+group: ice
+
+# Ice is made of Frost Knight / Frost Mage art (native, already icy) and palette art tinted Ice.
+# The three Frost debuffs sit in different places so they still read when stacked (Hypothermia,
+# and the many fusions that reuse them): Frostbitten at the feet, Chilled over the head, Numb on the body.
+statuses:
+  frostbitten:
+    apply:
+      - { fx: frost_mage_4, at: bearer, scale: 0.9 }   # ice crystals crust over the feet
+    remove:
+      - { fx: symmetrical_impact_003, at: bearer, size: small, scale: 0.5 }
+    expire:
+      - { fx: directional_smoke_burst_004, at: bearer, scale: 0.6, opacity: 0.7 }   # thaws off as a frosty wisp
+  chilled:
+    apply:
+      - { fx: frost_knight_6, at: bearer, scale: 0.45, offset: [0, 0.6] }   # snowflake glyph over the head
+    remove:
+      - { fx: round_sparkle_burst_001, at: bearer, size: small, scale: 0.45, offset: [0, 0.6] }
+  numb:
+    # On the body: the bearer's buff arrows start to rise and freeze half-way, because a Numb unit can't
+    # apply Buffs. One glyph of Ice's own, not base's red X (the partial-lock signature).
+    apply:
+      - { fx: spell_buff_001, at: bearer, size: small, scale: 0.45, tone: dark, speed: 0.8, note: "after the white arrow flash, hold the frame where the three arrows stand about half-way up, frosted, for a beat; then fade them out where they stand instead of letting them streak upward" }
+    remove:
+      - { fx: symmetrical_smoke_burst_002, at: bearer, size: small, scale: 0.5, opacity: 0.8 }
+    expire:
+      - { fx: symmetrical_smoke_burst_002, at: bearer, size: small, scale: 0.4, opacity: 0.6 }
+  frostborn:
+    note: "No trigger key: its protection is passive. Debuffs it refuses and attacks it stops use base's effectBlocked / blocked defaults. No aura: the protection is partial (only Frostbitten units, and Debuffs from Numb or Chilled units), so a glow on the bearer would read as full Invulnerable; the apply ring and the status icon carry it."
+    apply:
+      - { fx: frost_mage_1, at: bearer, scale: 0.9 }   # an ice ring with orbiting frost orbs
+    remove:
+      - { fx: symmetrical_impact_002, at: bearer, size: small, scale: 0.6 }
+    expire:
+      - { fx: directional_particle_burst_001, at: bearer, scale: 0.6, opacity: 0.8 }
+
+macros: {}   # Ice defines none
+
+skills:
+  strike.ice:
+    beat: A hammer-blow of ice comes down in a frozen crescent and bursts into chips.
+    cues:
+      - { on: hit, fx: frost_knight_4, at: target, face: fromActor, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_003, at: target, size: small, scale: 0.5, delay: 120 }
+
+  smash.ice:
+    beat: The user stamps and a ridge of ice spikes ruptures beneath every enemy.
+    cues:
+      - { on: cast, fx: directional_impact_002, at: actor, scale: 0.9, layer: under }
+      - { on: hit, fx: frost_knight_3, at: target, scale: 1.1, stagger: 70 }   # 2.2 portraits wide: a ridge across each enemy's feet, rippling down the column
+
+  charge.ice:
+    beat: The user rushes in on a roaring snow-front that breaks over the target.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, scale: 0.8 }
+      - { on: hit, fx: directional_smoke_burst_003, at: target, face: fromActor, size: small, scale: 0.8 }
+      - { on: hit, fx: directional_impact_002, at: target, size: small, scale: 0.5, layer: under, delay: 60 }
+
+  riposte.ice:
+    beat: Frost spines bristle unseen; when the user is struck they burst from the ground and turn the blow aside.
+    note: "The counter only negates the skill and grants Frostborn; it deals no damage back, so there is no counter-cut. Base's counter X marks the attacker and Frostborn's ring marks the user."
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, at: actor, size: small, scale: 0.6 }   # Invisible: only the owner sees the guard
+      - { on: trigger, status: frost_spines, fx: directional_impact_004, at: bearer, scale: 0.9 }
+      - { on: trigger, status: frost_spines, fx: symmetrical_impact_002, at: bearer, size: small, scale: 0.6, delay: 80 }   # the guard flares again as the blow is turned aside
+
+  rage.ice:
+    beat: Absolute cold rings out across the whole board and freezes anyone moving fast in their tracks.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: actor, scale: 0.9 }
+      # It checks every character on both sides, so the wind-up is board-wide: one ring around both rosters.
+      - { on: cast, fx: frost_knight_7, at: field, scale: 4, speed: 0.6, opacity: 0.7, delay: 200 }
+      - { on: remove, status: swiftness, fx: fanfx_stop, at: bearer, variant: blue, size: small, scale: 0.6, offset: [0, 0.5], speed: 1.6 }   # the hourglass cracks: their speed is frozen; Stun's default follows
+
+  shot.ice:
+    beat: An icicle streaks across and splinters into a spray of shards.
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: element, scale: 0.5 }   # a glinting streak; the tint turns its violet tail to frost
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, scale: 0.7 }
+
+  snipe.ice:
+    beat: Cold light gathers on the user, a shard is flung skyward, and a comet of ice spears down onto the target.
+    note: "Against a Chilled target it strikes at once: no trigger, the cast leads straight into the fall."
+    cues:
+      - { on: cast, fx: spell_absorb_001, at: actor, tone: light, scale: 0.7, speed: 1.5 }   # motes of cold spiral in and pack into a shard
+      - { on: trigger, status: comet_shard, fx: scifi_muzzle_flash_003, at: bearer, face: up, scale: 0.6 }   # launched straight up, never toward the hidden target
+      - { on: hit, fx: scifi_warp_003, at: target, scale: 1.3 }
+      - { on: hit, fx: symmetrical_impact_006, at: target, scale: 0.9, delay: 250 }
+
+  trap.ice:
+    beat: Frost glints settle unseen at the enemy's feet; if they attack, a glacier erupts around them.
+    cues:
+      - { on: apply, status: frost_snare, fx: stylized_explosion_004, at: bearer, scale: 0.8, offset: [0, -0.35], opacity: 0.8, note: "play only its opening diamond glints and stop before the flash dome: the snare waits, it doesn't go off" }   # Invisible: only the owner sees the glints
+      - { on: trigger, status: frost_snare, fx: frost_mage_3, at: bearer, scale: 1.1, note: "ends on its brightest frame: hold it briefly, then fade" }   # Stun's default follows
+
+  maneuver.ice:
+    beat: Frost dust kicks up around the user and seals them inside a block of ice.
+    cues:
+      - { on: cast, fx: directional_sparkle_burst_002, at: actor, scale: 0.8, layer: under }
+      - { on: apply, status: stun, fx: spell_ice_001, at: bearer, scale: 1.8, speed: 1.5 }   # the ice shell stands for all three statuses
+      - { on: apply, status: invulnerable, fx: none }   # the status icons and Stun's aura mark the state afterward
+      - { on: apply, status: immune, fx: none }
+
+  companion.ice:
+    beat: A snowdrift heaves up and an ice bear bursts out of it.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_002, at: minion, opacity: 0.85 }   # over the portrait: the drift covers the new bear before it bursts out
+      - { on: summon, fx: directional_impact_003, at: minion, scale: 0.9, delay: 120 }
+
+  bolt.ice:
+    beat: A frost orb lances across and bursts into a cracking sphere of ice.
+    note: "25 damage against a target with no Buffs (the same single hit event): play the burst about 1.2x larger."
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, at: actor, face: toTarget, size: small, scale: 0.4 }
+      - { on: travel, fx: scifi_charge_up_001, path: straight, tint: element, size: small, scale: 0.45 }   # base Bolt's orb, in frost: Shadow and Water fly dark_mage_5, so a third blue comet would blur them
+      - { on: hit, fx: frost_mage_6, at: target, scale: 0.8 }   # the cracking frost sphere carries Ice
+
+  blast.ice:
+    beat: A freezing cloud bursts over the enemy line and ice shatters out of every enemy.
+    note: "40 damage against an enemy with no Buffs (the same single hit event): play that enemy's shatter about 1.2x larger."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, at: actor, scale: 0.6 }
+      - { on: hit, fx: symmetrical_smoke_burst_003, at: enemySide, scale: 2.2, opacity: 0.8, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: symmetrical_impact_006, at: target, scale: 1.1, delay: 100, stagger: 70 }
+      - { on: hit, fx: directional_impact_003, at: target, scale: 0.8, delay: 180, stagger: 70 }
+
+  consume.ice:
+    beat: A frost tether latches onto the target and draws its cold back into the user.
+    cues:
+      - { on: travel, fx: necromancer_6, from: target, to: actor, path: beam, tint: element, scale: 0.5, note: "colorize only the green beam; put the crimson pulse on the ramp's white so the pulse still reads, and run it toward the user" }
+      - { on: hit, fx: symmetrical_impact_005, at: target, size: small, scale: 0.5 }
+      - { on: apply, status: frostborn, fx: spell_absorb_001, at: bearer, scale: 0.8, speed: 1.5, delay: 200 }   # the drawn-in cold is the user's Frostborn: replaces its ring here so two orb rings don't overlap
+
+  summon.ice:
+    beat: A sparkling puff of snow condenses into a small frost spirit.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_002, at: minion }
+      - { on: summon, fx: directional_sparkle_burst_002, at: minion, scale: 0.8, speed: 1.3, delay: 150 }
+
+  channel.ice:
+    beat: A snow whirl gathers over the user; at the end of each of their turns it spins up and a squall drives down on the target.
+    cues:
+      - { on: cast, fx: slime_5, at: actor, tint: element, scale: 0.8, offset: [0, 0.7], speed: 1.3 }   # the storm forming over the user's head
+      - { on: trigger, status: blizzard, fx: slime_5, at: bearer, tint: element, scale: 0.6, offset: [0, 0.7], speed: 1.6 }   # each pulse: the whirl spins up again over the user
+      - { on: hit, fx: frost_mage_7, at: target, face: down, scale: 0.6, stagger: 80 }   # icy wind streaks driving down onto each enemy hit (every enemy while the user is Frostborn)
+
+  stab.ice:
+    beat: A white needle of frost punches through the target and spits shards out behind them.
+    cues:
+      - { on: hit, fx: starcaller_7, at: target, face: fromActor, tint: element, tone: light, scale: 0.6, speed: 1.4, note: "cut before its hook-curl frames: just the streak driving through and the starburst at the wound" }   # tinted, its violet streak becomes a white-cyan needle
+      - { on: hit, fx: directional_impact_001, at: target, face: fromActor, size: small, scale: 0.45, delay: 60 }   # the shards spit out the far side
+
+  ravage.ice:
+    beat: A storm of ice blades shreds every enemy, and those already frostbitten shatter.
+    note: "The 25-damage branch (target already Frostbitten) emits no event of its own; tell it from the amount or from Frostbitten being present before the hit. On that branch play frost_knight_9 at ~1.15 and add the shatter cue."
+    cues:
+      - { on: hit, fx: frost_knight_9, at: target, scale: 0.9, stagger: 90 }
+      - { on: hit, fx: frost_mage_6, at: target, scale: 0.6, delay: 120, stagger: 90, note: "25-damage branch only" }
+      - { on: hit, fx: scifi_spark_burst_001, at: target, scale: 0.7, delay: 180, stagger: 90 }
+
+  mislead.ice:
+    beat: The user's form flickers into a mirror of ice and a frost glitter hangs over the enemy line; whoever strikes at the mirror is numbed first.
+    note: "Iceform's trigger fires on every Harmful skill its bearer uses and only then checks whether the Iceform user is a target, so the snap-back is the Numb it applies (Numb's own default, on the attacker before their skill lands), not the trigger."
+    cues:
+      - { on: cast, fx: scifi_warp_001, at: actor, scale: 0.8 }
+      - { on: apply, status: iceform, fx: status_sparkling_001, at: enemySide, tone: light, scale: 2.4, opacity: 0.7, speed: 1.5, note: "once, with the first Iceform: the side anchor doesn't repeat per enemy" }
+      - { on: trigger, status: iceform, fx: none }   # deliberately silent: the trigger also fires on attacks aimed at someone else
+
+  stun.ice:
+    beat: A cold white flash, and a thick crust of ice locks around the target's feet.
+    note: "Flash Freeze only applies Frostbitten (no damage, no Stun), so no hit or stagger: Frostbitten's own feet-crust, turned up. spell_ice_001 stays reserved for real Stuns (Glissade)."
+    cues:
+      - { on: apply, status: frostbitten, fx: frost_mage_4, at: bearer, scale: 1.4, delay: 100 }   # Frostbitten is the whole skill: its default crust, larger
+      - { on: apply, status: frostbitten, fx: symmetrical_impact_001, at: bearer, tone: light, size: small, scale: 0.6 }   # the flash, bound to the status: a refused Frostbitten shows nothing
+      - { on: apply, status: frostbitten, fx: directional_impact_003, at: bearer, size: small, scale: 0.6, delay: 100 }   # over the portrait: under it, a 0.6 canvas would be hidden
+
+  dance.ice:
+    beat: Rings of frost spin open around the user and frost-waves crest over each enemy, cracking open the ones already frosted.
+    note: "Damage is 10 + 10 per Frost debuff (10/20/30/40) in one event: play frost_knight_8 at 0.7 / 0.85 / 1.0 / 1.15 by amount, and for 30+ add a short screen shake."
+    cues:
+      - { on: cast, fx: stylized_impact_001, at: actor, scale: 1.2, layer: under }   # behind the user and past the frame, so only the spinning rings show around them
+      - { on: hit, fx: frost_knight_8, at: target, face: up, scale: 0.7, stagger: 120 }   # turned upright: the wave crests straight up over each enemy, the same from either side
+      - { on: hit, fx: frost_mage_6, at: target, scale: 0.5, delay: 150, stagger: 120, note: "only when the target had at least one Frost debuff (amount ≥ 20)" }
+
+  heal.ice:
+    beat: Healing light rises through the ally and frost glints seal the wound.
+    cues:
+      - { on: heal, fx: spell_heal_002, at: target, scale: 0.7, speed: 1.5 }
+      - { on: heal, fx: round_sparkle_burst_001, at: target, size: small, scale: 0.5, delay: 250 }
+
+  bless.ice:
+    beat: A frost glint drifts down onto the ally and opens into a ring of frost.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: drop, size: small, scale: 0.45, speed: 0.8, note: "onto the targeted ally only; the Chilled enemies get no drop" }   # not a snowflake: that glyph is Chilled
+      # Frostborn's ring blooms on the ally as it lands, and Chilled's snowflake pops over every enemy.
+
+  curse.ice:
+    beat: A thread of freezing mist drifts over, fog billows up around the target, and frost takes their feet, their head and their body.
+    note: "When Immune refuses the debuffs, only the mist plays, then the effectBlocked default: no fog, no frost."
+    cues:
+      - { on: travel, fx: directional_smoke_burst_004, path: arc, scale: 0.6, speed: 0.8 }
+      - { on: apply, status: frostbitten, fx: directional_smoke_burst_001, at: bearer, scale: 1.3, opacity: 0.7, layer: under }   # large enough that the fog shows around the portrait
+      # Frostbitten's default, re-added (this skill's own apply cue replaces it). Chilled and Numb land
+      # through their defaults, each in its own place (head, body). No down-arrows: those are Weakness.
+      - { on: apply, status: frostbitten, fx: frost_mage_4, at: bearer, scale: 0.9, delay: 150 }
+
+  smite.ice:
+    beat: Cold rises off the user and a crystal shard drops out of the sky, shattering on the target.
+    cues:
+      - { on: cast, fx: directional_particle_burst_001, at: actor, scale: 0.5 }
+      - { on: hit, fx: frost_mage_5, at: target, scale: 1.1 }
+
+  prayer.ice:
+    beat: A great snowflake blooms behind the whole team and frost-light crosses rise through every ally.
+    cues:
+      # The team-wide wind-up: one snowflake far larger than the team, behind the portraits. A small
+      # snowflake over a head (scale 0.45, offset [0, 0.6]) is Chilled's default and would read as the team being Chilled.
+      - { on: cast, fx: frost_knight_6, at: allySide, scale: 2.6, opacity: 0.8, layer: under }
+      - { on: heal, fx: spell_heal_002, at: target, scale: 0.6, speed: 1.5, delay: 100, stagger: 100 }
+      - { on: heal, fx: round_sparkle_burst_001, at: target, size: small, scale: 0.45, delay: 300, stagger: 100 }
+      # Shield's and Armor's defaults follow on each ally.
+
+  cleave.ice:
+    beat: A spiked ice mace sweeps through the target and, if they are frosted, on into another enemy.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, at: target, face: fromActor, scale: 0.9, speed: 1.5, note: "shorten its 6-frame wind-up; line its lower-right impact (lower-left when mirrored) up on the target" }
+      - { on: hit, only: others, fx: frost_knight_1, at: target, face: fromActor, scale: 0.75, speed: 1.5, delay: 150, note: "as above" }   # the frosted bonus: the follow-through carries into a random second enemy
+      - { on: hit, fx: symmetrical_impact_004, at: target, size: small, scale: 0.6, delay: 200 }
+
+  shout.ice:
+    beat: The user roars out a frost shockwave and an icy gale rolls into every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, at: actor, scale: 1.3 }
+      - { on: travel, fx: frost_knight_5, path: straight, scale: 0.9, stagger: 80 }   # one gale per enemy: rosters are columns, so no single band crosses the side
+      # Frostbitten's crust follows on each enemy as its gale arrives.
+
+  withstand.ice:
+    beat: Permafrost heaves up at the user's feet and locks into a faceted lattice around them.
+    cues:
+      - { on: cast, fx: frost_knight_3, at: actor, scale: 0.7, speed: 1.3 }
+      - { on: apply, status: shield, fx: fanfx_barrier, at: bearer, scale: 1.3, opacity: 0.9, layer: under, speed: 1.3, note: "stop on the full panel (before the shatter frames) and fade" }   # behind the portrait only its margin shows: an ice lattice framing the user
+
+  taunt.ice:
+    beat: A frost reticle flares around the user under a crown of ice, daring the target to strike them.
+    cues:
+      - { on: cast, fx: frost_knight_7, at: actor, scale: 1.1, layer: under }   # the lock-on ring around the user, not the target: "aim here"
+      - { on: cast, fx: symbol_crown_001, at: actor, size: small, scale: 0.4, offset: [0, 0.6], speed: 2, delay: 150 }   # base Taunt's crown, in Ice
+      # Taunt's '!' and Frostbitten's crust follow on the target through their defaults.
+
+  titan.ice:
+    beat: A glacier towers up around the user and bursts apart to reveal a frost giant whose cold rolls over the enemy line.
+    cues:
+      - { on: cast, fx: frost_mage_3, at: actor, scale: 1.7, note: "a brief screen shake as it rises" }
+      - { on: cast, fx: symmetrical_impact_006, at: actor, scale: 1.7, delay: 300 }
+      - { on: apply, status: chilled, fx: symmetrical_explosion_004, at: enemySide, scale: 2.2, note: "once, with the first Chilled: the side anchor doesn't repeat per enemy" }
+      # Chilled's default, re-added as the cold reaches each enemy (this skill's own apply cue replaces it).
+      - { on: apply, status: chilled, fx: frost_knight_6, at: bearer, scale: 0.45, offset: [0, 0.6], delay: 200, stagger: 80 }
+      # Frostborn's ring follows on the user.
+
+  ice_bear_frostfang:
+    beat: The bear rakes down with hooked claws of ice that crash into a burst of shards.
+    cues:
+      - { on: hit, fx: frost_knight_10, at: target, face: fromActor, scale: 0.9, note: "line its bottom-right impact (bottom-left when mirrored) up on the target" }
+      - { on: hit, fx: burst_splatter_003, at: target, size: small, scale: 0.5, delay: 200 }
+
+  icy_familiar_touch:
+    beat: The familiar's touch blooms into a small ring of frost stars.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, at: target, size: small, scale: 0.5 }
+      - { on: hit, fx: round_sparkle_burst_001, at: target, scale: 0.6, delay: 100 }
+
+  icy_familiar_breath:
+    beat: The familiar puffs a little frost gust across onto the target.
+    cues:
+      - { on: travel, fx: frost_mage_7, path: straight, scale: 0.55 }   # small: Arctic Roar's gale is frost_knight_5

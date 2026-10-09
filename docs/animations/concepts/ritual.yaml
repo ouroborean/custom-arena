@@ -1,0 +1,283 @@
+group: ritual
+# Ritual (Fire + Shadow) is a rite worked by candlelight: small candle flames and ember sparks (Fire,
+# `element`), curls of dark incense smoke (Shadow, `element2` with `tone: light` so it shows on the dark
+# board), and ash-fire (`duo`: ember-red edges on ash-grey flame and smoke), where Fire's jets and
+# Shadow's smoke run together. Its signature is the rite itself: every Rite lays a ring of candle flames
+# at the user's feet (Rite's apply), drops one more flame onto it per step (rite_step) and flares the
+# whole ring when it completes (rite_finish), and then the skill's own payoff plays its cues. The Ritual sigil
+# (deathbringer_2, colorized) is the brand, the sprung ward and the Colossus.
+
+statuses:
+  rite:
+    note: >-
+      Every Rite skill's inline Rite counts as `rite`, so these play for all of them. No aura: the status
+      icon and its stacks carry it. No trigger or expire here: a step is the rite_step macro, completion
+      the rite_finish macro (a Rite never runs out on its own). A Rite replaced by a new one is taken down
+      by clear_rite's removeEffect, which plays this `remove` like a break does.
+    apply:
+      - { fx: spell_forge_001, scale: 0.9 }   # candle flames drop one by one onto a ring at the user's feet
+    remove:
+      - { fx: symmetrical_smoke_burst_002, tint: element2, tone: light, size: small, scale: 0.6, opacity: 0.85 }   # broken by Stun, Sleep or Banished, or replaced by a new Rite: the ring scatters as smoke
+  tended_wick_flame:   # the Wick, end of its owner's turn: 10 to a random enemy, doubling each time
+    note: >-
+      Its `damaged` trigger (any damage resets the count to 10) lands on no one: there, skip the flare and
+      play a small grey wisp instead (directional_smoke_burst_004, element2, tone light, scale 0.4): the
+      wick gutters.
+    trigger:
+      - { fx: fire_looping_001, size: small, scale: 0.35, tone: light, offset: [0, 0.3], speed: 1.5 }   # a white-hot flare at the wick's tip, not an Ignite-orange burn
+      - { fx: burst_splatter_001, at: target, scale: 0.5, delay: 120, note: "burning wax spatters the enemy; scale with the doubled amount: about 0.5 at 10, 0.7 at 20, 0.9 at 40, 1.1 at 80+" }
+
+macros:
+  clear_rite: []   # the replaced Rite's own `remove` default (the ring scatters) carries it; the counter reset shows nothing
+  rite_step:
+    - { fx: spell_forge_001, at: actor, scale: 0.9, frames: [2, 5], speed: 1.5, note: "one more flame drops onto the Rite's ring at the user's feet (frames 2-5: a single flame falls and lands in its white-hot flare; same art and scale as the Rite's apply, so it lands on the same ring). Each step, from the user's skills, their Acolytes, Chains of Smoke or Dark Liturgy. setCounter and addStacksSelf emit no event: until the engine emits a stack-change event, play this when the Rite's stacks drop on the user (diff stacks between events). The completing step never drops a stack (it runs rite_finish), so it shows only rite_finish's flare. Dance of Candles' double step: two drops, about 150 ms apart" }
+  rite_finish:
+    - { fx: directional_particle_burst_002, at: actor, note: "once, on the Rite holder (the expire is on the bearer, the user): the whole ring of candles flares up around them. Only the completion: the expired Rite's onExpire is not this macro's. Its damage, healing and statuses belong to the skill that started the Rite and play that skill's hit/heal/apply cues after this; a macro nested in it (explode) plays its own. Mislead's rite_complete runs through here too" }
+
+skills:
+  strike.ritual:
+    beat: A ceremonial blade of ash-fire carves up through the target and opens a Rite; when it completes, the target blows apart.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: duo, scale: 0.9 }   # its pale core and misty edging come out as ash with ember rims
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.5, delay: 120 }   # embers spray off past them
+      - { on: trigger, status: rite_sacrificial_blade, fx: none }   # steps and completion: the rite_step / rite_finish macros
+      # Rite's default lays the ring on the user; the Explosion plays Fire's explode macro.
+
+  smash.ritual:
+    beat: A censer of ash-fire slams onto the target and bursts into a ring of ash that splashes over their allies; when the Rite completes, the ring flares across the whole enemy side.
+    cues:
+      - { on: hit, only: primary, fx: blood_knight_6, tint: duo, scale: 1.1, delay: 100 }   # the circle of ash: a ring nova with ember-red edges
+      - { on: hit, only: primary, fx: directional_impact_004, scale: 0.8 }   # the slam lands first
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, size: small, scale: 0.6, delay: 200, stagger: 80 }
+      - { on: trigger, status: rite_circle_of_ash, fx: none }   # steps and completion: the rite macros
+      - { on: apply, status: debuff, fx: blood_knight_6, at: enemySide, tint: duo, scale: 2.2, layer: under, opacity: 0.8, note: "once, at the Rite's completion (the skill applies no debuff before it): the ring again, wide behind the whole side. Ignite's and Blinded's defaults follow on each enemy" }
+
+  charge.ritual:
+    beat: The user streaks across the board on claws of ash-fire and nicks the target; the next skill flares the wound for 15 more and sets them alight.
+    note: "The Rite's 15 replays the hit cue after the completion flare on the user; Ignite's default then catches."
+    cues:
+      - { on: travel, fx: blood_knight_1, path: beam, tint: duo, scale: 0.7, note: "its rush is drawn into the canvas, so it is laid from the user to the target rather than moved: its crash in the lower-right lands at the target end. The portrait lunges along it" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, scale: 0.6 }   # embers spray off the cut
+      - { on: trigger, status: rite_candlestep, fx: none }   # steps and completion: the rite macros
+
+  riposte.ritual:
+    beat: A warding candle is lit before the user; the first enemy to strike at them is met by its flare and an arc of ash-fire.
+    cues:
+      - { on: cast, fx: fire_looping_001, tint: duo, size: small, scale: 0.45, offset: [0, -0.2], repeat: 2, opacity: 0.85 }   # Invisible: owner only. An ash-grey flame burns before the user
+      - { on: trigger, status: warding_candle_counter, fx: round_firework_burst_002, size: small, scale: 0.7, speed: 1.5 }   # the candle flares on the user
+      - { on: trigger, status: warding_candle_counter, fx: frost_knight_4, at: source, face: fromActor, tint: duo, scale: 0.8, delay: 100 }   # a crescent of ash-fire bulges down across the countered attacker (not Strike's uppercut)
+      # The counter default marks the stopped skill. Warding Candle (Rite can't break) has no trigger of its own.
+
+  rage.ritual:
+    beat: A bonfire roars up from the user's feet under a cap of dark smoke, and its sparks shower down on every other unit on the board.
+    cues:
+      - { on: cast, fx: epic_explosion_001, scale: 1.4 }   # the fire column takes the Fire ramp; its smoke cap stays dark slate
+      - { on: apply, status: buff, only: others, fx: scifi_spark_burst_001, size: small, scale: 0.5, offset: [0, 0.3], stagger: 50, note: "once per other unit, allies and enemies alike, with its Might; Might's default layers on" }
+      # Immune's and Might's defaults play on the user.
+
+  shot.ritual:
+    beat: A white-hot crescent snaps off the user's hand and slices through the target; one with no buffs left to hold them is cut off from their allies.
+    cues:
+      - { on: travel, fx: paladin_10, path: beam, tint: element, tone: light, scale: 0.5, speed: 1.5 }   # laid from the user to the target: its star flash (about 85% across) lands at the target end
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: duo, size: small, scale: 0.5 }   # shards spray out the far side: Piercing
+      # Isolated's default follows when it lands.
+
+  snipe.ritual:
+    beat: The user breathes an invocation into rising incense; two skills later a skull-faced seal blazes on the hidden target and a column of fire erupts beneath them.
+    note: "HiddenTarget: nothing points at the target until the hit. It Bypasses Invulnerable, so no block flash."
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.9 }   # incense curls straight up off the user
+      - { on: trigger, status: rite_far_invocation, fx: none }   # steps and completion: the rite macros, on the user only
+      - { on: hit, fx: necromancer_7, tint: duo, scale: 1.2 }   # the seal swells over them, shows its skull and shatters
+      - { on: hit, fx: directional_fire_burst_001, scale: 1.5, delay: 150 }
+      # Ignite's default follows.
+
+  trap.ritual:
+    beat: A ring of smoke settles unseen at the enemy's feet; each time they attack, it cinches tight, burns them and feeds the user's Rite.
+    cues:
+      - { on: apply, status: chains_of_smoke, fx: necromancer_1, tint: element2, tone: light, scale: 0.8, opacity: 0.75 }   # Invisible: owner only
+      - { on: trigger, status: chains_of_smoke, fx: dark_mage_2, tint: duo, scale: 0.8, speed: 1.5, frames: [0, 9] }   # the ring cinches; its last two frames jump to dark red
+      - { on: hit, fx: fanfx_pain, tone: light, scale: 0.8, speed: 2, frames: [2, 30] }   # needles of ember: the 10 Affliction
+      # The Rite advance plays the rite_step macro on the user.
+
+  maneuver.ritual:
+    beat: Ember-edged smoke billows up and hushes around the user; the first blow to land makes them vanish into it and leaves the attacker smoldering.
+    note: "Stealthy: used from Stealth, only the owner sees the cast. The trigger reads on its own."
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: duo, scale: 1.2, opacity: 0.8 }
+      - { on: trigger, status: hush_of_smoke, fx: round_sparkle_burst_002, tint: element2, tone: light, scale: 0.9 }   # the user vanishes into the smoke
+      # Invulnerable's default follows on the user, Ignite's on the attacker.
+
+  companion.ritual:
+    beat: A ring of ash opens on the ground, pale pillars climb out of it, and the hooded acolyte steps through as its candle catches.
+    cues:
+      - { on: summon, fx: dark_mage_3, tint: duo, scale: 0.9 }
+      - { on: summon, fx: fire_looping_001, size: small, scale: 0.3, offset: [0.25, 0.1], delay: 450 }   # its candle catches
+
+  bolt.ritual:
+    beat: A pale orb trailing ember-edged smoke streaks into the target and bursts in fire and black smoke; the smoke stings back into the user's eyes.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: duo, scale: 0.8, frames: [0, 5] }   # the orb and its tail only: from frame 6 it dissolves into a dull smudge, so the hit cues are the impact
+      - { on: hit, fx: symmetrical_explosion_003, scale: 0.9 }   # a flash that bursts into a crown of flame
+      - { on: hit, fx: symmetrical_smoke_burst_003, tint: element2, tone: light, scale: 0.9, delay: 120 }   # black smoke blooms out of it
+      # Blinded's default plays on the user.
+
+  blast.ritual:
+    beat: Ash-fire erupts under every enemy and leaves a curl of smoke on each that tallies their skills; when the Rite completes, the tally burns them all at once.
+    note: "At the Rite's completion each enemy takes 10 per skill it used, replaying the hit cue scaled with the amount (about 0.6 at 10, 1.2 at 40+). An enemy who used nothing still gets a 0-damage event (base 0): skip the hit cue there. The remove cue alone shows their tally spent."
+    cues:
+      - { on: hit, fx: stylized_explosion_003, tint: duo, scale: 0.9, stagger: 80 }
+      - { on: apply, status: rite_of_ruin_count, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.5, delay: 250, stagger: 80 }   # ember-edged ash curls up to keep the tally (not Ignite's white snuff)
+      - { on: trigger, status: rite_of_ruin_count, fx: directional_splatter_001, size: small, scale: 0.45, offset: [0, 0.3] }   # one ember scratch per skill they use
+      - { on: trigger, status: rite_of_ruin, fx: none }   # steps and completion: the rite macros
+      - { on: remove, status: rite_of_ruin_count, fx: symmetrical_smoke_burst_002, tint: element2, tone: light, size: small, scale: 0.45, opacity: 0.7, delay: 150 }   # the tally is spent (or cleansed)
+
+  consume.ritual:
+    beat: An ashen candle is lit over the enemy; at the end of each of the user's turns it burns down, a wisp of their life curls off, and its warmth rises into the user.
+    cues:
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: duo, size: small, scale: 0.5 }   # the 5 Affliction: embers of their life stream off toward the user
+      - { on: heal, fx: directional_particle_burst_001, size: small, scale: 0.6, delay: 150 }   # the same embers arrive and rise through the user
+      - { on: apply, status: candle_offering, fx: fire_looping_001, tint: duo, size: small, scale: 0.4, offset: [0, 0.7], repeat: 2 }   # the offering candle over their head
+      - { on: trigger, status: candle_offering, fx: fire_looping_001, tint: duo, size: small, scale: 0.5, offset: [0, 0.7], speed: 1.5 }   # it flares as it burns down
+
+  summon.ritual:
+    beat: Four sparks converge at the user's side into one flame, and a lone wick is left burning there.
+    cues:
+      - { on: summon, fx: round_sparkle_burst_003, scale: 0.7 }
+      - { on: summon, fx: directional_particle_burst_001, size: small, scale: 0.45, delay: 400 }   # the wick's first flames rise
+      # Its turn-end shot is tended_wick_flame's.
+
+  channel.ritual:
+    beat: The user intones a dark liturgy; at the end of each of their turns it tolls out from them and a dark nova breaks over every enemy as the Rite moves a step.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, tint: duo, scale: 0.8 }   # the liturgy rises over the user in ember-edged notes
+      - { on: trigger, status: dark_liturgy, fx: symmetrical_impact_002, tint: duo, scale: 0.9 }   # each turn, the toll rings out from the user
+      - { on: hit, fx: symmetrical_impact_001, tint: duo, size: small, scale: 0.6, delay: 150, stagger: 70 }   # the toll lands on each enemy: a star flash into a thin spiked ring, echoing the one on the user
+      # The Rite advance plays the rite_step macro on the user.
+
+  stab.ritual:
+    beat: A thin ritual knife of ash-fire thrusts through the target; driven in as the user's Rite completes, it bursts out the far side white-hot.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 0.7 }   # the blade sits left of the canvas center, so it enters from the near side
+      - { on: hit, fx: symmetrical_impact_003, tone: light, size: small, scale: 0.7, delay: 80, note: "bonus only: play when this hit's damage event has base 25 (the Knife completed the Rite, so rite_finish has just flared on the user). The amount alone is shifted by Armor and Might" }
+
+  ravage.ritual:
+    beat: Claws of flame rake up through the target and a burst of ash-fire follows; then every burning enemy flares at once.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: element }
+      - { on: hit, fx: symmetrical_explosion_002, tint: duo, scale: 0.8, delay: 120 }
+      # Ignite's default catches; each Ignite's extra burn plays Brimstone's ignite_tick macro.
+
+  mislead.ritual:
+    beat: A ward-circle is drawn unseen around the enemy; when they strike, it seals into the Ritual sigil, their skill dies inside it, and the user's Rite completes at once.
+    cues:
+      - { on: apply, status: circle_of_warding, fx: frost_knight_7, tint: duo, scale: 0.9, opacity: 0.7 }   # Invisible: owner only
+      - { on: trigger, status: circle_of_warding, fx: deathbringer_2, tint: duo, scale: 0.8, frames: [4, 17], speed: 2, note: "the seal builds over them and flashes white on its last frame as the skill is countered; cut before it melts" }
+      # The counter default follows on them, then rite_finish on the user and the Rite's own payoff.
+
+  stun.ritual:
+    beat: A jab of ash-fire presses a smoking hex-skull into the target; the next blow they take jolts it awake and stuns them.
+    cues:
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: apply, status: waking_hex, fx: stylized_skull_smoke_burst_001, tint: element2, tone: light, size: small, scale: 0.5, offset: [0, 0.35], delay: 120 }
+      - { on: trigger, status: waking_hex, fx: necromancer_5, face: up, tint: duo, scale: 0.6 }   # the skull jolts awake as the blow lands; Stun's default follows
+
+  dance.ritual:
+    beat: The user spins inside a ring of candle flames that circles them and spirals in, while ribbons of ash sweep around them.
+    cues:
+      - { on: cast, fx: spell_absorb_001, scale: 1.1, speed: 1.6 }   # the ring of orbs, as candle flames, circling in
+      - { on: cast, fx: paladin_8, tint: duo, scale: 1.4, layer: under, delay: 100 }   # behind the portrait and just past its frame: only the sweeping arcs show over the head
+      # Swiftness's and Focus's defaults play on the user.
+
+  heal.ritual:
+    beat: Warm candle flames rise through the ally; when the Rite completes, they rise through the whole team.
+    note: "The Rite's 25 to every ally replays the heal cues, a little larger (about 1.2x)."
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, scale: 0.9, stagger: 80 }
+      - { on: heal, fx: round_sparkle_burst_001, tone: light, size: small, scale: 0.4, offset: [0, 0.35], delay: 300, stagger: 80 }
+      - { on: trigger, status: rite_of_mending, fx: none }   # steps and completion: the rite macros
+
+  bless.ritual:
+    beat: A burning drop falls onto the ally and splashes into a crown of flame at their feet; every enemy they strike catches from it.
+    cues:
+      - { on: apply, status: double_wick, fx: paladin_7, tint: element, scale: 0.8, note: "fade out its last frame (a held flame patch)" }
+      - { on: trigger, status: double_wick, fx: scifi_muzzle_flash_001, face: toTarget, size: small, scale: 0.45 }   # a spark leaps from the bearer toward the enemy they hit; Ignite's default catches there
+
+  curse.ritual:
+    beat: A skull-faced cloud of ash rises unseen over the enemy; every skill they use spits a gout of it onto one of their own allies, who catches fire.
+    cues:
+      - { on: apply, status: cursed_flame, fx: spell_poison_001, tint: duo, scale: 0.8, opacity: 0.85 }   # Invisible: owner only
+      - { on: trigger, status: cursed_flame, fx: directional_smoke_burst_003, face: toTarget, tint: duo, size: small, scale: 0.6 }   # toward the ally it Ignites; Ignite's default catches there
+
+  smite.ritual:
+    beat: A needle of ash-fire drops from above and sears the Ritual sigil into the target; when the Rite completes, the pain the brand drank flows into the weakest ally as healing.
+    cues:
+      - { on: hit, fx: scifi_warp_003, tint: duo }
+      - { on: apply, status: offering_brand, fx: deathbringer_2, tint: element, scale: 0.5, frames: [2, 14], speed: 1.5, opacity: 0.85, delay: 250 }   # the brand burns in; cut before its white flash
+      - { on: trigger, status: offering_brand, fx: directional_smoke_burst_004, tint: duo, size: small, scale: 0.4 }   # each direct hit they take, ember-edged ash is drawn off the brand (not Ignite's white snuff)
+      - { on: remove, status: offering_brand, fx: symmetrical_smoke_burst_002, tint: element2, tone: light, size: small, scale: 0.45, opacity: 0.8 }   # it ends with its Rite
+      - { on: trigger, status: rite_offering_brand, fx: none }   # steps and completion: the rite macros
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 0.9 }   # the gathered offering rises into the weakest ally
+
+  prayer.ritual:
+    beat: Light rises through every ally and a vigil candle is lit over each; those it still watches over when the Rite completes are healed again and wrapped in its smoke.
+    cues:
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 0.8, speed: 2, stagger: 80 }
+      - { on: apply, status: vigil_watch, fx: fire_looping_001, size: small, scale: 0.3, tone: light, offset: [0, 0.7], repeat: 2, delay: 200, stagger: 80 }   # a pale vigil candle over each ally, not an orange burn
+      - { on: trigger, status: vigil_watch, fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.45, offset: [0, 0.5] }   # hit: their candle gutters out
+      - { on: trigger, status: rite_vigil, fx: none }   # steps and completion: the rite macros
+      # The Rite's 30 replays the heal cue; Stealth's default wraps each ally still watched.
+
+  cleave.ritual:
+    beat: A crescent of cinders sweeps through the target and then a second enemy, leaving a smoldering thread between them that turns any healing into harm.
+    note: "When the tether fires, its two hits (the heal undone on the bearer, the damage on the other) replay the hit cues: play them at about half scale."
+    cues:
+      - { on: hit, only: primary, fx: necromancer_2, face: fromActor, tint: element, scale: 0.9 }   # its scale-like flecks read as cinders
+      - { on: hit, only: others, fx: necromancer_2, face: fromActor, tint: element, scale: 0.7, delay: 120 }
+      - { on: apply, status: cinder_tether, fx: necromancer_6, tint: duo, scale: 0.6, opacity: 0.85, note: "a smoldering thread across each tethered enemy; if the renderer can, stretch it between the two instead" }
+      - { on: trigger, status: cinder_tether, fx: symmetrical_explosion_001, tint: duo, size: small, scale: 0.6 }   # the healing flashes and is eaten by an ember crescent
+
+  shout.ritual:
+    beat: The user's chant bursts out in a ring of ash that rolls over every enemy and cuts each off; the next skill burns the ring tight on whoever is still inside.
+    cues:
+      - { on: cast, fx: symmetrical_impact_004, tint: duo, scale: 1.2 }   # the ring of ash tufts expands from the user
+      - { on: travel, fx: directional_smoke_burst_003, tint: element2, tone: light, scale: 0.6, stagger: 60 }   # a billow of ash rolls to each enemy, its front leading
+      - { on: hit, fx: symmetrical_explosion_001, tint: duo, scale: 0.6, stagger: 70 }   # the Rite's 10: the ring flashes and burns down to a thin arc
+      - { on: trigger, status: rite_rings_of_ash, fx: none }   # steps and completion: the rite macros
+      # Isolated's default lands on each enemy.
+
+  withstand.ritual:
+    beat: A wall of ash spikes heaves up around the user and smolders; whatever of it is left when it ends is hurled at a random enemy.
+    cues:
+      - { on: apply, status: smokewall, fx: frost_knight_3, tint: duo, scale: 1.6, layer: under, note: "the spike ridge fills only the middle ~60% of its wide canvas: at 1.6 it spans about twice the portrait's width, so its crests and closing grey mist (the smoke) rise past the shoulders on both sides" }
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, tint: duo, scale: 0.8, note: "when it ends with Shield left, the rest is flung at a random enemy (damage = what was left): its origin corner on the enemy's near side so it rolls over them; scale with the amount" }
+
+  taunt.ritual:
+    beat: The user bleeds life into a skull-faced effigy that flares in ash-fire; the enemy can't look away from it, and when the taunt ends it burns down and gives the life back.
+    cues:
+      - { on: hit, fx: blood_knight_3, face: up, tint: element, scale: 0.6 }   # the 15 HP offered, on the user
+      - { on: summon, fx: deathbringer_3, tint: duo, scale: 0.8, frames: [0, 12], note: "the skull catches and flashes white on its last frame; fade it there so the Effigy stands in its place" }
+      - { on: heal, fx: directional_particle_burst_001, size: small, scale: 0.6 }   # half its remaining HP flows back into the user
+      - { on: death, fx: directional_fire_burst_001, tint: duo }   # the Effigy burns down in a column of ash-fire
+      # Taunt's default marks the enemy, from the Effigy.
+
+  titan.ritual:
+    beat: The Ritual sigil blazes over the user and they rise as a colossus of ash-fire that can't gutter out; when it burns down, the wax it shed pours over every enemy.
+    cues:
+      - { on: cast, fx: deathbringer_2, tint: duo, scale: 1.7, frames: [0, 17], speed: 1.5, note: "the seal builds over the user and flashes white on its last frame: board flash, cut before it melts" }
+      - { on: cast, fx: blood_knight_5, tint: duo, scale: 2.0, layer: under, delay: 550, note: "the colossus' shell: behind the portrait and well past its frame, so its flame-patterned dome towers around the user" }
+      - { on: trigger, status: candle_colossus, fx: directional_splatter_005, size: small, scale: 0.45 }   # each hit it takes splashes off molten wax, counted for the end
+      - { on: hit, fx: paladin_7, tint: duo, scale: 0.9, stagger: 90, note: "when it ends: 5 per 20 damage the user took (max 30), scaled with the amount. Under 20 taken the engine still emits 0-damage events (base 0) on every enemy: skip the cue when base is 0" }
+      # Immune's default plays on the user.
+
+  acolyte_chant:
+    beat: The acolyte chants and ember-edged notes rise through the ally, mending them.
+    cues:
+      - { on: heal, fx: directional_music_burst_001, tint: duo, scale: 0.6 }
+      # The Rite advance plays the rite_step macro on its summoner.
+
+  acolyte_flame_lash:
+    beat: The acolyte cracks a whip of flame across the target.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: element, scale: 0.6 }
+      # Ignite's default catches; the Rite advance plays the rite_step macro on its summoner.

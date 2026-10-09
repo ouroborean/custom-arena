@@ -1,0 +1,345 @@
+# Divine (Holy + Holy) animation concepts. Spec: docs/animations/README.md; brief: briefs/divine.md.
+# Divine is Holy turned up: heavier, larger, more layered. Both parents are Holy, so `element`, `element2`
+# and `duo` are all the Holy ramp, and tone splits the layers instead: white-gold (`tone: light`) for grace
+# and radiance, deep gold (`tone: dark`) for judgment. Paladin art plays native gold; other class art is
+# colorized with `tint: element`.
+# Signature motifs, used across the kit:
+#   two faces      Radiant skills land the same light on either side in two tones: deep gold where it judges
+#                  an enemy, white-gold where it graces an ally. Each Radiant macro pair (*_enemy_it /
+#                  *_ally_it) shares its first layer and differs in tone, so an Exalted cast that reaches
+#                  both sides reads as one light split in two.
+#   the wheels     stylized_impact_001 in white-gold: two tilted rings turning through each other, heaven's
+#                  wheels within wheels. They blaze open only at Divine's great moments: Avatar, Absolution's
+#                  counter and Awe.
+#   the crown      Exalted counts as Anointed, so it wears Anointed's halo, larger and white-gold, with a gold
+#                  crown popping in over it. The crown flashes white and shatters when Exalted is spent.
+#   heaven's shaft scifi_warp_003 in white-gold: light dropping straight out of the sky (the Seraph's arrival,
+#                  Glory on each enemy, Avatar's descent). paladin_5 is the same descent as a spear.
+# round_light_burst_001 stays Condemned's trigger flare (Holy's default), so it appears here only where a
+# Condemn actually goes off (Crusader's Advance).
+group: divine
+
+statuses:
+  exalted:
+    note: "No aura on purpose. Exalted is held for turns at a time (Avatar's three turns, the Harbinger's whole life, Glory's up to three), so a glow would sit on the Divine user most of the match; the status icon carries it, as it does for Anointed."
+    apply:
+      - { fx: directional_sparkle_burst_003, tone: light, scale: 1.1, offset: [0, 0.25], speed: 1.4 }   # Anointed's halo, larger and white-gold
+      - { fx: symbol_crown_001, size: small, scale: 0.4, frames: [0, 16], speed: 1.3, delay: 450, note: "the crown pops in over the halo with its sparkles; hold the last frame a moment, then fade it" }
+    remove: [ { fx: symbol_crown_001, size: small, scale: 0.4, frames: [38, 44], speed: 1.3 } ]   # spent or cleansed: the crown flashes white and shatters into gold pixels
+    expire: [ { fx: directional_particle_burst_001, size: small, tone: light, scale: 0.45, offset: [0, 0.5], opacity: 0.6 } ]   # ran out: the light drifts off the head
+  seraph_judgment:
+    trigger:
+      - { fx: scifi_muzzle_flash_003, face: toTarget, size: small, tone: light, scale: 0.5, note: "on the Seraph: its gaze flares toward the enemy whose Condemn just went off. Sanctify's cross then lands on them" }
+
+macros:
+  # Lightray. Damage or healing, and the Lightray mark, all happen here; the skill only sends the ray.
+  lightray_enemy_it:
+    - { fx: symmetrical_impact_005, size: small, tone: dark, scale: 0.6 }
+    # Not round_sparkle_burst_001: over the head that is Anointed's remove, and would read as an Anointed spent.
+    - { fx: symmetrical_impact_002, size: small, tone: dark, scale: 0.35, offset: [0, 0.5], delay: 150, note: "the ray's light lodges over them as the mark. When an ally of the user hits them later, that ally's 5 healing plays the base heal default" }
+  lightray_ally_it:
+    - { fx: symmetrical_impact_005, size: small, tone: light, scale: 0.6 }
+    - { fx: spell_heal_002, size: small, tone: light, scale: 0.55, speed: 1.6, delay: 100, note: "an enemy who damages them later shows Condemned's default" }
+  # Even Scales: a needle of light through an enemy, up through an ally.
+  scales_enemy_it:
+    - { fx: scifi_muzzle_flash_002, face: fromActor, tone: dark, scale: 0.55, note: "the 20-damage branch (they had more HP than the user): play it about 1.3x" }
+    - { fx: symmetrical_impact_001, size: small, tone: dark, scale: 0.4, delay: 80 }
+  scales_ally_it:
+    - { fx: scifi_muzzle_flash_002, face: up, tone: light, scale: 0.55, note: "the 20-healing branch (they had less HP than the user): play it about 1.3x" }
+    - { fx: directional_particle_burst_001, size: small, tone: light, scale: 0.45, delay: 120 }   # motes rise after the needle (not Anointed's spent-sparkle pop)
+  # Divine Intervention: hidden statuses, so owner only. Heaven's eye opens over the unit (slit to oval, burst cut).
+  intervention_enemy_it:
+    - { fx: scifi_warp_001, size: small, tone: dark, scale: 0.5, offset: [0, 0.7], frames: [0, 3], opacity: 0.8, note: "owner only; hold the oval a moment and fade. When it springs, the opponent sees base's counter default stop their skill, then Condemned's default on them" }
+  intervention_ally_it:
+    - { fx: scifi_warp_001, size: small, tone: light, scale: 0.5, offset: [0, 0.7], frames: [0, 3], opacity: 0.8, note: "owner only; hold the oval a moment and fade. When it springs, base's counter default stops the attacker's skill, then Condemned's default lands on the attacker" }
+  # Awe: the wheels of heaven, judging an enemy or lifting an ally.
+  awe_enemy_it:
+    - { fx: stylized_impact_001, tone: dark, scale: 1.0, note: "the portrait recoils as the wheels blaze open. Stun's default follows; when Awe ends, Condemned's default" }
+  awe_ally_it:
+    - { fx: stylized_impact_001, tone: light, scale: 0.7 }
+    - { fx: directional_particle_burst_001, tone: light, scale: 0.6, delay: 150 }   # lifted clear of the Stun; Swiftness's default follows
+  # Consecrate: a drop of light falls and sets the ground under them ablaze. Over the portrait (at 0.9 it would
+  # sit wholly behind the opaque portrait): the drop falls across the unit and the blaze lands at their feet.
+  consecrate_ally_it:
+    - { fx: paladin_7, tint: element, tone: light, scale: 0.9, note: "fade its held last frame. Each enemy they hit later shows Condemned's default" }
+  consecrate_enemy_it:
+    - { fx: paladin_7, tint: element, tone: dark, scale: 0.9, note: "fade its held last frame. Each ally of the user who hits them later shows Anointed's halo" }
+  # Anathema: Debuffs change sides, then the enemy is Condemned (its default follows). The dark-gold orbs always
+  # spiral onto the Condemned enemy, Debuffs or not, so the curse is seen settling on them.
+  anathema_enemy_it:
+    - { fx: spell_absorb_001, tone: dark, scale: 0.8, speed: 1.6, note: "on the enemy (it), always: the Debuffs pulled off the user's ally with the least HP spiral into them. With no Debuff to move, play it at about 0.6, the curse alone settling on them. When Debuffs did move, also play directional_smoke_burst_004 (tone light, scale 0.5) on that ally as they lift away" }
+  anathema_ally_it:
+    - { fx: directional_smoke_burst_004, tone: light, scale: 0.6, note: "on the ally (it), only when they had Debuffs to move: they lift off in a pale wisp. On the enemy with the most HP, always play spell_absorb_001 (tone dark, scale 0.8, speed 1.6; about 0.6 with no Debuff moved), then Condemned's default" }
+
+skills:
+  strike.divine:
+    beat: Two crossing arcs of deep gold cut the target, or white-gold light rises through an ally; Exalted, the blow reaches across to the other side too.
+    cues:
+      - { on: hit, only: primary, fx: warrior_1, face: fromActor, tint: element, tone: dark, scale: 0.9, note: "after a side switch (30, and Anointed's halo on the user) play it about 1.2x" }
+      - { on: hit, only: primary, fx: symmetrical_impact_002, size: small, tone: light, scale: 0.55, delay: 150 }
+      - { on: hit, only: others, fx: warrior_1, face: fromActor, tint: element, tone: dark, scale: 0.6, delay: 200 }   # Exalted: the cross also falls on a random enemy
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 0.8 }
+
+  smash.divine:
+    beat: A comet of gold light dives onto the target like a hammer, its shock splashes out along the ground and spikes burst up under their allies; Exalted, the crown shatters and its stars rise through every ally.
+    cues:
+      # Paladin's comet in native gold, Holy's slam turned up (Holy's Smash is light clouds; base's is warrior_5).
+      - { on: hit, only: primary, fx: paladin_6, face: fromActor, scale: 1.2, note: "the portrait jolts down as it slams" }
+      - { on: hit, only: primary, fx: directional_impact_002, tone: light, scale: 1.3, layer: under, delay: 150 }
+      - { on: hit, only: others, fx: directional_impact_003, scale: 0.7, delay: 250, stagger: 80 }
+      # Not spell_heal_003 (Benediction's team heal) or directional_sparkle_burst_001 (Hand of Heaven's heal).
+      - { on: heal, fx: directional_star_burst_001, tone: light, scale: 0.7, speed: 1.6, stagger: 80 }
+      # Exalted's remove (the crown shattering) marks the spend.
+
+  charge.divine:
+    beat: The user drives in behind a lance of white-gold light and sparks spray off the target; a Condemned target's judgment flares at once.
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: element, tone: light, scale: 0.7, note: "the portrait lunges along it and snaps back" }
+      - { on: hit, fx: scifi_spark_burst_001, scale: 0.7 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tone: dark, scale: 0.45, delay: 80 }
+      # Condemned set off early: its trigger flare, larger, in place of its remove puff. The random Weakness,
+      # Vulnerable or Confusion default follows, then Anointed's halo and Focus's bulb on the user.
+      - { on: remove, status: condemned, fx: round_light_burst_001, tone: light, scale: 0.9 }
+
+  riposte.divine:
+    beat: A wheel of white-gold light circles the user unseen; a blow aimed at them meets heaven's wheels blazing open, and grace falls on the weakest ally.
+    cues:
+      - { on: apply, status: absolution, fx: frost_mage_1, tint: element, tone: light, scale: 0.8, opacity: 0.75 }   # Invisible: owner only
+      - { on: trigger, status: absolution, fx: stylized_impact_001, tone: light, scale: 1.0 }   # the counter; base's counter default marks the stopped skill
+      - { on: heal, fx: spell_heal_002, tone: light, scale: 0.7, speed: 1.6, delay: 150 }
+
+  rage.divine:
+    beat: Columns of light rise through the user and a ring of light bursts out round them; for three turns their blows send grace to the weakest ally and their healing rains light on an enemy.
+    cues:
+      # Over the portrait, ring wind-up skipped: the columns rise from the middle of the canvas, so behind the
+      # portrait they never showed.
+      - { on: cast, fx: dark_mage_3, tint: element, tone: light, scale: 1.2, opacity: 0.85, frames: [4, 12], speed: 1.3 }
+      # Not the wheels: that would make Apotheosis Avatar's picture. The ring's empty centre frames the user; cut
+      # before its olive fade specks.
+      - { on: cast, fx: symmetrical_explosion_004, tone: light, scale: 1.4, layer: under, delay: 250, frames: [0, 8] }
+      # A small star rise on the user each time it echoes (not round_sparkle_burst_001: that is Anointed spent).
+      - { on: trigger, status: apotheosis, fx: directional_star_burst_001, size: small, tone: light, scale: 0.4, speed: 1.8 }
+      - { on: hit, fx: spell_forge_001, tone: light, scale: 0.7 }   # half the healing falls on a random enemy as drops of light
+      - { on: heal, fx: directional_sparkle_burst_001, size: small, tone: light, scale: 0.6 }   # half the damage rises through the weakest ally
+
+  shot.divine:
+    beat: A thin ray of light flicks from the user to the unit, searing an enemy in deep gold or warming an ally in white-gold; Exalted, a second ray reaches the other side.
+    note: The damage, healing and Lightray marks happen inside lightray_enemy_it / lightray_ally_it, whose cues are the impact.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: toTarget, size: small, tone: light, scale: 0.35 }
+      # Mirrored so the pulse runs out from the user (unflipped it crawls back from the unit: a drain) and the
+      # end spark sits at the user's muzzle; frame 10 lets the pulse reach the unit.
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, tone: light, scale: 0.6, speed: 1.4, flip: x, frames: [0, 10] }
+
+  snipe.divine:
+    beat: Light gathers into a star over the user; next turn it leaves as a spear hurled skyward and falls on the hidden target as a pillar of judgment, brighter for every heal on the user's side.
+    note: "HiddenTarget: nothing points at or travels to the target before the hit. The cast and the launch play on the user, and the spear is first seen as it lands."
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tone: light, scale: 0.7, offset: [0, 0.5] }
+      - { on: trigger, status: spear_of_heaven_watch, fx: directional_particle_burst_001, size: small, tone: light, scale: 0.5 }   # a healed ally sends motes of light upward
+      - { on: apply, status: gathered_light, fx: round_sparkle_burst_003, size: small, tone: light, scale: 0.35, offset: [0, 0.6], frames: [6, 16] }   # on the user: the star over them pops brighter
+      - { on: trigger, status: spear_of_heaven, fx: warrior_8, face: up, tint: element, tone: light, scale: 0.8, offset: [0, 0.5] }   # the spear launches straight up off the user
+      - { on: hit, fx: paladin_5, scale: 1.4, note: "scale it up about 0.1 per Gathered Light spent (1.7 at three)" }
+      # Large enough behind the opaque portrait that the shock ring spills past its sides and the spikes clear its top.
+      - { on: hit, fx: directional_impact_004, tone: light, scale: 1.6, layer: under, delay: 250 }
+      # Shield or Invulnerable took it all (Seclusion and Transfiguration can do that): the spear still falls and
+      # breaks on it, in place of base's blocked flicker.
+      - { on: blocked, fx: paladin_5, scale: 1.2 }
+      - { on: blocked, fx: directional_impact_004, tone: light, scale: 1.6, layer: under, opacity: 0.7, delay: 250 }
+
+  trap.divine:
+    beat: A gold seal of tithe settles unseen on the target; when they reach for a Helpful skill it is collected in a spray of gold coins, and their skill lands on the user's weakest ally instead.
+    cues:
+      - { on: apply, status: sacred_tithe, fx: deathbringer_2, tint: element, tone: dark, scale: 0.6, opacity: 0.75, speed: 1.4, frames: [0, 13], note: "Invisible: owner only. Cut before the seal goes solid and melts; fade its last frame" }
+      - { on: trigger, status: sacred_tithe, fx: directional_coin_burst_001, scale: 0.8, speed: 1.5, frames: [0, 20], note: "base's counter default stops their skill, then the diverted skill plays its own cues on the user's ally with the least HP" }
+
+  maneuver.divine:
+    beat: The user withdraws into a cloud of white-gold light, untouchable; spending Anointed, they come out of it crowned.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_002, tone: light, scale: 1.0, note: "the portrait fades behind the cloud and back in as Invulnerable's shell closes" }
+      - { on: resolve, fx: symmetrical_smoke_burst_002, tone: light, scale: 0.8, opacity: 0.7 }   # the cloud settles into a ring around them
+      # Invulnerable's default; with Anointed, its remove and Exalted's crown.
+
+  companion.divine:
+    beat: A shaft of white-gold light drops from the sky and the Seraph rises out of it as two wisps of light wind round it.
+    cues:
+      - { on: summon, fx: scifi_warp_003, tone: light, scale: 1.2 }
+      # Over the portrait. The rising flames stay Avatar's own.
+      - { on: summon, fx: starcaller_4, tint: element, tone: light, scale: 1.1, delay: 300 }
+
+  bolt.divine:
+    beat: A white-gold orb streaks to the target and bursts in a blinding flash; every hidden effect on the board breaks open in a pop of sparkle rings.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: straight, tint: element, tone: light, scale: 0.6, frames: [0, 5] }   # cut before its dark smudge impact
+      - { on: hit, fx: symmetrical_impact_003, tone: light, scale: 0.9, note: "with a brief white-gold screen brighten: the revelation" }
+      - { on: remove, status: any, fx: spell_dispel_001, size: small, tone: light, scale: 0.7, stagger: 60 }   # each Invisible effect it ends, on either side
+      # Mark's default lands on the target.
+
+  blast.divine:
+    beat: Glory pours down as a shaft of light on every enemy, one after another down their column, and splashes out along the ground under each; the user is crowned Exalted.
+    cues:
+      - { on: cast, fx: round_firework_burst_002, tone: light, scale: 1.0 }   # orbs of light burst out of the user
+      - { on: hit, fx: scifi_warp_003, tone: light, scale: 1.1, stagger: 70 }
+      # Per enemy, not one enemySide band: rosters are vertical columns and this flat ground art only mirrors, so a
+      # side-wide copy would spread sideways off the column. About 2.5 portraits wide, it spills past each portrait as
+      # its shaft strikes (frame 4, ~200 ms).
+      - { on: hit, fx: directional_impact_002, tone: light, scale: 0.9, layer: under, delay: 200, stagger: 70 }
+      # Exalted's default on the user.
+
+  consume.divine:
+    beat: Light bursts off the target and streams back into the user; a Sanctified target's cross breaks and crowns the user, otherwise the cross is set on them.
+    cues:
+      - { on: hit, fx: starcaller_1, face: toActor, tint: element, tone: light, scale: 0.6 }   # the spray flies off them toward the user
+      - { on: heal, fx: spell_absorb_001, size: small, tone: light, scale: 0.7, speed: 1.6 }   # on the user: the light spirals in
+      - { on: remove, status: sanctify, fx: paladin_1, scale: 0.6, frames: [5, 9] }   # spent: the cross fragments outward; Exalted's crown follows on the user
+      # Otherwise Sanctify's default lands on the target.
+
+  summon.divine:
+    beat: A mound of white-gold cloud gathers and the Harbinger rises from it to a fanfare of golden notes; the user is crowned Exalted while it lives.
+    cues:
+      # Large enough behind the opaque portrait that the mound spills past its sides and the stars clear its top.
+      - { on: summon, fx: directional_sparkle_burst_002, tone: light, scale: 1.5, layer: under }
+      - { on: summon, fx: directional_music_burst_001, scale: 0.8, delay: 300 }
+
+  channel.divine:
+    beat: An undying flame of light kindles over the user; at each of their turn ends it flares, light spikes up under a random enemy, and grace rises through every ally.
+    cues:
+      - { on: apply, status: unending_light, fx: fire_looping_001, tone: light, scale: 0.45, offset: [0, 0.7], repeat: 2 }
+      - { on: trigger, status: unending_light, fx: fire_looping_001, tone: light, scale: 0.55, offset: [0, 0.7] }
+      - { on: hit, fx: directional_particle_burst_002, size: small, tone: light, scale: 0.6 }   # Sanctify's cross follows
+      - { on: heal, fx: directional_particle_burst_001, size: small, tone: light, scale: 0.5, stagger: 60 }
+
+  stab.divine:
+    beat: A ring of aim flares on the user and a needle of light pierces an enemy in deep gold or rises through an ally in white-gold, twice as bright when the scales are uneven.
+    note: The damage and healing happen inside scales_enemy_it / scales_ally_it, whose cues are the needle.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: element, tone: light, scale: 0.45, speed: 1.5 }
+
+  ravage.divine:
+    beat: A wide blade of gold light tears through the target, a white-gold backswing rises across it and shredded light sprays out behind them; stars rise on the user as their halo is sealed in.
+    cues:
+      # A layered flurry, not one crescent plus a ring (that is Twin Radiance's and Hand of Heaven's shape): the low
+      # sweep carries on up the far side and over the top as the backswing.
+      - { on: hit, fx: warrior_4, face: fromActor, tint: element, scale: 1.1 }
+      - { on: hit, fx: warrior_2, face: fromActor, tint: element, tone: light, scale: 1.0, delay: 120 }
+      - { on: hit, fx: symmetrical_impact_004, tone: light, scale: 0.6, delay: 150 }
+      - { on: hit, fx: directional_impact_001, size: small, face: fromActor, tone: dark, scale: 0.7, delay: 220 }   # the spray exits past the target, away from the user
+      - { on: apply, status: unfailing_grace, fx: directional_sparkle_burst_001, size: small, tone: light, scale: 0.6 }
+
+  mislead.divine:
+    beat: Unseen, a wisp of prayer rises from the user and heaven's eye opens over the chosen unit; when an enemy's Harmful skill meets it, the skill is stopped and its user stands Condemned.
+    note: Invisible. Everything until the counter is owner-only and the intervention macros carry the marks; the opponent first sees base's counter default and Condemned's apply on the countered unit.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_004, tone: light, scale: 0.6, opacity: 0.8 }
+
+  stun.divine:
+    beat: A flash of glory leaves the user and heaven's wheels blaze open before the target, leaving them awestruck, or lift an ally clear of their Stuns.
+    note: The Stun, Awe, the cleansing and Swiftness all happen inside awe_enemy_it / awe_ally_it.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tone: light, scale: 0.8 }
+
+  dance.divine:
+    beat: A whirl of white-gold light spirals round the user and they stand transfigured, untouchable and unbound; each heal they give shines twice.
+    cues:
+      - { on: cast, fx: slime_5, tint: element, tone: light, scale: 1.3, layer: under, opacity: 0.85 }
+      # Invulnerable's shell and Immune's burst follow on the user.
+      # On the user as each heal doubles: two star wisps for the second heal (not round_sparkle_burst_001: that is Anointed spent).
+      - { on: trigger, status: transfiguration, fx: starcaller_4, tint: element, tone: light, scale: 0.4, speed: 1.6 }
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.5, speed: 1.6, note: "the doubled half, on whoever their heal reached, just after that heal's own cues. It is a quiet heal: if it emits no event, the trigger glint carries it" }
+
+  heal.divine:
+    beat: Light gathers in the user's hands, heaven opens over the ally in a white-gold flash, crosses of light rise through them, and every Debuff burns away.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tone: light, scale: 0.6 }
+      - { on: heal, fx: scifi_warp_001, tone: light, scale: 1.3, offset: [0, 0.3] }
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 1.1, speed: 1.8, delay: 200 }
+      - { on: remove, status: debuff, fx: symmetrical_smoke_burst_002, size: small, tone: dark, scale: 0.5, stagger: 60 }
+
+  bless.divine:
+    beat: The user sends a spray of stars upward and a drop of light falls on the chosen unit, setting the ground under them ablaze, white-gold under an ally, deep gold under an enemy.
+    note: The statuses land inside consecrate_ally_it / consecrate_enemy_it, whose cues are the drop.
+    cues:
+      - { on: cast, fx: directional_star_burst_001, tone: light, scale: 0.8, speed: 1.5 }
+
+  curse.divine:
+    beat: The user pronounces anathema in a small ring of gold smoke; dark-gold light spirals into the Condemned enemy, carrying any Debuffs that leave the user's side.
+    note: The moves and the Condemn happen inside anathema_enemy_it / anathema_ally_it.
+    cues:
+      # Mid gold and small: deep-ochre at full size it was base's death puff (and Earth's dust).
+      - { on: cast, fx: symmetrical_smoke_burst_001, scale: 0.6, opacity: 0.8 }
+
+  smite.divine:
+    beat: A gold star falls straight onto the target and stays with them; whenever they strike someone, its sparks fly and the one they hit is mended.
+    cues:
+      - { on: hit, fx: starcaller_2, face: down, tint: element, tone: light, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_001, size: small, tone: dark, scale: 0.6, delay: 250 }
+      - { on: trigger, status: karmic_light, fx: round_firework_burst_001, size: small, tone: light, scale: 0.45 }   # on the bearer as they strike
+      - { on: heal, fx: spell_heal_002, size: small, tone: light, scale: 0.55, speed: 1.6 }   # on the unit they hit
+
+  prayer.divine:
+    beat: A mound of light swells under each ally in turn down the column and crosses rise through every ally into their Shields; grace that overflows spills onto a random enemy as a falling drop of deep gold.
+    cues:
+      - { on: hit, fx: paladin_7, tint: element, tone: dark, scale: 0.8, note: "fade its held last frame. Scale it with the overflow: about 0.6 at 5, 1.0 at 20" }
+      # Per ally, not one allySide mound: rosters are vertical columns, so a side-centred mound sat behind the
+      # middle ally only. At 1.5 it spills past each portrait's sides and its stars clear the top.
+      - { on: heal, fx: directional_sparkle_burst_002, tone: light, scale: 1.5, layer: under, speed: 1.3, stagger: 80 }
+      - { on: heal, fx: spell_heal_003, tone: light, scale: 0.9, speed: 1.8, stagger: 80 }
+      # Shield's default on each ally.
+
+  cleave.divine:
+    beat: One crescent of light cuts two ways, deep gold through the enemy it strikes and white-gold sweeping round the head of the ally it graces, on both sides of the board at once.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: element, tone: dark, scale: 0.9 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, tone: dark, scale: 0.5, delay: 150 }
+      # Its twin, mirrored and behind the ally: a slash over a portrait reads as a hit. The arc sits inside its canvas
+      # (x up to 0.92, top at 0.08), so at 1.4 it hid entirely; at 1.8 its band sweeps round the head like a halo.
+      - { on: heal, fx: frost_knight_2, tint: element, tone: light, flip: x, scale: 1.8, layer: under, opacity: 0.85 }
+      - { on: heal, fx: directional_particle_burst_001, size: small, tone: light, scale: 0.5, delay: 150 }
+
+  shout.divine:
+    beat: A four-pointed ring of light rings out from the user, a low wave of light crosses the whole board, and a quiet ring of peace settles on every unit, friend and foe.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: element, tone: light, scale: 1.4 }
+      - { on: apply, status: truce_of_god, fx: directional_impact_002, at: field, tone: light, scale: 3.0, layer: under, opacity: 0.6, note: "once, with the first Truce applied" }
+      # The cast's four-pointed ring settles over each unit (not a smoke puff: that is Condemned's remove and the fade of ending statuses).
+      - { on: apply, status: truce_of_god, fx: frost_knight_7, tint: element, tone: light, scale: 0.6, opacity: 0.7, stagger: 50 }
+
+  withstand.divine:
+    beat: Bands of white-gold light wrap the user into a sphere that settles into a Shield, and Anointed's halo forms inside it.
+    note: "Keeps the validator's signature warning on purpose. Aegis of Faith is an inline Shield (shield: true), so Shield's own default never plays for it; its bubble is the one look that tells players this unit is shielded."
+    cues:
+      - { on: apply, status: aegis_of_faith, fx: frost_knight_9, tint: element, tone: light, scale: 1.1, opacity: 0.9 }
+      - { on: apply, status: aegis_of_faith, fx: stylized_explosion_002, tone: light, scale: 1.1, opacity: 0.55, layer: under, delay: 300 }   # Shield's bubble
+      # Anointed's halo follows. A depleted Aegis plays base's shieldBreak.
+
+  taunt.divine:
+    beat: A lamp of light with a sweeping beam blazes on the user and pings the target; each time that enemy strikes the user, the lamp flares and crowns them Exalted.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, tone: light, scale: 0.8, repeat: 2 }   # the rotating needle reads as a lighthouse beam
+      - { on: apply, status: beacon, fx: symmetrical_impact_005, size: small, tone: light, scale: 0.55 }   # Taunt's '!' follows
+      # Beacon's trigger fires on all of the bearer's damage (the check for the user is inside it), so the raw trigger
+      # shows nothing. The lamp flares when Exalted actually lands on the user: Beacon's only Buff, added to the crown.
+      - { on: trigger, status: beacon, fx: none }
+      - { on: apply, status: buff, fx: scifi_charge_up_001, size: small, tone: light, scale: 0.5 }
+
+  titan.divine:
+    beat: A shaft of heaven's light drops onto the user, the wheels within wheels blaze open round them at full size and flames of light rise behind; each Condemn they lay anoints an ally.
+    note: The portrait swells about 15% with a brief white-gold screen brighten as the wheels open. Exalted's crown and Armor's default land on the user.
+    cues:
+      - { on: cast, fx: scifi_warp_003, tone: light, scale: 1.8 }
+      - { on: cast, fx: stylized_impact_001, tone: light, scale: 2.0, delay: 300 }
+      - { on: cast, fx: directional_particle_burst_002, tone: light, scale: 1.6, layer: under, delay: 350 }
+      - { on: trigger, status: avatar, fx: round_sparkle_burst_003, size: small, tone: light, scale: 0.5, note: "on the user as each Condemn lands; Anointed's halo follows on a random ally" }
+
+  seraph_burning_light:
+    beat: The Seraph hurls a crescent of burning light and holy fire leaps up through the target as they're Condemned.
+    cues:
+      - { on: travel, fx: deathbringer_6, path: straight, tint: element, tone: light, scale: 0.55 }
+      - { on: hit, fx: directional_fire_burst_002, scale: 0.8 }
+      # Condemned's default follows.
+
+  harbinger_trumpet:
+    beat: The Harbinger sounds its trumpet in a fanfare of golden notes and rings of sound roll over every enemy.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, scale: 0.8 }
+      - { on: hit, fx: symmetrical_impact_002, size: small, tone: light, scale: 0.6, stagger: 60 }

@@ -1,0 +1,330 @@
+# Grave (Earth + Unholy) animation concepts. Spec: docs/animations/README.md; brief: briefs/grave.md.
+# Grave is the churchyard: soil that remembers who is under it. Four materials:
+#   soil  — `element` (Earth brown): dust, clods, cracked ground, stone slabs.
+#   souls — `element2` (Unholy crimson), `tone: light` so the wisps lift off the board.
+#   grave-matter — `duo` (Earth's dark-brown outline round a crimson body with rose highlights): blood-soaked
+#           earth and the things that crawl out of it (maws, scythes, ghoul claws, the user's own surges).
+#   bone  — `neutral` + `tone: light`: Skeletons, stakes, splinters.
+# Signature motifs, used across the kit:
+#   dig    — a spadeful of soil flicks up at a Grave character's feet (directional_splatter_005, small): a Grave
+#            gained. Every death on the board plays it on every Gravekeeper, so it stays tiny.
+#   soul   — a crimson wisp curls up out of the ground (directional_smoke_burst_004, element2 + light): a Grave
+#            given up (spend_*), a soul freed or siphoned (Deathbolt's kill, Grave Marker, Epitaph, Call the Dead).
+#   raise  — the soil cracks open (directional_impact_003, Earth) and bone breaks up through it (frost_mage_4 in
+#            bone white): every Skeleton arrives this way, from raise_spent or straight from a skill. Ghouls
+#            instead claw up out of a mound (blood_knight_2 in duo, turned upward).
+#   burial — grave-dirt rains down into a ring (spell_forge_001, Earth): Bury Yourself, Premature Burial and
+#            Buried Alive put someone under.
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show; anything
+# that fits inside the frame (the motifs above, the owner-only tells) plays over the portrait.
+group: grave
+
+statuses:
+  grave_keeper:
+    note: >-
+      Applied to every Grave character at match start (no art: its icon carries it). Its trigger is every death on
+      the board and all it does is run dig, so dig's cues on each Gravekeeper are the whole payoff; the corpse
+      plays base's death default. Nothing here, so the two don't double.
+    trigger: []
+
+macros:
+  # dig and spend_* only set the `graves` counter, which raises no event. They need a counter event (e.g.
+  # counterChanged {unit, name, from, to}) or the renderer diffing `graves` between checkpoints. That event drives
+  # these cues for every change of `graves` on any unit, not only changes made through these macros (Unearth sets
+  # its creator's counter directly): when the count rises, dig's cue plays on the unit whose counter rose (a dig at
+  # 6 changes nothing, so nothing plays); when it falls, one spend soul plays per Grave lost on the unit whose
+  # counter fell (spend_1's for one, spend_2's pair for two; 0 shows nothing). `at: actor` below means that unit.
+  dig:   # on the Grave character whose counter rose: a tiny flick over the portrait's feet (about 0.27 s)
+    - { fx: directional_splatter_005, at: actor, size: small, scale: 0.55, speed: 1.3, opacity: 0.9 }
+  spend_1:   # a Grave given up: its soul curls out of the ground at the user's feet
+    - { fx: directional_smoke_burst_004, at: actor, tint: element2, tone: light, size: small, scale: 0.6, speed: 1.4 }
+  spend_2:
+    - { fx: directional_smoke_burst_004, at: actor, tint: element2, tone: light, size: small, scale: 0.6, offset: [-0.2, 0], speed: 1.4 }
+    - { fx: directional_smoke_burst_004, at: actor, tint: element2, tone: light, size: small, scale: 0.6, offset: [0.2, 0], speed: 1.4, delay: 150, note: "only when 2 were spent" }
+  raise_spent:   # per Skeleton raised (Call the Dead, Raise Skeletons): the raise motif
+    - { fx: directional_impact_003, at: minion, scale: 0.8, stagger: 200 }   # over the new minion's base: the crack opens before the bone breaks through
+    - { fx: frost_mage_4, at: minion, tint: neutral, tone: light, scale: 1.1, delay: 80, stagger: 200, note: "bone shards jut up through the crack like a hand; its grey mist reads as grave dust. Content is small in a wide canvas: centre the crystal cluster on the minion" }
+
+skills:
+  strike.grave:
+    beat: The flat of a grave-spade slaps through the target and flings clods of dirt past them.
+    note: "With a Grave spent the 30 arrives as one hit: play it about 1.25x. spend_1's soul or dig's spadeful shows on the user."
+    cues:
+      - { on: hit, fx: slime_1, face: fromActor, tint: duo, scale: 0.8 }   # stacked crescents and a splat star: the spade's face, dripping grave-mud
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.5, delay: 80 }
+
+  smash.grave:
+    beat: The earth splits under the target and a column of grave-fire roars up under a mushroom of dust, the crack bursting under each of their allies; a sacrificed Boulder crumbles to rubble.
+    cues:
+      - { on: hit, only: primary, fx: epic_explosion_001, tint: duo, scale: 1.1 }   # duo runs the fire column crimson; its slate smoke cap stays dark under the tint: the dust it throws up
+      - { on: hit, only: primary, fx: directional_impact_002, scale: 1.2, layer: under }   # the split runs out along the ground both ways, well past the frame
+      - { on: hit, only: others, fx: directional_impact_003, tint: duo, scale: 0.7, delay: 150, stagger: 80 }
+      - { on: death, fx: symmetrical_impact_004, scale: 0.8, note: "the destroyed Boulder bursts into rubble (also plays on an enemy the split kills); Soul Fragment's default then lands on the user" }
+
+  charge.grave:
+    beat: The user bursts off the ground in a rolling front of grave-dust, crashes into the target, and pays the toll of their next skill in grave coins.
+    note: The portrait lunges along the travel and snaps back.
+    cues:
+      - { on: cast, fx: directional_impact_002, size: small, scale: 0.6, layer: under }
+      - { on: travel, fx: frost_knight_5, tint: duo, scale: 0.8 }   # curling cloud front and speed streaks, dust-brown and crimson
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.7, note: "off-centre: put its lower-left origin on the target so the spikes fan away from the user" }
+      - { on: apply, status: tomb_rush, fx: directional_coin_burst_001, tint: duo, size: small, scale: 0.6, speed: 2 }   # coins for the ferryman, one per Grave spent; spend_2's souls rise first
+
+  riposte.grave:
+    beat: Bone fingertips wait unseen in the soil round the user; when struck, hooked bony fingers rake up out of the ground and catch the blow, and a Skeleton climbs out to hold the attacker.
+    cues:
+      - { on: cast, fx: frost_mage_4, tint: neutral, tone: light, scale: 0.8, opacity: 0.6 }   # Invisible: owner only, so it plays over the portrait where they can see it armed
+      - { on: trigger, status: grasping_hands, fx: dark_mage_1, face: up, tint: neutral, tone: light, scale: 0.9 }   # the claw rake in bone white, turned to rake straight up: fingers clawing out of the soil to catch the blow
+      - { on: summon, fx: directional_impact_003, scale: 0.7 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.0, delay: 80 }
+      # Base's counter X marks the attacker; Taunt's default (from the Skeleton) follows on them.
+
+  rage.grave:
+    beat: The ground bursts open round the user and a geyser of grave-fire roars up behind them, crowned with a skull-shaped plume, as the dead answer.
+    cues:
+      - { on: cast, fx: directional_impact_004, scale: 1.5, layer: under }   # the ground bursts open: its ring and spikes flank the frame
+      - { on: cast, fx: directional_fire_burst_001, tint: duo, scale: 1.9, layer: under, delay: 100 }   # the geyser climbs about a portrait over their head; the plume's dark detail reads as a skull
+      - { on: trigger, status: call_the_dead, fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.6, note: "on the user, each time an allied minion dies: its soul curls up into them; Might's default follows" }
+      # raise_spent's cues bring up the Skeletons; Immune's default plays on the user.
+
+  shot.grave:
+    beat: A clod of barrow-stone arcs over and cracks apart in a spatter of grave-mud; with a Grave to spend, a crimson-veined standing stone heaves up beside the user.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, tint: element, scale: 0.5, note: "Earth turns the orb to stone and its tail to dust; its own dull splat lands under the hit: fade it" }
+      - { on: hit, fx: burst_splatter_001, tint: duo, size: small, scale: 0.55 }
+      - { on: summon, fx: frost_mage_3, tint: duo, scale: 0.8, note: "the Boulder; ends on its brightest frame: fade it as the portrait appears" }
+
+  snipe.grave:
+    beat: Something dives into the ground at the user's feet; when it lands, the ground buckles under the victim and a fanged maw of grave-earth rears up around them.
+    note: "It fires when it runs out, or at once on any death; Channeled, so base's interrupted default covers a broken burrow."
+    cues:
+      - { on: cast, fx: directional_splatter_002, scale: 0.8 }   # soil sprays up in a crown as it dives
+      - { on: trigger, status: grave_burrower, at: target, fx: directional_impact_002, tone: dark, scale: 0.9, layer: under }   # the ground heaves under the victim
+      - { on: hit, fx: necromancer_8, tint: duo, scale: 1.2 }   # the maw forms from the bottom up and closes over them
+      - { on: hit, fx: directional_impact_004, scale: 1.1, delay: 80 }   # spikes of earth burst up through the closing maw
+
+  trap.grave:
+    beat: A grave-mouth opens unseen under the enemy; if they kill, it bursts open beneath them and a Skeleton climbs out for the user.
+    cues:
+      - { on: apply, status: open_grave, fx: necromancer_1, tint: duo, scale: 0.9, opacity: 0.7 }   # hidden: owner only, so it plays over the portrait where they can see it set; the snare ring as a grave, wisps curling inside
+      - { on: trigger, status: open_grave, fx: stylized_explosion_003, tint: duo, scale: 0.9 }   # on the killer; Stun's default follows
+      - { on: summon, fx: directional_impact_003, scale: 0.8 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.1, delay: 80 }
+
+  maneuver.grave:
+    beat: Grave-dirt rains down round the user and closes over them; when it lifts, the soil cracks open and they climb back out armored in it.
+    cues:
+      - { on: cast, fx: spell_forge_001, scale: 1.1 }   # burial: clods fall onto them and into a ring at their feet; Invulnerable's shell follows
+      # When Buried runs out: spend_2's souls, then (with Graves spent) the Shield. These replace Shield's default here.
+      - { on: apply, status: shield, fx: directional_impact_003, scale: 0.9 }   # the raise's cracked soil, over their base: the user rises like their dead
+      - { on: apply, status: shield, fx: stylized_explosion_002, scale: 1.1, tint: source, opacity: 0.55, layer: under, delay: 150 }   # Shield's default, re-added
+
+  companion.grave:
+    beat: A mound of grave-dust heaves up and crimson claws rake out of it as the Ghoul Gravedigger digs itself free, flinging its first spadeful.
+    cues:
+      - { on: summon, fx: directional_smoke_burst_002, scale: 0.9, opacity: 0.85 }   # the dust mound heaves up over the new minion (over: under the opaque portrait it would never show)
+      - { on: summon, fx: blood_knight_2, face: up, tint: duo, scale: 0.8, delay: 150 }   # the Ghoul motif: claws up out of the mound
+      - { on: summon, fx: directional_splatter_003, size: small, scale: 0.5, delay: 350 }   # its first spadeful flung aside; not dig's spadeful, since no Grave is gained
+
+  bolt.grave:
+    beat: The spent souls coil into a vortex at the user and launch as a crimson comet that bursts in a death-nova on the target; a kill sends them home.
+    note: >-
+      Damage grows +10 per Soul Fragment spent (20 to 50): scale the nova 0.7 to 1.2. removeStacks emits no event
+      while stacks remain (see shout.unholy), so the vortex at the user is what shows the fragments being spent.
+    cues:
+      - { on: travel, fx: blood_knight_4, path: beam, tint: duo, speed: 1.5, note: "its draw-in coils at the user's end, then the comet runs to its crescent splash on the target" }
+      - { on: hit, fx: deathbringer_4, tint: duo, scale: 0.8 }
+      - { on: hit, fx: directional_impact_003, size: small, scale: 0.6, delay: 80 }
+      - { on: death, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.7 }   # the souls rise free off the body; Soul Fragment's default lands on the user
+
+  blast.grave:
+    beat: Skeletons claw up on the user's side and each slashes a random enemy, then the whole enemy row heaves up in a fountain of grave-earth as bony ridges burst under each enemy.
+    note: >-
+      Event order: for each Skeleton raised, its summon and then its 15 to a random enemy; then the 20s to every
+      enemy. So a 15 is any hit that comes right after a summon, and the fountain waits for the first of the 20s (the
+      first hit after the last summon, or the first hit when no Skeleton rises). It never plays on a Skeleton's 15.
+    cues:
+      - { on: summon, fx: directional_impact_003, scale: 0.8, stagger: 200 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.0, delay: 80, stagger: 200 }
+      - { on: hit, fx: epic_explosion_002, at: enemySide, tint: duo, scale: 2.0, layer: under, note: "once, with the first of the 20s to every enemy (the first hit after the last summon), never with a Skeleton's 15: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: frost_knight_3, tint: neutral, tone: light, scale: 0.6, delay: 100, stagger: 80, note: "the 20s only" }   # bone ridges under every enemy
+      - { on: hit, fx: paladin_9, face: fromActor, tint: neutral, tone: light, scale: 0.6, speed: 1.3, note: "only the 15s, each the hit right after a summon: that Skeleton's lunge" }   # Rattle Blade's slash, so it reads as the new Skeleton striking
+
+  consume.grave:
+    beat: Marrow sprays out of every minion on the field toward the user and gathers into them as a draught; with no minion of their own, a Skeleton is raised first to be drunk from.
+    cues:
+      - { on: summon, fx: directional_impact_003, scale: 0.7 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 0.9, delay: 80 }
+      - { on: hit, fx: directional_splatter_004, face: toActor, tint: duo, size: small, scale: 0.6, stagger: 80 }   # one per minion, both sides
+      - { on: heal, fx: round_sparkle_burst_003, tint: element2, tone: light, scale: 0.8, note: "its converging motes are the draught pulled in; scale with the total, about 0.6 at 10 to 1.1 at 40+" }
+      # Minions it kills leave Graves: dig plays on each Gravekeeper.
+
+  summon.grave:
+    beat: A ring of blood-dark earth swirls closed at the user's feet and crimson motes lift from it, calling up the dead.
+    cues:
+      - { on: cast, fx: dark_mage_2, tint: duo, offset: [0, -0.4], opacity: 0.85, frames: [0, 10] }   # drawn round the body, so it is dropped to sit as a flat ring at their feet, over the portrait's base; its last frame jumps palette, so it is cut
+      - { on: cast, fx: directional_particle_burst_001, tint: element2, tone: light, size: small, scale: 0.6, delay: 150 }
+      # raise_spent's cues bring up each Skeleton; with no Graves, dig's spadeful plays instead.
+
+  channel.grave:
+    beat: Crimson spires shoot up behind the user's team; each turn's end the Necropolis tolls, grave-mud spurts under every enemy, and each death raises a Skeleton.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, at: allySide, tint: duo, scale: 2.8, layer: under, opacity: 0.85 }   # the towers of the Necropolis, sized well past the column of opaque portraits so the spires rise round the team
+      - { on: trigger, status: necropolis, fx: frost_knight_7, tint: duo, scale: 0.8, note: "on the user, at turn end and on each death (the Skeleton follows)" }
+      - { on: hit, fx: directional_splatter_002, tint: duo, size: small, scale: 0.6, stagger: 70 }
+      - { on: summon, fx: directional_impact_003, scale: 0.7 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.0, delay: 80 }
+
+  stab.grave:
+    beat: A bone needle punches through the target in a spray of splinters; at the end, the rites are read and a skull is cut through and crumbles.
+    note: "20 at or below 60 HP: play the hit about 1.3x. Last Rites' execute plays spend_2's souls on the user, then the death cue."
+    cues:
+      - { on: hit, fx: directional_impact_001, face: fromActor, tint: neutral, tone: light, size: small, scale: 0.6, speed: 1.3 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, tint: element2, size: small, scale: 0.5, delay: 60 }
+      - { on: death, fx: deathbringer_5, tint: duo, scale: 0.8, frames: [5, 22], speed: 1.6, note: "skips the near-black skull at the start; the scythe-wisp slashes it, it flares and melts" }
+
+  ravage.grave:
+    beat: A whirling bore of grave-earth grinds into the target and blows gore out the far side as the ground around them cracks.
+    note: "While the user is Immortal it deals 45: play the target's cues about 1.3x, and the recoil shows the 20 HP it costs."
+    cues:
+      - { on: hit, only: primary, fx: slime_5, tint: duo, scale: 0.8, speed: 1.5 }   # the drill: the spiral grows as it bores in
+      - { on: hit, only: primary, fx: directional_splatter_004, face: fromActor, tint: element2, size: small, scale: 0.6, delay: 120 }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, scale: 0.9, delay: 220 }
+      - { on: hit, only: others, fx: directional_splatter_002, tint: element2, size: small, scale: 0.6 }   # the user's own recoil: blood wells up out of them
+
+  mislead.grave:
+    beat: Grave-dirt sifts down unseen round the enemy; when they attack, a slab of earth slams over the skill like a coffin lid and its cooldown sinks.
+    cues:
+      - { on: apply, status: premature_burial, fx: spell_forge_001, scale: 0.9, opacity: 0.7 }   # hidden: owner only, so it plays over the portrait where they can see it set
+      - { on: trigger, status: premature_burial, fx: frost_mage_5, tint: element, scale: 1.0 }   # on the bearer: the stone slab drops and shatters into dust
+      - { on: trigger, status: premature_burial, fx: fanfx_slow, tint: duo, size: small, scale: 0.45, offset: [0, 0.6], speed: 2, delay: 250 }   # the tell: +3 cooldown
+      # Base's counter X follows on them.
+
+  stun.grave:
+    beat: Grave-dirt pours down onto the enemy and mounds up to their shoulders, burying them where they stand.
+    note: "1 to 3 turns of Stun by Graves spent: scale the mound 0.8 to 1.2. spend_2's souls play on the user first."
+    cues:
+      # These replace Stun's default for this skill; its stars are re-added once they're buried. Its aura shows as usual.
+      - { on: apply, status: stun, fx: spell_forge_001, scale: 1.1 }
+      - { on: apply, status: stun, fx: directional_smoke_burst_002, delay: 200 }
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, tint: source, delay: 450, note: "portrait staggers back a step" }
+
+  dance.grave:
+    beat: Two crimson mourners' wisps circle the user and grave-dust heaps up in a mound round their feet as a ward.
+    note: >-
+      Shield is 5 per Grave (5 to 25): scale the mound 0.9 to 1.3. A recast while it holds plays dig's spadeful first.
+      Graveside Vigil is a Shield (`shield: true`), so Shield's default is re-added; the validator flags that art
+      because the skill applies no status named shield, but here it is the Shield's own tell, not flavor.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: element2, tone: light, scale: 1.1 }
+      - { on: apply, status: graveside_vigil, fx: directional_sparkle_burst_002, tint: element, scale: 1.2, opacity: 0.85 }   # a mound of grave-dust heaps up round the feet with a few glints
+      - { on: apply, status: graveside_vigil, fx: stylized_explosion_002, scale: 1.1, tint: source, opacity: 0.55, layer: under, delay: 150 }   # Shield's default, re-added: later absorptions flicker this bubble, so it forms here first
+
+  heal.grave:
+    beat: Crimson motes of the fallen rise up through the ally as crosses lift out of the soil at their feet.
+    note: "30 with a Grave spent, 10 without: scale both cues 0.6 to 1.0. spend_1's soul shows on the user first."
+    cues:
+      - { on: heal, fx: directional_particle_burst_001, tint: element2, tone: light, scale: 0.9 }
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.6, speed: 2, delay: 100 }
+
+  bless.grave:
+    beat: A dark headstone drives into the ground behind the ally, their epitaph already cut; if they fall, their spirit settles over each ally with their Buffs.
+    cues:
+      - { on: apply, status: might, only: primary, fx: paladin_5, tint: duo, tone: light, scale: 1.6, layer: under, note: "past the frame: the stone drives down behind the ally and its light column rises above their head. The black spire silhouette is the stone (it stays black under the tint), framed by the rose-crimson column rather than left bare on the board" }
+      - { on: apply, status: might, fx: spell_attack_up_001, size: small, scale: 0.4, tint: source, speed: 1.3, delay: 400 }   # Might's default, re-added (it also marks copied Might on the others)
+      - { on: trigger, status: epitaph, at: target, fx: directional_smoke_burst_004, tint: element2, tone: light, scale: 0.6, stagger: 100 }   # on each ally receiving copies; their Buffs' defaults follow
+
+  curse.grave:
+    beat: A drop of sour grave-matter falls onto the enemy and splashes into a thorny patch at their feet; whenever their help sours under Horror, thorny shoots spit from it and a Seedling sprouts for the user.
+    cues:
+      - { on: apply, status: bitter_soil, fx: paladin_7, tint: duo, scale: 0.9, frames: [0, 6] }   # the drop falls and splashes into a spiky patch round their feet; its last frame never fades, so it is cut. Confusion's default plays as well
+      - { on: trigger, status: bitter_soil, fx: directional_particle_burst_002, size: small, scale: 0.5, note: "fires on every Helpful skill they use; play it only when they're Horrified (the Seedling follows)" }
+      - { on: summon, fx: directional_splatter_005, tint: duo, scale: 0.8 }   # the Seedling pushes up, veined crimson
+
+  smite.grave:
+    beat: A bone-white marker stake plunges from above into the target and the ground spikes up around it; a flat line over them marks them for the grave, and every heal they take leaks a soul to the user.
+    cues:
+      - { on: travel, fx: warrior_8, path: drop, tint: neutral, tone: light, scale: 0.6 }   # the thrust streak falls point-first
+      - { on: hit, fx: directional_impact_004, tint: duo, scale: 0.9 }
+      - { on: apply, status: grave_marker, fx: scifi_heartbeat_flatline_001, tint: element2, scale: 0.45, offset: [0, 0.6], speed: 1.5, note: "one pass of the flat line, then fade: counted among the dead" }
+      - { on: trigger, status: grave_marker, fx: directional_smoke_burst_004, tint: element2, tone: light, size: small, scale: 0.5 }   # on the bearer per heal; Soul Fragment's default lands on the user
+
+  prayer.grave:
+    beat: A crimson dirge rises behind the user's team and soft crosses lift through every ally.
+    note: "+10 healing per unit or minion that died since the user's last turn arrives in the same heal: scale the heal cue up with it (0.8 base, +0.1 per death)."
+    cues:
+      - { on: cast, fx: directional_music_burst_001, at: allySide, tint: duo, scale: 1.8, layer: under, opacity: 0.8, speed: 1.5 }   # the requiem: notes and sound arcs rising from the ground
+      - { on: heal, fx: spell_heal_002, tint: element2, tone: light, scale: 0.8, speed: 2, stagger: 100 }
+      # Shield's default plays on each ally.
+
+  cleave.grave:
+    beat: A reaper's scythe of grave-dust cuts up through the target, and its long follow-through reaps another enemy and every minion on the field, the user's own included.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_2, face: fromActor, tint: duo }   # its mist edging reads as dust off the blade
+      - { on: hit, only: others, fx: frost_knight_2, face: fromActor, tint: duo, tone: dark, scale: 0.65, delay: 150, stagger: 90 }
+      - { on: hit, fx: burst_splatter_001, size: small, scale: 0.45, delay: 60 }   # clods fleck off every cut
+      # Minions it kills leave Graves: dig plays on each Gravekeeper.
+
+  shout.grave:
+    beat: A bell tolls out of the user in two dark rings, and its toll reaches every unit on the board, friend and foe.
+    note: "Intimidated lands on the user's allies too, so the toll and Intimidated's eye show on both rows."
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.3 }
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, tone: dark, scale: 1.8, opacity: 0.6, delay: 350 }   # the echo
+      - { on: apply, status: debuff, fx: symmetrical_impact_002, tint: duo, tone: dark, size: small, scale: 0.5, stagger: 60 }   # adds to Intimidated's default on each unit
+
+  withstand.grave:
+    beat: A ridge of bones heaves up around the user as a wall; when it breaks, the bones burst apart and pull themselves together into a Skeleton.
+    cues:
+      - { on: apply, status: shield, fx: frost_knight_3, tint: neutral, tone: light, scale: 1.6, layer: under }   # the wall of bones; replaces Shield's default here. Its ridge fills the canvas's bottom third, so at 1.6 it flanks the user's feet well past the frame
+      - { on: apply, status: shield, fx: stylized_explosion_002, scale: 1.1, tint: source, opacity: 0.55, layer: under, delay: 200 }   # Shield's default, re-added
+      - { on: trigger, status: wall_of_bones, fx: frost_mage_6, tint: neutral, tone: light, scale: 0.8, note: "fires on every hit to the Shield; play it only on the hit that breaks it (the Skeleton follows)" }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.0 }   # no cracked soil: these bones were already above ground
+
+  taunt.grave:
+    beat: A grave-crown flares over the user and a skull seal flashes over the target; if the user falls, their grudge bursts out of them and a Ghoul claws up in their place.
+    cues:
+      - { on: cast, fx: symbol_crown_001, tint: duo, size: small, scale: 0.45, speed: 2 }   # base Taunt's crown, in Grave
+      - { on: apply, status: grudge, fx: necromancer_7, tint: duo, scale: 0.5, offset: [0, 0.45], speed: 1.3 }   # with Taunt's own '!'
+      - { on: trigger, status: grudge, at: actor, fx: stylized_skull_smoke_burst_001, tint: duo, scale: 0.9 }   # on the fallen user: a skull of grave-smoke bursts off them, echoing the skull seal on the target
+      - { on: summon, fx: directional_impact_004, tint: duo, scale: 0.9 }
+      - { on: summon, fx: blood_knight_2, face: up, tint: duo, scale: 0.6, delay: 100 }   # the Ghoul motif; Taunt's default (from the Ghoul) follows on the target
+
+  titan.grave:
+    beat: The ground bursts open under the user, a cocoon of blood-soaked grave-earth closes round them, and grave-dust billows out as they rise Lord of the Grave.
+    cues:
+      - { on: cast, fx: directional_impact_004, scale: 1.4, layer: under }
+      - { on: cast, fx: blood_knight_5, tint: duo, scale: 1.5, layer: under, delay: 150, note: "a grave-and-blood cocoon closes round them, its rim past the frame; portrait swells about 10% and holds it while the Armor lasts" }
+      - { on: resolve, fx: symmetrical_smoke_burst_003, scale: 1.6, layer: under, opacity: 0.85 }
+      # Armor's and Immune's defaults play on the user, Immortal's on each of their minions.
+
+  skeleton_rattle_blade:
+    beat: A Skeleton's bone blade nicks the target in a thin pale arc.
+    cues:
+      - { on: hit, fx: paladin_9, face: fromActor, tint: neutral, tone: light, scale: 0.6, speed: 1.3 }
+      - { on: hit, fx: directional_splatter_001, face: fromActor, size: small, scale: 0.4, delay: 60 }
+
+  ghoul_gnaw:
+    beat: The Ghoul's claws and teeth tear into the target and it gorges on what it takes.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: duo, scale: 0.6 }   # swipes, then a hooked fang tears a jagged bite
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.5, speed: 2 }
+
+  gravedigger_gnaw:
+    beat: The Gravedigger tears into the target with dirt-caked claws, flinging grave-soil, and gorges.
+    cues:
+      - { on: hit, fx: warrior_7, face: fromActor, tint: duo, scale: 0.65 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, scale: 0.45, delay: 100 }
+      - { on: heal, fx: spell_heal_003, tint: duo, tone: light, size: small, scale: 0.5, speed: 2 }
+
+  gravedigger_unearth:
+    beat: The Gravedigger bites its spade into the ground; its creator digs a Grave, or gives up two and a Skeleton breaks up out of the hole.
+    note: >-
+      Both branches change its creator's (the summoner's) `graves` counter with a direct setCounter, not through dig
+      or spend_2. The counter event proposed under macros covers it: in the dig branch the creator's count rises and
+      dig's spadeful plays on the creator; in the raise branch it falls by 2 and spend_2's two souls play on the
+      creator. The spade bite is the Gravedigger's neutral wind-up for both.
+    cues:
+      - { on: cast, fx: directional_impact_002, size: small, scale: 0.6, layer: under }   # the spade bites in; the flat band runs past the frame both ways
+      - { on: summon, fx: directional_impact_003, scale: 0.8 }
+      - { on: summon, fx: frost_mage_4, tint: neutral, tone: light, scale: 1.0, delay: 80 }

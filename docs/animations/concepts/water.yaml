@@ -1,0 +1,251 @@
+group: water
+
+statuses:
+  flow:
+    apply:  [ { fx: directional_bubble_burst_001, size: small, scale: 0.6, speed: 1.6 } ]   # bubbles rise off the bearer: Water's own mark (no other group uses this art)
+    remove: [ { fx: burst_splatter_001, size: small, scale: 0.5 } ]      # consumed: the current breaks into droplets
+    expire: [ { fx: directional_smoke_burst_004, scale: 0.5, opacity: 0.7 } ]
+
+macros: {}
+
+skills:
+  strike.water:
+    beat: A punch of rippling water crescents breaks into a star through the target.
+    cues:
+      - { on: hit, fx: warrior_6, face: fromActor, tint: element, scale: 0.75, note: "its star lands about 70% across the canvas: shift it back so the star breaks on the target" }
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.5, delay: 120 }   # spray carries on past them (not burst_splatter_001: that is Flow's consumed tell)
+      # Renew's default plays on the user.
+
+  smash.water:
+    beat: A wave of water arcs over and crashes down on the target, splashing over its allies.
+    note: The cooldown reduction shows on the skill bar (no board event).
+    cues:
+      - { on: hit, only: primary, fx: deathbringer_1, face: fromActor, tint: element, scale: 1.1, note: "its crash sits in the canvas's bottom corner on the leading side: place that corner on the target" }
+      - { on: hit, only: primary, fx: directional_impact_003, scale: 0.9, delay: 300 }   # the crown of spray where it lands
+      - { on: hit, only: others, fx: directional_impact_003, size: small, scale: 0.6, delay: 380, stagger: 70 }   # the 10-damage spray over each of its allies
+
+  charge.water:
+    beat: A jet of water rushes from the user and breaks over the ally; the user keeps a pent-up surge.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: beam, scale: 0.6 }   # base Charge's jet, in Water
+      - { on: resolve, fx: frost_knight_8, at: target, face: fromActor, tint: element, scale: 0.5 }   # the current breaks over the ally and rolls on past
+      - { on: apply, status: surge, fx: round_sparkle_burst_003, size: small, scale: 0.5 }   # the surge gathers and is held in a ring
+      - { on: remove, status: surge, fx: round_bubble_burst_001, size: small, scale: 0.5, speed: 1.5, note: "Surge spent: plays on the user during the later skill whose Renew gets the +2 stacks (the held surge bursts into bubbles)" }   # not burst_splatter_001: that is Flow's consumed tell
+
+  riposte.water:
+    beat: A quiet ring of water guards the user, then sweeps up and turns the incoming skill aside.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: element, scale: 0.7, opacity: 0.8 }   # owner only (Invisible)
+      - { on: trigger, status: riverbend, fx: frost_knight_2, tint: element, scale: 0.9, note: "turned toward the source (the unit whose skill it counters)" }
+      # Flow's default plays on the user; the base counter X marks the source. The crescent plus Flow reads on its own for the opponent.
+
+  rage.water:
+    beat: Jets of water surge up around the user while steam curls off them.
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.3, offset: [-0.6, 0], layer: under }            # jets flank the portrait
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.3, offset: [0.6, 0], flip: x, delay: 80, layer: under }
+      - { on: cast, fx: directional_smoke_burst_004, variant: white, scale: 0.6, offset: [0, 0.35], opacity: 0.6, delay: 250 }   # steam
+      # Flow, Might and Focus defaults follow.
+
+  shot.water:
+    beat: A quick droplet flicks into the target and splashes.
+    cues:
+      - { on: travel, fx: directional_splatter_001, path: arc, size: small, scale: 0.5 }   # the flicked droplet
+      - { on: hit, fx: directional_splatter_002, size: small, scale: 0.6 }
+      # Mark's default, and Flow's on the user if they were already Marked.
+
+  snipe.water:
+    beat: The user draws in the tide, then a jet of water tears through the target next turn.
+    cues:
+      - { on: cast, fx: scifi_charge_up_001, scale: 0.7 }                # taking aim; radial, so HiddenTarget-safe
+      - { on: trigger, status: tidal_arrow, fx: symmetrical_smoke_burst_001, size: small, scale: 0.6 }   # spray bursts off the user as the shot releases
+      - { on: hit, fx: scifi_muzzle_flash_002, face: fromActor, scale: 0.7 }
+      - { on: hit, fx: burst_splatter_002, scale: 1.1, delay: 60 }
+
+  trap.water:
+    beat: An eddy settles at the target's feet and spins out into a whirlpool when they act.
+    cues:
+      - { on: apply, status: whirlpool, fx: dark_mage_2, tint: element, scale: 0.9, offset: [0, -0.4], opacity: 0.75, layer: under, note: "drop its last frame (a palette jump in the art)" }   # two currents join into a flat spinning ring at the feet
+      - { on: trigger, status: whirlpool, fx: slime_5, tint: element, scale: 1.4, layer: under, opacity: 0.85 }   # the eddy spins out into a whirlpool around the bearer (Undertow's whirl is small and quick, over the portrait)
+      # Confusion's default plays with each spring.
+
+  maneuver.water:
+    beat: The user dives into a splash and the water closes over them in a burst of bubbles.
+    cues:
+      - { on: cast, fx: directional_splatter_002 }
+      - { on: apply, status: invulnerable, fx: round_bubble_burst_001, scale: 0.9, delay: 150 }   # not the rising bubble column, which is Flow's tell (Dive grants no Flow)
+      # Invulnerable's default, re-added once the bubbles close (this skill's own apply cue replaces it).
+      - { on: apply, status: invulnerable, fx: starcaller_3, tint: element, speed: 1.5, opacity: 0.9, delay: 400, note: "the void covers the portrait for a moment, then the shell fades" }
+
+  companion.water:
+    beat: A fish leaps out of a splash in a rainbow shimmer.
+    cues:
+      - { on: summon, fx: directional_splatter_002, scale: 0.9 }
+      - { on: summon, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.7, delay: 200 }
+
+  bolt.water:
+    beat: A bubbly glob of water is lobbed at the target and bursts into bubbles.
+    cues:
+      - { on: travel, fx: slime_2, path: arc, tint: element, scale: 0.6, speed: 1.5, note: "its own splash frames land as the travel arrives, under the bubble burst" }
+      - { on: hit, fx: round_bubble_burst_001, scale: 0.8 }
+      # Renew's default marks the random ally.
+
+  blast.water:
+    beat: A great wave crests over the enemy row and crashes down on each of them.
+    cues:
+      - { on: hit, fx: frost_knight_8, at: enemySide, face: fromActor, tint: element, scale: 3.0, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: burst_splatter_003, scale: 0.7, delay: 300, stagger: 80 }   # lands as the crest breaks (frames ~5-7)
+      # Flow's remove (consumed) or apply default shows which branch fired; stun_ns's default on each enemy.
+
+  consume.water:
+    beat: Droplets lift off every ally and spiral into the target.
+    cues:
+      - { on: heal, fx: spell_absorb_001, scale: 0.9, speed: 1.5 }
+      - { on: remove, status: renew, fx: directional_particle_burst_001, face: toTarget, scale: 0.6, stagger: 60 }   # each ally's Renew drifts off toward the one who drinks it
+      # No Renew to drink: Renew's default plays on the target instead.
+
+  summon.water:
+    beat: A geyser column bursts up from a ring and the elemental takes shape in its spray.
+    cues:
+      - { on: summon, fx: directional_impact_004, size: small, scale: 0.9 }   # the geyser column
+      - { on: summon, fx: directional_splatter_005, scale: 0.7, delay: 300 }
+
+  channel.water:
+    beat: A rain cloud gathers over the user; each turn it rains on the enemy row.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_002, variant: gray, scale: 0.6, offset: [0, 0.9] }
+      - { on: trigger, status: call_rain, fx: directional_smoke_burst_002, at: enemies, variant: gray, scale: 0.7, offset: [0, 0.75], opacity: 0.8, stagger: 60 }   # a cloud over each enemy
+      - { on: hit, fx: spell_forge_001, size: small, scale: 0.6, delay: 150, stagger: 60, note: "suppress or re-tint the yellow spark streaks" }   # drops fall from the clouds onto a ground ring
+      # Renew's default on every ally each pulse.
+
+  stab.water:
+    beat: A sharp shell-white jab sprays through the target.
+    cues:
+      - { on: hit, fx: directional_impact_001, size: small, face: fromActor, tone: light, scale: 0.6 }   # pale as shell
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.4, delay: 60 }
+    note: The 25-damage branch (signal stab_bonus) emits no event of its own; if the renderer can tell it from the damage amount, play the hit at scale 1.0. The other branch shows Renew's default on the user.
+
+  ravage.water:
+    beat: A heaving mass of water swallows the target and bursts upward in a crown of blobs and a heavy splatter.
+    cues:
+      - { on: hit, fx: symmetrical_explosion_003 }                       # the mass engulfs them, then bursts into a crown of blobs
+      - { on: hit, fx: burst_splatter_002, scale: 0.9, delay: 200 }
+      # No rising bubbles here: they are Flow's apply tell, and would read as the target gaining Flow.
+    note: Extending a Stun emits no effectApplied; if the renderer sees the extension, replay Stun's apply default on the target.
+
+  mislead.water:
+    beat: A faint ripple marks the target; when they try to help, water douses them.
+    cues:
+      - { on: apply, status: dunk, fx: symmetrical_smoke_burst_002, size: small, scale: 0.5, opacity: 0.6 }   # owner only (Invisible)
+      - { on: trigger, status: dunk, fx: round_firework_burst_001, scale: 0.9, offset: [0, 0.4] }            # streams pour over the head
+      - { on: trigger, status: dunk, fx: directional_impact_003, size: small, scale: 0.6, delay: 250 }       # and splash at the feet
+      # Confusion's default follows the counter.
+
+  stun.water:
+    beat: A current knocks the target off balance and a quick whirl pulls them under.
+    note: >-
+      The whirl and the stagger hang off the Stun landing, not the hit: when Immune blocks it or
+      Swiftness negates it, only the current plays. Extending existing Stuns emits no effectApplied;
+      if the renderer sees the extension, replay Stun's apply default on the target.
+    cues:
+      - { on: hit, fx: stylized_impact_001, size: small, scale: 0.8 }
+      - { on: apply, status: stun, fx: slime_5, tint: element, scale: 0.7, speed: 1.5, delay: 80 }   # the whirl pulls them under
+      # Stun's default, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: stun, fx: toon_impact_001, size: small, scale: 0.7, delay: 250, note: "portrait staggers back a step" }
+
+  dance.water:
+    beat: Two waves curl up around the user from either side and fling a ring of spray outward.
+    cues:
+      - { on: cast, fx: frost_knight_8, tint: element, scale: 1.3, layer: under }
+      - { on: cast, fx: frost_knight_8, tint: element, scale: 1.3, layer: under, flip: x, delay: 150 }   # the mirrored wave curls in from the other side
+      - { on: cast, fx: symmetrical_smoke_burst_001, layer: under, delay: 300 }                      # spray flung off as the waves break
+      # Flow, Renew and Swiftness defaults follow.
+
+  heal.water:
+    beat: A spring wells up under the ally and rises around them.
+    cues:
+      - { on: apply, status: renew, fx: directional_splatter_005, scale: 0.8 }
+      - { on: apply, status: renew, fx: spell_heal_003, scale: 0.9, delay: 150, speed: 2 }
+      # Renew's default, re-added as the spring settles (this skill's own apply cues replace it).
+      - { on: apply, status: renew, fx: spell_heal_001, size: small, scale: 0.5, delay: 450 }
+
+  bless.water:
+    beat: A single drop of grace falls onto the ally and splashes.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.4 }   # the touch: a glint on the user
+      - { on: travel, fx: slime_3, path: drop, tint: element, tone: light, scale: 0.5, note: "its own splash frames land as the drop arrives at the ally's feet" }
+      # Flow's default rises off the ally as the drop lands.
+
+  curse.water:
+    beat: A dark helm of water closes over the target's head; the last air escapes.
+    cues:
+      - { on: hit, fx: spell_absorb_001, tone: dark, scale: 0.6, offset: [0, 0.45], speed: 1.6 }   # deep water drawn in around the head
+      - { on: hit, fx: directional_particle_burst_001, size: small, tone: light, scale: 0.4, offset: [0, 0.55], delay: 350 }   # the last air bubbles up
+      # Weakness's default follows.
+
+  smite.water:
+    beat: A ring of water drops onto the target and splashes; it pulses whenever an ally strikes them.
+    cues:
+      - { on: travel, fx: frost_knight_7, path: drop, tint: element, scale: 0.6 }   # a ring of water, widening as it falls
+      - { on: hit, fx: directional_impact_003, size: small, scale: 0.8 }            # it lands in a crown of spray
+      - { on: trigger, status: aqua_ring, fx: round_sparkle_burst_001, size: small, scale: 0.5 }   # the ring pulses on the bearer
+      # On trigger, Flow's default plays on the source (the ally who struck).
+
+  prayer.water:
+    beat: The user sings, and gentle rain falls on every ally.
+    cues:
+      - { on: cast, fx: directional_music_burst_002, scale: 0.6 }
+      - { on: heal, fx: directional_particle_burst_001, face: down, scale: 0.8, offset: [0, 0.3], stagger: 80 }   # drops fall on each ally
+      - { on: heal, fx: spell_heal_002, scale: 0.8, delay: 200, stagger: 80, speed: 1.5 }
+
+  cleave.water:
+    beat: A lash of water ripples down the enemy row, cutting through each of them in turn and spraying off them.
+    cues:
+      - { on: hit, fx: starcaller_5, face: fromActor, tint: element, scale: 0.9, stagger: 100 }   # one lash, staggered so it runs down the row
+      - { on: hit, fx: directional_splatter_004, size: small, face: fromActor, scale: 0.5, delay: 100, stagger: 100 }   # sprays trail the lash
+      # Weakness's default on each target when the user has Flow.
+
+  shout.water:
+    beat: A deep call booms out from the user and washes over every enemy.
+    cues:
+      - { on: cast, fx: symmetrical_explosion_004, scale: 1.2 }
+      - { on: travel, fx: directional_smoke_burst_003, path: straight, scale: 0.8, opacity: 0.8 }   # a soft wash rolls into each enemy, not a hit ring
+      - { on: hit, fx: burst_splatter_003, size: small, scale: 0.7 }    # only the Stunned or Taunted take damage
+      # Vulnerable's default on each enemy.
+
+  withstand.water:
+    beat: Water wells up from the user's feet and closes into a bubble around them.
+    cues:
+      - { on: cast, fx: directional_splatter_005, scale: 0.7, layer: under }
+      # Shield's default (its sphere, tinted Water: the bubble) and Renew's follow.
+
+  taunt.water:
+    beat: The user crowns themself the target and a stream of water pulls the target's attention toward them.
+    note: The cooldown reset on Flow shows on the skill bar (no board event).
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, scale: 0.4, speed: 2 }   # base Taunt's crown, in Water; Taunt's '!' marks the target
+      - { on: travel, fx: necromancer_6, path: beam, tint: element, scale: 0.6 }   # its pulse runs from the target back to the user
+      - { on: trigger, status: tidal_pull_reset, fx: none }   # permanent and fires on every Flow gain; Flow's own default already plays there
+      # Taunt's default on the target.
+
+  titan.water:
+    beat: A geyser erupts beneath the user and they burst out of it in a naiad's form.
+    cues:
+      - { on: cast, fx: directional_impact_004, scale: 1.8, speed: 0.6 }   # over the portrait, slowed to ~400 ms so the eruption registers
+      - { on: resolve, fx: symmetrical_explosion_003, scale: 1.4 }
+      - { on: resolve, fx: round_bubble_burst_001, scale: 1.3, delay: 250 }
+      # Armor, Renew and Might defaults play between the eruption and the form.
+
+  fish_shimmer:
+    beat: The fish flashes rainbow scales and a shimmer rises over the ally.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_001, variant: rainbow, scale: 0.5 }   # on the fish
+      - { on: apply, status: renew, fx: directional_sparkle_burst_001, scale: 0.7 }   # the shimmer rises over the ally
+      # Renew's default, re-added (this skill's own apply cue replaces it); Flow's follows when the ally reaches 3 Renew.
+      - { on: apply, status: renew, fx: spell_heal_001, size: small, scale: 0.5, delay: 250 }
+
+  elemental_lashing_water:
+    beat: A quick whip of water cracks across the target.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: element, scale: 0.7 }
+      - { on: hit, fx: directional_splatter_001, size: small, face: fromActor, scale: 0.4, delay: 80 }

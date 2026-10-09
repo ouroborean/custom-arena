@@ -690,6 +690,29 @@ h3,
   color: #fff;
 }
 
+/* Battle animations (VfxLayer): drawn on fixed canvases, one over the board (under the action popup and
+   hover card) and one under the portraits; the arena sits between them. They never take the pointer. */
+.vfx-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.vfx-canvas.under {
+  z-index: 0;
+}
+
+.vfx-canvas.over {
+  z-index: 85;
+}
+
+.battle > .arena {
+  position: relative;
+  z-index: 1;
+}
+
 /* The action popup (ActionPopup): who used what on whom, while a turn plays back. It floats centered over
    the whole board on its own layer (above the board and log drawer, under the hover card and dialogs),
    takes no room in the layout, and lets the pointer through to the board beneath. */

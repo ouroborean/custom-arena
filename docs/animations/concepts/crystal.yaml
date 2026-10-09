@@ -1,0 +1,300 @@
+# Crystal (Ice + Ice) animation concepts. Spec: docs/animations/README.md; brief: briefs/crystal.md.
+# Crystal is Ice turned to gemstone. Ice's snow, mist and gusts are gone: everything is facets, shards
+# and glints, heavier and more layered than Ice's version. Both parents are Ice, so `element`, `element2`
+# and `duo` are all the Ice ramp. Material and tone tell Crystal apart instead. The bodies of hits and
+# bursts keep the Ice mid ramp: light-toned Ice is close to Wind's pale ramp, so an all-white impact would
+# read as Wind, Holy or Neutral. `tone: light` is kept for the diamond-white of facets and glints (the gem,
+# the glints, the sparkle bursts), and `tone: dark` for the deep blue of cracks. Frost Knight and Frost Mage
+# art plays native (Crystal Quake's claw is tinted to lose its violet), and only its crystalline pieces are
+# used (mace, glacier, spike ridge, falling shard, veined sphere), never its gusts or its snowflake (Chilled's sign).
+# Signature motifs, used across the kit:
+#   gem     spell_ice_001: Diamond, and whatever counts as Diamond (Flawless, Diamond Skin, the Colossus).
+#           frames 11-31 build the gem, 31-39 break it back to an outline, 0-10 are its opening glints.
+#   crack   lightning_burst_002 in `tone: dark`, frames 0-5 only (a flash, then the jagged ring breaking; its
+#           last frames are zigzag bolts that read as a shock): Brittle's crack. frost_mage_6's white-veined
+#           sphere is the web of cracks when Hairline Fracture springs.
+#   shatter the same crack at full size, then symmetrical_impact_006's ring of shards: the Brittle Shatter.
+#           Small and alone, symmetrical_impact_006 is Shield's break, which Glass Harmonic plays on every
+#           Shield it strips.
+#   glint   round_light_burst_001 in `tone: light`, a facet catching the light: guards, Flawless, Cold
+#           Clarity, the Effigy's beacon, the Sentinel's ray.
+group: crystal
+
+statuses:
+  brittle:
+    note: "No trigger art: it fires on every direct hit and only acts at 3 stacks, through shatter_bearer (that macro is the Shatter). No aura: the stack count on the icon carries it."
+    apply:
+      - { fx: lightning_burst_002, frames: [0, 5], size: small, tone: dark, scale: 0.45, speed: 1.3, note: "a crack flashes across the body and its jagged ring breaks; stop before the zigzag bolts of frames 6-8, which read as a shock. Scale with the stacks it reaches: about 0.45 / 0.55 / 0.65 at 1 / 2 / 3" }
+    remove:
+      - { fx: scifi_spark_burst_001, size: small, tone: light, scale: 0.5 }   # consumed or moved: the cracked crust flakes off in glittering chips
+  diamond:
+    note: "No aura: Diamond caps each hit but doesn't stop it, so a lasting glow would read as Invulnerable. The status icon carries it. Minion passives are applied when the minion is summoned (an effectApplied from the summoning skill), so this default plays on Sentinels and the Effigy as they arrive unless the summoning skill overrides it. Sentinel Shards and Crystal Effigy both do, to set the gem after the minion has risen."
+    apply:
+      - { fx: spell_ice_001, frames: [11, 31], tone: light, scale: 1.3, opacity: 0.8, speed: 1.6, note: "the gem is opaque at its peak: keep it translucent, then fade it from the white-flash frame" }
+    remove:
+      - { fx: spell_ice_001, frames: [31, 39], tone: light, scale: 1.1, speed: 1.5 }   # cleansed or stolen: the gem flashes and breaks to its outline
+    expire:
+      - { fx: spell_ice_001, frames: [32, 39], tone: light, scale: 1.0, opacity: 0.6, speed: 1.5 }
+  effigy_shards:
+    # The Effigy is radial art: a passive's `actor` is unclear, so nothing here is aimed.
+    trigger:
+      - { fx: symmetrical_impact_003, size: small, scale: 0.5 }   # splinters burst off the Effigy
+      - { fx: symmetrical_impact_005, at: source, size: small, scale: 0.35, delay: 100 }   # one lodges in the attacker; Brittle's crack follows
+
+macros:
+  shatter_bearer:
+    - { fx: lightning_burst_002, frames: [0, 5], tone: dark, scale: 0.9, speed: 1.3 }   # every crack runs at once
+    - { fx: symmetrical_impact_006, tone: light, scale: 1.3, delay: 120, note: "a short screen shake as the ring of shards flies; its off-palette accent shards take the ramp's light stop. Shattered's default follows" }
+  shatter_it:
+    - { fx: lightning_burst_002, frames: [0, 5], tone: dark, scale: 0.9, speed: 1.3 }
+    - { fx: symmetrical_impact_006, tone: light, scale: 1.3, delay: 120, note: "as shatter_bearer" }
+  crystallize_it:
+    - { fx: round_sparkle_burst_003, tone: light, scale: 0.6, speed: 1.4, note: "only when at least one Frost debuff converts: the frost draws in and hardens into a glint. Each debuff's own remove default and Brittle's crack follow" }
+
+skills:
+  strike.crystal:
+    beat: A crystal mace swings down through the target and bursts into a fan of shards past them.
+    cues:
+      - { on: hit, fx: frost_knight_1, face: fromActor, frames: [5, 13], scale: 0.95, speed: 1.3, note: "wind-up frames skipped; line its lower-right impact (lower-left when mirrored) up on the target" }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: element, tone: light, scale: 0.6, delay: 150 }
+      # Brittle's crack, then crystallize_it for each Frost debuff it hardens.
+
+  smash.crystal:
+    beat: Crystal claws crash down on the target and a ring of shards rolls out from them; their cracks burst free and erupt as spikes under each of their allies.
+    note: "The allies' damage is 10 per Brittle stack: play their spikes at about 0.7 / 0.85 / 1.0 for 10 / 20 / 30."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_10, face: fromActor, tint: element, scale: 1.0, note: "tinted only to drop its native violet accent at impact; line its bottom-right impact (bottom-left when mirrored) up on the target" }
+      - { on: hit, only: primary, fx: symmetrical_explosion_004, frames: [0, 6], scale: 1.4, layer: under, delay: 120, note: "stop before frame 7, where its olive fade starts, and fade it out over frames 5-6" }   # the quake: a donut of shards expands from the target toward its allies above and below
+      - { on: remove, status: brittle, fx: scifi_warp_002, size: small, scale: 0.6 }   # replaces Brittle's chips: the cracks blow out as flung shards
+      - { on: hit, only: others, fx: directional_impact_004, scale: 0.85, delay: 250, stagger: 70 }
+
+  charge.crystal:
+    beat: The user streaks in on a jet of shards and bursts against the target, keeping the facets as Diamond.
+    cues:
+      - { on: travel, fx: scifi_muzzle_flash_002, path: straight, tone: light, scale: 0.8, note: "the portrait lunges along the streaks and snaps back" }
+      - { on: hit, fx: directional_impact_001, face: fromActor, scale: 0.7 }
+      # Brittle's crack on the target; Diamond's gem on the user.
+
+  riposte.crystal:
+    beat: A glint runs over the user unseen; when an enemy strikes, a pane of crystal snaps up and shatters as it turns the blow aside.
+    note: "The counter negates the skill and deals no damage back. The countered X marks the attacker, Frostbitten's crust lands on them and Frostborn's ring on the user."
+    cues:
+      - { on: cast, fx: round_light_burst_001, size: small, tone: light, scale: 0.6, opacity: 0.7 }   # Invisible: owner only
+      - { on: trigger, status: hoarfrost_guard, fx: fanfx_barrier, frames: [4, 25], tone: light, scale: 1.1, speed: 1.6 }   # the pane builds in front of the user and breaks from the corner the blow hits
+
+  rage.crystal:
+    beat: Columns of crystal light shoot up around the user and a flawless diamond seals over them.
+    cues:
+      - { on: cast, fx: dark_mage_3, frames: [3, 12], tint: element, tone: light, scale: 1.1 }
+      - { on: apply, status: diamond, fx: spell_ice_001, frames: [0, 31], tone: light, scale: 1.6, opacity: 0.85, speed: 1.8 }   # Diamond's gem, larger and from its opening glints
+      - { on: apply, status: flawless, fx: round_light_burst_001, tone: light, scale: 0.9, delay: 600 }   # a clean glint sweeps across the gem
+      # Might's default plays on the user.
+
+  shot.crystal:
+    beat: A glinting splinter darts into the target and pins their frost in place under a scatter of diamond glints.
+    note: "Extending the Frost debuffs emits no event. Play the glints only when the target holds Frostbitten, Chilled, Numb or Brittle."
+    cues:
+      - { on: travel, fx: starcaller_2, path: straight, tint: element, tone: light, scale: 0.4, speed: 1.3 }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.45 }
+      - { on: hit, fx: stylized_explosion_004, frames: [0, 9], tone: light, scale: 0.6, opacity: 0.85, delay: 80 }   # only its diamond glints: the frost locks, it doesn't blow up
+
+  snipe.crystal:
+    beat: Facets gather into a lance-head over the user; next turn it leaves straight up and three crystal shards spear down onto the hidden target.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_003, tone: light, scale: 0.6, offset: [0, 0.6] }
+      # HiddenTarget: it leaves upward and falls from above, never pointing at anyone.
+      - { on: trigger, status: crystal_lance, fx: scifi_muzzle_flash_001, face: up, tone: light, scale: 0.6, offset: [0, 0.6] }
+      - { on: hit, fx: frost_mage_5, frames: [0, 7], scale: 0.8, speed: 1.4, note: "once per hit, three in a row: nudge each about 0.1 left or right of the last so the three shards read as separate. Cut before the grey smoke" }
+      - { on: hit, fx: symmetrical_impact_005, size: small, scale: 0.35, delay: 150 }
+      # Brittle's crack after each hit.
+
+  trap.crystal:
+    beat: Hairline fractures are laid unseen through the target; when they attack, the fractures split open into a web of cracks.
+    cues:
+      - { on: apply, status: hairline_fracture, fx: fanfx_pain, frames: [12, 30], tone: light, scale: 0.8, opacity: 0.9, speed: 1.5 }   # Invisible: owner only. Its needle-slash section: thin white needles cut through the body, about 0.6 s
+      - { on: trigger, status: hairline_fracture, fx: frost_mage_6, frames: [3, 6], scale: 0.8, opacity: 0.85, speed: 1.3 }   # white veins split the body into a web of cracks, then it breaks apart
+      # Brittle's crack follows, at full size (3 stacks).
+
+  maneuver.crystal:
+    beat: The user's Diamond closes into a faceted cocoon; each hit it caps spits shards back into the attacker.
+    cues:
+      - { on: apply, status: crystal_cocoon, fx: blood_knight_5, frames: [2, 9], tint: element, tone: light, scale: 1.7, opacity: 0.8, layer: under, delay: 250 }   # after Diamond's gem: from the bowl to the closed oval, stopping before it dissolves to a thin arc. The oval is about 1.15 x 1.3 portraits, so its rim frames the user on every side and the fanged inner pattern stays hidden behind the portrait
+      - { on: trigger, status: crystal_cocoon, fx: directional_impact_001, at: source, face: fromActor, size: small, scale: 0.6, note: "only on the firing that gives Brittle (the hit was capped); the shards spray from the user's side through the attacker" }
+
+  companion.crystal:
+    beat: A glacier heaves up on the spot and bursts apart around the Crystal Golem.
+    cues:
+      - { on: summon, fx: frost_mage_3, scale: 1.2, note: "ends on its brightest frame: hold it briefly, then the burst replaces it" }
+      - { on: summon, fx: symmetrical_impact_004, tone: light, scale: 0.9, delay: 300 }
+
+  bolt.crystal:
+    beat: A quartz spike flies across and bursts into a ring of shards, knocking a Buff off the target.
+    note: "The 2-Brittle branch (a Buff knocked off) is one apply event: Brittle's crack plays at its 2-stack size."
+    cues:
+      - { on: travel, fx: warrior_8, path: straight, tint: element, tone: light, scale: 0.55, speed: 1.3 }
+      - { on: hit, fx: scifi_warp_002, scale: 0.8 }
+      - { on: remove, status: buff, fx: round_firework_burst_001, size: small, scale: 0.5, delay: 120 }   # the Buff's light sprays off and falls away
+
+  blast.crystal:
+    beat: A ring of hard frost sweeps over the enemy side and each enemy freezes into a sphere of ice that cracks open.
+    cues:
+      - { on: hit, fx: frost_knight_7, at: enemySide, scale: 2.6, speed: 0.6, opacity: 0.85, layer: under, note: "once, with the first hit: the side anchor doesn't repeat per enemy" }
+      - { on: hit, fx: frost_mage_6, scale: 0.9, delay: 100, stagger: 70 }
+      - { on: hit, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.5, delay: 250, stagger: 70 }
+      # Chilled and Numb leave through their own removes; Frostbitten and Chilled land through their defaults.
+
+  consume.crystal:
+    beat: The target's cracks are pried out as shards that fly back and spiral into the user as a Shield.
+    cues:
+      - { on: hit, fx: symmetrical_impact_001, size: small, scale: 0.45 }
+      - { on: remove, status: brittle, fx: directional_impact_001, face: toActor, scale: 0.7 }   # replaces Brittle's chips: the shards spray toward the user
+      - { on: apply, status: buff, fx: spell_absorb_001, tone: light, scale: 0.8, speed: 1.5, delay: 150 }   # on the user, as the Shield lands; Shield's default follows
+
+  summon.crystal:
+    beat: Two clusters of crystal spikes shoot up from the ground and each sets into a Sentinel sealed in a diamond.
+    cues:
+      - { on: summon, fx: directional_particle_burst_002, scale: 0.9, stagger: 120 }
+      - { on: apply, status: diamond, fx: spell_ice_001, frames: [11, 31], tone: light, scale: 0.8, opacity: 0.8, speed: 1.6, delay: 300, stagger: 120 }   # each Sentinel's passive Diamond, applied as it's summoned: replaces Diamond's default here so the gem sets after the spikes have risen
+
+  channel.crystal:
+    beat: A crystal seed pulses over the user; at the end of each of their turns it flares, crystal spikes grow through every cracked enemy, and the rest crack.
+    cues:
+      - { on: apply, status: accretion, fx: scifi_charge_up_001, tone: light, scale: 0.55, offset: [0, 0.6], repeat: 2 }
+      - { on: trigger, status: accretion, fx: scifi_charge_up_001, tone: light, scale: 0.65, offset: [0, 0.6], speed: 1.5 }   # each pulse
+      - { on: hit, fx: frost_knight_3, frames: [0, 6], scale: 0.7, speed: 1.3, stagger: 80 }   # the enemies already Brittle: a small spike ridge, cut at its white flash before the grey haze
+      # Enemies without Brittle show Brittle's crack.
+
+  stab.crystal:
+    beat: An ice pick punches through the target and, if they are frosted, chips a chunk of that frost out the far side.
+    note: "Damage is 10 or 20, +10 when it chips a Frost debuff, all in one hit event: play the punch at about 0.5 / 0.6 / 0.75 for 10 / 20 / 30."
+    cues:
+      - { on: hit, fx: scifi_muzzle_flash_003, face: fromActor, tone: light, scale: 0.6, speed: 1.3 }
+      - { on: remove, status: debuff, fx: directional_impact_001, face: fromActor, size: small, scale: 0.45 }   # plays only when a Frost debuff is chipped off; its own remove default follows
+
+  ravage.crystal:
+    beat: Facets flash, a burst of crystal blades tears into the target and spikes burst out their far side; the user cracks from the strain.
+    note: "A short, heavy screen shake on the first hit."
+    cues:
+      - { on: hit, fx: stylized_impact_001, scale: 1.1 }
+      - { on: hit, fx: symmetrical_impact_003, scale: 1.2, delay: 100 }
+      - { on: hit, fx: starcaller_1, face: fromActor, tint: element, tone: light, scale: 1.0, delay: 150 }   # Piercing: out the far side
+      # Brittle's crack on the user is the recoil.
+
+  mislead.crystal:
+    beat: A sliver of mirror-ice hangs unseen before the target; when they commit a costly attack it flashes open and bursts, turning the skill back as cracks.
+    cues:
+      - { on: apply, status: frozen_gambit, fx: scifi_warp_001, frames: [0, 2], scale: 0.7, opacity: 0.6 }   # Invisible: owner only. Just the thin slit, held a moment
+      - { on: trigger, status: frozen_gambit, fx: scifi_warp_001, frames: [3, 9], tone: light, scale: 1.1 }   # the slit flashes into a white oval and breaks into a spiky ring
+      # The countered X, then Brittle's crack (1 per energy).
+
+  stun.crystal:
+    beat: A glacier of crystal crusts up around the target, locking them in place inside a hard diamond shell.
+    cues:
+      - { on: hit, fx: frost_mage_3, scale: 1.0, note: "the portrait staggers; fade its held last frame" }
+      - { on: apply, status: diamond, fx: spell_ice_001, frames: [23, 31], tone: light, scale: 1.3, opacity: 0.8, speed: 1.4, delay: 200 }   # replaces Diamond's build: the crust hardens straight into the gem
+      # Stun's default follows.
+
+  dance.crystal:
+    beat: Two diamond glints whirl around the user in a perfect orbit; a heavy blow knocks them apart and the form cracks and shatters.
+    cues:
+      - { on: apply, status: perfect_form, fx: starcaller_4, tint: element, tone: light, scale: 1.2 }
+      - { on: trigger, status: perfect_form, fx: none, note: "fires on every hit but only acts on one of 25+; that break shows as the remove below" }
+      - { on: remove, status: perfect_form, fx: frost_mage_6, scale: 0.7, speed: 1.3 }   # broken by the big hit; Swiftness's remove and Stun's default follow
+      # Swiftness's default plays on the user.
+
+  heal.crystal:
+    beat: Glints rise through the ally and a faceted ring snaps open around them.
+    cues:
+      - { on: heal, fx: directional_sparkle_burst_001, tone: light, scale: 0.8, speed: 1.3 }
+      - { on: apply, status: faceted_ward, fx: frost_knight_7, scale: 1.5, opacity: 0.85, speed: 0.8, layer: under, delay: 200 }   # behind the portrait the ring (about 1.1 portraits) and its spike tips (1.5) show past every edge; slowed so its 5 frames last about 0.3 s
+
+  bless.crystal:
+    beat: A star of crystal light falls onto the ally and sets into a diamond skin; when it fades, what it held back flows in as healing.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_003, path: drop, tone: light, scale: 0.6 }
+      - { on: apply, status: diamond_skin, fx: spell_ice_001, frames: [11, 31], tone: light, scale: 1.3, opacity: 0.8, speed: 1.6 }   # it counts as Diamond, so it wears Diamond's gem
+      - { on: trigger, status: diamond_skin, fx: spell_ice_001, frames: [31, 39], tone: light, scale: 1.1, speed: 1.5 }   # it runs out: the gem breaks to its outline
+      - { on: heal, fx: directional_sparkle_burst_003, tone: light, scale: 0.7 }
+
+  curse.crystal:
+    beat: A ring of fault lines settles under the target; each time they act, the ground cracks beneath them.
+    cues:
+      - { on: apply, status: fault_lines, fx: dark_mage_2, frames: [0, 9], tint: element, tone: dark, scale: 1.35, offset: [0, -0.45], layer: under }   # deep Ice blue, not Dark Mage's Shadow indigo; its red last frames trimmed. About 1.2 portraits wide, so both ends of the ring show past the portrait's sides and its front arc below the feet
+      - { on: trigger, status: fault_lines, fx: directional_impact_003, size: small, tone: dark, scale: 0.55 }
+      # Brittle's crack follows.
+
+  smite.crystal:
+    beat: A needle of clear cold light drives down onto the target and leaves a glint hanging over them that flares whenever an ally strikes them.
+    cues:
+      - { on: hit, fx: scifi_warp_003, scale: 1.1 }
+      - { on: apply, status: cold_clarity, fx: round_light_burst_001, tone: light, scale: 0.55, offset: [0, 0.6], delay: 250 }
+      - { on: trigger, status: cold_clarity, fx: round_light_burst_001, size: small, tone: light, scale: 0.4, offset: [0, 0.6] }   # Frostborn's ring lands on the ally who struck
+
+  prayer.crystal:
+    beat: A shimmer of glints spreads across the user's side, crystal light rises through every ally and each is sheathed in a diamond.
+    cues:
+      - { on: cast, fx: status_sparkling_001, at: allySide, tone: light, scale: 2.4, opacity: 0.8, speed: 1.5, note: "one 24-frame cycle, then fade" }
+      - { on: heal, fx: directional_sparkle_burst_003, tone: light, scale: 0.8, stagger: 100 }
+      # Diamond's gem follows on each ally.
+
+  cleave.crystal:
+    beat: A crystal crescent sweeps through the target and their cracks fly off as a shard that seeks out another enemy.
+    note: "The move resolves in this order: the moved Brittle lands on the other enemy (an apply), leaves the target (Brittle's chips), then that enemy takes the 10 damage. Naming Brittle below replaces its default for this whole skill, so the target's own crack is restated."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_4, face: fromActor, scale: 1.0 }
+      - { on: apply, status: brittle, only: primary, fx: lightning_burst_002, frames: [0, 5], size: small, tone: dark, scale: 0.45, speed: 1.3, note: "Brittle's crack as its default: about 0.45 / 0.55 / 0.65 at 1 / 2 / 3 stacks" }
+      - { on: apply, status: debuff, only: others, fx: starcaller_2, tint: element, tone: light, scale: 0.6, note: "aim the comet from the primary target's position into this enemy (straight up or down the column), not from the user" }   # the seeking shard, on the moved Brittle; a debuff filter adds to the crack below
+      - { on: apply, status: brittle, only: others, fx: lightning_burst_002, frames: [0, 5], size: small, tone: dark, scale: 0.55, speed: 1.3, delay: 350, note: "the moved Brittle's apply arrives before the remove and the 10 damage: hold the crack until the shard has landed; scale by the stacks it reaches (about 0.45 / 0.55 / 0.65 at 1 / 2 / 3)" }
+      - { on: hit, only: others, fx: symmetrical_impact_005, size: small, scale: 0.4, delay: 200 }   # the shard lands: the 10 damage
+      # Brittle's chips leave the target as it moves.
+
+  shout.crystal:
+    beat: A pure ringing tone bursts from the user and resonates through the whole board; every Shield shatters and glass rains off every unit.
+    cues:
+      - { on: cast, fx: round_music_burst_001, tone: light, scale: 1.2 }   # the harmonic: notes on wavy sound rings
+      - { on: cast, fx: stylized_impact_001, at: field, scale: 3.5, opacity: 0.6, delay: 200 }   # glassy tilted rings through both sides
+      - { on: remove, status: shield, fx: none }   # base Shield's own break is silenced here so it doesn't play twice: the cue below covers it
+      - { on: remove, status: buff, fx: symmetrical_impact_006, size: small, tone: light, scale: 0.8, stagger: 40 }   # every Shield stripped, base or inline (each group's Withstand shield, Latticework): they're removed, not depleted, so neither inline statuses nor shieldBreak have art for it. Shields are the only removals this skill makes
+      - { on: apply, status: shattered, fx: round_firework_burst_001, size: small, tone: light, scale: 0.6, stagger: 40 }   # glass shards spray and fall off each unit
+      # Shattered's default, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: shattered, fx: spell_defense_up_001, size: small, scale: 0.4, delay: 200, stagger: 40 }
+      - { on: apply, status: shattered, fx: symbol_failure_001, size: small, variant: red, scale: 0.4, speed: 2, delay: 350, stagger: 40 }
+      # Intimidated's default on each enemy.
+
+  withstand.crystal:
+    beat: A lattice of crystal facets builds behind the user, a glint runs across it, and a pane of the same lattice locks behind every ally.
+    cues:
+      # Listed first, played last: Crystal's glint sweeps the finished lattice (fanfx_barrier alone is many groups' Withstand).
+      - { on: apply, status: latticework, fx: round_light_burst_001, tone: light, scale: 1.0, delay: 450 }
+      - { on: apply, status: latticework, fx: fanfx_barrier, frames: [0, 12], tone: light, scale: 1.4, layer: under, note: "stop on the full panel, then fade" }   # behind the portrait only its margin shows
+      - { on: apply, status: latticework_link, fx: fanfx_barrier, frames: [0, 12], tone: light, scale: 1.25, opacity: 0.75, layer: under, delay: 200, stagger: 80, note: "as above" }   # the same lattice: about an eighth of a portrait shows around each ally
+
+  taunt.crystal:
+    beat: A glittering heap of crystal heaves up into an Effigy, flashes a beacon glint that pulls the target's eye, and seals into a diamond.
+    cues:
+      - { on: summon, fx: directional_sparkle_burst_002, frames: [0, 17], scale: 0.9, speed: 1.4 }   # Ice mid, not light: its puffs read as a heap of cyan facets under white star flashes, not a pale cloud. Cut before the long tail of drifting sparkles
+      - { on: summon, fx: round_light_burst_001, tone: light, scale: 0.8, offset: [0, 0.2], delay: 300 }
+      - { on: apply, status: diamond, fx: spell_ice_001, frames: [11, 31], tone: light, scale: 1.0, opacity: 0.8, speed: 1.6, delay: 450 }   # the Effigy's passive Diamond, applied as it's summoned: replaces Diamond's default here so the gem seals it after the beacon
+      # Taunt's '!' marks the target.
+
+  titan.crystal:
+    beat: Crystal spikes burst up around the user and a towering diamond seals over them; when it ends, the diamond breaks and its shards crack every enemy.
+    note: "The portrait swells about 15% inside the gem and stays enlarged while Diamond Colossus lasts. Immune's default plays on the user."
+    cues:
+      - { on: cast, fx: directional_particle_burst_002, scale: 1.5, note: "a short screen shake as the spikes rise" }
+      - { on: apply, status: diamond_colossus, fx: spell_ice_001, frames: [0, 31], tone: light, scale: 2.2, opacity: 0.85, speed: 1.5 }   # the gem at full size
+      - { on: trigger, status: diamond_colossus, fx: spell_ice_001, frames: [31, 39], tone: light, scale: 2.0, speed: 1.5 }   # it runs out: the colossus flashes and breaks
+      - { on: trigger, status: diamond_colossus, fx: symmetrical_explosion_004, frames: [0, 6], scale: 1.6, delay: 100, note: "stop before frame 7, where its olive fade starts, and fade it out over frames 5-6" }
+      - { on: apply, status: debuff, fx: directional_impact_001, face: fromActor, size: small, scale: 0.6, stagger: 70 }   # the shards strike each enemy; Brittle's crack follows
+
+  golem_shard_slam:
+    beat: The Golem stamps and crystal spikes jab up under every enemy.
+    cues:
+      - { on: cast, fx: directional_impact_003, scale: 0.8 }
+      - { on: hit, fx: directional_impact_004, size: small, scale: 0.6, stagger: 60 }
+
+  sentinel_glint:
+    beat: The Sentinel flicks a ray of light across that bursts into crystal stars on the target.
+    cues:
+      - { on: travel, fx: round_light_burst_001, path: beam, size: small, tone: light, scale: 0.4, speed: 1.5 }
+      - { on: hit, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.5 }

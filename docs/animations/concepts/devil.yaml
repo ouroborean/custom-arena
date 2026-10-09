@@ -1,0 +1,323 @@
+group: devil
+# Devil = Fire + Unholy, and its theme is the bargain. Fire's flames and Unholy's blood and souls are blended
+# with `duo` (Fire-dark outlines, crimson body, pink-red highlights): flame art turns crimson, and Blood Knight
+# art is recolored into fire. Duo alone reads as Unholy's crimson, so Fire's own orange (`element`) takes
+# separate layers on the eruptions and impacts (Borrowed Fire's column, Hellstorm's comets, Hellraze's
+# bubbles, Hellbound's spikes, Imp Captain's dome). Its signature is the pact, in three tells that share one
+# molten gold (`element` + `tone: light`), kept apart from Hellfire's crimson and from Unholy's crimson seal:
+#   - the pentagram seal (deathbringer_2) stamped on whoever takes a Contract,
+#   - molten-gold coins (directional_coin_burst_001) whenever a price is paid, and only then,
+#   - a small gold glint (round_sparkle_burst_001) whenever something is added to the bill. Held to its
+#     compact first frames, the same glint is the coin flipped in Infernal Coin and Double or Nothing.
+# Hellfire is Ignite made hellish: a taller crimson jet whose plume reads as a skull.
+
+statuses:
+  hellfire:
+    # It counts as Ignite and as Horrified: Ignite's motion, a skull-plumed jet for the dread.
+    apply:  [ { fx: directional_fire_burst_001, tint: duo, scale: 0.75 } ]   # a crimson jet erupts at their feet; its plume reads as a skull
+    tick:   [ { fx: fire_looping_001, size: small, tint: duo, scale: 0.45 } ]   # the 5 Affliction at the end of the applier's turn: Ignite's flicker, crimson. burn_aftermath (Fire's macro) follows
+    remove: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: dark, scale: 0.5, opacity: 0.8 } ]
+    expire: [ { fx: symmetrical_smoke_burst_002, size: small, tint: duo, tone: dark, scale: 0.5, opacity: 0.8 } ]
+  contract:
+    note: >-
+      No skill applies `contract` itself: every Devil Contract is an inline status that counts as it (Faustian
+      Contract, Debt, Borrowed Fire, Fine Print, Hellraze, Co-signed Debt, Pact of Flame, Bargained Aegis,
+      Imp's Offer). Each plays these defaults (match on countsAs) unless its skill names it in its own cue on
+      the same moment: an `apply` cue replaces the seal, a `trigger` cue on its price (its onExpire) replaces
+      the coins (a Contract with a reactive trigger of its own, like Pact of Flame, says which moment its
+      cue means). A named status that counts as a Contract (On the Tab), or as anything else (Hellfire
+      counts as Ignite and Horrified), plays its own defaults and falls back to Contract's only for keys it
+      lacks (On the Tab's `remove`). `expire` is the price paid; `remove` is a Contract cleansed, stolen or
+      torn up before it comes due, so nothing is paid.
+    apply:  [ { fx: deathbringer_2, tint: element, tone: light, scale: 0.45, offset: [0, 0.65], speed: 1.5, frames: [2, 17] } ]   # a molten-gold pentagram forms over the head and flashes white as it stamps; cut before the melt
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.5, opacity: 0.7 } ]   # torn up unpaid: the seal smolders away
+    expire: [ { fx: directional_coin_burst_001, tone: light, scale: 0.7, speed: 1.5, note: "only when the price actually lands (the onExpire emits damage or an apply); a waived or zero price plays remove's smolder instead" } ]   # the price comes due: molten-gold coins fountain out and scatter
+  devils_tab:
+    # Put It on My Tab's held hit. It counts as a Contract and pays in the same coin, but its own apply and
+    # expire replace Contract's; only a tab cleansed before it comes due falls back to Contract's smolder.
+    apply:  [ { fx: scifi_charge_up_001, size: small, tint: duo, scale: 0.5, speed: 1.5, note: "the blow is caught and banked: its flash is drawn into a small ring instead of landing, so no hit plays for it" } ]
+    expire: [ { fx: directional_coin_burst_001, size: small, tone: light, scale: 0.55, speed: 1.5 } ]   # the tab comes due: half of it, as Affliction
+  devils_ledger:
+    note: >-
+      The `died` signal fires on every death, but the Ledger pays only when the dead unit held this
+      character's Contract or their Price on Their Head. Play the first cue only when a branch pays, and the
+      second only on the bounty branch. For a Contract holder, Soul Fragment's default (2 stacks) then lands
+      on the bearer.
+    trigger:
+      - { fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.6 }   # on the bearer: the account is closed
+      - { fx: fanfx_stop, at: source, size: small, variant: red, scale: 0.5, offset: [0, 0.6], speed: 2, note: "bounty only: the hourglass cracks over the killer as their cooldowns reset; the energy shows in the energy bar" }
+
+macros: {}   # Devil defines no macros
+
+skills:
+  strike.devil:
+    beat: A crescent of crimson fire rips up through the target and Hellfire catches; if they were already burning, it leaps to one of their allies.
+    cues:
+      - { on: hit, fx: frost_knight_2, face: fromActor, tint: duo }   # the counter-clockwise uppercut; its mist edging reads as brimstone smoke
+      - { on: hit, fx: directional_splatter_003, size: small, face: fromActor, scale: 0.5, delay: 80 }   # embers spray out past them
+      # Hellfire's default catches on whoever gains it. The leap to an ally gets its own spark so it reads as extra.
+      - { on: apply, status: debuff, only: others, fx: scifi_spark_burst_001, size: small, tint: duo, scale: 0.5, note: "the leap: a small crimson spark arcs from the primary target to this ally as the Hellfire catches" }
+
+  smash.devil:
+    beat: A hooked claw of hellfire arcs overhead and crashes down on the target, and each Buff they hold sets one of their allies alight.
+    cues:
+      - { on: travel, fx: deathbringer_1, path: beam, tint: duo, note: "the claw has its flight built in: span it user to target so the crash at its lower-right corner lands on the target" }
+      - { on: hit, fx: blood_knight_6, tint: element, scale: 1.1 }   # the blood nova recolored into a burst of fire
+      # The splash is fire, not damage: one Hellfire per Buff, each on a random ally (the same ally can catch twice).
+      - { on: apply, status: debuff, only: others, fx: directional_impact_002, size: small, tint: duo, scale: 0.6, layer: under, stagger: 120 }   # a fire-crack runs under each ally as it catches
+
+  charge.devil:
+    beat: The user burns their own blood for speed, streaks across as a hellfire comet and crashes into the target.
+    cues:
+      - { on: travel, fx: blood_knight_4, path: beam, tint: element, frames: [13, 20], note: "launch only: the comet leaves the user's end and crashes as a crescent on the target; the portrait lunges along it. Blood art, burning in Fire" }
+      - { on: hit, only: primary, fx: symmetrical_impact_004, tint: duo, scale: 0.8 }
+      - { on: hit, only: others, fx: directional_splatter_005, size: small, tint: element2, tone: light, scale: 0.6 }   # the 15 HP it costs, paid first: blood boils up off the user
+      # Focus's default lands on the user.
+
+  riposte.devil:
+    beat: An unseen crimson guard-crescent swells out from the user and breaks into shards; an attacker is stopped cold and pays their due, a Buff handed over or a rake of hellfire.
+    cues:
+      - { on: cast, fx: frost_knight_4, tint: duo, scale: 1.0, opacity: 0.75, note: "Invisible: only the owner sees the guard. Mirror it so the crescent bulges out toward the enemy side; over the portrait, so it isn't lost behind it. A guard shape, unlike Infernal Edge's uppercut" }
+      - { on: trigger, status: devils_due, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.6 }   # the guard flashes on the user as the skill is caught
+      - { on: remove, status: buff, fx: directional_coin_burst_001, tone: light, scale: 0.6, speed: 1.5 }   # on the attacker: their Buff is taken as payment; its own default then plays on the user
+      - { on: hit, fx: dark_mage_1, face: fromActor, tint: duo, scale: 0.8 }   # no Buff to take: 15 Affliction as a rake of hellfire
+
+  rage.devil:
+    beat: The user signs in blood, power surges into them over a blazing gold pentagram, and when the Contract runs out the price is torn out of them in blood.
+    cues:
+      - { on: cast, fx: stylized_explosion_005, tint: duo, frames: [10, 25] }   # skips the long thin wind-up: shards converge and the surge bursts
+      - { on: apply, status: faustian_contract, fx: deathbringer_2, tint: element, tone: light, scale: 1.75, layer: under, speed: 1.5, frames: [2, 17] }   # the pact seal, full size behind the user: its points and rim frame the portrait (replaces the small stamp)
+      - { on: hit, fx: burst_splatter_002, tint: duo, scale: 0.8, delay: 150, note: "the price, 30 Affliction on the user when the Contract expires (after Contract's coins): a heavy gout of crimson bursts out of them. Horrified's skull follows, the only skull in the price" }
+      # Might's, Flameborn's and Immortal's defaults play on the user.
+
+  shot.devil:
+    beat: A molten coin is flipped at the target and bursts in crimson sparks; an Ignite on them flares crimson and becomes Hellfire.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: arc, size: small, tone: light, scale: 0.35, frames: [0, 2], repeat: 3, note: "a glinting gold coin flipped end over end: only the compact glittering puff, looped for the whole arc, so it never opens into the ring" }
+      - { on: hit, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.55, speed: 1.5 }
+      - { on: remove, status: ignite, fx: directional_fire_burst_002, tint: element2, scale: 0.6 }   # the orange flame flares crimson as it turns (replaces Ignite's snuffed wisp); Hellfire's default follows
+      # Already in Hellfire: Soul Fragment's default lands on the user instead.
+
+  snipe.devil:
+    beat: The user tallies a debt with no sign of whose; next turn a fanged maw closes on the debtor, and any Contract they hold is collected twice.
+    note: >-
+      HiddenTarget: the wind-up and release stay on the user and point nowhere; nothing marks the target
+      until the maw lands. Interrupting the channel plays the base interrupted default.
+    cues:
+      - { on: cast, fx: frost_mage_1, tint: duo, scale: 0.7, note: "two embers orbit a crimson ring on the user; fade out the held ghost ring of the last frame" }
+      - { on: trigger, status: collection_day, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.6 }   # it falls due: a toll-ping on the user (fires from onExpire)
+      - { on: hit, fx: necromancer_8, tint: duo, speed: 1.3 }   # the collector's maw rises around them and closes on a skull
+      - { on: hit, fx: symmetrical_impact_003, size: small, tint: duo, scale: 0.7, delay: 200 }
+      - { on: remove, status: contract, fx: directional_coin_burst_001, tone: light, scale: 0.8, speed: 2, repeat: 2, note: "collected early and doubled. Binds the effectRemoved (reason 'expired') from the expire op and replaces Contract's expire default for this skill, so two pours play in place of one. The Contract's own price cues already play twice (its onExpire runs twice under its own skill); if the renderer can't make this replacement, drop the repeat and let those carry the doubling" }
+
+  trap.devil:
+    beat: A faint gold pentagram is pressed unseen at the enemy's feet; the moment they act, the fine print burns into view and binds them to a Contract.
+    cues:
+      - { on: apply, status: fine_print, fx: deathbringer_2, tint: element, tone: light, scale: 0.5, opacity: 0.6, offset: [0, -0.25], frames: [2, 13] }   # Invisible: owner only. Over the lower portrait so the owner can see it; the seal forms and holds, no stamp flash
+      - { on: trigger, status: fine_print, fx: scifi_spark_burst_001, tint: duo, tone: light, scale: 0.8, offset: [0, -0.3] }   # the hidden seal crackles as they act (the large size: the small one's thin lines read faint)
+      - { on: apply, status: fine_print_contract, fx: deathbringer_2, tint: element, tone: light, scale: 0.7, speed: 1.5, frames: [2, 17] }   # the Contract they signed without reading stamps over them, larger than usual; Swiftness's default is the bait
+      # When it expires, Contract's coins pour, then Stun's and Weakness's defaults collect the price.
+
+  maneuver.devil:
+    beat: The user dissolves into a puff of brimstone and re-forms with a glint of gold; every blow on them goes on the tab.
+    cues:
+      - { on: cast, fx: round_sparkle_burst_002, tint: duo, tone: dark, scale: 0.9, note: "Invisible: owner only. The portrait blinks out under the cloud and back in" }
+      - { on: cast, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.4, offset: [0.35, 0.55], delay: 300 }   # the tab is opened: a gold glint by the head
+      # What the opponent sees is the payoff: On the Tab's default on each held hit, then its coins when it comes due.
+
+  companion.devil:
+    beat: A pentagram burns open where the Imp Notary will stand, flashes white and melts into hot wax, and the Notary climbs out of the brimstone.
+    cues:
+      - { on: summon, fx: deathbringer_2, tint: element, tone: light, scale: 0.9, layer: under, speed: 1.5, frames: [2, 22] }   # this time the melt plays: the gold seal drips like sealing wax
+      - { on: summon, fx: symmetrical_smoke_burst_002, tint: duo, tone: dark, scale: 0.7, delay: 450, note: "the Notary's portrait appears as the seal flashes white" }
+
+  bolt.devil:
+    beat: A crimson fire-comet streaks in and the target erupts in a column of orange fire; the user owes for it later, unless the target is dead by then.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: beam, tint: duo, note: "the flight is built in: lay it user to target so the splat lands on them" }
+      - { on: hit, only: primary, fx: epic_explosion_001, tint: element, scale: 0.9 }   # Fire's orange column under the crimson comet
+      # The price two turns later, 15 Affliction on the user. Its coins ride on the damage itself, so they play only
+      # when it is paid. Waived (the target died): no damage, so no coins and no splatter; Contract's smolder shows
+      # the debt lapsing unpaid.
+      - { on: trigger, status: borrowed_fire, fx: none, note: "silences Contract's coins for this skill: the price's own hit below carries them" }
+      - { on: hit, only: others, fx: directional_coin_burst_001, size: small, tone: light, scale: 0.6, speed: 1.5 }
+      - { on: hit, only: others, fx: burst_splatter_001, size: small, tint: duo, scale: 0.45, delay: 250 }
+
+  blast.devil:
+    beat: Crimson embers rain over the whole enemy side and orange fire-comets dive onto every enemy; the souls the user spends keep them burning.
+    note: >-
+      The spent Soul Fragments: removeStacks emits no event while stacks remain (see unholy.yaml), so a
+      user spending 1–2 of 3 shows nothing. Once the engine emits one per spent stack, Soul Fragment's
+      remove default plays on the user for each.
+    cues:
+      - { on: hit, fx: paladin_6, face: fromActor, tint: element, scale: 0.9, stagger: 110 }   # an orange comet dives in on each enemy from the user's side, onto the crimson ring
+      - { on: hit, fx: spell_forge_001, at: enemySide, tint: duo, scale: 2.4, opacity: 0.7, note: "once, with the first hit: embers rain along the row and flare on a ground ring under it. Over the portraits, so the drops aren't hidden behind the middle one; the art is sparse enough to keep them readable" }
+      # With fragments spent, Hellfire's default catches on every enemy.
+
+  consume.devil:
+    beat: A nick opens a Debt on the target; when it falls due, molten coin streams out of them toward the user, who drinks it in as health.
+    cues:
+      - { on: hit, fx: burst_splatter_001, size: small, tint: duo, scale: 0.5 }   # serves both the 5-damage nick now and the 20 price later
+      - { on: trigger, status: collect_debt, fx: directional_coin_burst_001, face: toActor, tone: light, scale: 0.8, speed: 1.5 }   # the price: coins fountain from the debtor toward the user (replaces Contract's payout here)
+      - { on: heal, fx: round_sparkle_burst_003, tone: light, scale: 0.7, speed: 1.5 }   # the gold gathers into the user
+
+  summon.devil:
+    beat: A dome of fire bursts up from the ground and the Imp Captain strides out, cracking a spray of crimson embers.
+    note: Imp Captain's passive (5 more damage per Soul Fragment) has no trigger of its own; it shows in Ember Whip's hits.
+    cues:
+      - { on: summon, fx: stylized_explosion_003, tint: element, scale: 0.9 }   # Fire's orange dome
+      - { on: summon, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.6, delay: 300 }   # the whip-crack of crimson sparks as it lands, so both parents show
+
+  channel.devil:
+    beat: A crimson soul-flame kindles in the user's hand; at the end of each of their turns it flares, and the target's soul boils up through the Hellfire.
+    cues:
+      - { on: cast, fx: fire_looping_001, tint: duo, scale: 0.6, repeat: 2, note: "held low in front of the portrait like a lantern" }
+      - { on: trigger, status: soulburn, fx: fire_looping_001, size: small, tint: duo, tone: light, scale: 0.5 }   # each pulse flares in the user's hand
+      - { on: hit, fx: symmetrical_explosion_003, tint: duo, scale: 0.75 }   # the 10 Affliction: the soul boils up and bursts over them
+      # Hellfire's default catches on the target and goes out with the channel (linked).
+
+  stab.devil:
+    beat: A three-pronged pitchfork of hellfire punches through the target and flicks a Buff off its tines; with nothing to take, it drives in twice as hard.
+    note: The 20-damage version (no Buffs) is the same hit event; play the hit about 1.25x larger.
+    cues:
+      - { on: hit, fx: warrior_8, face: fromActor, tint: duo, scale: 0.7 }   # the thrust trails three flame prongs: the pitchfork
+      - { on: remove, status: buff, fx: directional_splatter_001, face: fromActor, tone: light, scale: 0.6 }   # the Buff flicked out the far side
+
+  ravage.devil:
+    beat: A clawing flurry of crimson fire tears into the target and bursts in molten bubbles; any Buffs they hold are pawned, kept a turn, then taken with interest.
+    note: >-
+      The price a turn later (Buffs lost, 10 Affliction per Buff) is this skill's hit on the same unit
+      again. For it, play only the second layer, small (the damage's cause is hellraze_contract), after
+      Contract's coins; the lost Buffs play their own remove defaults.
+    cues:
+      - { on: hit, fx: paladin_8, face: fromActor, tint: duo, scale: 1.1 }   # the striped multi-claw sweeps round and over them
+      - { on: hit, fx: symmetrical_explosion_002, tint: element, scale: 0.8, delay: 150 }   # molten orange bubbles under the crimson claws
+      # With Buffs, Contract's seal stamps on them.
+
+  mislead.devil:
+    beat: A faint crackling snare hangs unseen around the enemy; their next attack spirals down into it, and the souls of their burns flow to the user.
+    cues:
+      - { on: apply, status: soul_snare, fx: scifi_charge_up_002, size: small, tint: duo, tone: dark, scale: 0.8, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: soul_snare, fx: slime_5, tint: duo, scale: 0.8, speed: 1.5 }   # on the countered enemy: their action spirals down into the snare
+      # Soul Fragment's default lands on the user when they were burning.
+
+  stun.devil:
+    beat: Hell-spikes burst up around the target and a burning shackle closes on them; while Hellfire holds, every other turn it locks them in place.
+    cues:
+      - { on: hit, fx: directional_impact_003, tint: element, scale: 0.75 }   # orange hell-spikes; the shackle is crimson
+      - { on: apply, status: hellbound, fx: dark_mage_2, tint: duo, tone: dark, scale: 0.8, frames: [0, 10], delay: 150, note: "the shackle-ring closes round their body; portrait staggers back a step. Trimmed before the art's odd last frame" }
+      - { on: trigger, status: hellbound, fx: dark_mage_2, tint: duo, scale: 0.7, frames: [0, 10], speed: 1.5, note: "only on a turn it actually locks them (Hellfire on, and not the rest turn after a lock); its bookkeeping turns play nothing. The renderer reads that from hellbound_now after the trigger" }
+      # Hellfire's default catches on them.
+
+  dance.devil:
+    beat: Two crimson wisps whirl round the user like dancing partners and fling off sparks; at each of the user's turns the partner returns and every burn they set flares again.
+    cues:
+      - { on: cast, fx: starcaller_4, tint: duo, scale: 1.1, opacity: 0.85, speed: 1.2 }   # over the portrait: the thin wisps circle it without hiding it
+      - { on: cast, fx: round_firework_burst_001, tint: duo, scale: 0.8, delay: 500 }   # sparks fling off as the partners part
+      - { on: trigger, status: dance_with_the_devil, fx: starcaller_4, tint: duo, scale: 0.6, speed: 1.5 }   # turn start, on the user; each enemy burning with the user's Ignite then plays ignite_tick (Brimstone's macro)
+      # Swiftness's and Focus's defaults play on the user.
+
+  heal.devil:
+    beat: Coins spill out of the strongest enemy and crimson hearts rise through the ally, an even trade of HP for HP.
+    cues:
+      - { on: hit, fx: directional_coin_burst_001, tone: light, scale: 0.8, speed: 1.5 }   # the enemy pays
+      - { on: heal, fx: directional_heart_burst_001, tint: duo, scale: 0.8, speed: 1.5, delay: 150 }
+
+  bless.devil:
+    beat: The pact's flames rain onto the ally and brand a ring at their feet; each heal they take knocks a gold glint off the bill.
+    cues:
+      - { on: apply, status: lifesteal, fx: spell_forge_001, tint: duo, tone: light, scale: 0.9, note: "bright crimson flames fall onto the ally and brand a ring at their feet, over the portrait (sparse drops and a thin ring, so it stays readable). Bound to the Lifesteal so it plays once; Contract's seal plays on the Pact of Flame" }
+      - { on: apply, status: lifesteal, fx: blood_knight_5, scale: 0.9, delay: 350 }   # Lifesteal's cocoon, re-added (this skill's own apply cue replaces it)
+      - { on: trigger, status: pact_of_flame, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.35, offset: [0, 0.55], note: "its healed trigger only: each heal knocks something off the price. At the onExpire (the price) Contract's coins still play, and only when some price is left" }
+      - { on: hit, fx: directional_splatter_005, size: small, tint: duo, scale: 0.55 }   # the price, if any is left when it expires (after Contract's coins)
+
+  curse.devil:
+    beat: A molten coin drops out of the dark onto the enemy and lands in Hellfire; heads, a dark pop and every curse on them deepens, tails, the user pockets a soul.
+    note: >-
+      Heads has no event of its own: extendEffects emits none, and the forEach re-applies only the Weakness,
+      Vulnerable, Toxin and Confusion the target already had. The engine should emit one per extended effect
+      (e.g. a durationChanged event), or the renderer must diff durations at the checkpoint, so heads reads
+      even against a target holding only Hellfire. Until then the heads cue infers it from the missing Soul
+      Fragment.
+    cues:
+      - { on: travel, fx: round_sparkle_burst_001, path: drop, size: small, tone: light, scale: 0.35, frames: [0, 2], repeat: 3, note: "the tossed coin: one compact gold glint falling onto them, held before it opens into the ring" }
+      # Hellfire's default jet catches as it lands.
+      - { on: resolve, at: target, fx: symmetrical_explosion_001, size: small, tint: duo, tone: dark, scale: 0.6, note: "heads only: play when this use applied no Soul Fragment (tails shows Soul Fragment's default on the user). The deepened debuffs the target already had replay their own defaults" }
+
+  smite.devil:
+    beat: A brimstone shard drops onto the target and shatters, and a blood-red bounty mark flares over their head with a glint of gold.
+    cues:
+      - { on: hit, fx: frost_mage_5, tint: duo }   # its grey smoke curls stay grey: brimstone
+      - { on: apply, status: price_on_their_head, fx: symbol_warning_001, size: small, variant: red, scale: 0.4, offset: [0, 0.6], speed: 2, frames: [2, 45], note: "the bounty: it pops in and holds through the shine sweep; cut before the scanline glitch. No skull, so it doesn't read as Horrified" }
+      - { on: apply, status: price_on_their_head, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.35, offset: [0, 0.6], delay: 200 }   # the kit's gold glint: the price is on the books
+      # If they die within 2 turns, the Devil's Ledger default pays out.
+
+  prayer.devil:
+    beat: A choir rises out of the pit behind the user's team in crimson notes, every ally is lifted, and dread falls on every enemy.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, at: allySide, tint: duo, scale: 2.0, layer: under }   # the team-wide wind-up, behind the portraits
+      - { on: heal, fx: directional_music_burst_002, tint: duo, scale: 0.7, speed: 1.5, stagger: 100 }   # the hymn fans over each healed ally
+      - { on: trigger, status: choir_of_the_pit, fx: round_music_burst_001, size: small, tint: duo, scale: 0.5 }   # on the Horrified enemy whose ally's help turns: the choir jeers; Might's default lands on one of the user's allies
+      # Horrified's default skull falls on each enemy.
+
+  cleave.devil:
+    beat: A wide crimson arc cuts through the target and its tail sweeps on to a second enemy, who co-signs for half of everything the target takes.
+    cues:
+      - { on: hit, only: primary, fx: starcaller_5, face: fromActor, tint: duo }
+      - { on: apply, status: any, only: others, fx: starcaller_5, face: fromActor, tint: duo, tone: dark, scale: 0.6, opacity: 0.7, delay: 150 }   # the arc's tail reaches the co-signer; Contract's seal stamps on them
+      - { on: trigger, status: cosigned_debtor, fx: round_sparkle_burst_001, size: small, tone: light, scale: 0.35, offset: [0, 0.55] }   # each hit on the debtor adds to the bill
+      - { on: hit, only: others, fx: burst_splatter_001, size: small, tint: duo, scale: 0.5 }   # the co-signer's price when it falls due, after Contract's coins
+
+  shout.devil:
+    beat: A toll-ring booms out from the user and rings on every enemy; from then on, each skill they use spills coin and costs them blood.
+    cues:
+      - { on: cast, fx: frost_knight_7, tint: duo, scale: 1.4, layer: under }   # the toll-ring expands from behind the user
+      - { on: apply, status: infernal_toll, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.6, stagger: 80 }   # it rings on each enemy
+      - { on: trigger, status: infernal_toll, fx: directional_coin_burst_001, size: small, tone: light, scale: 0.6, speed: 2, note: "only when the skill cost energy: a free skill pays nothing" }
+      - { on: hit, fx: scifi_spark_burst_001, size: small, tint: duo, scale: 0.5 }   # 5 Affliction per energy
+
+  withstand.devil:
+    beat: A wall of crimson tiles locks together around the user under the pact's seal; when the Contract ends, whatever is left shatters into them.
+    note: Fully broken before it expires, it ends as the base shieldBreak default and nothing is owed.
+    cues:
+      - { on: apply, status: bargained_aegis, fx: fanfx_barrier, tint: duo, scale: 1.4, opacity: 0.85, layer: under, frames: [0, 12] }   # behind the portrait so the panel frames it; built and held, no shatter
+      # Contract's seal, re-added (this skill's own apply cue replaces it).
+      - { on: apply, status: bargained_aegis, fx: deathbringer_2, tint: element, tone: light, scale: 0.45, offset: [0, 0.65], speed: 1.5, frames: [2, 17], delay: 300 }
+      - { on: trigger, status: bargained_aegis, fx: fanfx_barrier, tint: duo, scale: 1.4, opacity: 0.85, layer: under, frames: [13, 25] }   # the price: the leftover wall shatters (in place of Contract's coins)...
+      - { on: hit, fx: symmetrical_impact_006, size: small, tint: duo, scale: 0.7 }   # ...and its shards break into the user as Affliction
+
+  taunt.devil:
+    beat: The user crowns themself the mark and dares the enemy to pay up; each blow they land is tallied in gold, and at 30 the dare is paid off.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, tone: light, scale: 0.45, speed: 2 }   # base Taunt's grammar in the kit's molten gold (unlike Unholy's crimson crown); Taunt's '!' marks the enemy
+      - { on: trigger, status: dare_the_damned, fx: round_sparkle_burst_001, at: source, size: small, tone: light, scale: 0.35, offset: [0, 0.55], note: "only when the attacker is the one the user Taunted: their blow goes on the tally" }
+      - { on: remove, status: taunt, fx: directional_coin_burst_001, size: small, tone: light, scale: 0.6, speed: 1.5 }   # paid off: coins spill and the Taunt lifts
+
+  titan.devil:
+    beat: A pit tears open beneath the user, a fountain of hellfire erupts up behind them, and they rise as the Archfiend; every enemy they wound catches Hellfire.
+    cues:
+      - { on: cast, fx: scifi_warp_001, tint: duo, tone: dark, scale: 1.3, offset: [0, -0.6], layer: under }   # the slit opens along the feet line below the portrait and widens into the pit
+      - { on: cast, fx: epic_explosion_002, tint: duo, scale: 1.8, layer: under, delay: 200, note: "hellfire fountains up out of the pit behind the portrait, its fireballs arching out past its edges. The portrait swells about 10% with a screen shake as it erupts, and holds the size while Archfiend lasts" }
+      - { on: trigger, status: archfiend, fx: scifi_spark_burst_001, at: target, size: small, tint: duo, scale: 0.5 }   # sparks fly off each enemy the Archfiend wounds; Hellfire's default catches
+      # Immune's default and Lifesteal's bat-winged cocoon play on the user.
+
+  imp_notary_offer:
+    beat: The Notary ticks the box with a golden check and the Contract seals; Might now, a price later.
+    cues:
+      - { on: cast, fx: symbol_success_001, size: small, tone: light, scale: 0.4, offset: [0, 0.6], speed: 2, frames: [0, 39] }   # over the Notary: cut before the scanline glitch
+      - { on: hit, fx: symmetrical_impact_005, size: small, tint: duo, scale: 0.5 }   # the 10 Affliction price when it expires, after Contract's coins
+      # Might's default and Contract's seal land on the target.
+
+  imp_notary_sealing_wax:
+    beat: The Notary flicks a glob of molten wax that splats on the target; on a Contract holder it sets Hellfire.
+    cues:
+      - { on: travel, fx: slime_3, path: beam, tint: duo, scale: 0.5, note: "its flight is built in: stretch it so the splat (about 70% along) lands on the target. The goo reads as molten wax" }
+      - { on: hit, fx: directional_splatter_002, size: small, tint: duo, scale: 0.6 }
+      # On a Contract holder, Hellfire's default catches.
+
+  imp_captain_ember_whip:
+    beat: The Imp Captain cracks an ember whip across the target in a spray of sparks.
+    note: Imp Captain's passive (5 more per Soul Fragment the summoner has) folds into the same hit; play it about 1.2x larger at 2+ fragments.
+    cues:
+      - { on: hit, fx: warrior_3, face: fromActor, tint: duo, scale: 0.6 }   # the lash curls into its hook
+      - { on: hit, fx: round_firework_burst_001, size: small, scale: 0.4, delay: 80 }

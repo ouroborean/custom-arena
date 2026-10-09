@@ -16,7 +16,8 @@ import { create } from 'zustand';
 import { api, type ArcadeStart, type StoryResult } from './api.js';
 import { LocalMatch } from './match/LocalMatch.js';
 import { useMeta } from './meta.js';
-import { useSettings } from './settings.js';
+import { reducedMotion, useSettings } from './settings.js';
+import { vfxEvent, vfxReconcile, vfxReset } from './vfx/player.js';
 import { cueFor } from './match/cues.js';
 import { playCue } from './sfx.js';
 import { isReferenceHash } from './reference/route.js';
@@ -499,6 +500,10 @@ export const useStore = create<StoreState>((set, get) => {
       // Sound: each event as it plays; a fast-forward (instant playback) only keeps the ending.
       const cue = cueFor(match.content, e, viewer);
       if (cue && (!fastForwarding || e.t === 'gameOver')) playCue(cue);
+      // Animation: each event as it plays, on the board as it stood just before it.
+      if (!fastForwarding && !reducedMotion(useSettings.getState())) {
+        vfxEvent(e, lead.view ?? get().displayView ?? match.view(viewer), get().speed);
+      }
       const units = match.view(viewer).units;
       const line = isLogged(e) ? toLogLine(match.content, units, e, id++) : null;
       const nextLogs: [LogLine[], LogLine[]] = [...logs];
@@ -528,6 +533,8 @@ export const useStore = create<StoreState>((set, get) => {
 
     afterPlayback() {
       const { match, viewer } = get();
+      vfxReset();
+      if (match) vfxReconcile(match.view(viewer));
       set({ displayView: null, displayHp: {}, version: get().version + 1 });
       if (!match || match.finished) return;
       if (match.mode.kind === 'hotseat' && match.active !== viewer) set({ handoff: match.active });

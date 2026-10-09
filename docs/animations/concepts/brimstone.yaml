@@ -1,0 +1,287 @@
+group: brimstone
+# Brimstone (Fire + Poison) is sulfur: fumes that catch fire. Its flame is `duo` (Fire's ember-red edges
+# around Poison's lime-yellow body), its fumes are Poison (`element2`), and plain Fire (`element`)
+# is kept for heat and sparks. The signature is the Erupt. Two explosions are drawn with red fire under
+# olive smoke (epic_explosion_003, stylized_explosion_006): a Fire tint swaps only their fire and keeps
+# the olive smoke, so they read as Fire and Poison at once. Brimstone keeps them for Sulfur going off,
+# so a Sulfur payoff looks the same whatever sets it off. Around that: duo class art (sulfur-crystal
+# spikes, a burning maw, a hellish seal) and the "fume, then flare" two-beat. Tints never use raw hex.
+#
+# Portraits are opaque squares: `layer: under` cues here are scaled past the frame, or they wouldn't show.
+
+statuses:
+  sulfur:
+    note: Stacking (max 4) and on many units at once, so no aura; the icon carries the count. Several stacks in one apply play the cue once.
+    apply:  [ { fx: directional_splatter_005, size: small, tint: duo, scale: 0.45, speed: 1.3 } ]   # a little sulfur spring bubbles up at their feet
+    remove: [ { fx: directional_smoke_burst_004, size: small, tint: element2, tone: light, scale: 0.45, opacity: 0.6 } ]   # cleansed, stolen or Erupted: the fumes thin away (an Erupt's mushroom covers it)
+  belching_toad_gulp:   # Belching Toad, end of its owner's turn: moves a random Debuff from an ally onto an enemy
+    note: >-
+      The steal touches two units: the ally the Debuff is pulled off (its effectRemoved bearer) and the
+      enemy it lands on (its effectApplied bearer). The moved Debuff also plays its own remove and apply
+      defaults where it has them; many Debuffs have none, so the cues below carry both ends.
+    trigger:
+      - { fx: directional_smoke_burst_004, at: target, size: small, tint: element2, tone: dark, scale: 0.45, opacity: 0.8, note: "on the ally the Debuff is pulled off (the steal's effectRemoved bearer), before the belch" }   # the Debuff lifts off them as a wisp
+      - { fx: directional_smoke_burst_003, face: toTarget, size: small, tint: duo, scale: 0.55, delay: 150 }   # the toad belches toward the enemy
+      - { fx: burst_splatter_001, at: target, size: small, tint: duo, scale: 0.5, delay: 300, note: "only on the enemy that receives the Debuff (the effectApplied bearer)" }   # the gob lands
+  stoker_flame:   # each Stoker, end of its owner's turn: Ignites an enemy with Sulfur, else 1 Sulfur to a random enemy
+    trigger:
+      - { fx: fire_looping_001, size: small, tint: duo, scale: 0.4 }   # its brazier flares
+      - { fx: scifi_spark_burst_001, at: target, size: small, scale: 0.5, delay: 150 }   # sparks shower onto them; Ignite's or Sulfur's default follows
+
+macros:
+  # Played for each unit the Erupt damages. Here `only: primary` is the erupting unit (`it`: 10 per
+  # stack, its Sulfur spent) and `only: others` is each ally caught in the splash (5 per stack).
+  erupt:
+    - { fx: epic_explosion_003, only: primary, note: "`only: primary` here = the erupting unit (the macro's `it`: the unit whose Sulfur was just consumed, taking 10 per stack), NOT the skill's targeted unit. Scale with the stacks that went off: about 0.8 at 1 Sulfur up to 1.3 at 4 (its damage / 10). One short shake per Erupt; space chained Erupts ~300 ms" }   # red fire under olive smoke
+    - { fx: stylized_explosion_006, only: others, size: small, scale: 0.55, delay: 150, stagger: 60, note: "`only: others` = each ally of the erupting unit hit by the 5-per-stack splash" }   # a gout of burning gas reaches each ally
+    # The Sulfur becomes Toxin: Toxin's default skull puff follows on the erupting unit.
+  ignite_tick:   # an extra tick of the unit's Ignite (also Devil, Phoenix, Ritual): reads as Ignite's own tick, quicker so repeats chain
+    - { fx: fire_looping_001, size: small, scale: 0.45, speed: 1.5, note: "repeated ticks on one unit ~250 ms apart; a tick that sets off Sulfur plays the erupt macro after it" }
+
+skills:
+  strike.brimstone:
+    beat: A sulfur-flame claw rakes the target and fumes curl up off the cut.
+    cues:
+      - { on: hit, fx: blood_knight_2, face: fromActor, tint: duo, scale: 0.85 }
+      - { on: hit, fx: directional_smoke_burst_004, size: small, tint: element2, scale: 0.6, delay: 120 }
+      # Sulfur's default lands; at 4 stacks the erupt macro follows.
+
+  smash.brimstone:
+    beat: The blow cracks the ground and sulfur crystals burst up under the target, while molten sulfur spurts under each of their allies.
+    note: "Brimquake's later 10 damage (an Explosion landing on a bearer) plays its trigger cue and then only the splash-sized spurt (the `others` cue), never the spike row again, even on the primary target."
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_3, tint: duo, scale: 0.9, note: "short screen shake as the spikes flash white" }
+      - { on: hit, only: others, fx: directional_splatter_002, tint: duo, scale: 0.55, offset: [0, -0.25], delay: 150, stagger: 80 }
+      - { on: trigger, status: brimquake, fx: directional_impact_003, size: small, tint: duo, scale: 0.6 }   # an Explosion lands on them: the cracked crust bursts again
+
+  charge.brimstone:
+    beat: The user lunges in on raking sulfur streaks and drives a spatter of burning sulfur through the target; next turn its fumes close around their head.
+    cues:
+      - { on: travel, fx: blood_knight_1, tint: duo, scale: 0.6, note: "portrait lunges along it; its own crash frames land on the target" }
+      - { on: hit, fx: directional_splatter_004, face: fromActor, size: small, tint: duo, scale: 0.6, note: "skip on a 0-amount damage event" }   # a goopy fan the lunge drives on past them
+      - { on: trigger, status: choking_lunge, fx: status_poison_001, tint: element2, tone: light, scale: 0.6, offset: [0, 0.35], frames: [0, 15], note: "only when the tick deals damage (the bearer has Toxin). A 0-damage tick plays nothing: neither these bubbles nor the replayed hit" }   # their turn starts: Toxin's own tick bubbles close around their head
+      # The extra Toxin tick's damage then replays this skill's hit (the spatter). Focus's default plays on the user.
+
+  riposte.brimstone:
+    beat: A shell of sulfur scales closes over the user; whoever strikes it is spattered with sulfur, and a burning attacker goes up.
+    cues:
+      - { on: cast, fx: frost_knight_9, tint: duo, scale: 0.9, opacity: 0.6 }   # Invisible: owner only
+      - { on: trigger, status: brimstone_hide, fx: symmetrical_impact_004, size: small, tint: duo, scale: 0.7 }   # the hide bursts its crust on the user
+      - { on: trigger, status: brimstone_hide, fx: burst_splatter_003, at: source, size: small, tint: duo, scale: 0.6, delay: 100 }
+      - { on: heal, fx: directional_particle_burst_001, tint: duo, scale: 0.6 }   # the Erupt's heat rises into the user
+      # The counter's X, Sulfur's default and (if Ignited) the erupt macro play on the attacker.
+
+  rage.brimstone:
+    beat: Sulfur vents flare up around the user, and the smell of cinders drifts over every enemy.
+    cues:
+      - { on: cast, fx: dark_mage_3, tint: duo, scale: 1.2 }
+      - { on: apply, status: cinder_scent, fx: scifi_spark_burst_001, size: small, scale: 0.9, speed: 1.3, offset: [0, 0.2], delay: 250, stagger: 100 }   # a fountain of cinders droops over each one
+      # Might's and Immune's defaults play on the user.
+
+  shot.brimstone:
+    beat: A bead of sulfur is flicked at the target and spatters through them.
+    cues:
+      - { on: travel, fx: directional_splatter_001, tint: duo, scale: 0.4, speed: 1.5 }
+      - { on: hit, fx: directional_splatter_003, face: fromActor, size: small, tint: duo, scale: 0.6 }
+      # Sulfur's default lands; on Prey or existing Sulfur the erupt macro follows.
+
+  snipe.brimstone:
+    beat: The user's javelin catches in burning pitch; next turn it is hurled skyward and plunges onto the hidden target, which Erupts.
+    note: >-
+      HiddenTarget: nothing points at the target until the javelin lands. While pitch_javelin is up, keep
+      a faint flame at the javelin tip over the user (fire_looping_001, tint duo, size small, scale 0.3,
+      opacity 0.5, offset [0, 0.45]) so the opponent sees something to interrupt. The javelin deals no
+      damage of its own: it lands with the Sulfur (these cues replace Sulfur's default here), then the
+      erupt macro is the payoff.
+    cues:
+      - { on: cast, fx: fire_looping_001, size: small, tint: duo, scale: 0.45, offset: [0, 0.45], repeat: 2 }   # the pitch-soaked tip catches over the user
+      - { on: trigger, status: pitch_javelin, fx: starcaller_2, face: up, tint: duo, scale: 0.7 }   # launched straight up: a burning head streaming its tail
+      - { on: apply, status: sulfur, fx: paladin_6, face: fromActor, tint: duo, scale: 0.9, note: "dives in and strikes at frame 2 (~100 ms): start the erupt macro on the strike" }   # the javelin plunges in from the user's side
+      - { on: apply, status: sulfur, fx: burst_splatter_003, tint: Shadow, size: small, scale: 0.6, delay: 150 }   # pitch splatters (Shadow's pale light stop keeps the tar visible)
+
+  trap.brimstone:
+    beat: A brimstone seal is set at the enemy's feet; the first time they help anyone, it flares and melts and every target goes up.
+    cues:
+      - { on: apply, status: brimstone_pit, fx: deathbringer_2, tint: duo, scale: 0.55, offset: [0, -0.35], opacity: 0.7, frames: [0, 13], note: "Invisible: owner only. The seal forms; fade on its held frame before the white flash" }
+      # the opponent's first sight: the seal flashes white and melts as the pit opens
+      - { on: trigger, status: brimstone_pit, fx: deathbringer_2, tint: duo, scale: 0.55, offset: [0, -0.35], frames: [13, 22] }   # on the bearer
+      - { on: trigger, status: brimstone_pit, fx: directional_impact_004, at: target, tint: duo, scale: 0.8, delay: 100, stagger: 80 }   # on each unit the Sulfur goes to
+      # The pit bursts under each unit their skill targeted (often an ally, or the bearer themselves),
+      # then Sulfur's default and the erupt macro play there.
+
+  maneuver.brimstone:
+    beat: The user breathes out a choking pall that rolls over both sides, every other unit is blinded, and the user is sealed away.
+    cues:
+      - { on: cast, fx: directional_smoke_burst_001, tint: duo, scale: 1.3 }
+      - { on: apply, status: debuff, fx: symmetrical_smoke_burst_003, at: enemySide, tint: element2, tone: dark, scale: 2.2, opacity: 0.6, note: "once, with the first Blinded: the side anchor doesn't repeat per unit" }
+      - { on: apply, status: debuff, fx: symmetrical_smoke_burst_003, at: allySide, tint: element2, tone: dark, scale: 2.0, opacity: 0.5, delay: 100 }
+      # Blinded's default plays on every unit; Invulnerable's on the user.
+
+  companion.brimstone:
+    beat: A sulfur spring spurts up and bursts, and a Belching Toad squats in the bubbles.
+    cues:
+      - { on: summon, fx: directional_splatter_002, tint: duo, scale: 0.8, offset: [0, -0.25] }
+      - { on: summon, fx: round_bubble_burst_001, size: small, tint: duo, scale: 0.5, delay: 250 }
+
+  bolt.brimstone:
+    beat: An acrid orb with a smoky tail arcs in and bursts into a fan of caustic spikes, and the target is Marked as prey.
+    note: Acrid (Prey while Marked) has no art of its own; Mark's lock-on carries it.
+    cues:
+      - { on: travel, fx: dark_mage_5, path: arc, tint: duo, scale: 0.7, frames: [0, 4], note: "flight only: cut before the head smears into its own splat, the spike burst is the impact" }
+      - { on: hit, fx: slime_4, face: fromActor, tint: duo, scale: 0.85, note: "origin is lower-left (~20%,75%): pin it on the target so the spikes spray away from the user" }
+      # Mark's default follows.
+
+  blast.brimstone:
+    beat: The user fires a flare skyward and burning sulfur rains down on every enemy, then a fat drop bursts into flame on each.
+    cues:
+      - { on: cast, fx: scifi_muzzle_flash_003, face: up, size: small, tint: duo, scale: 0.6 }
+      - { on: hit, fx: spell_forge_001, scale: 0.9, stagger: 90 }   # embers rain onto each enemy
+      - { on: hit, fx: paladin_7, tint: duo, scale: 0.85, delay: 250, stagger: 90, note: "fade its held last frame" }   # then the fat drop splashes
+      # Each extra Ignite tick plays the ignite_tick macro (and Erupts any Sulfur).
+
+  consume.brimstone:
+    beat: A tall sulfur flame takes hold of the target; each turn it flares and its embers drift into the user.
+    cues:
+      - { on: apply, status: consumed_by_fire, fx: directional_fire_burst_001, tint: duo, scale: 0.85 }   # taller than Ignite's own catch
+      - { on: trigger, status: consumed_by_fire, fx: fire_looping_001, size: small, tint: duo, scale: 0.5 }   # each turn end it burns
+      - { on: hit, fx: directional_particle_burst_001, face: toActor, tint: duo, scale: 0.6, delay: 100 }   # embers lift off toward the user
+      - { on: heal, fx: spell_absorb_001, tint: duo, scale: 0.7, speed: 1.5 }
+      # burn_aftermath then plays Fire's macro (and Erupts any Sulfur).
+
+  summon.brimstone:
+    beat: Two jets of sulfur flame shoot up and two Stokers step out of them in a flare.
+    cues:
+      - { on: summon, fx: directional_fire_burst_001, tint: duo, scale: 0.8, stagger: 150 }
+      - { on: summon, fx: symmetrical_explosion_002, size: small, tint: duo, scale: 0.45, delay: 350, stagger: 150 }
+
+  channel.brimstone:
+    beat: A fanged maw of sulfur flame opens over the user and gapes at each turn's end, raining embers on every enemy, then slams shut and every enemy's Sulfur Erupts.
+    cues:
+      - { on: cast, fx: necromancer_8, tint: duo, scale: 1.1 }
+      - { on: trigger, status: hellmouth, fx: necromancer_8, tint: duo, scale: 0.7, opacity: 0.8, speed: 1.4 }   # each pulse, on the user
+      - { on: hit, fx: round_firework_burst_001, size: small, tint: duo, scale: 0.5, stagger: 60 }   # the 5 Affliction on each enemy
+      - { on: trigger, status: hellmouth_maw, fx: symmetrical_impact_003, tint: duo, scale: 1.1, note: "the maw slams shut on the user; then the erupt macro on every enemy with Sulfur, ~300 ms apart" }
+      # Sulfur's default marks the random enemy each pulse.
+
+  stab.brimstone:
+    beat: A thin streak strikes like a match and the head pops into flame on the target.
+    cues:
+      - { on: hit, fx: starcaller_7, face: fromActor, tint: duo, scale: 0.6 }
+      - { on: hit, fx: symmetrical_explosion_001, size: small, scale: 0.4, delay: 80 }
+      # At 40 HP or less, the user's Explosion follows: Fire's explode macro.
+
+  ravage.brimstone:
+    beat: The Toxin in the target ignites, a spiked sulfur burst tears out of them, a nova of burning sulfur rips outward, and the Toxin burns off as dark smoke.
+    note: "Each Toxin adds 10: scale both hit cues up to about 1.4x at 3+ Toxin, with a short shake (judge by the Toxin on them as it lands)."
+    cues:
+      - { on: hit, fx: blood_knight_3, face: fromActor, tint: duo }
+      - { on: hit, fx: blood_knight_6, tint: duo, scale: 0.8, delay: 120, note: "scale with the Toxin: up to about 1.1 at 3+ Toxin, like the layer above" }   # a radial nova in the same Blood Knight material, not a ground dome (that is the Erupt's silhouette)
+      - { on: remove, status: toxin, fx: directional_smoke_burst_004, tint: Shadow, size: small, scale: 0.5, opacity: 0.8, delay: 300 }   # Shadow's pale light stop keeps the wisp visible
+
+  mislead.brimstone:
+    beat: A sour cloud quietly hangs about the target; when they attack, it billows up bright around them and their skill chokes off.
+    cues:
+      - { on: apply, status: choking_fumes, fx: symmetrical_smoke_burst_003, size: small, tint: element2, tone: dark, scale: 0.6, opacity: 0.55 }   # Invisible: owner only. A dim sour cloud
+      - { on: trigger, status: choking_fumes, fx: symmetrical_smoke_burst_003, tint: duo, scale: 0.85 }   # the opponent's first sight: the same fumes burst bright, with no fire core, as the skill chokes off (nothing Erupts)
+      # The counter's X, then Sulfur's default.
+
+  stun.brimstone:
+    beat: A gout of fumes slams into the target's face and a burning ring cinches around their throat.
+    cues:
+      - { on: hit, fx: directional_smoke_burst_005, face: fromActor, size: small, tint: duo, scale: 0.7, offset: [0, 0.3] }   # ground art, so face only mirrors it; the offset lifts the wedge to face height. Not directional_smoke_burst_003: that is Swiftness's sidestep
+      # on the stun landing, so a refused one cinches nothing; Bypass: Immune and Unstunnable don't stop it
+      - { on: apply, status: asphyxiated, fx: dark_mage_2, tint: duo, scale: 0.55, offset: [0, 0.25], frames: [0, 10], note: "drop its last (crimson) frame; portrait staggers back a step and dims" }
+
+  dance.brimstone:
+    beat: A sulfur vortex whirls around the user; each turn their footwork kicks up a sulfur puff, and when the dance ends they blow up.
+    cues:
+      - { on: cast, fx: slime_5, tint: duo, scale: 1.3, layer: under }   # past the frame, so the whirl shows around the portrait
+      - { on: trigger, status: sulfur_dance, fx: directional_impact_002, size: small, tint: duo, scale: 0.6, note: "turnEnd firings only" }   # the footwork kicks up a puff
+      - { on: trigger, status: sulfur_dance, fx: symmetrical_explosion_004, tint: duo, scale: 1.1, note: "only on the onExpire firing (the dance ending): the vortex blows out from the user, then Fire's explode macro hits each enemy and any Sulfur Erupts" }
+      # Each turn, Sulfur's default on a random enemy and Swiftness's on the user.
+
+  heal.brimstone:
+    beat: A fizzing tonic froths up over the ally and draws their Toxin out as dark droplets.
+    cues:
+      - { on: heal, fx: round_bubble_burst_001, tint: duo, tone: light, scale: 0.75, speed: 1.3, offset: [0, 0.15] }   # single-hue bubbles, so duo recolors all of them
+      - { on: remove, status: toxin, fx: directional_particle_burst_001, tint: element2, tone: dark, size: small, scale: 0.5, delay: 150 }
+      # Sulfur's default lands on the random enemy.
+
+  bless.brimstone:
+    beat: Sulfur embers drift down onto the ally and kindle a burning crest over their brow.
+    cues:
+      - { on: travel, fx: directional_particle_burst_001, path: drop, tint: duo, scale: 0.55 }
+      - { on: apply, status: brimfire_crest, fx: round_sparkle_burst_003, size: small, tint: duo, scale: 0.55, offset: [0, 0.3], frames: [7, 16], delay: 250 }   # on the brow, below Might's icon; starts on the converged star
+      - { on: trigger, status: brimfire_crest, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.4, offset: [0, 0.3] }   # the crest glints when it heals
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, scale: 0.45, speed: 2 }
+      # Might's and Flameborn's defaults play on the ally.
+
+  curse.brimstone:
+    beat: The target's Toxin curdles into a yellow skull-cloud of sulfur, and sulfur wisps curl around their head until they're muddled.
+    note: With no Toxin on them only the wisps and the question mark play; when Immune refuses the Confusion, only the cloud.
+    cues:
+      - { on: remove, status: toxin, fx: spell_poison_001, tint: duo, scale: 0.85 }
+      - { on: apply, status: confusion, fx: starcaller_4, tint: duo, scale: 0.7, offset: [0, 0.4] }
+      # Confusion's default, re-added after the wisps (this skill's own apply cue replaces it).
+      - { on: apply, status: confusion, fx: symbol_question_001, size: small, tint: duo, scale: 0.5, speed: 1.5, delay: 350 }
+
+  smite.brimstone:
+    beat: A pillar of sulfur flame drives a red-hot brand into the target and sears a ring at their feet.
+    cues:
+      - { on: hit, fx: paladin_5, tint: duo, scale: 0.8 }
+      - { on: apply, status: brand_of_sulfur, fx: spell_forge_001, size: small, tint: duo, scale: 0.6, delay: 300 }
+      - { on: trigger, status: brand_of_sulfur, fx: burst_splatter_001, size: small, tint: duo, scale: 0.45 }   # an ally strikes them: sulfur spits off the brand
+      - { on: heal, fx: spell_heal_003, size: small, tint: duo, scale: 0.45, speed: 2 }   # on the striking ally
+      # Sulfur's default lands with the brand.
+
+  prayer.brimstone:
+    beat: The user strikes up a hellish song and burning notes arch over every ally.
+    cues:
+      - { on: cast, fx: directional_music_burst_001, tint: duo, scale: 0.7 }
+      - { on: heal, fx: directional_music_burst_002, tint: duo, scale: 0.75, stagger: 100 }   # replays on each Hellsong heal: the song swells again
+      - { on: trigger, status: hellsong, fx: round_sparkle_burst_001, size: small, tint: duo, scale: 0.45, offset: [0, 0.5] }   # an Eruption on their side answers
+      # Flameborn's default plays on each ally.
+
+  cleave.brimstone:
+    beat: A spiked burning tail sweeps through the target and whips into a second enemy, spattering sulfur.
+    cues:
+      - { on: hit, only: primary, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.9, frames: [6, 13], note: "line its lower-right impact (lower-left when mirrored) up on the target" }
+      - { on: hit, only: others, fx: frost_knight_1, face: fromActor, tint: duo, scale: 0.7, delay: 150, frames: [6, 13], note: "line its lower-right impact (lower-left when mirrored) up on the target" }   # the 15-damage second enemy
+      - { on: hit, fx: burst_splatter_003, size: small, tint: duo, scale: 0.5, delay: 80 }
+      # Sulfur's default lands on the second enemy when the target had any.
+
+  shout.brimstone:
+    beat: The user bellows a ring of reek and waves of sulfur fumes roll onto every enemy; scrubbing that Sulfur off later bursts on them.
+    cues:
+      - { on: cast, fx: symmetrical_impact_002, tint: duo, scale: 1.4, layer: under }
+      - { on: travel, fx: necromancer_3, path: beam, tint: element2, tone: light, scale: 0.8, opacity: 0.85 }   # one wave per enemy
+      - { on: apply, status: stench_of_sulfur, fx: directional_smoke_burst_001, size: small, tint: duo, scale: 0.6, opacity: 0.7, delay: 200 }   # the stench hangs about the user
+      - { on: trigger, status: stench_of_sulfur, fx: directional_smoke_burst_001, at: target, size: small, tint: duo, scale: 0.6 }   # Sulfur cleansed: the stench puffs where it was
+      - { on: hit, fx: symmetrical_explosion_003, size: small, tint: duo, scale: 0.6, delay: 100 }
+      # Sulfur's default lands on every enemy.
+
+  withstand.brimstone:
+    beat: Plates of glowing cinder lock into a mantle over the user; if it's broken, the cinders scatter and the user catches flame.
+    cues:
+      - { on: apply, status: cinder_mantle, fx: fanfx_barrier, tint: duo, scale: 1.3, layer: under, opacity: 0.85, frames: [0, 12], note: "hold the finished panel a beat, then fade; never its shatter frames" }   # behind the portrait, so the plates frame the user
+      - { on: trigger, status: cinder_mantle_watch, fx: fanfx_barrier, tint: duo, scale: 1.3, layer: under, frames: [13, 25], speed: 1.5 }   # broken: the mantle shatters
+      - { on: trigger, status: cinder_mantle_watch, fx: scifi_spark_burst_001, size: small, scale: 0.8, delay: 100 }   # the plates scatter as cinders; Flameborn's default rises after
+      # A Shield of its own (not the base status), so Shield's bubble doesn't play.
+
+  taunt.brimstone:
+    beat: A sulfur crown flares over the user and fumes beckon from the other enemies; whoever helps an ally is snapped up by the pit.
+    cues:
+      - { on: cast, fx: symbol_crown_001, size: small, tint: duo, scale: 0.45, speed: 2 }   # Taunt's grammar: the crown names the user; Taunt's '!' marks the target
+      - { on: apply, status: lure_of_the_pit, fx: directional_smoke_burst_004, size: small, tint: duo, scale: 0.55, opacity: 0.6, stagger: 100 }
+      - { on: trigger, status: lure_of_the_pit, fx: directional_impact_003, size: small, tint: duo, scale: 0.6 }   # the pit snaps at the helper's feet
+      - { on: remove, status: taunt, fx: symmetrical_smoke_burst_002, size: small, tint: duo, scale: 0.45, opacity: 0.7 }   # the old target's Taunt fades; Taunt's '!' lands on the helper
+
+  titan.brimstone:
+    beat: A column of sulfur fire erupts under the user and the Pit Lord's burning skull flares over them; anyone who strikes them is spattered and set alight.
+    note: The portrait swells about 15% with a heavy shake as the skull flares.
+    cues:
+      - { on: cast, fx: epic_explosion_001, tint: duo, scale: 2.0 }
+      - { on: cast, fx: deathbringer_3, tint: duo, scale: 1.2, speed: 1.3, delay: 300 }
+      - { on: trigger, status: pit_lord, fx: round_firework_burst_002, size: small, tint: duo, scale: 0.55 }   # struck: sparks spit off the user
+      - { on: trigger, status: pit_lord, fx: burst_splatter_002, at: source, size: small, tint: duo, scale: 0.6, delay: 100 }
+      # Immune's default on the user; Sulfur's and Ignite's defaults on each attacker.
