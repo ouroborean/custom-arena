@@ -46,12 +46,9 @@ async function account(email: string) {
 const freeSkill = (c: Character) => c.skills.find((s) => !s.infusion)!.base;
 
 describe('inventory', () => {
-  it('new accounts get a starter kit (a Shard, a Skill, and a Skill forged with a Shard)', async () => {
+  it('new accounts start with no equipment: their Infused Recruits bring it (2026-10-09)', async () => {
     const { call } = await account('kit@example.com');
-    const items = (await call('GET', '/api/inventory')).json().items as { itemId: string; equippedOn: string | null }[];
-    const kinds = items.map((i) => i.itemId.split('+').map((c) => content.items[c]!.type).join('+')).sort();
-    expect(kinds).toEqual(['Shard', 'Skill', 'Skill+Shard']);
-    expect(items.every((i) => i.equippedOn === null)).toBe(true);
+    expect((await call('GET', '/api/inventory')).json().items).toEqual([]);
   });
 });
 

@@ -481,7 +481,8 @@ skill's prefix, with no name used twice.
   `longsword+wind_shard+sigil_momentum`, a Wind-Infused Longsword of Momentum. It rewrites owned
   instances, loadouts, presets, and match and season reward history.
 - **Story, achievement and tutorial rewards** name the same pieces.
-- **The starter kit** is a Shard, a Skill, and another Skill forged with a Shard.
+- **No starter kit** (2026-10-09): new accounts' first equipment comes with their Infused Recruits
+  (a Tier 2 class skill forged with a shard of the element, a class skill item and two shards).
 - **No free inventory:** the testing mode that gave every account free copies of all equipment was
   removed (2026-10-03); migration 0011 deletes those copies unless a character wears them. Accounts
-  build their equipment from the starter kit, drops and rewards, as players do.
+  build their equipment from Infused Recruits, drops and rewards, as players do.

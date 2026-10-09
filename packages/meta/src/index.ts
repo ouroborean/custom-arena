@@ -5,6 +5,7 @@ export * from './rules.js';
 export * from './character.js';
 export * from './generate.js';
 export * from './loadout.js';
+export * from './recruit.js';
 export * from './glicko2.js';
 export * from './economy.js';
 export * from './story.js';

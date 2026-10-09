@@ -252,8 +252,11 @@ export const api = {
   login: (email: string, password: string) => call<{ user: User }>('POST', '/auth/login', { email, password }),
   logout: () => call<void>('POST', '/auth/logout'),
 
-  characters: () => call<{ characters: Character[]; maxRoster: number }>('GET', '/characters'),
+  characters: () => call<{ characters: Character[]; maxRoster: number; infusedRecruits: number }>('GET', '/characters'),
   roll: () => call<{ character: Character; wallet: Wallet }>('POST', '/characters/roll'),
+  /** An Infused Recruit: the chosen class and element, recruited already equipped. */
+  recruitInfused: (classId: string, element: string) =>
+    call<{ character: Character; infusedRecruits: number }>('POST', '/characters/recruit-infused', { classId, element }),
   reorderRoster: (ids: string[]) => call<{ ids: string[] }>('PUT', '/characters/order', { ids }),
   rename: (id: string, name: string) => call<{ character: Character }>('PATCH', `/characters/${id}`, { name }),
   retire: (id: string) => call<void>('DELETE', `/characters/${id}`),

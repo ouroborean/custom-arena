@@ -6611,3 +6611,137 @@ a.ref-card-name:hover {
 .take-dialog p {
   margin: 0;
 }
+
+/* ------------------------------------------------------------ Infused Recruit (InfusedRecruit.tsx) */
+
+.infused-btn {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.infused-btn:hover:not(:disabled) {
+  background: var(--yellow);
+  color: var(--void);
+}
+
+.infused-dialog {
+  width: min(900px, 100%);
+}
+
+.infused-dialog h2 {
+  font-size: 28px;
+}
+
+.infused-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 18px;
+}
+
+.infused-pick h3 {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.infused-pick h3 + .infused-options {
+  margin-bottom: 16px;
+}
+
+.infused-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.infused-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--ink-2);
+  border: 2px solid var(--line-2);
+  color: var(--text);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.infused-option:hover {
+  border-color: var(--text);
+}
+
+.infused-option.on {
+  border-color: var(--yellow);
+  background: var(--ink-3);
+  box-shadow: inset 4px 0 0 var(--yellow);
+}
+
+.infused-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: var(--el, var(--line-2));
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.infused-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--ink-2);
+  border: 2px solid var(--line-2);
+}
+
+.infused-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.infused-name {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.infused-hero .muted {
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+
+.infused-block {
+  border-left: 4px solid var(--el, var(--line-2));
+  padding-left: 12px;
+}
+
+.infused-block h4 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: 0.04em;
+}
+
+.infused-block p {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.infused-block .infused-flavor {
+  font-style: italic;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .infused-body {
+    grid-template-columns: 1fr;
+  }
+  .infused-summary {
+    order: -1;
+  }
+}

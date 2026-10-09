@@ -4,7 +4,7 @@
 // @arena/meta rules) and again when the team is turned into engine specs. Forging, splitting and
 // salvage only take unequipped pieces.
 
-import { pick, pieceComponentIds, pieceDisplayName, pieceProblems, seedRng } from '@arena/engine';
+import { pieceComponentIds, pieceDisplayName, pieceProblems, seedRng } from '@arena/engine';
 import { EQUIPMENT_SLOTS, forge, splitPiece, resolveLoadout, salvageValue, tradeIn, withoutItem, type CharacterRecord, type Loadout, type ResolvedLoadout } from '@arena/meta';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -107,19 +107,6 @@ async function spareInstances(db: Db, userId: string, ids: string[]) {
   const equipped = await equippedOn(db, userId);
   if (rows.some((r) => equipped.has(r.id))) throw new HttpError(409, 'Unequip those items first');
   return rows;
-}
-
-/** Gives a new account a few pieces to try equipment with: a Shard, a Skill, and the two forged
- * from another Skill and Shard (drops, forging and gold come after). */
-export async function grantStarterKit(ctx: AppContext, userId: string): Promise<void> {
-  const rng = seedRng(ctx.rollSeed());
-  const ofType = (t: string) =>
-    Object.values(ctx.content.items)
-      .filter((i) => i.type === t)
-      .map((i) => i.id)
-      .sort();
-  const picks = [pick(rng, ofType('Shard')), pick(rng, ofType('Skill')), `${pick(rng, ofType('Skill'))}+${pick(rng, ofType('Shard'))}`];
-  await ctx.db.insert(itemInstances).values(picks.map((itemId) => ({ userId, itemId, source: 'starter' })));
 }
 
 async function ownedCharacter(ctx: AppContext, userId: string, id: string): Promise<CharacterRow> {

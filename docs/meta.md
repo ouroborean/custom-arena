@@ -111,7 +111,9 @@ skills, shards, sigils), element and "only what fits".
 New accounts get:
 - **No characters,** and **1000 Gold**: enough to recruit 10 (a recruit costs 100). Their first three
   recruits become the active team.
-- **A starter kit:** a Shard, a Skill, and another Skill forged with a Shard.
+- **3 Infused Recruits** (2026-10-09, replacing the random starter kit): each recruits the class and
+  element the player picks, equipped with a class skill forged with a shard of that element, another
+  class skill item and two more shards, every infusion placed.
 
 After that:
 - **Recruiting costs Gold,** up to 60 characters.
