@@ -6,7 +6,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { describePiece, fusionOf, type PieceDef } from '@arena/engine';
+import { byElementOrder, describePiece, fusionOf, type PieceDef } from '@arena/engine';
 import {
   canInfuse,
   canPrepare,
@@ -41,7 +41,7 @@ export const PIECE_GROUPS: { id: string; label: string; kinds: readonly PieceKin
   { id: 'sigils', label: 'Sigils', kinds: ['Sigil'] },
 ];
 export const KIND_ORDER: readonly PieceKind[] = ['Forged', 'Skill', 'Shard', 'Sigil'];
-export const ELEMENTS = [...new Set(Object.values(content.items).flatMap((i) => i.infusions.map((inf) => inf.element)))].sort();
+export const ELEMENTS = [...new Set(Object.values(content.items).flatMap((i) => i.infusions.map((inf) => inf.element)))].sort(byElementOrder);
 
 /** Words a piece can be found by: its name, kind, components, skills, elements and passive. */
 export function pieceSearchText(d: PieceDef): string {
@@ -496,7 +496,7 @@ function InfusionPanel({
   resolved: ResolvedLoadout;
   onChange: (next: Loadout) => void;
 }) {
-  const pool = Object.entries(resolved.pool).sort(([a], [b]) => a.localeCompare(b));
+  const pool = Object.entries(resolved.pool).sort(([a], [b]) => byElementOrder(a, b));
   const total = pool.reduce((n, [, k]) => n + k, 0);
   const left = Object.values(resolved.unassigned).reduce((n, k) => n + k, 0);
   const assign = (skill: string, element: string) => onChange({ ...draft, infusions: [...draft.infusions, { skill, element }] });

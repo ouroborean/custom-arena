@@ -8,7 +8,7 @@ import { existsSync, readdirSync } from 'node:fs';
 
 export const PORTRAIT_DIR = new URL('../../character_images/', import.meta.url);
 
-export const PORTRAIT_ELEMENTS = ['fire', 'ice', 'water', 'lightning', 'wind', 'poison', 'earth', 'holy', 'unholy', 'shadow'] as const;
+export const PORTRAIT_ELEMENTS = ['fire', 'ice', 'wind', 'lightning', 'water', 'earth', 'poison', 'shadow', 'holy', 'unholy'] as const;
 export const PORTRAIT_CLASSES = ['warrior', 'knight', 'druid', 'ranger', 'monk', 'mage', 'warlock', 'rogue', 'priest', 'paladin'] as const;
 
 const FILE = /^([a-z]+)prof\.(png|webp|jpe?g)$/;
